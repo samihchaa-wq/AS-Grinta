@@ -8,13 +8,14 @@ void main() {
         'first_name': 'Jean',
         'last_name': 'Dupont',
         'avatar_path': '/avatars/jean.png',
-        'role': 'pronostiqueur',
+        'role': 'admin',
         'is_goalkeeper': true,
         'is_active': true,
       });
 
       expect(profile.fullName, 'Jean Dupont');
-      expect(profile.role, 'pronostiqueur');
+      expect(profile.role, AuthRole.admin);
+      expect(profile.role.isAdmin, isTrue);
       expect(profile.isGoalkeeper, isTrue);
       expect(profile.isActive, isTrue);
     });

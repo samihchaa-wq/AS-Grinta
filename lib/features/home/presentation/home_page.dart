@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,8 +42,18 @@ class HomePage extends ConsumerWidget {
                 children: [
                   const Text('Profil actif'),
                   const SizedBox(height: 8),
-                  Text('Rôle : ${authState.profile?.role ?? 'inconnu'}'),
+                  Text('Rôle : ${authState.profile?.role.label ?? 'inconnu'}'),
                   Text('Gardien : ${authState.profile?.isGoalkeeper == true ? 'Oui' : 'Non'}'),
+                  if (authState.profile?.role == AuthRole.admin) ...[
+                    const SizedBox(height: 8),
+                    const Text('Vous disposez des droits d’administration.'),
+                  ] else if (authState.profile?.role == AuthRole.moderateur) ...[
+                    const SizedBox(height: 8),
+                    const Text('Vous disposez des droits de modération.'),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    const Text('Vous êtes un pronostiqueur standard.'),
+                  ],
                 ],
               ),
             ),

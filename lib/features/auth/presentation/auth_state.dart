@@ -23,12 +23,13 @@ class AuthState {
     bool? isAuthenticated,
     AuthProfile? profile,
     String? error,
+    bool clearError = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       profile: profile ?? this.profile,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
@@ -61,7 +62,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> signIn({required String email, required String password}) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.signInWithPassword(email: email, password: password);
       await _refreshProfile();
@@ -76,7 +77,7 @@ class AuthController extends StateNotifier<AuthState> {
     required String firstName,
     required String lastName,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.signUp(
         email: email,
@@ -91,7 +92,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> resetPassword({required String email}) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.resetPassword(email: email);
       state = state.copyWith(isLoading: false, error: null);
@@ -101,7 +102,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.signOut();
       state = const AuthState(isLoading: false);
