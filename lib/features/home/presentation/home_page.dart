@@ -15,6 +15,11 @@ class HomePage extends ConsumerWidget {
         title: const Text('AS Grinta'),
         actions: [
           IconButton(
+            tooltip: 'Profil',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => Navigator.of(context).pushNamed('/profile'),
+          ),
+          IconButton(
             tooltip: 'Déconnexion',
             icon: const Icon(Icons.logout_rounded),
             onPressed: () async {

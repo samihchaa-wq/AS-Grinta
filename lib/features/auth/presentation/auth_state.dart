@@ -111,6 +111,24 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String avatarPath,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final profile = await _repository.updateProfile(
+        firstName: firstName,
+        lastName: lastName,
+        avatarPath: avatarPath,
+      );
+      state = state.copyWith(isLoading: false, profile: profile, error: null);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: error.toString());
+    }
+  }
+
   @override
   void dispose() {
     _authSubscription?.cancel();

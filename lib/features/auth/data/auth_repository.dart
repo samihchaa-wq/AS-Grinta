@@ -66,6 +66,35 @@ class AuthRepository {
 
     return AuthProfile.fromJson(Map<String, dynamic>.from(response));
   }
+
+  Future<AuthProfile> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String avatarPath,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw StateError('Aucun utilisateur connecté.');
+    }
+
+    final updateData = <String, dynamic>{
+      'first_name': firstName,
+      'last_name': lastName,
+      'avatar_path': avatarPath.isEmpty ? null : avatarPath,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    await _client.from('profiles').update(updateData).eq('id', user.id);
+
+    return AuthProfile(
+      firstName: firstName,
+      lastName: lastName,
+      avatarPath: avatarPath.isEmpty ? null : avatarPath,
+      role: AuthRole.pronostiqueur,
+      isGoalkeeper: false,
+      isActive: true,
+    );
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
