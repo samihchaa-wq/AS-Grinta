@@ -154,24 +154,21 @@ class _MatchCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
-                      '${match.seasonName ?? 'Saison'} • ${match.opponentName ?? 'Adversaire'}',
+                      _scoreLine(),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Chip(label: Text(match.statusLabel)),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text('Date : ${_formatKickoff(match.kickoffAt)}'),
-              Text('Lieu : ${match.locationLabel}'),
-              Text('Durée : ${match.plannedDurationMinutes} min'),
-              Text(
-                'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}',
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+              Text(_formatKickoff(match.kickoffAt)),
+              const SizedBox(height: 14),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -247,6 +244,17 @@ class _MatchCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _scoreLine() {
+    final opponent = match.opponentName ?? 'Adversaire';
+    final grintaScore = match.grintaScore?.toString() ?? 'X';
+    final opponentScore = match.opponentScore?.toString() ?? 'X';
+
+    if (match.isHome) {
+      return 'AS Grinta $grintaScore - $opponentScore $opponent';
+    }
+    return '$opponent $opponentScore - $grintaScore AS Grinta';
   }
 
   String _formatKickoff(DateTime value) {
