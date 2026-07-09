@@ -105,6 +105,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   canDelete: isModerator,
                   canEdit: isAdmin && !match.isArchived,
                   canManageLive: isAdmin && !match.isArchived,
+                  canRecoverLive:
+                      isModerator && match.status == 'en_cours',
                   canFinalize: isAdmin && !match.isArchived,
                   canSelectParticipants: isAdmin && !match.isArchived,
                   canArchive: isAdmin && !match.isArchived,
@@ -123,6 +125,7 @@ class _MatchCard extends StatelessWidget {
     required this.canDelete,
     required this.canEdit,
     required this.canManageLive,
+    required this.canRecoverLive,
     required this.canFinalize,
     required this.canSelectParticipants,
     required this.canArchive,
@@ -132,6 +135,7 @@ class _MatchCard extends StatelessWidget {
   final bool canDelete;
   final bool canEdit;
   final bool canManageLive;
+  final bool canRecoverLive;
   final bool canFinalize;
   final bool canSelectParticipants;
   final bool canArchive;
@@ -213,6 +217,12 @@ class _MatchCard extends StatelessWidget {
                       onPressed: () => context.push('/live/${match.id}'),
                       icon: const Icon(Icons.sensors),
                       label: const Text('Live'),
+                    ),
+                  if (canRecoverLive)
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/live/${match.id}'),
+                      icon: const Icon(Icons.admin_panel_settings_outlined),
+                      label: const Text('Reprise forcée du Live'),
                     ),
                   if (canFinalize)
                     OutlinedButton.icon(
