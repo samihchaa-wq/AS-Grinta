@@ -1,4 +1,4 @@
-enum AuthRole { pronostiqueur, admin, moderateur }
+enum AuthRole { pronostiqueur, admin, moderateur, coach }
 
 enum ProfileStatus { active, archived }
 
@@ -9,14 +9,18 @@ extension AuthRoleX on AuthRole {
         return 'Admin';
       case AuthRole.moderateur:
         return 'Modérateur';
+      case AuthRole.coach:
+        return 'Coach';
       case AuthRole.pronostiqueur:
-        return 'Pronostiqueur';
+        return 'Joueur';
     }
   }
 
   bool get isAdmin => this == AuthRole.admin;
   bool get isModerator => this == AuthRole.moderateur;
+  bool get isCoach => this == AuthRole.coach;
   bool get isPronostiqueur => this == AuthRole.pronostiqueur;
+  bool get isStaff => isAdmin || isModerator || isCoach;
 }
 
 class AuthProfile {
@@ -38,8 +42,6 @@ class AuthProfile {
   final String? email;
   final String firstName;
   final String lastName;
-
-  /// Surnom d'affichage. Si null, on replie sur prénom + nom.
   final String? surnom;
   final String? avatarPath;
   final AuthRole role;
@@ -50,10 +52,12 @@ class AuthProfile {
 
   String get fullName => '$firstName $lastName'.trim();
 
-  /// Nom affiché dans toute l'application.
   String get displayName {
-    final s = surnom?.trim() ?? '';
-    return s.isNotEmpty ? s : fullName;
+    final nickname = surnom?.trim() ?? '';
+    if (nickname.isNotEmpty) return nickname;
+    final first = firstName.trim();
+    if (first.isNotEmpty) return first;
+    return fullName.isEmpty ? 'Utilisateur' : fullName;
   }
 
   String? get photoUrl => avatarPath;
@@ -66,6 +70,7 @@ class AuthProfile {
     final role = switch (roleValue) {
       'admin' => AuthRole.admin,
       'moderateur' || 'moderator' => AuthRole.moderateur,
+      'coach' => AuthRole.coach,
       _ => AuthRole.pronostiqueur,
     };
 

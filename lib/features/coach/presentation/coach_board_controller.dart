@@ -2,27 +2,34 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/coach/data/coach_live_repository.dart';
 import 'package:as_grinta/features/coach/domain/coach_board.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CoachBoardController extends StateNotifier<CoachBoardState> {
-  CoachBoardController(this._client) : super(CoachBoardState.initial()) {
+  CoachBoardController(
+    this._client,
+    this._repository, {
+    required bool canEdit,
+  }) : super(CoachBoardState.initial(canEdit: canEdit)) {
     _initialize();
   }
 
   final SupabaseClient _client;
+  final CoachLiveRepository _repository;
   Timer? _ticker;
-  int _eventCounter = 0;
-
-  String _nextEventId() => 'evt-${++_eventCounter}-${DateTime.now().millisecondsSinceEpoch}';
+  StreamSubscription<CoachLiveSession?>? _sessionSubscription;
+  StreamSubscription<List<CoachLiveEventRecord>>? _eventsSubscription;
+  bool _persisting = false;
 
   Future<void> _initialize() async {
     try {
-      // Charger les joueurs actifs
       final profilesResponse = await _client
           .from('profiles')
-          .select('id, first_name, last_name, surnom, is_goalkeeper, status')
+          .select()
           .eq('status', 'active')
           .eq('role', 'pronostiqueur')
           .order('first_name')
@@ -35,333 +42,333 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
         final lastName = (map['last_name'] ?? '').toString().trim();
         final name = '$firstName $lastName'.trim();
         if (name.isEmpty) continue;
-        players.add(CoachPlayer(
-          id: map['id'].toString(),
-          name: name.isEmpty ? 'Joueur sans nom' : name,
-          surnom: map['surnom']?.toString(),
-          isGoalkeeper: map['is_goalkeeper'] == true,
-        ));
+        players.add(
+          CoachPlayer(
+            id: map['id'].toString(),
+            name: name,
+            surnom: map['surnom']?.toString(),
+            isGoalkeeper: map['is_goalkeeper'] == true,
+          ),
+        );
       }
 
-      // Charger les formations depuis Supabase
-      var formationCode = '4-4-2';
-      var formationSlots = hardcodedFormationSlots(formationCode);
-
-      try {
-        final formationsResponse = await _client
-            .from('formations')
-            .select('code, label, slots')
-            .order('code');
-
-        final formations = <Map<String, dynamic>>[];
-        for (final row in formationsResponse as List) {
-          formations.add(Map<String, dynamic>.from(row));
-        }
-
-        if (formations.isNotEmpty) {
-          final first = formations.first;
-          formationCode = first['code'].toString();
-          final rawSlots = first['slots'];
-          if (rawSlots is List) {
-            formationSlots = rawSlots
-                .map((s) => Map<String, dynamic>.from(s as Map))
-                .map((s) => s['code']?.toString())
-                .whereType<String>()
-                .where((c) => c.isNotEmpty)
-                .toList();
-          }
-        }
-      } catch (_) {
-        // La table formations peut être absente, utiliser le fallback
-      }
-
-      if (formationSlots.isEmpty) {
-        formationSlots = hardcodedFormationSlots(formationCode);
-      }
-
-      // Remplir le terrain avec les joueurs (GK en premier si présent)
-      final sorted = [...players]..sort((a, b) {
-          if (a.isGoalkeeper && !b.isGoalkeeper) return -1;
-          if (!a.isGoalkeeper && b.isGoalkeeper) return 1;
-          return a.name.compareTo(b.name);
-        });
-
-      final lineup = <String, String>{};
-      final remainingIds = sorted.map((p) => p.id).toList();
-
-      for (final slot in formationSlots) {
-        if (remainingIds.isEmpty) break;
-        lineup[slot] = remainingIds.removeAt(0);
+      final matchId = await _repository.findCurrentMatchId();
+      if (matchId == null) {
+        state = state.copyWith(
+          players: players,
+          bench: players.map((p) => p.id).toList(),
+          isLoading: false,
+          error: 'Aucun match à venir ou en cours.',
+        );
+        return;
       }
 
       state = state.copyWith(
         players: players,
-        lineup: lineup,
-        bench: remainingIds,
-        formationCode: formationCode,
-        formationSlots: formationSlots,
+        matchId: matchId,
+        formationCode: '4-3-3',
+        formationSlots: hardcodedFormationSlots('4-3-3'),
+        lineup: const {},
+        bench: players.map((p) => p.id).toList(),
         isLoading: false,
         clearError: true,
       );
-    } catch (error) {
-      state = state.copyWith(
-        isLoading: false,
-        error: error.toString(),
+
+      _sessionSubscription = _repository.watchSession(matchId).listen(
+        (session) async {
+          if (session == null) {
+            if (state.canEdit) await _persistSession();
+            return;
+          }
+          state = state.copyWith(
+            formationCode: session.formationCode,
+            formationSlots: hardcodedFormationSlots(session.formationCode),
+            lineup: session.lineup,
+            bench: session.bench,
+            scoreUs: session.scoreUs,
+            scoreThem: session.scoreThem,
+            elapsedSeconds: session.elapsedSeconds,
+            plannedDurationMinutes: session.plannedDurationMinutes,
+            isRunning: session.isRunning,
+            clearError: true,
+          );
+          if (session.isRunning) {
+            _startLocalTicker();
+          } else {
+            _stopLocalTicker();
+          }
+        },
+        onError: (Object error) {
+          state = state.copyWith(error: error.toString());
+        },
       );
+
+      _eventsSubscription = _repository.watchEvents(matchId).listen(
+        (records) {
+          final events = records.map(_mapEvent).toList(growable: false);
+          final scoreUs = events.where((e) => e.type == CoachEventType.goalUs).length;
+          final scoreThem =
+              events.where((e) => e.type == CoachEventType.goalThem).length;
+          state = state.copyWith(
+            events: events,
+            scoreUs: scoreUs,
+            scoreThem: scoreThem,
+          );
+        },
+        onError: (Object error) {
+          state = state.copyWith(error: error.toString());
+        },
+      );
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: error.toString());
     }
   }
 
-  // ─── Formation ──────────────────────────────────────────────────────────────
+  CoachEvent _mapEvent(CoachLiveEventRecord record) {
+    final type = switch (record.type) {
+      'goal_us' => CoachEventType.goalUs,
+      'goal_them' => CoachEventType.goalThem,
+      'substitution' => CoachEventType.substitution,
+      _ => CoachEventType.note,
+    };
+    return CoachEvent(
+      id: record.id,
+      type: type,
+      minute: record.minute,
+      playerId: record.scorerId,
+      assistPlayerId: record.assistId,
+      playerInId: record.playerInId,
+      playerOutId: record.playerOutId,
+    );
+  }
+
+  Future<void> _persistSession() async {
+    if (!state.canEdit || state.matchId == null || _persisting) return;
+    _persisting = true;
+    try {
+      await _repository.saveSession(
+        CoachLiveSession(
+          matchId: state.matchId!,
+          formationCode: state.formationCode,
+          lineup: state.lineup,
+          bench: state.bench,
+          scoreUs: state.scoreUs,
+          scoreThem: state.scoreThem,
+          elapsedSeconds: state.elapsedSeconds,
+          plannedDurationMinutes: state.plannedDurationMinutes,
+          isRunning: state.isRunning,
+        ),
+      );
+    } finally {
+      _persisting = false;
+    }
+  }
 
   Future<void> setFormation(String code, List<String> slots) async {
-    if (slots.isEmpty) return;
-
+    if (!state.canEdit || slots.isEmpty) return;
     final currentLineup = Map<String, String>.from(state.lineup);
     final newLineup = <String, String>{};
     final occupiedIds = <String>{};
-
-    // Conserver les joueurs dans les slots qui existent dans la nouvelle formation
     for (final slot in slots) {
       final playerId = currentLineup[slot];
-      if (playerId != null && !occupiedIds.contains(playerId)) {
+      if (playerId != null && occupiedIds.add(playerId)) {
         newLineup[slot] = playerId;
-        occupiedIds.add(playerId);
       }
     }
-
-    // Tous les joueurs non placés vont au banc
     final allIds = state.players.map((p) => p.id).toSet();
-    final newBenchSet = allIds.difference(occupiedIds);
-
-    final currentBench = List<String>.from(state.bench);
+    final benchSet = allIds.difference(occupiedIds);
     final orderedBench = [
-      ...currentBench.where(newBenchSet.contains),
-      ...newBenchSet.where((id) => !currentBench.contains(id)),
+      ...state.bench.where(benchSet.contains),
+      ...benchSet.where((id) => !state.bench.contains(id)),
     ];
-
     state = state.copyWith(
       formationCode: code,
       formationSlots: slots,
       lineup: newLineup,
       bench: orderedBench,
     );
+    await _persistSession();
   }
 
-  // ─── Déplacements ────────────────────────────────────────────────────────────
-
-  void movePlayer(String playerId, String slotCode) {
+  Future<void> movePlayer(String playerId, String slotCode) async {
+    if (!state.canEdit) return;
     if (slotCode == 'bench') {
-      sendToBench(playerId);
+      await sendToBench(playerId);
       return;
     }
-
     final lineup = Map<String, String>.from(state.lineup);
     final bench = List<String>.from(state.bench);
-
     final currentSlot =
         lineup.entries.where((e) => e.value == playerId).firstOrNull?.key;
-    if (currentSlot == slotCode) return; // Pas de changement
-
+    if (currentSlot == slotCode) return;
     final occupiedBy = lineup[slotCode];
-
     if (occupiedBy != null && occupiedBy != playerId) {
-      // Échange avec le joueur en place
       if (currentSlot != null) {
         lineup[currentSlot] = occupiedBy;
-      } else {
-        // Le joueur vient du banc, envoyer l'occupant au banc
-        if (!bench.contains(occupiedBy)) bench.add(occupiedBy);
+      } else if (!bench.contains(occupiedBy)) {
+        bench.add(occupiedBy);
       }
     } else if (currentSlot != null) {
       lineup.remove(currentSlot);
     }
-
     bench.remove(playerId);
     lineup[slotCode] = playerId;
-
     state = state.copyWith(lineup: lineup, bench: bench);
+    await _persistSession();
   }
 
-  void sendToBench(String playerId) {
-    final lineup = Map<String, String>.from(state.lineup);
+  Future<void> sendToBench(String playerId) async {
+    if (!state.canEdit) return;
+    final lineup = Map<String, String>.from(state.lineup)
+      ..removeWhere((_, value) => value == playerId);
     final bench = List<String>.from(state.bench);
-    lineup.removeWhere((_, v) => v == playerId);
     if (!bench.contains(playerId)) bench.add(playerId);
     state = state.copyWith(lineup: lineup, bench: bench);
+    await _persistSession();
   }
 
-  // ─── Chronomètre ─────────────────────────────────────────────────────────────
-
-  void startTimer() {
-    if (state.isRunning) return;
-    state = state.copyWith(isRunning: true);
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
+  void _startLocalTicker() {
+    _ticker ??= Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || !state.isRunning) return;
+      state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
+      if (state.canEdit && timer.tick % 5 == 0) {
+        unawaited(_persistSession());
       }
     });
   }
 
-  void pauseTimer() {
+  void _stopLocalTicker() {
     _ticker?.cancel();
     _ticker = null;
+  }
+
+  Future<void> startTimer() async {
+    if (!state.canEdit || state.isRunning || state.lineup.length != 11) return;
+    state = state.copyWith(isRunning: true);
+    _startLocalTicker();
+    await _persistSession();
+  }
+
+  Future<void> pauseTimer() async {
+    if (!state.canEdit) return;
+    _stopLocalTicker();
     state = state.copyWith(isRunning: false);
+    await _persistSession();
   }
 
-  void resetTimer() {
-    _ticker?.cancel();
-    _ticker = null;
+  Future<void> resetTimer() async {
+    if (!state.canEdit) return;
+    _stopLocalTicker();
     state = state.copyWith(isRunning: false, elapsedSeconds: 0);
+    await _persistSession();
   }
 
-  void setDuration(int minutes) {
+  Future<void> goToHalfTime() async {
+    if (!state.canEdit) return;
+    final half = (state.plannedDurationMinutes * 60 / 2).round();
+    state = state.copyWith(isRunning: false, elapsedSeconds: half);
+    _stopLocalTicker();
+    await _persistSession();
+  }
+
+  Future<void> endMatch() async {
+    if (!state.canEdit) return;
+    _stopLocalTicker();
     state = state.copyWith(
-      plannedDurationMinutes: minutes.clamp(1, 200),
+      isRunning: false,
+      elapsedSeconds: state.plannedDurationMinutes * 60,
     );
+    await _persistSession();
+  }
+
+  Future<void> setDuration(int minutes) async {
+    if (!state.canEdit) return;
+    state = state.copyWith(plannedDurationMinutes: minutes.clamp(1, 200));
+    await _persistSession();
   }
 
   int get _currentMinute => max(1, (state.elapsedSeconds / 60).floor() + 1);
 
-  // ─── Événements ──────────────────────────────────────────────────────────────
-
-  void addGoalUs({String? scorerId}) {
-    final events = List<CoachEvent>.from(state.events)
-      ..add(CoachEvent(
-        id: _nextEventId(),
-        type: CoachEventType.goalUs,
-        minute: _currentMinute,
-        playerId: scorerId,
-      ));
-    state = state.copyWith(
-      events: events,
-      scoreUs: state.scoreUs + 1,
+  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: true,
+      scorerId: scorerId,
+      assistId: assistId,
     );
   }
 
-  void addGoalThem() {
-    final events = List<CoachEvent>.from(state.events)
-      ..add(CoachEvent(
-        id: _nextEventId(),
-        type: CoachEventType.goalThem,
-        minute: _currentMinute,
-      ));
-    state = state.copyWith(
-      events: events,
-      scoreThem: state.scoreThem + 1,
+  Future<void> addGoalThem() async {
+    if (!state.canEdit || state.matchId == null) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: false,
     );
   }
 
-  void addSubstitution({
+  Future<void> addSubstitution({
     required String inPlayerId,
     required String outPlayerId,
-  }) {
-    if (inPlayerId == outPlayerId) return;
-
-    final events = List<CoachEvent>.from(state.events)
-      ..add(CoachEvent(
-        id: _nextEventId(),
-        type: CoachEventType.substitution,
-        minute: _currentMinute,
-        playerInId: inPlayerId,
-        playerOutId: outPlayerId,
-      ));
-
-    // Mettre à jour le terrain
+  }) async {
+    if (!state.canEdit || state.matchId == null || inPlayerId == outPlayerId) {
+      return;
+    }
     final lineup = Map<String, String>.from(state.lineup);
     final bench = List<String>.from(state.bench);
-
-    final slot = lineup.entries
-        .where((e) => e.value == outPlayerId)
-        .firstOrNull
-        ?.key;
+    final slot =
+        lineup.entries.where((e) => e.value == outPlayerId).firstOrNull?.key;
     if (slot != null) {
       lineup[slot] = inPlayerId;
       bench.remove(inPlayerId);
       if (!bench.contains(outPlayerId)) bench.add(outPlayerId);
+      state = state.copyWith(lineup: lineup, bench: bench);
+      await _persistSession();
     }
-
-    state = state.copyWith(events: events, lineup: lineup, bench: bench);
-  }
-
-  void addCard({required String playerId, required bool isRed}) {
-    final events = List<CoachEvent>.from(state.events)
-      ..add(CoachEvent(
-        id: _nextEventId(),
-        type: isRed ? CoachEventType.redCard : CoachEventType.yellowCard,
-        minute: _currentMinute,
-        playerId: playerId,
-      ));
-    state = state.copyWith(events: events);
-  }
-
-  void addNote(String text) {
-    if (text.trim().isEmpty) return;
-    final events = List<CoachEvent>.from(state.events)
-      ..add(CoachEvent(
-        id: _nextEventId(),
-        type: CoachEventType.note,
-        minute: _currentMinute,
-        text: text.trim(),
-      ));
-    state = state.copyWith(events: events);
-  }
-
-  void removeEvent(String eventId) {
-    final events = List<CoachEvent>.from(state.events)
-      ..removeWhere((e) => e.id == eventId);
-
-    var scoreUs = 0;
-    var scoreThem = 0;
-    for (final event in events) {
-      if (event.type == CoachEventType.goalUs) scoreUs++;
-      if (event.type == CoachEventType.goalThem) scoreThem++;
-    }
-
-    state = state.copyWith(
-      events: events,
-      scoreUs: scoreUs,
-      scoreThem: scoreThem,
+    await _repository.addSubstitution(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      playerInId: inPlayerId,
+      playerOutId: outPlayerId,
     );
   }
 
-  void resetBoard() {
-    _ticker?.cancel();
-    _ticker = null;
+  void addCard({required String playerId, required bool isRed}) {}
 
-    // Remettre toutes les valeurs à zéro en conservant les joueurs/formation
-    final sorted = [...state.players]..sort((a, b) {
-        if (a.isGoalkeeper && !b.isGoalkeeper) return -1;
-        if (!a.isGoalkeeper && b.isGoalkeeper) return 1;
-        return a.name.compareTo(b.name);
-      });
+  void addNote(String text) {}
 
-    final lineup = <String, String>{};
-    final remaining = sorted.map((p) => p.id).toList();
-    for (final slot in state.formationSlots) {
-      if (remaining.isEmpty) break;
-      lineup[slot] = remaining.removeAt(0);
-    }
+  Future<void> removeEvent(String eventId) async {
+    if (!state.canEdit) return;
+    await _repository.deleteEvent(eventId);
+  }
 
-    state = CoachBoardState(
-      players: state.players,
-      lineup: lineup,
-      bench: remaining,
-      formationCode: state.formationCode,
-      formationSlots: state.formationSlots,
-      events: const [],
+  Future<void> resetBoard() async {
+    if (!state.canEdit) return;
+    _stopLocalTicker();
+    state = state.copyWith(
+      lineup: const {},
+      bench: state.players.map((p) => p.id).toList(),
+      formationCode: '4-3-3',
+      formationSlots: hardcodedFormationSlots('4-3-3'),
       isRunning: false,
       elapsedSeconds: 0,
-      plannedDurationMinutes: state.plannedDurationMinutes,
       scoreUs: 0,
       scoreThem: 0,
-      isLoading: false,
-      error: null,
+      clearError: true,
     );
+    for (final event in [...state.events]) {
+      await _repository.deleteEvent(event.id);
+    }
+    await _persistSession();
   }
 
   @override
   void dispose() {
-    _ticker?.cancel();
+    _stopLocalTicker();
+    _sessionSubscription?.cancel();
+    _eventsSubscription?.cancel();
     super.dispose();
   }
 }
@@ -370,10 +377,16 @@ extension _IterX<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
 
-/// autoDispose garantit que le Timer.periodic est annulé dès que
-/// la page /coach est quittée et que plus aucun listener n'est actif.
 final coachBoardControllerProvider =
     StateNotifierProvider.autoDispose<CoachBoardController, CoachBoardState>(
-        (ref) {
-  return CoachBoardController(ref.watch(supabaseClientProvider));
-});
+  (ref) {
+    final canEdit = ref.watch(
+      authControllerProvider.select((state) => state.profile?.role.isStaff == true),
+    );
+    return CoachBoardController(
+      ref.watch(supabaseClientProvider),
+      ref.watch(coachLiveRepositoryProvider),
+      canEdit: canEdit,
+    );
+  },
+);

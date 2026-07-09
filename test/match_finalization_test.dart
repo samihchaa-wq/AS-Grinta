@@ -62,7 +62,7 @@ void main() {
       );
     });
 
-    test('computes points from odds using the requested formula', () {
+    test('computes points using the central prediction scoring rules', () {
       expect(
         MatchFinalizationRules.calculatePoints(
           odds: 2.0,
@@ -71,7 +71,7 @@ void main() {
           actualGrintaScore: 1,
           actualOpponentScore: 0,
         ),
-        30.0,
+        40.0,
       );
       expect(
         MatchFinalizationRules.calculatePoints(
@@ -81,7 +81,7 @@ void main() {
           actualGrintaScore: 1,
           actualOpponentScore: 0,
         ),
-        20.0,
+        30.0,
       );
       expect(
         MatchFinalizationRules.calculatePoints(

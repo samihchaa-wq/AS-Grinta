@@ -6,7 +6,7 @@ import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_up_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/features/coach/presentation/coach_board_page.dart';
+import 'package:as_grinta/features/coach/presentation/coach_live_page.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/live/presentation/live_gameplay_page.dart';
 import 'package:as_grinta/features/live/presentation/live_page.dart';
@@ -41,8 +41,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (location == '/') return '/home';
 
       final role = authState.profile?.role;
-      final isStaff =
-          role == AuthRole.admin || role == AuthRole.moderateur;
+      final isStaff = role?.isStaff == true;
 
       final isLiveOverviewRoute = RegExp(r'^/live/[^/]+$').hasMatch(location);
       final isLiveGameplayRoute = location.endsWith('/gameplay');
@@ -53,17 +52,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isCorrectionRoute =
           location.startsWith('/matches/') && location.endsWith('/correction');
       final isAdminRoute = location == '/admin';
-      final isCoachRoute = location == '/coach';
       final isPlayersRoute = location == '/players';
 
       if ((isLiveOverviewRoute || isLiveGameplayRoute) && !isStaff) {
         return '/matches';
       }
-      if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
-      if (isParticipantsRoute && role != AuthRole.admin) return '/matches';
-      if (isCorrectionRoute && role != AuthRole.moderateur) return '/matches';
-      if (isAdminRoute && role != AuthRole.moderateur) return '/home';
-      if (isCoachRoute && !isStaff) return '/home';
+      if (isFinalizationRoute && !isStaff) return '/matches';
+      if (isParticipantsRoute && !isStaff) return '/matches';
+      if (isCorrectionRoute && !isStaff) return '/matches';
+      if (isAdminRoute && !isStaff) return '/home';
       if (isPlayersRoute && !isStaff) return '/home';
 
       return null;
@@ -78,7 +75,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
-          GoRoute(path: '/coach', builder: (_, __) => const CoachBoardPage()),
+          GoRoute(path: '/coach', builder: (_, __) => const CoachLivePage()),
           GoRoute(path: '/players', builder: (_, __) => const PlayersPage()),
           GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
           GoRoute(
