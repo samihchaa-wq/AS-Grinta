@@ -1,8 +1,7 @@
 name: One-shot Flutter repair
 
 on:
-  push:
-    branches: [main]
+  pull_request:
     paths:
       - .github/workflows/repair_flutter.yml
 
@@ -13,9 +12,10 @@ jobs:
   repair:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout pull request branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Setup Flutter
@@ -62,7 +62,7 @@ jobs:
       - name: Format
         run: dart format lib test
 
-      - name: Commit repairs
+      - name: Commit repairs to pull request branch
         run: |
           if git diff --quiet; then
             echo "No source repair required"
@@ -72,7 +72,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib test pubspec.lock
           git commit -m "fix: apply Flutter analyzer migrations"
-          git push origin HEAD:main
+          git push origin HEAD:${{ github.head_ref }}
 
       - name: Analyze repaired source
         shell: bash
