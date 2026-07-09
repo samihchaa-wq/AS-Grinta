@@ -52,7 +52,7 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     required int delta,
   }) {
     final items = state.items.map((item) {
-      if (item.matchId != matchId || item.isClosed) return item;
+      if (item.matchId != matchId || !item.canEdit) return item;
       final nextGrinta = grinta
           ? (item.scoreGrinta + delta).clamp(0, 99)
           : item.scoreGrinta;
@@ -69,7 +69,7 @@ class PredictionsController extends StateNotifier<PredictionsState> {
 
   Future<void> save(String matchId) async {
     final item = state.items.where((value) => value.matchId == matchId).firstOrNull;
-    if (item == null || item.isClosed) return;
+    if (item == null || !item.canEdit) return;
 
     state = state.copyWith(savingMatchId: matchId, clearError: true);
     try {
