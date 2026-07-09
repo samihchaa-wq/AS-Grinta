@@ -75,13 +75,15 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
         );
   }
 
-  bool _canWrite() {
+  String? _controllerSessionId() {
     final authState = _ref.read(authControllerProvider);
     final currentUserId = _ref.read(supabaseClientProvider).auth.currentUser?.id;
     final controllerSessionId = _ref.read(liveControlSessionIdProvider);
     final liveSession = _ref.read(liveControllerProvider).session;
+    final role = authState.profile?.role;
+    final roleAllowed = role == AuthRole.admin || role == AuthRole.moderateur;
 
-    final allowed = authState.profile?.role == AuthRole.admin &&
+    final allowed = roleAllowed &&
         currentUserId != null &&
         controllerSessionId != null &&
         liveSession?.controllerProfileId == currentUserId &&
@@ -89,16 +91,22 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
 
     if (!allowed) {
       state = state.copyWith(
-        error: 'Cette session ne contrôle pas le Live.',
+        error: 'Cette connexion précise ne contrôle pas le Live.',
       );
+      return null;
     }
-    return allowed;
+    return controllerSessionId;
   }
 
   Future<void> changeFormation(String formationKey) async {
-    if (!_canWrite()) return;
+    final sessionId = _controllerSessionId();
+    if (sessionId == null) return;
     try {
-      await _repository.setFormation(_matchId, formationKey);
+      await _repository.setFormation(
+        matchId: _matchId,
+        formation: formationKey,
+        controllerSessionId: sessionId,
+      );
       state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
@@ -109,12 +117,14 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String playerId,
     required String slotKey,
   }) async {
-    if (!_canWrite()) return;
+    final sessionId = _controllerSessionId();
+    if (sessionId == null) return;
     try {
       await _repository.movePlayer(
         matchId: _matchId,
         playerId: playerId,
         slotKey: slotKey,
+        controllerSessionId: sessionId,
       );
       state = state.copyWith(clearError: true);
     } catch (error) {
@@ -129,7 +139,8 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String? scorerId,
     required String? assisterId,
   }) async {
-    if (!_canWrite()) return;
+    final sessionId = _controllerSessionId();
+    if (sessionId == null) return;
     if (minute < 0 || minute > 100) {
       state = state.copyWith(error: 'Minute invalide.');
       return;
@@ -154,6 +165,7 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
         type: type,
         scorerId: hidesPlayers ? null : scorerId,
         assisterId: hidesPlayers ? null : assisterId,
+        controllerSessionId: sessionId,
       );
       state = state.copyWith(clearError: true);
     } catch (error) {
@@ -162,9 +174,13 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
   }
 
   Future<void> removeGoal(String goalId) async {
-    if (!_canWrite()) return;
+    final sessionId = _controllerSessionId();
+    if (sessionId == null) return;
     try {
-      await _repository.removeGoal(goalId);
+      await _repository.removeGoal(
+        goalId: goalId,
+        controllerSessionId: sessionId,
+      );
       state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
@@ -179,7 +195,8 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String? scorerId,
     required String? assisterId,
   }) async {
-    if (!_canWrite()) return;
+    final sessionId = _controllerSessionId();
+    if (sessionId == null) return;
     if (minute < 0 || minute > 100) {
       state = state.copyWith(error: 'Minute invalide.');
       return;
@@ -204,6 +221,7 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
         type: type,
         scorerId: hidesPlayers ? null : scorerId,
         assisterId: hidesPlayers ? null : assisterId,
+        controllerSessionId: sessionId,
       );
       state = state.copyWith(clearError: true);
     } catch (error) {
@@ -216,7 +234,8 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String inPlayerId,
     required String outPlayerId,
   }) async {
-    if (!_canWrite()) return;
+    final sessionId = _controllerSessionId();
+    if (sessionId == null) return;
     if (minute < 0 || minute > 100) {
       state = state.copyWith(error: 'Minute invalide.');
       return;
@@ -244,6 +263,7 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
         minute: minute,
         inPlayerId: inPlayerId,
         outPlayerId: outPlayerId,
+        controllerSessionId: sessionId,
       );
       state = state.copyWith(clearError: true);
     } catch (error) {
