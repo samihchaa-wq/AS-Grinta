@@ -132,22 +132,34 @@ class LiveRepository {
     final rows = (substitutionsResponse as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
+    final consumedInRows = <int>{};
+
     for (var index = 0; index < rows.length; index++) {
       final outRow = rows[index];
       if (outRow['action'] != 'out') continue;
       final minute = outRow['minute'] as int;
-      final inIndex = rows.indexWhere(
-        (row) => row['action'] == 'in' && row['minute'] == minute,
-        index + 1,
-      );
+
+      var inIndex = -1;
+      for (var candidate = index + 1; candidate < rows.length; candidate++) {
+        final row = rows[candidate];
+        if (consumedInRows.contains(candidate)) continue;
+        if (row['action'] == 'in' && row['minute'] == minute) {
+          inIndex = candidate;
+          break;
+        }
+      }
+
       if (inIndex == -1) continue;
+      consumedInRows.add(inIndex);
       final inRow = rows[inIndex];
-      substitutions.add(LiveSubstitution(
-        id: '${outRow['id']}:${inRow['id']}',
-        minute: minute,
-        inPlayerId: inRow['profile_id'].toString(),
-        outPlayerId: outRow['profile_id'].toString(),
-      ));
+      substitutions.add(
+        LiveSubstitution(
+          id: '${outRow['id']}:${inRow['id']}',
+          minute: minute,
+          inPlayerId: inRow['profile_id'].toString(),
+          outPlayerId: outRow['profile_id'].toString(),
+        ),
+      );
     }
 
     return LiveGameplayState(
@@ -179,36 +191,46 @@ class LiveRepository {
     Future<void> reload() async {
       if (controller.isClosed) return;
       try {
-        controller.add(await fetchGameplay(
-          matchId: matchId,
-          players: players,
-          fallbackFormation: fallbackFormation,
-        ));
+        controller.add(
+          await fetchGameplay(
+            matchId: matchId,
+            players: players,
+            fallbackFormation: fallbackFormation,
+          ),
+        );
       } catch (error, stackTrace) {
         controller.addError(error, stackTrace);
       }
     }
 
-    subscriptions.add(_client
-        .from('live_positions')
-        .stream(primaryKey: ['id'])
-        .eq('live_session_id', liveSessionId)
-        .listen((_) => reload()));
-    subscriptions.add(_client
-        .from('goals')
-        .stream(primaryKey: ['id'])
-        .eq('match_id', matchId)
-        .listen((_) => reload()));
-    subscriptions.add(_client
-        .from('substitutions')
-        .stream(primaryKey: ['id'])
-        .eq('live_session_id', liveSessionId)
-        .listen((_) => reload()));
-    subscriptions.add(_client
-        .from('live_sessions')
-        .stream(primaryKey: ['id'])
-        .eq('id', liveSessionId)
-        .listen((_) => reload()));
+    subscriptions.add(
+      _client
+          .from('live_positions')
+          .stream(primaryKey: ['id'])
+          .eq('live_session_id', liveSessionId)
+          .listen((_) => reload()),
+    );
+    subscriptions.add(
+      _client
+          .from('goals')
+          .stream(primaryKey: ['id'])
+          .eq('match_id', matchId)
+          .listen((_) => reload()),
+    );
+    subscriptions.add(
+      _client
+          .from('substitutions')
+          .stream(primaryKey: ['id'])
+          .eq('live_session_id', liveSessionId)
+          .listen((_) => reload()),
+    );
+    subscriptions.add(
+      _client
+          .from('live_sessions')
+          .stream(primaryKey: ['id'])
+          .eq('id', liveSessionId)
+          .listen((_) => reload()),
+    );
 
     controller.onCancel = () async {
       for (final subscription in subscriptions) {
@@ -256,16 +278,17 @@ class LiveRepository {
     required String? scorerId,
     required String? assisterId,
   }) async {
+    final hidesPlayers = team != 'grinta' || type == GoalType.ownGoal;
     await _client.from('goals').insert({
       'match_id': matchId,
       'team': team == 'grinta' ? 'as_grinta' : 'adverse',
       'minute': minute,
       'goal_type': _goalTypeToDatabase(type),
-      'scorer_profile_id': type == GoalType.ownGoal ? null : scorerId,
-      'assist_type': type == GoalType.ownGoal
+      'scorer_profile_id': hidesPlayers ? null : scorerId,
+      'assist_type': hidesPlayers
           ? null
           : (assisterId == null ? 'sans_passe' : 'connu'),
-      'assist_profile_id': type == GoalType.ownGoal ? null : assisterId,
+      'assist_profile_id': hidesPlayers ? null : assisterId,
     });
   }
 
@@ -277,15 +300,16 @@ class LiveRepository {
     required String? scorerId,
     required String? assisterId,
   }) async {
+    final hidesPlayers = team != 'grinta' || type == GoalType.ownGoal;
     await _client.from('goals').update({
       'team': team == 'grinta' ? 'as_grinta' : 'adverse',
       'minute': minute,
       'goal_type': _goalTypeToDatabase(type),
-      'scorer_profile_id': type == GoalType.ownGoal ? null : scorerId,
-      'assist_type': type == GoalType.ownGoal
+      'scorer_profile_id': hidesPlayers ? null : scorerId,
+      'assist_type': hidesPlayers
           ? null
           : (assisterId == null ? 'sans_passe' : 'connu'),
-      'assist_profile_id': type == GoalType.ownGoal ? null : assisterId,
+      'assist_profile_id': hidesPlayers ? null : assisterId,
     }).eq('id', goalId);
   }
 
