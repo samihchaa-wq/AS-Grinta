@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/live/data/live_setup_repository.dart';
 import 'package:as_grinta/features/live/domain/live_gameplay.dart';
 import 'package:as_grinta/features/live/presentation/live_gameplay_controller.dart';
 import 'package:flutter/material.dart';
@@ -13,54 +14,135 @@ class LiveGameplayPage extends ConsumerStatefulWidget {
 }
 
 class _LiveGameplayPageState extends ConsumerState<LiveGameplayPage> {
-  final List<LivePlayer> _players = const [
-    LivePlayer(id: 'p1', name: 'Alice'),
-    LivePlayer(id: 'p2', name: 'Bob'),
-    LivePlayer(id: 'p3', name: 'Charlie'),
-    LivePlayer(id: 'p4', name: 'Diana'),
-    LivePlayer(id: 'p5', name: 'Eve'),
-    LivePlayer(id: 'p6', name: 'Frank'),
-    LivePlayer(id: 'p7', name: 'Grace'),
-    LivePlayer(id: 'p8', name: 'Hugo'),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() => ref.read(liveGameplayControllerProvider(widget.matchId).notifier).initialize(players: _players));
-  }
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(liveGameplayControllerProvider(widget.matchId));
+    final setupAsync = ref.watch(liveSetupProvider(widget.matchId));
+
+    return setupAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(title: const Text('Live Match')),
+        body: _ErrorState(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(liveSetupProvider(widget.matchId)),
+        ),
+      ),
+      data: (setup) {
+        if (setup.players.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Live Match')),
+            body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Aucun participant actif n’est associé à ce match. '
+                  'La composition ne peut pas être ouverte.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+        if (setup.formations.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Live Match')),
+            body: const Center(
+              child: Text('Aucune formation Supabase disponible.'),
+            ),
+          );
+        }
+
+        if (!_initialized) {
+          _initialized = true;
+          Future.microtask(() {
+            if (!mounted) return;
+            ref
+                .read(liveGameplayControllerProvider(widget.matchId).notifier)
+                .initialize(
+                  players: setup.players,
+                  formationKey: setup.formations.first.code,
+                );
+          });
+        }
+
+        return _GameplayBody(
+          matchId: widget.matchId,
+          formations: setup.formations,
+        );
+      },
+    );
+  }
+}
+
+class _GameplayBody extends ConsumerWidget {
+  const _GameplayBody({
+    required this.matchId,
+    required this.formations,
+  });
+
+  final String matchId;
+  final List<LiveFormationDefinition> formations;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(liveGameplayControllerProvider(matchId));
     final gameplay = state.gameplay;
-    if (gameplay == null) {
+
+    if (state.isLoading || gameplay == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final formationOptions = LiveGameplayState.supportedFormations;
+    if (state.error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Live Match')),
+        body: _ErrorState(
+          message: state.error!,
+          onRetry: () => ref
+              .read(liveGameplayControllerProvider(matchId).notifier)
+              .reload(),
+        ),
+      );
+    }
+
+    final selectedFormation = formations.firstWhere(
+      (formation) => formation.code == gameplay.formationKey,
+      orElse: () => formations.first,
+    );
 
     return Scaffold(
-      appBar: AppBar(title: Text('Live Match • ${widget.matchId}')),
+      appBar: AppBar(title: const Text('Composition & déroulé')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Composition', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: gameplay.formationKey,
+            value: selectedFormation.code,
             decoration: const InputDecoration(labelText: 'Formation'),
-            items: formationOptions
-                .map((formation) => DropdownMenuItem(value: formation, child: Text(formation)))
+            items: formations
+                .map(
+                  (formation) => DropdownMenuItem(
+                    value: formation.code,
+                    child: Text(formation.label),
+                  ),
+                )
                 .toList(),
             onChanged: (value) {
               if (value != null) {
-                ref.read(liveGameplayControllerProvider(widget.matchId).notifier).changeFormation(value);
+                ref
+                    .read(liveGameplayControllerProvider(matchId).notifier)
+                    .changeFormation(value);
               }
             },
           ),
           const SizedBox(height: 16),
-          _PitchView(gameplay: gameplay, matchId: widget.matchId),
+          _PitchView(
+            gameplay: gameplay,
+            matchId: matchId,
+            slots: selectedFormation.slots,
+          ),
           const SizedBox(height: 16),
           Text('Banc de touche', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -68,15 +150,14 @@ class _LiveGameplayPageState extends ConsumerState<LiveGameplayPage> {
             spacing: 8,
             runSpacing: 8,
             children: gameplay.bench.map((playerId) {
-              final player = _players.firstWhere((item) => item.id == playerId, orElse: () => const LivePlayer(id: '', name: ''));
+              final player = _playerById(gameplay.players, playerId);
               return Draggable<String>(
                 data: playerId,
                 feedback: Material(
                   elevation: 4,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Chip(label: Text(player.name)),
+                  child: Chip(label: Text(player?.name ?? 'Joueur')),
                 ),
-                child: Chip(label: Text(player.name)),
+                child: Chip(label: Text(player?.name ?? 'Joueur')),
               );
             }).toList(),
           ),
@@ -85,7 +166,7 @@ class _LiveGameplayPageState extends ConsumerState<LiveGameplayPage> {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _showGoalDialog(context, ref),
+                  onPressed: () => _showGoalDialog(context, ref, gameplay),
                   icon: const Icon(Icons.sports_soccer),
                   label: const Text('Ajouter un but'),
                 ),
@@ -93,7 +174,9 @@ class _LiveGameplayPageState extends ConsumerState<LiveGameplayPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _showSubstitutionDialog(context, ref),
+                  onPressed: gameplay.bench.isEmpty || gameplay.lineup.isEmpty
+                      ? null
+                      : () => _showSubstitutionDialog(context, ref, gameplay),
                   icon: const Icon(Icons.swap_horiz),
                   label: const Text('Remplacement'),
                 ),
@@ -102,214 +185,259 @@ class _LiveGameplayPageState extends ConsumerState<LiveGameplayPage> {
           ),
           const SizedBox(height: 24),
           Text('Buts', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          ...gameplay.goals.map((goal) => ListTile(
-                title: Text('${goal.team} • ${goal.minute}’ • ${goal.type.name}'),
-                subtitle: Text('Buteur: ${goal.scorerId ?? '-'} • Passeur: ${goal.assisterId ?? '-'}'),
-                trailing: Wrap(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      onPressed: () => _showGoalDialog(context, ref, existingGoal: goal),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => ref.read(liveGameplayControllerProvider(widget.matchId).notifier).removeGoal(goal.id),
-                    ),
-                  ],
-                ),
-              )),
+          ...gameplay.goals.map(
+            (goal) => ListTile(
+              title: Text('${goal.team} • ${goal.minute}’'),
+              subtitle: Text(
+                'Buteur : ${_playerById(gameplay.players, goal.scorerId)?.name ?? '-'} '
+                '• Passeur : ${_playerById(gameplay.players, goal.assisterId)?.name ?? '-'}',
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => ref
+                    .read(liveGameplayControllerProvider(matchId).notifier)
+                    .removeGoal(goal.id),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
-          Text('Historique des remplacements', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          ...gameplay.substitutions.map((sub) => ListTile(
-                title: Text('${sub.minute}’ • ${_playerName(_players, sub.inPlayerId)} entre en jeu'),
-                subtitle: Text('Sortie : ${_playerName(_players, sub.outPlayerId)}'),
-              )),
+          Text(
+            'Historique des remplacements',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          ...gameplay.substitutions.map(
+            (substitution) => ListTile(
+              title: Text('${substitution.minute}’'),
+              subtitle: Text(
+                '${_playerById(gameplay.players, substitution.inPlayerId)?.name ?? '-'} entre '
+                '• ${_playerById(gameplay.players, substitution.outPlayerId)?.name ?? '-'} sort',
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  void _showGoalDialog(BuildContext context, WidgetRef ref, {LiveGoal? existingGoal}) {
-    final teamController = TextEditingController(text: existingGoal?.team ?? 'grinta');
-    final minuteController = TextEditingController(text: existingGoal?.minute.toString() ?? '0');
-    final typeController = ValueNotifier<GoalType>(existingGoal?.type ?? GoalType.openPlay);
-    final scorerController = ValueNotifier<String?>(existingGoal?.scorerId);
-    final assisterController = ValueNotifier<String?>(existingGoal?.assisterId);
+  void _showGoalDialog(
+    BuildContext context,
+    WidgetRef ref,
+    LiveGameplayState gameplay,
+  ) {
+    var team = 'grinta';
+    var type = GoalType.openPlay;
+    String? scorerId;
+    String? assisterId;
+    final minuteController = TextEditingController();
 
     showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(existingGoal == null ? 'Ajouter un but' : 'Modifier le but'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: teamController.text,
-                items: const [
-                  DropdownMenuItem(value: 'grinta', child: Text('AS Grinta')),
-                  DropdownMenuItem(value: 'adversaire', child: Text('Adversaire')),
-                ],
-                onChanged: (value) => teamController.text = value ?? 'grinta',
-                decoration: const InputDecoration(labelText: 'Équipe'),
-              ),
-              TextField(
-                controller: minuteController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Minute'),
-              ),
-              DropdownButtonFormField<GoalType>(
-                value: typeController.value,
-                items: GoalType.values.map((type) => DropdownMenuItem(value: type, child: Text(_goalTypeLabel(type)))).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    typeController.value = value;
-                    if (value == GoalType.ownGoal) {
-                      scorerController.value = null;
-                      assisterController.value = null;
-                    }
-                  }
-                },
-                decoration: const InputDecoration(labelText: 'Type'),
-              ),
-              ValueListenableBuilder<GoalType>(
-                valueListenable: typeController,
-                builder: (_, type, __) {
-                  if (type == GoalType.ownGoal) {
-                    return const SizedBox.shrink();
-                  }
-                  return Column(
-                    children: [
-                      DropdownButtonFormField<String>(
-                        value: scorerController.value,
-                        items: _players.map((player) => DropdownMenuItem(value: player.id, child: Text(player.name))).toList(),
-                        onChanged: (value) => scorerController.value = value,
-                        decoration: const InputDecoration(labelText: 'Buteur'),
-                      ),
-                      DropdownButtonFormField<String>(
-                        value: assisterController.value,
-                        items: _players.map((player) => DropdownMenuItem(value: player.id, child: Text(player.name))).toList(),
-                        onChanged: (value) => assisterController.value = value,
-                        decoration: const InputDecoration(labelText: 'Passeur'),
-                      ),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final hidesPlayers = team == 'adversaire' || type == GoalType.ownGoal;
+          return AlertDialog(
+            title: const Text('Ajouter un but'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: team,
+                    decoration: const InputDecoration(labelText: 'Équipe'),
+                    items: const [
+                      DropdownMenuItem(value: 'grinta', child: Text('AS Grinta')),
+                      DropdownMenuItem(value: 'adversaire', child: Text('Adversaire')),
                     ],
-                  );
+                    onChanged: (value) => setDialogState(() {
+                      team = value ?? 'grinta';
+                      if (team == 'adversaire') {
+                        scorerId = null;
+                        assisterId = null;
+                      }
+                    }),
+                  ),
+                  TextField(
+                    controller: minuteController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Minute (0-100)'),
+                  ),
+                  DropdownButtonFormField<GoalType>(
+                    value: type,
+                    decoration: const InputDecoration(labelText: 'Type'),
+                    items: GoalType.values
+                        .map(
+                          (value) => DropdownMenuItem(
+                            value: value,
+                            child: Text(value.name),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) => setDialogState(() {
+                      type = value ?? GoalType.openPlay;
+                      if (type == GoalType.ownGoal) {
+                        scorerId = null;
+                        assisterId = null;
+                      }
+                    }),
+                  ),
+                  if (!hidesPlayers) ...[
+                    DropdownButtonFormField<String>(
+                      value: scorerId,
+                      decoration: const InputDecoration(labelText: 'Buteur'),
+                      items: gameplay.players
+                          .map(
+                            (player) => DropdownMenuItem(
+                              value: player.id,
+                              child: Text(player.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setDialogState(() => scorerId = value),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: assisterId,
+                      decoration: const InputDecoration(labelText: 'Passeur'),
+                      items: gameplay.players
+                          .where((player) => player.id != scorerId)
+                          .map(
+                            (player) => DropdownMenuItem(
+                              value: player.id,
+                              child: Text(player.name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setDialogState(() => assisterId = value),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final minute = int.tryParse(minuteController.text);
+                  if (minute == null || minute < 0 || minute > 100) return;
+                  if (!hidesPlayers && scorerId == null) return;
+                  ref
+                      .read(liveGameplayControllerProvider(matchId).notifier)
+                      .addGoal(
+                        team: team,
+                        minute: minute,
+                        type: type,
+                        scorerId: hidesPlayers ? null : scorerId,
+                        assisterId: hidesPlayers ? null : assisterId,
+                      );
+                  Navigator.pop(dialogContext);
                 },
+                child: const Text('Ajouter'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Annuler')),
-            FilledButton(
-              onPressed: () {
-                final notifier = ref.read(liveGameplayControllerProvider(widget.matchId).notifier);
-                final minute = int.tryParse(minuteController.text) ?? 0;
-                if (existingGoal == null) {
-                  notifier.addGoal(
-                    team: teamController.text,
-                    minute: minute,
-                    type: typeController.value,
-                    scorerId: scorerController.value,
-                    assisterId: assisterController.value,
-                  );
-                } else {
-                  notifier.updateGoal(
-                    goalId: existingGoal.id,
-                    team: teamController.text,
-                    minute: minute,
-                    type: typeController.value,
-                    scorerId: scorerController.value,
-                    assisterId: assisterController.value,
-                  );
-                }
-                Navigator.of(dialogContext).pop();
-              },
-              child: Text(existingGoal == null ? 'Ajouter' : 'Enregistrer'),
-            ),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
-  void _showSubstitutionDialog(BuildContext context, WidgetRef ref) {
-    final minuteController = TextEditingController(text: '0');
-    final inPlayerController = ValueNotifier<String?>(_players.first.id);
-    final outPlayerController = ValueNotifier<String?>(_players.first.id);
+  void _showSubstitutionDialog(
+    BuildContext context,
+    WidgetRef ref,
+    LiveGameplayState gameplay,
+  ) {
+    String? inPlayerId = gameplay.bench.firstOrNull;
+    String? outPlayerId = gameplay.lineup.values.firstOrNull;
+    final minuteController = TextEditingController();
 
     showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Ajouter un remplacement'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Remplacement'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: minuteController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Minute'),
+                decoration: const InputDecoration(labelText: 'Minute (0-100)'),
               ),
               DropdownButtonFormField<String>(
-                value: inPlayerController.value,
-                items: _players.map((player) => DropdownMenuItem(value: player.id, child: Text(player.name))).toList(),
-                onChanged: (value) => inPlayerController.value = value,
+                value: inPlayerId,
                 decoration: const InputDecoration(labelText: 'Entrée'),
+                items: gameplay.bench
+                    .map((id) => _playerById(gameplay.players, id))
+                    .whereType<LivePlayer>()
+                    .map(
+                      (player) => DropdownMenuItem(
+                        value: player.id,
+                        child: Text(player.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setDialogState(() => inPlayerId = value),
               ),
               DropdownButtonFormField<String>(
-                value: outPlayerController.value,
-                items: _players.map((player) => DropdownMenuItem(value: player.id, child: Text(player.name))).toList(),
-                onChanged: (value) => outPlayerController.value = value,
+                value: outPlayerId,
                 decoration: const InputDecoration(labelText: 'Sortie'),
+                items: gameplay.lineup.values
+                    .map((id) => _playerById(gameplay.players, id))
+                    .whereType<LivePlayer>()
+                    .map(
+                      (player) => DropdownMenuItem(
+                        value: player.id,
+                        child: Text(player.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setDialogState(() => outPlayerId = value),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Annuler')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
             FilledButton(
               onPressed: () {
-                final notifier = ref.read(liveGameplayControllerProvider(widget.matchId).notifier);
-                final minute = int.tryParse(minuteController.text) ?? 0;
-                notifier.addSubstitution(
-                  minute: minute,
-                  inPlayerId: inPlayerController.value ?? '',
-                  outPlayerId: outPlayerController.value ?? '',
-                );
-                Navigator.of(dialogContext).pop();
+                final minute = int.tryParse(minuteController.text);
+                if (minute == null || minute < 0 || minute > 100) return;
+                if (inPlayerId == null || outPlayerId == null) return;
+                if (inPlayerId == outPlayerId) return;
+                ref
+                    .read(liveGameplayControllerProvider(matchId).notifier)
+                    .addSubstitution(
+                      minute: minute,
+                      inPlayerId: inPlayerId!,
+                      outPlayerId: outPlayerId!,
+                    );
+                Navigator.pop(dialogContext);
               },
               child: const Text('Enregistrer'),
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
-  }
-
-  String _playerName(List<LivePlayer> players, String playerId) {
-    return players.firstWhere((player) => player.id == playerId, orElse: () => const LivePlayer(id: '', name: '-')).name;
-  }
-
-  String _goalTypeLabel(GoalType type) {
-    return switch (type) {
-      GoalType.openPlay => 'Jeu',
-      GoalType.penalty => 'Penalty',
-      GoalType.freeKick => 'Coup franc',
-      GoalType.ownGoal => 'CSC adverse',
-    };
   }
 }
 
 class _PitchView extends StatelessWidget {
-  const _PitchView({required this.gameplay, required this.matchId});
+  const _PitchView({
+    required this.gameplay,
+    required this.matchId,
+    required this.slots,
+  });
 
   final LiveGameplayState gameplay;
   final String matchId;
+  final List<String> slots;
 
   @override
   Widget build(BuildContext context) {
-    final slots = LiveGameplayState.formationSlots(gameplay.formationKey);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -318,78 +446,64 @@ class _PitchView extends StatelessWidget {
         color: Colors.green.shade800,
       ),
       child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Consumer(
-                  builder: (context, ref, _) => _PitchSlot(
-                    label: 'Position',
-                    slotKey: slots.first,
-                    playerId: gameplay.lineup[slots.first],
-                    onAccept: (playerId) => ref.read(liveGameplayControllerProvider(matchId).notifier).movePlayer(playerId: playerId, slotKey: slots.first),
+        children: slots.map((slot) {
+          final playerId = gameplay.lineup[slot];
+          final player = _playerById(gameplay.players, playerId);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Consumer(
+              builder: (context, ref, _) => DragTarget<String>(
+                onAcceptWithDetails: (details) => ref
+                    .read(liveGameplayControllerProvider(matchId).notifier)
+                    .movePlayer(playerId: details.data, slotKey: slot),
+                builder: (context, candidates, rejected) => Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(player?.name ?? slot),
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...slots.skip(1).map((slot) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Consumer(
-                  builder: (context, ref, _) => _PitchSlot(
-                    label: slot,
-                    slotKey: slot,
-                    playerId: gameplay.lineup[slot],
-                    onAccept: (playerId) => ref.read(liveGameplayControllerProvider(matchId).notifier).movePlayer(playerId: playerId, slotKey: slot),
-                  ),
-                ),
-              )),
-        ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 }
 
-class _PitchSlot extends StatelessWidget {
-  const _PitchSlot({required this.label, required this.slotKey, required this.playerId, required this.onAccept});
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
 
-  final String label;
-  final String slotKey;
-  final String? playerId;
-  final ValueChanged<String> onAccept;
+  final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return DragTarget<String>(
-      builder: (context, candidateData, rejectedData) {
-        return Draggable<String>(
-          data: playerId ?? '',
-          feedback: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: Colors.white,
-              child: Text(playerId ?? label),
-            ),
-          ),
-          child: Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(child: Text(playerId ?? label)),
-          ),
-        );
-      },
-      onAcceptWithDetails: (details) {
-        if (details.data.isNotEmpty) {
-          onAccept(details.data);
-        }
-      },
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
+          ],
+        ),
+      ),
     );
   }
+}
+
+LivePlayer? _playerById(List<LivePlayer> players, String? id) {
+  if (id == null) return null;
+  for (final player in players) {
+    if (player.id == id) return player;
+  }
+  return null;
 }
