@@ -43,7 +43,6 @@ class LiveRepository {
   Future<String> _requireControllerSessionId(String matchId) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
-
     final session = await _requireSession(matchId);
     if (session['controller_profile_id']?.toString() != userId) {
       throw StateError('Cette session ne contrôle pas le Live.');
@@ -104,6 +103,20 @@ class LiveRepository {
   }) async {
     final result = await _client.rpc(
       'release_live_control',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+      },
+    );
+    return result == true;
+  }
+
+  Future<bool> markDisconnected({
+    required String matchId,
+    required String sessionId,
+  }) async {
+    final result = await _client.rpc(
+      'mark_live_disconnected',
       params: {
         'p_match_id': matchId,
         'p_controller_session_id': sessionId,
@@ -181,12 +194,10 @@ class LiveRepository {
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
     final consumedInRows = <int>{};
-
     for (var index = 0; index < rows.length; index++) {
       final outRow = rows[index];
       if (outRow['action'] != 'out') continue;
       final minute = outRow['minute'] as int;
-
       var inIndex = -1;
       for (var candidate = index + 1; candidate < rows.length; candidate++) {
         final row = rows[candidate];
@@ -196,7 +207,6 @@ class LiveRepository {
           break;
         }
       }
-
       if (inIndex == -1) continue;
       consumedInRows.add(inIndex);
       final inRow = rows[inIndex];
@@ -230,7 +240,6 @@ class LiveRepository {
       players: players,
       fallbackFormation: fallbackFormation,
     );
-
     final session = await _requireSession(matchId);
     final liveSessionId = session['id'].toString();
     final controller = StreamController<LiveGameplayState>();
@@ -251,34 +260,10 @@ class LiveRepository {
       }
     }
 
-    subscriptions.add(
-      _client
-          .from('live_positions')
-          .stream(primaryKey: ['id'])
-          .eq('live_session_id', liveSessionId)
-          .listen((_) => reload()),
-    );
-    subscriptions.add(
-      _client
-          .from('goals')
-          .stream(primaryKey: ['id'])
-          .eq('match_id', matchId)
-          .listen((_) => reload()),
-    );
-    subscriptions.add(
-      _client
-          .from('substitutions')
-          .stream(primaryKey: ['id'])
-          .eq('live_session_id', liveSessionId)
-          .listen((_) => reload()),
-    );
-    subscriptions.add(
-      _client
-          .from('live_sessions')
-          .stream(primaryKey: ['id'])
-          .eq('id', liveSessionId)
-          .listen((_) => reload()),
-    );
+    subscriptions.add(_client.from('live_positions').stream(primaryKey: ['id']).eq('live_session_id', liveSessionId).listen((_) => reload()));
+    subscriptions.add(_client.from('goals').stream(primaryKey: ['id']).eq('match_id', matchId).listen((_) => reload()));
+    subscriptions.add(_client.from('substitutions').stream(primaryKey: ['id']).eq('live_session_id', liveSessionId).listen((_) => reload()));
+    subscriptions.add(_client.from('live_sessions').stream(primaryKey: ['id']).eq('id', liveSessionId).listen((_) => reload()));
 
     controller.onCancel = () async {
       for (final subscription in subscriptions) {
@@ -286,15 +271,20 @@ class LiveRepository {
       }
       await controller.close();
     };
-
     yield* controller.stream;
   }
 
   Future<void> setFormation(String matchId, String formation) async {
-    await _client
-        .from('live_sessions')
-        .update({'formation': formation})
-        .eq('match_id', matchId);
+    final sessionId = await _requireControllerSessionId(matchId);
+    final result = await _client.rpc(
+      'set_live_formation',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+        'p_formation': formation,
+      },
+    );
+    if (result != true) throw StateError('Le changement de formation a été refusé.');
   }
 
   Future<void> movePlayer({
@@ -325,18 +315,21 @@ class LiveRepository {
     required String? scorerId,
     required String? assisterId,
   }) async {
+    final sessionId = await _requireControllerSessionId(matchId);
     final hidesPlayers = team != 'grinta' || type == GoalType.ownGoal;
-    await _client.from('goals').insert({
-      'match_id': matchId,
-      'team': team == 'grinta' ? 'as_grinta' : 'adverse',
-      'minute': minute,
-      'goal_type': _goalTypeToDatabase(type),
-      'scorer_profile_id': hidesPlayers ? null : scorerId,
-      'assist_type': hidesPlayers
-          ? null
-          : (assisterId == null ? 'sans_passe' : 'connu'),
-      'assist_profile_id': hidesPlayers ? null : assisterId,
-    });
+    await _client.rpc(
+      'add_live_goal',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+        'p_team': team == 'grinta' ? 'as_grinta' : 'adverse',
+        'p_minute': minute,
+        'p_goal_type': _goalTypeToDatabase(type),
+        'p_scorer_profile_id': hidesPlayers ? null : scorerId,
+        'p_assist_type': hidesPlayers ? null : (assisterId == null ? 'sans_passe' : 'connu'),
+        'p_assist_profile_id': hidesPlayers ? null : assisterId,
+      },
+    );
   }
 
   Future<void> updateGoal({
@@ -347,21 +340,36 @@ class LiveRepository {
     required String? scorerId,
     required String? assisterId,
   }) async {
+    final matchId = await _client.from('goals').select('match_id').eq('id', goalId).single().then((row) => row['match_id'].toString());
+    final sessionId = await _requireControllerSessionId(matchId);
     final hidesPlayers = team != 'grinta' || type == GoalType.ownGoal;
-    await _client.from('goals').update({
-      'team': team == 'grinta' ? 'as_grinta' : 'adverse',
-      'minute': minute,
-      'goal_type': _goalTypeToDatabase(type),
-      'scorer_profile_id': hidesPlayers ? null : scorerId,
-      'assist_type': hidesPlayers
-          ? null
-          : (assisterId == null ? 'sans_passe' : 'connu'),
-      'assist_profile_id': hidesPlayers ? null : assisterId,
-    }).eq('id', goalId);
+    final result = await _client.rpc(
+      'update_live_goal',
+      params: {
+        'p_goal_id': goalId,
+        'p_controller_session_id': sessionId,
+        'p_team': team == 'grinta' ? 'as_grinta' : 'adverse',
+        'p_minute': minute,
+        'p_goal_type': _goalTypeToDatabase(type),
+        'p_scorer_profile_id': hidesPlayers ? null : scorerId,
+        'p_assist_type': hidesPlayers ? null : (assisterId == null ? 'sans_passe' : 'connu'),
+        'p_assist_profile_id': hidesPlayers ? null : assisterId,
+      },
+    );
+    if (result != true) throw StateError('La modification du but a été refusée.');
   }
 
   Future<void> removeGoal(String goalId) async {
-    await _client.from('goals').delete().eq('id', goalId);
+    final matchId = await _client.from('goals').select('match_id').eq('id', goalId).single().then((row) => row['match_id'].toString());
+    final sessionId = await _requireControllerSessionId(matchId);
+    final result = await _client.rpc(
+      'delete_live_goal',
+      params: {
+        'p_goal_id': goalId,
+        'p_controller_session_id': sessionId,
+      },
+    );
+    if (result != true) throw StateError('La suppression du but a été refusée.');
   }
 
   Future<void> addSubstitution({
@@ -381,9 +389,7 @@ class LiveRepository {
         'p_out_profile_id': outPlayerId,
       },
     );
-    if (result != true) {
-      throw StateError('Le remplacement a été refusé.');
-    }
+    if (result != true) throw StateError('Le remplacement a été refusé.');
   }
 
   GoalType _goalTypeFromDatabase(String? value) {
