@@ -16,6 +16,7 @@ class MatchFormPage extends ConsumerStatefulWidget {
 
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
+  final _opponentTextController = TextEditingController();
   late String _seasonId;
   late String _opponentId;
   late DateTime _kickoffAt;
@@ -29,11 +30,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final match = widget.match;
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
+    _opponentTextController.text = match?.opponentName ?? '';
     _kickoffAt =
         match?.kickoffAt ?? DateTime.now().add(const Duration(days: 1));
     _isHome = match?.isHome ?? true;
     _plannedDurationMinutes = match?.plannedDurationMinutes ?? 90;
     _status = match?.status ?? 'a_venir';
+  }
+
+  @override
+  void dispose() {
+    _opponentTextController.dispose();
+    super.dispose();
   }
 
   @override
@@ -66,37 +74,90 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   : null,
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _opponentId.isEmpty ? null : _opponentId,
-              decoration: const InputDecoration(labelText: 'Adversaire'),
-              items: [
-                ...matchesState.opponents.map((opponent) {
-                  return DropdownMenuItem<String>(
-                    value: opponent['id'].toString(),
-                    child: Text(opponent['name'].toString()),
-                  );
-                }),
-                const DropdownMenuItem<String>(
-                  value: '__new__',
-                  child: Text('Nouvelle équipe…'),
-                ),
-              ],
-              onChanged: (value) async {
-                if (value == '__new__') {
-                  final id = await _createOpponent();
-                  if (!mounted) return;
-                  setState(() => _opponentId = id ?? '');
-                } else {
-                  setState(() => _opponentId = value ?? '');
-                }
+            Autocomplete<Map<String, dynamic>>(
+              displayStringForOption: (option) => option['name'].toString(),
+              initialValue: TextEditingValue(text: _opponentTextController.text),
+              optionsBuilder: (textValue) {
+                final query = textValue.text.trim().toLowerCase();
+                if (query.isEmpty) return matchesState.opponents;
+                return matchesState.opponents.where(
+                  (opponent) => opponent['name']
+                      .toString()
+                      .toLowerCase()
+                      .contains(query),
+                );
               },
-              validator: (value) => value == null ||
-                      value.isEmpty ||
-                      value == '__new__'
-                  ? 'Sélectionnez un adversaire'
-                  : null,
+              onSelected: (opponent) {
+                setState(() {
+                  _opponentId = opponent['id'].toString();
+                  _opponentTextController.text = opponent['name'].toString();
+                });
+              },
+              fieldViewBuilder: (
+                context,
+                textController,
+                focusNode,
+                onFieldSubmitted,
+              ) {
+                textController.addListener(() {
+                  if (_opponentTextController.text != textController.text) {
+                    _opponentTextController.text = textController.text;
+                    final exact = matchesState.opponents.where(
+                      (opponent) => opponent['name']
+                              .toString()
+                              .toLowerCase() ==
+                          textController.text.trim().toLowerCase(),
+                    );
+                    _opponentId = exact.isEmpty
+                        ? ''
+                        : exact.first['id'].toString();
+                  }
+                });
+                return TextFormField(
+                  controller: textController,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'Adversaire',
+                    hintText: 'Tapez les premières lettres',
+                    suffixIcon: IconButton(
+                      tooltip: 'Nouvelle équipe',
+                      icon: const Icon(Icons.add_business_outlined),
+                      onPressed: () async {
+                        final created = await _createOpponent();
+                        if (!mounted || created == null) return;
+                        final opponent = matchesState.opponents.where(
+                          (item) => item['id'].toString() == created,
+                        );
+                        setState(() {
+                          _opponentId = created;
+                          if (opponent.isNotEmpty) {
+                            textController.text =
+                                opponent.first['name'].toString();
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (_) => _opponentId.isEmpty
+                      ? 'Sélectionnez une équipe existante ou créez-en une'
+                      : null,
+                );
+              },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () async {
+                  final created = await _createOpponent();
+                  if (!mounted || created == null) return;
+                  setState(() => _opponentId = created);
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Nouvelle équipe'),
+              ),
+            ),
+            const SizedBox(height: 8),
             ListTile(
               title: const Text('Date et heure'),
               subtitle: Text(_kickoffAt.toLocal().toString()),
@@ -203,13 +264,20 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         ],
       ),
     );
+    controller.dispose();
     if (name == null || name.trim().isEmpty) return null;
-    return ref.read(matchesControllerProvider.notifier).createOpponent(name);
+    final id = await ref
+        .read(matchesControllerProvider.notifier)
+        .createOpponent(name.trim());
+    if (id != null) {
+      _opponentTextController.text = name.trim();
+      setState(() => _opponentId = id);
+    }
+    return id;
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
     final notifier = ref.read(matchesControllerProvider.notifier);
 
     if (widget.match == null) {
