@@ -33,8 +33,9 @@ class AuthRepository {
       throw StateError('Impossible de créer le compte.');
     }
 
-    await _client.from('profiles').insert({
+    await _client.from('profiles').upsert({
       'id': userId,
+      'email': email,
       'first_name': firstName,
       'last_name': lastName,
     });
@@ -77,23 +78,17 @@ class AuthRepository {
       throw StateError('Aucun utilisateur connecté.');
     }
 
-    final updateData = <String, dynamic>{
+    await _client.from('profiles').update({
       'first_name': firstName,
       'last_name': lastName,
-      'avatar_path': avatarPath.isEmpty ? null : avatarPath,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
+      'photo_url': avatarPath.isEmpty ? null : avatarPath,
+    }).eq('id', user.id);
 
-    await _client.from('profiles').update(updateData).eq('id', user.id);
-
-    return AuthProfile(
-      firstName: firstName,
-      lastName: lastName,
-      avatarPath: avatarPath.isEmpty ? null : avatarPath,
-      role: AuthRole.pronostiqueur,
-      isGoalkeeper: false,
-      isActive: true,
-    );
+    final profile = await fetchProfile();
+    if (profile == null) {
+      throw StateError('Profil introuvable après la mise à jour.');
+    }
+    return profile;
   }
 }
 
