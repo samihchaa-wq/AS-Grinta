@@ -1,0 +1,2 @@
+- [Flutter on Replit via Nix](flutter-replit-setup.md) — install `flutter` via installSystemDependencies; use Python http.server on port 5000 to serve the web build.
+- [Flutter DropdownButtonFormField API](flutter-dropdown-api.md) — use `value:` not `initialValue:`; the latter does not exist in Flutter stable.

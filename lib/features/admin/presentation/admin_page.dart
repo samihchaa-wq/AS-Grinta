@@ -392,7 +392,7 @@ class _ProfileCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: profile.role,
+              value: profile.role,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Type de compte'),
               items: const [

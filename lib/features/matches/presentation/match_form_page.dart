@@ -209,7 +209,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<bool>(
-              initialValue: _isHome,
+              value: _isHome,
               decoration: const InputDecoration(labelText: 'Lieu'),
               items: const [
                 DropdownMenuItem(value: true, child: Text('Domicile')),

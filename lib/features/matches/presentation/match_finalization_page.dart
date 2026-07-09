@@ -77,7 +77,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: _motmProfileId,
+                value: _motmProfileId,
                 decoration: const InputDecoration(
                   labelText: 'Homme du match',
                 ),

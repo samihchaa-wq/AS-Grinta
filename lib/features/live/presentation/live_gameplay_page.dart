@@ -119,7 +119,7 @@ class _GameplayBody extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<String>(
-            initialValue: selectedFormation.code,
+            value: selectedFormation.code,
             decoration: const InputDecoration(labelText: 'Formation'),
             items: formations
                 .map(
@@ -243,7 +243,7 @@ class _GameplayBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    initialValue: team,
+                    value: team,
                     decoration: const InputDecoration(labelText: 'Équipe'),
                     items: const [
                       DropdownMenuItem(
@@ -266,7 +266,7 @@ class _GameplayBody extends ConsumerWidget {
                         const InputDecoration(labelText: 'Minute (0-100)'),
                   ),
                   DropdownButtonFormField<GoalType>(
-                    initialValue: type,
+                    value: type,
                     decoration: const InputDecoration(labelText: 'Type'),
                     items: GoalType.values
                         .map(
@@ -286,7 +286,7 @@ class _GameplayBody extends ConsumerWidget {
                   ),
                   if (!hidesPlayers) ...[
                     DropdownButtonFormField<String>(
-                      initialValue: scorerId,
+                      value: scorerId,
                       decoration: const InputDecoration(labelText: 'Buteur'),
                       items: gameplay.players
                           .map(
@@ -300,7 +300,7 @@ class _GameplayBody extends ConsumerWidget {
                           setDialogState(() => scorerId = value),
                     ),
                     DropdownButtonFormField<String>(
-                      initialValue: assisterId,
+                      value: assisterId,
                       decoration: const InputDecoration(labelText: 'Passeur'),
                       items: gameplay.players
                           .where((player) => player.id != scorerId)
@@ -371,7 +371,7 @@ class _GameplayBody extends ConsumerWidget {
                 decoration: const InputDecoration(labelText: 'Minute (0-100)'),
               ),
               DropdownButtonFormField<String>(
-                initialValue: inPlayerId,
+                value: inPlayerId,
                 decoration: const InputDecoration(labelText: 'Entrée'),
                 items: gameplay.bench
                     .map((id) => _playerById(gameplay.players, id))
@@ -386,7 +386,7 @@ class _GameplayBody extends ConsumerWidget {
                 onChanged: (value) => setDialogState(() => inPlayerId = value),
               ),
               DropdownButtonFormField<String>(
-                initialValue: outPlayerId,
+                value: outPlayerId,
                 decoration: const InputDecoration(labelText: 'Sortie'),
                 items: gameplay.lineup.values
                     .map((id) => _playerById(gameplay.players, id))

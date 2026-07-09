@@ -61,7 +61,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
           children: [
             if (matchesState.seasons.isNotEmpty)
               DropdownButtonFormField<String>(
-                initialValue: _selectedSeasonId,
+                value: _selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
                   const DropdownMenuItem<String>(
