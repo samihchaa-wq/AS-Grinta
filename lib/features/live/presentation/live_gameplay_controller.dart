@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/live/data/live_repository.dart';
 import 'package:as_grinta/features/live/domain/live_gameplay.dart';
+import 'package:as_grinta/features/live/presentation/live_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LiveGameplayStateModel {
@@ -30,11 +34,12 @@ class LiveGameplayStateModel {
 }
 
 class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
-  LiveGameplayController(this._repository, this._matchId)
+  LiveGameplayController(this._repository, this._matchId, this._ref)
       : super(const LiveGameplayStateModel());
 
   final LiveRepository _repository;
   final String _matchId;
+  final Ref _ref;
   StreamSubscription<LiveGameplayState>? _subscription;
   List<LivePlayer> _players = const [];
   String _fallbackFormation = '4-4-2';
@@ -70,9 +75,31 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
         );
   }
 
+  bool _canWrite() {
+    final authState = _ref.read(authControllerProvider);
+    final currentUserId = _ref.read(supabaseClientProvider).auth.currentUser?.id;
+    final controllerSessionId = _ref.read(liveControlSessionIdProvider);
+    final liveSession = _ref.read(liveControllerProvider).session;
+
+    final allowed = authState.profile?.role == AuthRole.admin &&
+        currentUserId != null &&
+        controllerSessionId != null &&
+        liveSession?.controllerProfileId == currentUserId &&
+        liveSession?.controllerSessionId == controllerSessionId;
+
+    if (!allowed) {
+      state = state.copyWith(
+        error: 'Cette session ne contrôle pas le Live.',
+      );
+    }
+    return allowed;
+  }
+
   Future<void> changeFormation(String formationKey) async {
+    if (!_canWrite()) return;
     try {
       await _repository.setFormation(_matchId, formationKey);
+      state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -82,12 +109,14 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String playerId,
     required String slotKey,
   }) async {
+    if (!_canWrite()) return;
     try {
       await _repository.movePlayer(
         matchId: _matchId,
         playerId: playerId,
         slotKey: slotKey,
       );
+      state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -100,23 +129,43 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String? scorerId,
     required String? assisterId,
   }) async {
+    if (!_canWrite()) return;
+    if (minute < 0 || minute > 100) {
+      state = state.copyWith(error: 'Minute invalide.');
+      return;
+    }
+    final hidesPlayers = team != 'grinta' || type == GoalType.ownGoal;
+    if (!hidesPlayers && scorerId == null) {
+      state = state.copyWith(error: 'Le buteur est obligatoire.');
+      return;
+    }
+    if (scorerId != null && assisterId == scorerId) {
+      state = state.copyWith(
+        error: 'Le passeur doit être différent du buteur.',
+      );
+      return;
+    }
+
     try {
       await _repository.addGoal(
         matchId: _matchId,
         team: team,
         minute: minute,
         type: type,
-        scorerId: scorerId,
-        assisterId: assisterId,
+        scorerId: hidesPlayers ? null : scorerId,
+        assisterId: hidesPlayers ? null : assisterId,
       );
+      state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
   }
 
   Future<void> removeGoal(String goalId) async {
+    if (!_canWrite()) return;
     try {
       await _repository.removeGoal(goalId);
+      state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -130,15 +179,33 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String? scorerId,
     required String? assisterId,
   }) async {
+    if (!_canWrite()) return;
+    if (minute < 0 || minute > 100) {
+      state = state.copyWith(error: 'Minute invalide.');
+      return;
+    }
+    final hidesPlayers = team != 'grinta' || type == GoalType.ownGoal;
+    if (!hidesPlayers && scorerId == null) {
+      state = state.copyWith(error: 'Le buteur est obligatoire.');
+      return;
+    }
+    if (scorerId != null && assisterId == scorerId) {
+      state = state.copyWith(
+        error: 'Le passeur doit être différent du buteur.',
+      );
+      return;
+    }
+
     try {
       await _repository.updateGoal(
         goalId: goalId,
         team: team,
         minute: minute,
         type: type,
-        scorerId: scorerId,
-        assisterId: assisterId,
+        scorerId: hidesPlayers ? null : scorerId,
+        assisterId: hidesPlayers ? null : assisterId,
       );
+      state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -149,6 +216,28 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     required String inPlayerId,
     required String outPlayerId,
   }) async {
+    if (!_canWrite()) return;
+    if (minute < 0 || minute > 100) {
+      state = state.copyWith(error: 'Minute invalide.');
+      return;
+    }
+    if (inPlayerId == outPlayerId) {
+      state = state.copyWith(
+        error: 'Les joueurs entrant et sortant doivent être différents.',
+      );
+      return;
+    }
+
+    final gameplay = state.gameplay;
+    if (gameplay == null ||
+        !gameplay.bench.contains(inPlayerId) ||
+        !gameplay.lineup.values.contains(outPlayerId)) {
+      state = state.copyWith(
+        error: 'Remplacement invalide : vérifiez le banc et le terrain.',
+      );
+      return;
+    }
+
     try {
       await _repository.addSubstitution(
         matchId: _matchId,
@@ -156,6 +245,7 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
         inPlayerId: inPlayerId,
         outPlayerId: outPlayerId,
       );
+      state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -178,5 +268,5 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
 final liveGameplayControllerProvider = StateNotifierProvider.family<
     LiveGameplayController, LiveGameplayStateModel, String>((ref, matchId) {
   final repository = ref.watch(liveGameplayRepositoryProvider);
-  return LiveGameplayController(repository, matchId);
+  return LiveGameplayController(repository, matchId, ref);
 });
