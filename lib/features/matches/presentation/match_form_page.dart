@@ -167,12 +167,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   firstDate: DateTime.now().subtract(const Duration(days: 1)),
                   lastDate: DateTime.now().add(const Duration(days: 365)),
                 );
-                if (!mounted || date == null) return;
+                if (!context.mounted || date == null) return;
                 final time = await showTimePicker(
                   context: context,
                   initialTime: TimeOfDay.fromDateTime(_kickoffAt),
                 );
-                if (!mounted || time == null) return;
+                if (!context.mounted || time == null) return;
                 setState(() {
                   _kickoffAt = DateTime(
                     date.year,
