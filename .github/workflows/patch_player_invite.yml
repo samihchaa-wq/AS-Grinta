@@ -1,0 +1,208 @@
+name: Patch player invitation
+
+on:
+  push:
+    branches: [fix/player-invite-without-email]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[invite-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/player-invite-without-email
+          fetch-depth: 0
+      - name: Patch admin invitation dialog
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('lib/features/admin/presentation/admin_page.dart')
+          text = path.read_text()
+          text = text.replace(
+              "import 'package:as_grinta/features/admin/data/admin_repository.dart';\n",
+              "import 'package:as_grinta/features/admin/data/admin_repository.dart';\n"
+              "import 'package:as_grinta/features/players/data/players_repository.dart';\n"
+              "import 'package:flutter/services.dart';\n",
+          )
+
+          method = r'''  Future<void> _showInviteDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final surnomController = TextEditingController();
+    final firstNameController = TextEditingController();
+    final lastNameController = TextEditingController();
+    String? error;
+    var saving = false;
+    var isGoalkeeper = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !saving,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Inviter un joueur'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Aucune adresse email n’est nécessaire. Un lien à partager sera généré.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: surnomController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Surnom',
+                    helperText: 'Nom affiché dans l’application',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: firstNameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'Prénom *'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: lastNameController,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(labelText: 'Nom *'),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Gardien'),
+                  value: isGoalkeeper,
+                  onChanged: saving
+                      ? null
+                      : (value) => setDialogState(() => isGoalkeeper = value),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    error!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (firstNameController.text.trim().isEmpty ||
+                          lastNameController.text.trim().isEmpty) {
+                        setDialogState(
+                          () => error = 'Le prénom et le nom sont obligatoires.',
+                        );
+                        return;
+                      }
+                      setDialogState(() {
+                        saving = true;
+                        error = null;
+                      });
+                      try {
+                        final token = await ref
+                            .read(playersRepositoryProvider)
+                            .createPlayerInvitation(
+                              firstName: firstNameController.text,
+                              lastName: lastNameController.text,
+                              surnom: surnomController.text,
+                              isGoalkeeper: isGoalkeeper,
+                            );
+                        final link = Uri.base.resolve('claim?token=$token').toString();
+                        ref.invalidate(playersListProvider);
+                        if (!dialogContext.mounted) return;
+                        Navigator.pop(dialogContext);
+                        await showDialog<void>(
+                          context: context,
+                          builder: (linkContext) => AlertDialog(
+                            title: const Text('Invitation prête'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Envoie ce lien au joueur. Il créera son compte avec sa propre adresse email puis revendiquera automatiquement sa fiche.',
+                                ),
+                                const SizedBox(height: 12),
+                                SelectableText(link),
+                                const SizedBox(height: 8),
+                                const Text('Le lien expire dans 7 jours.'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton.icon(
+                                onPressed: () async {
+                                  await Clipboard.setData(ClipboardData(text: link));
+                                  if (linkContext.mounted) {
+                                    ScaffoldMessenger.of(linkContext).showSnackBar(
+                                      const SnackBar(content: Text('Lien copié.')),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.copy),
+                                label: const Text('Copier le lien'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(linkContext),
+                                child: const Text('Fermer'),
+                              ),
+                            ],
+                          ),
+                        );
+                      } catch (exception) {
+                        if (!dialogContext.mounted) return;
+                        setDialogState(() {
+                          saving = false;
+                          error = exception.toString();
+                        });
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Générer le lien'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    surnomController.dispose();
+    firstNameController.dispose();
+    lastNameController.dispose();
+  }
+'''
+
+          pattern = re.compile(r"  Future<void> _showInviteDialog\([\s\S]*?\n  }\n}\n\nclass _SeasonSection")
+          replacement = method + "}\n\nclass _SeasonSection"
+          new_text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('Invitation method not found')
+          path.write_text(new_text)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/admin/presentation/admin_page.dart
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Supprimer le mail obligatoire des invitations [invite-patched]"
+          git push origin HEAD:fix/player-invite-without-email
