@@ -44,13 +44,15 @@ class AuthProfile {
       _ => AuthRole.pronostiqueur,
     };
 
+    final status = (json['status'] ?? 'active').toString().toLowerCase();
+
     return AuthProfile(
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
-      avatarPath: json['avatar_path']?.toString(),
+      avatarPath: json['photo_url']?.toString(),
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
-      isActive: json['is_active'] != false,
+      isActive: status == 'active',
     );
   }
 }
