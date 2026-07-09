@@ -60,6 +60,11 @@ class MatchesRepository {
     required int plannedDurationMinutes,
     required String status,
   }) async {
+    final currentUserId = _client.auth.currentUser?.id;
+    if (currentUserId == null) {
+      throw StateError('Utilisateur non authentifié.');
+    }
+
     await _client.from('matches').insert({
       'season_id': seasonId,
       'opponent_id': opponentId,
@@ -68,6 +73,7 @@ class MatchesRepository {
       'location': isHome ? 'domicile' : 'exterieur',
       'planned_duration_minutes': plannedDurationMinutes,
       'status': status,
+      'created_by': currentUserId,
     });
   }
 
@@ -118,10 +124,14 @@ class MatchesRepository {
 
     await _client.from('match_motm').delete().eq('match_id', id);
     if (manOfTheMatchId != null && manOfTheMatchId.isNotEmpty) {
+      final currentUserId = _client.auth.currentUser?.id;
+      if (currentUserId == null) {
+        throw StateError('Utilisateur non authentifié.');
+      }
       await _client.from('match_motm').insert({
         'match_id': id,
         'profile_id': manOfTheMatchId,
-        'created_by': _client.auth.currentUser?.id,
+        'created_by': currentUserId,
       });
     }
   }
