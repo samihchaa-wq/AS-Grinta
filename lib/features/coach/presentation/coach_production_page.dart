@@ -311,7 +311,7 @@ class _Bench extends StatelessWidget {
                 final p = state.playerById(id);
                 return ActionChip(
                   avatar: CircleAvatar(child: Text(p?.initials ?? '?')),
-                  label: Text(p?.displayName ?? 'Joueur'),
+                  label: Text(p == null ? 'Joueur' : '${p.displayName}${p.isGuest ? ' · Invité' : ''}'),
                   onPressed: state.canEdit
                       ? () async {
                           final emptySlot = state.formationSlots
@@ -341,6 +341,7 @@ class _EventControls extends StatelessWidget {
     final players = state.lineup.values
         .map(state.playerById)
         .whereType<CoachPlayer>()
+        .where((player) => !player.isGuest)
         .toList();
     final ok = await showDialog<bool>(
       context: context,
@@ -549,7 +550,9 @@ class _MinutesPlayed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final minutes = _compute();
-    final players = state.players.where((p) => minutes.containsKey(p.id)).toList()
+    final players = state.players
+        .where((p) => !p.isGuest && minutes.containsKey(p.id))
+        .toList()
       ..sort((a, b) => minutes[b.id]!.compareTo(minutes[a.id]!));
     return Card(
       child: Padding(
