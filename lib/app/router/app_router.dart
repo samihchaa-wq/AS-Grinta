@@ -50,7 +50,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           role != AuthRole.moderateur) {
         return '/matches';
       }
-      if (isLiveGameplayRoute && role != AuthRole.admin) return '/matches';
+      if (isLiveGameplayRoute &&
+          role != AuthRole.admin &&
+          role != AuthRole.moderateur) {
+        return '/matches';
+      }
       if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
       if (isParticipantsRoute && role != AuthRole.admin) return '/matches';
       if (isAdminRoute && role != AuthRole.moderateur) return '/home';
