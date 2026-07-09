@@ -1,0 +1,63 @@
+name: One-time full audit patch
+
+on:
+  push:
+    branches: [fix/full-production-audit-20260710]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[full-audit-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/full-production-audit-20260710
+          fetch-depth: 0
+      - name: Patch audited files
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          coach = Path('lib/features/coach/presentation/coach_production_page.dart')
+          text = coach.read_text()
+          text = text.replace(
+              ".whereType<CoachPlayer>()\n        .toList();",
+              ".whereType<CoachPlayer>()\n        .where((player) => !player.isGuest)\n        .toList();",
+              1,
+          )
+          text = text.replace(
+              "label: Text(p?.displayName ?? 'Joueur'),",
+              "label: Text(p == null ? 'Joueur' : '${p.displayName}${p.isGuest ? ' · Invité' : ''}'),",
+          )
+          text = text.replace(
+              "final players = state.players.where((p) => minutes.containsKey(p.id)).toList()",
+              "final players = state.players\n        .where((p) => !p.isGuest && minutes.containsKey(p.id))\n        .toList()",
+          )
+          coach.write_text(text)
+
+          domain = Path('lib/features/coach/domain/coach_board.dart')
+          d = domain.read_text()
+          d = d.replace(
+              "  yellowCard,\n  redCard,\n",
+              "",
+          )
+          d = d.replace("        CoachEventType.yellowCard => 'Carton jaune',\n", "")
+          d = d.replace("        CoachEventType.redCard => 'Carton rouge',\n", "")
+          d = d.replace("        CoachEventType.yellowCard || CoachEventType.redCard => Icons.square_rounded,\n", "")
+          d = d.replace("        CoachEventType.yellowCard => const Color(0xFFFFD600),\n", "")
+          d = d.replace("        CoachEventType.redCard => const Color(0xFFEF5350),\n", "")
+          domain.write_text(d)
+
+          workflow = Path('.github/workflows/one_time_full_audit_patch.yml')
+          workflow.unlink()
+          PY
+      - name: Commit audited patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/coach/presentation/coach_production_page.dart lib/features/coach/domain/coach_board.dart .github/workflows/one_time_full_audit_patch.yml
+          git commit -m "Finaliser les invités et supprimer les cartons [full-audit-patched]"
+          git push origin HEAD:fix/full-production-audit-20260710
