@@ -37,13 +37,19 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response = await _client.from('seasons').select('id, name').order('name');
-    return (response as List).map((row) => Map<String, dynamic>.from(row)).toList();
+    final response =
+        await _client.from('seasons').select('id, name').order('name');
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchOpponents() async {
-    final response = await _client.from('opponents').select('id, name').order('name');
-    return (response as List).map((row) => Map<String, dynamic>.from(row)).toList();
+    final response =
+        await _client.from('opponents').select('id, name').order('name');
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 
   Future<void> createMatch({
@@ -94,12 +100,59 @@ class MatchesRepository {
     required int grintaScore,
     required int opponentScore,
     required String status,
+    required String? manOfTheMatchId,
   }) async {
     await _client.from('matches').update({
       'score_as_grinta': grintaScore,
       'score_adverse': opponentScore,
       'status': status,
     }).eq('id', id);
+
+    await _client.from('live_sessions').update({
+      'status': 'finished',
+      'controller_profile_id': null,
+      'controller_session_id': null,
+      'controller_disconnected_at': null,
+      'clock_started_at': null,
+    }).eq('match_id', id);
+
+    await _client.from('match_motm').delete().eq('match_id', id);
+    if (manOfTheMatchId != null && manOfTheMatchId.isNotEmpty) {
+      await _client.from('match_motm').insert({
+        'match_id': id,
+        'profile_id': manOfTheMatchId,
+        'created_by': _client.auth.currentUser?.id,
+      });
+    }
+  }
+
+  Future<Map<String, double>?> fetchMatchOdds(String matchId) async {
+    final response = await _client
+        .from('match_odds')
+        .select(
+          'odds_victoire_as_grinta, odds_nul, odds_victoire_adverse',
+        )
+        .eq('match_id', matchId)
+        .maybeSingle();
+    if (response == null) return null;
+    return {
+      'win': (response['odds_victoire_as_grinta'] as num).toDouble(),
+      'draw': (response['odds_nul'] as num).toDouble(),
+      'loss': (response['odds_victoire_adverse'] as num).toDouble(),
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> fetchMatchPredictions(
+    String matchId,
+  ) async {
+    final response = await _client
+        .from('match_predictions')
+        .select()
+        .eq('match_id', matchId)
+        .eq('is_filled', true);
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 
   Future<void> updateMatchScore({
