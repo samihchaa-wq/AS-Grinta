@@ -75,6 +75,14 @@ class _PredictionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(predictionsControllerProvider.notifier);
+    final points = item.earnedPoints;
+    final statusLabel = item.isBeforeWindow
+        ? 'Ouvre le ${item.opensAt.toLocal().toString().split('.').first}'
+        : item.isClosed
+            ? 'Fermé'
+            : item.isFilled
+                ? 'Enregistré'
+                : 'À saisir';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
@@ -91,15 +99,7 @@ class _PredictionCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Chip(
-                  label: Text(
-                    item.isClosed
-                        ? 'Fermé'
-                        : item.isFilled
-                            ? 'Enregistré'
-                            : 'À saisir',
-                  ),
-                ),
+                Chip(label: Text(statusLabel)),
               ],
             ),
             const SizedBox(height: 4),
@@ -122,7 +122,7 @@ class _PredictionCard extends ConsumerWidget {
                 _ScoreEditor(
                   label: 'AS Grinta',
                   value: item.scoreGrinta,
-                  enabled: !item.isClosed && !isSaving,
+                  enabled: item.canEdit && !isSaving,
                   onMinus: () => controller.changeScore(
                     matchId: item.matchId,
                     grinta: true,
@@ -141,7 +141,7 @@ class _PredictionCard extends ConsumerWidget {
                 _ScoreEditor(
                   label: item.opponentName,
                   value: item.scoreOpponent,
-                  enabled: !item.isClosed && !isSaving,
+                  enabled: item.canEdit && !isSaving,
                   onMinus: () => controller.changeScore(
                     matchId: item.matchId,
                     grinta: false,
@@ -155,11 +155,23 @@ class _PredictionCard extends ConsumerWidget {
                 ),
               ],
             ),
+            if (item.hasResult) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Résultat : ${item.actualScoreGrinta} - ${item.actualScoreOpponent}',
+              ),
+              Text(
+                points == null
+                    ? 'Points indisponibles'
+                    : 'Points gagnés : ${points.toStringAsFixed(1)}',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: item.isClosed || isSaving
+                onPressed: !item.canEdit || isSaving
                     ? null
                     : () => controller.save(item.matchId),
                 icon: isSaving
