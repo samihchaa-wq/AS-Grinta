@@ -1,0 +1,78 @@
+name: One-shot Flutter repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/repair_flutter.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Apply Dart automated fixes
+        run: dart fix --apply
+
+      - name: Apply safe Flutter migrations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          files = [
+              Path('lib/features/admin/presentation/admin_page.dart'),
+              Path('lib/features/live/presentation/live_gameplay_page.dart'),
+              Path('lib/features/matches/presentation/match_correction_page.dart'),
+              Path('lib/features/matches/presentation/match_details_page.dart'),
+              Path('lib/features/matches/presentation/match_finalization_page.dart'),
+              Path('lib/features/matches/presentation/match_form_page.dart'),
+              Path('lib/features/matches/presentation/match_participants_page.dart'),
+              Path('lib/features/matches/presentation/matches_page.dart'),
+              Path('lib/features/predictions/presentation/leaderboard_page.dart'),
+              Path('lib/features/predictions/presentation/season_predictions_page.dart'),
+              Path('lib/features/statistics/presentation/statistics_page.dart'),
+          ]
+
+          for path in files:
+              text = path.read_text()
+              text = text.replace('const ListView(', 'ListView(')
+              text = text.replace('Colors.white.withOpacity(0.9)', 'Colors.white.withValues(alpha: 0.9)')
+              path.write_text(text)
+          PY
+
+      - name: Format
+        run: dart format lib test
+
+      - name: Commit repairs
+        run: |
+          if git diff --quiet; then
+            echo "No source repair required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test pubspec.lock
+          git commit -m "fix: apply Flutter analyzer migrations"
+          git push origin HEAD:main
+
+      - name: Analyze repaired source
+        run: flutter analyze --fatal-infos
+
+      - name: Test repaired source
+        run: flutter test
