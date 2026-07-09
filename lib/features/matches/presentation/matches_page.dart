@@ -5,6 +5,7 @@ import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class MatchesPage extends ConsumerStatefulWidget {
   const MatchesPage({super.key});
@@ -26,13 +27,14 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
   Widget build(BuildContext context) {
     final matchesState = ref.watch(matchesControllerProvider);
     final authState = ref.watch(authControllerProvider);
-    final canDelete = authState.profile?.role == AuthRole.admin;
+    final isAdmin = authState.profile?.role == AuthRole.admin;
+    final canManageLive = isAdmin || authState.profile?.role == AuthRole.moderateur;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Matchs'),
         actions: [
-          if (authState.profile?.role == AuthRole.admin)
+          if (isAdmin)
             IconButton(
               tooltip: 'Créer un match',
               icon: const Icon(Icons.add_circle_outline),
@@ -61,7 +63,9 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
                   const DropdownMenuItem<String>(
-                      value: '', child: Text('Toutes les saisons')),
+                    value: '',
+                    child: Text('Toutes les saisons'),
+                  ),
                   ...matchesState.seasons.map((season) {
                     return DropdownMenuItem<String>(
                       value: season['id'].toString(),
@@ -70,8 +74,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   }),
                 ],
                 onChanged: (value) async {
-                  setState(
-                      () => _selectedSeasonId = value == '' ? null : value);
+                  setState(() => _selectedSeasonId = value == '' ? null : value);
                   await ref
                       .read(matchesControllerProvider.notifier)
                       .load(seasonId: value == '' ? null : value);
@@ -96,7 +99,13 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
               )
             else
               ...matchesState.matches.map(
-                  (match) => _MatchCard(match: match, canDelete: canDelete)),
+                (match) => _MatchCard(
+                  match: match,
+                  canDelete: isAdmin,
+                  canEdit: isAdmin,
+                  canManageLive: canManageLive,
+                ),
+              ),
           ],
         ),
       ),
@@ -105,10 +114,17 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
 }
 
 class _MatchCard extends StatelessWidget {
-  const _MatchCard({required this.match, required this.canDelete});
+  const _MatchCard({
+    required this.match,
+    required this.canDelete,
+    required this.canEdit,
+    required this.canManageLive,
+  });
 
   final MatchModel match;
   final bool canDelete;
+  final bool canEdit;
+  final bool canManageLive;
 
   @override
   Widget build(BuildContext context) {
@@ -131,54 +147,53 @@ class _MatchCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-                'Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}'),
+            Text('Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}'),
             Text('Lieu : ${match.locationLabel}'),
             Text('Durée : ${match.plannedDurationMinutes} min'),
-            Text(
-                'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                if (canDelete)
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final notifier = ProviderScope.containerOf(context)
-                          .read(matchesControllerProvider.notifier);
-                      await notifier.deleteMatch(match.id);
-                    },
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Supprimer'),
-                  ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => MatchFormPage(match: match)),
-                    );
-                  },
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Modifier'),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pushNamed('/live/${match.id}');
-                  },
-                  icon: const Icon(Icons.sensors),
-                  label: const Text('Live'),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pushNamed('/matches/${match.id}/finalize');
-                  },
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Finir'),
-                ),
-              ],
-            ),
+            Text('Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}'),
+            if (canDelete || canEdit || canManageLive) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (canDelete)
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final notifier = ProviderScope.containerOf(context)
+                            .read(matchesControllerProvider.notifier);
+                        await notifier.deleteMatch(match.id);
+                      },
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Supprimer'),
+                    ),
+                  if (canEdit)
+                    FilledButton.icon(
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => MatchFormPage(match: match),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.edit_outlined),
+                      label: const Text('Modifier'),
+                    ),
+                  if (canManageLive)
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/live/${match.id}'),
+                      icon: const Icon(Icons.sensors),
+                      label: const Text('Live'),
+                    ),
+                  if (canManageLive)
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/matches/${match.id}/finalize'),
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text('Finir'),
+                    ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
