@@ -41,13 +41,17 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   MaterialPageRoute(builder: (_) => const MatchFormPage()),
                 );
                 if (!mounted) return;
-                await ref.read(matchesControllerProvider.notifier).load(seasonId: _selectedSeasonId);
+                await ref
+                    .read(matchesControllerProvider.notifier)
+                    .load(seasonId: _selectedSeasonId);
               },
             ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(matchesControllerProvider.notifier).load(seasonId: _selectedSeasonId),
+        onRefresh: () => ref
+            .read(matchesControllerProvider.notifier)
+            .load(seasonId: _selectedSeasonId),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -56,7 +60,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 initialValue: _selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
-                  const DropdownMenuItem<String>(value: '', child: Text('Toutes les saisons')),
+                  const DropdownMenuItem<String>(
+                      value: '', child: Text('Toutes les saisons')),
                   ...matchesState.seasons.map((season) {
                     return DropdownMenuItem<String>(
                       value: season['id'].toString(),
@@ -65,8 +70,11 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   }),
                 ],
                 onChanged: (value) async {
-                  setState(() => _selectedSeasonId = value == '' ? null : value);
-                  await ref.read(matchesControllerProvider.notifier).load(seasonId: value == '' ? null : value);
+                  setState(
+                      () => _selectedSeasonId = value == '' ? null : value);
+                  await ref
+                      .read(matchesControllerProvider.notifier)
+                      .load(seasonId: value == '' ? null : value);
                 },
               ),
             const SizedBox(height: 16),
@@ -87,7 +95,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 ),
               )
             else
-              ...matchesState.matches.map((match) => _MatchCard(match: match, canDelete: canDelete)),
+              ...matchesState.matches.map(
+                  (match) => _MatchCard(match: match, canDelete: canDelete)),
           ],
         ),
       ),
@@ -122,17 +131,20 @@ class _MatchCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}'),
+            Text(
+                'Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}'),
             Text('Lieu : ${match.locationLabel}'),
             Text('Durée : ${match.plannedDurationMinutes} min'),
-            Text('Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}'),
+            Text(
+                'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}'),
             const SizedBox(height: 12),
             Row(
               children: [
                 if (canDelete)
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final notifier = ProviderScope.containerOf(context).read(matchesControllerProvider.notifier);
+                      final notifier = ProviderScope.containerOf(context)
+                          .read(matchesControllerProvider.notifier);
                       await notifier.deleteMatch(match.id);
                     },
                     icon: const Icon(Icons.delete_outline),
@@ -142,11 +154,28 @@ class _MatchCard extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () async {
                     await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
+                      MaterialPageRoute(
+                          builder: (_) => MatchFormPage(match: match)),
                     );
                   },
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Modifier'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed('/live/${match.id}');
+                  },
+                  icon: const Icon(Icons.sensors),
+                  label: const Text('Live'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed('/matches/${match.id}/finalize');
+                  },
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Finir'),
                 ),
               ],
             ),

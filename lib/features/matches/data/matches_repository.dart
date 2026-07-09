@@ -34,13 +34,19 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response = await _client.from('seasons').select('id, name').order('name');
-    return (response as List).map((row) => Map<String, dynamic>.from(row)).toList();
+    final response =
+        await _client.from('seasons').select('id, name').order('name');
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchOpponents() async {
-    final response = await _client.from('opponents').select('id, name').order('name');
-    return (response as List).map((row) => Map<String, dynamic>.from(row)).toList();
+    final response =
+        await _client.from('opponents').select('id, name').order('name');
+    return (response as List)
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
   }
 
   Future<void> createMatch({
@@ -83,6 +89,42 @@ class MatchesRepository {
 
   Future<void> deleteMatch(String id) async {
     await _client.from('matches').delete().eq('id', id);
+  }
+
+  Future<void> finalizeMatch({
+    required String id,
+    required int grintaScore,
+    required int opponentScore,
+    required String status,
+  }) async {
+    await _client.from('matches').update({
+      'grinta_score': grintaScore,
+      'opponent_score': opponentScore,
+      'status': status,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<void> updateMatchScore({
+    required String id,
+    required int grintaScore,
+    required int opponentScore,
+  }) async {
+    await _client.from('matches').update({
+      'grinta_score': grintaScore,
+      'opponent_score': opponentScore,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
+  }
+
+  Future<void> updateMatchStatus({
+    required String id,
+    required String status,
+  }) async {
+    await _client.from('matches').update({
+      'status': status,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('id', id);
   }
 }
 
