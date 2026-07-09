@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_forgot_password_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
@@ -21,19 +22,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/home',
     redirect: (context, state) {
       final location = state.matchedLocation;
-      if (authState.isLoading) {
-        return '/auth/loading';
-      }
+      if (authState.isLoading) return '/auth/loading';
+
       final isAuthRoute = location.startsWith('/auth');
       if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
         return '/auth/sign-in';
       }
-      if (authState.isAuthenticated && isAuthRoute) {
-        return '/home';
-      }
-      if (location == '/') {
-        return '/home';
-      }
+      if (authState.isAuthenticated && isAuthRoute) return '/home';
+      if (location == '/') return '/home';
+
+      final role = authState.profile?.role;
+      final canManageLive =
+          role == AuthRole.admin || role == AuthRole.moderateur;
+      final isLiveManagementRoute = location.startsWith('/live/');
+      final isFinalizationRoute =
+          location.startsWith('/matches/') && location.endsWith('/finalize');
+
+      if (isLiveManagementRoute && !canManageLive) return '/matches';
+      if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
+
       return null;
     },
     routes: [
@@ -41,8 +48,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', builder: (_, __) => const HomePage()),
       GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
       GoRoute(
-          path: '/predictions', builder: (_, __) => const PredictionsPage()),
-      GoRoute(path: '/statistics', builder: (_, __) => const StatisticsPage()),
+        path: '/predictions',
+        builder: (_, __) => const PredictionsPage(),
+      ),
+      GoRoute(
+        path: '/statistics',
+        builder: (_, __) => const StatisticsPage(),
+      ),
       GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
       GoRoute(
         path: '/live/:matchId',
@@ -61,11 +73,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-          path: '/auth/loading', builder: (_, __) => const AuthLoadingPage()),
+        path: '/auth/loading',
+        builder: (_, __) => const AuthLoadingPage(),
+      ),
       GoRoute(
-          path: '/auth/sign-in', builder: (_, __) => const AuthSignInPage()),
+        path: '/auth/sign-in',
+        builder: (_, __) => const AuthSignInPage(),
+      ),
       GoRoute(
-          path: '/auth/sign-up', builder: (_, __) => const AuthSignUpPage()),
+        path: '/auth/sign-up',
+        builder: (_, __) => const AuthSignUpPage(),
+      ),
       GoRoute(
         path: '/auth/forgot-password',
         builder: (_, __) => const AuthForgotPasswordPage(),
