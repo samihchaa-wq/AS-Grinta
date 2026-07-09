@@ -95,23 +95,16 @@ Deno.serve(async (req: Request) => {
       }
 
       const redirectTo = String(body.redirectTo ?? "").trim() || undefined;
-      const { data, error } = await admin.auth.admin.generateLink({
-        type: "invite",
-        email,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            approval_required: true,
-          },
-          redirectTo,
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          approval_required: true,
         },
+        redirectTo,
       });
       if (error) throw error;
-      return jsonResponse({
-        userId: data.user?.id,
-        actionLink: data.properties?.action_link,
-      });
+      return jsonResponse({ userId: data.user?.id, invitationSent: true });
     }
 
     if (action === "delete") {
