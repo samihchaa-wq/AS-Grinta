@@ -22,8 +22,6 @@ class PlayerStatistics {
   final String profileId;
   final String firstName;
   final String lastName;
-
-  /// Surnom d'affichage. Si null, on replie sur prénom + nom.
   final String? surnom;
   final bool isGoalkeeper;
   final int matches;
@@ -38,10 +36,11 @@ class PlayerStatistics {
   String get fullName => '$firstName $lastName'.trim();
   String get displayName {
     final s = surnom?.trim() ?? '';
-    return s.isNotEmpty ? s : (fullName.isEmpty ? 'Joueur sans nom' : fullName);
+    if (s.isNotEmpty) return s;
+    if (firstName.trim().isNotEmpty) return firstName.trim();
+    return fullName.isEmpty ? 'Joueur sans nom' : fullName;
   }
 
-  /// Nom pour le tri alphabétique.
   String get sortName => displayName.toLowerCase();
 }
 
@@ -53,7 +52,7 @@ class StatisticsRepository {
   Future<List<PlayerStatistics>> fetchCareerStatistics() async {
     final profilesResponse = await _client
         .from('profiles')
-        .select('id, first_name, last_name, surnom, is_goalkeeper, status')
+        .select()
         .eq('status', 'active');
     final statsResponse = await _client.from('v_player_career_stats').select('''
           profile_id,
@@ -86,7 +85,9 @@ class StatisticsRepository {
           profileId: id,
           firstName: firstName,
           lastName: lastName,
-          surnom: profile['surnom']?.toString(),
+          surnom: profile.containsKey('surnom')
+              ? profile['surnom']?.toString()
+              : null,
           isGoalkeeper: profile['is_goalkeeper'] == true,
           matches: int.tryParse('${stats['matches_played'] ?? 0}') ?? 0,
           goals: int.tryParse('${stats['goals'] ?? 0}') ?? 0,
