@@ -36,9 +36,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       final isAuthRoute = location.startsWith('/auth');
       if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
-        return '/auth/sign-in';
+        final target = state.uri.toString();
+        return '/auth/sign-in?redirect=${Uri.encodeComponent(target)}';
       }
-      if (authState.isAuthenticated && isAuthRoute) return '/home';
+      if (authState.isAuthenticated && isAuthRoute) {
+        final redirect = state.uri.queryParameters['redirect'];
+        if (redirect != null && redirect.startsWith('/')) return redirect;
+        return '/home';
+      }
       if (location == '/') return '/home';
 
       final role = authState.profile?.role;
