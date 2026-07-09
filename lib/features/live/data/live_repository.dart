@@ -41,41 +41,71 @@ class LiveRepository {
   }
 
   Future<void> createLiveSession({required String matchId}) async {
-    await _client.from('live_sessions').insert({
-      'match_id': matchId,
-      'status': 'not_started',
-      'elapsed_seconds': 0,
-    });
+    await _client.from('live_sessions').upsert(
+      {
+        'match_id': matchId,
+        'status': 'not_started',
+        'elapsed_seconds': 0,
+      },
+      onConflict: 'match_id',
+      ignoreDuplicates: true,
+    );
   }
 
-  Future<void> updateLiveSession({
+  Future<bool> updateLiveSession({
     required String matchId,
     required String status,
     required int elapsedSeconds,
-    required String? controllerProfileId,
-    required String? controllerSessionId,
+    required String controllerProfileId,
+    required String controllerSessionId,
   }) async {
-    await _client.from('live_sessions').update({
-      'status': status,
-      'elapsed_seconds': elapsedSeconds,
-      'controller_profile_id': controllerProfileId,
-      'controller_session_id': controllerSessionId,
-      'clock_started_at': status == 'running'
-          ? DateTime.now().toUtc().toIso8601String()
-          : null,
-    }).eq('match_id', matchId);
+    final response = await _client
+        .from('live_sessions')
+        .update({
+          'status': status,
+          'elapsed_seconds': elapsedSeconds,
+        })
+        .eq('match_id', matchId)
+        .eq('controller_profile_id', controllerProfileId)
+        .eq('controller_session_id', controllerSessionId)
+        .select('id')
+        .maybeSingle();
+    return response != null;
   }
 
-  Future<void> claimControl({
+  Future<bool> claimControl({
     required String matchId,
     required String profileId,
     required String sessionId,
   }) async {
-    await _client.from('live_sessions').update({
-      'controller_profile_id': profileId,
-      'controller_session_id': sessionId,
-      'controller_disconnected_at': null,
-    }).eq('match_id', matchId);
+    final existing = await _client
+        .from('live_sessions')
+        .select('controller_profile_id, controller_session_id')
+        .eq('match_id', matchId)
+        .maybeSingle();
+    if (existing == null) {
+      throw StateError('Aucune session live trouvée pour ce match.');
+    }
+
+    final currentProfileId = existing['controller_profile_id']?.toString();
+    final currentSessionId = existing['controller_session_id']?.toString();
+    if (currentProfileId != null || currentSessionId != null) {
+      return currentProfileId == profileId && currentSessionId == sessionId;
+    }
+
+    final response = await _client
+        .from('live_sessions')
+        .update({
+          'controller_profile_id': profileId,
+          'controller_session_id': sessionId,
+          'controller_disconnected_at': null,
+        })
+        .eq('match_id', matchId)
+        .isFilter('controller_profile_id', null)
+        .isFilter('controller_session_id', null)
+        .select('id')
+        .maybeSingle();
+    return response != null;
   }
 
   Future<LiveGameplayState> fetchGameplay({
