@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,19 +28,15 @@ class AuthRepository {
     final response = await _client.auth.signUp(
       email: email,
       password: password,
+      data: {
+        'first_name': firstName.trim(),
+        'last_name': lastName.trim(),
+      },
     );
 
-    final userId = response.user?.id;
-    if (userId == null) {
+    if (response.user == null) {
       throw StateError('Impossible de créer le compte.');
     }
-
-    await _client.from('profiles').upsert({
-      'id': userId,
-      'email': email,
-      'first_name': firstName,
-      'last_name': lastName,
-    });
   }
 
   Future<void> resetPassword({required String email}) async {
@@ -58,21 +56,39 @@ class AuthRepository {
 
   Future<AuthProfile?> fetchProfile() async {
     final user = _client.auth.currentUser;
-    if (user == null) {
-      return null;
-    }
+    if (user == null) return null;
 
     final response = await _client
         .from('profiles')
         .select()
         .eq('id', user.id)
         .maybeSingle();
-
-    if (response == null) {
-      return null;
-    }
+    if (response == null) return null;
 
     return AuthProfile.fromJson(Map<String, dynamic>.from(response));
+  }
+
+  Future<String> uploadAvatar(Uint8List jpegBytes) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw StateError('Aucun utilisateur connecté.');
+    }
+    if (jpegBytes.isEmpty) {
+      throw ArgumentError('Image vide.');
+    }
+
+    final path = '${user.id}/avatar.jpg';
+    await _client.storage.from('profile-photos').uploadBinary(
+          path,
+          jpegBytes,
+          fileOptions: const FileOptions(
+            cacheControl: '3600',
+            upsert: true,
+            contentType: 'image/jpeg',
+          ),
+        );
+    final publicUrl = _client.storage.from('profile-photos').getPublicUrl(path);
+    return '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
   }
 
   Future<AuthProfile> updateProfile({
@@ -85,12 +101,27 @@ class AuthRepository {
       throw StateError('Aucun utilisateur connecté.');
     }
 
+    final cleanFirstName = firstName.trim();
+    final cleanLastName = lastName.trim();
+    if (cleanFirstName.isEmpty || cleanLastName.isEmpty) {
+      throw ArgumentError('Le prénom et le nom sont obligatoires.');
+    }
+
     await _client.from('profiles').update({
-      'first_name': firstName,
-      'last_name': lastName,
-      'photo_url': avatarPath.isEmpty ? null : avatarPath,
+      'first_name': cleanFirstName,
+      'last_name': cleanLastName,
+      'photo_url': avatarPath.trim().isEmpty ? null : avatarPath.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', user.id);
+
+    await _client.auth.updateUser(
+      UserAttributes(
+        data: {
+          'first_name': cleanFirstName,
+          'last_name': cleanLastName,
+        },
+      ),
+    );
 
     final profile = await fetchProfile();
     if (profile == null) {
