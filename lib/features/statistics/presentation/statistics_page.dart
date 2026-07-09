@@ -82,10 +82,12 @@ class StatisticsPage extends ConsumerWidget {
                   final player = entry.$2;
                   return Card(
                     margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
+                    child: ExpansionTile(
                       leading: CircleAvatar(child: Text('$rank')),
                       title: Text(player.name),
-                      subtitle: Text('${player.matches} match(s) joué(s)'),
+                      subtitle: Text(
+                        '${player.matches} match(s) • ${player.minutesPlayed} min',
+                      ),
                       trailing: Wrap(
                         spacing: 10,
                         children: [
@@ -94,6 +96,35 @@ class StatisticsPage extends ConsumerWidget {
                           _StatValue(label: 'M', value: player.motm),
                         ],
                       ),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      children: [
+                        Wrap(
+                          spacing: 18,
+                          runSpacing: 12,
+                          children: [
+                            _DetailStat(
+                              icon: Icons.timer_outlined,
+                              label: 'Minutes',
+                              value: player.minutesPlayed,
+                            ),
+                            _DetailStat(
+                              icon: Icons.sports_soccer_outlined,
+                              label: 'Titularisations',
+                              value: player.starts,
+                            ),
+                            _DetailStat(
+                              icon: Icons.swap_horiz,
+                              label: 'Entrées en jeu',
+                              value: player.substituteAppearances,
+                            ),
+                            _DetailStat(
+                              icon: Icons.shield_outlined,
+                              label: 'Clean sheets',
+                              value: player.cleanSheets,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
                 }),
@@ -120,6 +151,40 @@ class _StatValue extends StatelessWidget {
         Text('$value', style: Theme.of(context).textTheme.titleMedium),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
+    );
+  }
+}
+
+class _DetailStat extends StatelessWidget {
+  const _DetailStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 130,
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('$value', style: Theme.of(context).textTheme.titleMedium),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
