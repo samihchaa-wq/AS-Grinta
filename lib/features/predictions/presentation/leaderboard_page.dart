@@ -56,7 +56,9 @@ class LeaderboardPage extends ConsumerWidget {
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
-                      'Total = points des matchs + points des pronostics de saison. Les pourcentages sont uniquement indicatifs.',
+                      'Le classement est ordonné par la somme directe des points '
+                      'matchs et saison. Les pourcentages montrent la progression '
+                      'par rapport au maximum théorique disponible.',
                     ),
                   ),
                 ),
@@ -66,15 +68,53 @@ class LeaderboardPage extends ConsumerWidget {
                   final item = entry.$2;
                   return Card(
                     margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      leading: CircleAvatar(child: Text('$rank')),
-                      title: Text(item.name),
-                      subtitle: Text(
-                        'Matchs ${item.matchPoints.toStringAsFixed(1)} • Saison ${item.seasonPoints.toStringAsFixed(1)}',
-                      ),
-                      trailing: Text(
-                        item.totalPoints.toStringAsFixed(1),
-                        style: Theme.of(context).textTheme.titleLarge,
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(child: Text('$rank')),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                ),
+                              ),
+                              Text(
+                                item.totalPoints.toStringAsFixed(1),
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Matchs : ${item.matchPoints.toStringAsFixed(1)} / '
+                            '${item.matchMaxPoints.toStringAsFixed(1)} '
+                            '(${item.matchPercentage.toStringAsFixed(1)} %)',
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value: (item.matchPercentage / 100).clamp(0, 1),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Saison : ${item.seasonPoints.toStringAsFixed(1)} / '
+                            '${item.seasonMaxPoints.toStringAsFixed(1)} '
+                            '(${item.seasonPercentage.toStringAsFixed(1)} %)',
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value: (item.seasonPercentage / 100).clamp(0, 1),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Progression théorique globale : '
+                            '${item.totalPercentage.toStringAsFixed(1)} %',
+                          ),
+                        ],
                       ),
                     ),
                   );
