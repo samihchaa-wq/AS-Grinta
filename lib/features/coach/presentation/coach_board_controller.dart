@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/coach/data/coach_live_repository.dart';
 import 'package:as_grinta/features/coach/domain/coach_board.dart';
