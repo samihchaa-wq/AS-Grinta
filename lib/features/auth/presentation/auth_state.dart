@@ -103,6 +103,16 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> updatePassword(String password) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.updatePassword(password);
+      state = state.copyWith(isLoading: false, clearError: true);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: error.toString());
+    }
+  }
+
   Future<void> signOut() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
