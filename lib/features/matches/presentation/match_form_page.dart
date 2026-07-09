@@ -28,11 +28,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   void initState() {
     super.initState();
     final match = widget.match;
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
     _opponentTextController.text = match?.opponentName ?? '';
-    _kickoffAt =
-        match?.kickoffAt ?? DateTime.now().add(const Duration(days: 1));
+    _kickoffAt = match?.kickoffAt ??
+        DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
     _plannedDurationMinutes = match?.plannedDurationMinutes ?? 90;
     _status = match?.status ?? 'a_venir';
@@ -48,7 +49,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Widget build(BuildContext context) {
     final matchesState = ref.watch(matchesControllerProvider);
     final authState = ref.watch(authControllerProvider);
-    final canManage = authState.profile?.role == AuthRole.admin;
+    final role = authState.profile?.role;
+    final canManage = role == AuthRole.admin || role == AuthRole.moderateur;
 
     return Scaffold(
       appBar: AppBar(
@@ -158,7 +160,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 8),
             ListTile(
               title: const Text('Date et heure'),
-              subtitle: Text(_kickoffAt.toLocal().toString()),
+              subtitle: Text(_formatKickoff(_kickoffAt)),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
@@ -303,5 +305,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (ref.read(matchesControllerProvider).error == null) {
       Navigator.of(context).pop();
     }
+  }
+
+  String _formatKickoff(DateTime value) {
+    final local = value.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} • '
+        '${two(local.hour)}h${two(local.minute)}';
   }
 }
