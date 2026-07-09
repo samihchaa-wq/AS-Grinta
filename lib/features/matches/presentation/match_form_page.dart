@@ -3,7 +3,6 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MatchFormPage extends ConsumerStatefulWidget {
@@ -19,6 +18,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _opponentTextController = TextEditingController();
   final _timeController = TextEditingController();
+
   late String _seasonId;
   late String _opponentId;
   late DateTime _kickoffAt;
@@ -35,7 +35,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _opponentTextController.text = match?.opponentName ?? '';
     _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
-    _timeController.text = _formatTimeInput(_kickoffAt);
+    _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
     _status = match?.status ?? 'a_venir';
   }
@@ -54,22 +54,16 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final role = authState.profile?.role;
     final canManage = role == AuthRole.admin || role == AuthRole.moderateur;
 
-    final openSeasons = matchesState.seasons.where(
-      (season) => season['status']?.toString() == 'open',
-    );
-    if (widget.match == null && _seasonId.isEmpty && openSeasons.isNotEmpty) {
-      _seasonId = openSeasons.first['id'].toString();
-    }
+    final opponents = List<Map<String, dynamic>>.from(matchesState.opponents)
+      ..sort((a, b) => a['name']
+          .toString()
+          .toLowerCase()
+          .compareTo(b['name'].toString().toLowerCase()));
 
-    final opponents = [...matchesState.opponents]
-      ..sort(
-        (a, b) => a['name']
-            .toString()
-            .toLowerCase()
-            .compareTo(b['name'].toString().toLowerCase()),
-      );
-
-    final hasOpenSeason = widget.match != null || _seasonId.isNotEmpty;
+    final hasOpenSeason = widget.match != null ||
+        matchesState.seasons.any(
+          (season) => season['status']?.toString() == 'open',
+        );
 
     return Scaffold(
       appBar: AppBar(
@@ -120,18 +114,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 focusNode,
                 onFieldSubmitted,
               ) {
-                textController.addListener(() {
-                  if (_opponentTextController.text != textController.text) {
-                    _opponentTextController.text = textController.text;
-                    final exact = opponents.where(
-                      (opponent) =>
-                          opponent['name'].toString().toLowerCase() ==
-                          textController.text.trim().toLowerCase(),
-                    );
-                    _opponentId =
-                        exact.isEmpty ? '' : exact.first['id'].toString();
-                  }
-                });
                 return TextFormField(
                   controller: textController,
                   focusNode: focusNode,
@@ -144,19 +126,32 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                       onPressed: () async {
                         final created = await _createOpponent();
                         if (!mounted || created == null) return;
-                        final opponent = opponents.where(
+                        final selected = opponents.where(
                           (item) => item['id'].toString() == created,
                         );
                         setState(() {
                           _opponentId = created;
-                          if (opponent.isNotEmpty) {
+                          if (selected.isNotEmpty) {
                             textController.text =
-                                opponent.first['name'].toString();
+                                selected.first['name'].toString();
+                          } else {
+                            textController.text =
+                                _opponentTextController.text.trim();
                           }
                         });
                       },
                     ),
                   ),
+                  onChanged: (value) {
+                    _opponentTextController.text = value;
+                    final exact = opponents.where(
+                      (opponent) =>
+                          opponent['name'].toString().toLowerCase() ==
+                          value.trim().toLowerCase(),
+                    );
+                    _opponentId =
+                        exact.isEmpty ? '' : exact.first['id'].toString();
+                  },
                   validator: (_) => _opponentId.isEmpty
                       ? 'Sélectionnez une équipe existante ou créez-en une'
                       : null,
@@ -186,8 +181,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 final date = await showDatePicker(
                   context: context,
                   initialDate: _kickoffAt,
-                  firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                  lastDate: DateTime.now().add(const Duration(days: 730)),
+                  firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+                  lastDate: DateTime.now().add(const Duration(days: 3650)),
                 );
                 if (!context.mounted || date == null) return;
                 setState(() {
@@ -204,15 +199,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _timeController,
-              keyboardType: TextInputType.number,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
-                LengthLimitingTextInputFormatter(5),
-              ],
+              keyboardType: TextInputType.datetime,
               decoration: const InputDecoration(
                 labelText: 'Heure du match',
                 hintText: '21:00',
-                helperText: 'Format 24 h, par exemple 21:00',
+                helperText: 'Saisissez directement l’heure au format 24 h.',
               ),
               validator: _validateTime,
             ),
@@ -232,7 +223,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                       matchesState.isLoading ||
                       !hasOpenSeason
                   ? null
-                  : _submit,
+                  : () => _submit(matchesState.seasons),
               icon: const Icon(Icons.save_outlined),
               label: const Text('Enregistrer'),
             ),
@@ -274,6 +265,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     );
     controller.dispose();
     if (name == null || name.trim().isEmpty) return null;
+
     final id = await ref
         .read(matchesControllerProvider.notifier)
         .createOpponent(name.trim());
@@ -284,10 +276,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return id;
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit(List<Map<String, dynamic>> seasons) async {
     if (!_formKey.currentState!.validate()) return;
 
-    final parts = _timeController.text.split(':');
+    if (_seasonId.isEmpty) {
+      final openSeasons = seasons.where(
+        (season) => season['status']?.toString() == 'open',
+      );
+      if (openSeasons.isEmpty) return;
+      _seasonId = openSeasons.first['id'].toString();
+    }
+
+    final parts = _timeController.text.trim().split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
     _kickoffAt = DateTime(
@@ -299,7 +299,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     );
 
     final notifier = ref.read(matchesControllerProvider.notifier);
-
     if (widget.match == null) {
       await notifier.createMatch(
         seasonId: _seasonId,
@@ -331,6 +330,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final value = raw?.trim() ?? '';
     final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value);
     if (match == null) return 'Saisissez une heure au format 21:00';
+
     final hour = int.tryParse(match.group(1)!);
     final minute = int.tryParse(match.group(2)!);
     if (hour == null || minute == null || hour > 23 || minute > 59) {
@@ -345,7 +345,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return '${two(local.day)}/${two(local.month)}/${local.year}';
   }
 
-  String _formatTimeInput(DateTime value) {
+  String _formatTime(DateTime value) {
     final local = value.toLocal();
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(local.hour)}:${two(local.minute)}';
