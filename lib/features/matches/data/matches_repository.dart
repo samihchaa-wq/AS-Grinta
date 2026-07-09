@@ -32,8 +32,8 @@ class MatchesRepository {
     }
 
     final response = await query
-        .order('match_date', ascending: true)
-        .order('match_time', ascending: true);
+        .order('match_date', ascending: false)
+        .order('match_time', ascending: false);
     return (response as List)
         .map((row) => MatchModel.fromJson(Map<String, dynamic>.from(row)))
         .toList();
