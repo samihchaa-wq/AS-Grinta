@@ -17,8 +17,8 @@ class LeaderboardPage extends ConsumerWidget {
           await ref.read(leaderboardProvider.future);
         },
         child: leaderboardAsync.when(
-          loading: () => const ListView(
-            children: [
+          loading: () => ListView(
+            children: const [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
             ],
@@ -36,9 +36,9 @@ class LeaderboardPage extends ConsumerWidget {
           ),
           data: (entries) {
             if (entries.isEmpty) {
-              return const ListView(
-                padding: EdgeInsets.all(16),
-                children: [
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: const [
                   Card(
                     child: Padding(
                       padding: EdgeInsets.all(20),
