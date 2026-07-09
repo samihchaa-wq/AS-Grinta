@@ -326,7 +326,36 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   void resetBoard() {
     _ticker?.cancel();
     _ticker = null;
-    _initialize();
+
+    // Remettre toutes les valeurs à zéro en conservant les joueurs/formation
+    final sorted = [...state.players]..sort((a, b) {
+        if (a.isGoalkeeper && !b.isGoalkeeper) return -1;
+        if (!a.isGoalkeeper && b.isGoalkeeper) return 1;
+        return a.name.compareTo(b.name);
+      });
+
+    final lineup = <String, String>{};
+    final remaining = sorted.map((p) => p.id).toList();
+    for (final slot in state.formationSlots) {
+      if (remaining.isEmpty) break;
+      lineup[slot] = remaining.removeAt(0);
+    }
+
+    state = CoachBoardState(
+      players: state.players,
+      lineup: lineup,
+      bench: remaining,
+      formationCode: state.formationCode,
+      formationSlots: state.formationSlots,
+      events: const [],
+      isRunning: false,
+      elapsedSeconds: 0,
+      plannedDurationMinutes: state.plannedDurationMinutes,
+      scoreUs: 0,
+      scoreThem: 0,
+      isLoading: false,
+      error: null,
+    );
   }
 
   @override
@@ -340,7 +369,10 @@ extension _IterX<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
 
+/// autoDispose garantit que le Timer.periodic est annulé dès que
+/// la page /coach est quittée et que plus aucun listener n'est actif.
 final coachBoardControllerProvider =
-    StateNotifierProvider<CoachBoardController, CoachBoardState>((ref) {
+    StateNotifierProvider.autoDispose<CoachBoardController, CoachBoardState>(
+        (ref) {
   return CoachBoardController(ref.watch(supabaseClientProvider));
 });

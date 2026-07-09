@@ -140,44 +140,22 @@ class PlayersRepository {
   }
 
   /// Revendication : un profil connecté lie son compte à un joueur via le token.
+  /// Revendication atomique via le RPC `claim_player_profile`.
+  /// Le RPC utilise un row lock (FOR UPDATE) pour éviter les conditions de course.
+  /// L'argument `token` doit être un UUID valide.
   Future<void> claimProfile({
     required String token,
-    required String profileId,
+    required String profileId, // ignored — le RPC utilise auth.uid() côté serveur
   }) async {
-    // Fetch by token and filter null linked_profile_id in Dart
-    // (.is_ is not available in all supabase_flutter v2 variants)
-    final rows = await _client
-        .from('players')
-        .select('id, claim_token, claim_expires_at, linked_profile_id')
-        .eq('claim_token', token)
-        .limit(2);
-
-    final unlinked = (rows as List)
-        .map((r) => Map<String, dynamic>.from(r))
-        .where((m) => m['linked_profile_id'] == null)
-        .toList();
-
-    if (unlinked.isEmpty) {
-      throw StateError(
-        'Token invalide ou déjà utilisé. '
-        'Demandez un nouveau lien à votre coach.',
+    try {
+      await _client.rpc(
+        'claim_player_profile',
+        params: {'claim': token},
       );
+    } on PostgrestException catch (e) {
+      // Le RPC lève une exception Postgres avec le message en clair
+      throw StateError(e.message);
     }
-
-    final player = unlinked.first;
-    final expires = DateTime.tryParse('${player['claim_expires_at'] ?? ''}');
-    if (expires != null && expires.isBefore(DateTime.now())) {
-      throw StateError(
-        'Ce lien a expiré. Demandez un nouveau lien à votre coach.',
-      );
-    }
-
-    await _client.from('players').update({
-      'linked_profile_id': profileId,
-      'claimed_at': DateTime.now().toUtc().toIso8601String(),
-      'claim_token': null,
-      'claim_expires_at': null,
-    }).eq('id', player['id'].toString());
   }
 }
 
