@@ -43,8 +43,9 @@ class MatchesController extends StateNotifier<MatchesState> {
   final MatchesRepository _repository;
   final Ref _ref;
 
-  bool get _isAdmin =>
-      _ref.read(authControllerProvider).profile?.role == AuthRole.admin;
+  AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
+  bool get _isAdmin => _role == AuthRole.admin;
+  bool get _isModerator => _role == AuthRole.moderateur;
 
   Future<void> load({String? seasonId}) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -171,10 +172,10 @@ class MatchesController extends StateNotifier<MatchesState> {
   }
 
   Future<void> deleteMatch(String id) async {
-    if (!_isAdmin) {
+    if (!_isModerator) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seul un administrateur peut supprimer un match.',
+        error: 'Seul un modérateur peut supprimer définitivement un match.',
       );
       return;
     }
