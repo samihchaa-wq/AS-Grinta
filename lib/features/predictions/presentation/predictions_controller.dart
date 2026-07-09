@@ -37,12 +37,19 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   final PredictionsRepository _repository;
 
   Future<void> load() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    // Vide les items immédiatement pour éviter d'afficher des données périmées.
+    state = state.copyWith(isLoading: true, items: const [], clearError: true);
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      // En cas d'erreur, on vide aussi les items pour ne pas afficher
+      // une interface modifiable basée sur des données périmées.
+      state = state.copyWith(
+        items: const [],
+        isLoading: false,
+        error: error.toString(),
+      );
     }
   }
 
