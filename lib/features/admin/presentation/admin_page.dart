@@ -1,5 +1,7 @@
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
+import 'package:as_grinta/features/players/data/players_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,7 +17,7 @@ class AdminPage extends ConsumerWidget {
         title: const Text('Administration'),
         actions: [
           IconButton(
-            tooltip: 'Inviter un compte',
+            tooltip: 'Inviter un joueur',
             icon: const Icon(Icons.person_add_alt_1_outlined),
             onPressed: () => _showInviteDialog(context, ref),
           ),
@@ -27,32 +29,18 @@ class AdminPage extends ConsumerWidget {
           await ref.read(adminDashboardProvider.future);
         },
         child: dashboardAsync.when(
-          loading: () => ListView(
-            children: const [
-              SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(error.toString()),
-                ),
-              ),
-            ],
+          loading: () => const _LoadingView(),
+          error: (error, _) => _AdminErrorView(
+            onRetry: () => ref.invalidate(adminDashboardProvider),
           ),
           data: (dashboard) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
               _SeasonSection(dashboard: dashboard),
               const SizedBox(height: 24),
               Text(
                 'Comptes et effectif',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 12),
@@ -85,8 +73,6 @@ class AdminPage extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       'Registre des joueurs',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
@@ -103,25 +89,24 @@ class AdminPage extends ConsumerWidget {
                   leading: const Icon(Icons.group_outlined),
                   title: const Text('Joueurs indépendants'),
                   subtitle: const Text(
-                    'Gérez les fiches joueurs et les tokens de revendication de compte.',
+                    'Gérez les fiches joueurs et leurs liens de revendication.',
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/players'),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.dashboard_customize_rounded),
-                  title: const Text('Tableau blanc du coach'),
+                  title: const Text('Tableau du coach'),
                   subtitle: const Text(
-                    'Terrain tactique, chronomètre et suivi d\'événements en temps réel.',
+                    'Composition, chronomètre et événements en temps réel.',
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/coach'),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -134,64 +119,59 @@ class AdminPage extends ConsumerWidget {
     WidgetRef ref,
   ) async {
     final surnomController = TextEditingController();
-    final emailController = TextEditingController();
     final firstNameController = TextEditingController();
     final lastNameController = TextEditingController();
     String? error;
     var saving = false;
+    var isGoalkeeper = false;
 
     await showDialog<void>(
       context: context,
       barrierDismissible: !saving,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Inviter un compte'),
+          title: const Text('Inviter un joueur'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const Text(
+                  'Aucune adresse email n’est demandée. Un lien à partager sera généré.',
+                ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: surnomController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Surnom *',
-                    helperText: 'Nom affiché dans l\'application',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email *',
-                    helperText: 'Visible uniquement en administration',
+                    labelText: 'Surnom',
+                    helperText: 'Facultatif — nom affiché dans l’application',
                   ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: firstNameController,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Prénom *',
-                    helperText: 'Visible uniquement en administration',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Prénom *'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: lastNameController,
                   textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom *',
-                    helperText: 'Visible uniquement en administration',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Nom *'),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Gardien'),
+                  value: isGoalkeeper,
+                  onChanged: saving
+                      ? null
+                      : (value) => setDialogState(() => isGoalkeeper = value),
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
                   Text(
                     error!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ],
               ],
@@ -206,9 +186,11 @@ class AdminPage extends ConsumerWidget {
               onPressed: saving
                   ? null
                   : () async {
-                      if (surnomController.text.trim().isEmpty) {
+                      if (firstNameController.text.trim().isEmpty ||
+                          lastNameController.text.trim().isEmpty) {
                         setDialogState(
-                            () => error = 'Le surnom est obligatoire.');
+                          () => error = 'Le prénom et le nom sont obligatoires.',
+                        );
                         return;
                       }
                       setDialogState(() {
@@ -216,20 +198,19 @@ class AdminPage extends ConsumerWidget {
                         error = null;
                       });
                       try {
-                        await ref.read(adminRepositoryProvider).inviteUser(
-                              email: emailController.text,
+                        final token = await ref
+                            .read(playersRepositoryProvider)
+                            .createPlayerInvitation(
                               firstName: firstNameController.text,
                               lastName: lastNameController.text,
                               surnom: surnomController.text,
+                              isGoalkeeper: isGoalkeeper,
                             );
+                        final link = Uri.base.resolve('claim?token=$token').toString();
+                        ref.invalidate(playersListProvider);
                         if (!dialogContext.mounted) return;
                         Navigator.pop(dialogContext);
-                        ref.invalidate(adminDashboardProvider);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Invitation envoyée.'),
-                          ),
-                        );
+                        await _showInvitationLink(context, link);
                       } catch (exception) {
                         if (!dialogContext.mounted) return;
                         setDialogState(() {
@@ -244,7 +225,7 @@ class AdminPage extends ConsumerWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Envoyer'),
+                  : const Text('Générer le lien'),
             ),
           ],
         ),
@@ -252,9 +233,48 @@ class AdminPage extends ConsumerWidget {
     );
 
     surnomController.dispose();
-    emailController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();
+  }
+
+  Future<void> _showInvitationLink(BuildContext context, String link) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Invitation prête'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Envoie ce lien au joueur. Il créera son compte avec sa propre adresse email puis liera sa fiche.',
+            ),
+            const SizedBox(height: 12),
+            SelectableText(link),
+            const SizedBox(height: 8),
+            const Text('Le lien expire dans 7 jours.'),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: link));
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Lien copié.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Copier le lien'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -303,11 +323,7 @@ class _SeasonSection extends ConsumerWidget {
               (season) => ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(
-                  season.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                title: Text(season.name),
                 trailing: Chip(label: Text(season.status)),
               ),
             ),
@@ -438,15 +454,14 @@ class _ProfileCard extends ConsumerWidget {
                         profile.fullName.isEmpty
                             ? profile.email
                             : profile.fullName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text(
-                        profile.email,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      if (profile.email.trim().isNotEmpty)
+                        Text(
+                          profile.email,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                     ],
                   ),
                 ),
@@ -463,7 +478,7 @@ class _ProfileCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: profile.role,
+              initialValue: profile.role,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Type de compte'),
               items: const [
@@ -474,8 +489,9 @@ class _ProfileCard extends ConsumerWidget {
                 DropdownMenuItem(value: 'admin', child: Text('Admin')),
                 DropdownMenuItem(
                   value: 'moderateur',
-                  child: Text('Coach'),
+                  child: Text('Modérateur'),
                 ),
+                DropdownMenuItem(value: 'coach', child: Text('Coach')),
               ],
               onChanged: (value) async {
                 if (value == null || value == profile.role) return;
@@ -510,7 +526,9 @@ class _ProfileCard extends ConsumerWidget {
                         ? 'Valider comme joueur'
                         : profile.role == 'admin'
                             ? 'Valider comme admin'
-                            : 'Valider comme coach',
+                            : profile.role == 'moderateur'
+                                ? 'Valider comme modérateur'
+                                : 'Valider comme coach',
                   ),
                 ),
               ),
@@ -593,8 +611,7 @@ class _ProfileCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Cette action supprime le compte et toutes les données liées. '
-                'Elle est irréversible.',
+                'Cette action supprime le compte et toutes les données liées. Elle est irréversible.',
               ),
               const SizedBox(height: 12),
               Text('Saisissez « $expected » pour confirmer.'),
@@ -644,5 +661,60 @@ class _ProfileCard extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: const [
+        SizedBox(height: 220),
+        Center(child: CircularProgressIndicator()),
+      ],
+    );
+  }
+}
+
+class _AdminErrorView extends StatelessWidget {
+  const _AdminErrorView({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
+      children: [
+        Icon(
+          Icons.cloud_off_outlined,
+          size: 54,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Administration temporairement indisponible',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Actualise la page dans quelques instants.',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Actualiser'),
+          ),
+        ),
+      ],
+    );
   }
 }
