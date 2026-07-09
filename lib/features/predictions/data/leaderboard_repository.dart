@@ -130,11 +130,22 @@ class LeaderboardRepository {
       final map = Map<String, dynamic>.from(row);
       completedMatches[map['id'].toString()] = map;
     }
+    if (completedMatches.isEmpty) return const {};
 
+    final goalkeeperRows = await _client
+        .from('season_players')
+        .select('profile_id')
+        .eq('season_id', seasonId)
+        .eq('is_goalkeeper_snapshot', true);
+    final goalkeeperIds = (goalkeeperRows as List)
+        .map((row) => Map<String, dynamic>.from(row)['profile_id'].toString())
+        .toSet();
+
+    final matchIds = completedMatches.keys.toList();
     final participantsRaw = await _client
         .from('match_participants')
         .select('match_id, profile_id')
-        .inFilter('match_id', completedMatches.keys.toList());
+        .inFilter('match_id', matchIds);
     final matchesPlayed = <String, int>{};
     final participantPairs = <String>{};
     for (final row in participantsRaw as List) {
@@ -148,7 +159,7 @@ class LeaderboardRepository {
     final goalsRaw = await _client
         .from('goals')
         .select('match_id, team, scorer_profile_id, assist_profile_id')
-        .inFilter('match_id', completedMatches.keys.toList());
+        .inFilter('match_id', matchIds);
     final goals = <String, int>{};
     final assists = <String, int>{};
     for (final row in goalsRaw as List) {
@@ -163,7 +174,7 @@ class LeaderboardRepository {
     final motmRaw = await _client
         .from('match_motm')
         .select('match_id, profile_id')
-        .inFilter('match_id', completedMatches.keys.toList());
+        .inFilter('match_id', matchIds);
     final motm = <String, int>{};
     for (final row in motmRaw as List) {
       final playerId = Map<String, dynamic>.from(row)['profile_id'].toString();
@@ -176,6 +187,7 @@ class LeaderboardRepository {
       if (conceded != 0) continue;
       for (final pair in participantPairs.where((pair) => pair.startsWith('${entry.key}:'))) {
         final playerId = pair.substring(entry.key.length + 1);
+        if (!goalkeeperIds.contains(playerId)) continue;
         cleanSheets[playerId] = (cleanSheets[playerId] ?? 0) + 1;
       }
     }
