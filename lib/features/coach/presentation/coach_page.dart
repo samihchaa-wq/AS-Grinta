@@ -25,7 +25,7 @@ class CoachPage extends ConsumerWidget {
         body: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(coachBoardControllerProvider);
-            await ref.read(coachBoardControllerProvider.notifier).futureOrNull;
+            await Future<void>.delayed(const Duration(milliseconds: 500));
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -103,8 +103,4 @@ class _NoMatchState extends StatelessWidget {
       ],
     );
   }
-}
-
-extension on CoachBoardController {
-  Future<void>? get futureOrNull => null;
 }
