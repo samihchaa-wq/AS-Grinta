@@ -10,6 +10,7 @@ import 'package:as_grinta/features/live/presentation/live_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,6 +49,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/predictions',
         builder: (_, __) => const PredictionsPage(),
+      ),
+      GoRoute(
+        path: '/predictions/season',
+        builder: (_, __) => const SeasonPredictionsPage(),
       ),
       GoRoute(
         path: '/statistics',
