@@ -80,7 +80,8 @@ class LeaderboardPage extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   item.name,
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                               ),
                               Text(

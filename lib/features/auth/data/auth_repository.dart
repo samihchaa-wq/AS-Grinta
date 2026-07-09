@@ -45,7 +45,8 @@ class AuthRepository {
 
   Future<void> updatePassword(String password) async {
     if (password.length < 8) {
-      throw ArgumentError('Le mot de passe doit contenir au moins 8 caractères.');
+      throw ArgumentError(
+          'Le mot de passe doit contenir au moins 8 caractères.');
     }
     await _client.auth.updateUser(UserAttributes(password: password));
   }
@@ -58,11 +59,8 @@ class AuthRepository {
     final user = _client.auth.currentUser;
     if (user == null) return null;
 
-    final response = await _client
-        .from('profiles')
-        .select()
-        .eq('id', user.id)
-        .maybeSingle();
+    final response =
+        await _client.from('profiles').select().eq('id', user.id).maybeSingle();
     if (response == null) return null;
 
     return AuthProfile.fromJson(Map<String, dynamic>.from(response));

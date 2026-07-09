@@ -28,7 +28,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     final profile = ref.read(authControllerProvider).profile;
-    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
+    _firstNameController =
+        TextEditingController(text: profile?.firstName ?? '');
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _avatarUrl = profile?.avatarPath;
   }
@@ -95,8 +96,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const SizedBox(height: 8),
                   if (profile?.email != null) Text(profile!.email!),
                   Text('Rôle : ${profile?.role.label ?? 'inconnu'}'),
-                  Text('Statut : ${profile?.isActive == true ? 'Actif' : 'Inactif'}'),
-                  Text('Gardien : ${profile?.isGoalkeeper == true ? 'Oui' : 'Non'}'),
+                  Text(
+                      'Statut : ${profile?.isActive == true ? 'Actif' : 'Inactif'}'),
+                  Text(
+                      'Gardien : ${profile?.isGoalkeeper == true ? 'Oui' : 'Non'}'),
                 ],
               ),
             ),
@@ -175,7 +178,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               interpolation: img.Interpolation.average,
             )
           : decoded;
-      final compressed = Uint8List.fromList(img.encodeJpg(resized, quality: 82));
+      final compressed =
+          Uint8List.fromList(img.encodeJpg(resized, quality: 82));
       if (!mounted) return;
       setState(() => _pendingAvatarBytes = compressed);
     } catch (error) {
@@ -235,7 +239,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Nouveau mot de passe'),
+              decoration:
+                  const InputDecoration(labelText: 'Nouveau mot de passe'),
             ),
             const SizedBox(height: 12),
             TextField(

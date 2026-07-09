@@ -3,7 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('LiveGameplayState', () {
-    test('moves a player from the bench to a slot and keeps the slot unique', () {
+    test('moves a player from the bench to a slot and keeps the slot unique',
+        () {
       final state = LiveGameplayState.initial(
         players: [
           const LivePlayer(id: 'p1', name: 'Alice'),

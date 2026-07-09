@@ -54,30 +54,31 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     await _subscription?.cancel();
     _subscription = _repository
         .subscribeToGameplay(
-          matchId: _matchId,
-          players: players,
-          fallbackFormation: formationKey,
-        )
+      matchId: _matchId,
+      players: players,
+      fallbackFormation: formationKey,
+    )
         .listen(
-          (gameplay) {
-            state = state.copyWith(
-              gameplay: gameplay,
-              isLoading: false,
-              clearError: true,
-            );
-          },
-          onError: (Object error) {
-            state = state.copyWith(
-              isLoading: false,
-              error: error.toString(),
-            );
-          },
+      (gameplay) {
+        state = state.copyWith(
+          gameplay: gameplay,
+          isLoading: false,
+          clearError: true,
         );
+      },
+      onError: (Object error) {
+        state = state.copyWith(
+          isLoading: false,
+          error: error.toString(),
+        );
+      },
+    );
   }
 
   String? _controllerSessionId() {
     final authState = _ref.read(authControllerProvider);
-    final currentUserId = _ref.read(supabaseClientProvider).auth.currentUser?.id;
+    final currentUserId =
+        _ref.read(supabaseClientProvider).auth.currentUser?.id;
     final controllerSessionId = _ref.read(liveControlSessionIdProvider);
     final liveSession = _ref.read(liveControllerProvider).session;
     final role = authState.profile?.role;

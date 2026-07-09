@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class FeaturePlaceholder extends StatelessWidget {
-  const FeaturePlaceholder({required this.title, required this.icon, super.key});
+  const FeaturePlaceholder(
+      {required this.title, required this.icon, super.key});
 
   final String title;
   final IconData icon;

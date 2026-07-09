@@ -13,8 +13,7 @@ class MatchFinalizationPage extends ConsumerStatefulWidget {
       _MatchFinalizationPageState();
 }
 
-class _MatchFinalizationPageState
-    extends ConsumerState<MatchFinalizationPage> {
+class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
   final _grintaScoreController = TextEditingController();
   final _opponentScoreController = TextEditingController();
   String? _motmProfileId;
@@ -72,12 +71,13 @@ class _MatchFinalizationPageState
               const SizedBox(height: 8),
               TextField(
                 controller: _opponentScoreController,
-                decoration: const InputDecoration(labelText: 'Score adversaire'),
+                decoration:
+                    const InputDecoration(labelText: 'Score adversaire'),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _motmProfileId,
+                initialValue: _motmProfileId,
                 decoration: const InputDecoration(
                   labelText: 'Homme du match',
                 ),
@@ -139,8 +139,7 @@ class _MatchFinalizationPageState
                               grintaScore: grintaScore,
                               opponentScore: opponentScore,
                               goals: finalizationContext.goals,
-                              substitutions:
-                                  finalizationContext.substitutions,
+                              substitutions: finalizationContext.substitutions,
                               manOfTheMatchId: _motmProfileId,
                             );
 

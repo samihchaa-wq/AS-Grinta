@@ -186,11 +186,7 @@ class _NextMatchCard extends StatelessWidget {
             if (dashboard.nextKickoffAt != null) ...[
               const SizedBox(height: 6),
               Text(
-                dashboard.nextKickoffAt!
-                    .toLocal()
-                    .toString()
-                    .split('.')
-                    .first,
+                dashboard.nextKickoffAt!.toLocal().toString().split('.').first,
               ),
             ],
             if (isLive) ...[
@@ -198,8 +194,7 @@ class _NextMatchCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () =>
-                      context.go('/live/${dashboard.nextMatchId}'),
+                  onPressed: () => context.go('/live/${dashboard.nextMatchId}'),
                   icon: const Icon(Icons.sensors),
                   label: const Text('Ouvrir le Live'),
                 ),

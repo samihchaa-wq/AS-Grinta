@@ -34,9 +34,11 @@ class MatchPredictionItem {
   DateTime get opensAt => kickoffAt.subtract(const Duration(days: 6));
   DateTime get closesAt => kickoffAt.subtract(const Duration(hours: 12));
   bool get isBeforeWindow => DateTime.now().isBefore(opensAt);
-  bool get isClosed => status != 'a_venir' || !DateTime.now().isBefore(closesAt);
+  bool get isClosed =>
+      status != 'a_venir' || !DateTime.now().isBefore(closesAt);
   bool get canEdit => !isBeforeWindow && !isClosed;
-  bool get hasResult => actualScoreGrinta != null && actualScoreOpponent != null;
+  bool get hasResult =>
+      actualScoreGrinta != null && actualScoreOpponent != null;
 
   double? get earnedPoints {
     if (!isFilled || !hasResult) return hasResult ? 0 : null;
@@ -112,7 +114,8 @@ class PredictionsRepository {
 
     final predictions = await _client
         .from('match_predictions')
-        .select('match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled')
+        .select(
+            'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled')
         .eq('profile_id', userId);
 
     final byMatch = <String, Map<String, dynamic>>{};
@@ -144,7 +147,8 @@ class PredictionsRepository {
         kickoffAt: kickoffAt,
         status: map['status']?.toString() ?? 'a_venir',
         scoreGrinta:
-            int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ?? 0,
+            int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ??
+                0,
         scoreOpponent:
             int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
         isFilled: prediction?['is_filled'] == true,

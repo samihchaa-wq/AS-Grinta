@@ -25,7 +25,7 @@ class MatchDetailsPage extends ConsumerWidget {
           await ref.read(matchDetailsProvider(matchId).future);
         },
         child: detailsAsync.when(
-          loading: () => const ListView(
+          loading: () => ListView(
             children: [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
@@ -57,11 +57,7 @@ class MatchDetailsPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        details.kickoffAt
-                            .toLocal()
-                            .toString()
-                            .split('.')
-                            .first,
+                        details.kickoffAt.toLocal().toString().split('.').first,
                       ),
                       Text('Statut : ${details.status}'),
                       if (isAdmin && details.status == 'a_venir') ...[

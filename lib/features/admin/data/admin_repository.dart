@@ -80,8 +80,8 @@ class AdminRepository {
           .select('profile_id')
           .eq('season_id', openSeasonId);
       memberships.addAll(
-        (membershipRows as List)
-            .map((row) => Map<String, dynamic>.from(row)['profile_id'].toString()),
+        (membershipRows as List).map(
+            (row) => Map<String, dynamic>.from(row)['profile_id'].toString()),
       );
     }
 
@@ -119,7 +119,9 @@ class AdminRepository {
     required String lastName,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail.contains('@') || firstName.trim().isEmpty || lastName.trim().isEmpty) {
+    if (!cleanEmail.contains('@') ||
+        firstName.trim().isEmpty ||
+        lastName.trim().isEmpty) {
       throw ArgumentError('Email, prénom et nom sont obligatoires.');
     }
 
@@ -163,14 +165,15 @@ class AdminRepository {
     if (!const ['active', 'archived'].contains(status)) {
       throw ArgumentError('Statut invalide.');
     }
-    await _client.from('profiles').update({'status': status}).eq('id', profileId);
+    await _client
+        .from('profiles')
+        .update({'status': status}).eq('id', profileId);
   }
 
   Future<void> updateGoalkeeper(String profileId, bool value) async {
     await _client
         .from('profiles')
-        .update({'is_goalkeeper': value})
-        .eq('id', profileId);
+        .update({'is_goalkeeper': value}).eq('id', profileId);
   }
 
   Future<void> createSeason(String name) async {
@@ -189,8 +192,7 @@ class AdminRepository {
   Future<void> archiveSeason(String seasonId) async {
     await _client
         .from('seasons')
-        .update({'status': 'archived'})
-        .eq('id', seasonId);
+        .update({'status': 'archived'}).eq('id', seasonId);
   }
 
   Future<void> setSeasonMembership({

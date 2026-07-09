@@ -42,8 +42,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLiveGameplayRoute = location.endsWith('/gameplay');
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
-      final isParticipantsRoute =
-          location.startsWith('/matches/') && location.endsWith('/participants');
+      final isParticipantsRoute = location.startsWith('/matches/') &&
+          location.endsWith('/participants');
       final isCorrectionRoute =
           location.startsWith('/matches/') && location.endsWith('/correction');
       final isAdminRoute = location == '/admin';

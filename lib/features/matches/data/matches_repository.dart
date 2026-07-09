@@ -40,10 +40,8 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response = await _client
-        .from('seasons')
-        .select('id, name, status')
-        .order('name');
+    final response =
+        await _client.from('seasons').select('id, name, status').order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();

@@ -60,7 +60,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
           children: [
             if (matchesState.seasons.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _selectedSeasonId,
+                initialValue: _selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
                   const DropdownMenuItem<String>(
@@ -75,7 +75,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   }),
                 ],
                 onChanged: (value) async {
-                  setState(() => _selectedSeasonId = value == '' ? null : value);
+                  setState(
+                      () => _selectedSeasonId = value == '' ? null : value);
                   await ref
                       .read(matchesControllerProvider.notifier)
                       .load(seasonId: value == '' ? null : value);
@@ -105,8 +106,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   canDelete: isModerator,
                   canEdit: isAdmin && !match.isArchived,
                   canManageLive: isAdmin && !match.isArchived,
-                  canRecoverLive:
-                      isModerator && match.status == 'en_cours',
+                  canRecoverLive: isModerator && match.status == 'en_cours',
                   canFinalize: isAdmin && !match.isArchived,
                   canSelectParticipants: isAdmin && !match.isArchived,
                   canArchive: isAdmin && !match.isArchived,

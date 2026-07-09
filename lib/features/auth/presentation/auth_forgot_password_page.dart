@@ -7,10 +7,12 @@ class AuthForgotPasswordPage extends ConsumerStatefulWidget {
   const AuthForgotPasswordPage({super.key});
 
   @override
-  ConsumerState<AuthForgotPasswordPage> createState() => _AuthForgotPasswordPageState();
+  ConsumerState<AuthForgotPasswordPage> createState() =>
+      _AuthForgotPasswordPageState();
 }
 
-class _AuthForgotPasswordPageState extends ConsumerState<AuthForgotPasswordPage> {
+class _AuthForgotPasswordPageState
+    extends ConsumerState<AuthForgotPasswordPage> {
   final _emailController = TextEditingController();
 
   @override
@@ -22,7 +24,8 @@ class _AuthForgotPasswordPageState extends ConsumerState<AuthForgotPasswordPage>
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if ((next.error ?? '').isNotEmpty && (previous?.error ?? '') != next.error) {
+      if ((next.error ?? '').isNotEmpty &&
+          (previous?.error ?? '') != next.error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error!)),
         );
@@ -47,7 +50,8 @@ class _AuthForgotPasswordPageState extends ConsumerState<AuthForgotPasswordPage>
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
-                  const Text('Entrez votre email pour recevoir un lien de réinitialisation.'),
+                  const Text(
+                      'Entrez votre email pour recevoir un lien de réinitialisation.'),
                   const SizedBox(height: 20),
                   TextField(
                     controller: _emailController,
@@ -62,7 +66,9 @@ class _AuthForgotPasswordPageState extends ConsumerState<AuthForgotPasswordPage>
                     onPressed: authState.isLoading
                         ? null
                         : () async {
-                            await ref.read(authControllerProvider.notifier).resetPassword(
+                            await ref
+                                .read(authControllerProvider.notifier)
+                                .resetPassword(
                                   email: _emailController.text.trim(),
                                 );
                           },

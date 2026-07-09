@@ -46,14 +46,13 @@ class LiveHandoffRepository {
         .map((row) => Map<String, dynamic>.from(row))
         .where((row) => row['id'].toString() != currentUserId)
         .map((row) {
-          final name =
-              '${row['first_name'] ?? ''} ${row['last_name'] ?? ''}'.trim();
-          return LiveHandoffAdmin(
-            id: row['id'].toString(),
-            name: name.isEmpty ? 'Admin sans nom' : name,
-          );
-        })
-        .toList();
+      final name =
+          '${row['first_name'] ?? ''} ${row['last_name'] ?? ''}'.trim();
+      return LiveHandoffAdmin(
+        id: row['id'].toString(),
+        name: name.isEmpty ? 'Admin sans nom' : name,
+      );
+    }).toList();
   }
 
   Future<PendingLiveHandoff?> fetchPending(String matchId) async {

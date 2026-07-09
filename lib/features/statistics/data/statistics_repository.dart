@@ -38,9 +38,7 @@ class StatisticsRepository {
         .from('profiles')
         .select('id, first_name, last_name, status')
         .eq('status', 'active');
-    final statsResponse = await _client
-        .from('v_player_career_stats')
-        .select('''
+    final statsResponse = await _client.from('v_player_career_stats').select('''
           profile_id,
           matches_played,
           goals,

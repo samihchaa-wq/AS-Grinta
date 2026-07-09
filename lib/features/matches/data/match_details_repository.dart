@@ -42,7 +42,8 @@ class MatchDetailsRepository {
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client
         .from('matches')
-        .select('id, opponent_id, match_date, match_time, status, opponents(name)')
+        .select(
+            'id, opponent_id, match_date, match_time, status, opponents(name)')
         .eq('id', matchId)
         .single();
     final opponentId = match['opponent_id'].toString();
@@ -63,7 +64,8 @@ class MatchDetailsRepository {
         .map((row) => Map<String, dynamic>.from(row))
         .map(
           (row) => HeadToHeadMatch(
-            date: DateTime.tryParse(row['match_date'].toString()) ?? DateTime(1970),
+            date: DateTime.tryParse(row['match_date'].toString()) ??
+                DateTime(1970),
             location: row['location'].toString(),
             scoreGrinta: row['score_as_grinta'] == null
                 ? null

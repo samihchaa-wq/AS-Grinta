@@ -14,8 +14,7 @@ class LiveRepository {
   Stream<List<Map<String, dynamic>>> subscribeToLive(String matchId) {
     return _client
         .from('live_sessions')
-        .stream(primaryKey: ['id'])
-        .eq('match_id', matchId);
+        .stream(primaryKey: ['id']).eq('match_id', matchId);
   }
 
   Future<LiveSessionState?> fetchLiveSession(String matchId) async {
@@ -358,9 +357,8 @@ class LiveRepository {
         'p_minute': minute,
         'p_goal_type': _goalTypeToDatabase(type),
         'p_scorer_profile_id': hidesPlayers ? null : scorerId,
-        'p_assist_type': hidesPlayers
-            ? null
-            : (assisterId == null ? 'sans_passe' : 'connu'),
+        'p_assist_type':
+            hidesPlayers ? null : (assisterId == null ? 'sans_passe' : 'connu'),
         'p_assist_profile_id': hidesPlayers ? null : assisterId,
       },
     );
@@ -386,9 +384,8 @@ class LiveRepository {
         'p_minute': minute,
         'p_goal_type': _goalTypeToDatabase(type),
         'p_scorer_profile_id': hidesPlayers ? null : scorerId,
-        'p_assist_type': hidesPlayers
-            ? null
-            : (assisterId == null ? 'sans_passe' : 'connu'),
+        'p_assist_type':
+            hidesPlayers ? null : (assisterId == null ? 'sans_passe' : 'connu'),
         'p_assist_profile_id': hidesPlayers ? null : assisterId,
       },
     );

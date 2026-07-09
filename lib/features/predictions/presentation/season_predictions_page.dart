@@ -20,8 +20,7 @@ class SeasonPredictionsPage extends ConsumerStatefulWidget {
       _SeasonPredictionsPageState();
 }
 
-class _SeasonPredictionsPageState
-    extends ConsumerState<SeasonPredictionsPage> {
+class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   final Map<String, int> _draftValues = {};
   String? _savingKey;
   String? _error;
@@ -58,9 +57,8 @@ class _SeasonPredictionsPageState
             ),
           ),
           Expanded(
-            child: _showPublic
-                ? _buildPublic(publicAsync)
-                : _buildMine(mineAsync),
+            child:
+                _showPublic ? _buildPublic(publicAsync) : _buildMine(mineAsync),
           ),
         ],
       ),
@@ -75,7 +73,7 @@ class _SeasonPredictionsPageState
         await ref.read(seasonPredictionsProvider.future);
       },
       child: asyncItems.when(
-        loading: () => const ListView(
+        loading: () => ListView(
           children: [
             SizedBox(height: 220),
             Center(child: CircularProgressIndicator()),
@@ -87,7 +85,7 @@ class _SeasonPredictionsPageState
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const ListView(
+            return ListView(
               padding: EdgeInsets.all(16),
               children: [
                 Card(
@@ -154,7 +152,7 @@ class _SeasonPredictionsPageState
         await ref.read(publicSeasonPredictionsProvider.future);
       },
       child: asyncItems.when(
-        loading: () => const ListView(
+        loading: () => ListView(
           children: [
             SizedBox(height: 220),
             Center(child: CircularProgressIndicator()),
@@ -166,7 +164,7 @@ class _SeasonPredictionsPageState
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const ListView(
+            return ListView(
               padding: EdgeInsets.all(16),
               children: [
                 Card(
@@ -191,7 +189,8 @@ class _SeasonPredictionsPageState
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ExpansionTile(
                   title: Text(predictions.first.predictorName),
-                  subtitle: Text('${predictions.length} prédiction(s) saisie(s)'),
+                  subtitle:
+                      Text('${predictions.length} prédiction(s) saisie(s)'),
                   children: predictions
                       .map(
                         (item) => ListTile(

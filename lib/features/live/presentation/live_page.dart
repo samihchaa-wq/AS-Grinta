@@ -29,7 +29,8 @@ class _LivePageState extends ConsumerState<LivePage>
       if (mounted) setState(() {});
     });
     Future.microtask(
-      () => ref.read(liveControllerProvider.notifier).initialize(widget.matchId),
+      () =>
+          ref.read(liveControllerProvider.notifier).initialize(widget.matchId),
     );
   }
 
@@ -39,11 +40,15 @@ class _LivePageState extends ConsumerState<LivePage>
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       unawaited(
-        ref.read(liveControllerProvider.notifier).markDisconnected(widget.matchId),
+        ref
+            .read(liveControllerProvider.notifier)
+            .markDisconnected(widget.matchId),
       );
     } else if (state == AppLifecycleState.resumed) {
       unawaited(
-        ref.read(liveControllerProvider.notifier).markReconnected(widget.matchId),
+        ref
+            .read(liveControllerProvider.notifier)
+            .markReconnected(widget.matchId),
       );
     }
   }
@@ -51,7 +56,9 @@ class _LivePageState extends ConsumerState<LivePage>
   @override
   void dispose() {
     unawaited(
-      ref.read(liveControllerProvider.notifier).markDisconnected(widget.matchId),
+      ref
+          .read(liveControllerProvider.notifier)
+          .markDisconnected(widget.matchId),
     );
     _ticker?.cancel();
     WidgetsBinding.instance.removeObserver(this);
@@ -104,7 +111,9 @@ class _LivePageState extends ConsumerState<LivePage>
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(pendingLiveHandoffProvider(widget.matchId));
-          await ref.read(liveControllerProvider.notifier).initialize(widget.matchId);
+          await ref
+              .read(liveControllerProvider.notifier)
+              .initialize(widget.matchId);
         },
         child: ListView(
           padding: const EdgeInsets.all(20),
@@ -115,7 +124,8 @@ class _LivePageState extends ConsumerState<LivePage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('État : ${liveState.session?.status ?? 'not_started'}'),
+                    Text(
+                        'État : ${liveState.session?.status ?? 'not_started'}'),
                     const SizedBox(height: 8),
                     Text(
                       'Temps : ${_formatClock(_displayedSeconds())}',

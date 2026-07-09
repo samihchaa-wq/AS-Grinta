@@ -50,7 +50,8 @@ class AuthProfile {
       isActive ? ProfileStatus.active : ProfileStatus.archived;
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
-    final roleValue = (json['role'] ?? 'pronostiqueur').toString().toLowerCase();
+    final roleValue =
+        (json['role'] ?? 'pronostiqueur').toString().toLowerCase();
     final role = switch (roleValue) {
       'admin' => AuthRole.admin,
       'moderateur' || 'moderator' => AuthRole.moderateur,
