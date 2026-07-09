@@ -65,20 +65,13 @@ class CoachLivePage extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  _ScoreAndTimerCard(
-                    state: state,
-                    controller: controller,
-                  ),
+                  _ScoreAndTimerCard(state: state, controller: controller),
                   const SizedBox(height: 16),
-                  _LineupCard(
-                    state: state,
-                    controller: controller,
-                  ),
+                  _LineupCard(state: state, controller: controller),
                   const SizedBox(height: 16),
-                  _EventsCard(
-                    state: state,
-                    controller: controller,
-                  ),
+                  _EventsCard(state: state, controller: controller),
+                  const SizedBox(height: 16),
+                  _MinutesCard(state: state),
                 ],
               ),
             ),
@@ -87,35 +80,35 @@ class CoachLivePage extends ConsumerWidget {
 }
 
 class _ScoreAndTimerCard extends StatelessWidget {
-  const _ScoreAndTimerCard({
-    required this.state,
-    required this.controller,
-  });
+  const _ScoreAndTimerCard({required this.state, required this.controller});
 
   final CoachBoardState state;
   final CoachBoardController controller;
 
-  Future<void> _confirmEnd(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Terminer le match ?'),
-        content: Text(
-          'Score actuel : AS Grinta ${state.scoreUs} - ${state.scoreThem} Adversaire',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
+  Future<bool> _confirm(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String action,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(action),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Terminer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) await controller.endMatch();
+        ) ??
+        false;
   }
 
   @override
@@ -165,23 +158,50 @@ class _ScoreAndTimerCard extends StatelessWidget {
                         : state.isRunning
                             ? controller.pauseTimer
                             : controller.startTimer,
-                    icon: Icon(
-                      state.isRunning ? Icons.pause : Icons.play_arrow,
-                    ),
+                    icon: Icon(state.isRunning ? Icons.pause : Icons.play_arrow),
                     label: Text(state.isRunning ? 'Pause' : 'Démarrer'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: controller.goToHalfTime,
+                    onPressed: () async {
+                      final ok = await _confirm(
+                        context,
+                        title: 'Passer à la mi-temps ?',
+                        message:
+                            'Le chrono sera arrêté et placé à la moitié du temps prévu.',
+                        action: 'Mi-temps',
+                      );
+                      if (ok) await controller.goToHalfTime();
+                    },
                     icon: const Icon(Icons.timelapse),
                     label: const Text('Mi-temps'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => _confirmEnd(context),
+                    onPressed: () async {
+                      final ok = await _confirm(
+                        context,
+                        title: 'Terminer le match ?',
+                        message:
+                            'Score actuel : AS Grinta ${state.scoreUs} - ${state.scoreThem} Adversaire',
+                        action: 'Terminer',
+                      );
+                      if (ok) await controller.endMatch();
+                    },
                     icon: const Icon(Icons.stop_circle_outlined),
                     label: const Text('Fin du match'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: state.isRunning ? null : controller.resetBoard,
+                    onPressed: state.isRunning
+                        ? null
+                        : () async {
+                            final ok = await _confirm(
+                              context,
+                              title: 'Réinitialiser le Tableau ?',
+                              message:
+                                  'La composition, le chrono, le score et tous les événements seront effacés.',
+                              action: 'Réinitialiser',
+                            );
+                            if (ok) await controller.resetBoard();
+                          },
                     icon: const Icon(Icons.restart_alt),
                     label: const Text('Réinitialiser'),
                   ),
@@ -204,19 +224,28 @@ class _LineupCard extends StatelessWidget {
   final CoachBoardState state;
   final CoachBoardController controller;
 
-  String _slotLabel(String slot) {
-    return switch (slot) {
-      'gk' => 'G',
-      'lb' => 'DG',
-      'cb1' || 'cb2' => 'DC',
-      'rb' => 'DD',
-      'dm' => 'MDC',
-      'cm1' || 'cm2' => 'MC',
-      'lw' => 'AG',
-      'st' => 'BU',
-      'rw' => 'AD',
-      _ => slot.toUpperCase(),
-    };
+  String _slotLabel(String slot) => switch (slot) {
+        'gk' => 'G',
+        'lb' => 'DG',
+        'cb1' || 'cb2' => 'DC',
+        'rb' => 'DD',
+        'dm' => 'MDC',
+        'cm1' || 'cm2' => 'MC',
+        'lw' => 'AG',
+        'st' => 'BU',
+        'rw' => 'AD',
+        _ => slot.toUpperCase(),
+      };
+
+  String _playerLabel(CoachPlayer player) {
+    final goals = state.events
+        .where((e) => e.type == CoachEventType.goalUs && e.playerId == player.id)
+        .length;
+    final assists =
+        state.events.where((e) => e.assistPlayerId == player.id).length;
+    final icons = '${List.filled(goals, '⚽').join()}'
+        '${List.filled(assists, '👟').join()}';
+    return icons.isEmpty ? player.displayName : '${player.displayName}  $icons';
   }
 
   @override
@@ -232,7 +261,7 @@ class _LineupCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Composition 4-3-3',
+                    'Composition ${state.formationCode}',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -258,7 +287,7 @@ class _LineupCard extends StatelessWidget {
                       .map(
                         (player) => DropdownMenuItem(
                           value: player.id,
-                          child: Text(player.displayName),
+                          child: Text(_playerLabel(player)),
                         ),
                       )
                       .toList(growable: false),
@@ -280,7 +309,7 @@ class _LineupCard extends StatelessWidget {
               runSpacing: 8,
               children: state.bench.map((id) {
                 final player = state.playerById(id);
-                return Chip(label: Text(player?.displayName ?? 'Joueur'));
+                return Chip(label: Text(player == null ? 'Joueur' : _playerLabel(player)));
               }).toList(growable: false),
             ),
           ],
@@ -316,29 +345,21 @@ class _EventsCard extends StatelessWidget {
                 initialValue: scorerId,
                 decoration: const InputDecoration(labelText: 'Buteur'),
                 items: lineupPlayers
-                    .map(
-                      (player) => DropdownMenuItem(
-                        value: player.id,
-                        child: Text(player.displayName),
-                      ),
-                    )
+                    .map((p) => DropdownMenuItem(value: p.id, child: Text(p.displayName)))
                     .toList(growable: false),
-                onChanged: (value) => setDialogState(() => scorerId = value),
+                onChanged: (value) => setDialogState(() {
+                  scorerId = value;
+                  if (assistId == scorerId) assistId = null;
+                }),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: assistId,
-                decoration: const InputDecoration(
-                  labelText: 'Passeur (facultatif)',
-                ),
+                decoration:
+                    const InputDecoration(labelText: 'Passeur (facultatif)'),
                 items: lineupPlayers
-                    .where((player) => player.id != scorerId)
-                    .map(
-                      (player) => DropdownMenuItem(
-                        value: player.id,
-                        child: Text(player.displayName),
-                      ),
-                    )
+                    .where((p) => p.id != scorerId)
+                    .map((p) => DropdownMenuItem(value: p.id, child: Text(p.displayName)))
                     .toList(growable: false),
                 onChanged: (value) => setDialogState(() => assistId = value),
               ),
@@ -359,29 +380,76 @@ class _EventsCard extends StatelessWidget {
         ),
       ),
     );
-
     if (confirmed == true) {
       await controller.addGoalUs(scorerId: scorerId, assistId: assistId);
     }
   }
 
+  Future<void> _addSubstitution(BuildContext context) async {
+    String? outId;
+    String? inId;
+    final onField = state.lineup.values
+        .map(state.playerById)
+        .whereType<CoachPlayer>()
+        .toList();
+    final bench = state.bench
+        .map(state.playerById)
+        .whereType<CoachPlayer>()
+        .toList();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Remplacement'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: outId,
+                decoration: const InputDecoration(labelText: 'Joueur sortant'),
+                items: onField
+                    .map((p) => DropdownMenuItem(value: p.id, child: Text(p.displayName)))
+                    .toList(growable: false),
+                onChanged: (value) => setDialogState(() => outId = value),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: inId,
+                decoration: const InputDecoration(labelText: 'Joueur entrant'),
+                items: bench
+                    .map((p) => DropdownMenuItem(value: p.id, child: Text(p.displayName)))
+                    .toList(growable: false),
+                onChanged: (value) => setDialogState(() => inId = value),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: outId == null || inId == null
+                  ? null
+                  : () => Navigator.pop(dialogContext, true),
+              child: const Text('Valider'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true && outId != null && inId != null) {
+      await controller.addSubstitution(
+        inPlayerId: inId!,
+        outPlayerId: outId!,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final goalCounts = <String, int>{};
-    final assistCounts = <String, int>{};
-    for (final event in state.events) {
-      if (event.type == CoachEventType.goalUs && event.playerId != null) {
-        goalCounts.update(event.playerId!, (value) => value + 1, ifAbsent: () => 1);
-      }
-      if (event.assistPlayerId != null) {
-        assistCounts.update(
-          event.assistPlayerId!,
-          (value) => value + 1,
-          ifAbsent: () => 1,
-        );
-      }
-    }
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -391,10 +459,8 @@ class _EventsCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    'Événements',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                  child: Text('Événements',
+                      style: Theme.of(context).textTheme.titleLarge),
                 ),
                 if (state.canEdit) ...[
                   IconButton.filledTonal(
@@ -407,6 +473,14 @@ class _EventsCard extends StatelessWidget {
                     tooltip: 'But adversaire',
                     onPressed: controller.addGoalThem,
                     icon: const Icon(Icons.add_circle_outline),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Remplacement',
+                    onPressed: state.lineup.isEmpty || state.bench.isEmpty
+                        ? null
+                        : () => _addSubstitution(context),
+                    icon: const Icon(Icons.swap_horiz),
                   ),
                 ],
               ],
@@ -425,7 +499,7 @@ class _EventsCard extends StatelessWidget {
                     '⚽ ${scorer?.displayName ?? 'Buteur non renseigné'}${assister == null ? '' : ' · 👟 ${assister.displayName}'}',
                   CoachEventType.goalThem => 'But adversaire',
                   CoachEventType.substitution =>
-                    '${playerOut?.displayName ?? 'Joueur'} → ${playerIn?.displayName ?? 'Joueur'}',
+                    '🔁 ${playerOut?.displayName ?? 'Joueur'} → ${playerIn?.displayName ?? 'Joueur'}',
                   _ => event.type.label,
                 };
                 return ListTile(
@@ -441,24 +515,93 @@ class _EventsCard extends StatelessWidget {
                       : null,
                 );
               }),
-            if (goalCounts.isNotEmpty || assistCounts.isNotEmpty) ...[
-              const Divider(height: 24),
-              ...state.players.where((player) {
-                return goalCounts.containsKey(player.id) ||
-                    assistCounts.containsKey(player.id);
-              }).map((player) {
-                final goals = goalCounts[player.id] ?? 0;
-                final assists = assistCounts[player.id] ?? 0;
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MinutesCard extends StatelessWidget {
+  const _MinutesCard({required this.state});
+
+  final CoachBoardState state;
+
+  Map<String, int> _minutesByPlayer() {
+    final currentMinute =
+        (state.elapsedSeconds ~/ 60).clamp(0, state.plannedDurationMinutes);
+    final substitutions = state.events
+        .where((e) => e.type == CoachEventType.substitution)
+        .toList()
+      ..sort((a, b) => a.minute.compareTo(b.minute));
+
+    final initialField = state.lineup.values.toSet();
+    for (final event in substitutions.reversed) {
+      if (event.playerInId != null) initialField.remove(event.playerInId);
+      if (event.playerOutId != null) initialField.add(event.playerOutId!);
+    }
+
+    final enteredAt = <String, int>{for (final id in initialField) id: 0};
+    final totals = <String, int>{};
+
+    for (final event in substitutions) {
+      final minute = event.minute.clamp(0, currentMinute);
+      final outId = event.playerOutId;
+      final inId = event.playerInId;
+      if (outId != null) {
+        final start = enteredAt.remove(outId) ?? 0;
+        totals.update(outId, (value) => value + minute - start,
+            ifAbsent: () => minute - start);
+      }
+      if (inId != null) enteredAt[inId] = minute;
+    }
+
+    for (final entry in enteredAt.entries) {
+      totals.update(entry.key, (value) => value + currentMinute - entry.value,
+          ifAbsent: () => currentMinute - entry.value);
+    }
+    return totals;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final minutes = _minutesByPlayer();
+    final involvedIds = <String>{
+      ...state.lineup.values,
+      ...state.events.expand((e) => [e.playerInId, e.playerOutId]).whereType<String>(),
+    };
+    final players = state.players.where((p) => involvedIds.contains(p.id)).toList()
+      ..sort((a, b) => (minutes[b.id] ?? 0).compareTo(minutes[a.id] ?? 0));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Temps de jeu', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            if (players.isEmpty)
+              const Text('Le temps de jeu apparaîtra après la composition.')
+            else
+              ...players.map((player) {
+                final goals = state.events
+                    .where((e) =>
+                        e.type == CoachEventType.goalUs && e.playerId == player.id)
+                    .length;
+                final assists = state.events
+                    .where((e) => e.assistPlayerId == player.id)
+                    .length;
+                final icons = '${List.filled(goals, '⚽').join()}'
+                    '${List.filled(assists, '👟').join()}';
                 return ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text(player.displayName),
-                  trailing: Text(
-                    '${List.filled(goals, '⚽').join()}${List.filled(assists, '👟').join()}',
-                  ),
+                  subtitle: icons.isEmpty ? null : Text(icons),
+                  trailing: Text('${minutes[player.id] ?? 0} min'),
                 );
               }),
-            ],
           ],
         ),
       ),
