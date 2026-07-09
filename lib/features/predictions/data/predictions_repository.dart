@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -32,7 +33,6 @@ class MatchPredictionItem {
   final int? actualScoreOpponent;
 
   DateTime get opensAt => kickoffAt.subtract(const Duration(days: 6));
-  // Fenêtre de pronostic : ferme 10 minutes avant le coup d'envoi.
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 10));
   bool get isBeforeWindow => DateTime.now().isBefore(opensAt);
   bool get isClosed =>
@@ -44,17 +44,19 @@ class MatchPredictionItem {
   double? get earnedPoints {
     if (!isFilled || !hasResult) return hasResult ? 0 : null;
     final actualResult = _result(actualScoreGrinta!, actualScoreOpponent!);
-    final predictedResult = _result(scoreGrinta, scoreOpponent);
-    if (actualResult != predictedResult) return 0;
     final odds = switch (actualResult) {
       1 => oddsWin,
       0 => oddsDraw,
       _ => oddsLoss,
     };
-    if (odds == null) return null;
-    final exact = scoreGrinta == actualScoreGrinta &&
-        scoreOpponent == actualScoreOpponent;
-    return odds * (exact ? 15 : 10);
+
+    return PredictionScoring.points(
+      predictedHome: scoreGrinta,
+      predictedAway: scoreOpponent,
+      actualHome: actualScoreGrinta!,
+      actualAway: actualScoreOpponent!,
+      baseOdds: odds,
+    );
   }
 
   static int _result(int grinta, int opponent) {
@@ -194,7 +196,7 @@ class PredictionsRepository {
     final now = DateTime.now();
     if (now.isBefore(kickoffAt.subtract(const Duration(days: 6))) ||
         !now.isBefore(kickoffAt.subtract(const Duration(minutes: 10)))) {
-      throw StateError("La fen\u00eatre de pronostic n\u2019est pas ouverte.");
+      throw StateError("La fenêtre de pronostic n'est pas ouverte.");
     }
 
     await _client.from('match_predictions').upsert(
