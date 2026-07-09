@@ -37,14 +37,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (location == '/') return '/home';
 
       final role = authState.profile?.role;
-      final isLiveManagementRoute = location.startsWith('/live/');
+      final isLiveOverviewRoute = RegExp(r'^/live/[^/]+$').hasMatch(location);
+      final isLiveGameplayRoute = location.endsWith('/gameplay');
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
       final isParticipantsRoute =
           location.startsWith('/matches/') && location.endsWith('/participants');
       final isAdminRoute = location == '/admin';
 
-      if (isLiveManagementRoute && role != AuthRole.admin) return '/matches';
+      if (isLiveOverviewRoute &&
+          role != AuthRole.admin &&
+          role != AuthRole.moderateur) {
+        return '/matches';
+      }
+      if (isLiveGameplayRoute && role != AuthRole.admin) return '/matches';
       if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
       if (isParticipantsRoute && role != AuthRole.admin) return '/matches';
       if (isAdminRoute && role != AuthRole.moderateur) return '/home';
