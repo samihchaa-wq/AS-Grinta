@@ -140,40 +140,44 @@ class _MatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${match.seasonName ?? 'Saison'} • ${match.opponentName ?? 'Adversaire'}',
-                    style: Theme.of(context).textTheme.titleMedium,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push('/matches/${match.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${match.seasonName ?? 'Saison'} • ${match.opponentName ?? 'Adversaire'}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                Chip(label: Text(match.statusLabel)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text('Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}'),
-            Text('Lieu : ${match.locationLabel}'),
-            Text('Durée : ${match.plannedDurationMinutes} min'),
-            Text(
-              'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}',
-            ),
-            if (canDelete ||
-                canEdit ||
-                canManageLive ||
-                canFinalize ||
-                canSelectParticipants ||
-                canArchive) ...[
+                  Chip(label: Text(match.statusLabel)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}',
+              ),
+              Text('Lieu : ${match.locationLabel}'),
+              Text('Durée : ${match.plannedDurationMinutes} min'),
+              Text(
+                'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}',
+              ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/matches/${match.id}'),
+                    icon: const Icon(Icons.history),
+                    label: const Text('Détails'),
+                  ),
                   if (canDelete)
                     OutlinedButton.icon(
                       onPressed: () async {
@@ -230,7 +234,7 @@ class _MatchCard extends StatelessWidget {
                 ],
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
