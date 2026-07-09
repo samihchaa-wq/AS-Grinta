@@ -39,6 +39,11 @@ jobs:
       - name: Test
         run: flutter test
 
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - name: Build web
         run: flutter build web --release --base-href /AS-Grinta/
 
