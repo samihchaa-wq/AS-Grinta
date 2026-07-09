@@ -50,6 +50,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
 
   bool get _isAdmin => _currentRole == AuthRole.admin;
   bool get _isModerator => _currentRole == AuthRole.moderateur;
+  bool get _canOperateRecoveredLive => _isAdmin || _isModerator;
 
   Future<void> initialize(String matchId) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -141,7 +142,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
 
   Future<void> releaseControl(String matchId) async {
     final sessionId = _ref.read(liveControlSessionIdProvider);
-    if (!_isAdmin || sessionId == null) {
+    if (!_canOperateRecoveredLive || sessionId == null) {
       state = state.copyWith(error: 'Cette session ne contrôle pas le Live.');
       return;
     }
@@ -159,6 +160,19 @@ class LiveController extends StateNotifier<LiveControllerState> {
       state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
+    }
+  }
+
+  Future<void> markDisconnected(String matchId) async {
+    final sessionId = _ref.read(liveControlSessionIdProvider);
+    if (sessionId == null) return;
+    try {
+      await _repository.markDisconnected(
+        matchId: matchId,
+        sessionId: sessionId,
+      );
+    } catch (_) {
+      // Best effort during lifecycle changes or network loss.
     }
   }
 
@@ -193,9 +207,9 @@ class LiveController extends StateNotifier<LiveControllerState> {
   Future<void> _setStatus(String matchId, String status) async {
     final userId = _currentUserId;
     final sessionId = _ref.read(liveControlSessionIdProvider);
-    if (!_isAdmin || userId == null || sessionId == null) {
+    if (!_canOperateRecoveredLive || userId == null || sessionId == null) {
       state = state.copyWith(
-        error: 'Vous devez prendre le contrôle de ce Live avant cette action.',
+        error: 'Vous devez contrôler ce Live avant cette action.',
       );
       return;
     }
