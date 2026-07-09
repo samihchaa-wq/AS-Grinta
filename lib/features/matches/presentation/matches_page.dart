@@ -142,6 +142,10 @@ class _MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localKickoff = match.kickoffAt.toLocal();
+    final dateLabel = localKickoff.toString().split(' ').first;
+    final dateTimeLabel = localKickoff.toString().split('.').first;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -165,7 +169,7 @@ class _MatchCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}',
+                'Date : ${match.isArchived ? dateLabel : dateTimeLabel}',
               ),
               Text('Lieu : ${match.locationLabel}'),
               Text('Durée : ${match.plannedDurationMinutes} min'),
