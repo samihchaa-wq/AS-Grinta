@@ -1,5 +1,9 @@
+import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
+import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
+import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,98 +15,311 @@ class PredictionsPage extends ConsumerStatefulWidget {
   ConsumerState<PredictionsPage> createState() => _PredictionsPageState();
 }
 
-class _PredictionsPageState extends ConsumerState<PredictionsPage> {
+class _PredictionsPageState extends ConsumerState<PredictionsPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  String? _selectedPredictorId;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     Future.microtask(
       () => ref.read(predictionsControllerProvider.notifier).load(),
     );
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _refreshAll() async {
+    await ref.read(predictionsControllerProvider.notifier).load();
+    ref.invalidate(leaderboardProvider);
+    ref.invalidate(publicSeasonPredictionsProvider);
+    await Future.wait([
+      ref.read(leaderboardProvider.future),
+      ref.read(publicSeasonPredictionsProvider.future),
+    ]);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final state = ref.watch(predictionsControllerProvider);
+    final predictionState = ref.watch(predictionsControllerProvider);
+    final leaderboardAsync = ref.watch(leaderboardProvider);
+    final publicSeasonAsync = ref.watch(publicSeasonPredictionsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pronostics de match'),
+        title: const Text('Pronostics'),
         actions: [
           IconButton(
-            tooltip: 'Classement général',
-            onPressed: () => context.push('/predictions/leaderboard'),
-            icon: const Icon(Icons.leaderboard_outlined),
-          ),
-          IconButton(
-            tooltip: 'Pronostics de saison',
+            tooltip: 'Mes pronostics de saison',
             onPressed: () => context.push('/predictions/season'),
-            icon: const Icon(Icons.emoji_events_outlined),
+            icon: const Icon(Icons.edit_calendar_outlined),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(predictionsControllerProvider.notifier).load(),
+        onRefresh: _refreshAll,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.leaderboard_outlined),
-                    title: const Text('Classement général'),
-                    subtitle: const Text(
-                      'Somme directe des points de match et de saison.',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/predictions/leaderboard'),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.emoji_events_outlined),
-                    title: const Text('Pronostics de saison'),
-                    subtitle: const Text(
-                      'Buts, passes, hommes du match et clean sheets.',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/predictions/season'),
-                  ),
-                ],
-              ),
+            Text(
+              'Prochain match',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 12),
-            if (state.error != null)
-              Card(
+            const SizedBox(height: 10),
+            if (predictionState.error != null)
+              _ErrorCard(message: predictionState.error!),
+            if (predictionState.isLoading)
+              const Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    state.error!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
+                  padding: EdgeInsets.all(28),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-              ),
-            if (state.isLoading)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
               )
-            else if (state.items.isEmpty)
+            else if (predictionState.items.isEmpty)
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: Text('Aucun match disponible pour les pronostics.'),
+                  child: Text('Aucun prochain match disponible.'),
                 ),
               )
             else
               _PredictionCard(
-                item: state.items.first,
-                isSaving: state.savingMatchId == state.items.first.matchId,
+                item: predictionState.items.first,
+                isSaving: predictionState.savingMatchId ==
+                    predictionState.items.first.matchId,
               ),
+            const SizedBox(height: 22),
+            Text(
+              'Classements',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    tabs: const [
+                      Tab(text: 'Cumulé'),
+                      Tab(text: 'Match'),
+                      Tab(text: 'Saison'),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 330,
+                    child: leaderboardAsync.when(
+                      loading: () => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      error: (error, _) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(error.toString()),
+                        ),
+                      ),
+                      data: (entries) => TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _LeaderboardList(
+                            entries: entries,
+                            mode: _LeaderboardMode.total,
+                          ),
+                          _LeaderboardList(
+                            entries: entries,
+                            mode: _LeaderboardMode.match,
+                          ),
+                          _LeaderboardList(
+                            entries: entries,
+                            mode: _LeaderboardMode.season,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Pronos saison de chacun',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => context.push('/predictions/season'),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Les miens'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            publicSeasonAsync.when(
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(28),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (error, _) => _ErrorCard(message: error.toString()),
+              data: _buildSeasonPredictions,
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSeasonPredictions(List<SeasonPredictionItem> items) {
+    if (items.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('Aucun pronostic de saison public enregistré.'),
+        ),
+      );
+    }
+
+    final grouped = <String, List<SeasonPredictionItem>>{};
+    for (final item in items) {
+      grouped.putIfAbsent(item.predictorId, () => []).add(item);
+    }
+
+    final predictors = grouped.entries.toList()
+      ..sort(
+        (a, b) => a.value.first.predictorName
+            .toLowerCase()
+            .compareTo(b.value.first.predictorName.toLowerCase()),
+      );
+
+    final availableIds = predictors.map((entry) => entry.key).toSet();
+    final selectedId = availableIds.contains(_selectedPredictorId)
+        ? _selectedPredictorId!
+        : predictors.first.key;
+    final selectedItems = [...grouped[selectedId]!]
+      ..sort((a, b) {
+        final player = a.playerName.compareTo(b.playerName);
+        if (player != 0) return player;
+        return a.category.compareTo(b.category);
+      });
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: selectedId,
+              decoration: const InputDecoration(
+                labelText: 'Pronostiqueur',
+                prefixIcon: Icon(Icons.person_search_outlined),
+              ),
+              items: predictors
+                  .map(
+                    (entry) => DropdownMenuItem(
+                      value: entry.key,
+                      child: Text(entry.value.first.predictorName),
+                    ),
+                  )
+                  .toList(growable: false),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _selectedPredictorId = value);
+                }
+              },
+            ),
+            const SizedBox(height: 12),
+            ...selectedItems.map(
+              (item) => ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(item.playerName),
+                subtitle: Text(_categoryLabel(item.category)),
+                trailing: Text(
+                  '${item.value}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _categoryLabel(String category) {
+    return switch (category) {
+      'buts' => 'Buts',
+      'passes' => 'Passes décisives',
+      'hommes_du_match' => 'Hommes du match',
+      'clean_sheets' => 'Clean sheets',
+      _ => category,
+    };
+  }
+}
+
+enum _LeaderboardMode { total, match, season }
+
+class _LeaderboardList extends StatelessWidget {
+  const _LeaderboardList({required this.entries, required this.mode});
+
+  final List<LeaderboardEntry> entries;
+  final _LeaderboardMode mode;
+
+  double _points(LeaderboardEntry entry) {
+    return switch (mode) {
+      _LeaderboardMode.total => entry.totalPoints,
+      _LeaderboardMode.match => entry.matchPoints,
+      _LeaderboardMode.season => entry.seasonPoints,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...entries]..sort((a, b) {
+        final points = _points(b).compareTo(_points(a));
+        if (points != 0) return points;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+    if (sorted.isEmpty) {
+      return const Center(child: Text('Aucun point calculable.'));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: sorted.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final entry = sorted[index];
+        return ListTile(
+          dense: true,
+          leading: CircleAvatar(
+            radius: 17,
+            child: Text('${index + 1}'),
+          ),
+          title: Text(
+            entry.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Text(
+            _points(entry).toStringAsFixed(1),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        );
+      },
     );
   }
 }
@@ -116,17 +333,15 @@ class _PredictionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(predictionsControllerProvider.notifier);
-    final points = item.earnedPoints;
     final statusLabel = item.isBeforeWindow
-        ? 'Ouvre le ${_formatKickoff(item.opensAt)}'
+        ? 'Ouvre le ${AppFormats.dateTime(item.opensAt)}'
         : item.isClosed
-            ? 'Fermé'
+            ? 'Pronostics clôturés'
             : item.isFilled
                 ? 'Enregistré'
                 : 'À saisir';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 14),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -137,108 +352,85 @@ class _PredictionCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'AS Grinta - ${item.opponentName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
+                const SizedBox(width: 8),
                 Chip(label: Text(statusLabel)),
               ],
             ),
             const SizedBox(height: 4),
-            Text(_formatKickoff(item.kickoffAt)),
-            if (item.oddsWin != null &&
-                item.oddsDraw != null &&
-                item.oddsLoss != null) ...[
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+            Text(AppFormats.dateTime(item.kickoffAt)),
+            if (item.isClosed) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'La fenêtre de pronostic est fermée 10 minutes avant le coup d’envoi.',
+              ),
+            ] else ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Chip(label: Text('V ${(item.oddsWin! * 10).round()} pts')),
-                  Chip(label: Text('N ${(item.oddsDraw! * 10).round()} pts')),
-                  Chip(label: Text('D ${(item.oddsLoss! * 10).round()} pts')),
+                  _ScoreEditor(
+                    label: 'AS Grinta',
+                    value: item.scoreGrinta,
+                    enabled: item.canEdit && !isSaving,
+                    onMinus: () => controller.changeScore(
+                      matchId: item.matchId,
+                      grinta: true,
+                      delta: -1,
+                    ),
+                    onPlus: () => controller.changeScore(
+                      matchId: item.matchId,
+                      grinta: true,
+                      delta: 1,
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: Text('-', style: TextStyle(fontSize: 28)),
+                  ),
+                  _ScoreEditor(
+                    label: item.opponentName,
+                    value: item.scoreOpponent,
+                    enabled: item.canEdit && !isSaving,
+                    onMinus: () => controller.changeScore(
+                      matchId: item.matchId,
+                      grinta: false,
+                      delta: -1,
+                    ),
+                    onPlus: () => controller.changeScore(
+                      matchId: item.matchId,
+                      grinta: false,
+                      delta: 1,
+                    ),
+                  ),
                 ],
               ),
-            ],
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _ScoreEditor(
-                  label: 'AS Grinta',
-                  value: item.scoreGrinta,
-                  enabled: item.canEdit && !isSaving,
-                  onMinus: () => controller.changeScore(
-                    matchId: item.matchId,
-                    grinta: true,
-                    delta: -1,
-                  ),
-                  onPlus: () => controller.changeScore(
-                    matchId: item.matchId,
-                    grinta: true,
-                    delta: 1,
-                  ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: !item.canEdit || isSaving
+                      ? null
+                      : () => controller.save(item.matchId),
+                  icon: isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.save_outlined),
+                  label: const Text('Enregistrer le pronostic'),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18),
-                  child: Text('-', style: TextStyle(fontSize: 28)),
-                ),
-                _ScoreEditor(
-                  label: item.opponentName,
-                  value: item.scoreOpponent,
-                  enabled: item.canEdit && !isSaving,
-                  onMinus: () => controller.changeScore(
-                    matchId: item.matchId,
-                    grinta: false,
-                    delta: -1,
-                  ),
-                  onPlus: () => controller.changeScore(
-                    matchId: item.matchId,
-                    grinta: false,
-                    delta: 1,
-                  ),
-                ),
-              ],
-            ),
-            if (item.hasResult) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Résultat : ${item.actualScoreGrinta} - ${item.actualScoreOpponent}',
-              ),
-              Text(
-                points == null
-                    ? 'Points indisponibles'
-                    : 'Points gagnés : ${points.round()}',
-                style: Theme.of(context).textTheme.titleSmall,
               ),
             ],
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: !item.canEdit || isSaving
-                    ? null
-                    : () => controller.save(item.matchId),
-                icon: isSaving
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Enregistrer le pronostic'),
-              ),
-            ),
           ],
         ),
       ),
     );
-  }
-
-  String _formatKickoff(DateTime value) {
-    final local = value.toLocal();
-    String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(local.day)}/${two(local.month)}/${local.year} • '
-        '${two(local.hour)}h${two(local.minute)}';
   }
 }
 
@@ -279,6 +471,25 @@ class _ScoreEditor extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          message,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
       ),
     );
   }
