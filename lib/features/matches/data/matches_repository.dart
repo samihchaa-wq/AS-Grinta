@@ -20,6 +20,9 @@ class MatchesRepository {
         status,
         score_as_grinta,
         score_adverse,
+        created_by,
+        created_at,
+        updated_at,
         opponents(name),
         seasons(name)
       ''');
@@ -94,6 +97,7 @@ class MatchesRepository {
       'location': isHome ? 'domicile' : 'exterieur',
       'planned_duration_minutes': plannedDurationMinutes,
       'status': status,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', id);
   }
 
@@ -112,6 +116,7 @@ class MatchesRepository {
       'score_as_grinta': grintaScore,
       'score_adverse': opponentScore,
       'status': status,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', id);
 
     await _client.from('live_sessions').update({
@@ -173,6 +178,7 @@ class MatchesRepository {
     await _client.from('matches').update({
       'score_as_grinta': grintaScore,
       'score_adverse': opponentScore,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', id);
   }
 
@@ -180,7 +186,10 @@ class MatchesRepository {
     required String id,
     required String status,
   }) async {
-    await _client.from('matches').update({'status': status}).eq('id', id);
+    await _client.from('matches').update({
+      'status': status,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', id);
   }
 
   String _formatTime(DateTime value) {
