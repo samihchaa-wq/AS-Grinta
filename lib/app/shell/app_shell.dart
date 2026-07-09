@@ -54,6 +54,11 @@ class AppShell extends ConsumerWidget {
       icon: Icons.sports_soccer_rounded,
     ),
     _ModuleDestination(
+      route: '/coach',
+      label: 'Tableau',
+      icon: Icons.visibility_outlined,
+    ),
+    _ModuleDestination(
       route: '/predictions',
       label: 'Pronos',
       icon: Icons.bolt_rounded,

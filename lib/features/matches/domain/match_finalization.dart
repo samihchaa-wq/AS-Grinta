@@ -1,3 +1,5 @@
+import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
+
 class MatchGoal {
   const MatchGoal({
     required this.team,
@@ -73,12 +75,14 @@ class MatchFinalizationRules {
     for (final substitution in substitutions) {
       if (substitution.minute < 0 || substitution.minute > 100) {
         issues.add(
-            'Chaque remplacement doit avoir une minute comprise entre 0 et 100.');
+          'Chaque remplacement doit avoir une minute comprise entre 0 et 100.',
+        );
         break;
       }
       if (substitution.inPlayerId == substitution.outPlayerId) {
         issues.add(
-            'Un joueur ne peut pas entrer et sortir sur le même remplacement.');
+          'Un joueur ne peut pas entrer et sortir sur le même remplacement.',
+        );
         break;
       }
     }
@@ -96,26 +100,14 @@ class MatchFinalizationRules {
     required int actualGrintaScore,
     required int actualOpponentScore,
   }) {
-    final isExactScore = predictedGrintaScore == actualGrintaScore &&
-        predictedOpponentScore == actualOpponentScore;
-    if (isExactScore) {
-      return odds * 15;
-    }
-
-    final predictedResult = _result(
-      predictedGrintaScore,
-      predictedOpponentScore,
-    );
-    final actualResult = _result(
-      actualGrintaScore,
-      actualOpponentScore,
-    );
-
-    if (predictedResult == actualResult) {
-      return odds * 10;
-    }
-
-    return 0.0;
+    return PredictionScoring.points(
+          predictedHome: predictedGrintaScore,
+          predictedAway: predictedOpponentScore,
+          actualHome: actualGrintaScore,
+          actualAway: actualOpponentScore,
+          baseOdds: odds,
+        ) ??
+        0;
   }
 
   static String resultKey(int grintaScore, int opponentScore) {

@@ -64,7 +64,7 @@ void main() {
   });
 
   group('MatchFinalizationRules.calculatePoints', () {
-    test('uses odds times 15 for an exact score', () {
+    test('applies x2 for an exact score', () {
       final points = MatchFinalizationRules.calculatePoints(
         odds: 2.0,
         predictedGrintaScore: 2,
@@ -73,14 +73,38 @@ void main() {
         actualOpponentScore: 1,
       );
 
-      expect(points, 30);
+      expect(points, 40);
     });
 
-    test('uses odds times 10 for the correct result only', () {
+    test('applies x1.75 for correct goal difference and result', () {
+      final points = MatchFinalizationRules.calculatePoints(
+        odds: 2.0,
+        predictedGrintaScore: 3,
+        predictedOpponentScore: 2,
+        actualGrintaScore: 2,
+        actualOpponentScore: 1,
+      );
+
+      expect(points, 35);
+    });
+
+    test('applies x1.5 for one exact team score and correct result', () {
       final points = MatchFinalizationRules.calculatePoints(
         odds: 2.0,
         predictedGrintaScore: 3,
         predictedOpponentScore: 1,
+        actualGrintaScore: 2,
+        actualOpponentScore: 1,
+      );
+
+      expect(points, 30);
+    });
+
+    test('applies x1 for correct result only', () {
+      final points = MatchFinalizationRules.calculatePoints(
+        odds: 2.0,
+        predictedGrintaScore: 4,
+        predictedOpponentScore: 2,
         actualGrintaScore: 2,
         actualOpponentScore: 1,
       );
