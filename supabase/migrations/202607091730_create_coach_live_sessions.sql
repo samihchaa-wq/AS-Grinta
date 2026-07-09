@@ -47,8 +47,8 @@ as $$
     select 1
     from public.profiles p
     where p.id = auth.uid()
-      and lower(coalesce(p.role, '')) in ('admin', 'moderateur', 'moderator', 'coach')
-      and coalesce(p.status, 'active') = 'active'
+      and lower(coalesce(p.role::text, '')) in ('admin', 'moderateur', 'moderator', 'coach')
+      and lower(coalesce(p.status::text, 'active')) = 'active'
   );
 $$;
 
