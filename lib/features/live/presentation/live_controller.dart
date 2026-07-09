@@ -7,6 +7,8 @@ import 'package:as_grinta/features/live/data/live_repository.dart';
 import 'package:as_grinta/features/live/domain/live_session.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final liveControlSessionIdProvider = StateProvider<String?>((ref) => null);
+
 class LiveControllerState {
   const LiveControllerState({
     this.session,
@@ -37,13 +39,14 @@ class LiveController extends StateNotifier<LiveControllerState> {
     this._repository,
     this._currentUserId,
     this._currentRole,
+    this._ref,
   ) : super(const LiveControllerState());
 
   final LiveRepository _repository;
   final String? _currentUserId;
   final AuthRole? _currentRole;
+  final Ref _ref;
   StreamSubscription<List<Map<String, dynamic>>>? _subscription;
-  String? _localControllerSessionId;
 
   bool get _isAdmin => _currentRole == AuthRole.admin;
 
@@ -71,6 +74,11 @@ class LiveController extends StateNotifier<LiveControllerState> {
         (rows) {
           if (rows.isEmpty) return;
           final nextSession = LiveSessionState.fromJson(rows.first);
+          final localSessionId = _ref.read(liveControlSessionIdProvider);
+          if (localSessionId != null &&
+              nextSession.controllerSessionId != localSessionId) {
+            _ref.read(liveControlSessionIdProvider.notifier).state = null;
+          }
           state = state.copyWith(
             session: nextSession,
             isLoading: false,
@@ -126,7 +134,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
         );
         return;
       }
-      _localControllerSessionId = sessionId;
+      _ref.read(liveControlSessionIdProvider.notifier).state = sessionId;
       state = state.copyWith(clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
@@ -135,7 +143,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
 
   Future<void> _setStatus(String matchId, String status) async {
     final userId = _currentUserId;
-    final sessionId = _localControllerSessionId;
+    final sessionId = _ref.read(liveControlSessionIdProvider);
     if (!_isAdmin || userId == null || sessionId == null) {
       state = state.copyWith(
         error: 'Vous devez prendre le contrôle de ce Live avant cette action.',
@@ -146,6 +154,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
     final session = state.session;
     if (session?.controllerProfileId != userId ||
         session?.controllerSessionId != sessionId) {
+      _ref.read(liveControlSessionIdProvider.notifier).state = null;
       state = state.copyWith(
         error: 'Cette session ne contrôle plus le Live.',
       );
@@ -161,6 +170,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
         controllerSessionId: sessionId,
       );
       if (!updated) {
+        _ref.read(liveControlSessionIdProvider.notifier).state = null;
         state = state.copyWith(
           error: 'Le contrôle du Live a changé. Action refusée.',
         );
@@ -184,5 +194,5 @@ final liveControllerProvider =
   final repository = ref.watch(liveRepositoryProvider);
   final currentUserId = ref.watch(supabaseClientProvider).auth.currentUser?.id;
   final currentRole = ref.watch(authControllerProvider).profile?.role;
-  return LiveController(repository, currentUserId, currentRole);
+  return LiveController(repository, currentUserId, currentRole, ref);
 });
