@@ -3,6 +3,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MatchFormPage extends ConsumerStatefulWidget {
@@ -17,11 +18,11 @@ class MatchFormPage extends ConsumerStatefulWidget {
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _opponentTextController = TextEditingController();
+  final _timeController = TextEditingController();
   late String _seasonId;
   late String _opponentId;
   late DateTime _kickoffAt;
   late bool _isHome;
-  late int _plannedDurationMinutes;
   late String _status;
 
   @override
@@ -34,14 +35,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _opponentTextController.text = match?.opponentName ?? '';
     _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
+    _timeController.text = _formatTimeInput(_kickoffAt);
     _isHome = match?.isHome ?? true;
-    _plannedDurationMinutes = match?.plannedDurationMinutes ?? 90;
     _status = match?.status ?? 'a_venir';
   }
 
   @override
   void dispose() {
     _opponentTextController.dispose();
+    _timeController.dispose();
     super.dispose();
   }
 
@@ -51,6 +53,23 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final authState = ref.watch(authControllerProvider);
     final role = authState.profile?.role;
     final canManage = role == AuthRole.admin || role == AuthRole.moderateur;
+
+    final openSeasons = matchesState.seasons.where(
+      (season) => season['status']?.toString() == 'open',
+    );
+    if (widget.match == null && _seasonId.isEmpty && openSeasons.isNotEmpty) {
+      _seasonId = openSeasons.first['id'].toString();
+    }
+
+    final opponents = [...matchesState.opponents]
+      ..sort(
+        (a, b) => a['name']
+            .toString()
+            .toLowerCase()
+            .compareTo(b['name'].toString().toLowerCase()),
+      );
+
+    final hasOpenSeason = widget.match != null || _seasonId.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -62,29 +81,29 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: _seasonId.isEmpty ? null : _seasonId,
-              decoration: const InputDecoration(labelText: 'Saison'),
-              items: matchesState.seasons.map((season) {
-                return DropdownMenuItem<String>(
-                  value: season['id'].toString(),
-                  child: Text(season['name'].toString()),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _seasonId = value ?? ''),
-              validator: (value) => value == null || value.isEmpty
-                  ? 'Sélectionnez une saison'
-                  : null,
-            ),
-            const SizedBox(height: 16),
+            if (!hasOpenSeason) ...[
+              Card(
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'Aucune saison ouverte. Créez une saison avant d’ajouter un match.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Autocomplete<Map<String, dynamic>>(
               displayStringForOption: (option) => option['name'].toString(),
               initialValue:
                   TextEditingValue(text: _opponentTextController.text),
               optionsBuilder: (textValue) {
                 final query = textValue.text.trim().toLowerCase();
-                if (query.isEmpty) return matchesState.opponents;
-                return matchesState.opponents.where(
+                if (query.isEmpty) return opponents;
+                return opponents.where(
                   (opponent) =>
                       opponent['name'].toString().toLowerCase().contains(query),
                 );
@@ -104,7 +123,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 textController.addListener(() {
                   if (_opponentTextController.text != textController.text) {
                     _opponentTextController.text = textController.text;
-                    final exact = matchesState.opponents.where(
+                    final exact = opponents.where(
                       (opponent) =>
                           opponent['name'].toString().toLowerCase() ==
                           textController.text.trim().toLowerCase(),
@@ -125,7 +144,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                       onPressed: () async {
                         final created = await _createOpponent();
                         if (!mounted || created == null) return;
-                        final opponent = matchesState.opponents.where(
+                        final opponent = opponents.where(
                           (item) => item['id'].toString() == created,
                         );
                         setState(() {
@@ -159,32 +178,43 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 8),
             ListTile(
-              title: const Text('Date et heure'),
-              subtitle: Text(_formatKickoff(_kickoffAt)),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Date du match'),
+              subtitle: Text(_formatDate(_kickoffAt)),
               trailing: const Icon(Icons.calendar_today),
               onTap: () async {
                 final date = await showDatePicker(
                   context: context,
                   initialDate: _kickoffAt,
                   firstDate: DateTime.now().subtract(const Duration(days: 1)),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                  lastDate: DateTime.now().add(const Duration(days: 730)),
                 );
                 if (!context.mounted || date == null) return;
-                final time = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay.fromDateTime(_kickoffAt),
-                );
-                if (!context.mounted || time == null) return;
                 setState(() {
                   _kickoffAt = DateTime(
                     date.year,
                     date.month,
                     date.day,
-                    time.hour,
-                    time.minute,
+                    _kickoffAt.hour,
+                    _kickoffAt.minute,
                   );
                 });
               },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _timeController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
+                LengthLimitingTextInputFormatter(5),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Heure du match',
+                hintText: '21:00',
+                helperText: 'Format 24 h, par exemple 21:00',
+              ),
+              validator: _validateTime,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<bool>(
@@ -196,35 +226,13 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               ],
               onChanged: (value) => setState(() => _isHome = value ?? true),
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              initialValue: _plannedDurationMinutes.toString(),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Durée (minutes)'),
-              validator: (value) {
-                final parsed = int.tryParse(value ?? '');
-                if (parsed == null || parsed <= 0) return 'Durée invalide';
-                return null;
-              },
-              onChanged: (value) =>
-                  _plannedDurationMinutes = int.tryParse(value) ?? 90,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _status,
-              decoration: const InputDecoration(labelText: 'Statut'),
-              items: const [
-                DropdownMenuItem(value: 'a_venir', child: Text('À venir')),
-                DropdownMenuItem(value: 'en_cours', child: Text('En cours')),
-                DropdownMenuItem(value: 'termine', child: Text('Terminé')),
-                DropdownMenuItem(value: 'archive', child: Text('Archivé')),
-              ],
-              onChanged: (value) =>
-                  setState(() => _status = value ?? 'a_venir'),
-            ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: !canManage || matchesState.isLoading ? null : _submit,
+              onPressed: !canManage ||
+                      matchesState.isLoading ||
+                      !hasOpenSeason
+                  ? null
+                  : _submit,
               icon: const Icon(Icons.save_outlined),
               label: const Text('Enregistrer'),
             ),
@@ -278,6 +286,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final parts = _timeController.text.split(':');
+    final hour = int.parse(parts[0]);
+    final minute = int.parse(parts[1]);
+    _kickoffAt = DateTime(
+      _kickoffAt.year,
+      _kickoffAt.month,
+      _kickoffAt.day,
+      hour,
+      minute,
+    );
+
     final notifier = ref.read(matchesControllerProvider.notifier);
 
     if (widget.match == null) {
@@ -286,8 +306,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         opponentId: _opponentId,
         kickoffAt: _kickoffAt,
         isHome: _isHome,
-        plannedDurationMinutes: _plannedDurationMinutes,
-        status: _status,
+        plannedDurationMinutes: 90,
+        status: 'a_venir',
       );
     } else {
       await notifier.updateMatch(
@@ -296,7 +316,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         opponentId: _opponentId,
         kickoffAt: _kickoffAt,
         isHome: _isHome,
-        plannedDurationMinutes: _plannedDurationMinutes,
+        plannedDurationMinutes: widget.match!.plannedDurationMinutes,
         status: _status,
       );
     }
@@ -307,10 +327,27 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
   }
 
-  String _formatKickoff(DateTime value) {
+  String? _validateTime(String? raw) {
+    final value = raw?.trim() ?? '';
+    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(value);
+    if (match == null) return 'Saisissez une heure au format 21:00';
+    final hour = int.tryParse(match.group(1)!);
+    final minute = int.tryParse(match.group(2)!);
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
+      return 'Heure invalide';
+    }
+    return null;
+  }
+
+  String _formatDate(DateTime value) {
     final local = value.toLocal();
     String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(local.day)}/${two(local.month)}/${local.year} • '
-        '${two(local.hour)}h${two(local.minute)}';
+    return '${two(local.day)}/${two(local.month)}/${local.year}';
+  }
+
+  String _formatTimeInput(DateTime value) {
+    final local = value.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(local.hour)}:${two(local.minute)}';
   }
 }
