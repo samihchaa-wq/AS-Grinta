@@ -38,7 +38,8 @@ class HomePage extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                   sliver: SliverToBoxAdapter(
                     child: _Header(
-                      name: firstName?.isNotEmpty == true ? firstName! : 'Grinta',
+                      name:
+                          firstName?.isNotEmpty == true ? firstName! : 'Grinta',
                       role: authState.profile?.role.label ?? 'Membre',
                       isModerator: isModerator,
                       onAdmin: () => context.go('/admin'),
@@ -81,7 +82,10 @@ class HomePage extends ConsumerWidget {
                           const Spacer(),
                           Text(
                             'SAISON 2026',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelLarge
+                                ?.copyWith(
                                   color: AppTheme.primary,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.1,
@@ -285,7 +289,9 @@ class _NextMatchHero extends StatelessWidget {
                       child: Text(
                         isLive ? '● EN DIRECT' : 'PROCHAIN MATCH',
                         style: TextStyle(
-                          color: isLive ? const Color(0xFFFF7B7B) : AppTheme.primary,
+                          color: isLive
+                              ? const Color(0xFFFF7B7B)
+                              : AppTheme.primary,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.7,
                           fontSize: 12,
@@ -293,7 +299,8 @@ class _NextMatchHero extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
-                    const Icon(Icons.arrow_outward_rounded, color: Colors.white54),
+                    const Icon(Icons.arrow_outward_rounded,
+                        color: Colors.white54),
                   ],
                 ),
                 const SizedBox(height: 26),
@@ -337,7 +344,8 @@ class _NextMatchHero extends StatelessWidget {
                   if (isLive) ...[
                     const SizedBox(height: 22),
                     FilledButton.icon(
-                      onPressed: () => context.go('/live/${dashboard.nextMatchId}'),
+                      onPressed: () =>
+                          context.go('/live/${dashboard.nextMatchId}'),
                       icon: const Icon(Icons.play_arrow_rounded),
                       label: const Text('Ouvrir le live'),
                     ),

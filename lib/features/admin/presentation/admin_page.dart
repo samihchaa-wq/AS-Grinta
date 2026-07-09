@@ -26,7 +26,7 @@ class AdminPage extends ConsumerWidget {
           await ref.read(adminDashboardProvider.future);
         },
         child: dashboardAsync.when(
-          loading: () => const ListView(
+          loading: () => ListView(
             children: [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
@@ -127,7 +127,8 @@ class AdminPage extends ConsumerWidget {
                   const SizedBox(height: 12),
                   Text(
                     error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ],
               ],
@@ -194,7 +195,8 @@ class _SeasonSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final openSeasons = dashboard.seasons.where((season) => season.status == 'open');
+    final openSeasons =
+        dashboard.seasons.where((season) => season.status == 'open');
     final openSeason = openSeasons.isEmpty ? null : openSeasons.first;
 
     return Card(
@@ -277,7 +279,8 @@ class _SeasonSection extends ConsumerWidget {
     WidgetRef ref,
   ) async {
     final now = DateTime.now();
-    final controller = TextEditingController(text: '${now.year}-${now.year + 1}');
+    final controller =
+        TextEditingController(text: '${now.year}-${now.year + 1}');
     String? error;
 
     await showDialog<void>(
@@ -312,7 +315,9 @@ class _SeasonSection extends ConsumerWidget {
             FilledButton(
               onPressed: () async {
                 try {
-                  await ref.read(adminRepositoryProvider).createSeason(controller.text);
+                  await ref
+                      .read(adminRepositoryProvider)
+                      .createSeason(controller.text);
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   ref.invalidate(adminDashboardProvider);
                 } catch (exception) {
@@ -360,7 +365,9 @@ class _ProfileCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        profile.fullName.isEmpty ? profile.email : profile.fullName,
+                        profile.fullName.isEmpty
+                            ? profile.email
+                            : profile.fullName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,
@@ -524,7 +531,8 @@ class _ProfileCard extends ConsumerWidget {
               const SizedBox(height: 8),
               TextField(
                 controller: confirmationController,
-                decoration: const InputDecoration(labelText: 'Email de confirmation'),
+                decoration:
+                    const InputDecoration(labelText: 'Email de confirmation'),
               ),
             ],
           ),

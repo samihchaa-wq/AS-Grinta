@@ -181,7 +181,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 final date = await showDatePicker(
                   context: context,
                   initialDate: _kickoffAt,
-                  firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+                  firstDate:
+                      DateTime.now().subtract(const Duration(days: 3650)),
                   lastDate: DateTime.now().add(const Duration(days: 3650)),
                 );
                 if (!context.mounted || date == null) return;
@@ -219,9 +220,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: !canManage ||
-                      matchesState.isLoading ||
-                      !hasOpenSeason
+              onPressed: !canManage || matchesState.isLoading || !hasOpenSeason
                   ? null
                   : () => _submit(matchesState.seasons),
               icon: const Icon(Icons.save_outlined),

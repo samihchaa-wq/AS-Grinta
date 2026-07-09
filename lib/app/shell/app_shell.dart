@@ -41,7 +41,8 @@ class AppShell extends StatelessWidget {
 
   int get _selectedIndex {
     final index = _destinations.indexWhere(
-      (destination) => location == destination.route ||
+      (destination) =>
+          location == destination.route ||
           location.startsWith('${destination.route}/'),
     );
     return index < 0 ? 0 : index;
