@@ -16,6 +16,7 @@ import 'package:as_grinta/features/matches/presentation/match_finalization_page.
 import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/players/presentation/players_page.dart';
+import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
@@ -76,7 +77,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
           GoRoute(path: '/coach', builder: (_, __) => const CoachPage()),
-          GoRoute(path: '/players', builder: (_, __) => const PlayersPage()),
+          GoRoute(
+            path: '/players',
+            builder: (_, __) => const PlayersRegistryPage(),
+          ),
           GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
           GoRoute(
             path: '/matches/:matchId',
