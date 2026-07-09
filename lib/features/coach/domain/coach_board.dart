@@ -34,19 +34,29 @@ class CoachPlayer {
   String get firstName => displayName.split(' ').first;
 }
 
-enum CoachEventType { goalUs, goalThem, substitution, note }
+enum CoachEventType {
+  goalUs,
+  goalThem,
+  substitution,
+  yellowCard,
+  redCard,
+  note,
+}
 
 extension CoachEventTypeX on CoachEventType {
   String get label => switch (this) {
         CoachEventType.goalUs => 'But AS Grinta',
         CoachEventType.goalThem => 'But adversaire',
         CoachEventType.substitution => 'Remplacement',
+        CoachEventType.yellowCard => 'Carton jaune',
+        CoachEventType.redCard => 'Carton rouge',
         CoachEventType.note => 'Note',
       };
 
   IconData get icon => switch (this) {
         CoachEventType.goalUs || CoachEventType.goalThem => Icons.sports_soccer,
         CoachEventType.substitution => Icons.swap_horiz,
+        CoachEventType.yellowCard || CoachEventType.redCard => Icons.square_rounded,
         CoachEventType.note => Icons.sticky_note_2_outlined,
       };
 
@@ -54,6 +64,8 @@ extension CoachEventTypeX on CoachEventType {
         CoachEventType.goalUs => const Color(0xFF1DB95F),
         CoachEventType.goalThem => const Color(0xFFEF5350),
         CoachEventType.substitution => const Color(0xFF42A5F5),
+        CoachEventType.yellowCard => const Color(0xFFFFD600),
+        CoachEventType.redCard => const Color(0xFFEF5350),
         CoachEventType.note => const Color(0xFF78909C),
       };
 }
@@ -184,14 +196,17 @@ Map<String, Offset> computeFormationPositions(
 ) {
   final positions = <String, Offset>{};
   if (slots.isEmpty) return positions;
+
   final gkSlot = slots.firstWhere(
     (s) => s.toLowerCase().startsWith('gk'),
     orElse: () => '',
   );
   if (gkSlot.isNotEmpty) positions[gkSlot] = const Offset(0.5, 0.90);
+
   final outfield =
       slots.where((s) => !s.toLowerCase().startsWith('gk')).toList();
   if (outfield.isEmpty) return positions;
+
   final parts =
       formationCode.split('-').map(int.tryParse).whereType<int>().toList();
   if (parts.isEmpty) {
@@ -200,6 +215,7 @@ Map<String, Offset> computeFormationPositions(
     }
     return positions;
   }
+
   final numRows = parts.length;
   var slotIdx = 0;
   for (var rowIdx = 0; rowIdx < numRows; rowIdx++) {
