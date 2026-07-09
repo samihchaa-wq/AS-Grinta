@@ -96,3 +96,5 @@ jobs:
             repair-analyze.log
             repair-test.log
           if-no-files-found: warn
+
+# Diagnostic relancé le 9 juillet 2026.
