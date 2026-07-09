@@ -30,12 +30,13 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
     final role = authState.profile?.role;
     final isAdmin = role == AuthRole.admin;
     final isModerator = role == AuthRole.moderateur;
+    final canCreateMatch = isAdmin || isModerator;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Matchs'),
         actions: [
-          if (isAdmin)
+          if (canCreateMatch)
             IconButton(
               tooltip: 'Créer un match',
               icon: const Icon(Icons.add_circle_outline),
@@ -104,7 +105,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 (match) => _MatchCard(
                   match: match,
                   canDelete: isModerator,
-                  canEdit: isAdmin && !match.isArchived,
+                  canEdit: (isAdmin || isModerator) && !match.isArchived,
                   canManageLive: isAdmin && !match.isArchived,
                   canRecoverLive: isModerator && match.status == 'en_cours',
                   canFinalize: isAdmin && !match.isArchived,
@@ -142,10 +143,6 @@ class _MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final localKickoff = match.kickoffAt.toLocal();
-    final dateLabel = localKickoff.toString().split(' ').first;
-    final dateTimeLabel = localKickoff.toString().split('.').first;
-
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -168,9 +165,7 @@ class _MatchCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                'Date : ${match.isArchived ? dateLabel : dateTimeLabel}',
-              ),
+              Text('Date : ${_formatKickoff(match.kickoffAt)}'),
               Text('Lieu : ${match.locationLabel}'),
               Text('Durée : ${match.plannedDurationMinutes} min'),
               Text(
@@ -252,5 +247,12 @@ class _MatchCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatKickoff(DateTime value) {
+    final local = value.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} • '
+        '${two(local.hour)}h${two(local.minute)}';
   }
 }
