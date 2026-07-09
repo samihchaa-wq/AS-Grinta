@@ -178,6 +178,24 @@ class LiveController extends StateNotifier<LiveControllerState> {
     }
   }
 
+  Future<void> markReconnected(String matchId) async {
+    final sessionId = _ref.read(liveControlSessionIdProvider);
+    if (sessionId == null) return;
+    try {
+      await _ref.read(supabaseClientProvider).rpc(
+        'mark_live_reconnected',
+        params: {
+          'p_match_id': matchId,
+          'p_controller_session_id': sessionId,
+        },
+      );
+      final refreshed = await _repository.fetchLiveSession(matchId);
+      state = state.copyWith(session: refreshed, clearError: true);
+    } catch (_) {
+      // Best effort after the application resumes.
+    }
+  }
+
   Future<void> forceResumeControl(String matchId) async {
     final userId = _currentUserId;
     if (!_isModerator || userId == null) {
