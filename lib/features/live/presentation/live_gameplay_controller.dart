@@ -5,108 +5,167 @@ import 'package:as_grinta/features/live/domain/live_gameplay.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class LiveGameplayStateModel {
-  const LiveGameplayStateModel({this.gameplay, this.isLoading = false, this.error});
+  const LiveGameplayStateModel({
+    this.gameplay,
+    this.isLoading = false,
+    this.error,
+  });
 
   final LiveGameplayState? gameplay;
   final bool isLoading;
   final String? error;
 
-  LiveGameplayStateModel copyWith({LiveGameplayState? gameplay, bool? isLoading, String? error}) {
+  LiveGameplayStateModel copyWith({
+    LiveGameplayState? gameplay,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+  }) {
     return LiveGameplayStateModel(
       gameplay: gameplay ?? this.gameplay,
       isLoading: isLoading ?? this.isLoading,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
 
 class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
-  LiveGameplayController(this._repository, this._matchId) : super(const LiveGameplayStateModel());
+  LiveGameplayController(this._repository, this._matchId)
+      : super(const LiveGameplayStateModel());
 
   final LiveRepository _repository;
   final String _matchId;
   StreamSubscription<LiveGameplayState>? _subscription;
+  List<LivePlayer> _players = const [];
+  String _fallbackFormation = '4-4-2';
 
-  Future<void> initialize({required List<LivePlayer> players, String formationKey = '4-4-2'}) async {
-    state = state.copyWith(isLoading: true, error: null);
-    final existing = _repository.loadGameplay(_matchId);
-    if (existing != null) {
-      _subscription?.cancel();
-      _subscription = _repository.subscribeToGameplay(_matchId).listen((gameplay) {
-        state = state.copyWith(gameplay: gameplay, isLoading: false);
-      });
-      state = state.copyWith(gameplay: existing, isLoading: false);
-      return;
+  Future<void> initialize({
+    required List<LivePlayer> players,
+    String formationKey = '4-4-2',
+  }) async {
+    _players = players;
+    _fallbackFormation = formationKey;
+    state = state.copyWith(isLoading: true, clearError: true);
+    await _subscription?.cancel();
+    _subscription = _repository
+        .subscribeToGameplay(
+          matchId: _matchId,
+          players: players,
+          fallbackFormation: formationKey,
+        )
+        .listen(
+          (gameplay) {
+            state = state.copyWith(
+              gameplay: gameplay,
+              isLoading: false,
+              clearError: true,
+            );
+          },
+          onError: (Object error) {
+            state = state.copyWith(
+              isLoading: false,
+              error: error.toString(),
+            );
+          },
+        );
+  }
+
+  Future<void> changeFormation(String formationKey) async {
+    try {
+      await _repository.setFormation(_matchId, formationKey);
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
     }
-
-    final initialState = LiveGameplayState.initial(players: players, formationKey: formationKey);
-    _repository.saveGameplay(_matchId, initialState);
-    _subscription?.cancel();
-    _subscription = _repository.subscribeToGameplay(_matchId).listen((gameplay) {
-      state = state.copyWith(gameplay: gameplay, isLoading: false);
-    });
-    state = state.copyWith(gameplay: initialState, isLoading: false);
   }
 
-  void changeFormation(String formationKey) {
-    final gameplay = state.gameplay;
-    if (gameplay == null) return;
-    gameplay.changeFormation(formationKey);
-    _repository.saveGameplay(_matchId, gameplay);
-    state = state.copyWith(gameplay: gameplay, error: null);
+  Future<void> movePlayer({
+    required String playerId,
+    required String slotKey,
+  }) async {
+    try {
+      await _repository.movePlayer(
+        matchId: _matchId,
+        playerId: playerId,
+        slotKey: slotKey,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
   }
 
-  void movePlayer({required String playerId, required String slotKey}) {
-    final gameplay = state.gameplay;
-    if (gameplay == null) return;
-    gameplay.movePlayer(playerId: playerId, slotKey: slotKey);
-    _repository.saveGameplay(_matchId, gameplay);
-    state = state.copyWith(gameplay: gameplay, error: null);
-  }
-
-  void addGoal({
+  Future<void> addGoal({
     required String team,
     required int minute,
     required GoalType type,
     required String? scorerId,
     required String? assisterId,
-  }) {
-    final gameplay = state.gameplay;
-    if (gameplay == null) return;
-    gameplay.addGoal(team: team, minute: minute, type: type, scorerId: scorerId, assisterId: assisterId);
-    _repository.saveGameplay(_matchId, gameplay);
-    state = state.copyWith(gameplay: gameplay, error: null);
+  }) async {
+    try {
+      await _repository.addGoal(
+        matchId: _matchId,
+        team: team,
+        minute: minute,
+        type: type,
+        scorerId: scorerId,
+        assisterId: assisterId,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
   }
 
-  void removeGoal(String goalId) {
-    final gameplay = state.gameplay;
-    if (gameplay == null) return;
-    gameplay.removeGoal(goalId);
-    _repository.saveGameplay(_matchId, gameplay);
-    state = state.copyWith(gameplay: gameplay, error: null);
+  Future<void> removeGoal(String goalId) async {
+    try {
+      await _repository.removeGoal(goalId);
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
   }
 
-  void updateGoal({
+  Future<void> updateGoal({
     required String goalId,
     required String team,
     required int minute,
     required GoalType type,
     required String? scorerId,
     required String? assisterId,
-  }) {
-    final gameplay = state.gameplay;
-    if (gameplay == null) return;
-    gameplay.updateGoal(goalId: goalId, team: team, minute: minute, type: type, scorerId: scorerId, assisterId: assisterId);
-    _repository.saveGameplay(_matchId, gameplay);
-    state = state.copyWith(gameplay: gameplay, error: null);
+  }) async {
+    try {
+      await _repository.updateGoal(
+        goalId: goalId,
+        team: team,
+        minute: minute,
+        type: type,
+        scorerId: scorerId,
+        assisterId: assisterId,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
   }
 
-  void addSubstitution({required int minute, required String inPlayerId, required String outPlayerId}) {
-    final gameplay = state.gameplay;
-    if (gameplay == null) return;
-    gameplay.addSubstitution(minute: minute, inPlayerId: inPlayerId, outPlayerId: outPlayerId);
-    _repository.saveGameplay(_matchId, gameplay);
-    state = state.copyWith(gameplay: gameplay, error: null);
+  Future<void> addSubstitution({
+    required int minute,
+    required String inPlayerId,
+    required String outPlayerId,
+  }) async {
+    try {
+      await _repository.addSubstitution(
+        matchId: _matchId,
+        minute: minute,
+        inPlayerId: inPlayerId,
+        outPlayerId: outPlayerId,
+      );
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
+  }
+
+  Future<void> reload() async {
+    await initialize(
+      players: _players,
+      formationKey: _fallbackFormation,
+    );
   }
 
   @override
@@ -116,7 +175,8 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
   }
 }
 
-final liveGameplayControllerProvider = StateNotifierProvider.family<LiveGameplayController, LiveGameplayStateModel, String>((ref, matchId) {
+final liveGameplayControllerProvider = StateNotifierProvider.family<
+    LiveGameplayController, LiveGameplayStateModel, String>((ref, matchId) {
   final repository = ref.watch(liveGameplayRepositoryProvider);
   return LiveGameplayController(repository, matchId);
 });
