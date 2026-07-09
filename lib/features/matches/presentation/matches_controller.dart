@@ -46,6 +46,7 @@ class MatchesController extends StateNotifier<MatchesState> {
   AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
   bool get _isAdmin => _role == AuthRole.admin;
   bool get _isModerator => _role == AuthRole.moderateur;
+  bool get _canManageMatches => _isAdmin || _isModerator;
 
   Future<void> load({String? seasonId}) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -78,9 +79,9 @@ class MatchesController extends StateNotifier<MatchesState> {
   }
 
   Future<String?> createOpponent(String name) async {
-    if (!_isAdmin) {
+    if (!_canManageMatches) {
       state = state.copyWith(
-        error: 'Seul un administrateur peut créer un adversaire.',
+        error: 'Seul un administrateur ou un coach peut créer un adversaire.',
       );
       return null;
     }
@@ -108,10 +109,10 @@ class MatchesController extends StateNotifier<MatchesState> {
     required int plannedDurationMinutes,
     required String status,
   }) async {
-    if (!_isAdmin) {
+    if (!_canManageMatches) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seul un administrateur peut créer un match.',
+        error: 'Seul un administrateur ou un coach peut créer un match.',
       );
       return;
     }
@@ -155,10 +156,10 @@ class MatchesController extends StateNotifier<MatchesState> {
     required int plannedDurationMinutes,
     required String status,
   }) async {
-    if (!_isAdmin) {
+    if (!_canManageMatches) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seul un administrateur peut modifier un match.',
+        error: 'Seul un administrateur ou un coach peut modifier un match.',
       );
       return;
     }
