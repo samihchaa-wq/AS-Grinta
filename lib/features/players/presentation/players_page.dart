@@ -109,7 +109,7 @@ class _PlayerCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        player.fullName,
+                        player.displayName,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Row(
@@ -373,6 +373,7 @@ class _CreatePlayerDialog extends ConsumerStatefulWidget {
 
 class _CreatePlayerDialogState extends ConsumerState<_CreatePlayerDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _surnomCtrl = TextEditingController();
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
   bool _isGoalkeeper = false;
@@ -380,6 +381,7 @@ class _CreatePlayerDialogState extends ConsumerState<_CreatePlayerDialog> {
 
   @override
   void dispose() {
+    _surnomCtrl.dispose();
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
     super.dispose();
@@ -393,6 +395,9 @@ class _CreatePlayerDialogState extends ConsumerState<_CreatePlayerDialog> {
       await ref.read(playersRepositoryProvider).createPlayer(
             firstName: _firstNameCtrl.text,
             lastName: _lastNameCtrl.text,
+            surnom: _surnomCtrl.text.trim().isEmpty
+                ? null
+                : _surnomCtrl.text.trim(),
             isGoalkeeper: _isGoalkeeper,
           );
       widget.onCreated();
@@ -417,32 +422,51 @@ class _CreatePlayerDialogState extends ConsumerState<_CreatePlayerDialog> {
       title: const Text('Ajouter un joueur'),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextFormField(
-              controller: _firstNameCtrl,
-              decoration: const InputDecoration(labelText: 'Prénom *'),
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _lastNameCtrl,
-              decoration: const InputDecoration(labelText: 'Nom *'),
-              textCapitalization: TextCapitalization.words,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
-            ),
-            const SizedBox(height: 12),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Gardien de but'),
-              value: _isGoalkeeper,
-              onChanged: (v) => setState(() => _isGoalkeeper = v),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _surnomCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Surnom *',
+                  helperText: 'Nom affiché dans l\'application',
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Surnom requis' : null,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _firstNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Prénom *',
+                  helperText: 'Visible uniquement en administration',
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _lastNameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nom *',
+                  helperText: 'Visible uniquement en administration',
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Gardien de but'),
+                value: _isGoalkeeper,
+                onChanged: (v) => setState(() => _isGoalkeeper = v),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [

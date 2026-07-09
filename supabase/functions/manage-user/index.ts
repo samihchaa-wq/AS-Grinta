@@ -94,6 +94,8 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Input is too long" }, 400);
       }
 
+      const surnom = String(body.surnom ?? "").trim() || null;
+
       const redirectTo = String(body.redirectTo ?? "").trim() || undefined;
       const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
         data: {
@@ -104,6 +106,15 @@ Deno.serve(async (req: Request) => {
         redirectTo,
       });
       if (error) throw error;
+
+      // Mettre à jour le surnom sur le profil créé (si fourni)
+      if (surnom && data.user?.id) {
+        await admin
+          .from("profiles")
+          .update({ surnom })
+          .eq("id", data.user.id);
+      }
+
       return jsonResponse({ userId: data.user?.id, invitationSent: true });
     }
 

@@ -8,15 +8,26 @@ class CoachPlayer {
   const CoachPlayer({
     required this.id,
     required this.name,
+    this.surnom,
     this.isGoalkeeper = false,
   });
 
   final String id;
   final String name;
+  final String? surnom;
   final bool isGoalkeeper;
 
+  /// Nom affiché dans le tableau blanc (surnom si défini, sinon prénom).
+  String get displayName {
+    final s = surnom?.trim() ?? '';
+    if (s.isNotEmpty) return s;
+    // Repli sur le prénom uniquement pour que ça tienne dans un jeton
+    return name.split(' ').first;
+  }
+
   String get initials {
-    final parts = name.trim().split(RegExp(r'\s+'));
+    final display = displayName.trim();
+    final parts = display.split(RegExp(r'\s+'));
     if (parts.isEmpty) return '?';
     if (parts.length == 1) {
       return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
@@ -26,7 +37,7 @@ class CoachPlayer {
     return '$first$last'.toUpperCase();
   }
 
-  String get firstName => name.split(' ').first;
+  String get firstName => displayName.split(' ').first;
 }
 
 enum CoachEventType {

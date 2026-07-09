@@ -32,7 +32,8 @@ class MatchParticipantsRepository {
     final players = await _client
         .from('season_players')
         .select(
-            'profile_id, is_goalkeeper_snapshot, profiles!inner(first_name, last_name, status)')
+            'profile_id, is_goalkeeper_snapshot, '
+            'profiles!inner(first_name, last_name, surnom, status)')
         .eq('season_id', seasonId);
     final selectedRows = await _client
         .from('match_participants')
@@ -48,8 +49,12 @@ class MatchParticipantsRepository {
       final profile = Map<String, dynamic>.from(map['profiles'] as Map);
       if (profile['status'] != 'active') continue;
       final profileId = map['profile_id'].toString();
-      final name =
-          '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
+      final surnom = profile['surnom']?.toString().trim() ?? '';
+      final firstName = (profile['first_name'] ?? '').toString().trim();
+      final lastName = (profile['last_name'] ?? '').toString().trim();
+      final name = surnom.isNotEmpty
+          ? surnom
+          : '$firstName $lastName'.trim();
       options.add(
         MatchParticipantOption(
           profileId: profileId,

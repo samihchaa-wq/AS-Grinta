@@ -7,6 +7,7 @@ class AdminProfileItem {
     required this.id,
     required this.firstName,
     required this.lastName,
+    this.surnom,
     required this.email,
     required this.role,
     required this.status,
@@ -17,6 +18,9 @@ class AdminProfileItem {
   final String id;
   final String firstName;
   final String lastName;
+
+  /// Surnom d'affichage. Si null, on replie sur prénom + nom.
+  final String? surnom;
   final String email;
   final String role;
   final String status;
@@ -24,6 +28,11 @@ class AdminProfileItem {
   final bool inOpenSeason;
 
   String get fullName => '$firstName $lastName'.trim();
+
+  String get displayName {
+    final s = surnom?.trim() ?? '';
+    return s.isNotEmpty ? s : fullName;
+  }
 }
 
 class AdminSeasonItem {
@@ -88,7 +97,9 @@ class AdminRepository {
 
     final profilesRaw = await _client
         .from('profiles')
-        .select('id, first_name, last_name, email, role, status, is_goalkeeper')
+        .select(
+          'id, first_name, last_name, surnom, email, role, status, is_goalkeeper',
+        )
         .order('first_name')
         .order('last_name');
     final profiles = (profilesRaw as List)
@@ -98,6 +109,7 @@ class AdminRepository {
             id: row['id'].toString(),
             firstName: (row['first_name'] ?? '').toString(),
             lastName: (row['last_name'] ?? '').toString(),
+            surnom: row['surnom']?.toString(),
             email: (row['email'] ?? '').toString(),
             role: (row['role'] ?? 'pronostiqueur').toString(),
             status: (row['status'] ?? 'active').toString(),
@@ -118,6 +130,7 @@ class AdminRepository {
     required String email,
     required String firstName,
     required String lastName,
+    String? surnom,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail.contains('@') ||
@@ -133,6 +146,8 @@ class AdminRepository {
         'email': cleanEmail,
         'firstName': firstName.trim(),
         'lastName': lastName.trim(),
+        if (surnom != null && surnom.trim().isNotEmpty)
+          'surnom': surnom.trim(),
       },
     );
     if (response.status < 200 || response.status >= 300) {
@@ -152,7 +167,7 @@ class AdminRepository {
 
   String _functionError(dynamic data) {
     if (data is Map && data['error'] != null) return data['error'].toString();
-    return 'L’opération d’administration a échoué.';
+    return "L\u2019op\u00e9ration d\u2019administration a \u00e9chou\u00e9.";
   }
 
   Future<void> _updatePrivilegedProfileFields({
@@ -171,7 +186,7 @@ class AdminRepository {
       },
     );
     if (result != true) {
-      throw StateError('Le profil n’a pas pu être mis à jour.');
+      throw StateError("Le profil n\u2019a pas pu \u00eatre mis \u00e0 jour.");
     }
   }
 
@@ -194,6 +209,15 @@ class AdminRepository {
       profileId: profileId,
       isGoalkeeper: value,
     );
+  }
+
+  Future<void> updateSurnom(String profileId, String surnom) async {
+    await _client
+        .from('profiles')
+        .update({'surnom': surnom.trim().isEmpty ? null : surnom.trim()}).eq(
+          'id',
+          profileId,
+        );
   }
 
   Future<void> createSeason(String name) async {

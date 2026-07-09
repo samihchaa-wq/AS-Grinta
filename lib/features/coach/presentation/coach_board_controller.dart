@@ -22,7 +22,7 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       // Charger les joueurs actifs
       final profilesResponse = await _client
           .from('profiles')
-          .select('id, first_name, last_name, is_goalkeeper, status')
+          .select('id, first_name, last_name, surnom, is_goalkeeper, status')
           .eq('status', 'active')
           .eq('role', 'pronostiqueur')
           .order('first_name')
@@ -37,7 +37,8 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
         if (name.isEmpty) continue;
         players.add(CoachPlayer(
           id: map['id'].toString(),
-          name: name,
+          name: name.isEmpty ? 'Joueur sans nom' : name,
+          surnom: map['surnom']?.toString(),
           isGoalkeeper: map['is_goalkeeper'] == true,
         ));
       }

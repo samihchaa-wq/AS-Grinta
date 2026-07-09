@@ -25,6 +25,7 @@ class AuthProfile {
     this.email,
     required this.firstName,
     required this.lastName,
+    this.surnom,
     this.avatarPath,
     required this.role,
     required this.isGoalkeeper,
@@ -37,6 +38,9 @@ class AuthProfile {
   final String? email;
   final String firstName;
   final String lastName;
+
+  /// Surnom d'affichage. Si null, on replie sur prénom + nom.
+  final String? surnom;
   final String? avatarPath;
   final AuthRole role;
   final bool isGoalkeeper;
@@ -45,6 +49,13 @@ class AuthProfile {
   final DateTime? updatedAt;
 
   String get fullName => '$firstName $lastName'.trim();
+
+  /// Nom affiché dans toute l'application.
+  String get displayName {
+    final s = surnom?.trim() ?? '';
+    return s.isNotEmpty ? s : fullName;
+  }
+
   String? get photoUrl => avatarPath;
   ProfileStatus get status =>
       isActive ? ProfileStatus.active : ProfileStatus.archived;
@@ -65,6 +76,7 @@ class AuthProfile {
       email: json['email']?.toString(),
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
+      surnom: json['surnom']?.toString(),
       avatarPath: json['photo_url']?.toString(),
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,

@@ -32,7 +32,8 @@ class MatchPredictionItem {
   final int? actualScoreOpponent;
 
   DateTime get opensAt => kickoffAt.subtract(const Duration(days: 6));
-  DateTime get closesAt => kickoffAt.subtract(const Duration(hours: 12));
+  // Fenêtre de pronostic : ferme 10 minutes avant le coup d'envoi.
+  DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 10));
   bool get isBeforeWindow => DateTime.now().isBefore(opensAt);
   bool get isClosed =>
       status != 'a_venir' || !DateTime.now().isBefore(closesAt);
@@ -192,8 +193,8 @@ class PredictionsRepository {
     }
     final now = DateTime.now();
     if (now.isBefore(kickoffAt.subtract(const Duration(days: 6))) ||
-        !now.isBefore(kickoffAt.subtract(const Duration(hours: 12)))) {
-      throw StateError('La fenêtre de pronostic n’est pas ouverte.');
+        !now.isBefore(kickoffAt.subtract(const Duration(minutes: 10)))) {
+      throw StateError("La fen\u00eatre de pronostic n\u2019est pas ouverte.");
     }
 
     await _client.from('match_predictions').upsert(

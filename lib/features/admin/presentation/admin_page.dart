@@ -133,6 +133,7 @@ class AdminPage extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
   ) async {
+    final surnomController = TextEditingController();
     final emailController = TextEditingController();
     final firstNameController = TextEditingController();
     final lastNameController = TextEditingController();
@@ -144,34 +145,53 @@ class AdminPage extends ConsumerWidget {
       barrierDismissible: !saving,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Inviter un joueur'),
+          title: const Text('Inviter un compte'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
+                  controller: surnomController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Surnom *',
+                    helperText: 'Nom affiché dans l\'application',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email *',
+                    helperText: 'Visible uniquement en administration',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: firstNameController,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Prénom'),
+                  decoration: const InputDecoration(
+                    labelText: 'Prénom *',
+                    helperText: 'Visible uniquement en administration',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: lastNameController,
                   textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(labelText: 'Nom'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nom *',
+                    helperText: 'Visible uniquement en administration',
+                  ),
                 ),
                 if (error != null) ...[
                   const SizedBox(height: 12),
                   Text(
                     error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ],
               ],
@@ -186,6 +206,11 @@ class AdminPage extends ConsumerWidget {
               onPressed: saving
                   ? null
                   : () async {
+                      if (surnomController.text.trim().isEmpty) {
+                        setDialogState(
+                            () => error = 'Le surnom est obligatoire.');
+                        return;
+                      }
                       setDialogState(() {
                         saving = true;
                         error = null;
@@ -195,6 +220,7 @@ class AdminPage extends ConsumerWidget {
                               email: emailController.text,
                               firstName: firstNameController.text,
                               lastName: lastNameController.text,
+                              surnom: surnomController.text,
                             );
                         if (!dialogContext.mounted) return;
                         Navigator.pop(dialogContext);
@@ -225,6 +251,7 @@ class AdminPage extends ConsumerWidget {
       ),
     );
 
+    surnomController.dispose();
     emailController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();

@@ -5,7 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class PlayerStatistics {
   const PlayerStatistics({
     required this.profileId,
-    required this.name,
+    required this.firstName,
+    required this.lastName,
+    this.surnom,
+    required this.isGoalkeeper,
     required this.matches,
     required this.goals,
     required this.assists,
@@ -17,7 +20,12 @@ class PlayerStatistics {
   });
 
   final String profileId;
-  final String name;
+  final String firstName;
+  final String lastName;
+
+  /// Surnom d'affichage. Si null, on replie sur prénom + nom.
+  final String? surnom;
+  final bool isGoalkeeper;
   final int matches;
   final int goals;
   final int assists;
@@ -26,6 +34,15 @@ class PlayerStatistics {
   final int minutesPlayed;
   final int starts;
   final int substituteAppearances;
+
+  String get fullName => '$firstName $lastName'.trim();
+  String get displayName {
+    final s = surnom?.trim() ?? '';
+    return s.isNotEmpty ? s : (fullName.isEmpty ? 'Joueur sans nom' : fullName);
+  }
+
+  /// Nom pour le tri alphabétique.
+  String get sortName => displayName.toLowerCase();
 }
 
 class StatisticsRepository {
@@ -36,7 +53,7 @@ class StatisticsRepository {
   Future<List<PlayerStatistics>> fetchCareerStatistics() async {
     final profilesResponse = await _client
         .from('profiles')
-        .select('id, first_name, last_name, status')
+        .select('id, first_name, last_name, surnom, is_goalkeeper, status')
         .eq('status', 'active');
     final statsResponse = await _client.from('v_player_career_stats').select('''
           profile_id,
@@ -63,12 +80,14 @@ class StatisticsRepository {
       final stats = statsByProfile[id] ?? const <String, dynamic>{};
       final firstName = (profile['first_name'] ?? '').toString().trim();
       final lastName = (profile['last_name'] ?? '').toString().trim();
-      final name = '$firstName $lastName'.trim();
 
       result.add(
         PlayerStatistics(
           profileId: id,
-          name: name.isEmpty ? 'Joueur sans nom' : name,
+          firstName: firstName,
+          lastName: lastName,
+          surnom: profile['surnom']?.toString(),
+          isGoalkeeper: profile['is_goalkeeper'] == true,
           matches: int.tryParse('${stats['matches_played'] ?? 0}') ?? 0,
           goals: int.tryParse('${stats['goals'] ?? 0}') ?? 0,
           assists: int.tryParse('${stats['assists'] ?? 0}') ?? 0,
@@ -82,17 +101,6 @@ class StatisticsRepository {
       );
     }
 
-    result.sort((a, b) {
-      final goals = b.goals.compareTo(a.goals);
-      if (goals != 0) return goals;
-      final assists = b.assists.compareTo(a.assists);
-      if (assists != 0) return assists;
-      final motm = b.motm.compareTo(a.motm);
-      if (motm != 0) return motm;
-      final minutes = b.minutesPlayed.compareTo(a.minutesPlayed);
-      if (minutes != 0) return minutes;
-      return a.name.compareTo(b.name);
-    });
     return result;
   }
 }

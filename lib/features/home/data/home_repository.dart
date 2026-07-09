@@ -75,7 +75,8 @@ class HomeRepository {
 
       if (status == 'a_venir' && kickoff != null) {
         final opensAt = kickoff.subtract(const Duration(days: 6));
-        final closesAt = kickoff.subtract(const Duration(hours: 12));
+        // Fenêtre de pronostic : ferme 10 minutes avant le coup d'envoi.
+        final closesAt = kickoff.subtract(const Duration(minutes: 10));
         final isWindowOpen = !now.isBefore(opensAt) && now.isBefore(closesAt);
         if (isWindowOpen && filledByMatch[id] != true) pendingPredictions++;
       }

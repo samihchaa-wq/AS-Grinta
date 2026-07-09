@@ -33,7 +33,9 @@ class LiveSetupRepository {
   Future<LiveSetupData> fetch(String matchId) async {
     final participantsResponse = await _client
         .from('match_participants')
-        .select('profile_id, profiles!inner(first_name, last_name, status)')
+        .select(
+          'profile_id, profiles!inner(first_name, last_name, surnom, status)',
+        )
         .eq('match_id', matchId);
 
     final players = <LivePlayer>[];
@@ -41,9 +43,12 @@ class LiveSetupRepository {
       final map = Map<String, dynamic>.from(row);
       final profile = Map<String, dynamic>.from(map['profiles'] as Map);
       if (profile['status'] != 'active') continue;
+      final surnom = profile['surnom']?.toString().trim() ?? '';
       final firstName = (profile['first_name'] ?? '').toString().trim();
       final lastName = (profile['last_name'] ?? '').toString().trim();
-      final name = '$firstName $lastName'.trim();
+      final name = surnom.isNotEmpty
+          ? surnom
+          : '$firstName $lastName'.trim();
       players.add(
         LivePlayer(
           id: map['profile_id'].toString(),
