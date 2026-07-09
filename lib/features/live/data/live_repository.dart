@@ -112,6 +112,20 @@ class LiveRepository {
     return result == true;
   }
 
+  Future<bool> forceResumeControl({
+    required String matchId,
+    required String sessionId,
+  }) async {
+    final result = await _client.rpc(
+      'force_resume_live',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+      },
+    );
+    return result == true;
+  }
+
   Future<LiveGameplayState> fetchGameplay({
     required String matchId,
     required List<LivePlayer> players,
