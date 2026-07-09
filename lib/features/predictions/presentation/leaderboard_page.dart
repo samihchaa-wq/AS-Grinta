@@ -97,7 +97,9 @@ class LeaderboardPage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           LinearProgressIndicator(
-                            value: (item.matchPercentage / 100).clamp(0, 1),
+                            value: (item.matchPercentage / 100)
+                                .clamp(0.0, 1.0)
+                                .toDouble(),
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -107,7 +109,9 @@ class LeaderboardPage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           LinearProgressIndicator(
-                            value: (item.seasonPercentage / 100).clamp(0, 1),
+                            value: (item.seasonPercentage / 100)
+                                .clamp(0.0, 1.0)
+                                .toDouble(),
                           ),
                           const SizedBox(height: 10),
                           Text(
