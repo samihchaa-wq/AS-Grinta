@@ -12,11 +12,18 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     final dashboardAsync = ref.watch(homeDashboardProvider);
+    final isModerator = authState.profile?.role == AuthRole.moderateur;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('AS Grinta'),
         actions: [
+          if (isModerator)
+            IconButton(
+              tooltip: 'Administration',
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              onPressed: () => context.go('/admin'),
+            ),
           IconButton(
             tooltip: 'Profil',
             icon: const Icon(Icons.person_outline),
@@ -122,9 +129,11 @@ class HomePage extends ConsumerWidget {
                   onTap: () => context.go('/statistics'),
                 ),
                 _HomeAction(
-                  icon: Icons.person_outline,
-                  label: 'Profil',
-                  onTap: () => context.go('/profile'),
+                  icon: isModerator
+                      ? Icons.admin_panel_settings_outlined
+                      : Icons.person_outline,
+                  label: isModerator ? 'Administration' : 'Profil',
+                  onTap: () => context.go(isModerator ? '/admin' : '/profile'),
                 ),
               ],
             ),
