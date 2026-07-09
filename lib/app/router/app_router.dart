@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_forgot_password_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
@@ -8,6 +9,7 @@ import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/live/presentation/live_gameplay_page.dart';
 import 'package:as_grinta/features/live/presentation/live_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
+import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
@@ -36,16 +38,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isLiveManagementRoute = location.startsWith('/live/');
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
+      final isParticipantsRoute =
+          location.startsWith('/matches/') && location.endsWith('/participants');
+      final isAdminRoute = location == '/admin';
 
       if (isLiveManagementRoute && role != AuthRole.admin) return '/matches';
       if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
+      if (isParticipantsRoute && role != AuthRole.admin) return '/matches';
+      if (isAdminRoute && role != AuthRole.moderateur) return '/home';
 
       return null;
     },
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/home'),
       GoRoute(path: '/home', builder: (_, __) => const HomePage()),
+      GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
       GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
+      GoRoute(
+        path: '/matches/:matchId/participants',
+        builder: (context, state) => MatchParticipantsPage(
+          matchId: state.pathParameters['matchId'] ?? '',
+        ),
+      ),
       GoRoute(
         path: '/predictions',
         builder: (_, __) => const PredictionsPage(),
