@@ -143,7 +143,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                               manOfTheMatchId: _motmProfileId,
                             );
 
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         final latest =
                             ref.read(matchFinalizationControllerProvider);
                         if (latest.error == null &&
