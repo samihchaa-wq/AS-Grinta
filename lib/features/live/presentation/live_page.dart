@@ -62,11 +62,13 @@ class _LivePageState extends ConsumerState<LivePage>
     if (session == null) return 0;
     var seconds = session.elapsedSeconds;
     if (session.status == 'running' && session.clockStartedAt != null) {
-      seconds += DateTime.now()
+      final runningSeconds = DateTime.now()
           .toUtc()
           .difference(session.clockStartedAt!.toUtc())
           .inSeconds
-          .clamp(0, 86400);
+          .clamp(0, 86400)
+          .toInt();
+      seconds += runningSeconds;
     }
     return seconds;
   }
