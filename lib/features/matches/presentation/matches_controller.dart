@@ -77,6 +77,29 @@ class MatchesController extends StateNotifier<MatchesState> {
     }
   }
 
+  Future<String?> createOpponent(String name) async {
+    if (!_isAdmin) {
+      state = state.copyWith(
+        error: 'Seul un administrateur peut créer un adversaire.',
+      );
+      return null;
+    }
+    final trimmed = name.trim();
+    if (trimmed.length < 2) {
+      state = state.copyWith(error: 'Nom d’adversaire invalide.');
+      return null;
+    }
+
+    try {
+      final id = await _repository.createOpponent(trimmed);
+      await load();
+      return id;
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+      return null;
+    }
+  }
+
   Future<void> createMatch({
     required String seasonId,
     required String opponentId,
@@ -165,6 +188,27 @@ class MatchesController extends StateNotifier<MatchesState> {
         plannedDurationMinutes: plannedDurationMinutes,
         status: status,
       );
+      await load();
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: error.toString());
+    }
+  }
+
+  Future<void> archiveMatch(String id) async {
+    if (!_isAdmin) {
+      state = state.copyWith(
+        error: 'Seul un administrateur peut archiver un match.',
+      );
+      return;
+    }
+    if (id.isEmpty) {
+      state = state.copyWith(error: 'Identifiant de match invalide.');
+      return;
+    }
+
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.updateMatchStatus(id: id, status: 'archive');
       await load();
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
