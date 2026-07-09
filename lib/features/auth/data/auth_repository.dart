@@ -45,6 +45,13 @@ class AuthRepository {
     await _client.auth.resetPasswordForEmail(email);
   }
 
+  Future<void> updatePassword(String password) async {
+    if (password.length < 8) {
+      throw ArgumentError('Le mot de passe doit contenir au moins 8 caractères.');
+    }
+    await _client.auth.updateUser(UserAttributes(password: password));
+  }
+
   Future<void> signOut() async {
     await _client.auth.signOut();
   }
@@ -82,6 +89,7 @@ class AuthRepository {
       'first_name': firstName,
       'last_name': lastName,
       'photo_url': avatarPath.isEmpty ? null : avatarPath,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', user.id);
 
     final profile = await fetchProfile();
