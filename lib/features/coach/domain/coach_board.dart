@@ -8,12 +8,14 @@ class CoachPlayer {
     required this.name,
     this.surnom,
     this.isGoalkeeper = false,
+    this.isGuest = false,
   });
 
   final String id;
   final String name;
   final String? surnom;
   final bool isGoalkeeper;
+  final bool isGuest;
 
   String get displayName {
     final s = surnom?.trim() ?? '';
