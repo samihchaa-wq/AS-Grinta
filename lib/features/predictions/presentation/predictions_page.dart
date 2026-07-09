@@ -2,6 +2,7 @@ import 'package:as_grinta/features/predictions/data/predictions_repository.dart'
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class PredictionsPage extends ConsumerStatefulWidget {
   const PredictionsPage({super.key});
@@ -24,12 +25,33 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
     final state = ref.watch(predictionsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pronostics')),
+      appBar: AppBar(
+        title: const Text('Pronostics de match'),
+        actions: [
+          IconButton(
+            tooltip: 'Pronostics de saison',
+            onPressed: () => context.push('/predictions/season'),
+            icon: const Icon(Icons.emoji_events_outlined),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(predictionsControllerProvider.notifier).load(),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.emoji_events_outlined),
+                title: const Text('Pronostics de saison'),
+                subtitle: const Text(
+                  'Buts, passes, hommes du match et clean sheets.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/predictions/season'),
+              ),
+            ),
+            const SizedBox(height: 12),
             if (state.error != null)
               Card(
                 child: Padding(
