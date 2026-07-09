@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final seasonPredictionsProvider =
@@ -104,7 +105,11 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             padding: const EdgeInsets.all(16),
             children: [
               const Text(
-                'Valeurs prévues pour 30 matchs. Une ligne non enregistrée rapporte 0 point.',
+                'Valeurs prévues pour 30 matchs. Une case vide rapporte 0 point.',
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Les joueurs de champ ont Buts, Passes D. et HDM. Les gardiens ont uniquement Clean sheets.',
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -114,26 +119,25 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 ),
               ],
               const SizedBox(height: 16),
-              ...grouped.values.map((playerItems) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          playerItems.first.playerName,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 12),
-                        ...playerItems.map(_buildPredictionRow),
-                      ],
-                    ),
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columnSpacing: 18,
+                    horizontalMargin: 16,
+                    columns: const [
+                      DataColumn(label: Text('Joueur')),
+                      DataColumn(label: Text('Buts')),
+                      DataColumn(label: Text('Passes D.')),
+                      DataColumn(label: Text('HDM')),
+                      DataColumn(label: Text('Clean sheets')),
+                    ],
+                    rows: grouped.values.map(_buildPredictionTableRow).toList(),
                   ),
-                );
-              }),
-              const SizedBox(height: 8),
+                ),
+              ),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -157,6 +161,72 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           ),
         );
       },
+    );
+  }
+
+  DataRow _buildPredictionTableRow(List<SeasonPredictionItem> playerItems) {
+    SeasonPredictionItem? find(String category) {
+      for (final item in playerItems) {
+        if (item.category == category) return item;
+      }
+      return null;
+    }
+
+    final isGoalkeeper = find('clean_sheets') != null;
+
+    return DataRow(
+      cells: [
+        DataCell(
+          SizedBox(
+            width: 130,
+            child: Text(
+              playerItems.first.playerName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        DataCell(isGoalkeeper ? _disabledCell() : _numberCell(find('buts'))),
+        DataCell(isGoalkeeper ? _disabledCell() : _numberCell(find('passes'))),
+        DataCell(
+          isGoalkeeper ? _disabledCell() : _numberCell(find('hommes_du_match')),
+        ),
+        DataCell(
+          isGoalkeeper ? _numberCell(find('clean_sheets')) : _disabledCell(),
+        ),
+      ],
+    );
+  }
+
+  Widget _numberCell(SeasonPredictionItem? item) {
+    if (item == null) return _disabledCell();
+    final key = '${item.playerId}:${item.category}';
+    final value = _draftValues[key] ?? item.value;
+
+    return SizedBox(
+      width: 72,
+      child: TextFormField(
+        key: ValueKey('$key:$value'),
+        initialValue: value.toString(),
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        decoration: const InputDecoration(
+          isDense: true,
+          hintText: '0',
+        ),
+        onChanged: (raw) {
+          final parsed = int.tryParse(raw) ?? 0;
+          _draftValues[key] = parsed;
+        },
+      ),
+    );
+  }
+
+  Widget _disabledCell() {
+    return const SizedBox(
+      width: 72,
+      child: Center(child: Text('—')),
     );
   }
 
@@ -222,44 +292,6 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             }).toList(),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildPredictionRow(SeasonPredictionItem item) {
-    final key = '${item.playerId}:${item.category}';
-    final value = _draftValues[key] ?? item.value;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _categoryLabel(item.category),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          IconButton(
-            onPressed: value <= 0
-                ? null
-                : () => setState(() => _draftValues[key] = value - 1),
-            icon: const Icon(Icons.remove_circle_outline),
-          ),
-          SizedBox(
-            width: 36,
-            child: Text(
-              '$value',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
-          IconButton(
-            onPressed: () => setState(() => _draftValues[key] = value + 1),
-            icon: const Icon(Icons.add_circle_outline),
-          ),
-        ],
       ),
     );
   }
