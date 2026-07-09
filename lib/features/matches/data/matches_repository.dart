@@ -13,12 +13,13 @@ class MatchesRepository {
         id,
         season_id,
         opponent_id,
-        kickoff_at,
-        is_home,
+        match_date,
+        match_time,
+        location,
         planned_duration_minutes,
         status,
-        grinta_score,
-        opponent_score,
+        score_as_grinta,
+        score_adverse,
         opponents(name),
         seasons(name)
       ''');
@@ -27,26 +28,22 @@ class MatchesRepository {
       query = query.eq('season_id', seasonId);
     }
 
-    final response = await query.order('kickoff_at', ascending: true);
+    final response = await query
+        .order('match_date', ascending: true)
+        .order('match_time', ascending: true);
     return (response as List)
         .map((row) => MatchModel.fromJson(Map<String, dynamic>.from(row)))
         .toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response =
-        await _client.from('seasons').select('id, name').order('name');
-    return (response as List)
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList();
+    final response = await _client.from('seasons').select('id, name').order('name');
+    return (response as List).map((row) => Map<String, dynamic>.from(row)).toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchOpponents() async {
-    final response =
-        await _client.from('opponents').select('id, name').order('name');
-    return (response as List)
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList();
+    final response = await _client.from('opponents').select('id, name').order('name');
+    return (response as List).map((row) => Map<String, dynamic>.from(row)).toList();
   }
 
   Future<void> createMatch({
@@ -60,8 +57,9 @@ class MatchesRepository {
     await _client.from('matches').insert({
       'season_id': seasonId,
       'opponent_id': opponentId,
-      'kickoff_at': kickoffAt.toIso8601String(),
-      'is_home': isHome,
+      'match_date': kickoffAt.toIso8601String().split('T').first,
+      'match_time': _formatTime(kickoffAt),
+      'location': isHome ? 'domicile' : 'exterieur',
       'planned_duration_minutes': plannedDurationMinutes,
       'status': status,
     });
@@ -79,11 +77,11 @@ class MatchesRepository {
     await _client.from('matches').update({
       'season_id': seasonId,
       'opponent_id': opponentId,
-      'kickoff_at': kickoffAt.toIso8601String(),
-      'is_home': isHome,
+      'match_date': kickoffAt.toIso8601String().split('T').first,
+      'match_time': _formatTime(kickoffAt),
+      'location': isHome ? 'domicile' : 'exterieur',
       'planned_duration_minutes': plannedDurationMinutes,
       'status': status,
-      'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', id);
   }
 
@@ -98,10 +96,9 @@ class MatchesRepository {
     required String status,
   }) async {
     await _client.from('matches').update({
-      'grinta_score': grintaScore,
-      'opponent_score': opponentScore,
+      'score_as_grinta': grintaScore,
+      'score_adverse': opponentScore,
       'status': status,
-      'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', id);
   }
 
@@ -111,9 +108,8 @@ class MatchesRepository {
     required int opponentScore,
   }) async {
     await _client.from('matches').update({
-      'grinta_score': grintaScore,
-      'opponent_score': opponentScore,
-      'updated_at': DateTime.now().toIso8601String(),
+      'score_as_grinta': grintaScore,
+      'score_adverse': opponentScore,
     }).eq('id', id);
   }
 
@@ -121,10 +117,12 @@ class MatchesRepository {
     required String id,
     required String status,
   }) async {
-    await _client.from('matches').update({
-      'status': status,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', id);
+    await _client.from('matches').update({'status': status}).eq('id', id);
+  }
+
+  String _formatTime(DateTime value) {
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(value.hour)}:${two(value.minute)}:${two(value.second)}';
   }
 }
 
