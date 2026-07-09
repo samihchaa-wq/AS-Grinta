@@ -8,6 +8,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/live/presentation/live_gameplay_page.dart';
 import 'package:as_grinta/features/live/presentation/live_page.dart';
+import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
@@ -55,6 +56,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', builder: (_, __) => const HomePage()),
       GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
       GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
+      GoRoute(
+        path: '/matches/:matchId',
+        builder: (context, state) => MatchDetailsPage(
+          matchId: state.pathParameters['matchId'] ?? '',
+        ),
+      ),
       GoRoute(
         path: '/matches/:matchId/participants',
         builder: (context, state) => MatchParticipantsPage(
