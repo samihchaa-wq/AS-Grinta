@@ -96,11 +96,9 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                 ),
               )
             else
-              ...state.items.take(1).map(
-                (item) => _PredictionCard(
-                  item: item,
-                  isSaving: state.savingMatchId == item.matchId,
-                ),
+              _PredictionCard(
+                item: state.items.first,
+                isSaving: state.savingMatchId == state.items.first.matchId,
               ),
           ],
         ),
@@ -120,7 +118,7 @@ class _PredictionCard extends ConsumerWidget {
     final controller = ref.read(predictionsControllerProvider.notifier);
     final points = item.earnedPoints;
     final statusLabel = item.isBeforeWindow
-        ? 'Ouvre le ${item.opensAt.toLocal().toString().split('.').first}'
+        ? 'Ouvre le ${_formatKickoff(item.opensAt)}'
         : item.isClosed
             ? 'Fermé'
             : item.isFilled
@@ -146,27 +144,18 @@ class _PredictionCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Text(item.kickoffAt.toLocal().toString().split('.')[0]),
-            if (item.oddsWin != null) ...[
+            Text(_formatKickoff(item.kickoffAt)),
+            if (item.oddsWin != null &&
+                item.oddsDraw != null &&
+                item.oddsLoss != null) ...[
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Chip(
-                    label: Text(
-                      'V ${(item.oddsWin! * 10).toStringAsFixed(1)} pts',
-                    ),
-                  ),
-                  Chip(
-                    label: Text(
-                      'N ${(item.oddsDraw! * 10).toStringAsFixed(1)} pts',
-                    ),
-                  ),
-                  Chip(
-                    label: Text(
-                      'D ${(item.oddsLoss! * 10).toStringAsFixed(1)} pts',
-                    ),
-                  ),
+                  Chip(label: Text('V ${(item.oddsWin! * 10).round()} pts')),
+                  Chip(label: Text('N ${(item.oddsDraw! * 10).round()} pts')),
+                  Chip(label: Text('D ${(item.oddsLoss! * 10).round()} pts')),
                 ],
               ),
             ],
@@ -218,7 +207,7 @@ class _PredictionCard extends ConsumerWidget {
               Text(
                 points == null
                     ? 'Points indisponibles'
-                    : 'Points gagnés : ${points.toStringAsFixed(1)}',
+                    : 'Points gagnés : ${points.round()}',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
             ],
@@ -243,6 +232,13 @@ class _PredictionCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _formatKickoff(DateTime value) {
+    final local = value.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} • '
+        '${two(local.hour)}h${two(local.minute)}';
   }
 }
 
