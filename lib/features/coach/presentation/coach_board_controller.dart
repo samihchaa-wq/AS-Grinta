@@ -25,6 +25,8 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   StreamSubscription<List<CoachLiveEventRecord>>? _eventsSubscription;
   bool _persisting = false;
 
+  static const _guestPrefix = 'guest|';
+
   Future<void> _initialize() async {
     try {
       final profilesResponse = await _client
@@ -80,7 +82,15 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
             if (state.canEdit) await _persistSession();
             return;
           }
+          final ids = <String>{...session.lineup.values, ...session.bench};
+          final regularPlayers = state.players.where((p) => !p.isGuest).toList();
+          final guests = ids
+              .where((id) => id.startsWith(_guestPrefix))
+              .map(_guestFromId)
+              .whereType<CoachPlayer>()
+              .toList();
           state = state.copyWith(
+            players: [...regularPlayers, ...guests],
             formationCode: session.formationCode,
             formationSlots: hardcodedFormationSlots(session.formationCode),
             lineup: session.lineup,
@@ -106,7 +116,8 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       _eventsSubscription = _repository.watchEvents(matchId).listen(
         (records) {
           final events = records.map(_mapEvent).toList(growable: false);
-          final scoreUs = events.where((e) => e.type == CoachEventType.goalUs).length;
+          final scoreUs =
+              events.where((e) => e.type == CoachEventType.goalUs).length;
           final scoreThem =
               events.where((e) => e.type == CoachEventType.goalThem).length;
           state = state.copyWith(
@@ -122,6 +133,36 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
+  }
+
+  CoachPlayer? _guestFromId(String id) {
+    final parts = id.split('|');
+    if (parts.length < 4 || parts.first != 'guest') return null;
+    final name = Uri.decodeComponent(parts.sublist(3).join('|')).trim();
+    if (name.isEmpty) return null;
+    return CoachPlayer(
+      id: id,
+      name: name,
+      isGoalkeeper: parts[1] == 'gk',
+      isGuest: true,
+    );
+  }
+
+  Future<void> addExceptionalPlayer({
+    required String name,
+    required bool isGoalkeeper,
+    required String slotCode,
+  }) async {
+    if (!state.canEdit || name.trim().isEmpty) return;
+    final id = 'guest|${isGoalkeeper ? 'gk' : 'field'}|${DateTime.now().microsecondsSinceEpoch}|${Uri.encodeComponent(name.trim())}';
+    final guest = CoachPlayer(
+      id: id,
+      name: name.trim(),
+      isGoalkeeper: isGoalkeeper,
+      isGuest: true,
+    );
+    state = state.copyWith(players: [...state.players, guest]);
+    await movePlayer(id, slotCode);
   }
 
   CoachEvent _mapEvent(CoachLiveEventRecord record) {
@@ -291,6 +332,8 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
 
   Future<void> addGoalUs({String? scorerId, String? assistId}) async {
     if (!state.canEdit || state.matchId == null) return;
+    if (state.playerById(scorerId)?.isGuest == true) scorerId = null;
+    if (state.playerById(assistId)?.isGuest == true) assistId = null;
     await _repository.addGoal(
       matchId: state.matchId!,
       minute: _currentMinute,
@@ -327,6 +370,9 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       state = state.copyWith(lineup: lineup, bench: bench);
       await _persistSession();
     }
+    final hasGuest = state.playerById(inPlayerId)?.isGuest == true ||
+        state.playerById(outPlayerId)?.isGuest == true;
+    if (hasGuest) return;
     await _repository.addSubstitution(
       matchId: state.matchId!,
       minute: _currentMinute,
@@ -334,8 +380,6 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       playerOutId: outPlayerId,
     );
   }
-
-  void addCard({required String playerId, required bool isRed}) {}
 
   void addNote(String text) {}
 
@@ -347,9 +391,11 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   Future<void> resetBoard() async {
     if (!state.canEdit) return;
     _stopLocalTicker();
+    final regularPlayers = state.players.where((p) => !p.isGuest).toList();
     state = state.copyWith(
+      players: regularPlayers,
       lineup: const {},
-      bench: state.players.map((p) => p.id).toList(),
+      bench: regularPlayers.map((p) => p.id).toList(),
       formationCode: '4-3-3',
       formationSlots: hardcodedFormationSlots('4-3-3'),
       isRunning: false,
