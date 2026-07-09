@@ -1,2 +1,4 @@
 - [Flutter on Replit via Nix](flutter-replit-setup.md) — install `flutter` via installSystemDependencies; use Python http.server on port 5000 to serve the web build.
 - [Flutter DropdownButtonFormField API](flutter-dropdown-api.md) — use `value:` not `initialValue:`; the latter does not exist in Flutter stable.
+- [Coach Whiteboard](coach-whiteboard.md) — autoDispose provider for timer safety; resetBoard() reconstructs state in-place; formation positions from Supabase with hardcoded fallback.
+- [Independent Players & Claim Flow](players-claim-flow.md) — players table CRUD; claim token = UUID v4 in Dart; use RPC claim_player_profile (atomic row lock) not direct table update.
