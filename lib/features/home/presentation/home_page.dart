@@ -48,11 +48,13 @@ class HomePage extends ConsumerWidget {
                   const Text('Profil actif'),
                   const SizedBox(height: 8),
                   Text('Rôle : ${authState.profile?.role.label ?? 'inconnu'}'),
-                  Text('Gardien : ${authState.profile?.isGoalkeeper == true ? 'Oui' : 'Non'}'),
+                  Text(
+                      'Gardien : ${authState.profile?.isGoalkeeper == true ? 'Oui' : 'Non'}'),
                   if (authState.profile?.role == AuthRole.admin) ...[
                     const SizedBox(height: 8),
                     const Text('Vous disposez des droits d’administration.'),
-                  ] else if (authState.profile?.role == AuthRole.moderateur) ...[
+                  ] else if (authState.profile?.role ==
+                      AuthRole.moderateur) ...[
                     const SizedBox(height: 8),
                     const Text('Vous disposez des droits de modération.'),
                   ] else ...[

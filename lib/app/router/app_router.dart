@@ -37,12 +37,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', redirect: (_, __) => '/home'),
       GoRoute(path: '/home', builder: (_, __) => const HomePage()),
       GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
-      GoRoute(path: '/predictions', builder: (_, __) => const PredictionsPage()),
+      GoRoute(
+          path: '/predictions', builder: (_, __) => const PredictionsPage()),
       GoRoute(path: '/statistics', builder: (_, __) => const StatisticsPage()),
       GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
-      GoRoute(path: '/auth/loading', builder: (_, __) => const AuthLoadingPage()),
-      GoRoute(path: '/auth/sign-in', builder: (_, __) => const AuthSignInPage()),
-      GoRoute(path: '/auth/sign-up', builder: (_, __) => const AuthSignUpPage()),
+      GoRoute(
+          path: '/auth/loading', builder: (_, __) => const AuthLoadingPage()),
+      GoRoute(
+          path: '/auth/sign-in', builder: (_, __) => const AuthSignInPage()),
+      GoRoute(
+          path: '/auth/sign-up', builder: (_, __) => const AuthSignUpPage()),
       GoRoute(
         path: '/auth/forgot-password',
         builder: (_, __) => const AuthForgotPasswordPage(),

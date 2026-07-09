@@ -1,0 +1,185 @@
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class MatchFormPage extends ConsumerStatefulWidget {
+  const MatchFormPage({super.key, this.match});
+
+  final MatchModel? match;
+
+  @override
+  ConsumerState<MatchFormPage> createState() => _MatchFormPageState();
+}
+
+class _MatchFormPageState extends ConsumerState<MatchFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  late String _seasonId;
+  late String _opponentId;
+  late DateTime _kickoffAt;
+  late bool _isHome;
+  late int _plannedDurationMinutes;
+  late String _status;
+
+  @override
+  void initState() {
+    super.initState();
+    final match = widget.match;
+    _seasonId = match?.seasonId ?? '';
+    _opponentId = match?.opponentId ?? '';
+    _kickoffAt = match?.kickoffAt ?? DateTime.now().add(const Duration(days: 1));
+    _isHome = match?.isHome ?? true;
+    _plannedDurationMinutes = match?.plannedDurationMinutes ?? 90;
+    _status = match?.status ?? 'a_venir';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final matchesState = ref.watch(matchesControllerProvider);
+    final authState = ref.watch(authControllerProvider);
+    final canManage = authState.profile?.role == AuthRole.admin;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _seasonId.isEmpty ? null : _seasonId,
+              decoration: const InputDecoration(labelText: 'Saison'),
+              items: matchesState.seasons.map((season) {
+                return DropdownMenuItem<String>(
+                  value: season['id'].toString(),
+                  child: Text(season['name'].toString()),
+                );
+              }).toList(),
+              onChanged: (value) => setState(() => _seasonId = value ?? ''),
+              validator: (value) => value == null || value.isEmpty ? 'Sélectionnez une saison' : null,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _opponentId.isEmpty ? null : _opponentId,
+              decoration: const InputDecoration(labelText: 'Adversaire'),
+              items: matchesState.opponents.map((opponent) {
+                return DropdownMenuItem<String>(
+                  value: opponent['id'].toString(),
+                  child: Text(opponent['name'].toString()),
+                );
+              }).toList(),
+              onChanged: (value) => setState(() => _opponentId = value ?? ''),
+              validator: (value) => value == null || value.isEmpty ? 'Sélectionnez un adversaire' : null,
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              title: const Text('Date et heure'),
+              subtitle: Text(_kickoffAt.toLocal().toString()),
+              trailing: const Icon(Icons.calendar_today),
+              onTap: () async {
+                final currentContext = context;
+                final date = await showDatePicker(
+                  context: currentContext,
+                  initialDate: _kickoffAt,
+                  firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                  lastDate: DateTime.now().add(const Duration(days: 365)),
+                );
+                if (!mounted || date == null) return;
+                final time = await showTimePicker(
+                  context: currentContext,
+                  initialTime: TimeOfDay.fromDateTime(_kickoffAt),
+                );
+                if (!mounted || time == null) return;
+                setState(() {
+                  _kickoffAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<bool>(
+              initialValue: _isHome,
+              decoration: const InputDecoration(labelText: 'Lieu'),
+              items: const [
+                DropdownMenuItem(value: true, child: Text('Domicile')),
+                DropdownMenuItem(value: false, child: Text('Extérieur')),
+              ],
+              onChanged: (value) => setState(() => _isHome = value ?? true),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              initialValue: _plannedDurationMinutes.toString(),
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Durée (minutes)'),
+              validator: (value) {
+                final parsed = int.tryParse(value ?? '');
+                if (parsed == null || parsed <= 0) return 'Durée invalide';
+                return null;
+              },
+              onChanged: (value) => _plannedDurationMinutes = int.tryParse(value) ?? 90,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _status,
+              decoration: const InputDecoration(labelText: 'Statut'),
+              items: const [
+                DropdownMenuItem(value: 'a_venir', child: Text('À venir')),
+                DropdownMenuItem(value: 'en_cours', child: Text('En cours')),
+                DropdownMenuItem(value: 'termine', child: Text('Terminé')),
+                DropdownMenuItem(value: 'archive', child: Text('Archivé')),
+              ],
+              onChanged: (value) => setState(() => _status = value ?? 'a_venir'),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: !canManage || matchesState.isLoading ? null : _submit,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Enregistrer'),
+            ),
+            if (!canManage) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Seuls les administrateurs peuvent créer ou modifier des matchs.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final navigator = Navigator.of(context);
+    final notifier = ref.read(matchesControllerProvider.notifier);
+
+    if (widget.match == null) {
+      await notifier.createMatch(
+        seasonId: _seasonId,
+        opponentId: _opponentId,
+        kickoffAt: _kickoffAt,
+        isHome: _isHome,
+        plannedDurationMinutes: _plannedDurationMinutes,
+        status: _status,
+      );
+    } else {
+      await notifier.updateMatch(
+        id: widget.match!.id,
+        seasonId: _seasonId,
+        opponentId: _opponentId,
+        kickoffAt: _kickoffAt,
+        isHome: _isHome,
+        plannedDurationMinutes: _plannedDurationMinutes,
+        status: _status,
+      );
+    }
+
+    if (!mounted) return;
+    navigator.pop();
+  }
+}
