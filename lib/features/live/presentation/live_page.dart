@@ -18,14 +18,16 @@ class _LivePageState extends ConsumerState<LivePage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(liveControllerProvider.notifier).initialize(widget.matchId));
+    Future.microtask(
+      () => ref.read(liveControllerProvider.notifier).initialize(widget.matchId),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final liveState = ref.watch(liveControllerProvider);
     final authState = ref.watch(authControllerProvider);
-    final canControl = authState.profile?.role == AuthRole.admin || authState.profile?.role == AuthRole.moderateur;
+    final canControl = authState.profile?.role == AuthRole.admin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Live Match')),
@@ -44,7 +46,10 @@ class _LivePageState extends ConsumerState<LivePage> {
                     const SizedBox(height: 8),
                     Text('Temps : ${liveState.session?.elapsedSeconds ?? 0}s'),
                     const SizedBox(height: 8),
-                    Text('Contrôleur : ${liveState.session?.controllerProfileId ?? 'aucun'}'),
+                    Text(
+                      'Contrôleur : '
+                      '${liveState.session?.controllerProfileId ?? 'aucun'}',
+                    ),
                   ],
                 ),
               ),
@@ -55,22 +60,38 @@ class _LivePageState extends ConsumerState<LivePage> {
               runSpacing: 12,
               children: [
                 FilledButton.icon(
-                  onPressed: canControl ? () => ref.read(liveControllerProvider.notifier).start(widget.matchId) : null,
+                  onPressed: canControl
+                      ? () => ref
+                          .read(liveControllerProvider.notifier)
+                          .start(widget.matchId)
+                      : null,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Démarrer'),
                 ),
                 FilledButton.icon(
-                  onPressed: canControl ? () => ref.read(liveControllerProvider.notifier).pause(widget.matchId) : null,
+                  onPressed: canControl
+                      ? () => ref
+                          .read(liveControllerProvider.notifier)
+                          .pause(widget.matchId)
+                      : null,
                   icon: const Icon(Icons.pause),
                   label: const Text('Pause'),
                 ),
                 FilledButton.icon(
-                  onPressed: canControl ? () => ref.read(liveControllerProvider.notifier).setHalftime(widget.matchId) : null,
+                  onPressed: canControl
+                      ? () => ref
+                          .read(liveControllerProvider.notifier)
+                          .setHalftime(widget.matchId)
+                      : null,
                   icon: const Icon(Icons.timelapse),
                   label: const Text('Mi-temps'),
                 ),
                 FilledButton.icon(
-                  onPressed: canControl ? () => ref.read(liveControllerProvider.notifier).finish(widget.matchId) : null,
+                  onPressed: canControl
+                      ? () => ref
+                          .read(liveControllerProvider.notifier)
+                          .finish(widget.matchId)
+                      : null,
                   icon: const Icon(Icons.flag),
                   label: const Text('Fin'),
                 ),
@@ -78,13 +99,19 @@ class _LivePageState extends ConsumerState<LivePage> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: canControl ? () => ref.read(liveControllerProvider.notifier).claimControl(widget.matchId) : null,
+              onPressed: canControl
+                  ? () => ref
+                      .read(liveControllerProvider.notifier)
+                      .claimControl(widget.matchId)
+                  : null,
               icon: const Icon(Icons.control_point),
               label: const Text('Prendre le contrôle'),
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: () => context.go('/live/${widget.matchId}/gameplay'),
+              onPressed: canControl
+                  ? () => context.go('/live/${widget.matchId}/gameplay')
+                  : null,
               icon: const Icon(Icons.sports_soccer),
               label: const Text('Composition & déroulé'),
             ),
