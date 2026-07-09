@@ -66,10 +66,10 @@ Deno.serve(async (req: Request) => {
       .single();
     if (
       profileError ||
-      callerProfile?.role !== "moderateur" ||
+      !["moderateur", "admin"].includes(String(callerProfile?.role)) ||
       callerProfile?.status !== "active"
     ) {
-      return jsonResponse({ error: "Moderator role required" }, 403);
+      return jsonResponse({ error: "Moderator or admin role required" }, 403);
     }
 
     const body = await req.json();
@@ -94,11 +94,24 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Input is too long" }, 400);
       }
 
-      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-        data: { first_name: firstName, last_name: lastName },
+      const redirectTo = String(body.redirectTo ?? "").trim() || undefined;
+      const { data, error } = await admin.auth.admin.generateLink({
+        type: "invite",
+        email,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            approval_required: true,
+          },
+          redirectTo,
+        },
       });
       if (error) throw error;
-      return jsonResponse({ userId: data.user?.id });
+      return jsonResponse({
+        userId: data.user?.id,
+        actionLink: data.properties?.action_link,
+      });
     }
 
     if (action === "delete") {
