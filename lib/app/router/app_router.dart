@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_forgot_password_page.dart';
@@ -67,59 +68,68 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/home'),
-      GoRoute(path: '/home', builder: (_, __) => const HomePage()),
-      GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
-      GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
-      GoRoute(
-        path: '/matches/:matchId',
-        builder: (context, state) => MatchDetailsPage(
-          matchId: state.pathParameters['matchId'] ?? '',
+      ShellRoute(
+        builder: (context, state, child) => AppShell(
+          location: state.uri.path,
+          child: child,
         ),
-      ),
-      GoRoute(
-        path: '/matches/:matchId/participants',
-        builder: (context, state) => MatchParticipantsPage(
-          matchId: state.pathParameters['matchId'] ?? '',
-        ),
-      ),
-      GoRoute(
-        path: '/matches/:matchId/correction',
-        builder: (context, state) => MatchCorrectionPage(
-          matchId: state.pathParameters['matchId'] ?? '',
-        ),
-      ),
-      GoRoute(
-        path: '/predictions',
-        builder: (_, __) => const PredictionsPage(),
-      ),
-      GoRoute(
-        path: '/predictions/season',
-        builder: (_, __) => const SeasonPredictionsPage(),
-      ),
-      GoRoute(
-        path: '/predictions/leaderboard',
-        builder: (_, __) => const LeaderboardPage(),
-      ),
-      GoRoute(
-        path: '/statistics',
-        builder: (_, __) => const StatisticsPage(),
-      ),
-      GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
-      GoRoute(
-        path: '/live/:matchId',
-        builder: (context, state) =>
-            LivePage(matchId: state.pathParameters['matchId'] ?? ''),
-      ),
-      GoRoute(
-        path: '/live/:matchId/gameplay',
-        builder: (context, state) =>
-            LiveGameplayPage(matchId: state.pathParameters['matchId'] ?? ''),
-      ),
-      GoRoute(
-        path: '/matches/:matchId/finalize',
-        builder: (context, state) => MatchFinalizationPage(
-          matchId: state.pathParameters['matchId'] ?? '',
-        ),
+        routes: [
+          GoRoute(path: '/home', builder: (_, __) => const HomePage()),
+          GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
+          GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
+          GoRoute(
+            path: '/matches/:matchId',
+            builder: (context, state) => MatchDetailsPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/participants',
+            builder: (context, state) => MatchParticipantsPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/correction',
+            builder: (context, state) => MatchCorrectionPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/predictions',
+            builder: (_, __) => const PredictionsPage(),
+          ),
+          GoRoute(
+            path: '/predictions/season',
+            builder: (_, __) => const SeasonPredictionsPage(),
+          ),
+          GoRoute(
+            path: '/predictions/leaderboard',
+            builder: (_, __) => const LeaderboardPage(),
+          ),
+          GoRoute(
+            path: '/statistics',
+            builder: (_, __) => const StatisticsPage(),
+          ),
+          GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+          GoRoute(
+            path: '/live/:matchId',
+            builder: (context, state) =>
+                LivePage(matchId: state.pathParameters['matchId'] ?? ''),
+          ),
+          GoRoute(
+            path: '/live/:matchId/gameplay',
+            builder: (context, state) => LiveGameplayPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/finalize',
+            builder: (context, state) => MatchFinalizationPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: '/auth/loading',
