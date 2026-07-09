@@ -83,7 +83,7 @@ class PlayersRepository {
     }).toList();
   }
 
-  Future<void> createPlayer({
+  Future<String> createPlayer({
     required String firstName,
     required String lastName,
     String? surnom,
@@ -94,13 +94,34 @@ class PlayersRepository {
     if (f.isEmpty || l.isEmpty) {
       throw ArgumentError('Le prénom et le nom sont obligatoires.');
     }
-    await _client.from('players').insert({
-      'first_name': f,
-      'last_name': l,
-      if (surnom != null && surnom.trim().isNotEmpty) 'surnom': surnom.trim(),
-      'is_goalkeeper': isGoalkeeper,
-      'is_active': true,
-    });
+    final row = await _client
+        .from('players')
+        .insert({
+          'first_name': f,
+          'last_name': l,
+          if (surnom != null && surnom.trim().isNotEmpty)
+            'surnom': surnom.trim(),
+          'is_goalkeeper': isGoalkeeper,
+          'is_active': true,
+        })
+        .select('id')
+        .single();
+    return row['id'].toString();
+  }
+
+  Future<String> createPlayerInvitation({
+    required String firstName,
+    required String lastName,
+    String? surnom,
+    required bool isGoalkeeper,
+  }) async {
+    final playerId = await createPlayer(
+      firstName: firstName,
+      lastName: lastName,
+      surnom: surnom,
+      isGoalkeeper: isGoalkeeper,
+    );
+    return generateClaimToken(playerId);
   }
 
   /// Génère un token de revendication valable 7 jours.
