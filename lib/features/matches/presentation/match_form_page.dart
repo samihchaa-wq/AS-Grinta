@@ -69,14 +69,30 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             DropdownButtonFormField<String>(
               value: _opponentId.isEmpty ? null : _opponentId,
               decoration: const InputDecoration(labelText: 'Adversaire'),
-              items: matchesState.opponents.map((opponent) {
-                return DropdownMenuItem<String>(
-                  value: opponent['id'].toString(),
-                  child: Text(opponent['name'].toString()),
-                );
-              }).toList(),
-              onChanged: (value) => setState(() => _opponentId = value ?? ''),
-              validator: (value) => value == null || value.isEmpty
+              items: [
+                ...matchesState.opponents.map((opponent) {
+                  return DropdownMenuItem<String>(
+                    value: opponent['id'].toString(),
+                    child: Text(opponent['name'].toString()),
+                  );
+                }),
+                const DropdownMenuItem<String>(
+                  value: '__new__',
+                  child: Text('Nouvelle équipe…'),
+                ),
+              ],
+              onChanged: (value) async {
+                if (value == '__new__') {
+                  final id = await _createOpponent();
+                  if (!mounted) return;
+                  setState(() => _opponentId = id ?? '');
+                } else {
+                  setState(() => _opponentId = value ?? '');
+                }
+              },
+              validator: (value) => value == null ||
+                      value.isEmpty ||
+                      value == '__new__'
                   ? 'Sélectionnez un adversaire'
                   : null,
             ),
@@ -158,17 +174,37 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],
-            if (!canManage) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Seuls les administrateurs peuvent créer ou modifier des matchs.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<String?> _createOpponent() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nouvelle équipe'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nom de l’équipe'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Créer'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.trim().isEmpty) return null;
+    return ref.read(matchesControllerProvider.notifier).createOpponent(name);
   }
 
   Future<void> _submit() async {
