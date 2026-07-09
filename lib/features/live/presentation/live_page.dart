@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/live/presentation/live_controller.dart';
@@ -14,13 +16,61 @@ class LivePage extends ConsumerStatefulWidget {
   ConsumerState<LivePage> createState() => _LivePageState();
 }
 
-class _LivePageState extends ConsumerState<LivePage> {
+class _LivePageState extends ConsumerState<LivePage>
+    with WidgetsBindingObserver {
+  Timer? _ticker;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
     Future.microtask(
       () => ref.read(liveControllerProvider.notifier).initialize(widget.matchId),
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(
+        ref.read(liveControllerProvider.notifier).markDisconnected(widget.matchId),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(
+      ref.read(liveControllerProvider.notifier).markDisconnected(widget.matchId),
+    );
+    _ticker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  int _displayedSeconds() {
+    final session = ref.read(liveControllerProvider).session;
+    if (session == null) return 0;
+    var seconds = session.elapsedSeconds;
+    if (session.status == 'running' && session.clockStartedAt != null) {
+      seconds += DateTime.now()
+          .toUtc()
+          .difference(session.clockStartedAt!.toUtc())
+          .inSeconds
+          .clamp(0, 86400);
+    }
+    return seconds;
+  }
+
+  String _formatClock(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remaining = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remaining.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -32,11 +82,11 @@ class _LivePageState extends ConsumerState<LivePage> {
     final userId = authState.profile?.id;
     final isAdmin = role == AuthRole.admin;
     final isModerator = role == AuthRole.moderateur;
-    final ownsControl = isAdmin &&
-        localSessionId != null &&
+    final ownsControl = localSessionId != null &&
         liveState.session?.controllerProfileId == userId &&
         liveState.session?.controllerSessionId == localSessionId;
     final canClaim = isAdmin && liveState.session?.controllerProfileId == null;
+    final canOperate = ownsControl && (isAdmin || isModerator);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Live Match')),
@@ -51,7 +101,10 @@ class _LivePageState extends ConsumerState<LivePage> {
                 children: [
                   Text('État : ${liveState.session?.status ?? 'not_started'}'),
                   const SizedBox(height: 8),
-                  Text('Temps : ${liveState.session?.elapsedSeconds ?? 0}s'),
+                  Text(
+                    'Temps : ${_formatClock(_displayedSeconds())}',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'Contrôleur : '
@@ -69,13 +122,13 @@ class _LivePageState extends ConsumerState<LivePage> {
             ),
           ],
           const SizedBox(height: 16),
-          if (isAdmin) ...[
+          if (isAdmin || (isModerator && ownsControl)) ...[
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
                 FilledButton.icon(
-                  onPressed: ownsControl
+                  onPressed: canOperate
                       ? () => ref
                           .read(liveControllerProvider.notifier)
                           .start(widget.matchId)
@@ -84,7 +137,7 @@ class _LivePageState extends ConsumerState<LivePage> {
                   label: const Text('Démarrer'),
                 ),
                 FilledButton.icon(
-                  onPressed: ownsControl
+                  onPressed: canOperate
                       ? () => ref
                           .read(liveControllerProvider.notifier)
                           .pause(widget.matchId)
@@ -93,7 +146,7 @@ class _LivePageState extends ConsumerState<LivePage> {
                   label: const Text('Pause'),
                 ),
                 FilledButton.icon(
-                  onPressed: ownsControl
+                  onPressed: canOperate
                       ? () => ref
                           .read(liveControllerProvider.notifier)
                           .setHalftime(widget.matchId)
@@ -102,7 +155,7 @@ class _LivePageState extends ConsumerState<LivePage> {
                   label: const Text('Mi-temps'),
                 ),
                 FilledButton.icon(
-                  onPressed: ownsControl
+                  onPressed: canOperate
                       ? () => ref
                           .read(liveControllerProvider.notifier)
                           .finish(widget.matchId)
@@ -113,18 +166,19 @@ class _LivePageState extends ConsumerState<LivePage> {
               ],
             ),
             const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: canClaim
-                  ? () => ref
-                      .read(liveControllerProvider.notifier)
-                      .claimControl(widget.matchId)
-                  : null,
-              icon: const Icon(Icons.control_point),
-              label: const Text('Prendre le contrôle'),
-            ),
+            if (isAdmin)
+              OutlinedButton.icon(
+                onPressed: canClaim
+                    ? () => ref
+                        .read(liveControllerProvider.notifier)
+                        .claimControl(widget.matchId)
+                    : null,
+                icon: const Icon(Icons.control_point),
+                label: const Text('Prendre le contrôle'),
+              ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
-              onPressed: ownsControl
+              onPressed: canOperate
                   ? () => ref
                       .read(liveControllerProvider.notifier)
                       .releaseControl(widget.matchId)
@@ -134,20 +188,20 @@ class _LivePageState extends ConsumerState<LivePage> {
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: ownsControl
+              onPressed: canOperate
                   ? () => context.go('/live/${widget.matchId}/gameplay')
                   : null,
               icon: const Icon(Icons.sports_soccer),
               label: const Text('Composition & déroulé'),
             ),
           ],
-          if (isModerator) ...[
+          if (isModerator && !ownsControl) ...[
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Le Modérateur ne peut pas contrôler normalement le Live. '
-                  'La reprise forcée n’est disponible qu’après 60 secondes de déconnexion du contrôleur.',
+                  'La reprise forcée devient disponible 60 secondes après la '
+                  'déconnexion signalée de la session contrôlant le Live.',
                 ),
               ),
             ),
