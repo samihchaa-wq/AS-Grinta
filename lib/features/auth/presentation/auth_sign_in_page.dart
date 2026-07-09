@@ -25,7 +25,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if ((next.error ?? '').isNotEmpty && (previous?.error ?? '') != next.error) {
+      if ((next.error ?? '').isNotEmpty &&
+          (previous?.error ?? '') != next.error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error!)),
         );

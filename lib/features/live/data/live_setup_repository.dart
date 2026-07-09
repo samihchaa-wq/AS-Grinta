@@ -52,8 +52,10 @@ class LiveSetupRepository {
       );
     }
 
-    final formationsResponse =
-        await _client.from('formations').select('code, label, slots').order('code');
+    final formationsResponse = await _client
+        .from('formations')
+        .select('code, label, slots')
+        .order('code');
     final formations = <LiveFormationDefinition>[];
     for (final row in formationsResponse as List) {
       final map = Map<String, dynamic>.from(row);
@@ -83,6 +85,7 @@ final liveSetupRepositoryProvider = Provider<LiveSetupRepository>((ref) {
   return LiveSetupRepository(ref.watch(supabaseClientProvider));
 });
 
-final liveSetupProvider = FutureProvider.family<LiveSetupData, String>((ref, matchId) {
+final liveSetupProvider =
+    FutureProvider.family<LiveSetupData, String>((ref, matchId) {
   return ref.watch(liveSetupRepositoryProvider).fetch(matchId);
 });

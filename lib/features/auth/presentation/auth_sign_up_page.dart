@@ -29,7 +29,8 @@ class _AuthSignUpPageState extends ConsumerState<AuthSignUpPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if ((next.error ?? '').isNotEmpty && (previous?.error ?? '') != next.error) {
+      if ((next.error ?? '').isNotEmpty &&
+          (previous?.error ?? '') != next.error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.error!)),
         );
@@ -99,7 +100,9 @@ class _AuthSignUpPageState extends ConsumerState<AuthSignUpPage> {
                     onPressed: authState.isLoading
                         ? null
                         : () async {
-                            await ref.read(authControllerProvider.notifier).signUp(
+                            await ref
+                                .read(authControllerProvider.notifier)
+                                .signUp(
                                   email: _emailController.text.trim(),
                                   password: _passwordController.text,
                                   firstName: _firstNameController.text.trim(),

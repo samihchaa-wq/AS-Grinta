@@ -9,7 +9,8 @@ class ProfileState {
   final AuthProfile? profile;
   final String? error;
 
-  ProfileState copyWith({bool? isLoading, AuthProfile? profile, String? error}) {
+  ProfileState copyWith(
+      {bool? isLoading, AuthProfile? profile, String? error}) {
     return ProfileState(
       isLoading: isLoading ?? this.isLoading,
       profile: profile ?? this.profile,
@@ -34,7 +35,8 @@ class ProfileController extends StateNotifier<ProfileState> {
   }
 }
 
-final profileControllerProvider = StateNotifierProvider<ProfileController, ProfileState>((ref) {
+final profileControllerProvider =
+    StateNotifierProvider<ProfileController, ProfileState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return ProfileController(repository);
 });

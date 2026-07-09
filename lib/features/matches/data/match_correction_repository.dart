@@ -77,7 +77,8 @@ class MatchCorrectionRepository {
 
     final goalsRaw = await _client
         .from('goals')
-        .select('id,team,minute,goal_type,scorer_profile_id,assist_type,assist_profile_id')
+        .select(
+            'id,team,minute,goal_type,scorer_profile_id,assist_type,assist_profile_id')
         .eq('match_id', matchId)
         .order('minute')
         .order('created_order');

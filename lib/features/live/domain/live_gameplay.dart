@@ -66,16 +66,96 @@ class LiveGameplayState {
     );
   }
 
-  static const List<String> supportedFormations = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '5-3-2'];
+  static const List<String> supportedFormations = [
+    '4-4-2',
+    '4-3-3',
+    '3-5-2',
+    '4-2-3-1',
+    '5-3-2'
+  ];
 
   static List<String> formationSlots(String formationKey) {
     return switch (formationKey) {
-      '4-4-2' => ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'lw', 'st1', 'st2', 'rw'],
-      '4-3-3' => ['gk', 'lb', 'cb1', 'cb2', 'rb', 'dm', 'cm1', 'cm2', 'lw', 'st', 'rw'],
-      '3-5-2' => ['gk', 'cb1', 'cb2', 'cb3', 'lwb', 'dm1', 'dm2', 'rwb', 'lw', 'st1', 'st2'],
-      '4-2-3-1' => ['gk', 'lb', 'cb1', 'cb2', 'rb', 'dm1', 'dm2', 'am', 'lw', 'st', 'rw'],
-      '5-3-2' => ['gk', 'lb', 'cb1', 'cb2', 'cb3', 'rb', 'dm1', 'dm2', 'dm3', 'st1', 'st2'],
-      _ => ['gk', 'lb', 'cb1', 'cb2', 'rb', 'lm', 'cm1', 'cm2', 'rm', 'st1', 'st2'],
+      '4-4-2' => [
+          'gk',
+          'lb',
+          'cb1',
+          'cb2',
+          'rb',
+          'lm',
+          'cm1',
+          'cm2',
+          'rm',
+          'lw',
+          'st1',
+          'st2',
+          'rw'
+        ],
+      '4-3-3' => [
+          'gk',
+          'lb',
+          'cb1',
+          'cb2',
+          'rb',
+          'dm',
+          'cm1',
+          'cm2',
+          'lw',
+          'st',
+          'rw'
+        ],
+      '3-5-2' => [
+          'gk',
+          'cb1',
+          'cb2',
+          'cb3',
+          'lwb',
+          'dm1',
+          'dm2',
+          'rwb',
+          'lw',
+          'st1',
+          'st2'
+        ],
+      '4-2-3-1' => [
+          'gk',
+          'lb',
+          'cb1',
+          'cb2',
+          'rb',
+          'dm1',
+          'dm2',
+          'am',
+          'lw',
+          'st',
+          'rw'
+        ],
+      '5-3-2' => [
+          'gk',
+          'lb',
+          'cb1',
+          'cb2',
+          'cb3',
+          'rb',
+          'dm1',
+          'dm2',
+          'dm3',
+          'st1',
+          'st2'
+        ],
+      _ => [
+          'gk',
+          'lb',
+          'cb1',
+          'cb2',
+          'rb',
+          'lm',
+          'cm1',
+          'cm2',
+          'rm',
+          'st1',
+          'st2'
+        ],
     };
   }
 
@@ -92,7 +172,10 @@ class LiveGameplayState {
       }
     }
 
-    final remainingPlayers = players.map((player) => player.id).where((playerId) => !occupiedIds.contains(playerId)).toList();
+    final remainingPlayers = players
+        .map((player) => player.id)
+        .where((playerId) => !occupiedIds.contains(playerId))
+        .toList();
     bench = remainingPlayers;
     lineup = nextLineup;
     formationKey = newFormationKey;
@@ -107,7 +190,10 @@ class LiveGameplayState {
       return;
     }
 
-    final currentSlot = lineup.entries.where((entry) => entry.value == playerId).firstOrNull?.key;
+    final currentSlot = lineup.entries
+        .where((entry) => entry.value == playerId)
+        .firstOrNull
+        ?.key;
     if (currentSlot == slotKey) {
       return;
     }
@@ -176,7 +262,10 @@ class LiveGameplayState {
     goals[index] = updatedGoal;
   }
 
-  void addSubstitution({required int minute, required String inPlayerId, required String outPlayerId}) {
+  void addSubstitution(
+      {required int minute,
+      required String inPlayerId,
+      required String outPlayerId}) {
     substitutions.add(LiveSubstitution(
       id: 'sub-${substitutions.length + 1}',
       minute: minute,
@@ -184,7 +273,10 @@ class LiveGameplayState {
       outPlayerId: outPlayerId,
     ));
 
-    final slot = lineup.entries.where((entry) => entry.value == outPlayerId).firstOrNull?.key;
+    final slot = lineup.entries
+        .where((entry) => entry.value == outPlayerId)
+        .firstOrNull
+        ?.key;
     if (slot != null) {
       lineup.remove(slot);
       lineup[slot] = inPlayerId;
@@ -209,7 +301,8 @@ class LiveGameplayState {
       lineup: lineup ?? Map<String, String>.from(this.lineup),
       bench: bench ?? List<String>.from(this.bench),
       goals: goals ?? List<LiveGoal>.from(this.goals),
-      substitutions: substitutions ?? List<LiveSubstitution>.from(this.substitutions),
+      substitutions:
+          substitutions ?? List<LiveSubstitution>.from(this.substitutions),
     );
   }
 }

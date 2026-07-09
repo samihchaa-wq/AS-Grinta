@@ -119,7 +119,7 @@ class _GameplayBody extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           DropdownButtonFormField<String>(
-            value: selectedFormation.code,
+            initialValue: selectedFormation.code,
             decoration: const InputDecoration(labelText: 'Formation'),
             items: formations
                 .map(
@@ -144,7 +144,8 @@ class _GameplayBody extends ConsumerWidget {
             slots: selectedFormation.slots,
           ),
           const SizedBox(height: 16),
-          Text('Banc de touche', style: Theme.of(context).textTheme.titleMedium),
+          Text('Banc de touche',
+              style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -242,11 +243,13 @@ class _GameplayBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: team,
+                    initialValue: team,
                     decoration: const InputDecoration(labelText: 'Équipe'),
                     items: const [
-                      DropdownMenuItem(value: 'grinta', child: Text('AS Grinta')),
-                      DropdownMenuItem(value: 'adversaire', child: Text('Adversaire')),
+                      DropdownMenuItem(
+                          value: 'grinta', child: Text('AS Grinta')),
+                      DropdownMenuItem(
+                          value: 'adversaire', child: Text('Adversaire')),
                     ],
                     onChanged: (value) => setDialogState(() {
                       team = value ?? 'grinta';
@@ -259,10 +262,11 @@ class _GameplayBody extends ConsumerWidget {
                   TextField(
                     controller: minuteController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Minute (0-100)'),
+                    decoration:
+                        const InputDecoration(labelText: 'Minute (0-100)'),
                   ),
                   DropdownButtonFormField<GoalType>(
-                    value: type,
+                    initialValue: type,
                     decoration: const InputDecoration(labelText: 'Type'),
                     items: GoalType.values
                         .map(
@@ -282,7 +286,7 @@ class _GameplayBody extends ConsumerWidget {
                   ),
                   if (!hidesPlayers) ...[
                     DropdownButtonFormField<String>(
-                      value: scorerId,
+                      initialValue: scorerId,
                       decoration: const InputDecoration(labelText: 'Buteur'),
                       items: gameplay.players
                           .map(
@@ -292,10 +296,11 @@ class _GameplayBody extends ConsumerWidget {
                             ),
                           )
                           .toList(),
-                      onChanged: (value) => setDialogState(() => scorerId = value),
+                      onChanged: (value) =>
+                          setDialogState(() => scorerId = value),
                     ),
                     DropdownButtonFormField<String>(
-                      value: assisterId,
+                      initialValue: assisterId,
                       decoration: const InputDecoration(labelText: 'Passeur'),
                       items: gameplay.players
                           .where((player) => player.id != scorerId)
@@ -306,7 +311,8 @@ class _GameplayBody extends ConsumerWidget {
                             ),
                           )
                           .toList(),
-                      onChanged: (value) => setDialogState(() => assisterId = value),
+                      onChanged: (value) =>
+                          setDialogState(() => assisterId = value),
                     ),
                   ],
                 ],
@@ -365,7 +371,7 @@ class _GameplayBody extends ConsumerWidget {
                 decoration: const InputDecoration(labelText: 'Minute (0-100)'),
               ),
               DropdownButtonFormField<String>(
-                value: inPlayerId,
+                initialValue: inPlayerId,
                 decoration: const InputDecoration(labelText: 'Entrée'),
                 items: gameplay.bench
                     .map((id) => _playerById(gameplay.players, id))
@@ -380,7 +386,7 @@ class _GameplayBody extends ConsumerWidget {
                 onChanged: (value) => setDialogState(() => inPlayerId = value),
               ),
               DropdownButtonFormField<String>(
-                value: outPlayerId,
+                initialValue: outPlayerId,
                 decoration: const InputDecoration(labelText: 'Sortie'),
                 items: gameplay.lineup.values
                     .map((id) => _playerById(gameplay.players, id))
@@ -460,7 +466,7 @@ class _PitchView extends StatelessWidget {
                   height: 48,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(

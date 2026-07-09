@@ -61,7 +61,8 @@ class MatchFinalizationRules {
     }
 
     final grintaGoals = goals.where((goal) => goal.team == 'grinta').length;
-    final opponentGoals = goals.where((goal) => goal.team == 'adversaire').length;
+    final opponentGoals =
+        goals.where((goal) => goal.team == 'adversaire').length;
 
     if (grintaScore != null &&
         opponentScore != null &&
@@ -71,11 +72,13 @@ class MatchFinalizationRules {
 
     for (final substitution in substitutions) {
       if (substitution.minute < 0 || substitution.minute > 100) {
-        issues.add('Chaque remplacement doit avoir une minute comprise entre 0 et 100.');
+        issues.add(
+            'Chaque remplacement doit avoir une minute comprise entre 0 et 100.');
         break;
       }
       if (substitution.inPlayerId == substitution.outPlayerId) {
-        issues.add('Un joueur ne peut pas entrer et sortir sur le même remplacement.');
+        issues.add(
+            'Un joueur ne peut pas entrer et sortir sur le même remplacement.');
         break;
       }
     }

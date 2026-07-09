@@ -26,7 +26,7 @@ class AdminPage extends ConsumerWidget {
           await ref.read(adminDashboardProvider.future);
         },
         child: dashboardAsync.when(
-          loading: () => const ListView(
+          loading: () => ListView(
             children: [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
@@ -351,7 +351,9 @@ class _ProfileCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        profile.fullName.isEmpty ? profile.email : profile.fullName,
+                        profile.fullName.isEmpty
+                            ? profile.email
+                            : profile.fullName,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       Text(profile.email),
@@ -368,7 +370,7 @@ class _ProfileCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: profile.role,
+              initialValue: profile.role,
               decoration: const InputDecoration(labelText: 'Rôle'),
               items: const [
                 DropdownMenuItem(
@@ -452,7 +454,8 @@ class _ProfileCard extends ConsumerWidget {
             const SizedBox(height: 8),
             TextField(
               controller: confirmationController,
-              decoration: const InputDecoration(labelText: 'Email de confirmation'),
+              decoration:
+                  const InputDecoration(labelText: 'Email de confirmation'),
             ),
           ],
         ),
@@ -476,9 +479,7 @@ class _ProfileCard extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      await ref
-          .read(adminRepositoryProvider)
-          .permanentlyDeleteUser(profile.id);
+      await ref.read(adminRepositoryProvider).permanentlyDeleteUser(profile.id);
       ref.invalidate(adminDashboardProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -35,7 +35,8 @@ class MatchFinalizationRepository {
     final participants = (participantRows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       final profile = Map<String, dynamic>.from(map['profiles'] as Map);
-      final name = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
+      final name =
+          '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
       return MatchFinalizationParticipant(
         id: map['profile_id'].toString(),
         name: name.isEmpty ? 'Joueur sans nom' : name,
@@ -70,9 +71,8 @@ class MatchFinalizationRepository {
           .select('profile_id, action, minute, created_at')
           .eq('live_session_id', liveSession['id'])
           .order('created_at');
-      final data = (rows as List)
-          .map((row) => Map<String, dynamic>.from(row))
-          .toList();
+      final data =
+          (rows as List).map((row) => Map<String, dynamic>.from(row)).toList();
       for (var index = 0; index < data.length; index++) {
         final outRow = data[index];
         if (outRow['action'] != 'out') continue;
@@ -105,7 +105,7 @@ final matchFinalizationRepositoryProvider =
   return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
 });
 
-final matchFinalizationContextProvider = FutureProvider.family<
-    MatchFinalizationContext, String>((ref, matchId) {
+final matchFinalizationContextProvider =
+    FutureProvider.family<MatchFinalizationContext, String>((ref, matchId) {
   return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
 });

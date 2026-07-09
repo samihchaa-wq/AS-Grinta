@@ -52,7 +52,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
+        title:
+            Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
       ),
       body: Form(
         key: _formKey,
@@ -60,7 +61,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           padding: const EdgeInsets.all(20),
           children: [
             DropdownButtonFormField<String>(
-              value: _seasonId.isEmpty ? null : _seasonId,
+              initialValue: _seasonId.isEmpty ? null : _seasonId,
               decoration: const InputDecoration(labelText: 'Saison'),
               items: matchesState.seasons.map((season) {
                 return DropdownMenuItem<String>(
@@ -76,15 +77,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 16),
             Autocomplete<Map<String, dynamic>>(
               displayStringForOption: (option) => option['name'].toString(),
-              initialValue: TextEditingValue(text: _opponentTextController.text),
+              initialValue:
+                  TextEditingValue(text: _opponentTextController.text),
               optionsBuilder: (textValue) {
                 final query = textValue.text.trim().toLowerCase();
                 if (query.isEmpty) return matchesState.opponents;
                 return matchesState.opponents.where(
-                  (opponent) => opponent['name']
-                      .toString()
-                      .toLowerCase()
-                      .contains(query),
+                  (opponent) =>
+                      opponent['name'].toString().toLowerCase().contains(query),
                 );
               },
               onSelected: (opponent) {
@@ -103,14 +103,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   if (_opponentTextController.text != textController.text) {
                     _opponentTextController.text = textController.text;
                     final exact = matchesState.opponents.where(
-                      (opponent) => opponent['name']
-                              .toString()
-                              .toLowerCase() ==
+                      (opponent) =>
+                          opponent['name'].toString().toLowerCase() ==
                           textController.text.trim().toLowerCase(),
                     );
-                    _opponentId = exact.isEmpty
-                        ? ''
-                        : exact.first['id'].toString();
+                    _opponentId =
+                        exact.isEmpty ? '' : exact.first['id'].toString();
                   }
                 });
                 return TextFormField(
@@ -188,7 +186,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<bool>(
-              value: _isHome,
+              initialValue: _isHome,
               decoration: const InputDecoration(labelText: 'Lieu'),
               items: const [
                 DropdownMenuItem(value: true, child: Text('Domicile')),
@@ -211,7 +209,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _status,
+              initialValue: _status,
               decoration: const InputDecoration(labelText: 'Statut'),
               items: const [
                 DropdownMenuItem(value: 'a_venir', child: Text('À venir')),

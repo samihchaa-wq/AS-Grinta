@@ -19,7 +19,7 @@ class MatchParticipantsPage extends ConsumerWidget {
           await ref.read(matchParticipantOptionsProvider(matchId).future);
         },
         child: optionsAsync.when(
-          loading: () => const ListView(
+          loading: () => ListView(
             children: [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
@@ -38,7 +38,7 @@ class MatchParticipantsPage extends ConsumerWidget {
           ),
           data: (options) {
             if (options.isEmpty) {
-              return const ListView(
+              return ListView(
                 padding: EdgeInsets.all(16),
                 children: [
                   Card(
@@ -53,7 +53,8 @@ class MatchParticipantsPage extends ConsumerWidget {
               );
             }
 
-            final selectedCount = options.where((option) => option.selected).length;
+            final selectedCount =
+                options.where((option) => option.selected).length;
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -85,7 +86,8 @@ class MatchParticipantsPage extends ConsumerWidget {
                               profileId: option.profileId,
                               selected: value == true,
                             );
-                        ref.invalidate(matchParticipantOptionsProvider(matchId));
+                        ref.invalidate(
+                            matchParticipantOptionsProvider(matchId));
                       },
                     ),
                   ),

@@ -89,8 +89,9 @@ class MatchFinalizationController
   }
 }
 
-final matchFinalizationControllerProvider = StateNotifierProvider<
-    MatchFinalizationController, MatchFinalizationState>((ref) {
+final matchFinalizationControllerProvider =
+    StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>(
+        (ref) {
   final repository = ref.watch(matchesRepositoryProvider);
   return MatchFinalizationController(repository, ref);
 });

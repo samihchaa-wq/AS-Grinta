@@ -17,7 +17,7 @@ class StatisticsPage extends ConsumerWidget {
           await ref.read(careerStatisticsProvider.future);
         },
         child: statisticsAsync.when(
-          loading: () => const ListView(
+          loading: () => ListView(
             children: [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
@@ -52,13 +52,14 @@ class StatisticsPage extends ConsumerWidget {
           ),
           data: (statistics) {
             if (statistics.isEmpty) {
-              return const ListView(
+              return ListView(
                 padding: EdgeInsets.all(16),
                 children: [
                   Card(
                     child: Padding(
                       padding: EdgeInsets.all(20),
-                      child: Text('Aucune statistique individuelle disponible.'),
+                      child:
+                          Text('Aucune statistique individuelle disponible.'),
                     ),
                   ),
                 ],

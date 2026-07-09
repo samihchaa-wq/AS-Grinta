@@ -41,7 +41,8 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(predictionsControllerProvider.notifier).load(),
+        onRefresh: () =>
+            ref.read(predictionsControllerProvider.notifier).load(),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -77,7 +78,8 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     state.error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               ),

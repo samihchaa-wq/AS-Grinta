@@ -37,7 +37,8 @@ class AuthState {
 
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
-    _authSubscription = _repository.authStateChanges.listen((_) => _refreshProfile());
+    _authSubscription =
+        _repository.authStateChanges.listen((_) => _refreshProfile());
     _initialize();
   }
 
@@ -135,7 +136,8 @@ class AuthController extends StateNotifier<AuthState> {
         lastName: lastName,
         avatarPath: avatarPath,
       );
-      state = state.copyWith(isLoading: false, profile: profile, clearError: true);
+      state =
+          state.copyWith(isLoading: false, profile: profile, clearError: true);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
@@ -148,7 +150,8 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authControllerProvider = StateNotifierProvider<AuthController, AuthState>((ref) {
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
   return AuthController(repository);
 });

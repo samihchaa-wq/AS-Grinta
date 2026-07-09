@@ -31,7 +31,8 @@ class MatchParticipantsRepository {
 
     final players = await _client
         .from('season_players')
-        .select('profile_id, is_goalkeeper_snapshot, profiles!inner(first_name, last_name, status)')
+        .select(
+            'profile_id, is_goalkeeper_snapshot, profiles!inner(first_name, last_name, status)')
         .eq('season_id', seasonId);
     final selectedRows = await _client
         .from('match_participants')
@@ -47,7 +48,8 @@ class MatchParticipantsRepository {
       final profile = Map<String, dynamic>.from(map['profiles'] as Map);
       if (profile['status'] != 'active') continue;
       final profileId = map['profile_id'].toString();
-      final name = '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
+      final name =
+          '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
       options.add(
         MatchParticipantOption(
           profileId: profileId,
@@ -86,7 +88,7 @@ final matchParticipantsRepositoryProvider =
   return MatchParticipantsRepository(ref.watch(supabaseClientProvider));
 });
 
-final matchParticipantOptionsProvider = FutureProvider.family<
-    List<MatchParticipantOption>, String>((ref, matchId) {
+final matchParticipantOptionsProvider =
+    FutureProvider.family<List<MatchParticipantOption>, String>((ref, matchId) {
   return ref.watch(matchParticipantsRepositoryProvider).fetchOptions(matchId);
 });
