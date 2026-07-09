@@ -113,6 +113,45 @@ class AdminRepository {
     );
   }
 
+  Future<void> inviteUser({
+    required String email,
+    required String firstName,
+    required String lastName,
+  }) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail.contains('@') || firstName.trim().isEmpty || lastName.trim().isEmpty) {
+      throw ArgumentError('Email, prénom et nom sont obligatoires.');
+    }
+
+    final response = await _client.functions.invoke(
+      'manage-user',
+      body: {
+        'action': 'invite',
+        'email': cleanEmail,
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+      },
+    );
+    if (response.status < 200 || response.status >= 300) {
+      throw StateError(_functionError(response.data));
+    }
+  }
+
+  Future<void> permanentlyDeleteUser(String userId) async {
+    final response = await _client.functions.invoke(
+      'manage-user',
+      body: {'action': 'delete', 'userId': userId},
+    );
+    if (response.status < 200 || response.status >= 300) {
+      throw StateError(_functionError(response.data));
+    }
+  }
+
+  String _functionError(dynamic data) {
+    if (data is Map && data['error'] != null) return data['error'].toString();
+    return 'L’opération d’administration a échoué.';
+  }
+
   Future<void> updateProfileRole(String profileId, String role) async {
     if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
       throw ArgumentError('Rôle invalide.');
@@ -138,6 +177,11 @@ class AdminRepository {
     final trimmed = name.trim();
     if (!RegExp(r'^\d{4}-\d{4}$').hasMatch(trimmed)) {
       throw ArgumentError('Le nom doit respecter le format 2026-2027.');
+    }
+    final startYear = int.parse(trimmed.substring(0, 4));
+    final endYear = int.parse(trimmed.substring(5));
+    if (endYear != startYear + 1) {
+      throw ArgumentError('La saison doit couvrir deux années consécutives.');
     }
     await _client.from('seasons').insert({'name': trimmed, 'status': 'open'});
   }
