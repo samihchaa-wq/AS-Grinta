@@ -26,6 +26,7 @@ class MatchModel {
   final String? seasonName;
 
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
+
   String get statusLabel {
     switch (status) {
       case 'en_cours':
@@ -40,18 +41,30 @@ class MatchModel {
   }
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
+    final date = (json['match_date'] ?? '').toString();
+    final time = (json['match_time'] ?? '00:00:00').toString();
+    final kickoffAt = DateTime.tryParse('${date}T$time') ?? DateTime(1970);
+
     return MatchModel(
       id: json['id']?.toString() ?? '',
       seasonId: json['season_id']?.toString() ?? '',
       opponentId: json['opponent_id']?.toString() ?? '',
-      kickoffAt: DateTime.parse(json['kickoff_at'] as String),
-      isHome: json['is_home'] == true,
-      plannedDurationMinutes: int.tryParse('${json['planned_duration_minutes']}') ?? 90,
+      kickoffAt: kickoffAt,
+      isHome: json['location'] == 'domicile',
+      plannedDurationMinutes:
+          int.tryParse('${json['planned_duration_minutes']}') ?? 90,
       status: (json['status'] ?? 'a_venir').toString(),
-      grintaScore: json['grinta_score'] == null ? null : int.tryParse('${json['grinta_score']}'),
-      opponentScore: json['opponent_score'] == null ? null : int.tryParse('${json['opponent_score']}'),
-      opponentName: json['opponents'] is Map ? json['opponents']['name']?.toString() : null,
-      seasonName: json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
+      grintaScore: json['score_as_grinta'] == null
+          ? null
+          : int.tryParse('${json['score_as_grinta']}'),
+      opponentScore: json['score_adverse'] == null
+          ? null
+          : int.tryParse('${json['score_adverse']}'),
+      opponentName: json['opponents'] is Map
+          ? json['opponents']['name']?.toString()
+          : null,
+      seasonName:
+          json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
     );
   }
 }
