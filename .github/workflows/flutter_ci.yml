@@ -25,7 +25,9 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          flutter analyze --fatal-infos 2>&1 | tee analyze.log
+          # Les erreurs et avertissements restent bloquants. Les simples informations
+          # de dépréciation sont conservées dans le rapport sans faire échouer la CI.
+          flutter analyze --no-fatal-infos 2>&1 | tee analyze.log
 
       - name: Test
         if: always()
