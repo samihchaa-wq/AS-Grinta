@@ -30,15 +30,129 @@ class CoachPage extends ConsumerWidget {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
-            children: const [
-              _NoMatchState(),
-            ],
+            children: const [_NoMatchState()],
           ),
         ),
       );
     }
 
-    return const CoachProductionPage();
+    return Stack(
+      children: [
+        const CoachProductionPage(),
+        if (state.canEdit)
+          Positioned(
+            right: 18,
+            bottom: 92,
+            child: FloatingActionButton.extended(
+              heroTag: 'exceptional-player',
+              onPressed: () => _addExceptionalPlayer(context, ref),
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Invité du match'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _addExceptionalPlayer(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final state = ref.read(coachBoardControllerProvider);
+    final nameController = TextEditingController();
+    var isGoalkeeper = false;
+    String? selectedSlot = state.formationSlots
+        .where((slot) => !state.lineup.containsKey(slot))
+        .firstOrNull;
+    String? error;
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Ajouter un joueur exceptionnel'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ce joueur existe uniquement pour ce match et la composition. '
+                  'Il ne sera pas ajouté au registre et ne générera aucune statistique.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom ou surnom *',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedSlot,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Poste'),
+                  items: state.formationSlots
+                      .map(
+                        (slot) => DropdownMenuItem(
+                          value: slot,
+                          child: Text(slot.toUpperCase()),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) =>
+                      setDialogState(() => selectedSlot = value),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Gardien exceptionnel'),
+                  value: isGoalkeeper,
+                  onChanged: (value) =>
+                      setDialogState(() => isGoalkeeper = value),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    error!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty || selectedSlot == null) {
+                  setDialogState(() {
+                    error = 'Renseigne un nom et un poste.';
+                  });
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Ajouter à la compo'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (accepted == true && selectedSlot != null) {
+      await ref
+          .read(coachBoardControllerProvider.notifier)
+          .addExceptionalPlayer(
+            name: nameController.text,
+            isGoalkeeper: isGoalkeeper,
+            slotCode: selectedSlot!,
+          );
+    }
+    nameController.dispose();
   }
 }
 
@@ -103,4 +217,8 @@ class _NoMatchState extends StatelessWidget {
       ],
     );
   }
+}
+
+extension _FirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull => isEmpty ? null : first;
 }
