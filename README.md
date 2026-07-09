@@ -31,3 +31,5 @@ Application mobile pour une équipe de football amateur.
 ## Règle produit
 
 Aucune fonctionnalité non validée ne doit être ajoutée.
+
+<!-- Vérification CI finale du 9 juillet 2026. -->
