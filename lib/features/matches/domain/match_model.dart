@@ -9,6 +9,9 @@ class MatchModel {
     required this.status,
     required this.grintaScore,
     required this.opponentScore,
+    this.createdBy,
+    this.createdAt,
+    this.updatedAt,
     this.opponentName,
     this.seasonName,
   });
@@ -22,10 +25,16 @@ class MatchModel {
   final String status;
   final int? grintaScore;
   final int? opponentScore;
+  final String? createdBy;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final String? opponentName;
   final String? seasonName;
 
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
+  bool get isArchived => status == 'archive';
+  bool get isFinished => status == 'termine' || status == 'archive';
+  bool get isLive => status == 'en_cours';
 
   String get statusLabel {
     switch (status) {
@@ -60,6 +69,9 @@ class MatchModel {
       opponentScore: json['score_adverse'] == null
           ? null
           : int.tryParse('${json['score_adverse']}'),
+      createdBy: json['created_by']?.toString(),
+      createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
+      updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
       opponentName: json['opponents'] is Map
           ? json['opponents']['name']?.toString()
           : null,
