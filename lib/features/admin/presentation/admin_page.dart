@@ -26,7 +26,7 @@ class AdminPage extends ConsumerWidget {
           await ref.read(adminDashboardProvider.future);
         },
         child: dashboardAsync.when(
-          loading: () => ListView(
+          loading: () => const ListView(
             children: [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
@@ -47,21 +47,21 @@ class AdminPage extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               _SeasonSection(dashboard: dashboard),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Comptes et effectif',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ),
-                  FilledButton.icon(
-                    onPressed: () => _showInviteDialog(context, ref),
-                    icon: const Icon(Icons.person_add_alt_1_outlined),
-                    label: const Text('Inviter'),
-                  ),
-                ],
+              const SizedBox(height: 24),
+              Text(
+                'Comptes et effectif',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _showInviteDialog(context, ref),
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  label: const Text('Inviter un joueur'),
+                ),
               ),
               const SizedBox(height: 12),
               if (dashboard.profiles.isEmpty)
@@ -100,36 +100,38 @@ class AdminPage extends ConsumerWidget {
       barrierDismissible: !saving,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Inviter un utilisateur'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: firstNameController,
-                textInputAction: TextInputAction.next,
-                decoration: const InputDecoration(labelText: 'Prénom'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: lastNameController,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(labelText: 'Nom'),
-              ),
-              if (error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+          title: const Text('Inviter un joueur'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'Email'),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: firstNameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'Prénom'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: lastNameController,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(labelText: 'Nom'),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    error!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           actions: [
             TextButton(
@@ -192,10 +194,8 @@ class _SeasonSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final openSeason = dashboard.seasons
-        .where((season) => season.status == 'open')
-        .cast<AdminSeasonItem?>()
-        .firstOrNull;
+    final openSeasons = dashboard.seasons.where((season) => season.status == 'open');
+    final openSeason = openSeasons.isEmpty ? null : openSeasons.first;
 
     return Card(
       child: Padding(
@@ -206,44 +206,24 @@ class _SeasonSection extends ConsumerWidget {
             Text('Saisons', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             if (openSeason == null)
-              FilledButton.icon(
-                onPressed: () => _showCreateSeasonDialog(context, ref),
-                icon: const Icon(Icons.add),
-                label: const Text('Créer la saison ouverte'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _showCreateSeasonDialog(context, ref),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Créer la saison ouverte'),
+                ),
               )
             else ...[
               Text('Saison ouverte : ${openSeason.name}'),
               const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: const Text('Archiver la saison ?'),
-                      content: Text(
-                        'La saison ${openSeason.name} sera clôturée. Les catégories '
-                        'des joueurs ayant moins de trois participations seront exclues.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext, false),
-                          child: const Text('Annuler'),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(dialogContext, true),
-                          child: const Text('Archiver'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed != true) return;
-                  await ref
-                      .read(adminRepositoryProvider)
-                      .archiveSeason(openSeason.id);
-                  ref.invalidate(adminDashboardProvider);
-                },
-                icon: const Icon(Icons.archive_outlined),
-                label: const Text('Archiver la saison'),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _archiveSeason(context, ref, openSeason),
+                  icon: const Icon(Icons.archive_outlined),
+                  label: const Text('Archiver la saison'),
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -251,7 +231,11 @@ class _SeasonSection extends ConsumerWidget {
               (season) => ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                title: Text(season.name),
+                title: Text(
+                  season.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 trailing: Chip(label: Text(season.status)),
               ),
             ),
@@ -261,14 +245,39 @@ class _SeasonSection extends ConsumerWidget {
     );
   }
 
+  Future<void> _archiveSeason(
+    BuildContext context,
+    WidgetRef ref,
+    AdminSeasonItem season,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Archiver la saison ?'),
+        content: Text('La saison ${season.name} sera clôturée.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Archiver'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(adminRepositoryProvider).archiveSeason(season.id);
+    ref.invalidate(adminDashboardProvider);
+  }
+
   Future<void> _showCreateSeasonDialog(
     BuildContext context,
     WidgetRef ref,
   ) async {
     final now = DateTime.now();
-    final controller = TextEditingController(
-      text: '${now.year}-${now.year + 1}',
-    );
+    final controller = TextEditingController(text: '${now.year}-${now.year + 1}');
     String? error;
 
     await showDialog<void>(
@@ -303,9 +312,7 @@ class _SeasonSection extends ConsumerWidget {
             FilledButton(
               onPressed: () async {
                 try {
-                  await ref
-                      .read(adminRepositoryProvider)
-                      .createSeason(controller.text);
+                  await ref.read(adminRepositoryProvider).createSeason(controller.text);
                   if (dialogContext.mounted) Navigator.pop(dialogContext);
                   ref.invalidate(adminDashboardProvider);
                 } catch (exception) {
@@ -345,18 +352,23 @@ class _ProfileCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        profile.fullName.isEmpty
-                            ? profile.email
-                            : profile.fullName,
+                        profile.fullName.isEmpty ? profile.email : profile.fullName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      Text(profile.email),
+                      Text(
+                        profile.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -371,6 +383,7 @@ class _ProfileCard extends ConsumerWidget {
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: profile.role,
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Rôle'),
               items: const [
                 DropdownMenuItem(
@@ -441,23 +454,24 @@ class _ProfileCard extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Suppression définitive'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Cette action supprime le compte Auth et toutes les données liées. '
-              'Elle est irréversible.',
-            ),
-            const SizedBox(height: 12),
-            Text('Saisissez « $expected » pour confirmer.'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: confirmationController,
-              decoration:
-                  const InputDecoration(labelText: 'Email de confirmation'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Cette action supprime le compte et toutes les données liées. '
+                'Elle est irréversible.',
+              ),
+              const SizedBox(height: 12),
+              Text('Saisissez « $expected » pour confirmer.'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: confirmationController,
+                decoration: const InputDecoration(labelText: 'Email de confirmation'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -494,8 +508,4 @@ class _ProfileCard extends ConsumerWidget {
       }
     }
   }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
