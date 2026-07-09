@@ -343,6 +343,7 @@ class _ProfileCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(adminRepositoryProvider);
+    final isPending = profile.status == 'pending';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -372,28 +373,31 @@ class _ProfileCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Supprimer définitivement',
-                  color: Theme.of(context).colorScheme.error,
-                  icon: const Icon(Icons.delete_forever_outlined),
-                  onPressed: () => _deletePermanently(context, ref),
-                ),
+                if (isPending)
+                  const Chip(label: Text('En attente'))
+                else
+                  IconButton(
+                    tooltip: 'Supprimer définitivement',
+                    color: Theme.of(context).colorScheme.error,
+                    icon: const Icon(Icons.delete_forever_outlined),
+                    onPressed: () => _deletePermanently(context, ref),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: profile.role,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Rôle'),
+              decoration: const InputDecoration(labelText: 'Type de compte'),
               items: const [
                 DropdownMenuItem(
                   value: 'pronostiqueur',
-                  child: Text('Pronostiqueur'),
+                  child: Text('Joueur'),
                 ),
                 DropdownMenuItem(value: 'admin', child: Text('Admin')),
                 DropdownMenuItem(
                   value: 'moderateur',
-                  child: Text('Modérateur'),
+                  child: Text('Coach'),
                 ),
               ],
               onChanged: (value) async {
@@ -402,46 +406,98 @@ class _ProfileCard extends ConsumerWidget {
                 ref.invalidate(adminDashboardProvider);
               },
             ),
-            const SizedBox(height: 10),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Compte actif'),
-              value: profile.status == 'active',
-              onChanged: (value) async {
-                await repository.updateProfileStatus(
-                  profile.id,
-                  value ? 'active' : 'archived',
-                );
-                ref.invalidate(adminDashboardProvider);
-              },
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Gardien'),
-              value: profile.isGoalkeeper,
-              onChanged: (value) async {
-                await repository.updateGoalkeeper(profile.id, value);
-                ref.invalidate(adminDashboardProvider);
-              },
-            ),
-            if (openSeasonId != null)
-              CheckboxListTile(
+            if (profile.role == 'pronostiqueur') ...[
+              const SizedBox(height: 10),
+              SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Dans l’effectif de la saison ouverte'),
-                value: profile.inOpenSeason,
+                title: const Text('Gardien'),
+                subtitle: const Text(
+                  'Un gardien est uniquement pronostiqué sur les clean sheets.',
+                ),
+                value: profile.isGoalkeeper,
                 onChanged: (value) async {
-                  await repository.setSeasonMembership(
-                    seasonId: openSeasonId!,
-                    profile: profile,
-                    selected: value == true,
+                  await repository.updateGoalkeeper(profile.id, value);
+                  ref.invalidate(adminDashboardProvider);
+                },
+              ),
+            ],
+            if (isPending) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _validateAccount(context, ref),
+                  icon: const Icon(Icons.verified_user_outlined),
+                  label: Text(
+                    profile.role == 'pronostiqueur'
+                        ? 'Valider comme joueur'
+                        : profile.role == 'admin'
+                            ? 'Valider comme admin'
+                            : 'Valider comme coach',
+                  ),
+                ),
+              ),
+            ] else ...[
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Compte actif'),
+                value: profile.status == 'active',
+                onChanged: (value) async {
+                  await repository.updateProfileStatus(
+                    profile.id,
+                    value ? 'active' : 'archived',
                   );
                   ref.invalidate(adminDashboardProvider);
                 },
               ),
+              if (openSeasonId != null && profile.role == 'pronostiqueur')
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Dans l’effectif de la saison ouverte'),
+                  value: profile.inOpenSeason,
+                  onChanged: (value) async {
+                    await repository.setSeasonMembership(
+                      seasonId: openSeasonId!,
+                      profile: profile,
+                      selected: value == true,
+                    );
+                    ref.invalidate(adminDashboardProvider);
+                  },
+                ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _validateAccount(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final repository = ref.read(adminRepositoryProvider);
+    try {
+      await repository.updateProfileStatus(profile.id, 'active');
+      if (profile.role == 'pronostiqueur' && openSeasonId != null) {
+        await repository.setSeasonMembership(
+          seasonId: openSeasonId!,
+          profile: profile,
+          selected: true,
+        );
+      }
+      ref.invalidate(adminDashboardProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Compte validé.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.toString())),
+        );
+      }
+    }
   }
 
   Future<void> _deletePermanently(
