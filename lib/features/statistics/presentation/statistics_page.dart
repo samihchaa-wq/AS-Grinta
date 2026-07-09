@@ -31,17 +31,10 @@ class StatisticsPage extends ConsumerWidget {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      Text(
-                        error.toString(),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
+                      Text(error.toString(), textAlign: TextAlign.center),
                       const SizedBox(height: 12),
                       FilledButton(
-                        onPressed: () =>
-                            ref.invalidate(careerStatisticsProvider),
+                        onPressed: () => ref.invalidate(careerStatisticsProvider),
                         child: const Text('Réessayer'),
                       ),
                     ],
@@ -54,10 +47,10 @@ class StatisticsPage extends ConsumerWidget {
             if (all.isEmpty) {
               return ListView(
                 padding: const EdgeInsets.all(16),
-                children: [
+                children: const [
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20),
                       child: Text('Aucune statistique disponible.'),
                     ),
                   ),
@@ -65,136 +58,82 @@ class StatisticsPage extends ConsumerWidget {
               );
             }
 
-            // Top 5 catégories
-            final byGoals = [...all]
+            final outfieldPlayers = all.where((p) => !p.isGoalkeeper).toList();
+            final top5Goals = [...outfieldPlayers]
               ..sort((a, b) => b.goals.compareTo(a.goals));
-            final top5Goals =
-                byGoals.where((p) => p.goals > 0).take(5).toList();
-
-            final byAssists = [...all]
+            final top5Assists = [...outfieldPlayers]
               ..sort((a, b) => b.assists.compareTo(a.assists));
-            final top5Assists =
-                byAssists.where((p) => p.assists > 0).take(5).toList();
-
-            final byMotm = [...all]
+            final top5Motm = [...all]
               ..sort((a, b) => b.motm.compareTo(a.motm));
-            final top5Motm =
-                byMotm.where((p) => p.motm > 0).take(5).toList();
-
-            // Gardiens pour clean sheets
-            final goalkeepers = all
-                .where((p) => p.isGoalkeeper)
-                .toList()
+            final goalkeepers = all.where((p) => p.isGoalkeeper).toList()
               ..sort((a, b) => b.cleanSheets.compareTo(a.cleanSheets));
-
-            // Tous les joueurs classés alphabétiquement
             final alphabetical = [...all]
               ..sort((a, b) => a.sortName.compareTo(b.sortName));
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
-                // ── Top 5 Buteurs ──────────────────────────────────────
-                _SectionHeader(
+                const _SectionHeader(
                   icon: Icons.sports_soccer_rounded,
                   label: 'Top 5 Buteurs',
                 ),
                 const SizedBox(height: 8),
-                if (top5Goals.isEmpty)
-                  _EmptyChip('Aucun but enregistré')
-                else
-                  ...top5Goals.indexed.map(
-                    (e) => _TopRankRow(
-                      rank: e.$1 + 1,
-                      name: e.$2.displayName,
-                      value: e.$2.goals,
-                      unit: 'but${e.$2.goals > 1 ? 's' : ''}',
-                      isGoalkeeper: e.$2.isGoalkeeper,
-                    ),
-                  ),
+                ..._rankingRows(
+                  top5Goals.where((p) => p.goals > 0).take(5).toList(),
+                  value: (p) => p.goals,
+                  unit: (v) => 'but${v > 1 ? 's' : ''}',
+                  emptyLabel: 'Aucun but enregistré',
+                ),
                 const SizedBox(height: 24),
-
-                // ── Top 5 Passeurs décisifs ────────────────────────────
-                _SectionHeader(
+                const _SectionHeader(
                   icon: Icons.swap_calls_rounded,
                   label: 'Top 5 Passeurs décisifs',
                 ),
                 const SizedBox(height: 8),
-                if (top5Assists.isEmpty)
-                  _EmptyChip('Aucune passe décisive enregistrée')
-                else
-                  ...top5Assists.indexed.map(
-                    (e) => _TopRankRow(
-                      rank: e.$1 + 1,
-                      name: e.$2.displayName,
-                      value: e.$2.assists,
-                      unit: 'passe${e.$2.assists > 1 ? 's' : ''}',
-                      isGoalkeeper: e.$2.isGoalkeeper,
-                    ),
-                  ),
+                ..._rankingRows(
+                  top5Assists.where((p) => p.assists > 0).take(5).toList(),
+                  value: (p) => p.assists,
+                  unit: (v) => 'passe${v > 1 ? 's' : ''}',
+                  emptyLabel: 'Aucune passe décisive enregistrée',
+                ),
                 const SizedBox(height: 24),
-
-                // ── Top 5 Hommes du Match ──────────────────────────────
-                _SectionHeader(
+                const _SectionHeader(
                   icon: Icons.emoji_events_rounded,
                   label: 'Top 5 Hommes du Match',
                 ),
                 const SizedBox(height: 8),
-                if (top5Motm.isEmpty)
-                  _EmptyChip('Aucun Homme du Match enregistré')
-                else
-                  ...top5Motm.indexed.map(
-                    (e) => _TopRankRow(
-                      rank: e.$1 + 1,
-                      name: e.$2.displayName,
-                      value: e.$2.motm,
-                      unit: 'HDM',
-                      isGoalkeeper: e.$2.isGoalkeeper,
-                    ),
-                  ),
+                ..._rankingRows(
+                  top5Motm.where((p) => p.motm > 0).take(5).toList(),
+                  value: (p) => p.motm,
+                  unit: (_) => 'HDM',
+                  emptyLabel: 'Aucun Homme du Match enregistré',
+                ),
                 const SizedBox(height: 24),
-
-                // ── Clean sheets gardien(s) ────────────────────────────
                 _SectionHeader(
                   icon: Icons.shield_outlined,
                   label: 'Clean sheets gardien${goalkeepers.length > 1 ? 's' : ''}',
                 ),
                 const SizedBox(height: 8),
                 if (goalkeepers.isEmpty)
-                  _EmptyChip('Aucun gardien enregistré')
+                  const _EmptyChip('Aucun gardien enregistré')
                 else
                   ...goalkeepers.map(
                     (gk) => Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor:
-                              const Color(0xFFFF6F00).withValues(alpha: 0.15),
-                          child: const Icon(
-                            Icons.sports_handball,
-                            color: Color(0xFFFF6F00),
-                          ),
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.sports_handball),
                         ),
-                        title: Text(
-                          gk.displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        title: Text(gk.displayName),
                         subtitle: Text(
-                          '${gk.matches} match${gk.matches > 1 ? 's' : ''} '
-                          '• ${gk.minutesPlayed} min',
+                          '${gk.matches} match${gk.matches > 1 ? 's' : ''} • ${gk.minutesPlayed} min',
                         ),
-                        trailing: _BigStat(
-                          value: gk.cleanSheets,
-                          label: 'CS',
-                        ),
+                        trailing: _BigStat(value: gk.cleanSheets, label: 'CS'),
                       ),
                     ),
                   ),
                 const SizedBox(height: 24),
-
-                // ── Statistiques individuelles (A → Z) ─────────────────
-                _SectionHeader(
+                const _SectionHeader(
                   icon: Icons.bar_chart_rounded,
                   label: 'Statistiques individuelles',
                 ),
@@ -204,9 +143,7 @@ class StatisticsPage extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 12),
-                ...alphabetical.map(
-                  (player) => _PlayerStatsCard(player: player),
-                ),
+                ...alphabetical.map((player) => _PlayerStatsCard(player: player)),
               ],
             );
           },
@@ -214,9 +151,26 @@ class StatisticsPage extends ConsumerWidget {
       ),
     );
   }
-}
 
-// ─── Widgets locaux ───────────────────────────────────────────────────────────
+  static List<Widget> _rankingRows(
+    List<PlayerStatistics> players, {
+    required int Function(PlayerStatistics) value,
+    required String Function(int) unit,
+    required String emptyLabel,
+  }) {
+    if (players.isEmpty) return [ _EmptyChip(emptyLabel) ];
+    return players.indexed
+        .map(
+          (e) => _TopRankRow(
+            rank: e.$1 + 1,
+            name: e.$2.displayName,
+            value: value(e.$2),
+            unit: unit(value(e.$2)),
+          ),
+        )
+        .toList();
+  }
+}
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.icon, required this.label});
@@ -259,61 +213,21 @@ class _TopRankRow extends StatelessWidget {
     required this.name,
     required this.value,
     required this.unit,
-    required this.isGoalkeeper,
   });
 
   final int rank;
   final String name;
   final int value;
   final String unit;
-  final bool isGoalkeeper;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isTop3 = rank <= 3;
-    final medalColor = rank == 1
-        ? const Color(0xFFFFD700)
-        : rank == 2
-            ? const Color(0xFFC0C0C0)
-            : const Color(0xFFCD7F32);
-
     return Card(
       margin: const EdgeInsets.only(bottom: 6),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: isTop3
-              ? medalColor.withValues(alpha: 0.15)
-              : cs.surfaceContainerHighest,
-          child: Text(
-            '$rank',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              color: isTop3 ? medalColor : cs.onSurfaceVariant,
-            ),
-          ),
-        ),
-        title: Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$value',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: cs.primary,
-                  ),
-            ),
-            const SizedBox(width: 6),
-            Text(unit, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
+        leading: CircleAvatar(child: Text('$rank')),
+        title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: Text('$value $unit'),
       ),
     );
   }
@@ -334,7 +248,6 @@ class _BigStat extends StatelessWidget {
           '$value',
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w800,
-                color: Theme.of(context).colorScheme.primary,
               ),
         ),
         Text(label, style: Theme.of(context).textTheme.bodySmall),
@@ -353,17 +266,10 @@ class _PlayerStatsCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
         leading: CircleAvatar(
-          backgroundColor: player.isGoalkeeper
-              ? const Color(0xFFFF6F00).withValues(alpha: 0.15)
-              : Theme.of(context).colorScheme.primaryContainer,
           child: Icon(
             player.isGoalkeeper
                 ? Icons.sports_handball
                 : Icons.sports_soccer_rounded,
-            size: 20,
-            color: player.isGoalkeeper
-                ? const Color(0xFFFF6F00)
-                : Theme.of(context).colorScheme.onPrimaryContainer,
           ),
         ),
         title: Text(
@@ -372,15 +278,18 @@ class _PlayerStatsCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          '${player.matches} match${player.matches > 1 ? 's' : ''} '
-          '• ${player.minutesPlayed} min',
+          '${player.matches} match${player.matches > 1 ? 's' : ''} • ${player.minutesPlayed} min',
         ),
         trailing: Wrap(
           spacing: 10,
           children: [
-            _StatBadge(label: 'B', value: player.goals),
-            _StatBadge(label: 'P', value: player.assists),
+            if (!player.isGoalkeeper) ...[
+              _StatBadge(label: 'B', value: player.goals),
+              _StatBadge(label: 'P', value: player.assists),
+            ],
             _StatBadge(label: 'M', value: player.motm),
+            if (player.isGoalkeeper)
+              _StatBadge(label: 'CS', value: player.cleanSheets),
           ],
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -394,32 +303,22 @@ class _PlayerStatsCard extends StatelessWidget {
                 label: 'Minutes',
                 value: '${player.minutesPlayed}',
               ),
-              _DetailRow(
-                icon: Icons.sports_soccer_outlined,
-                label: 'Buts',
-                value: '${player.goals}',
-              ),
-              _DetailRow(
-                icon: Icons.swap_calls_rounded,
-                label: 'Passes D.',
-                value: '${player.assists}',
-              ),
+              if (!player.isGoalkeeper) ...[
+                _DetailRow(
+                  icon: Icons.sports_soccer_outlined,
+                  label: 'Buts',
+                  value: '${player.goals}',
+                ),
+                _DetailRow(
+                  icon: Icons.swap_calls_rounded,
+                  label: 'Passes D.',
+                  value: '${player.assists}',
+                ),
+              ],
               _DetailRow(
                 icon: Icons.emoji_events_outlined,
                 label: 'HDM',
                 value: '${player.motm}',
-              ),
-              _DetailRow(
-                icon: Icons.square_rounded,
-                label: 'Jaunes',
-                value: '0',
-                iconColor: const Color(0xFFFDD835),
-              ),
-              _DetailRow(
-                icon: Icons.square_rounded,
-                label: 'Rouges',
-                value: '0',
-                iconColor: const Color(0xFFE53935),
               ),
               if (player.isGoalkeeper)
                 _DetailRow(
@@ -457,13 +356,11 @@ class _DetailRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    this.iconColor,
   });
 
   final IconData icon;
   final String label;
   final String value;
-  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -471,7 +368,7 @@ class _DetailRow extends StatelessWidget {
       width: 130,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: iconColor),
+          Icon(icon, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
