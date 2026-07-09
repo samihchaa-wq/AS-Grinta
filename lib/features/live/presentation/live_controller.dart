@@ -78,7 +78,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
           final nextSession = LiveSessionState.fromJson(rows.first);
           final localSessionId = _ref.read(liveControlSessionIdProvider);
           if (localSessionId != null &&
-              nextSession.controllerSessionId != localSessionId) {
+              nextSession.controllerProfileId != _currentUserId) {
             _ref.read(liveControlSessionIdProvider.notifier).state = null;
           }
           state = state.copyWith(
@@ -129,12 +129,13 @@ class LiveController extends StateNotifier<LiveControllerState> {
       );
       if (!claimed) {
         state = state.copyWith(
-          error: 'Ce Live est déjà contrôlé par une autre session.',
+          error: 'Ce Live est déjà contrôlé par une autre connexion.',
         );
         return;
       }
       _ref.read(liveControlSessionIdProvider.notifier).state = sessionId;
-      state = state.copyWith(clearError: true);
+      final session = await _repository.fetchLiveSession(matchId);
+      state = state.copyWith(session: session, clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -143,7 +144,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
   Future<void> releaseControl(String matchId) async {
     final sessionId = _ref.read(liveControlSessionIdProvider);
     if (!_canOperateRecoveredLive || sessionId == null) {
-      state = state.copyWith(error: 'Cette session ne contrôle pas le Live.');
+      state = state.copyWith(error: 'Cette connexion ne contrôle pas le Live.');
       return;
     }
 
@@ -157,7 +158,8 @@ class LiveController extends StateNotifier<LiveControllerState> {
         return;
       }
       _ref.read(liveControlSessionIdProvider.notifier).state = null;
-      state = state.copyWith(clearError: true);
+      final session = await _repository.fetchLiveSession(matchId);
+      state = state.copyWith(session: session, clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -186,7 +188,8 @@ class LiveController extends StateNotifier<LiveControllerState> {
     }
 
     try {
-      final sessionId = 'moderator-$userId-${DateTime.now().microsecondsSinceEpoch}';
+      final sessionId =
+          'moderator-$userId-${DateTime.now().microsecondsSinceEpoch}';
       final resumed = await _repository.forceResumeControl(
         matchId: matchId,
         sessionId: sessionId,
@@ -198,7 +201,8 @@ class LiveController extends StateNotifier<LiveControllerState> {
         return;
       }
       _ref.read(liveControlSessionIdProvider.notifier).state = sessionId;
-      state = state.copyWith(clearError: true);
+      final session = await _repository.fetchLiveSession(matchId);
+      state = state.copyWith(session: session, clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
@@ -215,11 +219,10 @@ class LiveController extends StateNotifier<LiveControllerState> {
     }
 
     final session = state.session;
-    if (session?.controllerProfileId != userId ||
-        session?.controllerSessionId != sessionId) {
+    if (session?.controllerProfileId != userId) {
       _ref.read(liveControlSessionIdProvider.notifier).state = null;
       state = state.copyWith(
-        error: 'Cette session ne contrôle plus le Live.',
+        error: 'Cette connexion ne contrôle plus le Live.',
       );
       return;
     }
@@ -239,7 +242,8 @@ class LiveController extends StateNotifier<LiveControllerState> {
         );
         return;
       }
-      state = state.copyWith(clearError: true);
+      final refreshed = await _repository.fetchLiveSession(matchId);
+      state = state.copyWith(session: refreshed, clearError: true);
     } catch (error) {
       state = state.copyWith(error: error.toString());
     }
