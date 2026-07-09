@@ -40,6 +40,10 @@ class _LivePageState extends ConsumerState<LivePage>
       unawaited(
         ref.read(liveControllerProvider.notifier).markDisconnected(widget.matchId),
       );
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(
+        ref.read(liveControllerProvider.notifier).markReconnected(widget.matchId),
+      );
     }
   }
 
@@ -83,8 +87,7 @@ class _LivePageState extends ConsumerState<LivePage>
     final isAdmin = role == AuthRole.admin;
     final isModerator = role == AuthRole.moderateur;
     final ownsControl = localSessionId != null &&
-        liveState.session?.controllerProfileId == userId &&
-        liveState.session?.controllerSessionId == localSessionId;
+        liveState.session?.controllerProfileId == userId;
     final canClaim = isAdmin && liveState.session?.controllerProfileId == null;
     final canOperate = ownsControl && (isAdmin || isModerator);
 
@@ -107,8 +110,11 @@ class _LivePageState extends ConsumerState<LivePage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Contrôleur : '
-                    '${liveState.session?.controllerProfileId ?? 'aucun'}',
+                    liveState.session?.controllerProfileId == null
+                        ? 'Contrôleur : aucun'
+                        : ownsControl
+                            ? 'Contrôleur : cette connexion'
+                            : 'Contrôleur : une autre connexion',
                   ),
                 ],
               ),
@@ -201,7 +207,7 @@ class _LivePageState extends ConsumerState<LivePage>
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'La reprise forcée devient disponible 60 secondes après la '
-                  'déconnexion signalée de la session contrôlant le Live.',
+                  'déconnexion signalée de la connexion contrôlant le Live.',
                 ),
               ),
             ),
