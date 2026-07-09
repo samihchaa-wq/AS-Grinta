@@ -24,11 +24,12 @@ class AuthState {
     AuthProfile? profile,
     String? error,
     bool clearError = false,
+    bool clearProfile = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-      profile: profile ?? this.profile,
+      profile: clearProfile ? null : (profile ?? this.profile),
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -54,7 +55,8 @@ class AuthController extends StateNotifier<AuthState> {
         isLoading: false,
         isAuthenticated: profile != null,
         profile: profile,
-        error: null,
+        clearProfile: profile == null,
+        clearError: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
@@ -95,7 +97,7 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.resetPassword(email: email);
-      state = state.copyWith(isLoading: false, error: null);
+      state = state.copyWith(isLoading: false, clearError: true);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
@@ -123,7 +125,7 @@ class AuthController extends StateNotifier<AuthState> {
         lastName: lastName,
         avatarPath: avatarPath,
       );
-      state = state.copyWith(isLoading: false, profile: profile, error: null);
+      state = state.copyWith(isLoading: false, profile: profile, clearError: true);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
