@@ -3,6 +3,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class MatchDetailsPage extends ConsumerWidget {
   const MatchDetailsPage({super.key, required this.matchId});
@@ -12,8 +13,9 @@ class MatchDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+    final role = ref.watch(authControllerProvider).profile?.role;
+    final isAdmin = role == AuthRole.admin;
+    final isModerator = role == AuthRole.moderateur;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détails du match')),
@@ -70,6 +72,17 @@ class MatchDetailsPage extends ConsumerWidget {
                           label: const Text('Reporter le match'),
                         ),
                       ],
+                      if (isModerator &&
+                          (details.status == 'termine' ||
+                              details.status == 'archive')) ...[
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () =>
+                              context.push('/matches/$matchId/correction'),
+                          icon: const Icon(Icons.history_edu_outlined),
+                          label: const Text('Corriger les événements'),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -95,7 +108,8 @@ class MatchDetailsPage extends ConsumerWidget {
                         '${match.scoreGrinta ?? '?'} - ${match.scoreOpponent ?? '?'}',
                       ),
                       subtitle: Text(
-                        '${match.date.toLocal().toString().split(' ').first} • ${match.location}',
+                        '${match.date.toLocal().toString().split(' ').first} • '
+                        '${match.location}',
                       ),
                     ),
                   ),
