@@ -29,6 +29,11 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
         title: const Text('Pronostics de match'),
         actions: [
           IconButton(
+            tooltip: 'Classement général',
+            onPressed: () => context.push('/predictions/leaderboard'),
+            icon: const Icon(Icons.leaderboard_outlined),
+          ),
+          IconButton(
             tooltip: 'Pronostics de saison',
             onPressed: () => context.push('/predictions/season'),
             icon: const Icon(Icons.emoji_events_outlined),
@@ -41,14 +46,28 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
           padding: const EdgeInsets.all(16),
           children: [
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.emoji_events_outlined),
-                title: const Text('Pronostics de saison'),
-                subtitle: const Text(
-                  'Buts, passes, hommes du match et clean sheets.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/predictions/season'),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.leaderboard_outlined),
+                    title: const Text('Classement général'),
+                    subtitle: const Text(
+                      'Somme directe des points de match et de saison.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/predictions/leaderboard'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.emoji_events_outlined),
+                    title: const Text('Pronostics de saison'),
+                    subtitle: const Text(
+                      'Buts, passes, hommes du match et clean sheets.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/predictions/season'),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
