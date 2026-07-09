@@ -103,9 +103,11 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 (match) => _MatchCard(
                   match: match,
                   canDelete: isModerator,
-                  canEdit: isAdmin,
-                  canManageLive: isAdmin,
-                  canFinalize: isAdmin,
+                  canEdit: isAdmin && !match.isArchived,
+                  canManageLive: isAdmin && !match.isArchived,
+                  canFinalize: isAdmin && !match.isArchived,
+                  canSelectParticipants: isAdmin && !match.isArchived,
+                  canArchive: isAdmin && !match.isArchived,
                 ),
               ),
           ],
@@ -122,6 +124,8 @@ class _MatchCard extends StatelessWidget {
     required this.canEdit,
     required this.canManageLive,
     required this.canFinalize,
+    required this.canSelectParticipants,
+    required this.canArchive,
   });
 
   final MatchModel match;
@@ -129,6 +133,8 @@ class _MatchCard extends StatelessWidget {
   final bool canEdit;
   final bool canManageLive;
   final bool canFinalize;
+  final bool canSelectParticipants;
+  final bool canArchive;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +163,12 @@ class _MatchCard extends StatelessWidget {
             Text(
               'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}',
             ),
-            if (canDelete || canEdit || canManageLive || canFinalize) ...[
+            if (canDelete ||
+                canEdit ||
+                canManageLive ||
+                canFinalize ||
+                canSelectParticipants ||
+                canArchive) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -185,6 +196,14 @@ class _MatchCard extends StatelessWidget {
                       icon: const Icon(Icons.edit_outlined),
                       label: const Text('Modifier'),
                     ),
+                  if (canSelectParticipants)
+                    OutlinedButton.icon(
+                      onPressed: () => context.push(
+                        '/matches/${match.id}/participants',
+                      ),
+                      icon: const Icon(Icons.groups_outlined),
+                      label: const Text('Participants'),
+                    ),
                   if (canManageLive)
                     OutlinedButton.icon(
                       onPressed: () => context.push('/live/${match.id}'),
@@ -197,6 +216,16 @@ class _MatchCard extends StatelessWidget {
                           context.push('/matches/${match.id}/finalize'),
                       icon: const Icon(Icons.check_circle_outline),
                       label: const Text('Finir'),
+                    ),
+                  if (canArchive)
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await ProviderScope.containerOf(context)
+                            .read(matchesControllerProvider.notifier)
+                            .archiveMatch(match.id);
+                      },
+                      icon: const Icon(Icons.archive_outlined),
+                      label: const Text('Archiver'),
                     ),
                 ],
               ),
