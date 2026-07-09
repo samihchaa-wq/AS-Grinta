@@ -14,6 +14,8 @@ class MatchPredictionItem {
     required this.oddsWin,
     required this.oddsDraw,
     required this.oddsLoss,
+    required this.actualScoreGrinta,
+    required this.actualScoreOpponent,
   });
 
   final String matchId;
@@ -26,9 +28,37 @@ class MatchPredictionItem {
   final double? oddsWin;
   final double? oddsDraw;
   final double? oddsLoss;
+  final int? actualScoreGrinta;
+  final int? actualScoreOpponent;
 
-  bool get isClosed =>
-      status != 'a_venir' || DateTime.now().isAfter(kickoffAt.subtract(const Duration(hours: 12)));
+  DateTime get opensAt => kickoffAt.subtract(const Duration(days: 6));
+  DateTime get closesAt => kickoffAt.subtract(const Duration(hours: 12));
+  bool get isBeforeWindow => DateTime.now().isBefore(opensAt);
+  bool get isClosed => status != 'a_venir' || !DateTime.now().isBefore(closesAt);
+  bool get canEdit => !isBeforeWindow && !isClosed;
+  bool get hasResult => actualScoreGrinta != null && actualScoreOpponent != null;
+
+  double? get earnedPoints {
+    if (!isFilled || !hasResult) return hasResult ? 0 : null;
+    final actualResult = _result(actualScoreGrinta!, actualScoreOpponent!);
+    final predictedResult = _result(scoreGrinta, scoreOpponent);
+    if (actualResult != predictedResult) return 0;
+    final odds = switch (actualResult) {
+      1 => oddsWin,
+      0 => oddsDraw,
+      _ => oddsLoss,
+    };
+    if (odds == null) return null;
+    final exact = scoreGrinta == actualScoreGrinta &&
+        scoreOpponent == actualScoreOpponent;
+    return odds * (exact ? 15 : 10);
+  }
+
+  static int _result(int grinta, int opponent) {
+    if (grinta > opponent) return 1;
+    if (grinta == opponent) return 0;
+    return -1;
+  }
 
   MatchPredictionItem copyWith({
     int? scoreGrinta,
@@ -46,6 +76,8 @@ class MatchPredictionItem {
       oddsWin: oddsWin,
       oddsDraw: oddsDraw,
       oddsLoss: oddsLoss,
+      actualScoreGrinta: actualScoreGrinta,
+      actualScoreOpponent: actualScoreOpponent,
     );
   }
 }
@@ -66,6 +98,8 @@ class PredictionsRepository {
           match_date,
           match_time,
           status,
+          score_as_grinta,
+          score_adverse,
           opponents(name),
           match_odds(
             odds_victoire_as_grinta,
@@ -73,7 +107,6 @@ class PredictionsRepository {
             odds_victoire_adverse
           )
         ''')
-        .neq('status', 'archive')
         .order('match_date', ascending: true)
         .order('match_time', ascending: true);
 
@@ -110,12 +143,20 @@ class PredictionsRepository {
         opponentName: opponent['name']?.toString() ?? 'Adversaire',
         kickoffAt: kickoffAt,
         status: map['status']?.toString() ?? 'a_venir',
-        scoreGrinta: int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ?? 0,
-        scoreOpponent: int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
+        scoreGrinta:
+            int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ?? 0,
+        scoreOpponent:
+            int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
         isFilled: prediction?['is_filled'] == true,
         oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
         oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
         oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
+        actualScoreGrinta: map['score_as_grinta'] == null
+            ? null
+            : int.tryParse('${map['score_as_grinta']}'),
+        actualScoreOpponent: map['score_adverse'] == null
+            ? null
+            : int.tryParse('${map['score_adverse']}'),
       );
     }).toList();
   }
@@ -127,8 +168,28 @@ class PredictionsRepository {
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
-    if (scoreGrinta < 0 || scoreGrinta > 99 || scoreOpponent < 0 || scoreOpponent > 99) {
+    if (scoreGrinta < 0 ||
+        scoreGrinta > 99 ||
+        scoreOpponent < 0 ||
+        scoreOpponent > 99) {
       throw ArgumentError('Les scores doivent être compris entre 0 et 99.');
+    }
+
+    final match = await _client
+        .from('matches')
+        .select('match_date, match_time, status')
+        .eq('id', matchId)
+        .single();
+    final kickoffAt = DateTime.tryParse(
+      '${match['match_date']}T${match['match_time']}',
+    );
+    if (kickoffAt == null || match['status'] != 'a_venir') {
+      throw StateError('Ce pronostic est fermé.');
+    }
+    final now = DateTime.now();
+    if (now.isBefore(kickoffAt.subtract(const Duration(days: 6))) ||
+        !now.isBefore(kickoffAt.subtract(const Duration(hours: 12)))) {
+      throw StateError('La fenêtre de pronostic n’est pas ouverte.');
     }
 
     await _client.from('match_predictions').upsert(
