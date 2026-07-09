@@ -32,13 +32,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (location == '/') return '/home';
 
       final role = authState.profile?.role;
-      final canManageLive =
-          role == AuthRole.admin || role == AuthRole.moderateur;
       final isLiveManagementRoute = location.startsWith('/live/');
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
 
-      if (isLiveManagementRoute && !canManageLive) return '/matches';
+      if (isLiveManagementRoute && role != AuthRole.admin) return '/matches';
       if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
 
       return null;
