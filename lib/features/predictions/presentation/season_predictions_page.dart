@@ -7,6 +7,11 @@ final seasonPredictionsProvider =
   return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
 });
 
+final publicSeasonPredictionsProvider =
+    FutureProvider<List<SeasonPredictionItem>>((ref) {
+  return ref.watch(seasonPredictionsRepositoryProvider).fetchPublic();
+});
+
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
   const SeasonPredictionsPage({super.key});
 
@@ -20,91 +25,190 @@ class _SeasonPredictionsPageState
   final Map<String, int> _draftValues = {};
   String? _savingKey;
   String? _error;
+  bool _showPublic = false;
 
   @override
   Widget build(BuildContext context) {
-    final asyncItems = ref.watch(seasonPredictionsProvider);
+    final mineAsync = ref.watch(seasonPredictionsProvider);
+    final publicAsync = ref.watch(publicSeasonPredictionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pronostics de saison')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _draftValues.clear();
-          ref.invalidate(seasonPredictionsProvider);
-          await ref.read(seasonPredictionsProvider.future);
-        },
-        child: asyncItems.when(
-          loading: () => const ListView(
-            children: [
-              SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text(error.toString()),
-            ],
-          ),
-          data: (items) {
-            if (items.isEmpty) {
-              return const ListView(
-                padding: EdgeInsets.all(16),
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        'Aucune saison ouverte ou aucun joueur actif dans l’effectif.',
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            final grouped = <String, List<SeasonPredictionItem>>{};
-            for (final item in items) {
-              grouped.putIfAbsent(item.playerId, () => []).add(item);
-            }
-
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                const Text(
-                  'Valeurs prévues pour 20 matchs. Une valeur non enregistrée rapporte toujours 0 point.',
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(Icons.edit_outlined),
+                  label: Text('Mes pronostics'),
                 ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                ...grouped.values.map((playerItems) {
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            playerItems.first.playerName,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 12),
-                          ...playerItems.map(_buildPredictionRow),
-                        ],
-                      ),
+                ButtonSegment(
+                  value: true,
+                  icon: Icon(Icons.public),
+                  label: Text('Pronostics publics'),
+                ),
+              ],
+              selected: {_showPublic},
+              onSelectionChanged: (selection) {
+                setState(() => _showPublic = selection.first);
+              },
+            ),
+          ),
+          Expanded(
+            child: _showPublic
+                ? _buildPublic(publicAsync)
+                : _buildMine(mineAsync),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMine(AsyncValue<List<SeasonPredictionItem>> asyncItems) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        _draftValues.clear();
+        ref.invalidate(seasonPredictionsProvider);
+        await ref.read(seasonPredictionsProvider.future);
+      },
+      child: asyncItems.when(
+        loading: () => const ListView(
+          children: [
+            SizedBox(height: 220),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+        error: (error, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [Text(error.toString())],
+        ),
+        data: (items) {
+          if (items.isEmpty) {
+            return const ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'Aucune saison ouverte ou aucun joueur actif dans l’effectif.',
                     ),
-                  );
-                }),
+                  ),
+                ),
               ],
             );
-          },
+          }
+
+          final grouped = <String, List<SeasonPredictionItem>>{};
+          for (final item in items) {
+            grouped.putIfAbsent(item.playerId, () => []).add(item);
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              const Text(
+                'Valeurs prévues pour 20 matchs. Une ligne jamais enregistrée rapporte 0 point.',
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+              const SizedBox(height: 16),
+              ...grouped.values.map((playerItems) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          playerItems.first.playerName,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        ...playerItems.map(_buildPredictionRow),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPublic(AsyncValue<List<SeasonPredictionItem>> asyncItems) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(publicSeasonPredictionsProvider);
+        await ref.read(publicSeasonPredictionsProvider.future);
+      },
+      child: asyncItems.when(
+        loading: () => const ListView(
+          children: [
+            SizedBox(height: 220),
+            Center(child: CircularProgressIndicator()),
+          ],
         ),
+        error: (error, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [Text(error.toString())],
+        ),
+        data: (items) {
+          if (items.isEmpty) {
+            return const ListView(
+              padding: EdgeInsets.all(16),
+              children: [
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('Aucun pronostic public enregistré.'),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          final grouped = <String, List<SeasonPredictionItem>>{};
+          for (final item in items) {
+            grouped.putIfAbsent(item.predictorId, () => []).add(item);
+          }
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: grouped.values.map((predictions) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ExpansionTile(
+                  title: Text(predictions.first.predictorName),
+                  subtitle: Text('${predictions.length} prédiction(s) saisie(s)'),
+                  children: predictions
+                      .map(
+                        (item) => ListTile(
+                          title: Text(item.playerName),
+                          subtitle: Text(_categoryLabel(item.category)),
+                          trailing: Text(
+                            '${item.value}',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
@@ -168,6 +272,7 @@ class _SeasonPredictionsPageState
             item.copyWith(value: value, isFilled: true),
           );
       ref.invalidate(seasonPredictionsProvider);
+      ref.invalidate(publicSeasonPredictionsProvider);
       await ref.read(seasonPredictionsProvider.future);
     } catch (error) {
       if (mounted) setState(() => _error = error.toString());
