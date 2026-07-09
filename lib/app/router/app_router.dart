@@ -8,6 +8,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/live/presentation/live_gameplay_page.dart';
 import 'package:as_grinta/features/live/presentation/live_page.dart';
+import 'package:as_grinta/features/matches/presentation/match_correction_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
@@ -43,6 +44,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           location.startsWith('/matches/') && location.endsWith('/finalize');
       final isParticipantsRoute =
           location.startsWith('/matches/') && location.endsWith('/participants');
+      final isCorrectionRoute =
+          location.startsWith('/matches/') && location.endsWith('/correction');
       final isAdminRoute = location == '/admin';
 
       if (isLiveOverviewRoute &&
@@ -57,6 +60,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
       if (isParticipantsRoute && role != AuthRole.admin) return '/matches';
+      if (isCorrectionRoute && role != AuthRole.moderateur) return '/matches';
       if (isAdminRoute && role != AuthRole.moderateur) return '/home';
 
       return null;
@@ -75,6 +79,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/matches/:matchId/participants',
         builder: (context, state) => MatchParticipantsPage(
+          matchId: state.pathParameters['matchId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/matches/:matchId/correction',
+        builder: (context, state) => MatchCorrectionPage(
           matchId: state.pathParameters['matchId'] ?? '',
         ),
       ),
