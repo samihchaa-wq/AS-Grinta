@@ -27,8 +27,9 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
   Widget build(BuildContext context) {
     final matchesState = ref.watch(matchesControllerProvider);
     final authState = ref.watch(authControllerProvider);
-    final isAdmin = authState.profile?.role == AuthRole.admin;
-    final canManageLive = isAdmin || authState.profile?.role == AuthRole.moderateur;
+    final role = authState.profile?.role;
+    final isAdmin = role == AuthRole.admin;
+    final isModerator = role == AuthRole.moderateur;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +60,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
           children: [
             if (matchesState.seasons.isNotEmpty)
               DropdownButtonFormField<String>(
-                initialValue: _selectedSeasonId,
+                value: _selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
                   const DropdownMenuItem<String>(
@@ -101,9 +102,10 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
               ...matchesState.matches.map(
                 (match) => _MatchCard(
                   match: match,
-                  canDelete: isAdmin,
+                  canDelete: isModerator,
                   canEdit: isAdmin,
-                  canManageLive: canManageLive,
+                  canManageLive: isAdmin,
+                  canFinalize: isAdmin,
                 ),
               ),
           ],
@@ -119,12 +121,14 @@ class _MatchCard extends StatelessWidget {
     required this.canDelete,
     required this.canEdit,
     required this.canManageLive,
+    required this.canFinalize,
   });
 
   final MatchModel match;
   final bool canDelete;
   final bool canEdit;
   final bool canManageLive;
+  final bool canFinalize;
 
   @override
   Widget build(BuildContext context) {
@@ -150,8 +154,10 @@ class _MatchCard extends StatelessWidget {
             Text('Date : ${match.kickoffAt.toLocal().toString().split('.')[0]}'),
             Text('Lieu : ${match.locationLabel}'),
             Text('Durée : ${match.plannedDurationMinutes} min'),
-            Text('Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}'),
-            if (canDelete || canEdit || canManageLive) ...[
+            Text(
+              'Score : ${match.grintaScore ?? '?'} - ${match.opponentScore ?? '?'}',
+            ),
+            if (canDelete || canEdit || canManageLive || canFinalize) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -165,7 +171,7 @@ class _MatchCard extends StatelessWidget {
                         await notifier.deleteMatch(match.id);
                       },
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Supprimer'),
+                      label: const Text('Supprimer définitivement'),
                     ),
                   if (canEdit)
                     FilledButton.icon(
@@ -185,9 +191,10 @@ class _MatchCard extends StatelessWidget {
                       icon: const Icon(Icons.sensors),
                       label: const Text('Live'),
                     ),
-                  if (canManageLive)
+                  if (canFinalize)
                     OutlinedButton.icon(
-                      onPressed: () => context.push('/matches/${match.id}/finalize'),
+                      onPressed: () =>
+                          context.push('/matches/${match.id}/finalize'),
                       icon: const Icon(Icons.check_circle_outline),
                       label: const Text('Finir'),
                     ),
