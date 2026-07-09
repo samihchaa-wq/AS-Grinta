@@ -40,11 +40,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     super.dispose();
   }
 
+  ImageProvider<Object>? _avatarProvider() {
+    final pending = _pendingAvatarBytes;
+    if (pending != null) return MemoryImage(pending);
+    final url = _avatarUrl;
+    if (url != null && url.isNotEmpty) return NetworkImage(url);
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final profile = authState.profile;
     final busy = authState.isLoading || _isUploadingAvatar;
+    final avatarProvider = _avatarProvider();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
@@ -57,13 +66,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               children: [
                 CircleAvatar(
                   radius: 54,
-                  backgroundImage: _pendingAvatarBytes != null
-                      ? MemoryImage(_pendingAvatarBytes!)
-                      : (_avatarUrl?.isNotEmpty == true
-                          ? NetworkImage(_avatarUrl!)
-                          : null) as ImageProvider<Object>?,
-                  child: _pendingAvatarBytes == null &&
-                          (_avatarUrl == null || _avatarUrl!.isEmpty)
+                  backgroundImage: avatarProvider,
+                  child: avatarProvider == null
                       ? const Icon(Icons.person, size: 54)
                       : null,
                 ),
