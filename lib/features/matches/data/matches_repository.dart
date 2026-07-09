@@ -40,8 +40,10 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response =
-        await _client.from('seasons').select('id, name').order('name');
+    final response = await _client
+        .from('seasons')
+        .select('id, name, status')
+        .order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
@@ -53,6 +55,22 @@ class MatchesRepository {
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
+  }
+
+  Future<String> createOpponent(String name) async {
+    final existing = await _client
+        .from('opponents')
+        .select('id')
+        .ilike('name', name)
+        .maybeSingle();
+    if (existing != null) return existing['id'].toString();
+
+    final response = await _client
+        .from('opponents')
+        .insert({'name': name})
+        .select('id')
+        .single();
+    return response['id'].toString();
   }
 
   Future<void> createMatch({
@@ -68,10 +86,20 @@ class MatchesRepository {
       throw StateError('Utilisateur non authentifié.');
     }
 
+    final matchDate = kickoffAt.toIso8601String().split('T').first;
+    final existing = await _client
+        .from('matches')
+        .select('id')
+        .eq('match_date', matchDate)
+        .limit(1);
+    if ((existing as List).isNotEmpty) {
+      throw StateError('Un match existe déjà à cette date. Utilisez le report pour créer une exception.');
+    }
+
     await _client.from('matches').insert({
       'season_id': seasonId,
       'opponent_id': opponentId,
-      'match_date': kickoffAt.toIso8601String().split('T').first,
+      'match_date': matchDate,
       'match_time': _formatTime(kickoffAt),
       'location': isHome ? 'domicile' : 'exterieur',
       'planned_duration_minutes': plannedDurationMinutes,
