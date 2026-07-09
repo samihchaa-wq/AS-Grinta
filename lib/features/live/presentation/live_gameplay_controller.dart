@@ -86,8 +86,7 @@ class LiveGameplayController extends StateNotifier<LiveGameplayStateModel> {
     final allowed = roleAllowed &&
         currentUserId != null &&
         controllerSessionId != null &&
-        liveSession?.controllerProfileId == currentUserId &&
-        liveSession?.controllerSessionId == controllerSessionId;
+        liveSession?.controllerProfileId == currentUserId;
 
     if (!allowed) {
       state = state.copyWith(
