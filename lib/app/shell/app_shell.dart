@@ -14,7 +14,6 @@ class AppShell extends ConsumerWidget {
   final Widget child;
   final String location;
 
-  // Navigation pour les modérateurs (staff terrain)
   static const _staffDestinations = <_ModuleDestination>[
     _ModuleDestination(
       route: '/home',
@@ -43,7 +42,6 @@ class AppShell extends ConsumerWidget {
     ),
   ];
 
-  // Navigation pour les pronostiqueurs et admins
   static const _defaultDestinations = <_ModuleDestination>[
     _ModuleDestination(
       route: '/home',
@@ -73,7 +71,7 @@ class AppShell extends ConsumerWidget {
   ];
 
   List<_ModuleDestination> _destinations(AuthRole? role) {
-    if (role == AuthRole.moderateur) return _staffDestinations;
+    if (role?.isStaff == true) return _staffDestinations;
     return _defaultDestinations;
   }
 
