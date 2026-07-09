@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/players/data/players_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -131,10 +132,24 @@ class AdminRepository {
     String? surnom,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail.contains('@') ||
-        firstName.trim().isEmpty ||
-        lastName.trim().isEmpty) {
-      throw ArgumentError('Email, prénom et nom sont obligatoires.');
+    final cleanFirstName = firstName.trim();
+    final cleanLastName = lastName.trim();
+    if (cleanFirstName.isEmpty || cleanLastName.isEmpty) {
+      throw ArgumentError('Le prénom et le nom sont obligatoires.');
+    }
+
+    if (cleanEmail.isEmpty) {
+      await PlayersRepository(_client).createPlayerInvitation(
+        firstName: cleanFirstName,
+        lastName: cleanLastName,
+        surnom: surnom,
+        isGoalkeeper: false,
+      );
+      return;
+    }
+
+    if (!cleanEmail.contains('@')) {
+      throw ArgumentError('Adresse email invalide.');
     }
 
     final response = await _client.functions.invoke(
@@ -142,8 +157,8 @@ class AdminRepository {
       body: {
         'action': 'invite',
         'email': cleanEmail,
-        'firstName': firstName.trim(),
-        'lastName': lastName.trim(),
+        'firstName': cleanFirstName,
+        'lastName': cleanLastName,
         if (surnom != null && surnom.trim().isNotEmpty)
           'surnom': surnom.trim(),
       },
