@@ -81,7 +81,8 @@ class AdminRepository {
           .eq('season_id', openSeasonId);
       memberships.addAll(
         (membershipRows as List).map(
-            (row) => Map<String, dynamic>.from(row)['profile_id'].toString()),
+          (row) => Map<String, dynamic>.from(row)['profile_id'].toString(),
+        ),
       );
     }
 
@@ -154,26 +155,45 @@ class AdminRepository {
     return 'L’opération d’administration a échoué.';
   }
 
+  Future<void> _updatePrivilegedProfileFields({
+    required String profileId,
+    String? role,
+    String? status,
+    bool? isGoalkeeper,
+  }) async {
+    final result = await _client.rpc(
+      'moderator_update_profile_admin_fields',
+      params: {
+        'p_profile_id': profileId,
+        'p_role': role,
+        'p_status': status,
+        'p_is_goalkeeper': isGoalkeeper,
+      },
+    );
+    if (result != true) {
+      throw StateError('Le profil n’a pas pu être mis à jour.');
+    }
+  }
+
   Future<void> updateProfileRole(String profileId, String role) async {
     if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
       throw ArgumentError('Rôle invalide.');
     }
-    await _client.from('profiles').update({'role': role}).eq('id', profileId);
+    await _updatePrivilegedProfileFields(profileId: profileId, role: role);
   }
 
   Future<void> updateProfileStatus(String profileId, String status) async {
     if (!const ['active', 'archived'].contains(status)) {
       throw ArgumentError('Statut invalide.');
     }
-    await _client
-        .from('profiles')
-        .update({'status': status}).eq('id', profileId);
+    await _updatePrivilegedProfileFields(profileId: profileId, status: status);
   }
 
   Future<void> updateGoalkeeper(String profileId, bool value) async {
-    await _client
-        .from('profiles')
-        .update({'is_goalkeeper': value}).eq('id', profileId);
+    await _updatePrivilegedProfileFields(
+      profileId: profileId,
+      isGoalkeeper: value,
+    );
   }
 
   Future<void> createSeason(String name) async {
