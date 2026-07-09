@@ -31,7 +31,7 @@ class LiveRepository {
   Future<Map<String, dynamic>> _requireSession(String matchId) async {
     final response = await _client
         .from('live_sessions')
-        .select('id, formation')
+        .select('id, formation, controller_profile_id, controller_session_id')
         .eq('match_id', matchId)
         .maybeSingle();
     if (response == null) {
@@ -40,16 +40,29 @@ class LiveRepository {
     return Map<String, dynamic>.from(response);
   }
 
+  Future<String> _requireControllerSessionId(String matchId) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
+
+    final session = await _requireSession(matchId);
+    if (session['controller_profile_id']?.toString() != userId) {
+      throw StateError('Cette session ne contrôle pas le Live.');
+    }
+    final sessionId = session['controller_session_id']?.toString();
+    if (sessionId == null || sessionId.isEmpty) {
+      throw StateError('Aucune session de contrôle active.');
+    }
+    return sessionId;
+  }
+
   Future<void> createLiveSession({required String matchId}) async {
-    await _client.from('live_sessions').upsert(
-      {
-        'match_id': matchId,
-        'status': 'not_started',
-        'elapsed_seconds': 0,
-      },
-      onConflict: 'match_id',
-      ignoreDuplicates: true,
+    final result = await _client.rpc(
+      'create_live_session_if_missing',
+      params: {'p_match_id': matchId},
     );
+    if (result == null) {
+      throw StateError('La session Live n’a pas pu être créée.');
+    }
   }
 
   Future<bool> updateLiveSession({
@@ -59,18 +72,15 @@ class LiveRepository {
     required String controllerProfileId,
     required String controllerSessionId,
   }) async {
-    final response = await _client
-        .from('live_sessions')
-        .update({
-          'status': status,
-          'elapsed_seconds': elapsedSeconds,
-        })
-        .eq('match_id', matchId)
-        .eq('controller_profile_id', controllerProfileId)
-        .eq('controller_session_id', controllerSessionId)
-        .select('id')
-        .maybeSingle();
-    return response != null;
+    final result = await _client.rpc(
+      'update_live_status',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': controllerSessionId,
+        'p_status': status,
+      },
+    );
+    return result == true;
   }
 
   Future<bool> claimControl({
@@ -78,34 +88,28 @@ class LiveRepository {
     required String profileId,
     required String sessionId,
   }) async {
-    final existing = await _client
-        .from('live_sessions')
-        .select('controller_profile_id, controller_session_id')
-        .eq('match_id', matchId)
-        .maybeSingle();
-    if (existing == null) {
-      throw StateError('Aucune session live trouvée pour ce match.');
-    }
+    final result = await _client.rpc(
+      'claim_live_control',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+      },
+    );
+    return result == true;
+  }
 
-    final currentProfileId = existing['controller_profile_id']?.toString();
-    final currentSessionId = existing['controller_session_id']?.toString();
-    if (currentProfileId != null || currentSessionId != null) {
-      return currentProfileId == profileId && currentSessionId == sessionId;
-    }
-
-    final response = await _client
-        .from('live_sessions')
-        .update({
-          'controller_profile_id': profileId,
-          'controller_session_id': sessionId,
-          'controller_disconnected_at': null,
-        })
-        .eq('match_id', matchId)
-        .isFilter('controller_profile_id', null)
-        .isFilter('controller_session_id', null)
-        .select('id')
-        .maybeSingle();
-    return response != null;
+  Future<bool> releaseControl({
+    required String matchId,
+    required String sessionId,
+  }) async {
+    final result = await _client.rpc(
+      'release_live_control',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+      },
+    );
+    return result == true;
   }
 
   Future<LiveGameplayState> fetchGameplay({
@@ -284,19 +288,18 @@ class LiveRepository {
     required String playerId,
     required String slotKey,
   }) async {
-    final session = await _requireSession(matchId);
-    final liveSessionId = session['id'].toString();
-    await _client
-        .from('live_positions')
-        .delete()
-        .eq('live_session_id', liveSessionId)
-        .eq('profile_id', playerId);
-    if (slotKey != 'bench') {
-      await _client.from('live_positions').insert({
-        'live_session_id': liveSessionId,
-        'profile_id': playerId,
-        'slot_code': slotKey,
-      });
+    final sessionId = await _requireControllerSessionId(matchId);
+    final result = await _client.rpc(
+      'move_live_player',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+        'p_profile_id': playerId,
+        'p_slot_code': slotKey,
+      },
+    );
+    if (result != true) {
+      throw StateError('Le déplacement du joueur a été refusé.');
     }
   }
 
@@ -353,22 +356,20 @@ class LiveRepository {
     required String inPlayerId,
     required String outPlayerId,
   }) async {
-    final session = await _requireSession(matchId);
-    final liveSessionId = session['id'].toString();
-    await _client.from('substitutions').insert([
-      {
-        'live_session_id': liveSessionId,
-        'profile_id': outPlayerId,
-        'action': 'out',
-        'minute': minute,
+    final sessionId = await _requireControllerSessionId(matchId);
+    final result = await _client.rpc(
+      'record_substitution',
+      params: {
+        'p_match_id': matchId,
+        'p_controller_session_id': sessionId,
+        'p_minute': minute,
+        'p_in_profile_id': inPlayerId,
+        'p_out_profile_id': outPlayerId,
       },
-      {
-        'live_session_id': liveSessionId,
-        'profile_id': inPlayerId,
-        'action': 'in',
-        'minute': minute,
-      },
-    ]);
+    );
+    if (result != true) {
+      throw StateError('Le remplacement a été refusé.');
+    }
   }
 
   GoalType _goalTypeFromDatabase(String? value) {
