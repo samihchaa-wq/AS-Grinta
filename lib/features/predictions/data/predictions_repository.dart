@@ -109,43 +109,43 @@ class PredictionsRepository {
             odds_victoire_adverse
           )
         ''')
+        .eq('status', 'a_venir')
         .order('match_date', ascending: true)
-        .order('match_time', ascending: true);
+        .order('match_time', ascending: true)
+        .limit(1);
 
-    final predictions = await _client
+    if ((matches as List).isEmpty) return const [];
+
+    final matchMap = Map<String, dynamic>.from(matches.first as Map);
+    final matchId = matchMap['id'].toString();
+    final prediction = await _client
         .from('match_predictions')
         .select(
-            'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled')
-        .eq('profile_id', userId);
+          'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled',
+        )
+        .eq('profile_id', userId)
+        .eq('match_id', matchId)
+        .maybeSingle();
 
-    final byMatch = <String, Map<String, dynamic>>{};
-    for (final row in predictions as List) {
-      final map = Map<String, dynamic>.from(row);
-      byMatch[map['match_id'].toString()] = map;
-    }
+    final date = matchMap['match_date']?.toString() ?? '';
+    final time = matchMap['match_time']?.toString() ?? '00:00:00';
+    final kickoffAt = DateTime.tryParse('${date}T$time') ?? DateTime(1970);
+    final opponent = matchMap['opponents'] is Map
+        ? Map<String, dynamic>.from(matchMap['opponents'] as Map)
+        : const <String, dynamic>{};
+    final oddsRaw = matchMap['match_odds'];
+    final odds = oddsRaw is List && oddsRaw.isNotEmpty
+        ? Map<String, dynamic>.from(oddsRaw.first as Map)
+        : oddsRaw is Map
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
 
-    return (matches as List).map((row) {
-      final map = Map<String, dynamic>.from(row);
-      final id = map['id'].toString();
-      final prediction = byMatch[id];
-      final date = map['match_date']?.toString() ?? '';
-      final time = map['match_time']?.toString() ?? '00:00:00';
-      final kickoffAt = DateTime.tryParse('${date}T$time') ?? DateTime(1970);
-      final opponent = map['opponents'] is Map
-          ? Map<String, dynamic>.from(map['opponents'] as Map)
-          : const <String, dynamic>{};
-      final oddsRaw = map['match_odds'];
-      final odds = oddsRaw is List && oddsRaw.isNotEmpty
-          ? Map<String, dynamic>.from(oddsRaw.first as Map)
-          : oddsRaw is Map
-              ? Map<String, dynamic>.from(oddsRaw)
-              : const <String, dynamic>{};
-
-      return MatchPredictionItem(
-        matchId: id,
+    return [
+      MatchPredictionItem(
+        matchId: matchId,
         opponentName: opponent['name']?.toString() ?? 'Adversaire',
         kickoffAt: kickoffAt,
-        status: map['status']?.toString() ?? 'a_venir',
+        status: matchMap['status']?.toString() ?? 'a_venir',
         scoreGrinta:
             int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ??
                 0,
@@ -155,14 +155,14 @@ class PredictionsRepository {
         oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
         oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
         oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
-        actualScoreGrinta: map['score_as_grinta'] == null
+        actualScoreGrinta: matchMap['score_as_grinta'] == null
             ? null
-            : int.tryParse('${map['score_as_grinta']}'),
-        actualScoreOpponent: map['score_adverse'] == null
+            : int.tryParse('${matchMap['score_as_grinta']}'),
+        actualScoreOpponent: matchMap['score_adverse'] == null
             ? null
-            : int.tryParse('${map['score_adverse']}'),
-      );
-    }).toList();
+            : int.tryParse('${matchMap['score_adverse']}'),
+      ),
+    ];
   }
 
   Future<void> savePrediction({
