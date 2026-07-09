@@ -2,6 +2,7 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -17,7 +18,7 @@ class HomePage extends ConsumerWidget {
           IconButton(
             tooltip: 'Profil',
             icon: const Icon(Icons.person_outline),
-            onPressed: () => Navigator.of(context).pushNamed('/profile'),
+            onPressed: () => context.go('/profile'),
           ),
           IconButton(
             tooltip: 'Déconnexion',
@@ -49,12 +50,12 @@ class HomePage extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text('Rôle : ${authState.profile?.role.label ?? 'inconnu'}'),
                   Text(
-                      'Gardien : ${authState.profile?.isGoalkeeper == true ? 'Oui' : 'Non'}'),
+                    'Gardien : ${authState.profile?.isGoalkeeper == true ? 'Oui' : 'Non'}',
+                  ),
                   if (authState.profile?.role == AuthRole.admin) ...[
                     const SizedBox(height: 8),
                     const Text('Vous disposez des droits d’administration.'),
-                  ] else if (authState.profile?.role ==
-                      AuthRole.moderateur) ...[
+                  ] else if (authState.profile?.role == AuthRole.moderateur) ...[
                     const SizedBox(height: 8),
                     const Text('Vous disposez des droits de modération.'),
                   ] else ...[
