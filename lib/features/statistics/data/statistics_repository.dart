@@ -11,6 +11,9 @@ class PlayerStatistics {
     required this.assists,
     required this.motm,
     required this.cleanSheets,
+    required this.minutesPlayed,
+    required this.starts,
+    required this.substituteAppearances,
   });
 
   final String profileId;
@@ -20,6 +23,9 @@ class PlayerStatistics {
   final int assists;
   final int motm;
   final int cleanSheets;
+  final int minutesPlayed;
+  final int starts;
+  final int substituteAppearances;
 }
 
 class StatisticsRepository {
@@ -34,9 +40,17 @@ class StatisticsRepository {
         .eq('status', 'active');
     final statsResponse = await _client
         .from('v_player_career_stats')
-        .select(
-          'profile_id, matches_played, goals, assists, motm, clean_sheets',
-        );
+        .select('''
+          profile_id,
+          matches_played,
+          goals,
+          assists,
+          motm,
+          clean_sheets,
+          minutes_played,
+          starts,
+          substitute_appearances
+        ''');
 
     final statsByProfile = <String, Map<String, dynamic>>{};
     for (final row in statsResponse as List) {
@@ -62,6 +76,10 @@ class StatisticsRepository {
           assists: int.tryParse('${stats['assists'] ?? 0}') ?? 0,
           motm: int.tryParse('${stats['motm'] ?? 0}') ?? 0,
           cleanSheets: int.tryParse('${stats['clean_sheets'] ?? 0}') ?? 0,
+          minutesPlayed: int.tryParse('${stats['minutes_played'] ?? 0}') ?? 0,
+          starts: int.tryParse('${stats['starts'] ?? 0}') ?? 0,
+          substituteAppearances:
+              int.tryParse('${stats['substitute_appearances'] ?? 0}') ?? 0,
         ),
       );
     }
@@ -73,6 +91,8 @@ class StatisticsRepository {
       if (assists != 0) return assists;
       final motm = b.motm.compareTo(a.motm);
       if (motm != 0) return motm;
+      final minutes = b.minutesPlayed.compareTo(a.minutesPlayed);
+      if (minutes != 0) return minutes;
       return a.name.compareTo(b.name);
     });
     return result;
