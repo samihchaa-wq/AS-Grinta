@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  analyze-and-test:
+  analyze-test-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,16 +25,19 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          # Les erreurs et avertissements restent bloquants. Les simples informations
-          # de dépréciation sont conservées dans le rapport sans faire échouer la CI.
           flutter analyze --no-fatal-infos 2>&1 | tee analyze.log
 
       - name: Test
-        if: always()
         shell: bash
         run: |
           set -o pipefail
           flutter test 2>&1 | tee test.log
+
+      - name: Build web
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build web --release 2>&1 | tee build-web.log
 
       - name: Upload validation logs
         if: always()
@@ -44,4 +47,5 @@ jobs:
           path: |
             analyze.log
             test.log
+            build-web.log
           if-no-files-found: warn
