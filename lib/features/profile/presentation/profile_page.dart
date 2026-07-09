@@ -1,8 +1,13 @@
+import 'dart:typed_data';
+
+import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -14,7 +19,10 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
-  late final TextEditingController _avatarController;
+  Uint8List? _pendingAvatarBytes;
+  String? _avatarUrl;
+  bool _isUploadingAvatar = false;
+  String? _localError;
 
   @override
   void initState() {
@@ -22,14 +30,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final profile = ref.read(authControllerProvider).profile;
     _firstNameController = TextEditingController(text: profile?.firstName ?? '');
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
-    _avatarController = TextEditingController(text: profile?.avatarPath ?? '');
+    _avatarUrl = profile?.avatarPath;
   }
 
   @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _avatarController.dispose();
     super.dispose();
   }
 
@@ -37,12 +44,38 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final profile = authState.profile;
+    final busy = authState.isLoading || _isUploadingAvatar;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          Center(
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                CircleAvatar(
+                  radius: 54,
+                  backgroundImage: _pendingAvatarBytes != null
+                      ? MemoryImage(_pendingAvatarBytes!)
+                      : (_avatarUrl?.isNotEmpty == true
+                          ? NetworkImage(_avatarUrl!)
+                          : null) as ImageProvider<Object>?,
+                  child: _pendingAvatarBytes == null &&
+                          (_avatarUrl == null || _avatarUrl!.isEmpty)
+                      ? const Icon(Icons.person, size: 54)
+                      : null,
+                ),
+                IconButton.filled(
+                  tooltip: 'Choisir une photo',
+                  onPressed: busy ? null : _pickAvatar,
+                  icon: const Icon(Icons.photo_camera_outlined),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -67,42 +100,37 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 20),
           TextField(
             controller: _firstNameController,
+            textInputAction: TextInputAction.next,
             decoration: const InputDecoration(labelText: 'Prénom'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _lastNameController,
+            textInputAction: TextInputAction.done,
             decoration: const InputDecoration(labelText: 'Nom'),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _avatarController,
-            decoration: const InputDecoration(labelText: 'Photo (URL ou chemin)'),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: authState.isLoading
-                ? null
-                : () async {
-                    await ref.read(authControllerProvider.notifier).updateProfile(
-                          firstName: _firstNameController.text.trim(),
-                          lastName: _lastNameController.text.trim(),
-                          avatarPath: _avatarController.text.trim(),
-                        );
-                  },
-            icon: const Icon(Icons.save_outlined),
+            onPressed: busy ? null : _saveProfile,
+            icon: busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
             label: const Text('Enregistrer'),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: authState.isLoading ? null : () => _changePassword(context),
+            onPressed: busy ? null : () => _changePassword(context),
             icon: const Icon(Icons.lock_reset_outlined),
             label: const Text('Changer le mot de passe'),
           ),
-          if (authState.error != null) ...[
+          if (_localError != null || authState.error != null) ...[
             const SizedBox(height: 12),
             Text(
-              authState.error!,
+              _localError ?? authState.error!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
@@ -117,6 +145,77 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ],
       ),
     );
+  }
+
+  Future<void> _pickAvatar() async {
+    setState(() => _localError = null);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 2048,
+        maxHeight: 2048,
+      );
+      if (picked == null) return;
+
+      final original = await picked.readAsBytes();
+      final decoded = img.decodeImage(original);
+      if (decoded == null) {
+        throw StateError('Le format de cette image n’est pas pris en charge.');
+      }
+
+      final resized = decoded.width > 1024 || decoded.height > 1024
+          ? img.copyResize(
+              decoded,
+              width: decoded.width >= decoded.height ? 1024 : null,
+              height: decoded.height > decoded.width ? 1024 : null,
+              interpolation: img.Interpolation.average,
+            )
+          : decoded;
+      final compressed = Uint8List.fromList(img.encodeJpg(resized, quality: 82));
+      if (!mounted) return;
+      setState(() => _pendingAvatarBytes = compressed);
+    } catch (error) {
+      if (mounted) setState(() => _localError = error.toString());
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    if (firstName.isEmpty || lastName.isEmpty) {
+      setState(() => _localError = 'Le prénom et le nom sont obligatoires.');
+      return;
+    }
+
+    setState(() {
+      _isUploadingAvatar = true;
+      _localError = null;
+    });
+    try {
+      var avatarUrl = _avatarUrl ?? '';
+      if (_pendingAvatarBytes != null) {
+        avatarUrl = await ref
+            .read(authRepositoryProvider)
+            .uploadAvatar(_pendingAvatarBytes!);
+      }
+      await ref.read(authControllerProvider.notifier).updateProfile(
+            firstName: firstName,
+            lastName: lastName,
+            avatarPath: avatarUrl,
+          );
+      if (!mounted) return;
+      setState(() {
+        _avatarUrl = avatarUrl;
+        _pendingAvatarBytes = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil enregistré.')),
+      );
+    } catch (error) {
+      if (mounted) setState(() => _localError = error.toString());
+    } finally {
+      if (mounted) setState(() => _isUploadingAvatar = false);
+    }
   }
 
   Future<void> _changePassword(BuildContext context) async {
