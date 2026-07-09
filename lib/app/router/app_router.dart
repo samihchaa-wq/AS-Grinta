@@ -6,6 +6,7 @@ import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_up_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/coach/presentation/coach_board_page.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/live/presentation/live_gameplay_page.dart';
 import 'package:as_grinta/features/live/presentation/live_page.dart';
@@ -14,6 +15,7 @@ import 'package:as_grinta/features/matches/presentation/match_details_page.dart'
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
+import 'package:as_grinta/features/players/presentation/players_page.dart';
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
@@ -39,30 +41,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (location == '/') return '/home';
 
       final role = authState.profile?.role;
+      final isStaff =
+          role == AuthRole.admin || role == AuthRole.moderateur;
+
       final isLiveOverviewRoute = RegExp(r'^/live/[^/]+$').hasMatch(location);
       final isLiveGameplayRoute = location.endsWith('/gameplay');
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
-      final isParticipantsRoute = location.startsWith('/matches/') &&
-          location.endsWith('/participants');
+      final isParticipantsRoute =
+          location.startsWith('/matches/') && location.endsWith('/participants');
       final isCorrectionRoute =
           location.startsWith('/matches/') && location.endsWith('/correction');
       final isAdminRoute = location == '/admin';
+      final isCoachRoute = location == '/coach';
+      final isPlayersRoute = location == '/players';
 
-      if (isLiveOverviewRoute &&
-          role != AuthRole.admin &&
-          role != AuthRole.moderateur) {
-        return '/matches';
-      }
-      if (isLiveGameplayRoute &&
-          role != AuthRole.admin &&
-          role != AuthRole.moderateur) {
+      if ((isLiveOverviewRoute || isLiveGameplayRoute) && !isStaff) {
         return '/matches';
       }
       if (isFinalizationRoute && role != AuthRole.admin) return '/matches';
       if (isParticipantsRoute && role != AuthRole.admin) return '/matches';
       if (isCorrectionRoute && role != AuthRole.moderateur) return '/matches';
       if (isAdminRoute && role != AuthRole.moderateur) return '/home';
+      if (isCoachRoute && !isStaff) return '/home';
+      if (isPlayersRoute && !isStaff) return '/home';
 
       return null;
     },
@@ -76,6 +78,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
+          GoRoute(path: '/coach', builder: (_, __) => const CoachBoardPage()),
+          GoRoute(path: '/players', builder: (_, __) => const PlayersPage()),
           GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
           GoRoute(
             path: '/matches/:matchId',
@@ -112,6 +116,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const StatisticsPage(),
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+          GoRoute(
+            path: '/claim',
+            builder: (context, state) => ClaimPlayerPage(
+              token: state.uri.queryParameters['token'],
+            ),
+          ),
           GoRoute(
             path: '/live/:matchId',
             builder: (context, state) =>

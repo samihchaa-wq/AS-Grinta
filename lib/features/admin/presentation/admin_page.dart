@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class AdminPage extends ConsumerWidget {
   const AdminPage({super.key});
@@ -78,6 +79,49 @@ class AdminPage extends ConsumerWidget {
                     openSeasonId: dashboard.openSeasonId,
                   ),
                 ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Registre des joueurs',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => context.push('/players'),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Gérer'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.group_outlined),
+                  title: const Text('Joueurs indépendants'),
+                  subtitle: const Text(
+                    'Gérez les fiches joueurs et les tokens de revendication de compte.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/players'),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.dashboard_customize_rounded),
+                  title: const Text('Tableau blanc du coach'),
+                  subtitle: const Text(
+                    'Terrain tactique, chronomètre et suivi d\'événements en temps réel.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/coach'),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
