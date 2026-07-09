@@ -96,7 +96,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                 ),
               )
             else
-              ...state.items.map(
+              ...state.items.take(1).map(
                 (item) => _PredictionCard(
                   item: item,
                   isSaving: state.savingMatchId == item.matchId,
@@ -152,9 +152,21 @@ class _PredictionCard extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 children: [
-                  Chip(label: Text('V ${item.oddsWin!.toStringAsFixed(2)}')),
-                  Chip(label: Text('N ${item.oddsDraw!.toStringAsFixed(2)}')),
-                  Chip(label: Text('D ${item.oddsLoss!.toStringAsFixed(2)}')),
+                  Chip(
+                    label: Text(
+                      'V ${(item.oddsWin! * 10).toStringAsFixed(1)} pts',
+                    ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'N ${(item.oddsDraw! * 10).toStringAsFixed(1)} pts',
+                    ),
+                  ),
+                  Chip(
+                    label: Text(
+                      'D ${(item.oddsLoss! * 10).toStringAsFixed(1)} pts',
+                    ),
+                  ),
                 ],
               ),
             ],
