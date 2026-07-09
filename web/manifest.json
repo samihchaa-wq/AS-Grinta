@@ -1,0 +1,12 @@
+{
+  "name": "AS Grinta",
+  "short_name": "AS Grinta",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0B1F17",
+  "theme_color": "#0B1F17",
+  "description": "Application officielle AS Grinta",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": []
+}
