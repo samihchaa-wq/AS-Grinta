@@ -49,6 +49,7 @@ class LiveController extends StateNotifier<LiveControllerState> {
   StreamSubscription<List<Map<String, dynamic>>>? _subscription;
 
   bool get _isAdmin => _currentRole == AuthRole.admin;
+  bool get _isModerator => _currentRole == AuthRole.moderateur;
 
   Future<void> initialize(String matchId) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -101,11 +102,8 @@ class LiveController extends StateNotifier<LiveControllerState> {
   }
 
   Future<void> start(String matchId) => _setStatus(matchId, 'running');
-
   Future<void> pause(String matchId) => _setStatus(matchId, 'paused');
-
   Future<void> setHalftime(String matchId) => _setStatus(matchId, 'halftime');
-
   Future<void> finish(String matchId) => _setStatus(matchId, 'finished');
 
   Future<void> claimControl(String matchId) async {
@@ -131,6 +129,57 @@ class LiveController extends StateNotifier<LiveControllerState> {
       if (!claimed) {
         state = state.copyWith(
           error: 'Ce Live est déjà contrôlé par une autre session.',
+        );
+        return;
+      }
+      _ref.read(liveControlSessionIdProvider.notifier).state = sessionId;
+      state = state.copyWith(clearError: true);
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
+  }
+
+  Future<void> releaseControl(String matchId) async {
+    final sessionId = _ref.read(liveControlSessionIdProvider);
+    if (!_isAdmin || sessionId == null) {
+      state = state.copyWith(error: 'Cette session ne contrôle pas le Live.');
+      return;
+    }
+
+    try {
+      final released = await _repository.releaseControl(
+        matchId: matchId,
+        sessionId: sessionId,
+      );
+      if (!released) {
+        state = state.copyWith(error: 'La cession du contrôle a été refusée.');
+        return;
+      }
+      _ref.read(liveControlSessionIdProvider.notifier).state = null;
+      state = state.copyWith(clearError: true);
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+    }
+  }
+
+  Future<void> forceResumeControl(String matchId) async {
+    final userId = _currentUserId;
+    if (!_isModerator || userId == null) {
+      state = state.copyWith(
+        error: 'Seul le Modérateur peut effectuer une reprise forcée.',
+      );
+      return;
+    }
+
+    try {
+      final sessionId = 'moderator-$userId-${DateTime.now().microsecondsSinceEpoch}';
+      final resumed = await _repository.forceResumeControl(
+        matchId: matchId,
+        sessionId: sessionId,
+      );
+      if (!resumed) {
+        state = state.copyWith(
+          error: 'Le délai de grâce de 60 secondes n’est pas terminé.',
         );
         return;
       }
