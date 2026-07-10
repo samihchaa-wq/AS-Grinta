@@ -10,6 +10,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write
 
 concurrency:
   group: pages
@@ -67,6 +68,9 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: Checkout configuration
         uses: actions/checkout@v4
@@ -168,3 +172,10 @@ jobs:
             as-grinta-smoke.png
             as-grinta-smoke-errors.log
           if-no-files-found: error
+      - name: Record verified production deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment 43 \
+            --repo "$GITHUB_REPOSITORY" \
+            --body "✅ Production vérifiée pour le commit \`$GITHUB_SHA\` — build, déploiement Pages, assets, Supabase et rendu Flutter sans erreur console. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
