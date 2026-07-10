@@ -118,10 +118,10 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
                       loading: () => const Center(
                         child: CircularProgressIndicator(),
                       ),
-                      error: (error, _) => Center(
+                      error: (_, __) => const Center(
                         child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(error.toString()),
+                          padding: EdgeInsets.all(16),
+                          child: Text('Le classement est temporairement indisponible.'),
                         ),
                       ),
                       data: (entries) => TabBarView(
@@ -170,7 +170,9 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
                   child: Center(child: CircularProgressIndicator()),
                 ),
               ),
-              error: (error, _) => _ErrorCard(message: error.toString()),
+              error: (_, __) => const _ErrorCard(
+                message: 'Les pronostics de saison sont temporairement indisponibles.',
+              ),
               data: _buildSeasonPredictions,
             ),
             const SizedBox(height: 24),
@@ -285,6 +287,11 @@ class _LeaderboardList extends StatelessWidget {
     };
   }
 
+  String _formatPoints(double value) {
+    if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
+    return value.toStringAsFixed(1).replaceAll('.', ',');
+  }
+
   @override
   Widget build(BuildContext context) {
     final sorted = [...entries]..sort((a, b) {
@@ -313,10 +320,19 @@ class _LeaderboardList extends StatelessWidget {
             entry.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: index == 0
+                ? const TextStyle(fontWeight: FontWeight.w800)
+                : null,
           ),
-          trailing: Text(
-            _points(entry).toStringAsFixed(1),
-            style: Theme.of(context).textTheme.titleMedium,
+          trailing: SizedBox(
+            width: 72,
+            child: Text(
+              _formatPoints(_points(entry)),
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: index == 0 ? FontWeight.w800 : FontWeight.w600,
+                  ),
+            ),
           ),
         );
       },
@@ -352,7 +368,7 @@ class _PredictionCard extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     'AS Grinta - ${item.opponentName}',
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
@@ -363,6 +379,40 @@ class _PredictionCard extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(AppFormats.dateTime(item.kickoffAt)),
+            if (item.oddsWin != null ||
+                item.oddsDraw != null ||
+                item.oddsLoss != null) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _OddsPoint(
+                      label: '1 · Grinta',
+                      odds: item.oddsWin,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _OddsPoint(
+                      label: 'N · Nul',
+                      odds: item.oddsDraw,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _OddsPoint(
+                      label: '2 · Adverse',
+                      odds: item.oddsLoss,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Points de base. Score exact : jusqu’au double.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             if (item.isClosed) ...[
               const SizedBox(height: 16),
               const Text(
@@ -429,6 +479,39 @@ class _PredictionCard extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OddsPoint extends StatelessWidget {
+  const _OddsPoint({required this.label, required this.odds});
+
+  final String label;
+  final double? odds;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = odds;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(
+            value == null ? '—' : '${(value * 10).round()} pts',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
       ),
     );
   }

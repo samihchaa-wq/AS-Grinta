@@ -158,6 +158,26 @@ class CoachLiveRepository {
         );
   }
 
+  Future<void> startMatch(String matchId) async {
+    final result = await _client.rpc(
+      'start_coach_match',
+      params: {'p_match_id': matchId},
+    );
+    if (result != true) {
+      throw StateError('Le match n’a pas pu démarrer.');
+    }
+  }
+
+  Future<void> finishMatch(String matchId) async {
+    final result = await _client.rpc(
+      'finish_coach_match',
+      params: {'p_match_id': matchId},
+    );
+    if (result != true) {
+      throw StateError('Le match n’a pas pu être terminé.');
+    }
+  }
+
   Future<void> saveSession(CoachLiveSession session) async {
     await _client.from('coach_match_sessions').upsert(
       {
