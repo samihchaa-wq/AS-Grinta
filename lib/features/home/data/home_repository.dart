@@ -7,16 +7,12 @@ class HomeDashboardData {
     required this.nextMatchId,
     required this.nextOpponent,
     required this.nextKickoffAt,
-    required this.nextMatchStatus,
-    required this.hasLiveMatch,
     required this.pendingPredictions,
   });
 
   final String? nextMatchId;
   final String? nextOpponent;
   final DateTime? nextKickoffAt;
-  final String? nextMatchStatus;
-  final bool hasLiveMatch;
   final int pendingPredictions;
 }
 
@@ -31,8 +27,8 @@ class HomeRepository {
 
     final matches = await _client
         .from('matches')
-        .select('id, match_date, match_time, status, opponents(name)')
-        .inFilter('status', ['a_venir', 'en_cours'])
+        .select('id, match_date, match_time, opponents(name)')
+        .eq('status', 'a_venir')
         .order('match_date', ascending: true)
         .order('match_time', ascending: true);
 
@@ -49,15 +45,12 @@ class HomeRepository {
     String? nextMatchId;
     String? nextOpponent;
     DateTime? nextKickoffAt;
-    String? nextMatchStatus;
-    var hasLiveMatch = false;
     var pendingPredictions = 0;
     final now = DateTime.now();
 
     for (final row in matches as List) {
       final map = Map<String, dynamic>.from(row);
       final id = map['id'].toString();
-      final status = map['status']?.toString() ?? 'a_venir';
       final date = map['match_date']?.toString() ?? '';
       final time = map['match_time']?.toString() ?? '00:00:00';
       final kickoff = DateTime.tryParse('${date}T$time');
@@ -65,20 +58,16 @@ class HomeRepository {
           ? Map<String, dynamic>.from(map['opponents'] as Map)
           : const <String, dynamic>{};
 
-      if (status == 'en_cours') hasLiveMatch = true;
       if (nextMatchId == null) {
         nextMatchId = id;
         nextOpponent = opponent['name']?.toString() ?? 'Adversaire';
         nextKickoffAt = kickoff;
-        nextMatchStatus = status;
       }
 
-      if (status == 'a_venir' && kickoff != null) {
-        final opensAt = kickoff.subtract(const Duration(days: 6));
-        // Fenêtre de pronostic : ferme 10 minutes avant le coup d'envoi.
-        final closesAt = kickoff.subtract(const Duration(minutes: 10));
-        final isWindowOpen = !now.isBefore(opensAt) && now.isBefore(closesAt);
-        if (isWindowOpen && filledByMatch[id] != true) pendingPredictions++;
+      if (kickoff != null &&
+          now.isBefore(kickoff.subtract(const Duration(minutes: 5))) &&
+          filledByMatch[id] != true) {
+        pendingPredictions++;
       }
     }
 
@@ -86,8 +75,6 @@ class HomeRepository {
       nextMatchId: nextMatchId,
       nextOpponent: nextOpponent,
       nextKickoffAt: nextKickoffAt,
-      nextMatchStatus: nextMatchStatus,
-      hasLiveMatch: hasLiveMatch,
       pendingPredictions: pendingPredictions,
     );
   }
