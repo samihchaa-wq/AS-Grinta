@@ -16,6 +16,8 @@ class AsGrintaApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'AS Grinta',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('fr', 'FR'),
+      supportedLocales: const [Locale('fr', 'FR')],
       theme: AppTheme.dark,
       routerConfig: router,
       builder: (context, child) {
