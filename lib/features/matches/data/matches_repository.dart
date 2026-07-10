@@ -25,7 +25,12 @@ class MatchesRepository {
       created_at,
       updated_at,
       opponents(name),
-      seasons(name)
+      seasons(name),
+      match_odds(
+        odds_victoire_as_grinta,
+        odds_nul,
+        odds_victoire_adverse
+      )
     ''');
 
     if (seasonId != null && seasonId.isNotEmpty) {
@@ -78,23 +83,37 @@ class MatchesRepository {
     required DateTime kickoffAt,
     required bool isHome,
     required String competition,
+    required double oddsWin,
+    required double oddsDraw,
+    required double oddsLoss,
   }) async {
     final currentUserId = _client.auth.currentUser?.id;
     if (currentUserId == null) {
       throw StateError('Utilisateur non authentifié.');
     }
 
-    await _client.from('matches').insert({
-      'season_id': seasonId,
-      'opponent_id': opponentId,
-      'match_date': kickoffAt.toIso8601String().split('T').first,
-      'match_time': _formatTime(kickoffAt),
-      'location': isHome ? 'domicile' : 'exterieur',
-      'competition': competition.trim(),
-      'planned_duration_minutes': 90,
-      'status': 'a_venir',
-      'created_by': currentUserId,
-    });
+    final row = await _client
+        .from('matches')
+        .insert({
+          'season_id': seasonId,
+          'opponent_id': opponentId,
+          'match_date': kickoffAt.toIso8601String().split('T').first,
+          'match_time': _formatTime(kickoffAt),
+          'location': isHome ? 'domicile' : 'exterieur',
+          'competition': competition.trim(),
+          'planned_duration_minutes': 90,
+          'status': 'a_venir',
+          'created_by': currentUserId,
+        })
+        .select('id')
+        .single();
+
+    await _setOdds(
+      matchId: row['id'].toString(),
+      oddsWin: oddsWin,
+      oddsDraw: oddsDraw,
+      oddsLoss: oddsLoss,
+    );
   }
 
   Future<void> updateMatch({
@@ -105,6 +124,9 @@ class MatchesRepository {
     required bool isHome,
     required String competition,
     required String status,
+    required double oddsWin,
+    required double oddsDraw,
+    required double oddsLoss,
   }) async {
     await _client.from('matches').update({
       'season_id': seasonId,
@@ -115,6 +137,35 @@ class MatchesRepository {
       'competition': competition.trim(),
       'status': status,
     }).eq('id', id);
+
+    if (status == 'a_venir') {
+      await _setOdds(
+        matchId: id,
+        oddsWin: oddsWin,
+        oddsDraw: oddsDraw,
+        oddsLoss: oddsLoss,
+      );
+    }
+  }
+
+  Future<void> _setOdds({
+    required String matchId,
+    required double oddsWin,
+    required double oddsDraw,
+    required double oddsLoss,
+  }) async {
+    final result = await _client.rpc(
+      'set_match_odds',
+      params: {
+        'p_match_id': matchId,
+        'p_win': oddsWin,
+        'p_draw': oddsDraw,
+        'p_loss': oddsLoss,
+      },
+    );
+    if (result != true) {
+      throw StateError('Les cotes n’ont pas pu être enregistrées.');
+    }
   }
 
   Future<void> deleteMatch(String id) async {
