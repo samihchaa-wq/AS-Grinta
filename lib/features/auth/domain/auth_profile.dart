@@ -1,4 +1,4 @@
-enum AuthRole { pronostiqueur, admin, moderateur, coach }
+enum AuthRole { pronostiqueur, admin, moderateur }
 
 enum ProfileStatus { active, archived }
 
@@ -9,8 +9,6 @@ extension AuthRoleX on AuthRole {
         return 'Admin';
       case AuthRole.moderateur:
         return 'Modérateur';
-      case AuthRole.coach:
-        return 'Coach';
       case AuthRole.pronostiqueur:
         return 'Joueur';
     }
@@ -18,9 +16,8 @@ extension AuthRoleX on AuthRole {
 
   bool get isAdmin => this == AuthRole.admin;
   bool get isModerator => this == AuthRole.moderateur;
-  bool get isCoach => this == AuthRole.coach;
   bool get isPronostiqueur => this == AuthRole.pronostiqueur;
-  bool get isStaff => isAdmin || isModerator || isCoach;
+  bool get isStaff => isAdmin || isModerator;
 }
 
 class AuthProfile {
@@ -70,7 +67,6 @@ class AuthProfile {
     final role = switch (roleValue) {
       'admin' => AuthRole.admin,
       'moderateur' || 'moderator' => AuthRole.moderateur,
-      'coach' => AuthRole.coach,
       _ => AuthRole.pronostiqueur,
     };
 
