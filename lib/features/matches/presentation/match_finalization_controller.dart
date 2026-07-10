@@ -49,6 +49,48 @@ class MatchFinalizationController
       return false;
     }
 
+    final allStats = [...playerStats, ...guestStats];
+    for (final item in allStats) {
+      final present = item['present'] == true;
+      final goals = _asInt(item['goals']);
+      final assists = _asInt(item['assists']);
+      final penaltyFaults = _asInt(item['penalty_faults']);
+      final cleanSheet = item['clean_sheet'] == true;
+      if (!present &&
+          (goals > 0 || assists > 0 || penaltyFaults > 0 || cleanSheet)) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Un joueur absent ne peut pas avoir de statistiques.',
+        );
+        return false;
+      }
+    }
+
+    final totalGoals = allStats.fold<int>(
+      0,
+      (sum, item) => sum + _asInt(item['goals']),
+    );
+    final totalAssists = allStats.fold<int>(
+      0,
+      (sum, item) => sum + _asInt(item['assists']),
+    );
+    if (totalAssists > totalGoals) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le nombre de passes décisives ne peut pas dépasser le nombre de buts.',
+      );
+      return false;
+    }
+
+    if (opponentScore > 0 &&
+        playerStats.any((item) => item['clean_sheet'] == true)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Un clean sheet est impossible si l’adversaire a marqué.',
+      );
+      return false;
+    }
+
     try {
       await _repository.finalizeMatchPostgame(
         id: matchId,
@@ -64,6 +106,8 @@ class MatchFinalizationController
       return false;
     }
   }
+
+  int _asInt(dynamic value) => value is num ? value.toInt() : 0;
 }
 
 final matchFinalizationControllerProvider =
