@@ -232,8 +232,8 @@ class MatchesController extends StateNotifier<MatchesState> {
   }
 
   Future<void> deleteMatch(String id) async {
-    if (!_isModerator) {
-      state = state.copyWith(error: 'Seul un modérateur peut supprimer.');
+    if (!_canManageMatches) {
+      state = state.copyWith(error: 'Seul le staff peut supprimer un match.');
       return;
     }
     state = state.copyWith(isLoading: true, clearError: true);

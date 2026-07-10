@@ -109,7 +109,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Les fautes provoquant un penalty sont pronostiquées pour tous les joueurs.',
+                'Les fautes provoquant un penalty et les HDM sont pronostiqués pour tous les joueurs, gardiens compris.',
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -189,9 +189,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         ),
         DataCell(isGoalkeeper ? _disabledCell() : _numberCell(find('buts'))),
         DataCell(isGoalkeeper ? _disabledCell() : _numberCell(find('passes'))),
-        DataCell(
-          isGoalkeeper ? _disabledCell() : _numberCell(find('hommes_du_match')),
-        ),
+        DataCell(_numberCell(find('hommes_du_match'))),
         DataCell(
           isGoalkeeper ? _numberCell(find('clean_sheets')) : _disabledCell(),
         ),
