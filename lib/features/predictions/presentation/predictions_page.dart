@@ -15,27 +15,18 @@ class PredictionsPage extends ConsumerStatefulWidget {
   ConsumerState<PredictionsPage> createState() => _PredictionsPageState();
 }
 
-class _PredictionsPageState extends ConsumerState<PredictionsPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _PredictionsPageState extends ConsumerState<PredictionsPage> {
   String? _selectedPredictorId;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     Future.microtask(
       () => ref.read(predictionsControllerProvider.notifier).load(),
     );
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _refreshAll() async {
+  Future<void> _refresh() async {
     await ref.read(predictionsControllerProvider.notifier).load();
     ref.invalidate(leaderboardProvider);
     ref.invalidate(publicSeasonPredictionsProvider);
@@ -56,21 +47,19 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
         title: const Text('Pronostics'),
         actions: [
           IconButton(
-            tooltip: 'Mes pronostics de saison',
+            tooltip: 'Pronostics de saison',
             onPressed: () => context.push('/predictions/season'),
             icon: const Icon(Icons.edit_calendar_outlined),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshAll,
+        onRefresh: _refresh,
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Prochain match',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Prochain match', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 10),
             if (predictionState.error != null)
               _ErrorCard(message: predictionState.error!),
@@ -94,71 +83,37 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
                 isSaving: predictionState.savingMatchId ==
                     predictionState.items.first.matchId,
               ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             Text(
-              'Classements',
+              'Classement général',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 10),
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  TabBar(
-                    controller: _tabController,
-                    tabs: const [
-                      Tab(text: 'Cumulé'),
-                      Tab(text: 'Match'),
-                      Tab(text: 'Saison'),
-                    ],
-                  ),
-                  SizedBox(
-                    height: 330,
-                    child: leaderboardAsync.when(
-                      loading: () => const Center(
-                        child: CircularProgressIndicator(),
-                      ),
-                      error: (_, __) => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('Le classement est temporairement indisponible.'),
-                        ),
-                      ),
-                      data: (entries) => TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _LeaderboardList(
-                            entries: entries,
-                            mode: _LeaderboardMode.total,
-                          ),
-                          _LeaderboardList(
-                            entries: entries,
-                            mode: _LeaderboardMode.match,
-                          ),
-                          _LeaderboardList(
-                            entries: entries,
-                            mode: _LeaderboardMode.season,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+            leaderboardAsync.when(
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(28),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               ),
+              error: (_, __) => const _ErrorCard(
+                message: 'Le classement est temporairement indisponible.',
+              ),
+              data: (entries) => _LeaderboardCard(entries: entries),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    'Pronos saison de chacun',
+                    'Pronostics de saison',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 TextButton.icon(
                   onPressed: () => context.push('/predictions/season'),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Les miens'),
+                  label: const Text('Modifier'),
                 ),
               ],
             ),
@@ -171,23 +126,22 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
                 ),
               ),
               error: (_, __) => const _ErrorCard(
-                message: 'Les pronostics de saison sont temporairement indisponibles.',
+                message: 'Les pronostics de saison sont indisponibles.',
               ),
-              data: _buildSeasonPredictions,
+              data: _seasonPredictions,
             ),
-            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSeasonPredictions(List<SeasonPredictionItem> items) {
+  Widget _seasonPredictions(List<SeasonPredictionItem> items) {
     if (items.isEmpty) {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(20),
-          child: Text('Aucun pronostic de saison public enregistré.'),
+          child: Text('Aucun pronostic de saison public.'),
         ),
       );
     }
@@ -196,37 +150,28 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
     for (final item in items) {
       grouped.putIfAbsent(item.predictorId, () => []).add(item);
     }
-
     final predictors = grouped.entries.toList()
-      ..sort(
-        (a, b) => a.value.first.predictorName
-            .toLowerCase()
-            .compareTo(b.value.first.predictorName.toLowerCase()),
-      );
-
+      ..sort((a, b) => a.value.first.predictorName
+          .toLowerCase()
+          .compareTo(b.value.first.predictorName.toLowerCase()));
     final availableIds = predictors.map((entry) => entry.key).toSet();
     final selectedId = availableIds.contains(_selectedPredictorId)
         ? _selectedPredictorId!
         : predictors.first.key;
-    final selectedItems = [...grouped[selectedId]!]
+    final selected = [...grouped[selectedId]!]
       ..sort((a, b) {
         final player = a.playerName.compareTo(b.playerName);
-        if (player != 0) return player;
-        return a.category.compareTo(b.category);
+        return player != 0 ? player : a.category.compareTo(b.category);
       });
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DropdownButtonFormField<String>(
               initialValue: selectedId,
-              decoration: const InputDecoration(
-                labelText: 'Pronostiqueur',
-                prefixIcon: Icon(Icons.person_search_outlined),
-              ),
+              decoration: const InputDecoration(labelText: 'Pronostiqueur'),
               items: predictors
                   .map(
                     (entry) => DropdownMenuItem(
@@ -234,24 +179,21 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
                       child: Text(entry.value.first.predictorName),
                     ),
                   )
-                  .toList(growable: false),
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedPredictorId = value);
                 }
               },
             ),
-            const SizedBox(height: 12),
-            ...selectedItems.map(
+            const SizedBox(height: 10),
+            ...selected.map(
               (item) => ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(item.playerName),
                 subtitle: Text(_categoryLabel(item.category)),
-                trailing: Text(
-                  '${item.value}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                trailing: Text('${item.value}'),
               ),
             ),
           ],
@@ -266,77 +208,9 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
       'passes' => 'Passes décisives',
       'hommes_du_match' => 'Hommes du match',
       'clean_sheets' => 'Clean sheets',
+      'penalty_faults' => 'Fautes provoquant un penalty',
       _ => category,
     };
-  }
-}
-
-enum _LeaderboardMode { total, match, season }
-
-class _LeaderboardList extends StatelessWidget {
-  const _LeaderboardList({required this.entries, required this.mode});
-
-  final List<LeaderboardEntry> entries;
-  final _LeaderboardMode mode;
-
-  double _points(LeaderboardEntry entry) {
-    return switch (mode) {
-      _LeaderboardMode.total => entry.totalPoints,
-      _LeaderboardMode.match => entry.matchPoints,
-      _LeaderboardMode.season => entry.seasonPoints,
-    };
-  }
-
-  String _formatPoints(double value) {
-    if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
-    return value.toStringAsFixed(1).replaceAll('.', ',');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sorted = [...entries]..sort((a, b) {
-        final points = _points(b).compareTo(_points(a));
-        if (points != 0) return points;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-
-    if (sorted.isEmpty) {
-      return const Center(child: Text('Aucun point calculable.'));
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(12),
-      itemCount: sorted.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final entry = sorted[index];
-        return ListTile(
-          dense: true,
-          leading: CircleAvatar(
-            radius: 17,
-            child: Text('${index + 1}'),
-          ),
-          title: Text(
-            entry.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: index == 0
-                ? const TextStyle(fontWeight: FontWeight.w800)
-                : null,
-          ),
-          trailing: SizedBox(
-            width: 72,
-            child: Text(
-              _formatPoints(_points(entry)),
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: index == 0 ? FontWeight.w800 : FontWeight.w600,
-                  ),
-            ),
-          ),
-        );
-      },
-    );
   }
 }
 
@@ -349,13 +223,11 @@ class _PredictionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(predictionsControllerProvider.notifier);
-    final statusLabel = item.isBeforeWindow
-        ? 'Ouvre le ${AppFormats.dateTime(item.opensAt)}'
-        : item.isClosed
-            ? 'Pronostics clôturés'
-            : item.isFilled
-                ? 'Enregistré'
-                : 'À saisir';
+    final status = item.isClosed
+        ? 'Fermé à H-5'
+        : item.isFilled
+            ? 'Enregistré'
+            : 'À saisir';
 
     return Card(
       child: Padding(
@@ -367,105 +239,74 @@ class _PredictionCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'AS Grinta - ${item.opponentName}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    'AS Grinta – ${item.opponentName}',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Chip(label: Text(statusLabel)),
+                Chip(label: Text(status)),
               ],
             ),
-            const SizedBox(height: 4),
             Text(AppFormats.dateTime(item.kickoffAt)),
-            if (item.oddsWin != null ||
-                item.oddsDraw != null ||
-                item.oddsLoss != null) ...[
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _OddsPoint(
-                      label: '1 · Grinta',
-                      odds: item.oddsWin,
-                    ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _Odds(label: '1', value: item.oddsWin)),
+                const SizedBox(width: 8),
+                Expanded(child: _Odds(label: 'N', value: item.oddsDraw)),
+                const SizedBox(width: 8),
+                Expanded(child: _Odds(label: '2', value: item.oddsLoss)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ScoreSelector(
+                  label: 'AS Grinta',
+                  value: item.scoreGrinta,
+                  enabled: item.canEdit && !isSaving,
+                  onMinus: () => controller.changeScore(
+                    matchId: item.matchId,
+                    grinta: true,
+                    delta: -1,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _OddsPoint(
-                      label: 'N · Nul',
-                      odds: item.oddsDraw,
-                    ),
+                  onPlus: () => controller.changeScore(
+                    matchId: item.matchId,
+                    grinta: true,
+                    delta: 1,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _OddsPoint(
-                      label: '2 · Adverse',
-                      odds: item.oddsLoss,
-                    ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('–'),
+                ),
+                _ScoreSelector(
+                  label: item.opponentName,
+                  value: item.scoreOpponent,
+                  enabled: item.canEdit && !isSaving,
+                  onMinus: () => controller.changeScore(
+                    matchId: item.matchId,
+                    grinta: false,
+                    delta: -1,
                   ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Points de base. Score exact : jusqu’au double.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-            if (item.isClosed) ...[
-              const SizedBox(height: 16),
+                  onPlus: () => controller.changeScore(
+                    matchId: item.matchId,
+                    grinta: false,
+                    delta: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (item.isClosed)
               const Text(
-                'La fenêtre de pronostic est fermée 10 minutes avant le coup d’envoi.',
-              ),
-            ] else ...[
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _ScoreEditor(
-                    label: 'AS Grinta',
-                    value: item.scoreGrinta,
-                    enabled: item.canEdit && !isSaving,
-                    onMinus: () => controller.changeScore(
-                      matchId: item.matchId,
-                      grinta: true,
-                      delta: -1,
-                    ),
-                    onPlus: () => controller.changeScore(
-                      matchId: item.matchId,
-                      grinta: true,
-                      delta: 1,
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('-', style: TextStyle(fontSize: 28)),
-                  ),
-                  _ScoreEditor(
-                    label: item.opponentName,
-                    value: item.scoreOpponent,
-                    enabled: item.canEdit && !isSaving,
-                    onMinus: () => controller.changeScore(
-                      matchId: item.matchId,
-                      grinta: false,
-                      delta: -1,
-                    ),
-                    onPlus: () => controller.changeScore(
-                      matchId: item.matchId,
-                      grinta: false,
-                      delta: 1,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+                'Les pronostics sont verrouillés cinq minutes avant le coup d’envoi.',
+              )
+            else
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: !item.canEdit || isSaving
-                      ? null
-                      : () => controller.save(item.matchId),
+                  onPressed: isSaving ? null : () => controller.save(item.matchId),
                   icon: isSaving
                       ? const SizedBox(
                           width: 18,
@@ -473,10 +314,9 @@ class _PredictionCard extends ConsumerWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
-                  label: const Text('Enregistrer le pronostic'),
+                  label: const Text('Enregistrer'),
                 ),
               ),
-            ],
           ],
         ),
       ),
@@ -484,41 +324,8 @@ class _PredictionCard extends ConsumerWidget {
   }
 }
 
-class _OddsPoint extends StatelessWidget {
-  const _OddsPoint({required this.label, required this.odds});
-
-  final String label;
-  final double? odds;
-
-  @override
-  Widget build(BuildContext context) {
-    final value = odds;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(
-            value == null ? '—' : '${(value * 10).round()} pts',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreEditor extends StatelessWidget {
-  const _ScoreEditor({
+class _ScoreSelector extends StatelessWidget {
+  const _ScoreSelector({
     required this.label,
     required this.value,
     required this.enabled,
@@ -538,15 +345,14 @@ class _ScoreEditor extends StatelessWidget {
       child: Column(
         children: [
           Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                onPressed: enabled ? onMinus : null,
+                onPressed: enabled && value > 0 ? onMinus : null,
                 icon: const Icon(Icons.remove_circle_outline),
               ),
-              Text('$value', style: Theme.of(context).textTheme.headlineMedium),
+              Text('$value', style: Theme.of(context).textTheme.headlineSmall),
               IconButton(
                 onPressed: enabled ? onPlus : null,
                 icon: const Icon(Icons.add_circle_outline),
@@ -554,6 +360,77 @@ class _ScoreEditor extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _Odds extends StatelessWidget {
+  const _Odds({required this.label, required this.value});
+
+  final String label;
+  final double? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatted = value == null
+        ? '—'
+        : value!.toStringAsFixed(2).replaceAll('.', ',');
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(label),
+          Text(formatted, style: Theme.of(context).textTheme.titleMedium),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderboardCard extends StatelessWidget {
+  const _LeaderboardCard({required this.entries});
+
+  final List<LeaderboardEntry> entries;
+
+  String _format(double value) {
+    if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
+    return value.toStringAsFixed(1).replaceAll('.', ',');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = [...entries]
+      ..sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
+    if (sorted.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text('Aucun point calculable.'),
+        ),
+      );
+    }
+    return Card(
+      child: Column(
+        children: sorted.indexed
+            .map(
+              (entry) => ListTile(
+                leading: CircleAvatar(child: Text('${entry.$1 + 1}')),
+                title: Text(entry.$2.name),
+                subtitle: Text(
+                  'Match ${_format(entry.$2.matchPoints)} · Saison ${_format(entry.$2.seasonPoints)}',
+                ),
+                trailing: Text(
+                  _format(entry.$2.totalPoints),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -569,10 +446,7 @@ class _ErrorCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Text(
-          message,
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
+        child: Text(message),
       ),
     );
   }
