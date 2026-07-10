@@ -70,12 +70,15 @@ class HomePage extends ConsumerWidget {
                             if (dashboard.nextMatchId != null) ...[
                               const SizedBox(height: 16),
                               _RecentMeetingsCard(dashboard: dashboard),
+                              const SizedBox(height: 16),
+                              _InlinePrediction(
+                                participantCount:
+                                    dashboard.predictionParticipantCount,
+                              ),
                             ],
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      const _InlinePrediction(),
                     ]),
                   ),
                 ),
@@ -131,7 +134,6 @@ class _Header extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
               Text(
                 role.toUpperCase(),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -174,8 +176,8 @@ class _NextMatchHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasMatch = dashboard.nextMatchId != null;
-
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(30),
         gradient: const LinearGradient(
@@ -255,14 +257,7 @@ class _RecentMeetingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final meetings = dashboard.recentMeetings;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.outline),
-      ),
+    return _Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -335,7 +330,9 @@ class _RecentMeetingsCard extends StatelessWidget {
 }
 
 class _InlinePrediction extends ConsumerStatefulWidget {
-  const _InlinePrediction();
+  const _InlinePrediction({required this.participantCount});
+
+  final int participantCount;
 
   @override
   ConsumerState<_InlinePrediction> createState() => _InlinePredictionState();
@@ -353,7 +350,6 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(predictionsControllerProvider);
-
     if (state.isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
@@ -366,13 +362,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
     final isSaving = state.savingMatchId == item.matchId;
     final controller = ref.read(predictionsControllerProvider.notifier);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      padding: const EdgeInsets.all(20),
+    return _Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -390,7 +380,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                     ),
                     Text(
                       item.isClosed
-                          ? 'Pronostics fermés à H-5'
+                          ? 'Pronostics fermés'
                           : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF91A69B),
@@ -402,7 +392,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
               Chip(
                 label: Text(
                   item.isClosed
-                      ? 'Fermé'
+                      ? 'Fermés'
                       : item.isFilled
                           ? 'Enregistré'
                           : 'À saisir',
@@ -412,7 +402,20 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          _OddsRow(item: item),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.group_outlined, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                '${widget.participantCount} participant${widget.participantCount > 1 ? 's' : ''}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -459,7 +462,10 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
               child: FilledButton.icon(
                 onPressed: !item.canEdit || isSaving
                     ? null
-                    : () => controller.save(item.matchId),
+                    : () async {
+                        await controller.save(item.matchId);
+                        ref.invalidate(homeDashboardProvider);
+                      },
                 icon: isSaving
                     ? const SizedBox(
                         width: 18,
@@ -478,6 +484,53 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OddsRow extends StatelessWidget {
+  const _OddsRow({required this.item});
+
+  final dynamic item;
+
+  String _format(double? value) =>
+      value == null ? '—' : value.toStringAsFixed(2).replaceAll('.', ',');
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _OddTile(label: '1', value: _format(item.oddsWin))),
+        const SizedBox(width: 8),
+        Expanded(child: _OddTile(label: 'N', value: _format(item.oddsDraw))),
+        const SizedBox(width: 8),
+        Expanded(child: _OddTile(label: '2', value: _format(item.oddsLoss))),
+      ],
+    );
+  }
+}
+
+class _OddTile extends StatelessWidget {
+  const _OddTile({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 2),
+          Text(value, style: Theme.of(context).textTheme.titleMedium),
         ],
       ),
     );
@@ -524,6 +577,26 @@ class _ScoreCol extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _Panel extends StatelessWidget {
+  const _Panel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: child,
     );
   }
 }

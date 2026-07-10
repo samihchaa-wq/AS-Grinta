@@ -16,6 +16,48 @@ class HeadToHeadMatch {
   final int? scoreOpponent;
 }
 
+class MatchGoalEvent {
+  const MatchGoalEvent({
+    required this.minute,
+    required this.scorer,
+    this.assister,
+  });
+
+  final int minute;
+  final String scorer;
+  final String? assister;
+}
+
+class MatchStatLine {
+  const MatchStatLine({
+    required this.name,
+    required this.goals,
+    required this.assists,
+    required this.penaltyFaults,
+    required this.cleanSheet,
+  });
+
+  final String name;
+  final int goals;
+  final int assists;
+  final int penaltyFaults;
+  final bool cleanSheet;
+}
+
+class MatchPredictionResult {
+  const MatchPredictionResult({
+    required this.name,
+    required this.scoreGrinta,
+    required this.scoreOpponent,
+    required this.points,
+  });
+
+  final String name;
+  final int scoreGrinta;
+  final int scoreOpponent;
+  final double points;
+}
+
 class MatchDetailsData {
   const MatchDetailsData({
     required this.matchId,
@@ -32,6 +74,11 @@ class MatchDetailsData {
     required this.oddsLoss,
     required this.predictionParticipantCount,
     required this.headToHead,
+    required this.goals,
+    required this.playerStats,
+    required this.guestStats,
+    required this.manOfTheMatch,
+    required this.predictions,
   });
 
   final String matchId;
@@ -48,6 +95,13 @@ class MatchDetailsData {
   final double? oddsLoss;
   final int predictionParticipantCount;
   final List<HeadToHeadMatch> headToHead;
+  final List<MatchGoalEvent> goals;
+  final List<MatchStatLine> playerStats;
+  final List<MatchStatLine> guestStats;
+  final String? manOfTheMatch;
+  final List<MatchPredictionResult> predictions;
+
+  bool get isValidated => status == 'termine' || status == 'archive';
 }
 
 class MatchDetailsRepository {
@@ -57,21 +111,9 @@ class MatchDetailsRepository {
 
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client.from('matches').select('''
-      id,
-      opponent_id,
-      match_date,
-      match_time,
-      status,
-      competition,
-      location,
-      score_as_grinta,
-      score_adverse,
-      opponents(name),
-      match_odds(
-        odds_victoire_as_grinta,
-        odds_nul,
-        odds_victoire_adverse
-      )
+      id, opponent_id, match_date, match_time, status, competition, location,
+      score_as_grinta, score_adverse, opponents(name),
+      match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
     ''').eq('id', matchId).single();
     final opponentId = match['opponent_id'].toString();
     final opponent = Map<String, dynamic>.from(match['opponents'] as Map);
@@ -85,6 +127,9 @@ class MatchDetailsRepository {
         : oddsRaw is Map
             ? Map<String, dynamic>.from(oddsRaw)
             : const <String, dynamic>{};
+    final status = match['status']?.toString() ?? 'a_venir';
+    final isValidated = status == 'termine' || status == 'archive';
+
     final countResult = await _client.rpc(
       'match_prediction_participant_count',
       params: {'p_match_id': matchId},
@@ -95,7 +140,7 @@ class MatchDetailsRepository {
         .select('match_date, location, score_as_grinta, score_adverse')
         .eq('opponent_id', opponentId)
         .neq('id', matchId)
-        .inFilter('status', ['termine', 'archive'])
+        .inFilter('status', const ['termine', 'archive'])
         .order('match_date', ascending: false)
         .limit(5);
     final history = (historyRaw as List)
@@ -115,12 +160,117 @@ class MatchDetailsRepository {
         )
         .toList();
 
+    var goals = const <MatchGoalEvent>[];
+    var playerStats = const <MatchStatLine>[];
+    var guestStats = const <MatchStatLine>[];
+    String? manOfTheMatch;
+    var predictions = const <MatchPredictionResult>[];
+
+    if (isValidated) {
+      final goalRows = await _client.from('goals').select('''
+        minute, team, goal_type,
+        scorer:profiles!goals_scorer_profile_id_fkey(first_name,surnom),
+        assister:profiles!goals_assist_profile_id_fkey(first_name,surnom)
+      ''').eq('match_id', matchId).eq('team', 'as_grinta').order('minute');
+      goals = (goalRows as List).map((row) {
+        final map = Map<String, dynamic>.from(row);
+        final scorer = map['scorer'] is Map
+            ? _displayName(Map<String, dynamic>.from(map['scorer'] as Map))
+            : map['goal_type'] == 'csc_adverse'
+                ? 'CSC adverse'
+                : 'Buteur non renseigné';
+        final assister = map['assister'] is Map
+            ? _displayName(Map<String, dynamic>.from(map['assister'] as Map))
+            : null;
+        return MatchGoalEvent(
+          minute: (map['minute'] as num?)?.toInt() ?? 0,
+          scorer: scorer,
+          assister: assister,
+        );
+      }).toList();
+
+      final statRows = await _client.from('match_player_stats').select('''
+        goals,assists,penalty_faults,clean_sheet,
+        profiles(first_name,surnom)
+      ''').eq('match_id', matchId).eq('present', true);
+      playerStats = (statRows as List).map((row) {
+        final map = Map<String, dynamic>.from(row);
+        final profile = map['profiles'] is Map
+            ? Map<String, dynamic>.from(map['profiles'] as Map)
+            : const <String, dynamic>{};
+        return MatchStatLine(
+          name: _displayName(profile),
+          goals: (map['goals'] as num?)?.toInt() ?? 0,
+          assists: (map['assists'] as num?)?.toInt() ?? 0,
+          penaltyFaults: (map['penalty_faults'] as num?)?.toInt() ?? 0,
+          cleanSheet: map['clean_sheet'] == true,
+        );
+      }).toList();
+
+      final guestRows = await _client
+          .from('match_guest_stats')
+          .select('display_name,goals,assists,penalty_faults')
+          .eq('match_id', matchId)
+          .eq('present', true);
+      guestStats = (guestRows as List).map((row) {
+        final map = Map<String, dynamic>.from(row);
+        return MatchStatLine(
+          name: map['display_name']?.toString() ?? 'Invité',
+          goals: (map['goals'] as num?)?.toInt() ?? 0,
+          assists: (map['assists'] as num?)?.toInt() ?? 0,
+          penaltyFaults: (map['penalty_faults'] as num?)?.toInt() ?? 0,
+          cleanSheet: false,
+        );
+      }).toList();
+
+      final motm = await _client.from('match_motm').select('''
+        profiles(first_name,surnom)
+      ''').eq('match_id', matchId).maybeSingle();
+      if (motm != null && motm['profiles'] is Map) {
+        manOfTheMatch = _displayName(
+          Map<String, dynamic>.from(motm['profiles'] as Map),
+        );
+      }
+
+      final pointRows = await _client
+          .from('v_match_prediction_points')
+          .select('profile_id,points')
+          .eq('match_id', matchId);
+      final pointsByProfile = <String, double>{};
+      for (final row in pointRows as List) {
+        final map = Map<String, dynamic>.from(row);
+        pointsByProfile[map['profile_id'].toString()] =
+            (map['points'] as num?)?.toDouble() ?? 0;
+      }
+
+      final predictionRows = await _client.from('match_predictions').select('''
+        profile_id,predicted_score_as_grinta,predicted_score_adverse,
+        profiles(first_name,surnom)
+      ''').eq('match_id', matchId).eq('is_filled', true);
+      predictions = (predictionRows as List).map((row) {
+        final map = Map<String, dynamic>.from(row);
+        final profileId = map['profile_id'].toString();
+        final profile = map['profiles'] is Map
+            ? Map<String, dynamic>.from(map['profiles'] as Map)
+            : const <String, dynamic>{};
+        return MatchPredictionResult(
+          name: _displayName(profile),
+          scoreGrinta:
+              (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
+          scoreOpponent:
+              (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
+          points: pointsByProfile[profileId] ?? 0,
+        );
+      }).toList()
+        ..sort((a, b) => b.points.compareTo(a.points));
+    }
+
     return MatchDetailsData(
       matchId: matchId,
       opponentId: opponentId,
       opponentName: opponent['name']?.toString() ?? 'Adversaire',
       kickoffAt: kickoffAt,
-      status: match['status']?.toString() ?? 'a_venir',
+      status: status,
       competition: (match['competition'] ?? 'Championnat').toString(),
       location: (match['location'] ?? 'domicile').toString(),
       scoreGrinta: match['score_as_grinta'] == null
@@ -134,7 +284,19 @@ class MatchDetailsRepository {
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
       predictionParticipantCount: (countResult as num?)?.toInt() ?? 0,
       headToHead: history,
+      goals: goals,
+      playerStats: playerStats,
+      guestStats: guestStats,
+      manOfTheMatch: manOfTheMatch,
+      predictions: predictions,
     );
+  }
+
+  static String _displayName(Map<String, dynamic> profile) {
+    final nickname = (profile['surnom'] ?? '').toString().trim();
+    if (nickname.isNotEmpty) return nickname;
+    final firstName = (profile['first_name'] ?? '').toString().trim();
+    return firstName.isEmpty ? 'Joueur' : firstName;
   }
 
   Future<void> reportMatch({
