@@ -23,32 +23,31 @@ class SeasonPredictionItem {
   final int value;
   final bool isFilled;
 
-  SeasonPredictionItem copyWith({int? value, bool? isFilled}) {
-    return SeasonPredictionItem(
-      seasonId: seasonId,
-      predictorId: predictorId,
-      predictorName: predictorName,
-      playerId: playerId,
-      playerName: playerName,
-      category: category,
-      value: value ?? this.value,
-      isFilled: isFilled ?? this.isFilled,
-    );
-  }
+  SeasonPredictionItem copyWith({int? value, bool? isFilled}) => SeasonPredictionItem(
+        seasonId: seasonId,
+        predictorId: predictorId,
+        predictorName: predictorName,
+        playerId: playerId,
+        playerName: playerName,
+        category: category,
+        value: value ?? this.value,
+        isFilled: isFilled ?? this.isFilled,
+      );
 }
 
 class SeasonPredictionsRepository {
   SeasonPredictionsRepository(this._client);
-
   final SupabaseClient _client;
 
   Future<String?> _openSeasonId() async {
-    final season = await _client
-        .from('seasons')
-        .select('id')
-        .eq('status', 'open')
-        .maybeSingle();
+    final season = await _client.from('seasons').select('id').eq('status', 'open').maybeSingle();
     return season?['id']?.toString();
+  }
+
+  String _displayName(Map<String, dynamic> profile) {
+    final nickname = (profile['surnom'] ?? '').toString().trim();
+    final firstName = (profile['first_name'] ?? '').toString().trim();
+    return nickname.isNotEmpty ? nickname : (firstName.isEmpty ? 'Joueur' : firstName);
   }
 
   Future<List<SeasonPredictionItem>> fetchMine() async {
@@ -57,18 +56,14 @@ class SeasonPredictionsRepository {
     final seasonId = await _openSeasonId();
     if (seasonId == null) return const [];
 
-    final profile = await _client
+    final profile = Map<String, dynamic>.from(await _client
         .from('profiles')
-        .select('first_name,last_name')
+        .select('first_name,surnom')
         .eq('id', userId)
-        .single();
-    final predictorName =
-        '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
-
+        .single());
     final players = await _client
         .from('season_players')
-        .select(
-            'profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,last_name,status)')
+        .select('profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,surnom,status)')
         .eq('season_id', seasonId);
     final predictions = await _client
         .from('season_predictions')
@@ -77,38 +72,32 @@ class SeasonPredictionsRepository {
         .eq('predictor_profile_id', userId);
 
     final byKey = <String, Map<String, dynamic>>{};
-    for (final row in predictions as List) {
-      final map = Map<String, dynamic>.from(row);
-      byKey['${map['player_profile_id']}:${map['category']}'] = map;
+    for (final raw in predictions as List) {
+      final row = Map<String, dynamic>.from(raw);
+      byKey['${row['player_profile_id']}:${row['category']}'] = row;
     }
 
     final result = <SeasonPredictionItem>[];
-    for (final row in players as List) {
-      final map = Map<String, dynamic>.from(row);
-      final playerProfile = Map<String, dynamic>.from(map['profiles'] as Map);
-      if (playerProfile['status'] != 'active') continue;
-      final playerId = map['profile_id'].toString();
-      final playerName =
-          '${playerProfile['first_name'] ?? ''} ${playerProfile['last_name'] ?? ''}'
-              .trim();
-      final categories = map['is_goalkeeper_snapshot'] == true
-          ? const ['clean_sheets']
-          : const ['buts', 'passes', 'hommes_du_match'];
+    for (final raw in players as List) {
+      final row = Map<String, dynamic>.from(raw);
+      final player = Map<String, dynamic>.from(row['profiles'] as Map);
+      if (player['status'] != 'active') continue;
+      final playerId = row['profile_id'].toString();
+      final categories = row['is_goalkeeper_snapshot'] == true
+          ? const ['clean_sheets', 'penalty_faults']
+          : const ['buts', 'passes', 'hommes_du_match', 'penalty_faults'];
       for (final category in categories) {
         final existing = byKey['$playerId:$category'];
-        result.add(
-          SeasonPredictionItem(
-            seasonId: seasonId,
-            predictorId: userId,
-            predictorName:
-                predictorName.isEmpty ? 'Compte sans nom' : predictorName,
-            playerId: playerId,
-            playerName: playerName.isEmpty ? 'Joueur sans nom' : playerName,
-            category: category,
-            value: int.tryParse('${existing?['predicted_value_20'] ?? 0}') ?? 0,
-            isFilled: existing?['is_filled'] == true,
-          ),
-        );
+        result.add(SeasonPredictionItem(
+          seasonId: seasonId,
+          predictorId: userId,
+          predictorName: _displayName(profile),
+          playerId: playerId,
+          playerName: _displayName(player),
+          category: category,
+          value: int.tryParse('${existing?['predicted_value_20'] ?? 0}') ?? 0,
+          isFilled: existing?['is_filled'] == true,
+        ));
       }
     }
     return result;
@@ -117,50 +106,34 @@ class SeasonPredictionsRepository {
   Future<List<SeasonPredictionItem>> fetchPublic() async {
     final seasonId = await _openSeasonId();
     if (seasonId == null) return const [];
-
     final rows = await _client.from('season_predictions').select('''
-      predictor_profile_id,
-      player_profile_id,
-      category,
-      predicted_value_20,
-      is_filled,
-      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,last_name,status),
-      player:profiles!season_predictions_player_profile_id_fkey(first_name,last_name,status)
+      predictor_profile_id,player_profile_id,category,predicted_value_20,is_filled,
+      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,surnom,status),
+      player:profiles!season_predictions_player_profile_id_fkey(first_name,surnom,status)
     ''').eq('season_id', seasonId).eq('is_filled', true);
 
     final items = <SeasonPredictionItem>[];
-    for (final row in rows as List) {
-      final map = Map<String, dynamic>.from(row);
-      final predictor = Map<String, dynamic>.from(map['predictor'] as Map);
-      final player = Map<String, dynamic>.from(map['player'] as Map);
-      if (predictor['status'] != 'active' || player['status'] != 'active') {
-        continue;
-      }
-      final predictorName =
-          '${predictor['first_name'] ?? ''} ${predictor['last_name'] ?? ''}'
-              .trim();
-      final playerName =
-          '${player['first_name'] ?? ''} ${player['last_name'] ?? ''}'.trim();
-      items.add(
-        SeasonPredictionItem(
-          seasonId: seasonId,
-          predictorId: map['predictor_profile_id'].toString(),
-          predictorName:
-              predictorName.isEmpty ? 'Compte sans nom' : predictorName,
-          playerId: map['player_profile_id'].toString(),
-          playerName: playerName.isEmpty ? 'Joueur sans nom' : playerName,
-          category: map['category'].toString(),
-          value: int.tryParse('${map['predicted_value_20']}') ?? 0,
-          isFilled: true,
-        ),
-      );
+    for (final raw in rows as List) {
+      final row = Map<String, dynamic>.from(raw);
+      final predictor = Map<String, dynamic>.from(row['predictor'] as Map);
+      final player = Map<String, dynamic>.from(row['player'] as Map);
+      if (predictor['status'] != 'active' || player['status'] != 'active') continue;
+      items.add(SeasonPredictionItem(
+        seasonId: seasonId,
+        predictorId: row['predictor_profile_id'].toString(),
+        predictorName: _displayName(predictor),
+        playerId: row['player_profile_id'].toString(),
+        playerName: _displayName(player),
+        category: row['category'].toString(),
+        value: int.tryParse('${row['predicted_value_20']}') ?? 0,
+        isFilled: true,
+      ));
     }
     items.sort((a, b) {
       final predictor = a.predictorName.compareTo(b.predictorName);
       if (predictor != 0) return predictor;
       final player = a.playerName.compareTo(b.playerName);
-      if (player != 0) return player;
-      return a.category.compareTo(b.category);
+      return player != 0 ? player : a.category.compareTo(b.category);
     });
     return items;
   }
@@ -169,23 +142,18 @@ class SeasonPredictionsRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
     if (item.value < 0) throw ArgumentError('La valeur doit être positive.');
-
-    await _client.from('season_predictions').upsert(
-      {
-        'season_id': item.seasonId,
-        'predictor_profile_id': userId,
-        'player_profile_id': item.playerId,
-        'category': item.category,
-        'predicted_value_20': item.value,
-        'is_filled': true,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      },
-      onConflict: 'season_id,predictor_profile_id,player_profile_id,category',
-    );
+    await _client.from('season_predictions').upsert({
+      'season_id': item.seasonId,
+      'predictor_profile_id': userId,
+      'player_profile_id': item.playerId,
+      'category': item.category,
+      'predicted_value_20': item.value,
+      'is_filled': true,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'season_id,predictor_profile_id,player_profile_id,category');
   }
 }
 
-final seasonPredictionsRepositoryProvider =
-    Provider<SeasonPredictionsRepository>((ref) {
-  return SeasonPredictionsRepository(ref.watch(supabaseClientProvider));
-});
+final seasonPredictionsRepositoryProvider = Provider<SeasonPredictionsRepository>(
+  (ref) => SeasonPredictionsRepository(ref.watch(supabaseClientProvider)),
+);
