@@ -51,21 +51,18 @@ class MatchesController extends StateNotifier<MatchesState> {
   Future<void> load({String? seasonId}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final authState = _ref.read(authControllerProvider);
-      if (!authState.isAuthenticated) {
+      if (!_ref.read(authControllerProvider).isAuthenticated) {
         state = state.copyWith(
           isLoading: false,
           error: 'Authentification requise.',
         );
         return;
       }
-
       final results = await Future.wait([
         _repository.fetchMatches(seasonId: seasonId),
         _repository.fetchSeasons(),
         _repository.fetchOpponents(),
       ]);
-
       state = state.copyWith(
         matches: results[0] as List<MatchModel>,
         seasons: results[1] as List<Map<String, dynamic>>,
@@ -80,9 +77,7 @@ class MatchesController extends StateNotifier<MatchesState> {
 
   Future<String?> createOpponent(String name) async {
     if (!_canManageMatches) {
-      state = state.copyWith(
-        error: 'Seul un administrateur ou un coach peut créer un adversaire.',
-      );
+      state = state.copyWith(error: 'Droits insuffisants.');
       return null;
     }
     final trimmed = name.trim();
@@ -90,7 +85,6 @@ class MatchesController extends StateNotifier<MatchesState> {
       state = state.copyWith(error: 'Nom d’adversaire invalide.');
       return null;
     }
-
     try {
       final id = await _repository.createOpponent(trimmed);
       await load();
@@ -106,31 +100,19 @@ class MatchesController extends StateNotifier<MatchesState> {
     required String opponentId,
     required DateTime kickoffAt,
     required bool isHome,
-    required int plannedDurationMinutes,
-    required String status,
+    required String competition,
   }) async {
     if (!_canManageMatches) {
+      state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
+      return;
+    }
+    if (seasonId.isEmpty || opponentId.isEmpty || competition.trim().isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seul un administrateur ou un coach peut créer un match.',
+        error: 'Saison, adversaire et compétition sont obligatoires.',
       );
       return;
     }
-    if (seasonId.isEmpty || opponentId.isEmpty) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'La saison et l’adversaire sont obligatoires.',
-      );
-      return;
-    }
-    if (plannedDurationMinutes <= 0) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'La durée du match doit être supérieure à zéro.',
-      );
-      return;
-    }
-
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.createMatch(
@@ -138,8 +120,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         opponentId: opponentId,
         kickoffAt: kickoffAt,
         isHome: isHome,
-        plannedDurationMinutes: plannedDurationMinutes,
-        status: status,
+        competition: competition,
       );
       await load();
     } catch (error) {
@@ -153,31 +134,20 @@ class MatchesController extends StateNotifier<MatchesState> {
     required String opponentId,
     required DateTime kickoffAt,
     required bool isHome,
-    required int plannedDurationMinutes,
+    required String competition,
     required String status,
   }) async {
     if (!_canManageMatches) {
+      state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
+      return;
+    }
+    if (id.isEmpty || seasonId.isEmpty || opponentId.isEmpty || competition.trim().isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seul un administrateur ou un coach peut modifier un match.',
+        error: 'Match, saison, adversaire et compétition sont obligatoires.',
       );
       return;
     }
-    if (id.isEmpty || seasonId.isEmpty || opponentId.isEmpty) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Le match, la saison et l’adversaire sont obligatoires.',
-      );
-      return;
-    }
-    if (plannedDurationMinutes <= 0) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'La durée du match doit être supérieure à zéro.',
-      );
-      return;
-    }
-
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updateMatch(
@@ -186,7 +156,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         opponentId: opponentId,
         kickoffAt: kickoffAt,
         isHome: isHome,
-        plannedDurationMinutes: plannedDurationMinutes,
+        competition: competition,
         status: status,
       );
       await load();
@@ -197,16 +167,9 @@ class MatchesController extends StateNotifier<MatchesState> {
 
   Future<void> archiveMatch(String id) async {
     if (!_isAdmin) {
-      state = state.copyWith(
-        error: 'Seul un administrateur peut archiver un match.',
-      );
+      state = state.copyWith(error: 'Seul un administrateur peut archiver.');
       return;
     }
-    if (id.isEmpty) {
-      state = state.copyWith(error: 'Identifiant de match invalide.');
-      return;
-    }
-
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updateMatchStatus(id: id, status: 'archive');
@@ -218,20 +181,9 @@ class MatchesController extends StateNotifier<MatchesState> {
 
   Future<void> deleteMatch(String id) async {
     if (!_isModerator) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Seul un modérateur peut supprimer définitivement un match.',
-      );
+      state = state.copyWith(error: 'Seul un modérateur peut supprimer.');
       return;
     }
-    if (id.isEmpty) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Identifiant de match invalide.',
-      );
-      return;
-    }
-
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.deleteMatch(id);
@@ -244,6 +196,5 @@ class MatchesController extends StateNotifier<MatchesState> {
 
 final matchesControllerProvider =
     StateNotifierProvider<MatchesController, MatchesState>((ref) {
-  final repository = ref.watch(matchesRepositoryProvider);
-  return MatchesController(repository, ref);
+  return MatchesController(ref.watch(matchesRepositoryProvider), ref);
 });
