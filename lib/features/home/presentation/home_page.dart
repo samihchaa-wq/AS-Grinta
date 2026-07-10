@@ -32,10 +32,10 @@ class HomePage extends ConsumerWidget {
           child: RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(homeDashboardProvider);
-              await ref.read(homeDashboardProvider.future);
-              if (!isStaff) {
-                await ref.read(predictionsControllerProvider.notifier).load();
-              }
+              await Future.wait([
+                ref.read(homeDashboardProvider.future),
+                ref.read(predictionsControllerProvider.notifier).load(),
+              ]);
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -64,11 +64,18 @@ class HomePage extends ConsumerWidget {
                           message: error.toString(),
                           onRetry: () => ref.invalidate(homeDashboardProvider),
                         ),
-                        data: (dashboard) =>
+                        data: (dashboard) => Column(
+                          children: [
                             _NextMatchHero(dashboard: dashboard),
+                            if (dashboard.nextMatchId != null) ...[
+                              const SizedBox(height: 16),
+                              _RecentMeetingsCard(dashboard: dashboard),
+                            ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      if (!isStaff) const _InlinePrediction(),
+                      const _InlinePrediction(),
                     ]),
                   ),
                 ),
@@ -240,6 +247,93 @@ class _NextMatchHero extends StatelessWidget {
   }
 }
 
+class _RecentMeetingsCard extends StatelessWidget {
+  const _RecentMeetingsCard({required this.dashboard});
+
+  final HomeDashboardData dashboard;
+
+  @override
+  Widget build(BuildContext context) {
+    final meetings = dashboard.recentMeetings;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.history_rounded, color: AppTheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '5 derniers face-à-face',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Contre ${dashboard.nextOpponent ?? 'cet adversaire'}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          if (meetings.isEmpty)
+            const Text('Aucun précédent résultat enregistré.')
+          else
+            ...meetings.map((meeting) {
+              final result = meeting.isWin
+                  ? 'V'
+                  : meeting.isDraw
+                      ? 'N'
+                      : 'D';
+              final resultColor = meeting.isWin
+                  ? Colors.greenAccent
+                  : meeting.isDraw
+                      ? Colors.amberAccent
+                      : Colors.redAccent;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 30,
+                      height: 30,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: resultColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        result,
+                        style: TextStyle(
+                          color: resultColor,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(AppFormats.date(meeting.date))),
+                    Text(
+                      '${meeting.grintaScore} – ${meeting.opponentScore}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
 class _InlinePrediction extends ConsumerStatefulWidget {
   const _InlinePrediction();
 
@@ -272,15 +366,6 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
     final isSaving = state.savingMatchId == item.matchId;
     final controller = ref.read(predictionsControllerProvider.notifier);
 
-    if (item.isClosed) {
-      return _StatusChip(
-        icon: Icons.lock_outline,
-        label: item.isFilled
-            ? 'Pronostic enregistré · Pronostics fermés à H-5'
-            : 'Pronostics fermés à H-5',
-      );
-    }
-
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
@@ -304,7 +389,9 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(
-                      'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
+                      item.isClosed
+                          ? 'Pronostics fermés à H-5'
+                          : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF91A69B),
                           ),
@@ -312,12 +399,17 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                   ],
                 ),
               ),
-              if (item.isFilled)
-                const Chip(
-                  label: Text('Enregistré'),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
+              Chip(
+                label: Text(
+                  item.isClosed
+                      ? 'Fermé'
+                      : item.isFilled
+                          ? 'Enregistré'
+                          : 'À saisir',
                 ),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -340,10 +432,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                   ),
                 ),
               ),
-              Text(
-                '–',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              Text('–', style: Theme.of(context).textTheme.headlineMedium),
               Expanded(
                 child: _ScoreCol(
                   label: item.opponentName,
@@ -363,23 +452,25 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: !item.canEdit || isSaving
-                  ? null
-                  : () => controller.save(item.matchId),
-              icon: isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: const Text('Enregistrer'),
+          if (!item.isClosed) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: !item.canEdit || isSaving
+                    ? null
+                    : () => controller.save(item.matchId),
+                icon: isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: const Text('Enregistrer'),
+              ),
             ),
-          ),
+          ],
           if (state.error != null) ...[
             const SizedBox(height: 8),
             Text(
@@ -433,32 +524,6 @@ class _ScoreCol extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: const Color(0xFF91A69B)),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label)),
-        ],
-      ),
     );
   }
 }

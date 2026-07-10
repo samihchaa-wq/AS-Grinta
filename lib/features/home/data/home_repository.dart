@@ -2,18 +2,35 @@ import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class RecentMeeting {
+  const RecentMeeting({
+    required this.date,
+    required this.grintaScore,
+    required this.opponentScore,
+  });
+
+  final DateTime date;
+  final int grintaScore;
+  final int opponentScore;
+
+  bool get isWin => grintaScore > opponentScore;
+  bool get isDraw => grintaScore == opponentScore;
+}
+
 class HomeDashboardData {
   const HomeDashboardData({
     required this.nextMatchId,
     required this.nextOpponent,
     required this.nextKickoffAt,
     required this.pendingPredictions,
+    required this.recentMeetings,
   });
 
   final String? nextMatchId;
   final String? nextOpponent;
   final DateTime? nextKickoffAt;
   final int pendingPredictions;
+  final List<RecentMeeting> recentMeetings;
 }
 
 class HomeRepository {
@@ -27,7 +44,7 @@ class HomeRepository {
 
     final matches = await _client
         .from('matches')
-        .select('id, match_date, match_time, opponents(name)')
+        .select('id, opponent_id, match_date, match_time, opponents(name)')
         .eq('status', 'a_venir')
         .order('match_date', ascending: true)
         .order('match_time', ascending: true);
@@ -43,6 +60,7 @@ class HomeRepository {
     }
 
     String? nextMatchId;
+    String? nextOpponentId;
     String? nextOpponent;
     DateTime? nextKickoffAt;
     var pendingPredictions = 0;
@@ -60,6 +78,7 @@ class HomeRepository {
 
       if (nextMatchId == null) {
         nextMatchId = id;
+        nextOpponentId = map['opponent_id']?.toString();
         nextOpponent = opponent['name']?.toString() ?? 'Adversaire';
         nextKickoffAt = kickoff;
       }
@@ -71,11 +90,41 @@ class HomeRepository {
       }
     }
 
+    final recentMeetings = <RecentMeeting>[];
+    if (nextOpponentId != null) {
+      final history = await _client
+          .from('matches')
+          .select('match_date, score_as_grinta, score_adverse')
+          .eq('opponent_id', nextOpponentId)
+          .inFilter('status', const ['termine', 'archive'])
+          .not('score_as_grinta', 'is', null)
+          .not('score_adverse', 'is', null)
+          .order('match_date', ascending: false)
+          .limit(5);
+
+      for (final row in history as List) {
+        final map = Map<String, dynamic>.from(row);
+        final date = DateTime.tryParse(map['match_date']?.toString() ?? '');
+        final grinta = (map['score_as_grinta'] as num?)?.toInt();
+        final opponent = (map['score_adverse'] as num?)?.toInt();
+        if (date != null && grinta != null && opponent != null) {
+          recentMeetings.add(
+            RecentMeeting(
+              date: date,
+              grintaScore: grinta,
+              opponentScore: opponent,
+            ),
+          );
+        }
+      }
+    }
+
     return HomeDashboardData(
       nextMatchId: nextMatchId,
       nextOpponent: nextOpponent,
       nextKickoffAt: nextKickoffAt,
       pendingPredictions: pendingPredictions,
+      recentMeetings: recentMeetings,
     );
   }
 }
