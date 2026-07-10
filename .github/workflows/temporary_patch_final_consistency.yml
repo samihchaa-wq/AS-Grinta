@@ -1,0 +1,81 @@
+name: Temporary final consistency patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[temporary-patch-cleanup]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/final-production-consistency
+          fetch-depth: 0
+
+      - name: Patch coach production UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/coach/presentation/coach_production_page.dart')
+          text = path.read_text()
+
+          old_icons = """  String _icons(String playerId) {
+    final goals = state.events
+"""
+          new_icons = """  String _icons(String playerId) {
+    final player = state.playerById(playerId);
+    if (player?.isGoalkeeper == true || player?.isGuest == true) return '';
+    final goals = state.events
+"""
+          if old_icons not in text:
+              raise SystemExit('Icons block not found')
+          text = text.replace(old_icons, new_icons, 1)
+
+          old_filter = """        .whereType<CoachPlayer>()
+        .where((player) => !player.isGuest)
+        .toList();
+"""
+          new_filter = """        .whereType<CoachPlayer>()
+        .where((player) => !player.isGuest && !player.isGoalkeeper)
+        .toList();
+"""
+          if old_filter not in text:
+              raise SystemExit('Goal player filter not found')
+          text = text.replace(old_filter, new_filter, 1)
+          path.write_text(text)
+
+          for temporary in (
+              '.github/workflows/one_time_final_consistency_patch.yml',
+              '.github/final_consistency_trigger',
+          ):
+              candidate = Path(temporary)
+              if candidate.exists():
+                  candidate.unlink()
+          PY
+
+      - name: Commit target branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/coach/presentation/coach_production_page.dart .github
+          if ! git diff --cached --quiet; then
+            git commit -m "Masquer les statistiques gardien et invité dans le Tableau"
+            git push origin HEAD:fix/final-production-consistency
+          fi
+
+      - name: Remove temporary workflow from main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          rm -f .github/workflows/temporary_patch_final_consistency.yml
+          git add .github/workflows/temporary_patch_final_consistency.yml
+          git commit -m "Retirer le workflow temporaire [temporary-patch-cleanup]"
+          git push origin main
