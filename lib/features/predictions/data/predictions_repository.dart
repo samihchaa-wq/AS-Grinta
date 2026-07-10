@@ -32,6 +32,7 @@ class MatchPredictionItem {
   final int? actualScoreGrinta;
   final int? actualScoreOpponent;
 
+  DateTime get opensAt => DateTime.fromMillisecondsSinceEpoch(0);
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
   bool get isBeforeWindow => false;
   bool get isClosed =>
