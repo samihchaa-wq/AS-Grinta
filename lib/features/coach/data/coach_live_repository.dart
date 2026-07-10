@@ -120,6 +120,15 @@ class CoachLiveRepository {
     return (rows.first as Map)['id']?.toString();
   }
 
+  Stream<String> watchMatchStatus(String matchId) {
+    return _client
+        .from('matches')
+        .stream(primaryKey: const ['id'])
+        .eq('id', matchId)
+        .map((rows) => rows.isEmpty ? 'introuvable' : '${rows.first['status']}')
+        .distinct();
+  }
+
   Stream<CoachLiveSession?> watchSession(String matchId) {
     return _client
         .from('coach_match_sessions')
