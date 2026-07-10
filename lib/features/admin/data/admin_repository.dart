@@ -120,6 +120,36 @@ class AdminRepository {
     );
   }
 
+  Future<void> inviteAccount({
+    required String email,
+    required String firstName,
+    required String lastName,
+    String? surnom,
+  }) async {
+    final cleanEmail = email.trim().toLowerCase();
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(cleanEmail)) {
+      throw ArgumentError('Adresse email invalide.');
+    }
+    final response = await _client.functions.invoke(
+      'manage-user',
+      body: {
+        'action': 'invite',
+        'email': cleanEmail,
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        if ((surnom ?? '').trim().isNotEmpty) 'surnom': surnom!.trim(),
+        'redirectTo': Uri.base.resolve('auth/sign-in').toString(),
+      },
+    );
+    if (response.status < 200 || response.status >= 300) {
+      final data = response.data;
+      final message = data is Map && data['error'] != null
+          ? data['error'].toString()
+          : 'L’invitation du compte a échoué.';
+      throw StateError(message);
+    }
+  }
+
   Future<void> _updatePrivilegedProfileFields({
     required String profileId,
     String? role,
