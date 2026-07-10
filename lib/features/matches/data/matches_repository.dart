@@ -16,6 +16,7 @@ class MatchesRepository {
       match_date,
       match_time,
       location,
+      competition,
       planned_duration_minutes,
       status,
       score_as_grinta,
@@ -76,8 +77,7 @@ class MatchesRepository {
     required String opponentId,
     required DateTime kickoffAt,
     required bool isHome,
-    required int plannedDurationMinutes,
-    required String status,
+    required String competition,
   }) async {
     final currentUserId = _client.auth.currentUser?.id;
     if (currentUserId == null) {
@@ -90,8 +90,9 @@ class MatchesRepository {
       'match_date': kickoffAt.toIso8601String().split('T').first,
       'match_time': _formatTime(kickoffAt),
       'location': isHome ? 'domicile' : 'exterieur',
-      'planned_duration_minutes': plannedDurationMinutes,
-      'status': status,
+      'competition': competition.trim(),
+      'planned_duration_minutes': 90,
+      'status': 'a_venir',
       'created_by': currentUserId,
     });
   }
@@ -102,7 +103,7 @@ class MatchesRepository {
     required String opponentId,
     required DateTime kickoffAt,
     required bool isHome,
-    required int plannedDurationMinutes,
+    required String competition,
     required String status,
   }) async {
     await _client.from('matches').update({
@@ -111,7 +112,7 @@ class MatchesRepository {
       'match_date': kickoffAt.toIso8601String().split('T').first,
       'match_time': _formatTime(kickoffAt),
       'location': isHome ? 'domicile' : 'exterieur',
-      'planned_duration_minutes': plannedDurationMinutes,
+      'competition': competition.trim(),
       'status': status,
     }).eq('id', id);
   }
@@ -120,28 +121,26 @@ class MatchesRepository {
     await _client.from('matches').delete().eq('id', id);
   }
 
-  Future<void> finalizeMatch({
+  Future<void> finalizeMatchPostgame({
     required String id,
-    required int grintaScore,
     required int opponentScore,
-    required String status,
     required String? manOfTheMatchId,
+    required List<Map<String, dynamic>> playerStats,
+    required List<Map<String, dynamic>> guestStats,
   }) async {
-    if (status != 'termine') {
-      throw ArgumentError('La finalisation doit terminer le match.');
-    }
-
     final result = await _client.rpc(
-      'finalize_match',
+      'finalize_match_postgame',
       params: {
         'p_match_id': id,
-        'p_score_as_grinta': grintaScore,
+        'p_score_grinta': 0,
         'p_score_adverse': opponentScore,
         'p_motm_profile_id': manOfTheMatchId,
+        'p_player_stats': playerStats,
+        'p_guest_stats': guestStats,
       },
     );
     if (result != true) {
-      throw StateError('Le match n’a pas pu être finalisé.');
+      throw StateError('Le match n’a pas pu être validé.');
     }
   }
 
@@ -161,6 +160,14 @@ class MatchesRepository {
     };
   }
 
+  Future<int> fetchPredictionParticipantCount(String matchId) async {
+    final result = await _client.rpc(
+      'match_prediction_participant_count',
+      params: {'p_match_id': matchId},
+    );
+    return (result as num?)?.toInt() ?? 0;
+  }
+
   Future<List<Map<String, dynamic>>> fetchMatchPredictions(
     String matchId,
   ) async {
@@ -172,17 +179,6 @@ class MatchesRepository {
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
-  }
-
-  Future<void> updateMatchScore({
-    required String id,
-    required int grintaScore,
-    required int opponentScore,
-  }) async {
-    await _client.from('matches').update({
-      'score_as_grinta': grintaScore,
-      'score_adverse': opponentScore,
-    }).eq('id', id);
   }
 
   Future<void> updateMatchStatus({

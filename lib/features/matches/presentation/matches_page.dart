@@ -25,18 +25,17 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final matchesState = ref.watch(matchesControllerProvider);
-    final authState = ref.watch(authControllerProvider);
-    final role = authState.profile?.role;
+    final state = ref.watch(matchesControllerProvider);
+    final role = ref.watch(authControllerProvider).profile?.role;
     final isAdmin = role == AuthRole.admin;
     final isModerator = role == AuthRole.moderateur;
-    final canCreateMatch = isAdmin || isModerator;
+    final canManage = isAdmin || isModerator;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Matchs'),
         actions: [
-          if (canCreateMatch)
+          if (canManage)
             IconButton(
               tooltip: 'Créer un match',
               icon: const Icon(Icons.add_circle_outline),
@@ -59,41 +58,37 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (matchesState.seasons.isNotEmpty)
+            if (state.seasons.isNotEmpty)
               DropdownButtonFormField<String>(
                 value: _selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
-                  const DropdownMenuItem<String>(
-                    value: '',
-                    child: Text('Toutes les saisons'),
-                  ),
-                  ...matchesState.seasons.map((season) {
-                    return DropdownMenuItem<String>(
+                  const DropdownMenuItem(value: '', child: Text('Toutes')),
+                  ...state.seasons.map(
+                    (season) => DropdownMenuItem(
                       value: season['id'].toString(),
                       child: Text(season['name'].toString()),
-                    );
-                  }),
+                    ),
+                  ),
                 ],
                 onChanged: (value) async {
-                  setState(
-                      () => _selectedSeasonId = value == '' ? null : value);
+                  setState(() => _selectedSeasonId = value == '' ? null : value);
                   await ref
                       .read(matchesControllerProvider.notifier)
-                      .load(seasonId: value == '' ? null : value);
+                      .load(seasonId: _selectedSeasonId);
                 },
               ),
             const SizedBox(height: 16),
-            if (matchesState.isLoading)
+            if (state.isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (matchesState.error != null)
+            else if (state.error != null)
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(matchesState.error!),
+                  child: Text(state.error!),
                 ),
               )
-            else if (matchesState.matches.isEmpty)
+            else if (state.matches.isEmpty)
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -101,16 +96,13 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 ),
               )
             else
-              ...matchesState.matches.map(
+              ...state.matches.map(
                 (match) => _MatchCard(
                   match: match,
                   canDelete: isModerator,
-                  canEdit: (isAdmin || isModerator) && !match.isArchived,
-                  canManageLive: isAdmin && !match.isArchived,
-                  canRecoverLive: isModerator && match.status == 'en_cours',
-                  canFinalize: isAdmin && !match.isArchived,
-                  canSelectParticipants: isAdmin && !match.isArchived,
-                  canArchive: isAdmin && !match.isArchived,
+                  canEdit: canManage && !match.isArchived,
+                  canFinalize: isAdmin && !match.isFinished,
+                  canArchive: isAdmin && match.isFinished && !match.isArchived,
                 ),
               ),
           ],
@@ -125,20 +117,14 @@ class _MatchCard extends StatelessWidget {
     required this.match,
     required this.canDelete,
     required this.canEdit,
-    required this.canManageLive,
-    required this.canRecoverLive,
     required this.canFinalize,
-    required this.canSelectParticipants,
     required this.canArchive,
   });
 
   final MatchModel match;
   final bool canDelete;
   final bool canEdit;
-  final bool canManageLive;
-  final bool canRecoverLive;
   final bool canFinalize;
-  final bool canSelectParticipants;
   final bool canArchive;
 
   @override
@@ -154,7 +140,6 @@ class _MatchCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
@@ -162,13 +147,13 @@ class _MatchCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  const SizedBox(width: 8),
                   Chip(label: Text(match.statusLabel)),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
+              Text(match.competition),
               Text(_formatKickoff(match.kickoffAt)),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -178,64 +163,38 @@ class _MatchCard extends StatelessWidget {
                     icon: const Icon(Icons.history),
                     label: const Text('Détails'),
                   ),
-                  if (canDelete)
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final notifier = ProviderScope.containerOf(context)
-                            .read(matchesControllerProvider.notifier);
-                        await notifier.deleteMatch(match.id);
-                      },
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('Supprimer définitivement'),
-                    ),
                   if (canEdit)
                     FilledButton.icon(
-                      onPressed: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => MatchFormPage(match: match),
-                          ),
-                        );
-                      },
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => MatchFormPage(match: match),
+                        ),
+                      ),
                       icon: const Icon(Icons.edit_outlined),
                       label: const Text('Modifier'),
                     ),
-                  if (canSelectParticipants)
-                    OutlinedButton.icon(
-                      onPressed: () => context.push(
-                        '/matches/${match.id}/participants',
-                      ),
-                      icon: const Icon(Icons.groups_outlined),
-                      label: const Text('Participants'),
-                    ),
-                  if (canManageLive)
-                    OutlinedButton.icon(
-                      onPressed: () => context.push('/live/${match.id}'),
-                      icon: const Icon(Icons.sensors),
-                      label: const Text('Live'),
-                    ),
-                  if (canRecoverLive)
-                    OutlinedButton.icon(
-                      onPressed: () => context.push('/live/${match.id}'),
-                      icon: const Icon(Icons.admin_panel_settings_outlined),
-                      label: const Text('Reprise forcée du Live'),
-                    ),
                   if (canFinalize)
-                    OutlinedButton.icon(
+                    FilledButton.icon(
                       onPressed: () =>
                           context.push('/matches/${match.id}/finalize'),
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Finir'),
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('Saisir les statistiques'),
                     ),
                   if (canArchive)
                     OutlinedButton.icon(
-                      onPressed: () async {
-                        await ProviderScope.containerOf(context)
-                            .read(matchesControllerProvider.notifier)
-                            .archiveMatch(match.id);
-                      },
+                      onPressed: () => ProviderScope.containerOf(context)
+                          .read(matchesControllerProvider.notifier)
+                          .archiveMatch(match.id),
                       icon: const Icon(Icons.archive_outlined),
                       label: const Text('Archiver'),
+                    ),
+                  if (canDelete)
+                    OutlinedButton.icon(
+                      onPressed: () => ProviderScope.containerOf(context)
+                          .read(matchesControllerProvider.notifier)
+                          .deleteMatch(match.id),
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Supprimer'),
                     ),
                 ],
               ),
@@ -248,19 +207,19 @@ class _MatchCard extends StatelessWidget {
 
   String _scoreLine() {
     final opponent = match.opponentName ?? 'Adversaire';
-    final grintaScore = match.grintaScore?.toString() ?? 'X';
-    final opponentScore = match.opponentScore?.toString() ?? 'X';
-
-    if (match.isHome) {
-      return 'AS Grinta $grintaScore - $opponentScore $opponent';
+    if (!match.isFinished) {
+      return match.isHome ? 'AS Grinta – $opponent' : '$opponent – AS Grinta';
     }
-    return '$opponent $opponentScore - $grintaScore AS Grinta';
+    final grinta = match.grintaScore ?? 0;
+    final adverse = match.opponentScore ?? 0;
+    return match.isHome
+        ? 'AS Grinta $grinta - $adverse $opponent'
+        : '$opponent $adverse - $grinta AS Grinta';
   }
 
   String _formatKickoff(DateTime value) {
-    final local = value.toLocal();
     String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(local.day)}/${two(local.month)}/${local.year} • '
-        '${two(local.hour)}h${two(local.minute)}';
+    return '${two(value.day)}/${two(value.month)}/${value.year} • '
+        '${two(value.hour)}h${two(value.minute)} • ${match.locationLabel}';
   }
 }

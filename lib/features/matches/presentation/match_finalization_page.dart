@@ -13,96 +13,197 @@ class MatchFinalizationPage extends ConsumerStatefulWidget {
       _MatchFinalizationPageState();
 }
 
+class _PlayerInput {
+  bool present = false;
+  int goals = 0;
+  int assists = 0;
+  int penaltyFaults = 0;
+  bool cleanSheet = false;
+}
+
+class _GuestInput {
+  final name = TextEditingController();
+  final position = TextEditingController();
+  bool present = true;
+  int goals = 0;
+  int assists = 0;
+  int penaltyFaults = 0;
+
+  void dispose() {
+    name.dispose();
+    position.dispose();
+  }
+}
+
 class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
-  final _grintaScoreController = TextEditingController();
-  final _opponentScoreController = TextEditingController();
+  final _opponentScoreController = TextEditingController(text: '0');
+  final Map<String, _PlayerInput> _players = {};
+  final List<_GuestInput> _guests = [];
   String? _motmProfileId;
 
   @override
   void dispose() {
-    _grintaScoreController.dispose();
     _opponentScoreController.dispose();
+    for (final guest in _guests) {
+      guest.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchFinalizationControllerProvider);
-    final contextAsync = ref.watch(
-      matchFinalizationContextProvider(widget.matchId),
-    );
+    final contextAsync =
+        ref.watch(matchFinalizationContextProvider(widget.matchId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Finalisation du match')),
+      appBar: AppBar(title: const Text('Feuille de match')),
       body: contextAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              error.toString(),
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-        ),
-        data: (finalizationContext) {
-          if (finalizationContext.participants.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'Impossible de finaliser : aucun participant réel n’est associé au match.',
-              ),
-            );
+        error: (error, _) => Center(child: Text(error.toString())),
+        data: (sheet) {
+          for (final player in sheet.players) {
+            _players.putIfAbsent(player.id, _PlayerInput.new);
           }
+          final computedScore = _players.values.fold<int>(
+                0,
+                (sum, item) => sum + item.goals,
+              ) +
+              _guests.fold<int>(0, (sum, item) => sum + item.goals);
 
           return ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Validation finale',
-                style: Theme.of(context).textTheme.titleLarge,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'AS Grinta : $computedScore',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 130,
+                        child: TextField(
+                          controller: _opponentScoreController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Adversaire',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _grintaScoreController,
-                decoration: const InputDecoration(labelText: 'Score Grinta'),
-                keyboardType: TextInputType.number,
+              Text('Joueurs', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              ...sheet.players.map((player) {
+                final input = _players[player.id]!;
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ExpansionTile(
+                    title: Text(player.name),
+                    leading: Checkbox(
+                      value: input.present,
+                      onChanged: (value) => setState(() {
+                        input.present = value ?? false;
+                        if (!input.present) {
+                          input.goals = 0;
+                          input.assists = 0;
+                          input.penaltyFaults = 0;
+                          input.cleanSheet = false;
+                          if (_motmProfileId == player.id) {
+                            _motmProfileId = null;
+                          }
+                        }
+                      }),
+                    ),
+                    subtitle: Text(
+                      input.present
+                          ? '⚽ ${input.goals}  👟 ${input.assists}  🟥 ${input.penaltyFaults}'
+                          : 'Absent',
+                    ),
+                    children: [
+                      _CounterRow(
+                        label: '⚽ Buts',
+                        value: input.goals,
+                        enabled: input.present,
+                        onChanged: (value) =>
+                            setState(() => input.goals = value),
+                      ),
+                      _CounterRow(
+                        label: '👟 Passes décisives',
+                        value: input.assists,
+                        enabled: input.present,
+                        onChanged: (value) =>
+                            setState(() => input.assists = value),
+                      ),
+                      _CounterRow(
+                        label: '🟥 Faute provoquant un penalty',
+                        value: input.penaltyFaults,
+                        enabled: input.present,
+                        onChanged: (value) =>
+                            setState(() => input.penaltyFaults = value),
+                      ),
+                      if (player.isGoalkeeper)
+                        SwitchListTile(
+                          title: const Text('🧤 Clean sheet'),
+                          value: input.cleanSheet,
+                          onChanged: input.present
+                              ? (value) =>
+                                  setState(() => input.cleanSheet = value)
+                              : null,
+                        ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Invités du match',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: () => setState(() => _guests.add(_GuestInput())),
+                    icon: const Icon(Icons.person_add_alt_1),
+                    label: const Text('Ajouter'),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: _opponentScoreController,
-                decoration:
-                    const InputDecoration(labelText: 'Score adversaire'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              for (var index = 0; index < _guests.length; index++)
+                _guestCard(index),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
                 value: _motmProfileId,
                 decoration: const InputDecoration(
-                  labelText: 'Homme du match',
+                  labelText: '⭐ Homme du match (facultatif)',
                 ),
-                items: finalizationContext.participants
-                    .map(
-                      (participant) => DropdownMenuItem<String>(
-                        value: participant.id,
-                        child: Text(participant.name),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Aucun'),
+                  ),
+                  ...sheet.players
+                      .where((player) => _players[player.id]!.present)
+                      .map(
+                        (player) => DropdownMenuItem<String?>(
+                          value: player.id,
+                          child: Text(player.name),
+                        ),
                       ),
-                    )
-                    .toList(),
+                ],
                 onChanged: (value) => setState(() => _motmProfileId = value),
               ),
-              const SizedBox(height: 12),
-              Text(
-                '${finalizationContext.goals.length} but(s) et '
-                '${finalizationContext.substitutions.length} remplacement(s) enregistrés.',
-              ),
-              if (state.validation != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  'Résultat : ${state.validation!.isValid ? 'OK' : 'À corriger'}',
-                ),
-                ...state.validation!.issues.map((issue) => Text('• $issue')),
-              ],
               if (state.error != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -110,53 +211,170 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: state.isLoading
-                    ? null
-                    : () async {
-                        final grintaScore =
-                            int.tryParse(_grintaScoreController.text);
-                        final opponentScore =
-                            int.tryParse(_opponentScoreController.text);
-                        if (grintaScore == null ||
-                            opponentScore == null ||
-                            _motmProfileId == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Renseignez les deux scores et l’homme du match.',
-                              ),
-                            ),
-                          );
-                          return;
-                        }
-
-                        await ref
-                            .read(matchFinalizationControllerProvider.notifier)
-                            .finalizeMatch(
-                              matchId: widget.matchId,
-                              grintaScore: grintaScore,
-                              opponentScore: opponentScore,
-                              goals: finalizationContext.goals,
-                              substitutions: finalizationContext.substitutions,
-                              manOfTheMatchId: _motmProfileId,
-                            );
-
-                        if (!context.mounted) return;
-                        final latest =
-                            ref.read(matchFinalizationControllerProvider);
-                        if (latest.error == null &&
-                            latest.validation?.isValid == true) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Finaliser le match'),
+                onPressed: state.isLoading ? null : () => _submit(sheet.players),
+                icon: const Icon(Icons.verified_outlined),
+                label: const Text('Valider le résultat'),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _guestCard(int index) {
+    final guest = _guests[index];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: guest.name,
+                    decoration: const InputDecoration(labelText: 'Nom'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextField(
+                    controller: guest.position,
+                    decoration: const InputDecoration(labelText: 'Poste'),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Supprimer',
+                  onPressed: () {
+                    final removed = _guests.removeAt(index);
+                    removed.dispose();
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Présent'),
+              value: guest.present,
+              onChanged: (value) => setState(() => guest.present = value),
+            ),
+            _CounterRow(
+              label: '⚽ Buts',
+              value: guest.goals,
+              enabled: guest.present,
+              onChanged: (value) => setState(() => guest.goals = value),
+            ),
+            _CounterRow(
+              label: '👟 Passes décisives',
+              value: guest.assists,
+              enabled: guest.present,
+              onChanged: (value) => setState(() => guest.assists = value),
+            ),
+            _CounterRow(
+              label: '🟥 Faute provoquant un penalty',
+              value: guest.penaltyFaults,
+              enabled: guest.present,
+              onChanged: (value) =>
+                  setState(() => guest.penaltyFaults = value),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit(List<MatchSheetPlayer> players) async {
+    final opponentScore = int.tryParse(_opponentScoreController.text.trim());
+    if (opponentScore == null || opponentScore < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Score adverse invalide.')),
+      );
+      return;
+    }
+    for (final guest in _guests) {
+      if (guest.name.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Le nom de chaque invité est requis.')),
+        );
+        return;
+      }
+    }
+
+    final playerStats = players.map((player) {
+      final input = _players[player.id]!;
+      return {
+        'profile_id': player.id,
+        'present': input.present,
+        'goals': input.goals,
+        'assists': input.assists,
+        'penalty_faults': input.penaltyFaults,
+        'clean_sheet': player.isGoalkeeper && input.cleanSheet,
+      };
+    }).toList();
+    final guestStats = _guests
+        .map(
+          (guest) => {
+            'display_name': guest.name.text.trim(),
+            'position': guest.position.text.trim().isEmpty
+                ? 'Joueur'
+                : guest.position.text.trim(),
+            'present': guest.present,
+            'goals': guest.goals,
+            'assists': guest.assists,
+            'penalty_faults': guest.penaltyFaults,
+          },
+        )
+        .toList();
+
+    final success = await ref
+        .read(matchFinalizationControllerProvider.notifier)
+        .finalizeMatch(
+          matchId: widget.matchId,
+          opponentScore: opponentScore,
+          manOfTheMatchId: _motmProfileId,
+          playerStats: playerStats,
+          guestStats: guestStats,
+        );
+    if (success && mounted) Navigator.pop(context);
+  }
+}
+
+class _CounterRow extends StatelessWidget {
+  const _CounterRow({
+    required this.label,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(label),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: enabled && value > 0 ? () => onChanged(value - 1) : null,
+            icon: const Icon(Icons.remove_circle_outline),
+          ),
+          SizedBox(width: 28, child: Text('$value', textAlign: TextAlign.center)),
+          IconButton(
+            onPressed: enabled ? () => onChanged(value + 1) : null,
+            icon: const Icon(Icons.add_circle_outline),
+          ),
+        ],
       ),
     );
   }

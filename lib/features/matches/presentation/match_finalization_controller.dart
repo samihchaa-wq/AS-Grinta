@@ -1,30 +1,22 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
-import 'package:as_grinta/features/matches/domain/match_finalization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MatchFinalizationState {
-  const MatchFinalizationState({
-    this.isLoading = false,
-    this.error,
-    this.validation,
-  });
+  const MatchFinalizationState({this.isLoading = false, this.error});
 
   final bool isLoading;
   final String? error;
-  final MatchFinalizationValidation? validation;
 
   MatchFinalizationState copyWith({
     bool? isLoading,
     String? error,
-    MatchFinalizationValidation? validation,
     bool clearError = false,
   }) {
     return MatchFinalizationState(
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
-      validation: validation ?? this.validation,
     );
   }
 }
@@ -37,54 +29,39 @@ class MatchFinalizationController
   final MatchesRepository _repository;
   final Ref _ref;
 
-  Future<void> finalizeMatch({
+  Future<bool> finalizeMatch({
     required String matchId,
-    required int grintaScore,
     required int opponentScore,
-    required List<MatchGoal> goals,
-    required List<MatchSubstitution> substitutions,
     required String? manOfTheMatchId,
+    required List<Map<String, dynamic>> playerStats,
+    required List<Map<String, dynamic>> guestStats,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
-    final authState = _ref.read(authControllerProvider);
-    if (authState.profile?.role != AuthRole.admin) {
+    if (_ref.read(authControllerProvider).profile?.role != AuthRole.admin) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Seul un admin peut finaliser un match.',
+        error: 'Seul un administrateur peut valider le résultat.',
       );
-      return;
+      return false;
     }
-
-    final validation = MatchFinalizationRules.validate(
-      grintaScore: grintaScore,
-      opponentScore: opponentScore,
-      goals: goals,
-      substitutions: substitutions,
-    );
-    state = state.copyWith(validation: validation);
-
-    if (!validation.isValid) {
-      state = state.copyWith(
-        isLoading: false,
-        error: validation.issues.join('\n'),
-      );
-      return;
+    if (opponentScore < 0) {
+      state = state.copyWith(isLoading: false, error: 'Score adverse invalide.');
+      return false;
     }
 
     try {
-      await _repository.finalizeMatch(
+      await _repository.finalizeMatchPostgame(
         id: matchId,
-        grintaScore: grintaScore,
         opponentScore: opponentScore,
-        status: 'termine',
         manOfTheMatchId: manOfTheMatchId,
+        playerStats: playerStats,
+        guestStats: guestStats,
       );
       state = state.copyWith(isLoading: false, clearError: true);
+      return true;
     } catch (error) {
-      state = state.copyWith(
-        isLoading: false,
-        error: error.toString(),
-      );
+      state = state.copyWith(isLoading: false, error: error.toString());
+      return false;
     }
   }
 }
@@ -92,6 +69,5 @@ class MatchFinalizationController
 final matchFinalizationControllerProvider =
     StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>(
         (ref) {
-  final repository = ref.watch(matchesRepositoryProvider);
-  return MatchFinalizationController(repository, ref);
+  return MatchFinalizationController(ref.watch(matchesRepositoryProvider), ref);
 });
