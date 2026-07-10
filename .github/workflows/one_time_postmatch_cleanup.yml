@@ -1,0 +1,35 @@
+name: One-time post-match cleanup
+
+on:
+  push:
+    branches: [feat/post-match-stats-no-coach]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[postmatch-cleaned]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/post-match-stats-no-coach
+      - name: Patch labels
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/features/predictions/presentation/predictions_page.dart')
+          text = p.read_text()
+          text = text.replace('fermée 10 minutes avant', 'fermée 5 minutes avant')
+          text = text.replace("      'clean_sheets' => 'Clean sheets',\n      _ => category,", "      'clean_sheets' => 'Clean sheets',\n      'penalty_faults' => 'Fautes provoquant un penalty',\n      _ => category,")
+          p.write_text(text)
+          Path('.github/workflows/one_time_postmatch_cleanup.yml').unlink()
+          PY
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/predictions/presentation/predictions_page.dart .github/workflows/one_time_postmatch_cleanup.yml
+          git commit -m "Finaliser les libellés du flux post-match [postmatch-cleaned]"
+          git push origin HEAD:feat/post-match-stats-no-coach
