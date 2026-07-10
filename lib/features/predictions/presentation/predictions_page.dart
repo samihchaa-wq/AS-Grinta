@@ -266,6 +266,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage>
       'passes' => 'Passes décisives',
       'hommes_du_match' => 'Hommes du match',
       'clean_sheets' => 'Clean sheets',
+      'penalty_faults' => 'Fautes provoquant un penalty',
       _ => category,
     };
   }
@@ -416,7 +417,7 @@ class _PredictionCard extends ConsumerWidget {
             if (item.isClosed) ...[
               const SizedBox(height: 16),
               const Text(
-                'La fenêtre de pronostic est fermée 10 minutes avant le coup d’envoi.',
+                'La fenêtre de pronostic est fermée 5 minutes avant le coup d’envoi.',
               ),
             ] else ...[
               const SizedBox(height: 16),
