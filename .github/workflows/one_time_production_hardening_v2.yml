@@ -1,0 +1,336 @@
+name: One-time production hardening v2
+
+on:
+  push:
+    branches: [feat/production-hardening-v2]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[hardening-v2-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/production-hardening-v2
+          fetch-depth: 0
+
+      - name: Patch guest events and tests
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          repo = Path('lib/features/coach/data/coach_live_repository.dart')
+          text = repo.read_text()
+          text = text.replace(
+              """    this.scorerGuestName,
+    this.assistGuestName,
+    this.playerInId,
+    this.playerOutId,
+""",
+              """    this.scorerGuestId,
+    this.scorerGuestName,
+    this.assistGuestId,
+    this.assistGuestName,
+    this.playerInId,
+    this.playerOutId,
+    this.playerInGuestId,
+    this.playerInGuestName,
+    this.playerOutGuestId,
+    this.playerOutGuestName,
+""",
+          )
+          text = text.replace(
+              """  final String? scorerGuestName;
+  final String? assistGuestName;
+  final String? playerInId;
+  final String? playerOutId;
+""",
+              """  final String? scorerGuestId;
+  final String? scorerGuestName;
+  final String? assistGuestId;
+  final String? assistGuestName;
+  final String? playerInId;
+  final String? playerOutId;
+  final String? playerInGuestId;
+  final String? playerInGuestName;
+  final String? playerOutGuestId;
+  final String? playerOutGuestName;
+""",
+          )
+          text = text.replace(
+              """      scorerGuestName: json['scorer_guest_name']?.toString(),
+      assistGuestName: json['assist_guest_name']?.toString(),
+      playerInId: json['player_in_profile_id']?.toString(),
+      playerOutId: json['player_out_profile_id']?.toString(),
+""",
+              """      scorerGuestId: json['scorer_guest_id']?.toString(),
+      scorerGuestName: json['scorer_guest_name']?.toString(),
+      assistGuestId: json['assist_guest_id']?.toString(),
+      assistGuestName: json['assist_guest_name']?.toString(),
+      playerInId: json['player_in_profile_id']?.toString(),
+      playerOutId: json['player_out_profile_id']?.toString(),
+      playerInGuestId: json['player_in_guest_id']?.toString(),
+      playerInGuestName: json['player_in_guest_name']?.toString(),
+      playerOutGuestId: json['player_out_guest_id']?.toString(),
+      playerOutGuestName: json['player_out_guest_name']?.toString(),
+""",
+          )
+          text = text.replace(
+              """    String? scorerGuestName,
+    String? assistGuestName,
+  }) async {
+""",
+              """    String? scorerGuestId,
+    String? scorerGuestName,
+    String? assistGuestId,
+    String? assistGuestName,
+  }) async {
+""",
+              1,
+          )
+          text = text.replace(
+              """      'scorer_guest_name': scorerGuestName,
+      'assist_guest_name': assistGuestName,
+""",
+              """      'scorer_guest_id': scorerGuestId,
+      'scorer_guest_name': scorerGuestName,
+      'assist_guest_id': assistGuestId,
+      'assist_guest_name': assistGuestName,
+""",
+          )
+          text = text.replace(
+              """    String? playerInId,
+    String? playerOutId,
+  }) async {
+    if (playerInId == null && playerOutId == null) return;
+""",
+              """    String? playerInId,
+    String? playerOutId,
+    String? playerInGuestId,
+    String? playerInGuestName,
+    String? playerOutGuestId,
+    String? playerOutGuestName,
+  }) async {
+    if (playerInId == null &&
+        playerOutId == null &&
+        playerInGuestId == null &&
+        playerOutGuestId == null) return;
+""",
+          )
+          text = text.replace(
+              """      'player_in_profile_id': playerInId,
+      'player_out_profile_id': playerOutId,
+      'created_by': _client.auth.currentUser?.id,
+""",
+              """      'player_in_profile_id': playerInId,
+      'player_out_profile_id': playerOutId,
+      'player_in_guest_id': playerInGuestId,
+      'player_in_guest_name': playerInGuestName,
+      'player_out_guest_id': playerOutGuestId,
+      'player_out_guest_name': playerOutGuestName,
+      'created_by': _client.auth.currentUser?.id,
+""",
+          )
+          repo.write_text(text)
+
+          controller = Path('lib/features/coach/presentation/coach_board_controller.dart')
+          c = controller.read_text()
+          c = c.replace("  bool _persisting = false;", "  bool _persisting = false;\n  bool _eventWriteInProgress = false;")
+          start = c.index("  String? _guestIdByName")
+          end = c.index("  CoachEvent _mapEvent", start)
+          c = c[:start] + c[end:]
+          c = c.replace(
+              """      playerId: record.scorerId ?? _guestIdByName(record.scorerGuestName),
+      assistPlayerId: record.assistId ?? _guestIdByName(record.assistGuestName),
+      playerInId: record.playerInId,
+      playerOutId: record.playerOutId,
+""",
+              """      playerId: record.scorerId ?? record.scorerGuestId,
+      assistPlayerId: record.assistId ?? record.assistGuestId,
+      playerInId: record.playerInId ?? record.playerInGuestId,
+      playerOutId: record.playerOutId ?? record.playerOutGuestId,
+""",
+          )
+          old_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: true,
+      scorerId: scorer?.isGuest == true ? null : scorerId,
+      assistId: assist?.isGuest == true ? null : assistId,
+      scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+      assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
+    );
+  }
+"""
+          new_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addGoal(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        isForUs: true,
+        scorerId: scorer?.isGuest == true ? null : scorerId,
+        assistId: assist?.isGuest == true ? null : assistId,
+        scorerGuestId: scorer?.isGuest == true ? scorerId : null,
+        scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+        assistGuestId: assist?.isGuest == true ? assistId : null,
+        assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
+  }
+"""
+          if old_goal not in c:
+              raise SystemExit('goal method not found')
+          c = c.replace(old_goal, new_goal)
+          c = c.replace(
+              """  Future<void> addGoalThem() async {
+    if (!state.canEdit || state.matchId == null) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: false,
+    );
+  }
+""",
+              """  Future<void> addGoalThem() async {
+    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addGoal(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        isForUs: false,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
+  }
+""",
+          )
+          old_sub_call = """    await _repository.addSubstitution(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
+      playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
+    );
+"""
+          new_sub_call = """    if (_eventWriteInProgress) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addSubstitution(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
+        playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
+        playerInGuestId: inPlayer?.isGuest == true ? inPlayerId : null,
+        playerInGuestName: inPlayer?.isGuest == true ? inPlayer!.displayName : null,
+        playerOutGuestId: outPlayer?.isGuest == true ? outPlayerId : null,
+        playerOutGuestName: outPlayer?.isGuest == true ? outPlayer!.displayName : null,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
+"""
+          if old_sub_call not in c:
+              raise SystemExit('sub call not found')
+          c = c.replace(old_sub_call, new_sub_call)
+          controller.write_text(c)
+
+          readme = Path('README.md')
+          r = readme.read_text()
+          r = r.replace('- Rôles : pronostiqueur, admin, modérateur', '- Rôles : joueur, admin, modérateur, coach')
+          r += """
+
+## Joueurs exceptionnels
+
+Les invités d’un seul match sont créés depuis le Tableau du coach. Ils peuvent marquer, faire une passe décisive et participer aux remplacements. Leur identité temporaire est limitée au match : aucune fiche permanente et aucune statistique de carrière ou de saison ne sont créées.
+
+## Qualité
+
+Chaque pull request exécute l’analyse Flutter, les tests et le build Web. Le déploiement GitHub Pages contrôle ensuite l’accessibilité des fichiers essentiels du site.
+"""
+          readme.write_text(r)
+
+          tests = Path('test')
+          tests.mkdir(exist_ok=True)
+          Path('test/coach_live_event_record_test.dart').write_text(r"""import 'package:as_grinta/features/coach/data/coach_live_repository.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('parse les identités temporaires des invités', () {
+    final event = CoachLiveEventRecord.fromJson({
+      'id': 'event-1',
+      'event_type': 'goal_us',
+      'minute': 42,
+      'scorer_guest_id': 'guest|field|1|Alex',
+      'scorer_guest_name': 'Alex',
+      'assist_guest_id': 'guest|field|2|Alex',
+      'assist_guest_name': 'Alex',
+      'player_in_guest_id': 'guest|field|3|Sam',
+      'player_in_guest_name': 'Sam',
+      'player_out_guest_id': 'guest|field|4|Nico',
+      'player_out_guest_name': 'Nico',
+    });
+
+    expect(event.scorerGuestId, 'guest|field|1|Alex');
+    expect(event.assistGuestId, 'guest|field|2|Alex');
+    expect(event.playerInGuestId, 'guest|field|3|Sam');
+    expect(event.playerOutGuestId, 'guest|field|4|Nico');
+  });
+}
+""")
+          Path('test/coach_player_test.dart').write_text(r"""import 'package:as_grinta/features/coach/domain/coach_board.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('deux invités de même nom restent distincts par leur identifiant', () {
+    const first = CoachPlayer(
+      id: 'guest|field|1|Alex',
+      name: 'Alex',
+      isGuest: true,
+    );
+    const second = CoachPlayer(
+      id: 'guest|field|2|Alex',
+      name: 'Alex',
+      isGuest: true,
+    );
+
+    expect(first.displayName, second.displayName);
+    expect(first.id, isNot(second.id));
+  });
+
+  test('le surnom reste le nom affiché prioritaire', () {
+    const player = CoachPlayer(
+      id: 'p1',
+      name: 'Jean Dupont',
+      surnom: 'Jeannot',
+    );
+    expect(player.displayName, 'Jeannot');
+  });
+}
+""")
+
+          Path('.github/workflows/one_time_production_hardening_v2.yml').unlink()
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib README.md test .github/workflows/one_time_production_hardening_v2.yml
+          git commit -m "Fiabiliser les invités et ajouter les tests [hardening-v2-patched]"
+          git push origin HEAD:feat/production-hardening-v2
