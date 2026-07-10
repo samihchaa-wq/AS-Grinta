@@ -19,6 +19,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _opponentController = TextEditingController();
   final _timeController = TextEditingController();
   final _competitionController = TextEditingController();
+  final _oddsWinController = TextEditingController();
+  final _oddsDrawController = TextEditingController();
+  final _oddsLossController = TextEditingController();
 
   late String _seasonId;
   late String _opponentId;
@@ -38,6 +41,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
+    _oddsWinController.text = _formatOdds(match?.oddsWin ?? 2.00);
+    _oddsDrawController.text = _formatOdds(match?.oddsDraw ?? 3.50);
+    _oddsLossController.text = _formatOdds(match?.oddsLoss ?? 3.00);
   }
 
   @override
@@ -45,6 +51,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _opponentController.dispose();
     _timeController.dispose();
     _competitionController.dispose();
+    _oddsWinController.dispose();
+    _oddsDrawController.dispose();
+    _oddsLossController.dispose();
     super.dispose();
   }
 
@@ -161,6 +170,50 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               ],
               onChanged: (value) => setState(() => _isHome = value ?? true),
             ),
+            const SizedBox(height: 20),
+            Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Elles sont proposées automatiquement puis peuvent être ajustées.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _oddsWinController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(labelText: 'Victoire'),
+                    validator: _validateOdds,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _oddsDrawController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(labelText: 'Nul'),
+                    validator: _validateOdds,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _oddsLossController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(labelText: 'Défaite'),
+                    validator: _validateOdds,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: canManage && !state.isLoading ? _submit : null,
@@ -244,6 +297,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       int.parse(parts[0]),
       int.parse(parts[1]),
     );
+    final oddsWin = _parseOdds(_oddsWinController.text)!;
+    final oddsDraw = _parseOdds(_oddsDrawController.text)!;
+    final oddsLoss = _parseOdds(_oddsLossController.text)!;
     final notifier = ref.read(matchesControllerProvider.notifier);
     if (widget.match == null) {
       await notifier.createMatch(
@@ -252,6 +308,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         kickoffAt: _kickoffAt,
         isHome: _isHome,
         competition: _competitionController.text.trim(),
+        oddsWin: oddsWin,
+        oddsDraw: oddsDraw,
+        oddsLoss: oddsLoss,
       );
     } else {
       await notifier.updateMatch(
@@ -262,6 +321,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         isHome: _isHome,
         competition: _competitionController.text.trim(),
         status: widget.match!.status,
+        oddsWin: oddsWin,
+        oddsDraw: oddsDraw,
+        oddsLoss: oddsLoss,
       );
     }
     if (!mounted) return;
@@ -281,6 +343,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return null;
   }
 
+  String? _validateOdds(String? raw) {
+    final value = _parseOdds(raw ?? '');
+    if (value == null || value < 1.01 || value > 100) {
+      return '1,01 à 100';
+    }
+    return null;
+  }
+
+  double? _parseOdds(String raw) {
+    return double.tryParse(raw.trim().replaceAll(',', '.'));
+  }
+
   String _formatDate(DateTime value) {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.day)}/${two(value.month)}/${value.year}';
@@ -290,4 +364,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.hour)}:${two(value.minute)}';
   }
+
+  String _formatOdds(double value) => value.toStringAsFixed(2).replaceAll('.', ',');
 }
