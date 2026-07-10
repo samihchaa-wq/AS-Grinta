@@ -20,6 +20,12 @@ jobs:
           ref: fix-v1-public-readiness
           fetch-depth: 0
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Replace deprecated DropdownButtonFormField value
         run: |
           python3 - <<'PY'
@@ -32,12 +38,13 @@ jobs:
               Path('lib/features/matches/presentation/matches_page.dart'),
           ]
           pattern = re.compile(r'(DropdownButtonFormField<[^>]+>\(\s*\n\s*)value:')
+          total = 0
           for path in paths:
               text = path.read_text()
               updated, count = pattern.subn(r'\1initialValue:', text)
-              if count == 0:
-                  print(f'No deprecated field found in {path}')
+              total += count
               path.write_text(updated)
+          print(f'Replaced {total} deprecated values')
           PY
           dart format lib/features/matches/presentation/match_correction_page.dart \
             lib/features/matches/presentation/match_finalization_page.dart \
