@@ -80,10 +80,10 @@ jobs:
           test -s /tmp/main.dart.js
           grep -q 'flutter_bootstrap.js' /tmp/index.html
           grep -q '/AS-Grinta/' /tmp/index.html
-      - name: Verify Supabase API availability
+      - name: Verify Supabase availability
         run: |
           set -euo pipefail
-          code=$(curl --retry 5 --retry-delay 3 -sS -o /tmp/supabase.txt -w '%{http_code}' \
-            'https://ovzijmqrnsgcmryinkfa.supabase.co/rest/v1/' \
-            -H 'apikey: sb_publishable_YjiJqFuuQPelzQtnuyTXnA_6thtFIgl')
-          test "$code" = '200'
+          curl --retry 5 --retry-delay 3 -LfsS \
+            'https://ovzijmqrnsgcmryinkfa.supabase.co/auth/v1/health' \
+            -o /tmp/supabase-health.json
+          test -s /tmp/supabase-health.json
