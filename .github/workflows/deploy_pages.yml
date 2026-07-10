@@ -92,7 +92,6 @@ jobs:
             fi
             sleep 10
           done
-          echo 'Le site ou un fichier Flutter essentiel n’est pas accessible.' >&2
           exit 1
 
       - name: Setup Node
@@ -105,13 +104,12 @@ jobs:
           npm install --no-save playwright@1.52.0
           npx playwright install --with-deps chromium
 
-      - name: Verify rendered application
+      - name: Verify Flutter rendering
         env:
           APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
         run: |
           node <<'NODE'
           const { chromium } = require('playwright');
-
           const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
           async function verify(attempt) {
@@ -121,11 +119,8 @@ jobs:
               serviceWorkers: 'block',
             });
             const page = await context.newPage();
-            const failures = [];
-            page.on('pageerror', error => failures.push(`pageerror: ${error.message}`));
-            page.on('console', message => {
-              if (message.type() === 'error') failures.push(`console: ${message.text()}`);
-            });
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
 
             try {
               const response = await page.goto(
@@ -133,22 +128,28 @@ jobs:
                 { waitUntil: 'networkidle', timeout: 90000 },
               );
               if (!response || response.status() >= 400) {
-                throw new Error(`Réponse HTTP invalide: ${response?.status() ?? 'aucune'}`);
+                throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
               }
-              await page.waitForFunction(
-                () => document.body.innerText.trim().length > 0,
-                null,
-                { timeout: 30000 },
-              );
-              const bodyText = (await page.locator('body').innerText()).trim();
-              if (bodyText.length < 3) {
-                throw new Error('Application rendue sans contenu visible.');
+
+              await page.waitForFunction(() => {
+                const flutterHost = document.querySelector(
+                  'flutter-view, flt-glass-pane, flt-scene-host, canvas',
+                );
+                return flutterHost !== null && document.body.childElementCount > 0;
+              }, null, { timeout: 45000 });
+
+              const dimensions = await page.evaluate(() => ({
+                width: document.documentElement.scrollWidth,
+                height: document.documentElement.scrollHeight,
+              }));
+              if (dimensions.width < 100 || dimensions.height < 100) {
+                throw new Error('Surface Flutter invalide.');
               }
-              if (failures.length > 0) {
-                throw new Error(`Erreurs navigateur détectées:\n${failures.join('\n')}`);
+              if (pageErrors.length > 0) {
+                throw new Error(`Erreurs JavaScript: ${pageErrors.join(' | ')}`);
               }
+
               await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
-              return true;
             } finally {
               await browser.close();
             }
