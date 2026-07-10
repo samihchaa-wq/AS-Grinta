@@ -65,7 +65,7 @@ jobs:
   smoke-test:
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: Checkout configuration
         uses: actions/checkout@v4
@@ -98,20 +98,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Install Playwright Chromium
-        run: |
-          npm install --no-save playwright@1.52.0
-          npx playwright install --with-deps chromium
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
       - name: Verify rendered Flutter application
         env:
           APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
         run: |
           node <<'NODE'
           const fs = require('fs');
-          const { chromium } = require('playwright');
+          const { chromium } = require('playwright-core');
 
           (async () => {
-            const browser = await chromium.launch({ headless: true });
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
             const context = await browser.newContext({
               viewport: { width: 390, height: 844 },
               serviceWorkers: 'block',
@@ -129,7 +131,7 @@ jobs:
             await page.waitForFunction(() => {
               return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
             }, null, { timeout: 45000 });
-            await page.waitForTimeout(5000);
+            await page.waitForTimeout(3000);
             await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
             const size = fs.statSync('as-grinta-smoke.png').size;
             if (size < 5000) throw new Error(`Capture anormalement vide: ${size} octets`);
