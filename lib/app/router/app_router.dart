@@ -10,7 +10,6 @@ import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_correction_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
-import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
@@ -49,15 +48,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isStaff = authState.profile?.role.isStaff == true;
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
-      final isParticipantsRoute =
-          location.startsWith('/matches/') && location.endsWith('/participants');
       final isCorrectionRoute =
           location.startsWith('/matches/') && location.endsWith('/correction');
       final isAdminRoute = location == '/admin';
       final isPlayersRoute = location == '/players';
 
       if (isFinalizationRoute && !isStaff) return '/matches';
-      if (isParticipantsRoute && !isStaff) return '/matches';
       if (isCorrectionRoute && !isStaff) return '/matches';
       if (isAdminRoute && !isStaff) return '/home';
       if (isPlayersRoute && !isStaff) return '/home';
@@ -82,12 +78,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/matches/:matchId',
             builder: (context, state) => MatchDetailsPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/participants',
-            builder: (context, state) => MatchParticipantsPage(
               matchId: state.pathParameters['matchId'] ?? '',
             ),
           ),
