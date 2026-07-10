@@ -16,9 +16,8 @@ class MatchFormPage extends ConsumerStatefulWidget {
 
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _opponentController = TextEditingController();
-  final _timeController = TextEditingController();
   final _competitionController = TextEditingController();
+  final _timeController = TextEditingController();
   final _oddsWinController = TextEditingController();
   final _oddsDrawController = TextEditingController();
   final _oddsLossController = TextEditingController();
@@ -35,22 +34,23 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _opponentController.text = match?.opponentName ?? '';
     _competitionController.text = match?.competition ?? 'Championnat';
     _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
-    _oddsWinController.text = match?.oddsWin == null ? '' : _formatOdds(match!.oddsWin!);
-    _oddsDrawController.text = match?.oddsDraw == null ? '' : _formatOdds(match!.oddsDraw!);
-    _oddsLossController.text = match?.oddsLoss == null ? '' : _formatOdds(match!.oddsLoss!);
+    _oddsWinController.text =
+        match?.oddsWin == null ? '' : _formatOdds(match!.oddsWin!);
+    _oddsDrawController.text =
+        match?.oddsDraw == null ? '' : _formatOdds(match!.oddsDraw!);
+    _oddsLossController.text =
+        match?.oddsLoss == null ? '' : _formatOdds(match!.oddsLoss!);
   }
 
   @override
   void dispose() {
-    _opponentController.dispose();
-    _timeController.dispose();
     _competitionController.dispose();
+    _timeController.dispose();
     _oddsWinController.dispose();
     _oddsDrawController.dispose();
     _oddsLossController.dispose();
@@ -62,15 +62,29 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role == AuthRole.admin || role == AuthRole.moderateur;
+    final seasons = widget.match == null
+        ? state.seasons
+            .where((season) => season['status']?.toString() == 'open')
+            .toList()
+        : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
-    final openSeasons = state.seasons
-        .where((season) => season['status']?.toString() == 'open')
-        .toList();
+
+    if (_seasonId.isEmpty && seasons.isNotEmpty) {
+      _seasonId = seasons.first['id'].toString();
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
+        actions: [
+          if (widget.match != null && canManage)
+            IconButton(
+              tooltip: 'Supprimer le match',
+              onPressed: state.isLoading ? null : _confirmDelete,
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -80,7 +94,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             DropdownButtonFormField<String>(
               initialValue: _seasonId.isEmpty ? null : _seasonId,
               decoration: const InputDecoration(labelText: 'Saison'),
-              items: (widget.match == null ? openSeasons : state.seasons)
+              items: seasons
                   .map(
                     (season) => DropdownMenuItem<String>(
                       value: season['id'].toString(),
@@ -94,44 +108,35 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   : null,
             ),
             const SizedBox(height: 12),
-            Autocomplete<Map<String, dynamic>>(
-              displayStringForOption: (option) => option['name'].toString(),
-              initialValue: TextEditingValue(text: _opponentController.text),
-              optionsBuilder: (value) {
-                final query = value.text.trim().toLowerCase();
-                return opponents.where((opponent) => opponent['name']
-                    .toString()
-                    .toLowerCase()
-                    .contains(query));
-              },
-              onSelected: (opponent) {
-                _opponentId = opponent['id'].toString();
-                _opponentController.text = opponent['name'].toString();
-              },
-              fieldViewBuilder: (context, controller, focusNode, submit) {
-                return TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: InputDecoration(
-                    labelText: 'Adversaire',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.add),
-                      tooltip: 'Ajouter un adversaire',
-                      onPressed: _createOpponent,
-                    ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _opponentId.isEmpty ? null : _opponentId,
+                    decoration: const InputDecoration(labelText: 'Adversaire'),
+                    items: opponents
+                        .map(
+                          (opponent) => DropdownMenuItem<String>(
+                            value: opponent['id'].toString(),
+                            child: Text(opponent['name'].toString()),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) =>
+                        setState(() => _opponentId = value ?? ''),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Sélectionnez un adversaire'
+                        : null,
                   ),
-                  onChanged: (value) {
-                    _opponentController.text = value;
-                    final exact = opponents.where((opponent) =>
-                        opponent['name'].toString().toLowerCase() ==
-                        value.trim().toLowerCase());
-                    _opponentId =
-                        exact.isEmpty ? '' : exact.first['id'].toString();
-                  },
-                  validator: (_) =>
-                      _opponentId.isEmpty ? 'Sélectionnez un adversaire' : null,
-                );
-              },
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Ajouter un adversaire',
+                  onPressed: _createOpponent,
+                  icon: const Icon(Icons.add),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -174,53 +179,17 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
-              'Renseignez les trois cotes avant d’enregistrer le match.',
+              'Les cotes sont actuellement saisies manuellement et enregistrées à deux décimales.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _oddsWinController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Victoire',
-                      hintText: '2,00',
-                    ),
-                    validator: _validateOdds,
-                  ),
-                ),
+                Expanded(child: _oddsField(_oddsWinController, 'Victoire')),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _oddsDrawController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Nul',
-                      hintText: '3,50',
-                    ),
-                    validator: _validateOdds,
-                  ),
-                ),
+                Expanded(child: _oddsField(_oddsDrawController, 'Nul')),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: TextFormField(
-                    controller: _oddsLossController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Défaite',
-                      hintText: '3,00',
-                    ),
-                    validator: _validateOdds,
-                  ),
-                ),
+                Expanded(child: _oddsField(_oddsLossController, 'Défaite')),
               ],
             ),
             const SizedBox(height: 24),
@@ -229,6 +198,17 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               icon: const Icon(Icons.save_outlined),
               label: const Text('Enregistrer'),
             ),
+            if (widget.match != null && canManage) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: state.isLoading ? null : _confirmDelete,
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: const Text('Supprimer définitivement le match'),
+              ),
+            ],
             if (state.error != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -239,6 +219,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _oddsField(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: InputDecoration(labelText: label),
+      validator: _validateOdds,
     );
   }
 
@@ -271,10 +260,38 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         .read(matchesControllerProvider.notifier)
         .createOpponent(name.trim());
     if (!mounted || id == null) return;
-    setState(() {
-      _opponentId = id;
-      _opponentController.text = name.trim();
-    });
+    setState(() => _opponentId = id);
+  }
+
+  Future<void> _confirmDelete() async {
+    final match = widget.match;
+    if (match == null) return;
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Supprimer ce match ?'),
+            content: const Text(
+              'Cette action supprime aussi ses cotes et ses pronostics. Elle est irréversible.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
+    if (!mounted) return;
+    if (ref.read(matchesControllerProvider).error == null) {
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _pickDate() async {
@@ -306,10 +323,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       int.parse(parts[0]),
       int.parse(parts[1]),
     );
+    final notifier = ref.read(matchesControllerProvider.notifier);
     final oddsWin = _parseOdds(_oddsWinController.text)!;
     final oddsDraw = _parseOdds(_oddsDrawController.text)!;
     final oddsLoss = _parseOdds(_oddsLossController.text)!;
-    final notifier = ref.read(matchesControllerProvider.notifier);
     if (widget.match == null) {
       await notifier.createMatch(
         seasonId: _seasonId,
@@ -354,15 +371,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   String? _validateOdds(String? raw) {
     final value = _parseOdds(raw ?? '');
-    if (value == null || value < 1.01 || value > 100) {
-      return '1,01 à 100';
-    }
+    if (value == null || value < 1.01 || value > 100) return '1,01 à 100';
     return null;
   }
 
-  double? _parseOdds(String raw) {
-    return double.tryParse(raw.trim().replaceAll(',', '.'));
-  }
+  double? _parseOdds(String raw) =>
+      double.tryParse(raw.trim().replaceAll(',', '.'));
 
   String _formatDate(DateTime value) {
     String two(int number) => number.toString().padLeft(2, '0');
