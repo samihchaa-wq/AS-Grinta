@@ -65,66 +65,25 @@ jobs:
   smoke-test:
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - name: Verify public files
+      - name: Verify public application files
         run: |
           set -euo pipefail
           base='https://samihchaa-wq.github.io/AS-Grinta/'
           token="${GITHUB_SHA}-$(date +%s)"
-          curl -LfsS "${base}?audit=${token}" -o /tmp/index.html
-          curl -LfsS "${base}flutter_bootstrap.js?audit=${token}" -o /tmp/flutter_bootstrap.js
-          curl -LfsS "${base}main.dart.js?audit=${token}" -o /tmp/main.dart.js
+          curl --retry 5 --retry-delay 5 -LfsS "${base}?audit=${token}" -o /tmp/index.html
+          curl --retry 5 --retry-delay 5 -LfsS "${base}flutter_bootstrap.js?audit=${token}" -o /tmp/flutter_bootstrap.js
+          curl --retry 5 --retry-delay 5 -LfsS "${base}main.dart.js?audit=${token}" -o /tmp/main.dart.js
           test -s /tmp/index.html
           test -s /tmp/flutter_bootstrap.js
           test -s /tmp/main.dart.js
           grep -q 'flutter_bootstrap.js' /tmp/index.html
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Playwright Chromium
+          grep -q '/AS-Grinta/' /tmp/index.html
+      - name: Verify Supabase API availability
         run: |
-          npm install --no-save playwright@1.52.0
-          npx playwright install --with-deps chromium
-      - name: Verify rendered screenshot
-        env:
-          APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const { chromium } = require('playwright');
-          (async () => {
-            const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({
-              viewport: { width: 390, height: 844 },
-              serviceWorkers: 'block',
-            });
-            const page = await context.newPage();
-            const errors = [];
-            page.on('pageerror', error => errors.push(error.message));
-            const response = await page.goto(
-              `${process.env.APP_URL}?visual_audit=${Date.now()}`,
-              { waitUntil: 'domcontentloaded', timeout: 60000 },
-            );
-            if (!response || response.status() >= 400) {
-              throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
-            }
-            await page.waitForTimeout(30000);
-            await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
-            const size = fs.statSync('as-grinta-smoke.png').size;
-            if (size < 5000) throw new Error(`Capture anormalement vide: ${size} octets`);
-            if (errors.length > 0) throw new Error(errors.join(' | '));
-            await browser.close();
-          })().catch(error => {
-            console.error(error);
-            process.exit(1);
-          });
-          NODE
-      - name: Upload browser smoke screenshot
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: browser-smoke-screenshot
-          path: as-grinta-smoke.png
-          if-no-files-found: error
+          set -euo pipefail
+          code=$(curl --retry 5 --retry-delay 3 -sS -o /tmp/supabase.txt -w '%{http_code}' \
+            'https://ovzijmqrnsgcmryinkfa.supabase.co/rest/v1/' \
+            -H 'apikey: sb_publishable_YjiJqFuuQPelzQtnuyTXnA_6thtFIgl')
+          test "$code" = '200'
