@@ -12,6 +12,7 @@ class PlayerStatistics {
     required this.matches,
     required this.goals,
     required this.assists,
+    required this.penaltyFaults,
     required this.motm,
     required this.cleanSheets,
     required this.minutesPlayed,
@@ -27,6 +28,7 @@ class PlayerStatistics {
   final int matches;
   final int goals;
   final int assists;
+  final int penaltyFaults;
   final int motm;
   final int cleanSheets;
   final int minutesPlayed;
@@ -35,8 +37,8 @@ class PlayerStatistics {
 
   String get fullName => '$firstName $lastName'.trim();
   String get displayName {
-    final s = surnom?.trim() ?? '';
-    if (s.isNotEmpty) return s;
+    final nickname = surnom?.trim() ?? '';
+    if (nickname.isNotEmpty) return nickname;
     if (firstName.trim().isNotEmpty) return firstName.trim();
     return fullName.isEmpty ? 'Joueur sans nom' : fullName;
   }
@@ -59,6 +61,7 @@ class StatisticsRepository {
           matches_played,
           goals,
           assists,
+          penalty_faults,
           motm,
           clean_sheets,
           minutes_played,
@@ -85,13 +88,13 @@ class StatisticsRepository {
           profileId: id,
           firstName: firstName,
           lastName: lastName,
-          surnom: profile.containsKey('surnom')
-              ? profile['surnom']?.toString()
-              : null,
+          surnom: profile['surnom']?.toString(),
           isGoalkeeper: profile['is_goalkeeper'] == true,
           matches: int.tryParse('${stats['matches_played'] ?? 0}') ?? 0,
           goals: int.tryParse('${stats['goals'] ?? 0}') ?? 0,
           assists: int.tryParse('${stats['assists'] ?? 0}') ?? 0,
+          penaltyFaults:
+              int.tryParse('${stats['penalty_faults'] ?? 0}') ?? 0,
           motm: int.tryParse('${stats['motm'] ?? 0}') ?? 0,
           cleanSheets: int.tryParse('${stats['clean_sheets'] ?? 0}') ?? 0,
           minutesPlayed: int.tryParse('${stats['minutes_played'] ?? 0}') ?? 0,
