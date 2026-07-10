@@ -74,10 +74,23 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const serviceAccountRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
   if (!supabaseUrl || !serviceRoleKey) {
     return response({ error: "Missing Supabase runtime configuration" }, 500);
   }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const cronSecret = req.headers.get("x-cron-secret") ?? "";
+  const { data: secretIsValid, error: secretError } = await supabase.rpc(
+    "validate_prediction_reminder_cron_secret",
+    { p_secret: cronSecret },
+  );
+  if (secretError || secretIsValid !== true) {
+    return response({ error: "Unauthorized" }, 401);
+  }
+
+  const serviceAccountRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
   if (!serviceAccountRaw) {
     console.error("FIREBASE_SERVICE_ACCOUNT_JSON is not configured");
     return response({ configured: false, sent: 0 });
@@ -92,10 +105,6 @@ Deno.serve(async (req: Request) => {
   if (!credentials.project_id || !credentials.client_email || !credentials.private_key) {
     return response({ error: "Incomplete Firebase service account" }, 500);
   }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
 
   const { data, error } = await supabase.rpc("due_prediction_reminders");
   if (error) return response({ error: error.message }, 500);
