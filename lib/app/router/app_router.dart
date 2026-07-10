@@ -45,7 +45,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (location == '/') return '/home';
 
-      final isStaff = authState.profile?.role.isStaff == true;
+      final role = authState.profile?.role;
+      final isAdmin = role == AuthRole.admin;
+      final isStaff = role?.isStaff == true;
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
       final isCorrectionRoute =
@@ -53,7 +55,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAdminRoute = location == '/admin';
       final isPlayersRoute = location == '/players';
 
-      if (isFinalizationRoute && !isStaff) return '/matches';
+      if (isFinalizationRoute && !isAdmin) return '/matches';
       if (isCorrectionRoute && !isStaff) return '/matches';
       if (isAdminRoute && !isStaff) return '/home';
       if (isPlayersRoute && !isStaff) return '/home';
