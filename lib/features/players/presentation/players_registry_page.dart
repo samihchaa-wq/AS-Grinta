@@ -40,13 +40,13 @@ class PlayersRegistryPage extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             children: [
-              Card(
+              const Card(
                 child: ListTile(
-                  leading: const Icon(Icons.info_outline),
-                  title: const Text('Joueurs permanents'),
-                  subtitle: const Text(
-                    'Les invités d’un seul match doivent être ajoutés depuis le Tableau du coach. '
-                    'Ils ne sont jamais enregistrés ici ni dans les statistiques.',
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Joueurs permanents'),
+                  subtitle: Text(
+                    'Les invités temporaires sont ajoutés uniquement dans la feuille de match post-match. '
+                    'Ils ne sont jamais enregistrés dans ce registre ni dans les statistiques de carrière.',
                   ),
                 ),
               ),
@@ -165,8 +165,7 @@ class PlayersRegistryPage extends ConsumerWidget {
                         if (dialogContext.mounted) {
                           setDialogState(() {
                             saving = false;
-                            error =
-                                'Le joueur n’a pas pu être créé. Actualise puis réessaie.';
+                            error = 'Le joueur n’a pas pu être créé.';
                           });
                         }
                       }
@@ -223,7 +222,7 @@ class _PlayerCard extends ConsumerWidget {
             if (!player.isClaimed)
               const PopupMenuItem(
                 value: 'link',
-                child: Text('Créer un lien d’invitation'),
+                child: Text('Créer un lien de rattachement'),
               ),
             if (player.hasActiveToken)
               const PopupMenuItem(
@@ -300,13 +299,13 @@ class _PlayerCard extends ConsumerWidget {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Lien d’invitation'),
+        title: const Text('Lien de rattachement'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Le joueur crée son compte puis ouvre ce lien pour rattacher sa fiche.',
+              'Le joueur active d’abord le compte reçu par email, puis ouvre ce lien pour rattacher sa fiche.',
             ),
             const SizedBox(height: 12),
             SelectableText(link),
@@ -383,7 +382,7 @@ class _RegistryUnavailable extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Aucune donnée technique n’est affichée. Actualise dans quelques instants.',
+              'Actualise dans quelques instants.',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 18),
