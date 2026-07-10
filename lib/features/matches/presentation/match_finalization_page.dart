@@ -53,8 +53,9 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchFinalizationControllerProvider);
-    final contextAsync =
-        ref.watch(matchFinalizationContextProvider(widget.matchId));
+    final contextAsync = ref.watch(
+      matchFinalizationContextProvider(widget.matchId),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Feuille de match')),
@@ -65,10 +66,8 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
           for (final player in sheet.players) {
             _players.putIfAbsent(player.id, _PlayerInput.new);
           }
-          final computedScore = _players.values.fold<int>(
-                0,
-                (sum, item) => sum + item.goals,
-              ) +
+          final computedScore =
+              _players.values.fold<int>(0, (sum, item) => sum + item.goals) +
               _guests.fold<int>(0, (sum, item) => sum + item.goals);
 
           return ListView(
@@ -156,7 +155,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                           value: input.cleanSheet,
                           onChanged: input.present
                               ? (value) =>
-                                  setState(() => input.cleanSheet = value)
+                                    setState(() => input.cleanSheet = value)
                               : null,
                         ),
                     ],
@@ -184,7 +183,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                 _guestCard(index),
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
-                value: _motmProfileId,
+                initialValue: _motmProfileId,
                 decoration: const InputDecoration(
                   labelText: '⭐ Homme du match (facultatif)',
                 ),
@@ -213,7 +212,9 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               ],
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: state.isLoading ? null : () => _submit(sheet.players),
+                onPressed: state.isLoading
+                    ? null
+                    : () => _submit(sheet.players),
                 icon: const Icon(Icons.verified_outlined),
                 label: const Text('Valider le résultat'),
               ),
@@ -280,8 +281,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               label: '🟥 Faute provoquant un penalty',
               value: guest.penaltyFaults,
               enabled: guest.present,
-              onChanged: (value) =>
-                  setState(() => guest.penaltyFaults = value),
+              onChanged: (value) => setState(() => guest.penaltyFaults = value),
             ),
           ],
         ),
@@ -292,9 +292,9 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
   Future<void> _submit(List<MatchSheetPlayer> players) async {
     final opponentScore = int.tryParse(_opponentScoreController.text.trim());
     if (opponentScore == null || opponentScore < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Score adverse invalide.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Score adverse invalide.')));
       return;
     }
     for (final guest in _guests) {
@@ -369,7 +369,10 @@ class _CounterRow extends StatelessWidget {
             onPressed: enabled && value > 0 ? () => onChanged(value - 1) : null,
             icon: const Icon(Icons.remove_circle_outline),
           ),
-          SizedBox(width: 28, child: Text('$value', textAlign: TextAlign.center)),
+          SizedBox(
+            width: 28,
+            child: Text('$value', textAlign: TextAlign.center),
+          ),
           IconButton(
             onPressed: enabled ? () => onChanged(value + 1) : null,
             icon: const Icon(Icons.add_circle_outline),

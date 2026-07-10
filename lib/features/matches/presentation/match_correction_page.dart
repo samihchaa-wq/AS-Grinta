@@ -16,12 +16,8 @@ class MatchCorrectionPage extends ConsumerWidget {
       floatingActionButton: dataAsync.valueOrNull == null
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _editGoal(
-                context,
-                ref,
-                dataAsync.valueOrNull!,
-                null,
-              ),
+              onPressed: () =>
+                  _editGoal(context, ref, dataAsync.valueOrNull!, null),
               icon: const Icon(Icons.add),
               label: const Text('Ajouter un but'),
             ),
@@ -81,10 +77,9 @@ class MatchCorrectionPage extends ConsumerWidget {
                     .toList(),
                 onChanged: (profileId) async {
                   if (profileId == null) return;
-                  await ref.read(matchCorrectionRepositoryProvider).setMotm(
-                        matchId: matchId,
-                        profileId: profileId,
-                      );
+                  await ref
+                      .read(matchCorrectionRepositoryProvider)
+                      .setMotm(matchId: matchId, profileId: profileId);
                   ref.invalidate(matchCorrectionProvider(matchId));
                 },
               ),
@@ -108,9 +103,7 @@ class MatchCorrectionPage extends ConsumerWidget {
                             ? 'But AS Grinta'
                             : 'But adverse',
                       ),
-                      subtitle: Text(
-                        _goalDescription(goal, data.participants),
-                      ),
+                      subtitle: Text(_goalDescription(goal, data.participants)),
                       onTap: () => _editGoal(context, ref, data, goal),
                       trailing: IconButton(
                         tooltip: 'Supprimer',
@@ -164,8 +157,9 @@ class MatchCorrectionPage extends ConsumerWidget {
         builder: (context, setDialogState) {
           final hidesPlayers = team == 'adverse' || goalType == 'csc_adverse';
           return AlertDialog(
-            title:
-                Text(existing == null ? 'Ajouter un but' : 'Corriger le but'),
+            title: Text(
+              existing == null ? 'Ajouter un but' : 'Corriger le but',
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -302,8 +296,9 @@ class MatchCorrectionPage extends ConsumerWidget {
         minute: minute,
         goalType: team == 'adverse' ? null : goalType,
         scorerId: hidesPlayers ? null : scorerId,
-        assistType:
-            hidesPlayers ? null : (assisterId == null ? 'sans_passe' : 'connu'),
+        assistType: hidesPlayers
+            ? null
+            : (assisterId == null ? 'sans_passe' : 'connu'),
         assisterId: hidesPlayers ? null : assisterId,
       );
     } else {
@@ -313,8 +308,9 @@ class MatchCorrectionPage extends ConsumerWidget {
         minute: minute,
         goalType: team == 'adverse' ? null : goalType,
         scorerId: hidesPlayers ? null : scorerId,
-        assistType:
-            hidesPlayers ? null : (assisterId == null ? 'sans_passe' : 'connu'),
+        assistType: hidesPlayers
+            ? null
+            : (assisterId == null ? 'sans_passe' : 'connu'),
         assisterId: hidesPlayers ? null : assisterId,
       );
     }
