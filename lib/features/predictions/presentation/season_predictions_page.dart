@@ -105,11 +105,11 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             padding: const EdgeInsets.all(16),
             children: [
               const Text(
-                'Valeurs prévues pour 30 matchs. Une case vide rapporte 0 point.',
+                'Valeurs prévues pour la saison. Une case vide rapporte 0 point.',
               ),
               const SizedBox(height: 8),
               const Text(
-                'Les joueurs de champ ont Buts, Passes D. et HDM. Les gardiens ont uniquement Clean sheets.',
+                'Les fautes provoquant un penalty sont pronostiquées pour tous les joueurs.',
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -132,6 +132,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                       DataColumn(label: Text('Passes D.')),
                       DataColumn(label: Text('HDM')),
                       DataColumn(label: Text('Clean sheets')),
+                      DataColumn(label: Text('Fautes pen.')),
                     ],
                     rows: grouped.values.map(_buildPredictionTableRow).toList(),
                   ),
@@ -194,6 +195,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         DataCell(
           isGoalkeeper ? _numberCell(find('clean_sheets')) : _disabledCell(),
         ),
+        DataCell(_numberCell(find('penalty_faults'))),
       ],
     );
   }
@@ -216,8 +218,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           hintText: '0',
         ),
         onChanged: (raw) {
-          final parsed = int.tryParse(raw) ?? 0;
-          _draftValues[key] = parsed;
+          _draftValues[key] = int.tryParse(raw) ?? 0;
         },
       ),
     );
@@ -331,6 +332,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       'passes' => 'Passes décisives',
       'hommes_du_match' => 'Hommes du match',
       'clean_sheets' => 'Clean sheets',
+      'penalty_faults' => 'Fautes provoquant un penalty',
       _ => category,
     };
   }
