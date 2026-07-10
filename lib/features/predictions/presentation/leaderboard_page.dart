@@ -14,6 +14,12 @@ class LeaderboardPage extends ConsumerStatefulWidget {
 class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
   _LeaderboardMode _mode = _LeaderboardMode.cumulative;
 
+  String _formatNumber(double value) {
+    return value == value.truncateToDouble()
+        ? value.toInt().toString()
+        : value.toStringAsFixed(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final leaderboardAsync = ref.watch(leaderboardProvider);
@@ -117,14 +123,14 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                                     ),
                                   ),
                                   Text(
-                                    points.toStringAsFixed(1),
+                                    _formatNumber(points),
                                     style:
                                         Theme.of(context).textTheme.titleLarge,
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              Text('${percentage.toStringAsFixed(1)} %'),
+                              Text('${_formatNumber(percentage)} %'),
                               const SizedBox(height: 4),
                               LinearProgressIndicator(
                                 value: (percentage / 100)
