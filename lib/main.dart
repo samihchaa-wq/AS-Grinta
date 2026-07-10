@@ -45,6 +45,8 @@ class _BootstrapAppState extends State<_BootstrapApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      locale: const Locale('fr', 'FR'),
+      supportedLocales: const [Locale('fr', 'FR')],
       theme: ThemeData.dark(),
       home: FutureBuilder<void>(
         future: _initialization,
