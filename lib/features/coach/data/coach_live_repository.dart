@@ -54,10 +54,16 @@ class CoachLiveEventRecord {
     required this.minute,
     this.scorerId,
     this.assistId,
+    this.scorerGuestId,
     this.scorerGuestName,
+    this.assistGuestId,
     this.assistGuestName,
     this.playerInId,
     this.playerOutId,
+    this.playerInGuestId,
+    this.playerInGuestName,
+    this.playerOutGuestId,
+    this.playerOutGuestName,
   });
 
   final String id;
@@ -65,10 +71,16 @@ class CoachLiveEventRecord {
   final int minute;
   final String? scorerId;
   final String? assistId;
+  final String? scorerGuestId;
   final String? scorerGuestName;
+  final String? assistGuestId;
   final String? assistGuestName;
   final String? playerInId;
   final String? playerOutId;
+  final String? playerInGuestId;
+  final String? playerInGuestName;
+  final String? playerOutGuestId;
+  final String? playerOutGuestName;
 
   factory CoachLiveEventRecord.fromJson(Map<String, dynamic> json) {
     return CoachLiveEventRecord(
@@ -77,10 +89,16 @@ class CoachLiveEventRecord {
       minute: int.tryParse('${json['minute'] ?? 0}') ?? 0,
       scorerId: json['scorer_profile_id']?.toString(),
       assistId: json['assist_profile_id']?.toString(),
+      scorerGuestId: json['scorer_guest_id']?.toString(),
       scorerGuestName: json['scorer_guest_name']?.toString(),
+      assistGuestId: json['assist_guest_id']?.toString(),
       assistGuestName: json['assist_guest_name']?.toString(),
       playerInId: json['player_in_profile_id']?.toString(),
       playerOutId: json['player_out_profile_id']?.toString(),
+      playerInGuestId: json['player_in_guest_id']?.toString(),
+      playerInGuestName: json['player_in_guest_name']?.toString(),
+      playerOutGuestId: json['player_out_guest_id']?.toString(),
+      playerOutGuestName: json['player_out_guest_name']?.toString(),
     );
   }
 }
@@ -156,7 +174,9 @@ class CoachLiveRepository {
     required bool isForUs,
     String? scorerId,
     String? assistId,
+    String? scorerGuestId,
     String? scorerGuestName,
+    String? assistGuestId,
     String? assistGuestName,
   }) async {
     await _client.from('coach_match_events').insert({
@@ -165,7 +185,9 @@ class CoachLiveRepository {
       'minute': minute,
       'scorer_profile_id': scorerId,
       'assist_profile_id': assistId,
+      'scorer_guest_id': scorerGuestId,
       'scorer_guest_name': scorerGuestName,
+      'assist_guest_id': assistGuestId,
       'assist_guest_name': assistGuestName,
       'created_by': _client.auth.currentUser?.id,
     });
@@ -176,14 +198,27 @@ class CoachLiveRepository {
     required int minute,
     String? playerInId,
     String? playerOutId,
+    String? playerInGuestId,
+    String? playerInGuestName,
+    String? playerOutGuestId,
+    String? playerOutGuestName,
   }) async {
-    if (playerInId == null && playerOutId == null) return;
+    if (playerInId == null &&
+        playerOutId == null &&
+        playerInGuestId == null &&
+        playerOutGuestId == null) {
+      return;
+    }
     await _client.from('coach_match_events').insert({
       'match_id': matchId,
       'event_type': 'substitution',
       'minute': minute,
       'player_in_profile_id': playerInId,
       'player_out_profile_id': playerOutId,
+      'player_in_guest_id': playerInGuestId,
+      'player_in_guest_name': playerInGuestName,
+      'player_out_guest_id': playerOutGuestId,
+      'player_out_guest_name': playerOutGuestName,
       'created_by': _client.auth.currentUser?.id,
     });
   }
