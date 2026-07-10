@@ -92,6 +92,7 @@ class AuthRepository {
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
+    required String surnom,
     required String avatarPath,
   }) async {
     final user = _client.auth.currentUser;
@@ -101,6 +102,7 @@ class AuthRepository {
 
     final cleanFirstName = firstName.trim();
     final cleanLastName = lastName.trim();
+    final cleanNickname = surnom.trim();
     if (cleanFirstName.isEmpty || cleanLastName.isEmpty) {
       throw ArgumentError('Le prénom et le nom sont obligatoires.');
     }
@@ -108,6 +110,7 @@ class AuthRepository {
     await _client.from('profiles').update({
       'first_name': cleanFirstName,
       'last_name': cleanLastName,
+      'surnom': cleanNickname.isEmpty ? null : cleanNickname,
       'photo_url': avatarPath.trim().isEmpty ? null : avatarPath.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', user.id);
@@ -117,6 +120,7 @@ class AuthRepository {
         data: {
           'first_name': cleanFirstName,
           'last_name': cleanLastName,
+          'surnom': cleanNickname.isEmpty ? null : cleanNickname,
         },
       ),
     );
