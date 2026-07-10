@@ -31,8 +31,11 @@ class PlayerItem {
 
   String get fullName => '$firstName $lastName'.trim();
   String get displayName {
-    final s = surnom?.trim() ?? '';
-    return s.isNotEmpty ? s : (fullName.isEmpty ? 'Joueur sans nom' : fullName);
+    final nickname = surnom?.trim() ?? '';
+    if (nickname.isNotEmpty) return nickname;
+    final first = firstName.trim();
+    if (first.isNotEmpty) return first;
+    return fullName.isEmpty ? 'Joueur sans nom' : fullName;
   }
 
   bool get isClaimed => linkedProfileId != null;
@@ -130,9 +133,7 @@ class PlayersRepository {
       return row['id'].toString();
     } on PostgrestException catch (error) {
       if (error.code == 'PGRST205') {
-        throw StateError(
-          'Le registre indépendant n’est pas encore activé. Utilise un joueur exceptionnel depuis le Tableau du coach.',
-        );
+        throw StateError('Le registre des joueurs n’est pas encore disponible.');
       }
       rethrow;
     }
@@ -190,8 +191,8 @@ class PlayersRepository {
   }) async {
     try {
       await _client.rpc('claim_player_profile', params: {'claim': token});
-    } on PostgrestException catch (e) {
-      throw StateError(e.message);
+    } on PostgrestException catch (error) {
+      throw StateError(error.message);
     }
   }
 
@@ -200,7 +201,7 @@ class PlayersRepository {
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    String hex(int b) => b.toRadixString(16).padLeft(2, '0');
+    String hex(int value) => value.toRadixString(16).padLeft(2, '0');
     final b = bytes.map(hex).toList();
     return '${b[0]}${b[1]}${b[2]}${b[3]}-${b[4]}${b[5]}-${b[6]}${b[7]}-${b[8]}${b[9]}-${b[10]}${b[11]}${b[12]}${b[13]}${b[14]}${b[15]}';
   }
