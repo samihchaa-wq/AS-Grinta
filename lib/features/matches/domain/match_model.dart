@@ -10,6 +10,9 @@ class MatchModel {
     required this.status,
     required this.grintaScore,
     required this.opponentScore,
+    this.oddsWin,
+    this.oddsDraw,
+    this.oddsLoss,
     this.createdBy,
     this.createdAt,
     this.updatedAt,
@@ -27,6 +30,9 @@ class MatchModel {
   final String status;
   final int? grintaScore;
   final int? opponentScore;
+  final double? oddsWin;
+  final double? oddsDraw;
+  final double? oddsLoss;
   final String? createdBy;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -52,6 +58,12 @@ class MatchModel {
     final date = (json['match_date'] ?? '').toString();
     final time = (json['match_time'] ?? '00:00:00').toString();
     final kickoffAt = DateTime.tryParse('${date}T$time') ?? DateTime(1970);
+    final oddsRaw = json['match_odds'];
+    final odds = oddsRaw is List && oddsRaw.isNotEmpty
+        ? Map<String, dynamic>.from(oddsRaw.first as Map)
+        : oddsRaw is Map
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
 
     return MatchModel(
       id: json['id']?.toString() ?? '',
@@ -69,6 +81,9 @@ class MatchModel {
       opponentScore: json['score_adverse'] == null
           ? null
           : int.tryParse('${json['score_adverse']}'),
+      oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
+      oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
+      oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
       createdBy: json['created_by']?.toString(),
       createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
       updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
