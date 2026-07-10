@@ -2,6 +2,7 @@ import 'package:as_grinta/app/router/app_router.dart';
 import 'package:as_grinta/core/network/connectivity_service.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AsGrintaApp extends ConsumerWidget {
@@ -18,6 +19,11 @@ class AsGrintaApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: AppTheme.dark,
       routerConfig: router,
       builder: (context, child) {
