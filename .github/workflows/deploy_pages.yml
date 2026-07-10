@@ -22,34 +22,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-
       - name: Install dependencies
         run: flutter pub get
-
       - name: Configure Pages
         uses: actions/configure-pages@v5
-
       - name: Build Flutter Web
         run: flutter build web --release --base-href "/AS-Grinta/" --pwa-strategy=none
-
       - name: Add SPA fallback
         run: cp build/web/index.html build/web/404.html
-
       - name: Validate generated assets
-        shell: bash
         run: |
           set -euo pipefail
           test -s build/web/index.html
           test -s build/web/flutter_bootstrap.js
           test -s build/web/main.dart.js
           grep -q '/AS-Grinta/' build/web/index.html
-
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -73,111 +65,66 @@ jobs:
   smoke-test:
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Verify public files
-        shell: bash
         run: |
           set -euo pipefail
           base='https://samihchaa-wq.github.io/AS-Grinta/'
-          for attempt in 1 2 3 4 5 6; do
-            token="${GITHUB_SHA}-${attempt}-$(date +%s)"
-            index_code=$(curl -L -sS -o /tmp/index.html -w '%{http_code}' "${base}?audit=${token}")
-            bootstrap_code=$(curl -L -sS -o /tmp/flutter_bootstrap.js -w '%{http_code}' "${base}flutter_bootstrap.js?audit=${token}")
-            main_code=$(curl -L -sS -o /tmp/main.dart.js -w '%{http_code}' "${base}main.dart.js?audit=${token}")
-            if [[ "$index_code" == '200' && "$bootstrap_code" == '200' && "$main_code" == '200' ]] \
-              && [[ -s /tmp/index.html && -s /tmp/flutter_bootstrap.js && -s /tmp/main.dart.js ]] \
-              && grep -q 'flutter_bootstrap.js' /tmp/index.html; then
-              exit 0
-            fi
-            sleep 10
-          done
-          exit 1
-
+          token="${GITHUB_SHA}-$(date +%s)"
+          curl -LfsS "${base}?audit=${token}" -o /tmp/index.html
+          curl -LfsS "${base}flutter_bootstrap.js?audit=${token}" -o /tmp/flutter_bootstrap.js
+          curl -LfsS "${base}main.dart.js?audit=${token}" -o /tmp/main.dart.js
+          test -s /tmp/index.html
+          test -s /tmp/flutter_bootstrap.js
+          test -s /tmp/main.dart.js
+          grep -q 'flutter_bootstrap.js' /tmp/index.html
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install Playwright Chromium
         run: |
           npm install --no-save playwright@1.52.0
           npx playwright install --with-deps chromium
-
-      - name: Verify Flutter rendering
+      - name: Verify rendered screenshot
         env:
           APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
         run: |
           node <<'NODE'
+          const fs = require('fs');
           const { chromium } = require('playwright');
-          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-          async function verify(attempt) {
+          (async () => {
             const browser = await chromium.launch({ headless: true });
             const context = await browser.newContext({
               viewport: { width: 390, height: 844 },
               serviceWorkers: 'block',
             });
             const page = await context.newPage();
-            const pageErrors = [];
-            page.on('pageerror', error => pageErrors.push(error.message));
-
-            try {
-              const response = await page.goto(
-                `${process.env.APP_URL}?browser_audit=${Date.now()}-${attempt}`,
-                { waitUntil: 'networkidle', timeout: 90000 },
-              );
-              if (!response || response.status() >= 400) {
-                throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
-              }
-
-              await page.waitForFunction(() => {
-                const flutterHost = document.querySelector(
-                  'flutter-view, flt-glass-pane, flt-scene-host, canvas',
-                );
-                return flutterHost !== null && document.body.childElementCount > 0;
-              }, null, { timeout: 45000 });
-
-              const dimensions = await page.evaluate(() => ({
-                width: document.documentElement.scrollWidth,
-                height: document.documentElement.scrollHeight,
-              }));
-              if (dimensions.width < 100 || dimensions.height < 100) {
-                throw new Error('Surface Flutter invalide.');
-              }
-              if (pageErrors.length > 0) {
-                throw new Error(`Erreurs JavaScript: ${pageErrors.join(' | ')}`);
-              }
-
-              await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
-            } finally {
-              await browser.close();
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            const response = await page.goto(
+              `${process.env.APP_URL}?visual_audit=${Date.now()}`,
+              { waitUntil: 'domcontentloaded', timeout: 60000 },
+            );
+            if (!response || response.status() >= 400) {
+              throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
             }
-          }
-
-          (async () => {
-            let lastError;
-            for (let attempt = 1; attempt <= 6; attempt++) {
-              try {
-                await verify(attempt);
-                return;
-              } catch (error) {
-                lastError = error;
-                console.error(`Tentative ${attempt}/6: ${error.message}`);
-                if (attempt < 6) await sleep(10000);
-              }
-            }
-            throw lastError;
+            await page.waitForTimeout(15000);
+            await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
+            const size = fs.statSync('as-grinta-smoke.png').size;
+            if (size < 5000) throw new Error(`Capture anormalement vide: ${size} octets`);
+            if (errors.length > 0) throw new Error(errors.join(' | '));
+            await browser.close();
           })().catch(error => {
             console.error(error);
             process.exit(1);
           });
           NODE
-
       - name: Upload browser smoke screenshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-smoke-screenshot
           path: as-grinta-smoke.png
-          if-no-files-found: ignore
+          if-no-files-found: error
