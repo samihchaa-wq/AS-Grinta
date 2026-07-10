@@ -110,7 +110,7 @@ jobs:
             if (!response || response.status() >= 400) {
               throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
             }
-            await page.waitForTimeout(15000);
+            await page.waitForTimeout(30000);
             await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
             const size = fs.statSync('as-grinta-smoke.png').size;
             if (size < 5000) throw new Error(`Capture anormalement vide: ${size} octets`);
