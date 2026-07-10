@@ -74,9 +74,9 @@ jobs:
   smoke-test:
     needs: deploy
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Verify public site
+      - name: Verify public files
         shell: bash
         run: |
           set -euo pipefail
@@ -94,3 +94,67 @@ jobs:
           done
           echo 'Le site ou un fichier Flutter essentiel n’est pas accessible.' >&2
           exit 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.52.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify rendered application
+        env:
+          APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+            const failures = [];
+
+            page.on('pageerror', error => failures.push(`pageerror: ${error.message}`));
+            page.on('console', message => {
+              if (message.type() === 'error') failures.push(`console: ${message.text()}`);
+            });
+
+            const response = await page.goto(`${process.env.APP_URL}?browser_audit=${Date.now()}`, {
+              waitUntil: 'networkidle',
+              timeout: 90000,
+            });
+
+            if (!response || response.status() >= 400) {
+              throw new Error(`Réponse HTTP invalide: ${response?.status() ?? 'aucune'}`);
+            }
+
+            await page.waitForFunction(() => document.body.innerText.trim().length > 0, null, {
+              timeout: 30000,
+            });
+
+            const bodyText = (await page.locator('body').innerText()).trim();
+            if (bodyText.length < 3) throw new Error('Application rendue sans contenu visible.');
+
+            await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
+
+            if (failures.length > 0) {
+              throw new Error(`Erreurs navigateur détectées:\n${failures.join('\n')}`);
+            }
+
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload browser smoke screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-smoke-screenshot
+          path: as-grinta-smoke.png
+          if-no-files-found: ignore
