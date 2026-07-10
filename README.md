@@ -7,33 +7,37 @@ Application mobile pour une équipe de football amateur.
 - Comptes sur invitation
 - Rôles : joueur, admin, modérateur, coach
 - Saisons et effectif
-- Matchs, live facultatif et archivage
-- Buts, passes décisives, gardiens et hommes du match
-- Statistiques : matchs joués, buts, passes, HDM, clean sheets
+- Création, modification, finalisation et archivage des matchs
+- Saisie des statistiques uniquement après le match
+- Buts, passes décisives, fautes provoquant un penalty, clean sheets et hommes du match
 - Pronostics de match et de saison
 
 ## Navigation
 
 - Accueil
 - Matchs
-- Tableau du coach
-- Statistiques
 - Pronostics
-- Profil
-- Administration pour le staff
+- Statistiques
+- Plus : profil, paramètres et administration
 
-## Joueurs exceptionnels
+## Flux d’un match
 
-Les invités d’un seul match sont créés depuis le Tableau du coach. Ils peuvent marquer, faire une passe décisive et participer aux remplacements.
+1. Le staff crée le match.
+2. Le pronostic est immédiatement ouvert.
+3. Le pronostic est automatiquement fermé cinq minutes avant le coup d’envoi.
+4. Aucune composition et aucune saisie en direct ne sont utilisées.
+5. Après le match, le staff renseigne le score, les présences et les statistiques individuelles.
+6. La validation rend les pronostics visibles aux autres utilisateurs et calcule les classements.
 
-Chaque invité possède un identifiant temporaire unique limité au match. Aucune fiche permanente et aucune statistique de carrière ou de saison ne sont créées.
+## Joueurs invités
+
+Les invités sont ajoutés uniquement dans la feuille de statistiques du match. Ils peuvent avoir des buts, des passes décisives et des fautes provoquant un penalty, mais aucune fiche permanente ni statistique de carrière ou de saison n’est créée.
 
 ## Stack
 
 - Flutter
 - Supabase Auth
 - PostgreSQL
-- Supabase Realtime
 - Supabase Storage
 
 ## Qualité
