@@ -3,8 +3,6 @@ begin;
 create schema if not exists private;
 revoke all on schema private from public,anon,authenticated;
 
-authorization postgres;
-
 create table if not exists private.prediction_reminder_cron_config (
   singleton boolean primary key default true check (singleton),
   secret_hash text not null,
@@ -21,14 +19,17 @@ begin
     select 1 from vault.decrypted_secrets
     where name='prediction_reminder_cron_secret'
   ) then
-    raw_secret := encode(gen_random_bytes(32),'hex');
+    raw_secret := encode(extensions.gen_random_bytes(32),'hex');
     perform vault.create_secret(
       raw_secret,
       'prediction_reminder_cron_secret',
       'Internal authentication secret for the prediction reminder cron job'
     );
     insert into private.prediction_reminder_cron_config(singleton,secret_hash)
-    values(true,crypt(raw_secret,gen_salt('bf')))
+    values(
+      true,
+      extensions.crypt(raw_secret,extensions.gen_salt('bf'))
+    )
     on conflict(singleton) do update set secret_hash=excluded.secret_hash;
   end if;
 end;
@@ -46,7 +47,7 @@ as $$
   select exists (
     select 1
     from private.prediction_reminder_cron_config
-    where crypt(coalesce(p_secret,''),secret_hash)=secret_hash
+    where extensions.crypt(coalesce(p_secret,''),secret_hash)=secret_hash
   );
 $$;
 
