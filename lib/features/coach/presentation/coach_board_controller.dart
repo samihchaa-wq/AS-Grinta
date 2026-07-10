@@ -14,19 +14,26 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     this._client,
     this._repository, {
     required bool canEdit,
-  }) : super(CoachBoardState.initial(canEdit: canEdit)) {
+  })  : _hasStaffPermission = canEdit,
+        super(CoachBoardState.initial(canEdit: canEdit)) {
     _initialize();
   }
 
   final SupabaseClient _client;
   final CoachLiveRepository _repository;
+  final bool _hasStaffPermission;
   Timer? _ticker;
+  StreamSubscription<String>? _statusSubscription;
   StreamSubscription<CoachLiveSession?>? _sessionSubscription;
   StreamSubscription<List<CoachLiveEventRecord>>? _eventsSubscription;
   bool _persisting = false;
   bool _eventWriteInProgress = false;
+  String _matchStatus = 'a_venir';
 
   static const _guestPrefix = 'guest|';
+
+  bool get canRecordEvents =>
+      state.canEdit && state.isRunning && _matchStatus == 'en_cours';
 
   Future<void> _initialize() async {
     try {
@@ -77,6 +84,30 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
         clearError: true,
       );
 
+      _statusSubscription = _repository.watchMatchStatus(matchId).listen(
+        (status) {
+          _matchStatus = status;
+          final editable = status == 'a_venir' || status == 'en_cours';
+          if (!editable) _stopLocalTicker();
+          state = state.copyWith(
+            canEdit: _hasStaffPermission && editable,
+            isRunning: editable ? state.isRunning : false,
+            error: editable
+                ? null
+                : 'Match terminé. Les corrections se font depuis Matchs.',
+            clearError: editable,
+          );
+        },
+        onError: (_) {
+          _stopLocalTicker();
+          state = state.copyWith(
+            canEdit: false,
+            isRunning: false,
+            error: 'Le statut du match n’a pas pu être vérifié.',
+          );
+        },
+      );
+
       _sessionSubscription = _repository.watchSession(matchId).listen(
         (session) async {
           if (session == null) {
@@ -100,17 +131,19 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
             scoreThem: session.scoreThem,
             elapsedSeconds: session.elapsedSeconds,
             plannedDurationMinutes: session.plannedDurationMinutes,
-            isRunning: session.isRunning,
+            isRunning: session.isRunning && _matchStatus == 'en_cours',
             clearError: true,
           );
-          if (session.isRunning) {
+          if (state.isRunning) {
             _startLocalTicker();
           } else {
             _stopLocalTicker();
           }
         },
-        onError: (Object error) {
-          state = state.copyWith(error: error.toString());
+        onError: (_) {
+          state = state.copyWith(
+            error: 'Le Tableau n’a pas pu être synchronisé. Actualise la page.',
+          );
         },
       );
 
@@ -127,12 +160,18 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
             scoreThem: scoreThem,
           );
         },
-        onError: (Object error) {
-          state = state.copyWith(error: error.toString());
+        onError: (_) {
+          state = state.copyWith(
+            error: 'Les événements du match n’ont pas pu être synchronisés.',
+          );
         },
       );
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        canEdit: false,
+        error: 'Le Tableau est temporairement indisponible. Actualise la page.',
+      );
     }
   }
 
@@ -155,7 +194,8 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     required String slotCode,
   }) async {
     if (!state.canEdit || name.trim().isEmpty) return;
-    final id = 'guest|${isGoalkeeper ? 'gk' : 'field'}|${DateTime.now().microsecondsSinceEpoch}|${Uri.encodeComponent(name.trim())}';
+    final id =
+        'guest|${isGoalkeeper ? 'gk' : 'field'}|${DateTime.now().microsecondsSinceEpoch}|${Uri.encodeComponent(name.trim())}';
     final guest = CoachPlayer(
       id: id,
       name: name.trim(),
@@ -285,28 +325,34 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   }
 
   Future<void> startTimer() async {
-    if (!state.canEdit || state.isRunning || state.lineup.length != 11) return;
-    state = state.copyWith(isRunning: true);
-    _startLocalTicker();
-    await _persistSession();
+    if (!state.canEdit || state.isRunning || state.matchId == null) return;
+    try {
+      await _repository.startMatch(state.matchId!);
+      _matchStatus = 'en_cours';
+      state = state.copyWith(isRunning: true, clearError: true);
+      _startLocalTicker();
+      await _persistSession();
+    } catch (_) {
+      state = state.copyWith(error: 'Le match n’a pas pu démarrer.');
+    }
   }
 
   Future<void> pauseTimer() async {
-    if (!state.canEdit) return;
+    if (!canRecordEvents) return;
     _stopLocalTicker();
     state = state.copyWith(isRunning: false);
     await _persistSession();
   }
 
   Future<void> resetTimer() async {
-    if (!state.canEdit) return;
+    if (!state.canEdit || state.isRunning) return;
     _stopLocalTicker();
     state = state.copyWith(isRunning: false, elapsedSeconds: 0);
     await _persistSession();
   }
 
   Future<void> goToHalfTime() async {
-    if (!state.canEdit) return;
+    if (!canRecordEvents) return;
     final half = (state.plannedDurationMinutes * 60 / 2).round();
     state = state.copyWith(isRunning: false, elapsedSeconds: half);
     _stopLocalTicker();
@@ -314,17 +360,28 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   }
 
   Future<void> endMatch() async {
-    if (!state.canEdit) return;
+    if (!canRecordEvents || state.matchId == null) return;
     _stopLocalTicker();
     state = state.copyWith(
       isRunning: false,
       elapsedSeconds: state.plannedDurationMinutes * 60,
     );
     await _persistSession();
+    try {
+      await _repository.finishMatch(state.matchId!);
+      _matchStatus = 'termine';
+      state = state.copyWith(
+        canEdit: false,
+        isRunning: false,
+        error: 'Match terminé. Les corrections se font depuis Matchs.',
+      );
+    } catch (_) {
+      state = state.copyWith(error: 'La fin du match n’a pas pu être validée.');
+    }
   }
 
   Future<void> setDuration(int minutes) async {
-    if (!state.canEdit) return;
+    if (!state.canEdit || state.isRunning) return;
     state = state.copyWith(plannedDurationMinutes: minutes.clamp(1, 200));
     await _persistSession();
   }
@@ -332,7 +389,9 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   int get _currentMinute => max(1, (state.elapsedSeconds / 60).floor() + 1);
 
   Future<void> addGoalUs({String? scorerId, String? assistId}) async {
-    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    if (!canRecordEvents || state.matchId == null || _eventWriteInProgress) {
+      return;
+    }
     final scorer = state.playerById(scorerId);
     final assist = state.playerById(assistId);
     if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
@@ -355,7 +414,9 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   }
 
   Future<void> addGoalThem() async {
-    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    if (!canRecordEvents || state.matchId == null || _eventWriteInProgress) {
+      return;
+    }
     _eventWriteInProgress = true;
     try {
       await _repository.addGoal(
@@ -372,7 +433,7 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     required String inPlayerId,
     required String outPlayerId,
   }) async {
-    if (!state.canEdit ||
+    if (!canRecordEvents ||
         state.matchId == null ||
         inPlayerId == outPlayerId ||
         _eventWriteInProgress) {
@@ -413,7 +474,7 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   void addNote(String text) {}
 
   Future<void> removeEvent(String eventId) async {
-    if (!state.canEdit || _eventWriteInProgress) return;
+    if (!canRecordEvents || _eventWriteInProgress) return;
     _eventWriteInProgress = true;
     try {
       await _repository.deleteEvent(eventId);
@@ -423,7 +484,7 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   }
 
   Future<void> resetBoard() async {
-    if (!state.canEdit) return;
+    if (!state.canEdit || state.isRunning) return;
     _stopLocalTicker();
     final regularPlayers = state.players.where((p) => !p.isGuest).toList();
     state = state.copyWith(
@@ -447,6 +508,7 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   @override
   void dispose() {
     _stopLocalTicker();
+    _statusSubscription?.cancel();
     _sessionSubscription?.cancel();
     _eventsSubscription?.cancel();
     super.dispose();
