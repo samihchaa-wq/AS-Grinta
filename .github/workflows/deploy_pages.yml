@@ -90,14 +90,14 @@ jobs:
           test -n "$supabase_url"
           test -n "$publishable_key"
           curl --retry 5 --retry-delay 3 -LfsS \
-            "$supabase_url/rest/v1/" \
+            "$supabase_url/auth/v1/health" \
             -H "apikey: $publishable_key" \
             -o /tmp/supabase-health.json
           test -s /tmp/supabase-health.json
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Install Playwright Chromium
         run: |
           npm install --no-save playwright@1.52.0
