@@ -51,6 +51,14 @@ class SeasonPredictionsRepository {
     return season?['id']?.toString();
   }
 
+  String _displayName(Map<String, dynamic> profile, String fallback) {
+    final nickname = (profile['surnom'] ?? '').toString().trim();
+    if (nickname.isNotEmpty) return nickname;
+    final firstName = (profile['first_name'] ?? '').toString().trim();
+    if (firstName.isNotEmpty) return firstName;
+    return fallback;
+  }
+
   Future<List<SeasonPredictionItem>> fetchMine() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
@@ -59,16 +67,19 @@ class SeasonPredictionsRepository {
 
     final profile = await _client
         .from('profiles')
-        .select('first_name,last_name')
+        .select('first_name,surnom')
         .eq('id', userId)
         .single();
-    final predictorName =
-        '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'.trim();
+    final predictorName = _displayName(
+      Map<String, dynamic>.from(profile),
+      'Compte sans nom',
+    );
 
     final players = await _client
         .from('season_players')
         .select(
-            'profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,last_name,status)')
+          'profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,surnom,status)',
+        )
         .eq('season_id', seasonId);
     final predictions = await _client
         .from('season_predictions')
@@ -88,22 +99,19 @@ class SeasonPredictionsRepository {
       final playerProfile = Map<String, dynamic>.from(map['profiles'] as Map);
       if (playerProfile['status'] != 'active') continue;
       final playerId = map['profile_id'].toString();
-      final playerName =
-          '${playerProfile['first_name'] ?? ''} ${playerProfile['last_name'] ?? ''}'
-              .trim();
+      final playerName = _displayName(playerProfile, 'Joueur sans nom');
       final categories = map['is_goalkeeper_snapshot'] == true
-          ? const ['clean_sheets']
-          : const ['buts', 'passes', 'hommes_du_match'];
+          ? const ['clean_sheets', 'penalty_faults']
+          : const ['buts', 'passes', 'hommes_du_match', 'penalty_faults'];
       for (final category in categories) {
         final existing = byKey['$playerId:$category'];
         result.add(
           SeasonPredictionItem(
             seasonId: seasonId,
             predictorId: userId,
-            predictorName:
-                predictorName.isEmpty ? 'Compte sans nom' : predictorName,
+            predictorName: predictorName,
             playerId: playerId,
-            playerName: playerName.isEmpty ? 'Joueur sans nom' : playerName,
+            playerName: playerName,
             category: category,
             value: int.tryParse('${existing?['predicted_value_20'] ?? 0}') ?? 0,
             isFilled: existing?['is_filled'] == true,
@@ -124,8 +132,8 @@ class SeasonPredictionsRepository {
       category,
       predicted_value_20,
       is_filled,
-      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,last_name,status),
-      player:profiles!season_predictions_player_profile_id_fkey(first_name,last_name,status)
+      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,surnom,status),
+      player:profiles!season_predictions_player_profile_id_fkey(first_name,surnom,status)
     ''').eq('season_id', seasonId).eq('is_filled', true);
 
     final items = <SeasonPredictionItem>[];
@@ -136,19 +144,13 @@ class SeasonPredictionsRepository {
       if (predictor['status'] != 'active' || player['status'] != 'active') {
         continue;
       }
-      final predictorName =
-          '${predictor['first_name'] ?? ''} ${predictor['last_name'] ?? ''}'
-              .trim();
-      final playerName =
-          '${player['first_name'] ?? ''} ${player['last_name'] ?? ''}'.trim();
       items.add(
         SeasonPredictionItem(
           seasonId: seasonId,
           predictorId: map['predictor_profile_id'].toString(),
-          predictorName:
-              predictorName.isEmpty ? 'Compte sans nom' : predictorName,
+          predictorName: _displayName(predictor, 'Compte sans nom'),
           playerId: map['player_profile_id'].toString(),
-          playerName: playerName.isEmpty ? 'Joueur sans nom' : playerName,
+          playerName: _displayName(player, 'Joueur sans nom'),
           category: map['category'].toString(),
           value: int.tryParse('${map['predicted_value_20']}') ?? 0,
           isFilled: true,
