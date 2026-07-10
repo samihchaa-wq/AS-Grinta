@@ -36,9 +36,9 @@ class AppShell extends ConsumerWidget {
       icon: Icons.insights_rounded,
     ),
     _ModuleDestination(
-      route: '/admin',
-      label: 'Admin',
-      icon: Icons.shield_rounded,
+      route: '/more',
+      label: 'Plus',
+      icon: Icons.more_horiz_rounded,
     ),
   ];
 
@@ -69,9 +69,9 @@ class AppShell extends ConsumerWidget {
       icon: Icons.insights_rounded,
     ),
     _ModuleDestination(
-      route: '/profile',
-      label: 'Profil',
-      icon: Icons.person_rounded,
+      route: '/more',
+      label: 'Plus',
+      icon: Icons.more_horiz_rounded,
     ),
   ];
 
@@ -81,8 +81,23 @@ class AppShell extends ConsumerWidget {
   }
 
   int _selectedIndex(List<_ModuleDestination> destinations) {
+    const moreRoutes = {
+      '/more',
+      '/profile',
+      '/notifications',
+      '/settings',
+      '/admin',
+      '/players',
+    };
+    final normalizedLocation = moreRoutes.any(
+      (route) => location == route || location.startsWith('$route/'),
+    )
+        ? '/more'
+        : location;
+
     final index = destinations.indexWhere(
-      (d) => location == d.route || location.startsWith('${d.route}/'),
+      (destination) => normalizedLocation == destination.route ||
+          normalizedLocation.startsWith('${destination.route}/'),
     );
     return index < 0 ? 0 : index;
   }
@@ -90,7 +105,7 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final role = ref.watch(
-      authControllerProvider.select((s) => s.profile?.role),
+      authControllerProvider.select((state) => state.profile?.role),
     );
     final destinations = _destinations(role);
     final selectedIndex = _selectedIndex(destinations);
@@ -102,17 +117,17 @@ class AppShell extends ConsumerWidget {
         child: NavigationBar(
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
-            final dest = destinations[index];
-            if (location != dest.route) {
-              context.go(dest.route);
+            final destination = destinations[index];
+            if (location != destination.route) {
+              context.go(destination.route);
             }
           },
           destinations: destinations
               .map(
-                (dest) => NavigationDestination(
-                  icon: Icon(dest.icon),
-                  selectedIcon: Icon(dest.icon),
-                  label: dest.label,
+                (destination) => NavigationDestination(
+                  icon: Icon(destination.icon),
+                  selectedIcon: Icon(destination.icon),
+                  label: destination.label,
                 ),
               )
               .toList(growable: false),
