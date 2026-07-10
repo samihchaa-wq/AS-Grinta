@@ -23,6 +23,14 @@ class MatchDetailsData {
     required this.opponentName,
     required this.kickoffAt,
     required this.status,
+    required this.competition,
+    required this.location,
+    required this.scoreGrinta,
+    required this.scoreOpponent,
+    required this.oddsWin,
+    required this.oddsDraw,
+    required this.oddsLoss,
+    required this.predictionParticipantCount,
     required this.headToHead,
   });
 
@@ -31,6 +39,14 @@ class MatchDetailsData {
   final String opponentName;
   final DateTime kickoffAt;
   final String status;
+  final String competition;
+  final String location;
+  final int? scoreGrinta;
+  final int? scoreOpponent;
+  final double? oddsWin;
+  final double? oddsDraw;
+  final double? oddsLoss;
+  final int predictionParticipantCount;
   final List<HeadToHeadMatch> headToHead;
 }
 
@@ -40,23 +56,45 @@ class MatchDetailsRepository {
   final SupabaseClient _client;
 
   Future<MatchDetailsData> fetch(String matchId) async {
-    final match = await _client
-        .from('matches')
-        .select(
-            'id, opponent_id, match_date, match_time, status, opponents(name)')
-        .eq('id', matchId)
-        .single();
+    final match = await _client.from('matches').select('''
+      id,
+      opponent_id,
+      match_date,
+      match_time,
+      status,
+      competition,
+      location,
+      score_as_grinta,
+      score_adverse,
+      opponents(name),
+      match_odds(
+        odds_victoire_as_grinta,
+        odds_nul,
+        odds_victoire_adverse
+      )
+    ''').eq('id', matchId).single();
     final opponentId = match['opponent_id'].toString();
     final opponent = Map<String, dynamic>.from(match['opponents'] as Map);
     final kickoffAt = DateTime.tryParse(
           '${match['match_date']}T${match['match_time']}',
         ) ??
         DateTime(1970);
+    final oddsRaw = match['match_odds'];
+    final odds = oddsRaw is List && oddsRaw.isNotEmpty
+        ? Map<String, dynamic>.from(oddsRaw.first as Map)
+        : oddsRaw is Map
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
+    final countResult = await _client.rpc(
+      'match_prediction_participant_count',
+      params: {'p_match_id': matchId},
+    );
 
     final historyRaw = await _client
         .from('matches')
         .select('match_date, location, score_as_grinta, score_adverse')
         .eq('opponent_id', opponentId)
+        .neq('id', matchId)
         .inFilter('status', ['termine', 'archive'])
         .order('match_date', ascending: false)
         .limit(5);
@@ -83,6 +121,18 @@ class MatchDetailsRepository {
       opponentName: opponent['name']?.toString() ?? 'Adversaire',
       kickoffAt: kickoffAt,
       status: match['status']?.toString() ?? 'a_venir',
+      competition: (match['competition'] ?? 'Championnat').toString(),
+      location: (match['location'] ?? 'domicile').toString(),
+      scoreGrinta: match['score_as_grinta'] == null
+          ? null
+          : int.tryParse('${match['score_as_grinta']}'),
+      scoreOpponent: match['score_adverse'] == null
+          ? null
+          : int.tryParse('${match['score_adverse']}'),
+      oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
+      oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
+      oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
+      predictionParticipantCount: (countResult as num?)?.toInt() ?? 0,
       headToHead: history,
     );
   }
