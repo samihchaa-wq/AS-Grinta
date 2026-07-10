@@ -29,8 +29,8 @@ class AdminProfileItem {
   String get fullName => '$firstName $lastName'.trim();
 
   String get displayName {
-    final s = surnom?.trim() ?? '';
-    if (s.isNotEmpty) return s;
+    final nickname = surnom?.trim() ?? '';
+    if (nickname.isNotEmpty) return nickname;
     if (firstName.trim().isNotEmpty) return firstName.trim();
     return fullName.isEmpty ? 'Compte sans nom' : fullName;
   }
@@ -108,7 +108,7 @@ class AdminRepository {
             id: row['id'].toString(),
             firstName: (row['first_name'] ?? '').toString(),
             lastName: (row['last_name'] ?? '').toString(),
-            surnom: row.containsKey('surnom') ? row['surnom']?.toString() : null,
+            surnom: row['surnom']?.toString(),
             email: (row['email'] ?? '').toString(),
             role: (row['role'] ?? 'pronostiqueur').toString(),
             status: (row['status'] ?? 'active').toString(),
@@ -204,7 +204,7 @@ class AdminRepository {
   }
 
   Future<void> updateProfileRole(String profileId, String role) async {
-    if (!const ['pronostiqueur', 'admin', 'moderateur', 'coach'].contains(role)) {
+    if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
       throw ArgumentError('Rôle invalide.');
     }
     await _updatePrivilegedProfileFields(profileId: profileId, role: role);
@@ -225,17 +225,12 @@ class AdminRepository {
   }
 
   Future<void> updateSurnom(String profileId, String surnom) async {
-    try {
-      await _client
-          .from('profiles')
-          .update({'surnom': surnom.trim().isEmpty ? null : surnom.trim()}).eq(
-            'id',
-            profileId,
-          );
-    } on PostgrestException catch (error) {
-      if (error.code == '42703' || error.message.contains('surnom')) return;
-      rethrow;
-    }
+    await _client
+        .from('profiles')
+        .update({'surnom': surnom.trim().isEmpty ? null : surnom.trim()}).eq(
+          'id',
+          profileId,
+        );
   }
 
   Future<void> createSeason(String name) async {
