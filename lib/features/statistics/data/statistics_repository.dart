@@ -46,19 +46,20 @@ class StatisticsRepository {
   final SupabaseClient _client;
 
   Future<List<PlayerStatistics>> fetchCareerStatistics() async {
-    final profilesResponse = await _client
-        .from('profiles')
-        .select('id,first_name,last_name,surnom,is_goalkeeper,status,role')
-        .eq('status', 'active');
+    final squadResponse = await _client.from('season_players').select('''
+      profile_id,
+      is_goalkeeper_snapshot,
+      profiles!inner(first_name,last_name,surnom,status)
+    ''').eq('profiles.status', 'active');
     final statsResponse = await _client.from('v_player_career_stats').select('''
-          profile_id,
-          matches_played,
-          goals,
-          assists,
-          penalty_faults,
-          motm,
-          clean_sheets
-        ''');
+      profile_id,
+      matches_played,
+      goals,
+      assists,
+      penalty_faults,
+      motm,
+      clean_sheets
+    ''');
 
     final statsByProfile = <String, Map<String, dynamic>>{};
     for (final row in statsResponse as List) {
@@ -66,18 +67,32 @@ class StatisticsRepository {
       statsByProfile[map['profile_id'].toString()] = map;
     }
 
+    final squadByProfile = <String, Map<String, dynamic>>{};
+    for (final row in squadResponse as List) {
+      final map = Map<String, dynamic>.from(row);
+      final id = map['profile_id'].toString();
+      final existing = squadByProfile[id];
+      if (existing == null) {
+        squadByProfile[id] = map;
+      } else if (map['is_goalkeeper_snapshot'] == true) {
+        existing['is_goalkeeper_snapshot'] = true;
+      }
+    }
+
     final result = <PlayerStatistics>[];
-    for (final row in profilesResponse as List) {
-      final profile = Map<String, dynamic>.from(row);
-      final id = profile['id'].toString();
-      final stats = statsByProfile[id] ?? const <String, dynamic>{};
+    for (final entry in squadByProfile.entries) {
+      final row = entry.value;
+      final profile = row['profiles'] is Map
+          ? Map<String, dynamic>.from(row['profiles'] as Map)
+          : const <String, dynamic>{};
+      final stats = statsByProfile[entry.key] ?? const <String, dynamic>{};
       result.add(
         PlayerStatistics(
-          profileId: id,
+          profileId: entry.key,
           firstName: (profile['first_name'] ?? '').toString().trim(),
           lastName: (profile['last_name'] ?? '').toString().trim(),
           surnom: profile['surnom']?.toString(),
-          isGoalkeeper: profile['is_goalkeeper'] == true,
+          isGoalkeeper: row['is_goalkeeper_snapshot'] == true,
           matches: int.tryParse('${stats['matches_played'] ?? 0}') ?? 0,
           goals: int.tryParse('${stats['goals'] ?? 0}') ?? 0,
           assists: int.tryParse('${stats['assists'] ?? 0}') ?? 0,
