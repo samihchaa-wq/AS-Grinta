@@ -1,0 +1,279 @@
+name: Temporary full regression patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[regression-cleanup]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/full-regression-pass-20260710
+          fetch-depth: 0
+
+      - name: Patch target branch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          predictions = Path('lib/features/predictions/presentation/predictions_page.dart')
+          p = predictions.read_text()
+          p = p.replace("""  double _points(LeaderboardEntry entry) {
+    return switch (mode) {
+      _LeaderboardMode.total => entry.totalPoints,
+      _LeaderboardMode.match => entry.matchPoints,
+      _LeaderboardMode.season => entry.seasonPoints,
+    };
+  }
+""", """  double _points(LeaderboardEntry entry) {
+    return switch (mode) {
+      _LeaderboardMode.total => entry.totalPoints,
+      _LeaderboardMode.match => entry.matchPoints,
+      _LeaderboardMode.season => entry.seasonPoints,
+    };
+  }
+
+  String _formatPoints(double value) {
+    if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
+    return value.toStringAsFixed(1).replaceAll('.', ',');
+  }
+""")
+          p = p.replace("""          title: Text(
+            entry.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: Text(
+            _points(entry).toStringAsFixed(1),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+""", """          title: Text(
+            entry.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: index == 0
+                ? const TextStyle(fontWeight: FontWeight.w800)
+                : null,
+          ),
+          trailing: SizedBox(
+            width: 72,
+            child: Text(
+              _formatPoints(_points(entry)),
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: index == 0 ? FontWeight.w800 : FontWeight.w600,
+                  ),
+            ),
+          ),
+""")
+          needle = "             Text(AppFormats.dateTime(item.kickoffAt)),\n"
+          block = """             Text(AppFormats.dateTime(item.kickoffAt)),
+             if (item.oddsWin != null || item.oddsDraw != null || item.oddsLoss != null) ...[
+               const SizedBox(height: 14),
+               Row(
+                 children: [
+                   Expanded(child: _OddsPoint(label: '1 · AS Grinta', odds: item.oddsWin)),
+                   const SizedBox(width: 8),
+                   Expanded(child: _OddsPoint(label: 'N · Nul', odds: item.oddsDraw)),
+                   const SizedBox(width: 8),
+                   Expanded(child: _OddsPoint(label: '2 · Adversaire', odds: item.oddsLoss)),
+                 ],
+               ),
+               const SizedBox(height: 6),
+               Text('Points de base. Score exact : jusqu’au double.', style: Theme.of(context).textTheme.bodySmall),
+             ],
+"""
+          if needle not in p: raise SystemExit('odds insertion point not found')
+          p = p.replace(needle, block, 1)
+          marker = 'class _ScoreEditor extends StatelessWidget {\n'
+          widget = """class _OddsPoint extends StatelessWidget {
+  const _OddsPoint({required this.label, required this.odds});
+  final String label;
+  final double? odds;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = odds;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Text(
+            value == null ? '—' : '${(value * 10).round()} pts',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+"""
+          if marker not in p: raise SystemExit('score editor marker not found')
+          predictions.write_text(p.replace(marker, widget + marker, 1))
+
+          repo = Path('lib/features/coach/data/coach_live_repository.dart')
+          r = repo.read_text()
+          marker = '  Future<void> saveSession(CoachLiveSession session) async {\n'
+          methods = """  Future<void> startMatch(String matchId) async {
+    final result = await _client.rpc('start_coach_match', params: {'p_match_id': matchId});
+    if (result != true) throw StateError('Le match n’a pas pu démarrer.');
+  }
+
+  Future<void> finishMatch(String matchId) async {
+    final result = await _client.rpc('finish_coach_match', params: {'p_match_id': matchId});
+    if (result != true) throw StateError('Le match n’a pas pu être terminé.');
+  }
+
+"""
+          if marker not in r: raise SystemExit('repository marker not found')
+          repo.write_text(r.replace(marker, methods + marker, 1))
+
+          controller = Path('lib/features/coach/presentation/coach_board_controller.dart')
+          c = controller.read_text()
+          c = c.replace("""  Future<void> startTimer() async {
+    if (!state.canEdit || state.isRunning || state.lineup.length != 11) return;
+    state = state.copyWith(isRunning: true);
+    _startLocalTicker();
+    await _persistSession();
+  }
+""", """  Future<void> startTimer() async {
+    if (!state.canEdit || state.isRunning || state.matchId == null) return;
+    await _repository.startMatch(state.matchId!);
+    state = state.copyWith(isRunning: true, clearError: true);
+    _startLocalTicker();
+    await _persistSession();
+  }
+""")
+          c = c.replace("""  Future<void> endMatch() async {
+    if (!state.canEdit) return;
+    _stopLocalTicker();
+    state = state.copyWith(
+      isRunning: false,
+      elapsedSeconds: state.plannedDurationMinutes * 60,
+    );
+    await _persistSession();
+  }
+""", """  Future<void> endMatch() async {
+    if (!state.canEdit || state.matchId == null || !state.isRunning) return;
+    _stopLocalTicker();
+    state = state.copyWith(
+      isRunning: false,
+      elapsedSeconds: state.plannedDurationMinutes * 60,
+    );
+    await _persistSession();
+    await _repository.finishMatch(state.matchId!);
+  }
+""")
+          c = c.replace('if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;', 'if (!state.canEdit || !state.isRunning || state.matchId == null || _eventWriteInProgress) return;', 2)
+          c = c.replace("""    if (!state.canEdit ||
+        state.matchId == null ||
+        inPlayerId == outPlayerId ||
+""", """    if (!state.canEdit ||
+        !state.isRunning ||
+        state.matchId == null ||
+        inPlayerId == outPlayerId ||
+""")
+          controller.write_text(c)
+
+          page = Path('lib/features/coach/presentation/coach_production_page.dart')
+          u = page.read_text()
+          u = u.replace("""                   FilledButton.icon(
+                    onPressed: state.lineup.length != 11
+                        ? null
+                        : state.isRunning
+                            ? ctrl.pauseTimer
+                            : ctrl.startTimer,
+""", """                   FilledButton.icon(
+                    onPressed: state.isRunning ? ctrl.pauseTimer : ctrl.startTimer,
+""")
+          u = u.replace("""                  OutlinedButton(
+                    onPressed: () async {
+""", """                  OutlinedButton(
+                    onPressed: !state.isRunning ? null : () async {
+""", 2)
+          u = u.replace("""    if (!state.canEdit) return const SizedBox.shrink();
+    return Wrap(
+""", """    if (!state.canEdit) return const SizedBox.shrink();
+    if (!state.isRunning) {
+      return const Card(
+        child: ListTile(
+          leading: Icon(Icons.lock_clock_outlined),
+          title: Text('Événements verrouillés'),
+          subtitle: Text('Démarre le match pour saisir les buts et remplacements.'),
+        ),
+      );
+    }
+    return Wrap(
+""")
+          page.write_text(u)
+
+          coach_page = Path('lib/features/coach/presentation/coach_page.dart')
+          cp = coach_page.read_text()
+          old = """    return Stack(
+      children: [
+        const CoachProductionPage(),
+        if (state.canEdit)
+          Positioned(
+            right: 18,
+            bottom: 92,
+            child: FloatingActionButton.extended(
+              heroTag: 'exceptional-player',
+              onPressed: () => _addExceptionalPlayer(context, ref),
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Invité du match'),
+            ),
+          ),
+      ],
+    );
+"""
+          new = """    return Scaffold(
+      body: const CoachProductionPage(),
+      floatingActionButton: state.canEdit
+          ? FloatingActionButton.small(
+              heroTag: 'exceptional-player',
+              tooltip: 'Ajouter un invité du match',
+              onPressed: () => _addExceptionalPlayer(context, ref),
+              child: const Icon(Icons.person_add_alt_1),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+    );
+"""
+          if old not in cp: raise SystemExit('coach stack not found')
+          coach_page.write_text(cp.replace(old, new))
+
+          for f in ('.github/workflows/one_time_full_regression_patch.yml', '.github/regression_patch_trigger'):
+            path = Path(f)
+            if path.exists(): path.unlink()
+          PY
+
+      - name: Commit target branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib .github
+          git commit -m "Corriger les cotes, le direct et l’UX coach"
+          git push origin HEAD:fix/full-regression-pass-20260710
+
+      - name: Clean temporary workflow
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          rm -f .github/workflows/temporary_full_regression_patch.yml
+          git add .github/workflows/temporary_full_regression_patch.yml
+          git commit -m "Retirer le workflow temporaire [regression-cleanup]"
+          git push origin main
