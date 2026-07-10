@@ -1,51 +1,60 @@
 # AS Grinta
 
-Application mobile pour une équipe de football amateur.
+Application mobile et web pour une équipe de football amateur.
 
-## V1
+## Fonctionnement
 
 - Comptes sur invitation
-- Rôles : joueur, admin, modérateur, coach
+- Rôles : joueur, administrateur et modérateur
 - Saisons et effectif
-- Matchs, live facultatif et archivage
-- Buts, passes décisives, gardiens et hommes du match
-- Statistiques : matchs joués, buts, passes, HDM, clean sheets
-- Pronostics de match et de saison
+- Création des matchs avec adversaire, date, heure, lieu et compétition
+- Pronostics ouverts dès la création du match et fermés à H-5
+- Pronostics privés jusqu’à la validation du résultat
+- Saisie des statistiques uniquement après le match
+- Score AS Grinta calculé automatiquement depuis les buts saisis
+- Présence, buts, passes décisives, fautes provoquant un penalty et clean sheets
+- Homme du match facultatif
+- Invités temporaires limités à un seul match
+- Classements de statistiques et de pronostics calculés automatiquement
 
 ## Navigation
 
 - Accueil
 - Matchs
-- Tableau du coach
 - Statistiques
 - Pronostics
 - Profil
-- Administration pour le staff
+- Administration pour les administrateurs et modérateurs
 
-## Joueurs exceptionnels
+## Invités d’un match
 
-Les invités d’un seul match sont créés depuis le Tableau du coach. Ils peuvent marquer, faire une passe décisive et participer aux remplacements.
+Les invités sont ajoutés directement dans la feuille de match post-match avec leur nom, leur poste, leur présence, leurs buts, leurs passes décisives et leurs fautes provoquant un penalty.
 
-Chaque invité possède un identifiant temporaire unique limité au match. Aucune fiche permanente et aucune statistique de carrière ou de saison ne sont créées.
+Ils ne créent aucun compte permanent et ne sont pas intégrés aux statistiques de carrière.
+
+## Éléments volontairement absents
+
+- Aucun tableau du coach
+- Aucun chronomètre de match
+- Aucune composition en direct
+- Aucun événement en temps réel
+- Aucun statut de match « en cours »
+- Aucun carton jaune ou rouge
 
 ## Stack
 
 - Flutter
 - Supabase Auth
 - PostgreSQL
-- Supabase Realtime
 - Supabase Storage
+- GitHub Pages
 
 ## Qualité
 
-Chaque pull request exécute :
+Chaque modification exécute :
 
 - l’analyse statique Flutter ;
 - les tests automatisés ;
 - le build Flutter Web en mode release.
 
-Le déploiement GitHub Pages contrôle ensuite l’accessibilité des fichiers essentiels du site.
-
-## Règle produit
-
-Aucune fonctionnalité non validée ne doit être ajoutée.
+Le déploiement GitHub Pages vérifie ensuite les fichiers publics essentiels et la disponibilité de l’API Supabase.
