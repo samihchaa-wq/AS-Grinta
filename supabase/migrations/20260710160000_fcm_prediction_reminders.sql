@@ -195,43 +195,4 @@ revoke all on function public.record_prediction_reminder_delivery(uuid,uuid,uuid
 grant execute on function public.record_prediction_reminder_delivery(uuid,uuid,uuid,text)
   to service_role;
 
-select vault.create_secret(
-  'https://ovzijmqrnsgcmryinkfa.supabase.co',
-  'prediction_reminders_project_url',
-  'Project URL used by the prediction reminder cron job'
-)
-where not exists (
-  select 1 from vault.decrypted_secrets where name='prediction_reminders_project_url'
-);
-
-select vault.create_secret(
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92emlqbXFybnNnY21yeWlua2ZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0OTYyNDMsImV4cCI6MjA5OTA3MjI0M30.7lJM-Iy0j9HzAGPrlDVBk7LbFy2qAm9T-f3OhTcsMkU',
-  'prediction_reminders_anon_jwt',
-  'Public anon JWT used only to invoke the reminder Edge Function'
-)
-where not exists (
-  select 1 from vault.decrypted_secrets where name='prediction_reminders_anon_jwt'
-);
-
-select cron.schedule(
-  'send-prediction-reminders',
-  '*/5 * * * *',
-  $$
-  select net.http_post(
-    url := (select decrypted_secret from vault.decrypted_secrets
-            where name='prediction_reminders_project_url') ||
-           '/functions/v1/send-prediction-reminders',
-    headers := jsonb_build_object(
-      'Content-Type','application/json',
-      'Authorization','Bearer ' || (
-        select decrypted_secret from vault.decrypted_secrets
-        where name='prediction_reminders_anon_jwt'
-      )
-    ),
-    body := jsonb_build_object('scheduled_at',now()),
-    timeout_milliseconds := 20000
-  );
-  $$
-);
-
 commit;
