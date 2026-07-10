@@ -28,12 +28,12 @@ class NotificationsRepository {
     final rows = await _client
         .from('matches')
         .select('id,match_date,match_time,location,status,opponents(name)')
-        .inFilter('status', const ['a_venir', 'en_cours'])
+        .eq('status', 'a_venir')
         .order('match_date')
         .order('match_time')
         .limit(8);
 
-    final notifications = <AppNotificationItem>[];
+    final reminders = <AppNotificationItem>[];
     for (final raw in rows as List) {
       final row = Map<String, dynamic>.from(raw as Map);
       final matchId = row['id'].toString();
@@ -45,24 +45,23 @@ class NotificationsRepository {
           DateTime.tryParse('${row['match_date']}') ??
           DateTime.now();
       final home = row['location'] == 'domicile';
-      final status = row['status']?.toString();
 
       if (preferences.matchReminders) {
-        notifications.add(
+        reminders.add(
           AppNotificationItem(
             id: 'match-$matchId',
-            title: status == 'en_cours' ? 'Match en cours' : 'Prochain match',
+            title: 'Prochain match',
             message: home
                 ? 'AS Grinta reçoit $opponent.'
                 : 'AS Grinta se déplace chez $opponent.',
             date: date,
-            kind: status == 'en_cours' ? 'live' : 'match',
+            kind: 'match',
           ),
         );
       }
 
-      if (preferences.predictionReminders && status == 'a_venir') {
-        notifications.add(
+      if (preferences.predictionReminders) {
+        reminders.add(
           AppNotificationItem(
             id: 'prediction-$matchId',
             title: 'Pronostic à vérifier',
@@ -74,8 +73,8 @@ class NotificationsRepository {
       }
     }
 
-    notifications.sort((a, b) => a.date.compareTo(b.date));
-    return notifications;
+    reminders.sort((a, b) => a.date.compareTo(b.date));
+    return reminders;
   }
 }
 
