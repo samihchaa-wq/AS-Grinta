@@ -1,0 +1,213 @@
+name: Temporary hardening v2 patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[hardening-v2-cleanup]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/production-hardening-v2
+          fetch-depth: 0
+
+      - name: Patch target branch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          repo = Path('lib/features/coach/data/coach_live_repository.dart')
+          text = repo.read_text()
+          text = text.replace("    this.scorerGuestName,\n    this.assistGuestName,\n    this.playerInId,\n    this.playerOutId,", "    this.scorerGuestId,\n    this.scorerGuestName,\n    this.assistGuestId,\n    this.assistGuestName,\n    this.playerInId,\n    this.playerOutId,\n    this.playerInGuestId,\n    this.playerInGuestName,\n    this.playerOutGuestId,\n    this.playerOutGuestName,")
+          text = text.replace("  final String? scorerGuestName;\n  final String? assistGuestName;\n  final String? playerInId;\n  final String? playerOutId;", "  final String? scorerGuestId;\n  final String? scorerGuestName;\n  final String? assistGuestId;\n  final String? assistGuestName;\n  final String? playerInId;\n  final String? playerOutId;\n  final String? playerInGuestId;\n  final String? playerInGuestName;\n  final String? playerOutGuestId;\n  final String? playerOutGuestName;")
+          text = text.replace("      scorerGuestName: json['scorer_guest_name']?.toString(),\n      assistGuestName: json['assist_guest_name']?.toString(),\n      playerInId: json['player_in_profile_id']?.toString(),\n      playerOutId: json['player_out_profile_id']?.toString(),", "      scorerGuestId: json['scorer_guest_id']?.toString(),\n      scorerGuestName: json['scorer_guest_name']?.toString(),\n      assistGuestId: json['assist_guest_id']?.toString(),\n      assistGuestName: json['assist_guest_name']?.toString(),\n      playerInId: json['player_in_profile_id']?.toString(),\n      playerOutId: json['player_out_profile_id']?.toString(),\n      playerInGuestId: json['player_in_guest_id']?.toString(),\n      playerInGuestName: json['player_in_guest_name']?.toString(),\n      playerOutGuestId: json['player_out_guest_id']?.toString(),\n      playerOutGuestName: json['player_out_guest_name']?.toString(),")
+          text = text.replace("    String? scorerGuestName,\n    String? assistGuestName,\n  }) async {", "    String? scorerGuestId,\n    String? scorerGuestName,\n    String? assistGuestId,\n    String? assistGuestName,\n  }) async {", 1)
+          text = text.replace("      'scorer_guest_name': scorerGuestName,\n      'assist_guest_name': assistGuestName,", "      'scorer_guest_id': scorerGuestId,\n      'scorer_guest_name': scorerGuestName,\n      'assist_guest_id': assistGuestId,\n      'assist_guest_name': assistGuestName,")
+          text = text.replace("    String? playerInId,\n    String? playerOutId,\n  }) async {\n    if (playerInId == null && playerOutId == null) return;", "    String? playerInId,\n    String? playerOutId,\n    String? playerInGuestId,\n    String? playerInGuestName,\n    String? playerOutGuestId,\n    String? playerOutGuestName,\n  }) async {\n    if (playerInId == null &&\n        playerOutId == null &&\n        playerInGuestId == null &&\n        playerOutGuestId == null) return;")
+          text = text.replace("      'player_in_profile_id': playerInId,\n      'player_out_profile_id': playerOutId,\n      'created_by': _client.auth.currentUser?.id,", "      'player_in_profile_id': playerInId,\n      'player_out_profile_id': playerOutId,\n      'player_in_guest_id': playerInGuestId,\n      'player_in_guest_name': playerInGuestName,\n      'player_out_guest_id': playerOutGuestId,\n      'player_out_guest_name': playerOutGuestName,\n      'created_by': _client.auth.currentUser?.id,")
+          repo.write_text(text)
+
+          controller = Path('lib/features/coach/presentation/coach_board_controller.dart')
+          c = controller.read_text()
+          c = c.replace("  bool _persisting = false;", "  bool _persisting = false;\n  bool _eventWriteInProgress = false;")
+          start = c.index("  String? _guestIdByName")
+          end = c.index("  CoachEvent _mapEvent", start)
+          c = c[:start] + c[end:]
+          c = c.replace("      playerId: record.scorerId ?? _guestIdByName(record.scorerGuestName),\n      assistPlayerId: record.assistId ?? _guestIdByName(record.assistGuestName),\n      playerInId: record.playerInId,\n      playerOutId: record.playerOutId,", "      playerId: record.scorerId ?? record.scorerGuestId,\n      assistPlayerId: record.assistId ?? record.assistGuestId,\n      playerInId: record.playerInId ?? record.playerInGuestId,\n      playerOutId: record.playerOutId ?? record.playerOutGuestId,")
+          old_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: true,
+      scorerId: scorer?.isGuest == true ? null : scorerId,
+      assistId: assist?.isGuest == true ? null : assistId,
+      scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+      assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
+    );
+  }
+"""
+          new_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addGoal(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        isForUs: true,
+        scorerId: scorer?.isGuest == true ? null : scorerId,
+        assistId: assist?.isGuest == true ? null : assistId,
+        scorerGuestId: scorer?.isGuest == true ? scorerId : null,
+        scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+        assistGuestId: assist?.isGuest == true ? assistId : null,
+        assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
+  }
+"""
+          if old_goal not in c: raise SystemExit('goal method not found')
+          c = c.replace(old_goal, new_goal)
+          c = c.replace("""  Future<void> addGoalThem() async {
+    if (!state.canEdit || state.matchId == null) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: false,
+    );
+  }
+""", """  Future<void> addGoalThem() async {
+    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addGoal(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        isForUs: false,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
+  }
+""")
+          old_sub = """    await _repository.addSubstitution(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
+      playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
+    );
+"""
+          new_sub = """    if (_eventWriteInProgress) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addSubstitution(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
+        playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
+        playerInGuestId: inPlayer?.isGuest == true ? inPlayerId : null,
+        playerInGuestName: inPlayer?.isGuest == true ? inPlayer!.displayName : null,
+        playerOutGuestId: outPlayer?.isGuest == true ? outPlayerId : null,
+        playerOutGuestName: outPlayer?.isGuest == true ? outPlayer!.displayName : null,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
+"""
+          if old_sub not in c: raise SystemExit('substitution method not found')
+          controller.write_text(c.replace(old_sub, new_sub))
+
+          readme = Path('README.md')
+          r = readme.read_text().replace('- Rôles : pronostiqueur, admin, modérateur', '- Rôles : joueur, admin, modérateur, coach')
+          if '## Joueurs exceptionnels' not in r:
+            r += """
+
+## Joueurs exceptionnels
+
+Les invités d’un seul match sont créés depuis le Tableau du coach. Ils peuvent marquer, faire une passe décisive et participer aux remplacements. Leur identité temporaire est limitée au match : aucune fiche permanente et aucune statistique de carrière ou de saison ne sont créées.
+
+## Qualité
+
+Chaque pull request exécute l’analyse Flutter, les tests et le build Web. Le déploiement GitHub Pages contrôle ensuite l’accessibilité des fichiers essentiels du site.
+"""
+          readme.write_text(r)
+
+          Path('test').mkdir(exist_ok=True)
+          Path('test/coach_live_event_record_test.dart').write_text("""import 'package:as_grinta/features/coach/data/coach_live_repository.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('parse les identités temporaires des invités', () {
+    final event = CoachLiveEventRecord.fromJson({
+      'id': 'event-1',
+      'event_type': 'goal_us',
+      'minute': 42,
+      'scorer_guest_id': 'guest|field|1|Alex',
+      'scorer_guest_name': 'Alex',
+      'assist_guest_id': 'guest|field|2|Alex',
+      'assist_guest_name': 'Alex',
+      'player_in_guest_id': 'guest|field|3|Sam',
+      'player_in_guest_name': 'Sam',
+      'player_out_guest_id': 'guest|field|4|Nico',
+      'player_out_guest_name': 'Nico',
+    });
+    expect(event.scorerGuestId, 'guest|field|1|Alex');
+    expect(event.assistGuestId, 'guest|field|2|Alex');
+    expect(event.playerInGuestId, 'guest|field|3|Sam');
+    expect(event.playerOutGuestId, 'guest|field|4|Nico');
+  });
+}
+""")
+          Path('test/coach_player_test.dart').write_text("""import 'package:as_grinta/features/coach/domain/coach_board.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('deux invités de même nom restent distincts', () {
+    const first = CoachPlayer(id: 'guest|field|1|Alex', name: 'Alex', isGuest: true);
+    const second = CoachPlayer(id: 'guest|field|2|Alex', name: 'Alex', isGuest: true);
+    expect(first.displayName, second.displayName);
+    expect(first.id, isNot(second.id));
+  });
+
+  test('le surnom est prioritaire', () {
+    const player = CoachPlayer(id: 'p1', name: 'Jean Dupont', surnom: 'Jeannot');
+    expect(player.displayName, 'Jeannot');
+  });
+}
+""")
+
+          for f in ('.github/workflows/one_time_production_hardening_v2.yml', '.github/hardening_v2_trigger'):
+            p = Path(f)
+            if p.exists(): p.unlink()
+          PY
+
+      - name: Commit target branch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib README.md test .github
+          git commit -m "Fiabiliser les invités et ajouter les tests"
+          git push origin HEAD:feat/production-hardening-v2
+
+      - name: Clean temporary workflow from main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --ff-only origin main
+          rm -f .github/workflows/temporary_hardening_v2_patch.yml
+          git add .github/workflows/temporary_hardening_v2_patch.yml
+          git commit -m "Retirer le workflow temporaire [hardening-v2-cleanup]"
+          git push origin main
