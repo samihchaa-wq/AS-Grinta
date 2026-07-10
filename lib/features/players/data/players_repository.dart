@@ -50,23 +50,9 @@ class PlayersRepository {
 
   final SupabaseClient _client;
 
-  String? get currentUserId => _client.auth.currentUser?.id;
-
   Future<List<PlayerItem>> fetchAll() async {
-    try {
-      final response = await _client
-          .from('players')
-          .select(
-            'id, first_name, last_name, surnom, is_goalkeeper, is_active, '
-            'linked_profile_id, claimed_at, claim_token, claim_expires_at',
-          )
-          .order('first_name')
-          .order('last_name');
-      return (response as List).map(_fromPlayerRow).toList();
-    } on PostgrestException catch (error) {
-      if (error.code != 'PGRST205') rethrow;
-      return _fetchFromProfiles();
-    }
+    final response = await _client.rpc('staff_list_players');
+    return (response as List).map(_fromPlayerRow).toList();
   }
 
   PlayerItem _fromPlayerRow(dynamic row) {
@@ -85,27 +71,6 @@ class PlayersRepository {
     );
   }
 
-  Future<List<PlayerItem>> _fetchFromProfiles() async {
-    final response = await _client
-        .from('profiles')
-        .select('id, first_name, last_name, surnom, is_goalkeeper, status, role')
-        .eq('role', 'pronostiqueur')
-        .order('first_name')
-        .order('last_name');
-    return (response as List).map((row) {
-      final map = Map<String, dynamic>.from(row as Map);
-      return PlayerItem(
-        id: map['id'].toString(),
-        firstName: (map['first_name'] ?? '').toString(),
-        lastName: (map['last_name'] ?? '').toString(),
-        surnom: map['surnom']?.toString(),
-        isGoalkeeper: map['is_goalkeeper'] == true,
-        isActive: map['status'] != 'archived',
-        linkedProfileId: map['id'].toString(),
-      );
-    }).toList();
-  }
-
   Future<String> createPlayer({
     required String firstName,
     required String lastName,
@@ -117,26 +82,19 @@ class PlayersRepository {
     if (f.isEmpty || l.isEmpty) {
       throw ArgumentError('Le prénom et le nom sont obligatoires.');
     }
-    try {
-      final row = await _client
-          .from('players')
-          .insert({
-            'first_name': f,
-            'last_name': l,
-            if (surnom != null && surnom.trim().isNotEmpty)
-              'surnom': surnom.trim(),
-            'is_goalkeeper': isGoalkeeper,
-            'is_active': true,
-          })
-          .select('id')
-          .single();
-      return row['id'].toString();
-    } on PostgrestException catch (error) {
-      if (error.code == 'PGRST205') {
-        throw StateError('Le registre des joueurs n’est pas encore disponible.');
-      }
-      rethrow;
-    }
+    final row = await _client
+        .from('players')
+        .insert({
+          'first_name': f,
+          'last_name': l,
+          if (surnom != null && surnom.trim().isNotEmpty)
+            'surnom': surnom.trim(),
+          'is_goalkeeper': isGoalkeeper,
+          'is_active': true,
+        })
+        .select('id')
+        .single();
+    return row['id'].toString();
   }
 
   Future<String> createPlayerInvitation({
@@ -185,10 +143,7 @@ class PlayersRepository {
     }).eq('id', playerId);
   }
 
-  Future<void> claimProfile({
-    required String token,
-    required String profileId,
-  }) async {
+  Future<void> claimProfile({required String token}) async {
     try {
       await _client.rpc('claim_player_profile', params: {'claim': token});
     } on PostgrestException catch (error) {
