@@ -15,8 +15,6 @@ class MatchesPage extends ConsumerStatefulWidget {
 }
 
 class _MatchesPageState extends ConsumerState<MatchesPage> {
-  String? _selectedSeasonId;
-
   @override
   void initState() {
     super.initState();
@@ -44,40 +42,37 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   MaterialPageRoute(builder: (_) => const MatchFormPage()),
                 );
                 if (!mounted) return;
-                await ref
-                    .read(matchesControllerProvider.notifier)
-                    .load(seasonId: _selectedSeasonId);
+                await ref.read(matchesControllerProvider.notifier).load(
+                      seasonId: state.selectedSeasonId,
+                    );
               },
             ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref
-            .read(matchesControllerProvider.notifier)
-            .load(seasonId: _selectedSeasonId),
+        onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
+              seasonId: state.selectedSeasonId,
+            ),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (state.seasons.isNotEmpty)
+            if (state.seasons.isNotEmpty && state.selectedSeasonId != null)
               DropdownButtonFormField<String>(
-                initialValue: _selectedSeasonId,
+                initialValue: state.selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('Toutes')),
-                  ...state.seasons.map(
-                    (season) => DropdownMenuItem(
-                      value: season['id'].toString(),
-                      child: Text(season['name'].toString()),
-                    ),
-                  ),
-                ],
+                items: state.seasons
+                    .map(
+                      (season) => DropdownMenuItem(
+                        value: season['id'].toString(),
+                        child: Text(season['name'].toString()),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (value) async {
-                  setState(
-                    () => _selectedSeasonId = value == '' ? null : value,
-                  );
+                  if (value == null || value == state.selectedSeasonId) return;
                   await ref
                       .read(matchesControllerProvider.notifier)
-                      .load(seasonId: _selectedSeasonId);
+                      .load(seasonId: value);
                 },
               ),
             const SizedBox(height: 16),
@@ -94,7 +89,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('Aucun match pour le moment.'),
+                  child: Text('Aucun match pour cette saison.'),
                 ),
               )
             else
