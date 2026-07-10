@@ -1,0 +1,96 @@
+name: One-time final consistency patch
+
+on:
+  push:
+    branches: [fix/final-production-consistency]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[consistency-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/final-production-consistency
+          fetch-depth: 0
+      - name: Patch coach consistency
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          controller = Path('lib/features/coach/presentation/coach_board_controller.dart')
+          text = controller.read_text()
+          old_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    if (state.playerById(scorerId)?.isGuest == true) scorerId = null;
+    if (state.playerById(assistId)?.isGuest == true) assistId = null;
+    await _repository.addGoal(
+"""
+          new_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGuest == true || scorer?.isGoalkeeper == true) scorerId = null;
+    if (assist?.isGuest == true || assist?.isGoalkeeper == true) assistId = null;
+    await _repository.addGoal(
+"""
+          if old_goal not in text:
+              raise SystemExit('Goal guard block not found')
+          text = text.replace(old_goal, new_goal)
+
+          old_sub = """    final hasGuest = state.playerById(inPlayerId)?.isGuest == true ||
+        state.playerById(outPlayerId)?.isGuest == true;
+    if (hasGuest) return;
+    await _repository.addSubstitution(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      playerInId: inPlayerId,
+      playerOutId: outPlayerId,
+    );
+"""
+          new_sub = """    final inPlayer = state.playerById(inPlayerId);
+    final outPlayer = state.playerById(outPlayerId);
+    await _repository.addSubstitution(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
+      playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
+    );
+"""
+          if old_sub not in text:
+              raise SystemExit('Substitution guest block not found')
+          text = text.replace(old_sub, new_sub)
+          controller.write_text(text)
+
+          page = Path('lib/features/coach/presentation/coach_production_page.dart')
+          p = page.read_text()
+          old_icons = """  String _icons(String playerId) {
+    final goals = state.events
+"""
+          new_icons = """  String _icons(String playerId) {
+    final player = state.playerById(playerId);
+    if (player?.isGoalkeeper == true || player?.isGuest == true) return '';
+    final goals = state.events
+"""
+          if old_icons not in p:
+              raise SystemExit('Icons block not found')
+          p = p.replace(old_icons, new_icons)
+          p = p.replace(
+              ".where((player) => !player.isGuest)\n        .toList();",
+              ".where((player) => !player.isGuest && !player.isGoalkeeper)\n        .toList();",
+              1,
+          )
+          page.write_text(p)
+
+          Path('.github/workflows/one_time_final_consistency_patch.yml').unlink()
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/coach/presentation/coach_board_controller.dart lib/features/coach/presentation/coach_production_page.dart .github/workflows/one_time_final_consistency_patch.yml
+          git commit -m "Corriger les statistiques des gardiens et invités [consistency-patched]"
+          git push origin HEAD:fix/final-production-consistency
