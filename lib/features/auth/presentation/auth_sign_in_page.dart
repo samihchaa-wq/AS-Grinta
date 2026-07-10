@@ -22,10 +22,12 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     super.dispose();
   }
 
-  String _authPath(String path) {
+  String _forgotPasswordPath() {
     final redirect = GoRouterState.of(context).uri.queryParameters['redirect'];
-    if (redirect == null || redirect.isEmpty) return path;
-    return '$path?redirect=${Uri.encodeComponent(redirect)}';
+    if (redirect == null || redirect.isEmpty) {
+      return '/auth/forgot-password';
+    }
+    return '/auth/forgot-password?redirect=${Uri.encodeComponent(redirect)}';
   }
 
   @override
@@ -115,17 +117,14 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       ),
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed: () => context.go(
-                          _authPath('/auth/forgot-password'),
-                        ),
+                        onPressed: () => context.go(_forgotPasswordPath()),
                         child: const Text('Mot de passe oublié ?'),
                       ),
                       const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () => context.go(
-                          _authPath('/auth/sign-up'),
-                        ),
-                        child: const Text('Créer un compte'),
+                      Text(
+                        'Les comptes sont créés uniquement sur invitation d’un administrateur ou d’un modérateur.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
