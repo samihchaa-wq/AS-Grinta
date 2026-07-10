@@ -23,6 +23,7 @@ class HomeDashboardData {
     required this.nextOpponent,
     required this.nextKickoffAt,
     required this.pendingPredictions,
+    required this.predictionParticipantCount,
     required this.recentMeetings,
   });
 
@@ -30,6 +31,7 @@ class HomeDashboardData {
   final String? nextOpponent;
   final DateTime? nextKickoffAt;
   final int pendingPredictions;
+  final int predictionParticipantCount;
   final List<RecentMeeting> recentMeetings;
 }
 
@@ -64,6 +66,7 @@ class HomeRepository {
     String? nextOpponent;
     DateTime? nextKickoffAt;
     var pendingPredictions = 0;
+    var predictionParticipantCount = 0;
     final now = DateTime.now();
 
     for (final row in matches as List) {
@@ -88,6 +91,14 @@ class HomeRepository {
           filledByMatch[id] != true) {
         pendingPredictions++;
       }
+    }
+
+    if (nextMatchId != null) {
+      final count = await _client.rpc(
+        'match_prediction_participant_count',
+        params: {'p_match_id': nextMatchId},
+      );
+      predictionParticipantCount = (count as num?)?.toInt() ?? 0;
     }
 
     final recentMeetings = <RecentMeeting>[];
@@ -124,6 +135,7 @@ class HomeRepository {
       nextOpponent: nextOpponent,
       nextKickoffAt: nextKickoffAt,
       pendingPredictions: pendingPredictions,
+      predictionParticipantCount: predictionParticipantCount,
       recentMeetings: recentMeetings,
     );
   }
