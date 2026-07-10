@@ -194,7 +194,7 @@ class _Pitch extends StatelessWidget {
 
   String _icons(String playerId) {
     final player = state.playerById(playerId);
-    if (player?.isGoalkeeper == true || player?.isGuest == true) return '';
+    if (player?.isGoalkeeper == true) return '';
     final goals = state.events
         .where((e) => e.type == CoachEventType.goalUs && e.playerId == playerId)
         .length;
@@ -347,7 +347,7 @@ class _EventControls extends StatelessWidget {
     final players = state.lineup.values
         .map(state.playerById)
         .whereType<CoachPlayer>()
-        .where((player) => !player.isGuest && !player.isGoalkeeper)
+        .where((player) => !player.isGoalkeeper)
         .toList();
     final ok = await showDialog<bool>(
       context: context,

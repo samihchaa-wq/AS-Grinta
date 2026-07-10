@@ -165,6 +165,15 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     await movePlayer(id, slotCode);
   }
 
+  String? _guestIdByName(String? name) {
+    final target = name?.trim();
+    if (target == null || target.isEmpty) return null;
+    return state.players
+        .where((player) => player.isGuest && player.displayName == target)
+        .firstOrNull
+        ?.id;
+  }
+
   CoachEvent _mapEvent(CoachLiveEventRecord record) {
     final type = switch (record.type) {
       'goal_us' => CoachEventType.goalUs,
@@ -176,8 +185,8 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       id: record.id,
       type: type,
       minute: record.minute,
-      playerId: record.scorerId,
-      assistPlayerId: record.assistId,
+      playerId: record.scorerId ?? _guestIdByName(record.scorerGuestName),
+      assistPlayerId: record.assistId ?? _guestIdByName(record.assistGuestName),
       playerInId: record.playerInId,
       playerOutId: record.playerOutId,
     );
@@ -334,14 +343,15 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     if (!state.canEdit || state.matchId == null) return;
     final scorer = state.playerById(scorerId);
     final assist = state.playerById(assistId);
-    if (scorer?.isGuest == true || scorer?.isGoalkeeper == true) scorerId = null;
-    if (assist?.isGuest == true || assist?.isGoalkeeper == true) assistId = null;
+    if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
     await _repository.addGoal(
       matchId: state.matchId!,
       minute: _currentMinute,
       isForUs: true,
-      scorerId: scorerId,
-      assistId: assistId,
+      scorerId: scorer?.isGuest == true ? null : scorerId,
+      assistId: assist?.isGuest == true ? null : assistId,
+      scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+      assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
     );
   }
 

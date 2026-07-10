@@ -54,6 +54,8 @@ class CoachLiveEventRecord {
     required this.minute,
     this.scorerId,
     this.assistId,
+    this.scorerGuestName,
+    this.assistGuestName,
     this.playerInId,
     this.playerOutId,
   });
@@ -63,6 +65,8 @@ class CoachLiveEventRecord {
   final int minute;
   final String? scorerId;
   final String? assistId;
+  final String? scorerGuestName;
+  final String? assistGuestName;
   final String? playerInId;
   final String? playerOutId;
 
@@ -73,6 +77,8 @@ class CoachLiveEventRecord {
       minute: int.tryParse('${json['minute'] ?? 0}') ?? 0,
       scorerId: json['scorer_profile_id']?.toString(),
       assistId: json['assist_profile_id']?.toString(),
+      scorerGuestName: json['scorer_guest_name']?.toString(),
+      assistGuestName: json['assist_guest_name']?.toString(),
       playerInId: json['player_in_profile_id']?.toString(),
       playerOutId: json['player_out_profile_id']?.toString(),
     );
@@ -150,6 +156,8 @@ class CoachLiveRepository {
     required bool isForUs,
     String? scorerId,
     String? assistId,
+    String? scorerGuestName,
+    String? assistGuestName,
   }) async {
     await _client.from('coach_match_events').insert({
       'match_id': matchId,
@@ -157,6 +165,8 @@ class CoachLiveRepository {
       'minute': minute,
       'scorer_profile_id': scorerId,
       'assist_profile_id': assistId,
+      'scorer_guest_name': scorerGuestName,
+      'assist_guest_name': assistGuestName,
       'created_by': _client.auth.currentUser?.id,
     });
   }
