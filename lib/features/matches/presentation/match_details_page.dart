@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
@@ -15,7 +16,7 @@ class MatchDetailsPage extends ConsumerWidget {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
     final role = ref.watch(authControllerProvider).profile?.role;
     final isAdmin = role == AuthRole.admin;
-    final isModerator = role == AuthRole.moderateur;
+    final isStaff = role?.isStaff == true;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détails du match')),
@@ -26,7 +27,7 @@ class MatchDetailsPage extends ConsumerWidget {
         },
         child: detailsAsync.when(
           loading: () => ListView(
-            children: [
+            children: const [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
             ],
@@ -52,31 +53,81 @@ class MatchDetailsPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'AS Grinta - ${details.opponentName}',
+                        details.status == 'a_venir'
+                            ? 'AS Grinta – ${details.opponentName}'
+                            : 'AS Grinta ${details.scoreGrinta ?? 0} – ${details.scoreOpponent ?? 0} ${details.opponentName}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
+                      Text(details.competition),
+                      Text(AppFormats.dateTime(details.kickoffAt)),
                       Text(
-                        details.kickoffAt.toLocal().toString().split('.').first,
+                        details.location == 'domicile'
+                            ? 'Domicile'
+                            : 'Extérieur',
                       ),
-                      Text('Statut : ${details.status}'),
+                      Text('Statut : ${_statusLabel(details.status)}'),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _InfoTile(
+                              label: 'Pronostics',
+                              value: '${details.predictionParticipantCount}',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoTile(
+                              label: 'Cote 1',
+                              value: _formatOdds(details.oddsWin),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoTile(
+                              label: 'Cote N',
+                              value: _formatOdds(details.oddsDraw),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoTile(
+                              label: 'Cote 2',
+                              value: _formatOdds(details.oddsLoss),
+                            ),
+                          ),
+                        ],
+                      ),
                       if (isAdmin && details.status == 'a_venir') ...[
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () => _report(context, ref, details),
-                          icon: const Icon(Icons.event_repeat_outlined),
-                          label: const Text('Reporter le match'),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  context.push('/matches/$matchId/finalize'),
+                              icon: const Icon(Icons.fact_check_outlined),
+                              label: const Text('Saisir les statistiques'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => _report(context, ref, details),
+                              icon: const Icon(Icons.event_repeat_outlined),
+                              label: const Text('Reporter'),
+                            ),
+                          ],
                         ),
                       ],
-                      if (isModerator &&
+                      if (isStaff &&
                           (details.status == 'termine' ||
                               details.status == 'archive')) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         FilledButton.icon(
                           onPressed: () =>
                               context.push('/matches/$matchId/correction'),
                           icon: const Icon(Icons.history_edu_outlined),
-                          label: const Text('Corriger les événements'),
+                          label: const Text('Corriger le match'),
                         ),
                       ],
                     ],
@@ -101,11 +152,11 @@ class MatchDetailsPage extends ConsumerWidget {
                   (match) => Card(
                     child: ListTile(
                       title: Text(
-                        '${match.scoreGrinta ?? '?'} - ${match.scoreOpponent ?? '?'}',
+                        '${match.scoreGrinta ?? '?'} – ${match.scoreOpponent ?? '?'}',
                       ),
                       subtitle: Text(
-                        '${match.date.toLocal().toString().split(' ').first} • '
-                        '${match.location}',
+                        '${AppFormats.date(match.date)} • '
+                        '${match.location == 'domicile' ? 'Domicile' : 'Extérieur'}',
                       ),
                     ),
                   ),
@@ -115,6 +166,19 @@ class MatchDetailsPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _statusLabel(String status) {
+    return switch (status) {
+      'termine' => 'Terminé',
+      'archive' => 'Archivé',
+      _ => 'À venir',
+    };
+  }
+
+  String _formatOdds(double? value) {
+    if (value == null) return '—';
+    return value.toStringAsFixed(2).replaceAll('.', ',');
   }
 
   Future<void> _report(
@@ -147,5 +211,29 @@ class MatchDetailsPage extends ConsumerWidget {
           kickoffAt: kickoffAt,
         );
     ref.invalidate(matchDetailsProvider(matchId));
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: Theme.of(context).textTheme.titleMedium),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
   }
 }
