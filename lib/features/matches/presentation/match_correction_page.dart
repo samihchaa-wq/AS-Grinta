@@ -32,7 +32,7 @@ class MatchCorrectionPage extends ConsumerWidget {
         },
         child: dataAsync.when(
           loading: () => ListView(
-            children: [
+            children: const [
               SizedBox(height: 220),
               Center(child: CircularProgressIndicator()),
             ],
@@ -67,7 +67,7 @@ class MatchCorrectionPage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: data.motmProfileId,
+                initialValue: data.motmProfileId,
                 decoration: const InputDecoration(
                   labelText: 'Homme du match corrigé',
                 ),
@@ -171,7 +171,7 @@ class MatchCorrectionPage extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: team,
+                    initialValue: team,
                     decoration: const InputDecoration(labelText: 'Équipe'),
                     items: const [
                       DropdownMenuItem(
@@ -202,7 +202,7 @@ class MatchCorrectionPage extends ConsumerWidget {
                   if (team == 'as_grinta') ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: goalType,
+                      initialValue: goalType,
                       decoration: const InputDecoration(labelText: 'Type'),
                       items: const [
                         DropdownMenuItem(value: 'jeu', child: Text('Jeu')),
@@ -233,7 +233,7 @@ class MatchCorrectionPage extends ConsumerWidget {
                   if (!hidesPlayers) ...[
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: scorerId,
+                      initialValue: scorerId,
                       decoration: const InputDecoration(labelText: 'Buteur'),
                       items: data.participants
                           .map(
@@ -248,7 +248,7 @@ class MatchCorrectionPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
-                      value: assisterId,
+                      initialValue: assisterId,
                       decoration: const InputDecoration(labelText: 'Passeur'),
                       items: [
                         const DropdownMenuItem<String?>(
