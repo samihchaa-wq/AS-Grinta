@@ -15,7 +15,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authControllerProvider);
     final dashboardAsync = ref.watch(homeDashboardProvider);
-    final isModerator = authState.profile?.role == AuthRole.moderateur;
+    final isStaff = authState.profile?.role.isStaff == true;
     final displayName = authState.profile?.displayName.trim() ?? '';
     final greeting = displayName.isNotEmpty ? displayName : 'Grinta';
 
@@ -33,6 +33,9 @@ class HomePage extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(homeDashboardProvider);
               await ref.read(homeDashboardProvider.future);
+              if (!isStaff) {
+                await ref.read(predictionsControllerProvider.notifier).load();
+              }
             },
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -43,7 +46,7 @@ class HomePage extends ConsumerWidget {
                     child: _Header(
                       name: greeting,
                       role: authState.profile?.role.label ?? 'Membre',
-                      isModerator: isModerator,
+                      isStaff: isStaff,
                       onAdmin: () => context.go('/admin'),
                       onProfile: () => context.go('/profile'),
                       onLogout: () =>
@@ -61,13 +64,11 @@ class HomePage extends ConsumerWidget {
                           message: error.toString(),
                           onRetry: () => ref.invalidate(homeDashboardProvider),
                         ),
-                        data: (dashboard) => _NextMatchHero(
-                          dashboard: dashboard,
-                        ),
+                        data: (dashboard) =>
+                            _NextMatchHero(dashboard: dashboard),
                       ),
                       const SizedBox(height: 16),
-                      // Pronostic inline pour le prochain match
-                      _InlinePrediction(isModerator: isModerator),
+                      if (!isStaff) const _InlinePrediction(),
                     ]),
                   ),
                 ),
@@ -80,13 +81,11 @@ class HomePage extends ConsumerWidget {
   }
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
-
 class _Header extends StatelessWidget {
   const _Header({
     required this.name,
     required this.role,
-    required this.isModerator,
+    required this.isStaff,
     required this.onAdmin,
     required this.onProfile,
     required this.onLogout,
@@ -94,7 +93,7 @@ class _Header extends StatelessWidget {
 
   final String name;
   final String role;
-  final bool isModerator;
+  final bool isStaff;
   final VoidCallback onAdmin;
   final VoidCallback onProfile;
   final Future<void> Function() onLogout;
@@ -111,13 +110,6 @@ class _Header extends StatelessWidget {
             gradient: const LinearGradient(
               colors: [AppTheme.primary, Color(0xFF0FAE60)],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withValues(alpha: 0.22),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
           child: const Icon(Icons.sports_soccer_rounded, color: Colors.black),
         ),
@@ -153,7 +145,7 @@ class _Header extends StatelessWidget {
             if (value == 'logout') await onLogout();
           },
           itemBuilder: (_) => [
-            if (isModerator)
+            if (isStaff)
               const PopupMenuItem(
                 value: 'admin',
                 child: Text('Administration'),
@@ -167,8 +159,6 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ─── Prochain match ───────────────────────────────────────────────────────────
-
 class _NextMatchHero extends StatelessWidget {
   const _NextMatchHero({required this.dashboard});
 
@@ -177,7 +167,6 @@ class _NextMatchHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasMatch = dashboard.nextMatchId != null;
-    final isLive = dashboard.nextMatchStatus == 'en_cours';
 
     return Container(
       decoration: BoxDecoration(
@@ -188,131 +177,71 @@ class _NextMatchHero extends StatelessWidget {
           colors: [Color(0xFF17392A), Color(0xFF0D2018)],
         ),
         border: Border.all(color: const Color(0xFF2D5B45)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 36,
-            offset: Offset(0, 18),
-          ),
-        ],
       ),
-      child: Stack(
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Positioned(
-            right: -34,
-            top: -28,
-            child: Icon(
-              Icons.sports_soccer_rounded,
-              size: 170,
-              color: Colors.white.withValues(alpha: 0.035),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'PROCHAIN MATCH',
+              style: TextStyle(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.7,
+                fontSize: 12,
+              ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isLive
-                            ? const Color(0xFFFF5D5D).withValues(alpha: 0.16)
-                            : Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        isLive ? '● EN DIRECT' : 'PROCHAIN MATCH',
-                        style: TextStyle(
-                          color: isLive
-                              ? const Color(0xFFFF7B7B)
-                              : AppTheme.primary,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.7,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.arrow_outward_rounded,
-                      color: Colors.white54,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                if (!hasMatch)
-                  Text(
-                    'Aucun match programmé',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  )
-                else ...[
-                  // Noms des équipes + score sur une seule ligne
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'AS GRINTA  vs  ${dashboard.nextOpponent ?? 'Adversaire'}',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+          const SizedBox(height: 20),
+          if (!hasMatch)
+            Text(
+              'Aucun match programmé',
+              style: Theme.of(context).textTheme.headlineMedium,
+            )
+          else ...[
+            Text(
+              'AS GRINTA  vs  ${dashboard.nextOpponent ?? 'Adversaire'}',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
                   ),
-                  if (dashboard.nextKickoffAt != null) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.schedule_rounded,
-                          size: 16,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (dashboard.nextKickoffAt != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.schedule_rounded,
+                    size: 16,
+                    color: Colors.white70,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    AppFormats.dateTime(dashboard.nextKickoffAt!),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Colors.white70,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          AppFormats.dateTime(dashboard.nextKickoffAt!),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white70,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (isLive) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: () => context
-                          .go('/live/${dashboard.nextMatchId}'),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Ouvrir le live'),
-                    ),
-                  ],
+                  ),
                 ],
-              ],
-            ),
-          ),
+              ),
+            ],
+          ],
         ],
       ),
     );
   }
 }
 
-// ─── Widget inline pronostic ─────────────────────────────────────────────────
-
 class _InlinePrediction extends ConsumerStatefulWidget {
-  const _InlinePrediction({required this.isModerator});
-  final bool isModerator;
+  const _InlinePrediction();
 
   @override
   ConsumerState<_InlinePrediction> createState() => _InlinePredictionState();
@@ -329,9 +258,6 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
 
   @override
   Widget build(BuildContext context) {
-    // Les modérateurs gèrent les matchs, pas les pronostics
-    if (widget.isModerator) return const SizedBox.shrink();
-
     final state = ref.watch(predictionsControllerProvider);
 
     if (state.isLoading) {
@@ -340,33 +266,21 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
         child: Center(child: CircularProgressIndicator()),
       );
     }
-
     if (state.items.isEmpty) return const SizedBox.shrink();
 
     final item = state.items.first;
     final isSaving = state.savingMatchId == item.matchId;
     final controller = ref.read(predictionsControllerProvider.notifier);
 
-    // Si la fenêtre n'est pas encore ouverte ou est fermée, affiche juste un
-    // message compact.
-    if (item.isBeforeWindow) {
-      return _StatusChip(
-        icon: Icons.lock_clock_outlined,
-        label: 'Pronostics ouverts à partir du '
-            '${AppFormats.date(item.opensAt)}',
-      );
-    }
-
     if (item.isClosed) {
       return _StatusChip(
         icon: Icons.lock_outline,
         label: item.isFilled
-            ? 'Pronostic enregistré · Fenêtre fermée'
-            : 'Fenêtre de pronostic fermée',
+            ? 'Pronostic enregistré · Pronostics fermés à H-5'
+            : 'Pronostics fermés à H-5',
       );
     }
 
-    // Fenêtre ouverte → afficher le formulaire inline
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
@@ -379,16 +293,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppTheme.accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.bolt_rounded,
-                    color: AppTheme.accent, size: 20),
-              ),
+              const Icon(Icons.bolt_rounded, color: AppTheme.accent),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -399,7 +304,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(
-                      'Ferme 10 min avant le coup d\'envoi',
+                      'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF91A69B),
                           ),
@@ -408,15 +313,14 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                 ),
               ),
               if (item.isFilled)
-                Chip(
-                  label: const Text('Enregistré'),
+                const Chip(
+                  label: Text('Enregistré'),
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.compact,
                 ),
             ],
           ),
           const SizedBox(height: 16),
-          // Scores sur une seule ligne, sans overflow
           Row(
             children: [
               Expanded(
@@ -436,15 +340,9 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '–',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineMedium
-                      ?.copyWith(color: Colors.white38),
-                ),
+              Text(
+                '–',
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
               Expanded(
                 child: _ScoreCol(
@@ -486,8 +384,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
             const SizedBox(height: 8),
             Text(
               state.error!,
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.error, fontSize: 12),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
         ],
@@ -519,26 +416,19 @@ class _ScoreCol extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodyMedium,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
-              onPressed: enabled ? onMinus : null,
+              onPressed: enabled && value > 0 ? onMinus : null,
               icon: const Icon(Icons.remove_circle_outline),
-              visualDensity: VisualDensity.compact,
             ),
-            Text(
-              '$value',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Text('$value', style: Theme.of(context).textTheme.headlineMedium),
             IconButton(
               onPressed: enabled ? onPlus : null,
               icon: const Icon(Icons.add_circle_outline),
-              visualDensity: VisualDensity.compact,
             ),
           ],
         ),
@@ -549,6 +439,7 @@ class _ScoreCol extends StatelessWidget {
 
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.icon, required this.label});
+
   final IconData icon;
   final String label;
 
@@ -565,21 +456,12 @@ class _StatusChip extends StatelessWidget {
         children: [
           Icon(icon, size: 20, color: const Color(0xFF91A69B)),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF91A69B),
-                  ),
-            ),
-          ),
+          Expanded(child: Text(label)),
         ],
       ),
     );
   }
 }
-
-// ─── Chargement / Erreur ──────────────────────────────────────────────────────
 
 class _LoadingHero extends StatelessWidget {
   const _LoadingHero();
