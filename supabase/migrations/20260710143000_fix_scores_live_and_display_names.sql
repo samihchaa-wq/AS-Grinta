@@ -145,14 +145,14 @@ with mt as (
 select p.id as profile_id,
        p.first_name,
        p.last_name,
-       p.surnom,
        coalesce(mt.match_points, 0::numeric) as match_points,
        coalesce(st.season_points, 0::numeric) as season_points,
        coalesce(mt.match_points, 0::numeric) + coalesce(st.season_points, 0::numeric) as total_points,
        mm.max_points as match_max_points,
        coalesce(se.max_points, 0::numeric) as season_max_points,
        case when mm.max_points > 0 then round(100::numeric * coalesce(mt.match_points, 0::numeric) / mm.max_points, 2) else 0::numeric end as match_percentage,
-       case when coalesce(se.max_points, 0::numeric) > 0 then round(100::numeric * coalesce(st.season_points, 0::numeric) / se.max_points, 2) else 0::numeric end as season_percentage
+       case when coalesce(se.max_points, 0::numeric) > 0 then round(100::numeric * coalesce(st.season_points, 0::numeric) / se.max_points, 2) else 0::numeric end as season_percentage,
+       p.surnom
 from public.profiles p
 cross join match_max mm
 left join mt on mt.profile_id = p.id
