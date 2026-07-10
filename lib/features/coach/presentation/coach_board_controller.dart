@@ -24,6 +24,7 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   StreamSubscription<CoachLiveSession?>? _sessionSubscription;
   StreamSubscription<List<CoachLiveEventRecord>>? _eventsSubscription;
   bool _persisting = false;
+  bool _eventWriteInProgress = false;
 
   static const _guestPrefix = 'guest|';
 
@@ -165,15 +166,6 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
     await movePlayer(id, slotCode);
   }
 
-  String? _guestIdByName(String? name) {
-    final target = name?.trim();
-    if (target == null || target.isEmpty) return null;
-    return state.players
-        .where((player) => player.isGuest && player.displayName == target)
-        .firstOrNull
-        ?.id;
-  }
-
   CoachEvent _mapEvent(CoachLiveEventRecord record) {
     final type = switch (record.type) {
       'goal_us' => CoachEventType.goalUs,
@@ -185,10 +177,10 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       id: record.id,
       type: type,
       minute: record.minute,
-      playerId: record.scorerId ?? _guestIdByName(record.scorerGuestName),
-      assistPlayerId: record.assistId ?? _guestIdByName(record.assistGuestName),
-      playerInId: record.playerInId,
-      playerOutId: record.playerOutId,
+      playerId: record.scorerId ?? record.scorerGuestId,
+      assistPlayerId: record.assistId ?? record.assistGuestId,
+      playerInId: record.playerInId ?? record.playerInGuestId,
+      playerOutId: record.playerOutId ?? record.playerOutGuestId,
     );
   }
 
@@ -340,63 +332,94 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
   int get _currentMinute => max(1, (state.elapsedSeconds / 60).floor() + 1);
 
   Future<void> addGoalUs({String? scorerId, String? assistId}) async {
-    if (!state.canEdit || state.matchId == null) return;
+    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
     final scorer = state.playerById(scorerId);
     final assist = state.playerById(assistId);
     if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
-    await _repository.addGoal(
-      matchId: state.matchId!,
-      minute: _currentMinute,
-      isForUs: true,
-      scorerId: scorer?.isGuest == true ? null : scorerId,
-      assistId: assist?.isGuest == true ? null : assistId,
-      scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
-      assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
-    );
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addGoal(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        isForUs: true,
+        scorerId: scorer?.isGuest == true ? null : scorerId,
+        assistId: assist?.isGuest == true ? null : assistId,
+        scorerGuestId: scorer?.isGuest == true ? scorerId : null,
+        scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+        assistGuestId: assist?.isGuest == true ? assistId : null,
+        assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
   }
 
   Future<void> addGoalThem() async {
-    if (!state.canEdit || state.matchId == null) return;
-    await _repository.addGoal(
-      matchId: state.matchId!,
-      minute: _currentMinute,
-      isForUs: false,
-    );
+    if (!state.canEdit || state.matchId == null || _eventWriteInProgress) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.addGoal(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        isForUs: false,
+      );
+    } finally {
+      _eventWriteInProgress = false;
+    }
   }
 
   Future<void> addSubstitution({
     required String inPlayerId,
     required String outPlayerId,
   }) async {
-    if (!state.canEdit || state.matchId == null || inPlayerId == outPlayerId) {
+    if (!state.canEdit ||
+        state.matchId == null ||
+        inPlayerId == outPlayerId ||
+        _eventWriteInProgress) {
       return;
     }
     final lineup = Map<String, String>.from(state.lineup);
     final bench = List<String>.from(state.bench);
     final slot =
         lineup.entries.where((e) => e.value == outPlayerId).firstOrNull?.key;
-    if (slot != null) {
+    if (slot == null) return;
+
+    final inPlayer = state.playerById(inPlayerId);
+    final outPlayer = state.playerById(outPlayerId);
+    if (inPlayer == null || outPlayer == null) return;
+
+    _eventWriteInProgress = true;
+    try {
       lineup[slot] = inPlayerId;
       bench.remove(inPlayerId);
       if (!bench.contains(outPlayerId)) bench.add(outPlayerId);
       state = state.copyWith(lineup: lineup, bench: bench);
       await _persistSession();
+      await _repository.addSubstitution(
+        matchId: state.matchId!,
+        minute: _currentMinute,
+        playerInId: inPlayer.isGuest ? null : inPlayerId,
+        playerOutId: outPlayer.isGuest ? null : outPlayerId,
+        playerInGuestId: inPlayer.isGuest ? inPlayerId : null,
+        playerInGuestName: inPlayer.isGuest ? inPlayer.displayName : null,
+        playerOutGuestId: outPlayer.isGuest ? outPlayerId : null,
+        playerOutGuestName: outPlayer.isGuest ? outPlayer.displayName : null,
+      );
+    } finally {
+      _eventWriteInProgress = false;
     }
-    final inPlayer = state.playerById(inPlayerId);
-    final outPlayer = state.playerById(outPlayerId);
-    await _repository.addSubstitution(
-      matchId: state.matchId!,
-      minute: _currentMinute,
-      playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
-      playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
-    );
   }
 
   void addNote(String text) {}
 
   Future<void> removeEvent(String eventId) async {
-    if (!state.canEdit) return;
-    await _repository.deleteEvent(eventId);
+    if (!state.canEdit || _eventWriteInProgress) return;
+    _eventWriteInProgress = true;
+    try {
+      await _repository.deleteEvent(eventId);
+    } finally {
+      _eventWriteInProgress = false;
+    }
   }
 
   Future<void> resetBoard() async {
