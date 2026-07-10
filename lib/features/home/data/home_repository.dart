@@ -7,12 +7,16 @@ class HomeDashboardData {
     required this.nextMatchId,
     required this.nextOpponent,
     required this.nextKickoffAt,
+    required this.nextMatchStatus,
+    required this.hasLiveMatch,
     required this.pendingPredictions,
   });
 
   final String? nextMatchId;
   final String? nextOpponent;
   final DateTime? nextKickoffAt;
+  final String? nextMatchStatus;
+  final bool hasLiveMatch;
   final int pendingPredictions;
 }
 
@@ -75,6 +79,8 @@ class HomeRepository {
       nextMatchId: nextMatchId,
       nextOpponent: nextOpponent,
       nextKickoffAt: nextKickoffAt,
+      nextMatchStatus: nextMatchId == null ? null : 'a_venir',
+      hasLiveMatch: false,
       pendingPredictions: pendingPredictions,
     );
   }
