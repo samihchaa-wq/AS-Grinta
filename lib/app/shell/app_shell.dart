@@ -1,5 +1,3 @@
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +12,7 @@ class AppShell extends ConsumerWidget {
   final Widget child;
   final String location;
 
-  static const _staffDestinations = <_ModuleDestination>[
+  static const _destinations = <_ModuleDestination>[
     _ModuleDestination(
       route: '/home',
       label: 'Accueil',
@@ -29,34 +27,6 @@ class AppShell extends ConsumerWidget {
       route: '/coach',
       label: 'Tableau',
       icon: Icons.dashboard_customize_rounded,
-    ),
-    _ModuleDestination(
-      route: '/statistics',
-      label: 'Stats',
-      icon: Icons.insights_rounded,
-    ),
-    _ModuleDestination(
-      route: '/more',
-      label: 'Plus',
-      icon: Icons.more_horiz_rounded,
-    ),
-  ];
-
-  static const _defaultDestinations = <_ModuleDestination>[
-    _ModuleDestination(
-      route: '/home',
-      label: 'Accueil',
-      icon: Icons.home_rounded,
-    ),
-    _ModuleDestination(
-      route: '/matches',
-      label: 'Matchs',
-      icon: Icons.sports_soccer_rounded,
-    ),
-    _ModuleDestination(
-      route: '/coach',
-      label: 'Tableau',
-      icon: Icons.visibility_outlined,
     ),
     _ModuleDestination(
       route: '/predictions',
@@ -75,12 +45,7 @@ class AppShell extends ConsumerWidget {
     ),
   ];
 
-  List<_ModuleDestination> _destinations(AuthRole? role) {
-    if (role?.isStaff == true) return _staffDestinations;
-    return _defaultDestinations;
-  }
-
-  int _selectedIndex(List<_ModuleDestination> destinations) {
+  int _selectedIndex() {
     const moreRoutes = {
       '/more',
       '/profile',
@@ -95,7 +60,7 @@ class AppShell extends ConsumerWidget {
         ? '/more'
         : location;
 
-    final index = destinations.indexWhere(
+    final index = _destinations.indexWhere(
       (destination) => normalizedLocation == destination.route ||
           normalizedLocation.startsWith('${destination.route}/'),
     );
@@ -104,11 +69,7 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(
-      authControllerProvider.select((state) => state.profile?.role),
-    );
-    final destinations = _destinations(role);
-    final selectedIndex = _selectedIndex(destinations);
+    final selectedIndex = _selectedIndex();
 
     return Scaffold(
       body: child,
@@ -117,12 +78,12 @@ class AppShell extends ConsumerWidget {
         child: NavigationBar(
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
-            final destination = destinations[index];
+            final destination = _destinations[index];
             if (location != destination.route) {
               context.go(destination.route);
             }
           },
-          destinations: destinations
+          destinations: _destinations
               .map(
                 (destination) => NavigationDestination(
                   icon: Icon(destination.icon),
