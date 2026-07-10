@@ -193,6 +193,8 @@ class _Pitch extends StatelessWidget {
   final CoachBoardController ctrl;
 
   String _icons(String playerId) {
+    final player = state.playerById(playerId);
+    if (player?.isGoalkeeper == true || player?.isGuest == true) return '';
     final goals = state.events
         .where((e) => e.type == CoachEventType.goalUs && e.playerId == playerId)
         .length;
@@ -311,13 +313,17 @@ class _Bench extends StatelessWidget {
                 final p = state.playerById(id);
                 return ActionChip(
                   avatar: CircleAvatar(child: Text(p?.initials ?? '?')),
-                  label: Text(p == null ? 'Joueur' : '${p.displayName}${p.isGuest ? ' · Invité' : ''}'),
+                  label: Text(p == null
+                      ? 'Joueur'
+                      : '${p.displayName}${p.isGuest ? ' · Invité' : ''}'),
                   onPressed: state.canEdit
                       ? () async {
                           final emptySlot = state.formationSlots
                               .where((s) => !state.lineup.containsKey(s))
                               .firstOrNull;
-                          if (emptySlot != null) await ctrl.movePlayer(id, emptySlot);
+                          if (emptySlot != null) {
+                            await ctrl.movePlayer(id, emptySlot);
+                          }
                         }
                       : null,
                 );
@@ -341,7 +347,7 @@ class _EventControls extends StatelessWidget {
     final players = state.lineup.values
         .map(state.playerById)
         .whereType<CoachPlayer>()
-        .where((player) => !player.isGuest)
+        .where((player) => !player.isGuest && !player.isGoalkeeper)
         .toList();
     final ok = await showDialog<bool>(
       context: context,
@@ -521,7 +527,8 @@ class _MinutesPlayed extends StatelessWidget {
   final CoachBoardState state;
 
   Map<String, int> _compute() {
-    final now = (state.elapsedSeconds ~/ 60).clamp(0, state.plannedDurationMinutes);
+    final now =
+        (state.elapsedSeconds ~/ 60).clamp(0, state.plannedDurationMinutes);
     final subs = state.events
         .where((e) => e.type == CoachEventType.substitution)
         .toList()
@@ -537,7 +544,8 @@ class _MinutesPlayed extends StatelessWidget {
       final minute = e.minute.clamp(0, now);
       if (e.playerOutId != null) {
         final start = entered.remove(e.playerOutId) ?? 0;
-        total[e.playerOutId!] = (total[e.playerOutId!] ?? 0) + minute - start;
+        total[e.playerOutId!] =
+            (total[e.playerOutId!] ?? 0) + minute - start;
       }
       if (e.playerInId != null) entered[e.playerInId!] = minute;
     }
@@ -583,7 +591,8 @@ class _MinutesPlayed extends StatelessWidget {
 class _PitchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF176B3A));
+    canvas.drawRect(
+        Offset.zero & size, Paint()..color = const Color(0xFF176B3A));
     final line = Paint()
       ..color = Colors.white70
       ..strokeWidth = 2
@@ -592,8 +601,8 @@ class _PitchPainter extends CustomPainter {
     canvas.drawRect(rect, line);
     canvas.drawLine(Offset(14, size.height / 2),
         Offset(size.width - 14, size.height / 2), line);
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2),
-        size.width * .16, line);
+    canvas.drawCircle(
+        Offset(size.width / 2, size.height / 2), size.width * .16, line);
     canvas.drawRect(
         Rect.fromCenter(
             center: Offset(size.width / 2, 14),

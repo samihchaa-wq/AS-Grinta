@@ -332,8 +332,10 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
 
   Future<void> addGoalUs({String? scorerId, String? assistId}) async {
     if (!state.canEdit || state.matchId == null) return;
-    if (state.playerById(scorerId)?.isGuest == true) scorerId = null;
-    if (state.playerById(assistId)?.isGuest == true) assistId = null;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGuest == true || scorer?.isGoalkeeper == true) scorerId = null;
+    if (assist?.isGuest == true || assist?.isGoalkeeper == true) assistId = null;
     await _repository.addGoal(
       matchId: state.matchId!,
       minute: _currentMinute,
@@ -370,14 +372,13 @@ class CoachBoardController extends StateNotifier<CoachBoardState> {
       state = state.copyWith(lineup: lineup, bench: bench);
       await _persistSession();
     }
-    final hasGuest = state.playerById(inPlayerId)?.isGuest == true ||
-        state.playerById(outPlayerId)?.isGuest == true;
-    if (hasGuest) return;
+    final inPlayer = state.playerById(inPlayerId);
+    final outPlayer = state.playerById(outPlayerId);
     await _repository.addSubstitution(
       matchId: state.matchId!,
       minute: _currentMinute,
-      playerInId: inPlayerId,
-      playerOutId: outPlayerId,
+      playerInId: inPlayer?.isGuest == true ? null : inPlayerId,
+      playerOutId: outPlayer?.isGuest == true ? null : outPlayerId,
     );
   }
 

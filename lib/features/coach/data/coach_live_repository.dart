@@ -164,9 +164,10 @@ class CoachLiveRepository {
   Future<void> addSubstitution({
     required String matchId,
     required int minute,
-    required String playerInId,
-    required String playerOutId,
+    String? playerInId,
+    String? playerOutId,
   }) async {
+    if (playerInId == null && playerOutId == null) return;
     await _client.from('coach_match_events').insert({
       'match_id': matchId,
       'event_type': 'substitution',
