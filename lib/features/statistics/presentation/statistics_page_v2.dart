@@ -61,13 +61,15 @@ class StatisticsPageV2 extends ConsumerWidget {
               );
             }
 
-            final outfield = all.where((p) => !p.isGoalkeeper).toList();
-            final goalkeepers = all.where((p) => p.isGoalkeeper).toList()
+            final outfield = all.where((player) => !player.isGoalkeeper).toList();
+            final goalkeepers = all.where((player) => player.isGoalkeeper).toList()
               ..sort((a, b) => b.cleanSheets.compareTo(a.cleanSheets));
             final topGoals = [...outfield]
               ..sort((a, b) => b.goals.compareTo(a.goals));
             final topAssists = [...outfield]
               ..sort((a, b) => b.assists.compareTo(a.assists));
+            final topPenaltyFaults = [...all]
+              ..sort((a, b) => b.penaltyFaults.compareTo(a.penaltyFaults));
             final topMotm = [...all]
               ..sort((a, b) => b.motm.compareTo(a.motm));
             final alphabetical = [...all]
@@ -95,6 +97,17 @@ class StatisticsPageV2 extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 _RankingSection(
+                  title: 'Top 5 Fautes provoquant un penalty',
+                  icon: Icons.warning_amber_rounded,
+                  players: topPenaltyFaults
+                      .where((p) => p.penaltyFaults > 0)
+                      .take(5)
+                      .toList(),
+                  value: (p) => p.penaltyFaults,
+                  unit: 'faute',
+                ),
+                const SizedBox(height: 24),
+                _RankingSection(
                   title: 'Top 5 Hommes du match',
                   icon: Icons.emoji_events_rounded,
                   players: topMotm.where((p) => p.motm > 0).take(5).toList(),
@@ -102,7 +115,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                   unit: 'HDM',
                 ),
                 const SizedBox(height: 24),
-                _SectionTitle(
+                const _SectionTitle(
                   icon: Icons.shield_outlined,
                   label: 'Clean sheets gardiens',
                 ),
@@ -213,6 +226,7 @@ class _PlayerCard extends StatelessWidget {
               _Badge(label: 'B', value: player.goals),
               _Badge(label: 'P', value: player.assists),
             ],
+            _Badge(label: 'FP', value: player.penaltyFaults),
             _Badge(label: 'M', value: player.motm),
             if (player.isGoalkeeper)
               _Badge(label: 'CS', value: player.cleanSheets),
@@ -234,6 +248,10 @@ class _PlayerCard extends StatelessWidget {
                 _Detail(label: 'Buts', value: player.goals),
                 _Detail(label: 'Passes D.', value: player.assists),
               ],
+              _Detail(
+                label: 'Fautes provoquant un penalty',
+                value: player.penaltyFaults,
+              ),
               _Detail(label: 'HDM', value: player.motm),
               if (player.isGoalkeeper)
                 _Detail(label: 'Clean sheets', value: player.cleanSheets),
@@ -257,7 +275,9 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
-        Text(label, style: Theme.of(context).textTheme.titleLarge),
+        Expanded(
+          child: Text(label, style: Theme.of(context).textTheme.titleLarge),
+        ),
       ],
     );
   }
@@ -290,7 +310,7 @@ class _Detail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 130,
+      width: 150,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
