@@ -36,14 +36,13 @@ class _GuestInput {
 }
 
 class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
-  final _opponentScoreController = TextEditingController(text: '0');
   final Map<String, _PlayerInput> _players = {};
   final List<_GuestInput> _guests = [];
+  int _opponentScore = 0;
   String? _motmProfileId;
 
   @override
   void dispose() {
-    _opponentScoreController.dispose();
     for (final guest in _guests) {
       guest.dispose();
     }
@@ -71,34 +70,16 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               _guests.fold<int>(0, (sum, item) => sum + item.goals);
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
             children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'AS Grinta : $computedScore',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      SizedBox(
-                        width: 130,
-                        child: TextField(
-                          controller: _opponentScoreController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Adversaire',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              _ScoreCard(
+                grintaScore: computedScore,
+                opponentScore: _opponentScore,
+                onOpponentChanged: (value) {
+                  setState(() => _opponentScore = value);
+                },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               Text('Joueurs', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               ...sheet.players.map((player) {
@@ -106,6 +87,8 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
                     title: Text(player.name),
                     leading: Checkbox(
                       value: input.present,
@@ -124,7 +107,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                     ),
                     subtitle: Text(
                       input.present
-                          ? '⚽ ${input.goals}  👟 ${input.assists}  🟥 ${input.penaltyFaults}'
+                          ? '⚽ ${input.goals}  👟 ${input.assists}  ⚠️ ${input.penaltyFaults}'
                           : 'Absent',
                     ),
                     children: [
@@ -143,7 +126,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                             setState(() => input.assists = value),
                       ),
                       _CounterRow(
-                        label: '🟥 Faute provoquant un penalty',
+                        label: '⚠️ Faute provoquant un penalty',
                         value: input.penaltyFaults,
                         enabled: input.present,
                         onChanged: (value) =>
@@ -155,23 +138,30 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                           value: input.cleanSheet,
                           onChanged: input.present
                               ? (value) =>
-                                    setState(() => input.cleanSheet = value)
+                                  setState(() => input.cleanSheet = value)
                               : null,
                         ),
                     ],
                   ),
                 );
               }),
-              const SizedBox(height: 12),
-              Row(
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 10,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Invités du match',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                  Text(
+                    'Invités du match',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                   FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                     onPressed: () => setState(() => _guests.add(_GuestInput())),
                     icon: const Icon(Icons.person_add_alt_1),
                     label: const Text('Ajouter'),
@@ -181,7 +171,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               const SizedBox(height: 8),
               for (var index = 0; index < _guests.length; index++)
                 _guestCard(index),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String?>(
                 initialValue: _motmProfileId,
                 decoration: const InputDecoration(
@@ -233,31 +223,52 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 520;
+                final fields = [
+                  TextField(
                     controller: guest.name,
                     decoration: const InputDecoration(labelText: 'Nom'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
+                  TextField(
                     controller: guest.position,
                     decoration: const InputDecoration(labelText: 'Poste'),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Supprimer',
-                  onPressed: () {
-                    final removed = _guests.removeAt(index);
-                    removed.dispose();
-                    setState(() {});
-                  },
-                  icon: const Icon(Icons.delete_outline),
-                ),
-              ],
+                ];
+
+                if (compact) {
+                  return Column(
+                    children: [
+                      fields[0],
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(child: fields[1]),
+                          IconButton(
+                            tooltip: 'Supprimer',
+                            onPressed: () => _removeGuest(index),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: fields[0]),
+                    const SizedBox(width: 8),
+                    Expanded(child: fields[1]),
+                    IconButton(
+                      tooltip: 'Supprimer',
+                      onPressed: () => _removeGuest(index),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                );
+              },
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -278,7 +289,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               onChanged: (value) => setState(() => guest.assists = value),
             ),
             _CounterRow(
-              label: '🟥 Faute provoquant un penalty',
+              label: '⚠️ Faute provoquant un penalty',
               value: guest.penaltyFaults,
               enabled: guest.present,
               onChanged: (value) => setState(() => guest.penaltyFaults = value),
@@ -289,14 +300,13 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
     );
   }
 
+  void _removeGuest(int index) {
+    final removed = _guests.removeAt(index);
+    removed.dispose();
+    setState(() {});
+  }
+
   Future<void> _submit(List<MatchSheetPlayer> players) async {
-    final opponentScore = int.tryParse(_opponentScoreController.text.trim());
-    if (opponentScore == null || opponentScore < 0) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Score adverse invalide.')));
-      return;
-    }
     for (final guest in _guests) {
       if (guest.name.text.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -336,12 +346,148 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
         .read(matchFinalizationControllerProvider.notifier)
         .finalizeMatch(
           matchId: widget.matchId,
-          opponentScore: opponentScore,
+          opponentScore: _opponentScore,
           manOfTheMatchId: _motmProfileId,
           playerStats: playerStats,
           guestStats: guestStats,
         );
     if (success && mounted) Navigator.pop(context);
+  }
+}
+
+class _ScoreCard extends StatelessWidget {
+  const _ScoreCard({
+    required this.grintaScore,
+    required this.opponentScore,
+    required this.onOpponentChanged,
+  });
+
+  final int grintaScore;
+  final int opponentScore;
+  final ValueChanged<int> onOpponentChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+        child: Row(
+          children: [
+            Expanded(
+              child: _TeamScore(
+                label: 'AS Grinta',
+                score: grintaScore,
+                helper: 'Calculé avec les buts',
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                '—',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+            ),
+            Expanded(
+              child: _OpponentScoreStepper(
+                score: opponentScore,
+                onChanged: onOpponentChanged,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamScore extends StatelessWidget {
+  const _TeamScore({
+    required this.label,
+    required this.score,
+    required this.helper,
+  });
+
+  final String label;
+  final int score;
+  final String helper;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '$score',
+          style: Theme.of(context).textTheme.displaySmall,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          helper,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _OpponentScoreStepper extends StatelessWidget {
+  const _OpponentScoreStepper({
+    required this.score,
+    required this.onChanged,
+  });
+
+  final int score;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Adversaire',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton.filledTonal(
+              tooltip: 'Retirer un but',
+              onPressed: score > 0 ? () => onChanged(score - 1) : null,
+              icon: const Icon(Icons.remove),
+            ),
+            SizedBox(
+              width: 48,
+              child: Text(
+                '$score',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+            ),
+            IconButton.filledTonal(
+              tooltip: 'Ajouter un but',
+              onPressed: () => onChanged(score + 1),
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Saisie manuelle',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
   }
 }
 
@@ -360,17 +506,17 @@ class _CounterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(label),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
         children: [
+          Expanded(child: Text(label)),
           IconButton(
             onPressed: enabled && value > 0 ? () => onChanged(value - 1) : null,
             icon: const Icon(Icons.remove_circle_outline),
           ),
           SizedBox(
-            width: 28,
+            width: 32,
             child: Text('$value', textAlign: TextAlign.center),
           ),
           IconButton(
