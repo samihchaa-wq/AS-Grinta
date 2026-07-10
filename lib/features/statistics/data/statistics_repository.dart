@@ -15,9 +15,6 @@ class PlayerStatistics {
     required this.penaltyFaults,
     required this.motm,
     required this.cleanSheets,
-    required this.minutesPlayed,
-    required this.starts,
-    required this.substituteAppearances,
   });
 
   final String profileId;
@@ -31,9 +28,6 @@ class PlayerStatistics {
   final int penaltyFaults;
   final int motm;
   final int cleanSheets;
-  final int minutesPlayed;
-  final int starts;
-  final int substituteAppearances;
 
   String get fullName => '$firstName $lastName'.trim();
   String get displayName {
@@ -54,8 +48,9 @@ class StatisticsRepository {
   Future<List<PlayerStatistics>> fetchCareerStatistics() async {
     final profilesResponse = await _client
         .from('profiles')
-        .select()
-        .eq('status', 'active');
+        .select('id,first_name,last_name,surnom,is_goalkeeper,status,role')
+        .eq('status', 'active')
+        .eq('role', 'pronostiqueur');
     final statsResponse = await _client.from('v_player_career_stats').select('''
           profile_id,
           matches_played,
@@ -63,10 +58,7 @@ class StatisticsRepository {
           assists,
           penalty_faults,
           motm,
-          clean_sheets,
-          minutes_played,
-          starts,
-          substitute_appearances
+          clean_sheets
         ''');
 
     final statsByProfile = <String, Map<String, dynamic>>{};
@@ -80,14 +72,11 @@ class StatisticsRepository {
       final profile = Map<String, dynamic>.from(row);
       final id = profile['id'].toString();
       final stats = statsByProfile[id] ?? const <String, dynamic>{};
-      final firstName = (profile['first_name'] ?? '').toString().trim();
-      final lastName = (profile['last_name'] ?? '').toString().trim();
-
       result.add(
         PlayerStatistics(
           profileId: id,
-          firstName: firstName,
-          lastName: lastName,
+          firstName: (profile['first_name'] ?? '').toString().trim(),
+          lastName: (profile['last_name'] ?? '').toString().trim(),
           surnom: profile['surnom']?.toString(),
           isGoalkeeper: profile['is_goalkeeper'] == true,
           matches: int.tryParse('${stats['matches_played'] ?? 0}') ?? 0,
@@ -97,10 +86,6 @@ class StatisticsRepository {
               int.tryParse('${stats['penalty_faults'] ?? 0}') ?? 0,
           motm: int.tryParse('${stats['motm'] ?? 0}') ?? 0,
           cleanSheets: int.tryParse('${stats['clean_sheets'] ?? 0}') ?? 0,
-          minutesPlayed: int.tryParse('${stats['minutes_played'] ?? 0}') ?? 0,
-          starts: int.tryParse('${stats['starts'] ?? 0}') ?? 0,
-          substituteAppearances:
-              int.tryParse('${stats['substitute_appearances'] ?? 0}') ?? 0,
         ),
       );
     }
