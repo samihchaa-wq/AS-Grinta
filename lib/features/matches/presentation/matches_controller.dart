@@ -9,6 +9,7 @@ class MatchesState {
     this.matches = const [],
     this.seasons = const [],
     this.opponents = const [],
+    this.selectedSeasonId,
     this.isLoading = false,
     this.error,
   });
@@ -16,6 +17,7 @@ class MatchesState {
   final List<MatchModel> matches;
   final List<Map<String, dynamic>> seasons;
   final List<Map<String, dynamic>> opponents;
+  final String? selectedSeasonId;
   final bool isLoading;
   final String? error;
 
@@ -23,6 +25,7 @@ class MatchesState {
     List<MatchModel>? matches,
     List<Map<String, dynamic>>? seasons,
     List<Map<String, dynamic>>? opponents,
+    String? selectedSeasonId,
     bool? isLoading,
     String? error,
     bool clearError = false,
@@ -31,6 +34,7 @@ class MatchesState {
       matches: matches ?? this.matches,
       seasons: seasons ?? this.seasons,
       opponents: opponents ?? this.opponents,
+      selectedSeasonId: selectedSeasonId ?? this.selectedSeasonId,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
     );
@@ -58,21 +62,36 @@ class MatchesController extends StateNotifier<MatchesState> {
         );
         return;
       }
+
+      final seasons = await _repository.fetchSeasons();
+      final resolvedSeasonId = seasonId ??
+          state.selectedSeasonId ??
+          _currentSeasonId(seasons) ??
+          (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
       final results = await Future.wait([
-        _repository.fetchMatches(seasonId: seasonId),
-        _repository.fetchSeasons(),
+        _repository.fetchMatches(seasonId: resolvedSeasonId),
         _repository.fetchOpponents(),
       ]);
       state = state.copyWith(
         matches: results[0] as List<MatchModel>,
-        seasons: results[1] as List<Map<String, dynamic>>,
-        opponents: results[2] as List<Map<String, dynamic>>,
+        seasons: seasons,
+        opponents: results[1] as List<Map<String, dynamic>>,
+        selectedSeasonId: resolvedSeasonId,
         isLoading: false,
         clearError: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
+  }
+
+  String? _currentSeasonId(List<Map<String, dynamic>> seasons) {
+    for (final season in seasons) {
+      if (season['status']?.toString() == 'open') {
+        return season['id']?.toString();
+      }
+    }
+    return null;
   }
 
   Future<String?> createOpponent(String name) async {
@@ -135,7 +154,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
       );
-      await load();
+      await load(seasonId: state.selectedSeasonId);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
@@ -188,7 +207,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
       );
-      await load();
+      await load(seasonId: state.selectedSeasonId);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
@@ -206,7 +225,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updateMatchStatus(id: id, status: 'archive');
-      await load();
+      await load(seasonId: state.selectedSeasonId);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
@@ -220,7 +239,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.deleteMatch(id);
-      await load();
+      await load(seasonId: state.selectedSeasonId);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
