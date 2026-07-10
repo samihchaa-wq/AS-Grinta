@@ -67,6 +67,7 @@ class AdminPage extends ConsumerWidget {
   }
 
   Future<void> _invitePlayer(BuildContext context, WidgetRef ref) async {
+    final email = TextEditingController();
     final firstName = TextEditingController();
     final lastName = TextEditingController();
     final nickname = TextEditingController();
@@ -84,6 +85,12 @@ class AdminPage extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                ),
+                const SizedBox(height: 10),
                 TextField(
                   controller: nickname,
                   decoration: const InputDecoration(
@@ -125,10 +132,14 @@ class AdminPage extends ConsumerWidget {
               onPressed: saving
                   ? null
                   : () async {
-                      if (firstName.text.trim().isEmpty ||
+                      final cleanEmail = email.text.trim();
+                      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                              .hasMatch(cleanEmail) ||
+                          firstName.text.trim().isEmpty ||
                           lastName.text.trim().isEmpty) {
                         setState(
-                          () => error = 'Le prénom et le nom sont obligatoires.',
+                          () => error =
+                              'Un email valide, le prénom et le nom sont obligatoires.',
                         );
                         return;
                       }
@@ -137,6 +148,12 @@ class AdminPage extends ConsumerWidget {
                         error = null;
                       });
                       try {
+                        await ref.read(adminRepositoryProvider).inviteAccount(
+                              email: cleanEmail,
+                              firstName: firstName.text,
+                              lastName: lastName.text,
+                              surnom: nickname.text,
+                            );
                         final token = await ref
                             .read(playersRepositoryProvider)
                             .createPlayerInvitation(
@@ -153,8 +170,22 @@ class AdminPage extends ConsumerWidget {
                         await showDialog<void>(
                           context: context,
                           builder: (linkContext) => AlertDialog(
-                            title: const Text('Invitation prête'),
-                            content: SelectableText(link),
+                            title: const Text('Invitation envoyée'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Un email d’activation a été envoyé à $cleanEmail.',
+                                ),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Après activation, le joueur doit ouvrir ce lien pour rattacher sa fiche :',
+                                ),
+                                const SizedBox(height: 8),
+                                SelectableText(link),
+                              ],
+                            ),
                             actions: [
                               TextButton.icon(
                                 onPressed: () async {
@@ -163,7 +194,7 @@ class AdminPage extends ConsumerWidget {
                                   );
                                 },
                                 icon: const Icon(Icons.copy),
-                                label: const Text('Copier'),
+                                label: const Text('Copier le lien'),
                               ),
                               FilledButton(
                                 onPressed: () => Navigator.pop(linkContext),
@@ -186,13 +217,14 @@ class AdminPage extends ConsumerWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Créer le lien'),
+                  : const Text('Envoyer l’invitation'),
             ),
           ],
         ),
       ),
     );
 
+    email.dispose();
     firstName.dispose();
     lastName.dispose();
     nickname.dispose();
