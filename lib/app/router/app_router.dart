@@ -15,11 +15,14 @@ import 'package:as_grinta/features/matches/presentation/match_details_page.dart'
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
+import 'package:as_grinta/features/more/presentation/more_page.dart';
+import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/players/presentation/players_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
+import 'package:as_grinta/features/preferences/presentation/settings_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page_v2.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,6 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
           GoRoute(path: '/coach', builder: (_, __) => const CoachPage()),
+          GoRoute(path: '/more', builder: (_, __) => const MorePage()),
           GoRoute(
             path: '/players',
             builder: (_, __) => const PlayersRegistryPage(),
@@ -122,6 +126,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const StatisticsPageV2(),
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+          GoRoute(
+            path: '/notifications',
+            builder: (_, __) => const NotificationsPage(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (_, __) => const SettingsPage(),
+          ),
           GoRoute(
             path: '/claim',
             builder: (context, state) => ClaimPlayerPage(
