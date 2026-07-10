@@ -6,14 +6,10 @@ import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_up_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/features/coach/presentation/coach_page.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
-import 'package:as_grinta/features/live/presentation/live_gameplay_page.dart';
-import 'package:as_grinta/features/live/presentation/live_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_correction_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
-import 'package:as_grinta/features/matches/presentation/match_participants_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
@@ -36,145 +32,64 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final location = state.matchedLocation;
       if (authState.isLoading) return '/auth/loading';
-
       final isAuthRoute = location.startsWith('/auth');
       if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
-        final target = state.uri.toString();
-        return '/auth/sign-in?redirect=${Uri.encodeComponent(target)}';
+        return '/auth/sign-in?redirect=${Uri.encodeComponent(state.uri.toString())}';
       }
       if (authState.isAuthenticated && isAuthRoute) {
         final redirect = state.uri.queryParameters['redirect'];
-        if (redirect != null && redirect.startsWith('/')) return redirect;
-        return '/home';
+        return redirect != null && redirect.startsWith('/') ? redirect : '/home';
       }
       if (location == '/') return '/home';
 
-      final role = authState.profile?.role;
-      final isStaff = role?.isStaff == true;
-
-      final isLiveOverviewRoute = RegExp(r'^/live/[^/]+$').hasMatch(location);
-      final isLiveGameplayRoute = location.endsWith('/gameplay');
-      final isFinalizationRoute =
-          location.startsWith('/matches/') && location.endsWith('/finalize');
-      final isParticipantsRoute =
-          location.startsWith('/matches/') && location.endsWith('/participants');
-      final isCorrectionRoute =
-          location.startsWith('/matches/') && location.endsWith('/correction');
-      final isAdminRoute = location == '/admin';
-      final isPlayersRoute = location == '/players';
-
-      if ((isLiveOverviewRoute || isLiveGameplayRoute) && !isStaff) {
-        return '/matches';
-      }
-      if (isFinalizationRoute && !isStaff) return '/matches';
-      if (isParticipantsRoute && !isStaff) return '/matches';
-      if (isCorrectionRoute && !isStaff) return '/matches';
-      if (isAdminRoute && !isStaff) return '/home';
-      if (isPlayersRoute && !isStaff) return '/home';
-
+      final isStaff = authState.profile?.role.isStaff == true;
+      final isFinalization = location.startsWith('/matches/') && location.endsWith('/finalize');
+      final isCorrection = location.startsWith('/matches/') && location.endsWith('/correction');
+      if ((isFinalization || isCorrection) && !isStaff) return '/matches';
+      if (location == '/admin' && !isStaff) return '/home';
+      if (location == '/players' && !isStaff) return '/home';
+      if (location == '/coach' || location.startsWith('/live/')) return '/matches';
       return null;
     },
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/home'),
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.uri.path,
-          child: child,
-        ),
+        builder: (context, state, child) => AppShell(location: state.uri.path, child: child),
         routes: [
           GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
-          GoRoute(path: '/coach', builder: (_, __) => const CoachPage()),
           GoRoute(path: '/more', builder: (_, __) => const MorePage()),
-          GoRoute(
-            path: '/players',
-            builder: (_, __) => const PlayersRegistryPage(),
-          ),
+          GoRoute(path: '/players', builder: (_, __) => const PlayersRegistryPage()),
           GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
           GoRoute(
             path: '/matches/:matchId',
-            builder: (context, state) => MatchDetailsPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/participants',
-            builder: (context, state) => MatchParticipantsPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
+            builder: (_, state) => MatchDetailsPage(matchId: state.pathParameters['matchId'] ?? ''),
           ),
           GoRoute(
             path: '/matches/:matchId/correction',
-            builder: (context, state) => MatchCorrectionPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/predictions',
-            builder: (_, __) => const PredictionsPage(),
-          ),
-          GoRoute(
-            path: '/predictions/season',
-            builder: (_, __) => const SeasonPredictionsPage(),
-          ),
-          GoRoute(
-            path: '/predictions/leaderboard',
-            builder: (_, __) => const LeaderboardPage(),
-          ),
-          GoRoute(
-            path: '/statistics',
-            builder: (_, __) => const StatisticsPageV2(),
-          ),
-          GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
-          GoRoute(
-            path: '/notifications',
-            builder: (_, __) => const NotificationsPage(),
-          ),
-          GoRoute(
-            path: '/settings',
-            builder: (_, __) => const SettingsPage(),
-          ),
-          GoRoute(
-            path: '/claim',
-            builder: (context, state) => ClaimPlayerPage(
-              token: state.uri.queryParameters['token'],
-            ),
-          ),
-          GoRoute(
-            path: '/live/:matchId',
-            builder: (context, state) =>
-                LivePage(matchId: state.pathParameters['matchId'] ?? ''),
-          ),
-          GoRoute(
-            path: '/live/:matchId/gameplay',
-            builder: (context, state) => LiveGameplayPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
+            builder: (_, state) => MatchCorrectionPage(matchId: state.pathParameters['matchId'] ?? ''),
           ),
           GoRoute(
             path: '/matches/:matchId/finalize',
-            builder: (context, state) => MatchFinalizationPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
+            builder: (_, state) => MatchFinalizationPage(matchId: state.pathParameters['matchId'] ?? ''),
+          ),
+          GoRoute(path: '/predictions', builder: (_, __) => const PredictionsPage()),
+          GoRoute(path: '/predictions/season', builder: (_, __) => const SeasonPredictionsPage()),
+          GoRoute(path: '/predictions/leaderboard', builder: (_, __) => const LeaderboardPage()),
+          GoRoute(path: '/statistics', builder: (_, __) => const StatisticsPageV2()),
+          GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
+          GoRoute(path: '/notifications', builder: (_, __) => const NotificationsPage()),
+          GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
+          GoRoute(
+            path: '/claim',
+            builder: (_, state) => ClaimPlayerPage(token: state.uri.queryParameters['token']),
           ),
         ],
       ),
-      GoRoute(
-        path: '/auth/loading',
-        builder: (_, __) => const AuthLoadingPage(),
-      ),
-      GoRoute(
-        path: '/auth/sign-in',
-        builder: (_, __) => const AuthSignInPage(),
-      ),
-      GoRoute(
-        path: '/auth/sign-up',
-        builder: (_, __) => const AuthSignUpPage(),
-      ),
-      GoRoute(
-        path: '/auth/forgot-password',
-        builder: (_, __) => const AuthForgotPasswordPage(),
-      ),
+      GoRoute(path: '/auth/loading', builder: (_, __) => const AuthLoadingPage()),
+      GoRoute(path: '/auth/sign-in', builder: (_, __) => const AuthSignInPage()),
+      GoRoute(path: '/auth/sign-up', builder: (_, __) => const AuthSignUpPage()),
+      GoRoute(path: '/auth/forgot-password', builder: (_, __) => const AuthForgotPasswordPage()),
     ],
   );
 });
