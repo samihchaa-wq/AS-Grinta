@@ -19,10 +19,7 @@ class SettingsPage extends ConsumerWidget {
         data: (preferences) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Notifications',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Rappels', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Card(
               child: Column(
@@ -30,7 +27,7 @@ class SettingsPage extends ConsumerWidget {
                   SwitchListTile.adaptive(
                     title: const Text('Rappels de match'),
                     subtitle: const Text(
-                      'Afficher les prochains matchs dans le centre de notifications.',
+                      'Afficher les prochains matchs dans la page Rappels de l’application.',
                     ),
                     value: preferences.matchReminders,
                     onChanged: (value) => _save(
@@ -43,7 +40,7 @@ class SettingsPage extends ConsumerWidget {
                   SwitchListTile.adaptive(
                     title: const Text('Rappels de pronostic'),
                     subtitle: const Text(
-                      'Afficher un rappel avant les matchs à venir.',
+                      'Afficher les échéances de pronostic dans l’application.',
                     ),
                     value: preferences.predictionReminders,
                     onChanged: (value) => _save(
@@ -56,10 +53,7 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'Application',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Application', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             const Card(
               child: Column(
@@ -72,10 +66,10 @@ class SettingsPage extends ConsumerWidget {
                   ),
                   Divider(height: 1),
                   ListTile(
-                    leading: Icon(Icons.sync_outlined),
-                    title: Text('Synchronisation automatique'),
+                    leading: Icon(Icons.cloud_outlined),
+                    title: Text('Données en ligne'),
                     subtitle: Text(
-                      'Les données sont actualisées dès que la connexion est disponible.',
+                      'Les données sont chargées depuis Supabase lorsque l’application est connectée.',
                     ),
                     trailing: Icon(Icons.check_circle),
                   ),
