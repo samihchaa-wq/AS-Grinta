@@ -60,7 +60,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
           children: [
             if (state.seasons.isNotEmpty)
               DropdownButtonFormField<String>(
-                value: _selectedSeasonId,
+                initialValue: _selectedSeasonId,
                 decoration: const InputDecoration(labelText: 'Saison'),
                 items: [
                   const DropdownMenuItem(value: '', child: Text('Toutes')),
@@ -72,7 +72,9 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   ),
                 ],
                 onChanged: (value) async {
-                  setState(() => _selectedSeasonId = value == '' ? null : value);
+                  setState(
+                    () => _selectedSeasonId = value == '' ? null : value,
+                  );
                   await ref
                       .read(matchesControllerProvider.notifier)
                       .load(seasonId: _selectedSeasonId);

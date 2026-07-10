@@ -87,33 +87,23 @@ class MatchesRepository {
     required double oddsDraw,
     required double oddsLoss,
   }) async {
-    final currentUserId = _client.auth.currentUser?.id;
-    if (currentUserId == null) {
-      throw StateError('Utilisateur non authentifié.');
-    }
-
-    final row = await _client
-        .from('matches')
-        .insert({
-          'season_id': seasonId,
-          'opponent_id': opponentId,
-          'match_date': kickoffAt.toIso8601String().split('T').first,
-          'match_time': _formatTime(kickoffAt),
-          'location': isHome ? 'domicile' : 'exterieur',
-          'competition': competition.trim(),
-          'planned_duration_minutes': 90,
-          'status': 'a_venir',
-          'created_by': currentUserId,
-        })
-        .select('id')
-        .single();
-
-    await _setOdds(
-      matchId: row['id'].toString(),
-      oddsWin: oddsWin,
-      oddsDraw: oddsDraw,
-      oddsLoss: oddsLoss,
+    final result = await _client.rpc(
+      'create_match_with_odds',
+      params: {
+        'p_season_id': seasonId,
+        'p_opponent_id': opponentId,
+        'p_match_date': kickoffAt.toIso8601String().split('T').first,
+        'p_match_time': _formatTime(kickoffAt),
+        'p_location': isHome ? 'domicile' : 'exterieur',
+        'p_competition': competition.trim(),
+        'p_win': oddsWin,
+        'p_draw': oddsDraw,
+        'p_loss': oddsLoss,
+      },
     );
+    if (result == null || result.toString().isEmpty) {
+      throw StateError('Le match n’a pas pu être créé.');
+    }
   }
 
   Future<void> updateMatch({
@@ -224,7 +214,9 @@ class MatchesRepository {
   ) async {
     final response = await _client
         .from('match_predictions')
-        .select()
+        .select(
+          'match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,is_filled,updated_at',
+        )
         .eq('match_id', matchId)
         .eq('is_filled', true);
     return (response as List)

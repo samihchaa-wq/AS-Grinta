@@ -79,6 +79,15 @@ class StatisticsPageV2 extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(14),
+                    child: Text(
+                      'Les statistiques individuelles commencent avec les feuilles de match postérieures au lancement de cette version.',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _RankingSection(
                   title: 'Top 5 Buteurs',
                   icon: Icons.sports_soccer_rounded,
@@ -131,12 +140,9 @@ class StatisticsPageV2 extends ConsumerWidget {
                         ),
                         title: Text(player.displayName),
                         subtitle: Text(
-                          '${player.matches} match${player.matches > 1 ? 's' : ''} · ${player.minutesPlayed} min',
+                          '${player.matches} match${player.matches > 1 ? 's' : ''}',
                         ),
-                        trailing: _Badge(
-                          label: 'CS',
-                          value: player.cleanSheets,
-                        ),
+                        trailing: _Badge(label: 'CS', value: player.cleanSheets),
                       ),
                     ),
                   ),
@@ -217,7 +223,7 @@ class _PlayerCard extends StatelessWidget {
         ),
         title: Text(player.displayName),
         subtitle: Text(
-          '${player.matches} match${player.matches > 1 ? 's' : ''} · ${player.minutesPlayed} min',
+          '${player.matches} match${player.matches > 1 ? 's' : ''}',
         ),
         trailing: Wrap(
           spacing: 8,
@@ -238,12 +244,7 @@ class _PlayerCard extends StatelessWidget {
             spacing: 16,
             runSpacing: 12,
             children: [
-              _Detail(label: 'Minutes', value: player.minutesPlayed),
-              _Detail(label: 'Titularisations', value: player.starts),
-              _Detail(
-                label: 'Entrées en jeu',
-                value: player.substituteAppearances,
-              ),
+              _Detail(label: 'Matchs', value: player.matches),
               if (!player.isGoalkeeper) ...[
                 _Detail(label: 'Buts', value: player.goals),
                 _Detail(label: 'Passes D.', value: player.assists),

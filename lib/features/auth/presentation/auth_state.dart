@@ -54,11 +54,20 @@ class AuthController extends StateNotifier<AuthState> {
       final profile = await _repository.fetchProfile();
       state = state.copyWith(
         isLoading: false,
-        isAuthenticated: profile != null,
+        isAuthenticated: profile != null && profile.isActive,
         profile: profile,
         clearProfile: profile == null,
         clearError: true,
       );
+      if (profile != null && !profile.isActive) {
+        await _repository.signOut();
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: false,
+          clearProfile: true,
+          error: 'Ce compte doit être activé par un administrateur.',
+        );
+      }
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
@@ -76,29 +85,6 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         error: 'Connexion impossible. Vérifie ton email et ton mot de passe.',
-      );
-    }
-  }
-
-  Future<void> signUp({
-    required String email,
-    required String password,
-    required String firstName,
-    required String lastName,
-  }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      await _repository.signUp(
-        email: email,
-        password: password,
-        firstName: firstName,
-        lastName: lastName,
-      );
-      await _refreshProfile();
-    } catch (_) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Le compte n’a pas pu être créé.',
       );
     }
   }

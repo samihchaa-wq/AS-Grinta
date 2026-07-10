@@ -7,33 +7,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-
-const jsonHeaders = {
-  ...corsHeaders,
-  "Content-Type": "application/json",
-};
+const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
-  }
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse(
-        { error: "Missing or invalid authorization header" },
-        401,
-      );
+      return jsonResponse({ error: "Missing or invalid authorization header" }, 401);
     }
-
     const contentLength = Number(req.headers.get("content-length") ?? "0");
     if (contentLength > 16_384) {
       return jsonResponse({ error: "Request body too large" }, 413);
@@ -66,10 +54,10 @@ Deno.serve(async (req: Request) => {
       .single();
     if (
       profileError ||
-      !["moderateur", "admin"].includes(String(callerProfile?.role)) ||
+      !["admin", "moderateur"].includes(String(callerProfile?.role)) ||
       callerProfile?.status !== "active"
     ) {
-      return jsonResponse({ error: "Moderator or admin role required" }, 403);
+      return jsonResponse({ error: "Active admin or moderator role required" }, 403);
     }
 
     const body = await req.json();
@@ -79,6 +67,8 @@ Deno.serve(async (req: Request) => {
       const email = String(body.email ?? "").trim().toLowerCase();
       const firstName = String(body.firstName ?? "").trim();
       const lastName = String(body.lastName ?? "").trim();
+      const surnom = String(body.surnom ?? "").trim();
+      const redirectTo = String(body.redirectTo ?? "").trim() || undefined;
       const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
       if (!emailIsValid || !firstName || !lastName) {
         return jsonResponse(
@@ -89,32 +79,22 @@ Deno.serve(async (req: Request) => {
       if (
         firstName.length > 100 ||
         lastName.length > 100 ||
+        surnom.length > 100 ||
         email.length > 320
       ) {
         return jsonResponse({ error: "Input is too long" }, 400);
       }
 
-      const surnom = String(body.surnom ?? "").trim() || null;
-
-      const redirectTo = String(body.redirectTo ?? "").trim() || undefined;
       const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
         data: {
           first_name: firstName,
           last_name: lastName,
-          approval_required: true,
+          surnom: surnom || null,
+          invited: true,
         },
         redirectTo,
       });
       if (error) throw error;
-
-      // Mettre à jour le surnom sur le profil créé (si fourni)
-      if (surnom && data.user?.id) {
-        await admin
-          .from("profiles")
-          .update({ surnom })
-          .eq("id", data.user.id);
-      }
-
       return jsonResponse({ userId: data.user?.id, invitationSent: true });
     }
 
@@ -127,10 +107,7 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Valid user id is required" }, 400);
       }
       if (userId === userData.user.id) {
-        return jsonResponse(
-          { error: "A moderator cannot delete their own account" },
-          400,
-        );
+        return jsonResponse({ error: "You cannot delete your own account" }, 400);
       }
       if (userId === "00000000-0000-0000-0000-000000000001") {
         return jsonResponse(
@@ -149,18 +126,18 @@ Deno.serve(async (req: Request) => {
       }
 
       if (
-        targetProfile.role === "moderateur" &&
+        ["admin", "moderateur"].includes(targetProfile.role) &&
         targetProfile.status === "active"
       ) {
         const { count, error: countError } = await admin
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("role", "moderateur")
+          .eq("role", targetProfile.role)
           .eq("status", "active");
         if (countError) throw countError;
         if ((count ?? 0) <= 1) {
           return jsonResponse(
-            { error: "The last active moderator cannot be deleted" },
+            { error: `The last active ${targetProfile.role} cannot be deleted` },
             409,
           );
         }

@@ -4,7 +4,6 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_forgot_password_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
-import 'package:as_grinta/features/auth/presentation/auth_sign_up_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_correction_page.dart';
@@ -13,7 +12,7 @@ import 'package:as_grinta/features/matches/presentation/match_finalization_page.
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
-import 'package:as_grinta/features/players/presentation/players_page.dart';
+import 'package:as_grinta/features/players/presentation/claim_player_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
@@ -135,10 +134,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/sign-in',
         builder: (_, __) => const AuthSignInPage(),
-      ),
-      GoRoute(
-        path: '/auth/sign-up',
-        builder: (_, __) => const AuthSignUpPage(),
       ),
       GoRoute(
         path: '/auth/forgot-password',

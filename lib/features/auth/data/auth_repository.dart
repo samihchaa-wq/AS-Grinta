@@ -19,26 +19,6 @@ class AuthRepository {
     await _client.auth.signInWithPassword(email: email, password: password);
   }
 
-  Future<void> signUp({
-    required String email,
-    required String password,
-    required String firstName,
-    required String lastName,
-  }) async {
-    final response = await _client.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'first_name': firstName.trim(),
-        'last_name': lastName.trim(),
-      },
-    );
-
-    if (response.user == null) {
-      throw StateError('Impossible de créer le compte.');
-    }
-  }
-
   Future<void> resetPassword({required String email}) async {
     await _client.auth.resetPasswordForEmail(email);
   }
@@ -46,7 +26,8 @@ class AuthRepository {
   Future<void> updatePassword(String password) async {
     if (password.length < 8) {
       throw ArgumentError(
-          'Le mot de passe doit contenir au moins 8 caractères.');
+        'Le mot de passe doit contenir au moins 8 caractères.',
+      );
     }
     await _client.auth.updateUser(UserAttributes(password: password));
   }
@@ -59,11 +40,18 @@ class AuthRepository {
     final user = _client.auth.currentUser;
     if (user == null) return null;
 
-    final response =
-        await _client.from('profiles').select().eq('id', user.id).maybeSingle();
+    final response = await _client
+        .from('profiles')
+        .select(
+          'id,first_name,last_name,surnom,photo_url,role,is_goalkeeper,status,created_at,updated_at',
+        )
+        .eq('id', user.id)
+        .maybeSingle();
     if (response == null) return null;
 
-    return AuthProfile.fromJson(Map<String, dynamic>.from(response));
+    final data = Map<String, dynamic>.from(response);
+    data['email'] = user.email ?? '';
+    return AuthProfile.fromJson(data);
   }
 
   Future<String> uploadAvatar(Uint8List jpegBytes) async {

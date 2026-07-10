@@ -41,9 +41,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
-    _oddsWinController.text = _formatOdds(match?.oddsWin ?? 2.00);
-    _oddsDrawController.text = _formatOdds(match?.oddsDraw ?? 3.50);
-    _oddsLossController.text = _formatOdds(match?.oddsLoss ?? 3.00);
+    _oddsWinController.text = match?.oddsWin == null ? '' : _formatOdds(match!.oddsWin!);
+    _oddsDrawController.text = match?.oddsDraw == null ? '' : _formatOdds(match!.oddsDraw!);
+    _oddsLossController.text = match?.oddsLoss == null ? '' : _formatOdds(match!.oddsLoss!);
   }
 
   @override
@@ -78,7 +78,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           padding: const EdgeInsets.all(20),
           children: [
             DropdownButtonFormField<String>(
-              value: _seasonId.isEmpty ? null : _seasonId,
+              initialValue: _seasonId.isEmpty ? null : _seasonId,
               decoration: const InputDecoration(labelText: 'Saison'),
               items: (widget.match == null ? openSeasons : state.seasons)
                   .map(
@@ -162,7 +162,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<bool>(
-              value: _isHome,
+              initialValue: _isHome,
               decoration: const InputDecoration(labelText: 'Lieu'),
               items: const [
                 DropdownMenuItem(value: true, child: Text('Domicile')),
@@ -174,7 +174,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
-              'Elles sont proposées automatiquement puis peuvent être ajustées.',
+              'Renseignez les trois cotes avant d’enregistrer le match.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
@@ -186,7 +186,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Victoire'),
+                    decoration: const InputDecoration(
+                      labelText: 'Victoire',
+                      hintText: '2,00',
+                    ),
                     validator: _validateOdds,
                   ),
                 ),
@@ -197,7 +200,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Nul'),
+                    decoration: const InputDecoration(
+                      labelText: 'Nul',
+                      hintText: '3,50',
+                    ),
                     validator: _validateOdds,
                   ),
                 ),
@@ -208,7 +214,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Défaite'),
+                    decoration: const InputDecoration(
+                      labelText: 'Défaite',
+                      hintText: '3,00',
+                    ),
                     validator: _validateOdds,
                   ),
                 ),
@@ -365,5 +374,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return '${two(value.hour)}:${two(value.minute)}';
   }
 
-  String _formatOdds(double value) => value.toStringAsFixed(2).replaceAll('.', ',');
+  String _formatOdds(double value) =>
+      value.toStringAsFixed(2).replaceAll('.', ',');
 }
