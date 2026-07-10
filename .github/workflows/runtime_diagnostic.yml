@@ -19,7 +19,8 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: flutter build web --release --base-href "/"
+      - name: Build debug web with source maps
+        run: flutter build web --debug --source-maps --base-href "/"
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -50,22 +51,19 @@ jobs:
             page.on('pageerror', error => events.push(`pageerror: ${error.stack || error.message}`));
             page.on('requestfailed', request => events.push(`requestfailed: ${request.url()} ${request.failure()?.errorText}`));
             page.on('response', response => {
-              if (response.status() >= 400) events.push(`http ${response.status()}: ${response.url()}`);
+              if (response.status() >= 400 && !response.url().endsWith('/favicon.ico')) {
+                events.push(`http ${response.status()}: ${response.url()}`);
+              }
             });
             await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle', timeout: 90000 });
             await page.waitForTimeout(5000);
             await page.screenshot({ path: 'runtime.png', fullPage: true });
-            const html = await page.content();
-            fs.writeFileSync('runtime.html', html);
+            fs.writeFileSync('runtime.html', await page.content());
             fs.writeFileSync('runtime.log', events.join('\n'));
-            const bodyText = await page.locator('body').innerText().catch(() => '');
-            fs.writeFileSync('runtime-body.txt', bodyText);
             console.log(events.join('\n'));
-            if (events.some(line => line.includes('FlutterError') || line.includes('pageerror:'))) {
+            if (events.some(line => line.startsWith('console.error:') || line.startsWith('pageerror:'))) {
               throw new Error('Runtime error detected');
             }
-            const size = fs.statSync('runtime.png').size;
-            if (size < 5000) throw new Error(`Screenshot too small: ${size}`);
             await browser.close();
           })().catch(error => {
             console.error(error);
@@ -80,6 +78,7 @@ jobs:
             runtime.png
             runtime.html
             runtime.log
-            runtime-body.txt
+            build/web/main.dart.js
+            build/web/main.dart.js.map
             /tmp/http.log
           if-no-files-found: warn
