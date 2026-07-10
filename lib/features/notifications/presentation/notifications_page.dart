@@ -12,10 +12,10 @@ class NotificationsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('Rappels'),
         actions: [
           IconButton(
-            tooltip: 'Paramètres des notifications',
+            tooltip: 'Paramètres des rappels',
             onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.tune_outlined),
           ),
@@ -41,7 +41,7 @@ class NotificationsPage extends ConsumerWidget {
               const Icon(Icons.notifications_off_outlined, size: 54),
               const SizedBox(height: 16),
               Text(
-                'Notifications temporairement indisponibles',
+                'Rappels temporairement indisponibles',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
@@ -61,16 +61,16 @@ class NotificationsPage extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
                 children: [
-                  const Icon(Icons.notifications_none_outlined, size: 54),
+                  const Icon(Icons.event_note_outlined, size: 54),
                   const SizedBox(height: 16),
                   Text(
-                    'Aucune notification',
+                    'Aucun rappel',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Les rappels de matchs et de pronostics apparaîtront ici.',
+                    'Les prochains matchs et pronostics activés apparaîtront ici dans l’application.',
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -86,9 +86,7 @@ class NotificationsPage extends ConsumerWidget {
                 final item = items[index];
                 return Card(
                   child: ListTile(
-                    leading: CircleAvatar(
-                      child: Icon(_iconFor(item.kind)),
-                    ),
+                    leading: CircleAvatar(child: Icon(_iconFor(item.kind))),
                     title: Text(item.title),
                     subtitle: Text(
                       '${item.message}\n${_formatDate(item.date)}',
@@ -108,11 +106,9 @@ class NotificationsPage extends ConsumerWidget {
   }
 
   IconData _iconFor(String kind) {
-    return switch (kind) {
-      'live' => Icons.sensors,
-      'prediction' => Icons.auto_awesome_outlined,
-      _ => Icons.sports_soccer_outlined,
-    };
+    return kind == 'prediction'
+        ? Icons.auto_awesome_outlined
+        : Icons.sports_soccer_outlined;
   }
 
   String _formatDate(DateTime date) {
