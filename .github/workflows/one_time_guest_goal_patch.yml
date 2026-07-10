@@ -1,0 +1,210 @@
+name: One-time guest goal patch
+
+on:
+  push:
+    branches: [fix/guest-goals-and-assists]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[guest-goal-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/guest-goals-and-assists
+          fetch-depth: 0
+
+      - name: Patch guest goal attribution
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          repo = Path('lib/features/coach/data/coach_live_repository.dart')
+          text = repo.read_text()
+          text = text.replace(
+              """    this.scorerId,
+    this.assistId,
+    this.playerInId,
+""",
+              """    this.scorerId,
+    this.assistId,
+    this.scorerGuestName,
+    this.assistGuestName,
+    this.playerInId,
+""",
+          )
+          text = text.replace(
+              """  final String? scorerId;
+  final String? assistId;
+  final String? playerInId;
+""",
+              """  final String? scorerId;
+  final String? assistId;
+  final String? scorerGuestName;
+  final String? assistGuestName;
+  final String? playerInId;
+""",
+          )
+          text = text.replace(
+              """      scorerId: json['scorer_profile_id']?.toString(),
+      assistId: json['assist_profile_id']?.toString(),
+      playerInId: json['player_in_profile_id']?.toString(),
+""",
+              """      scorerId: json['scorer_profile_id']?.toString(),
+      assistId: json['assist_profile_id']?.toString(),
+      scorerGuestName: json['scorer_guest_name']?.toString(),
+      assistGuestName: json['assist_guest_name']?.toString(),
+      playerInId: json['player_in_profile_id']?.toString(),
+""",
+          )
+          text = text.replace(
+              """    String? scorerId,
+    String? assistId,
+  }) async {
+""",
+              """    String? scorerId,
+    String? assistId,
+    String? scorerGuestName,
+    String? assistGuestName,
+  }) async {
+""",
+              1,
+          )
+          text = text.replace(
+              """      'scorer_profile_id': scorerId,
+      'assist_profile_id': assistId,
+      'created_by': _client.auth.currentUser?.id,
+""",
+              """      'scorer_profile_id': scorerId,
+      'assist_profile_id': assistId,
+      'scorer_guest_name': scorerGuestName,
+      'assist_guest_name': assistGuestName,
+      'created_by': _client.auth.currentUser?.id,
+""",
+          )
+          repo.write_text(text)
+
+          domain = Path('lib/features/coach/domain/coach_board.dart')
+          d = domain.read_text()
+          d = d.replace(
+              """    this.playerId,
+    this.assistPlayerId,
+    this.playerInId,
+""",
+              """    this.playerId,
+    this.assistPlayerId,
+    this.playerName,
+    this.assistPlayerName,
+    this.playerInId,
+""",
+          )
+          d = d.replace(
+              """  final String? playerId;
+  final String? assistPlayerId;
+  final String? playerInId;
+""",
+              """  final String? playerId;
+  final String? assistPlayerId;
+  final String? playerName;
+  final String? assistPlayerName;
+  final String? playerInId;
+""",
+          )
+          domain.write_text(d)
+
+          controller = Path('lib/features/coach/presentation/coach_board_controller.dart')
+          c = controller.read_text()
+          c = c.replace(
+              """      playerId: record.scorerId,
+      assistPlayerId: record.assistId,
+      playerInId: record.playerInId,
+""",
+              """      playerId: record.scorerId,
+      assistPlayerId: record.assistId,
+      playerName: record.scorerGuestName,
+      assistPlayerName: record.assistGuestName,
+      playerInId: record.playerInId,
+""",
+          )
+          old_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGuest == true || scorer?.isGoalkeeper == true) scorerId = null;
+    if (assist?.isGuest == true || assist?.isGoalkeeper == true) assistId = null;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: true,
+      scorerId: scorerId,
+      assistId: assistId,
+    );
+  }
+"""
+          new_goal = """  Future<void> addGoalUs({String? scorerId, String? assistId}) async {
+    if (!state.canEdit || state.matchId == null) return;
+    final scorer = state.playerById(scorerId);
+    final assist = state.playerById(assistId);
+    if (scorer?.isGoalkeeper == true || assist?.isGoalkeeper == true) return;
+    await _repository.addGoal(
+      matchId: state.matchId!,
+      minute: _currentMinute,
+      isForUs: true,
+      scorerId: scorer?.isGuest == true ? null : scorerId,
+      assistId: assist?.isGuest == true ? null : assistId,
+      scorerGuestName: scorer?.isGuest == true ? scorer!.displayName : null,
+      assistGuestName: assist?.isGuest == true ? assist!.displayName : null,
+    );
+  }
+"""
+          if old_goal not in c:
+              raise SystemExit('Goal method not found')
+          c = c.replace(old_goal, new_goal)
+          controller.write_text(c)
+
+          page = Path('lib/features/coach/presentation/coach_production_page.dart')
+          p = page.read_text()
+          p = p.replace(
+              "if (player?.isGoalkeeper == true || player?.isGuest == true) return '';",
+              "if (player?.isGoalkeeper == true) return '';",
+          )
+          p = p.replace(
+              ".where((player) => !player.isGuest && !player.isGoalkeeper)",
+              ".where((player) => !player.isGoalkeeper)",
+          )
+          old_timeline = """                final scorer = state.playerById(e.playerId);
+                final assist = state.playerById(e.assistPlayerId);
+                final pIn = state.playerById(e.playerInId);
+                final pOut = state.playerById(e.playerOutId);
+                final label = switch (e.type) {
+                  CoachEventType.goalUs =>
+                    '⚽ ${scorer?.displayName ?? 'Buteur'}${assist == null ? '' : ' · 👟 ${assist.displayName}'}',
+"""
+          new_timeline = """                final scorer = state.playerById(e.playerId);
+                final assist = state.playerById(e.assistPlayerId);
+                final scorerName = scorer?.displayName ?? e.playerName ?? 'Buteur';
+                final assistName = assist?.displayName ?? e.assistPlayerName;
+                final pIn = state.playerById(e.playerInId);
+                final pOut = state.playerById(e.playerOutId);
+                final label = switch (e.type) {
+                  CoachEventType.goalUs =>
+                    '⚽ $scorerName${assistName == null ? '' : ' · 👟 $assistName'}',
+"""
+          if old_timeline not in p:
+              raise SystemExit('Timeline block not found')
+          p = p.replace(old_timeline, new_timeline)
+          page.write_text(p)
+
+          Path('.github/workflows/one_time_guest_goal_patch.yml').unlink()
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/coach/data/coach_live_repository.dart lib/features/coach/domain/coach_board.dart lib/features/coach/presentation/coach_board_controller.dart lib/features/coach/presentation/coach_production_page.dart .github/workflows/one_time_guest_goal_patch.yml
+          git commit -m "Autoriser les buts et passes des invités [guest-goal-patched]"
+          git push origin HEAD:fix/guest-goals-and-assists
