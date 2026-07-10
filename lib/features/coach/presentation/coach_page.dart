@@ -1,4 +1,6 @@
+import 'package:as_grinta/features/coach/domain/coach_board.dart';
 import 'package:as_grinta/features/coach/presentation/coach_board_controller.dart';
+import 'package:as_grinta/features/coach/presentation/coach_match_status_provider.dart';
 import 'package:as_grinta/features/coach/presentation/coach_production_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,13 @@ class CoachPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(coachBoardControllerProvider);
+    final matchId = state.matchId;
+    final status = matchId == null
+        ? null
+        : ref.watch(coachMatchStatusProvider(matchId)).valueOrNull;
+    final isLocked = status != null &&
+        status != 'a_venir' &&
+        status != 'en_cours';
 
     if (state.isLoading) {
       return const Scaffold(
@@ -34,6 +43,10 @@ class CoachPage extends ConsumerWidget {
           ),
         ),
       );
+    }
+
+    if (isLocked) {
+      return _LockedCoachView(state: state);
     }
 
     return Stack(
@@ -78,7 +91,7 @@ class CoachPage extends ConsumerWidget {
               children: [
                 const Text(
                   'Ce joueur existe uniquement pour ce match et la composition. '
-                  'Il ne sera pas ajouté au registre et ne générera aucune statistique.',
+                  'Il ne sera pas ajouté au registre et ne générera aucune statistique permanente.',
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -153,6 +166,116 @@ class CoachPage extends ConsumerWidget {
           );
     }
     nameController.dispose();
+  }
+}
+
+class _LockedCoachView extends StatelessWidget {
+  const _LockedCoachView({required this.state});
+
+  final CoachBoardState state;
+
+  String _eventLabel(CoachEvent event) {
+    final scorer = state.playerById(event.playerId)?.displayName;
+    final assist = state.playerById(event.assistPlayerId)?.displayName;
+    final playerIn = state.playerById(event.playerInId)?.displayName;
+    final playerOut = state.playerById(event.playerOutId)?.displayName;
+    return switch (event.type) {
+      CoachEventType.goalUs =>
+        '⚽ ${scorer ?? 'Buteur'}${assist == null ? '' : ' · 👟 $assist'}',
+      CoachEventType.goalThem => '⚽ But adversaire',
+      CoachEventType.substitution =>
+        '🔁 ${playerOut ?? 'Joueur'} → ${playerIn ?? 'Joueur'}',
+      _ => event.type.label,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: const _CoachAppBar(),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.lock_outline),
+              title: const Text('Match terminé — Tableau verrouillé'),
+              subtitle: const Text(
+                'Cette vue est en lecture seule. Toute correction doit être effectuée depuis Matchs.',
+              ),
+              trailing: Text(
+                '${state.scoreUs} - ${state.scoreThem}',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Composition finale',
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: state.formationSlots.map((slot) {
+                final player = state.playerById(state.lineup[slot]);
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    child: Text(player?.initials ?? '?'),
+                  ),
+                  title: Text(player?.displayName ?? 'Poste non attribué'),
+                  subtitle: Text(slot.toUpperCase()),
+                  trailing: player?.isGuest == true
+                      ? const Chip(label: Text('Invité'))
+                      : null,
+                );
+              }).toList(),
+            ),
+          ),
+          if (state.bench.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('Banc final', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Card(
+              child: Column(
+                children: state.bench.map((id) {
+                  final player = state.playerById(id);
+                  return ListTile(
+                    dense: true,
+                    title: Text(player?.displayName ?? 'Joueur'),
+                    trailing: player?.isGuest == true
+                        ? const Chip(label: Text('Invité'))
+                        : null,
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Text('Événements', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Card(
+            child: state.events.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Aucun événement enregistré.'),
+                  )
+                : Column(
+                    children: state.events.reversed
+                        .map(
+                          (event) => ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              child: Text("${event.minute}'"),
+                            ),
+                            title: Text(_eventLabel(event)),
+                          ),
+                        )
+                        .toList(),
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
