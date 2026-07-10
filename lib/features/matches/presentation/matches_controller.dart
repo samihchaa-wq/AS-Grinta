@@ -101,6 +101,9 @@ class MatchesController extends StateNotifier<MatchesState> {
     required DateTime kickoffAt,
     required bool isHome,
     required String competition,
+    required double oddsWin,
+    required double oddsDraw,
+    required double oddsLoss,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -113,6 +116,13 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       return;
     }
+    if (!_validOdds(oddsWin, oddsDraw, oddsLoss)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Chaque cote doit être comprise entre 1,01 et 100.',
+      );
+      return;
+    }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.createMatch(
@@ -121,6 +131,9 @@ class MatchesController extends StateNotifier<MatchesState> {
         kickoffAt: kickoffAt,
         isHome: isHome,
         competition: competition,
+        oddsWin: oddsWin,
+        oddsDraw: oddsDraw,
+        oddsLoss: oddsLoss,
       );
       await load();
     } catch (error) {
@@ -136,15 +149,28 @@ class MatchesController extends StateNotifier<MatchesState> {
     required bool isHome,
     required String competition,
     required String status,
+    required double oddsWin,
+    required double oddsDraw,
+    required double oddsLoss,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
       return;
     }
-    if (id.isEmpty || seasonId.isEmpty || opponentId.isEmpty || competition.trim().isEmpty) {
+    if (id.isEmpty ||
+        seasonId.isEmpty ||
+        opponentId.isEmpty ||
+        competition.trim().isEmpty) {
       state = state.copyWith(
         isLoading: false,
         error: 'Match, saison, adversaire et compétition sont obligatoires.',
+      );
+      return;
+    }
+    if (!_validOdds(oddsWin, oddsDraw, oddsLoss)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Chaque cote doit être comprise entre 1,01 et 100.',
       );
       return;
     }
@@ -158,11 +184,18 @@ class MatchesController extends StateNotifier<MatchesState> {
         isHome: isHome,
         competition: competition,
         status: status,
+        oddsWin: oddsWin,
+        oddsDraw: oddsDraw,
+        oddsLoss: oddsLoss,
       );
       await load();
     } catch (error) {
       state = state.copyWith(isLoading: false, error: error.toString());
     }
+  }
+
+  bool _validOdds(double win, double draw, double loss) {
+    return [win, draw, loss].every((value) => value >= 1.01 && value <= 100);
   }
 
   Future<void> archiveMatch(String id) async {
