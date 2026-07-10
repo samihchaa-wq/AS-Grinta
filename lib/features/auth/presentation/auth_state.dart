@@ -59,8 +59,11 @@ class AuthController extends StateNotifier<AuthState> {
         clearProfile: profile == null,
         clearError: true,
       );
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le profil n’a pas pu être chargé.',
+      );
     }
   }
 
@@ -69,8 +72,11 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _repository.signInWithPassword(email: email, password: password);
       await _refreshProfile();
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Connexion impossible. Vérifie ton email et ton mot de passe.',
+      );
     }
   }
 
@@ -89,8 +95,11 @@ class AuthController extends StateNotifier<AuthState> {
         lastName: lastName,
       );
       await _refreshProfile();
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le compte n’a pas pu être créé.',
+      );
     }
   }
 
@@ -99,8 +108,11 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _repository.resetPassword(email: email);
       state = state.copyWith(isLoading: false, clearError: true);
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le lien de réinitialisation n’a pas pu être envoyé.',
+      );
     }
   }
 
@@ -109,8 +121,11 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _repository.updatePassword(password);
       state = state.copyWith(isLoading: false, clearError: true);
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le mot de passe n’a pas pu être modifié.',
+      );
     }
   }
 
@@ -119,14 +134,18 @@ class AuthController extends StateNotifier<AuthState> {
     try {
       await _repository.signOut();
       state = const AuthState(isLoading: false);
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'La déconnexion a échoué.',
+      );
     }
   }
 
   Future<void> updateProfile({
     required String firstName,
     required String lastName,
+    required String surnom,
     required String avatarPath,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -134,12 +153,19 @@ class AuthController extends StateNotifier<AuthState> {
       final profile = await _repository.updateProfile(
         firstName: firstName,
         lastName: lastName,
+        surnom: surnom,
         avatarPath: avatarPath,
       );
-      state =
-          state.copyWith(isLoading: false, profile: profile, clearError: true);
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(
+        isLoading: false,
+        profile: profile,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le profil n’a pas pu être enregistré.',
+      );
     }
   }
 
