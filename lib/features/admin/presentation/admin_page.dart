@@ -13,51 +13,43 @@ class AdminPage extends ConsumerWidget {
     final dashboardAsync = ref.watch(adminDashboardProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Administration'),
-        actions: [
-          IconButton(
-            tooltip: 'Inviter un joueur',
-            icon: const Icon(Icons.person_add_alt_1_outlined),
-            onPressed: () => _showInviteDialog(context, ref),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Administration')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(adminDashboardProvider);
           await ref.read(adminDashboardProvider.future);
         },
         child: dashboardAsync.when(
-          loading: () => const _LoadingView(),
-          error: (error, _) => _AdminErrorView(
-            onRetry: () => ref.invalidate(adminDashboardProvider),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              Text('Impossible de charger l’administration : $error'),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => ref.invalidate(adminDashboardProvider),
+                child: const Text('Réessayer'),
+              ),
+            ],
           ),
           data: (dashboard) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
-              _SeasonSection(dashboard: dashboard),
-              const SizedBox(height: 24),
+              _QuickActions(onInvite: () => _invitePlayer(context, ref)),
+              const SizedBox(height: 20),
+              _SeasonCard(dashboard: dashboard),
+              const SizedBox(height: 20),
               Text(
                 'Comptes et effectif',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _showInviteDialog(context, ref),
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                  label: const Text('Inviter un joueur'),
-                ),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               if (dashboard.profiles.isEmpty)
                 const Card(
                   child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text('Aucun compte créé pour le moment.'),
+                    padding: EdgeInsets.all(18),
+                    child: Text('Aucun compte disponible.'),
                   ),
                 )
               else
@@ -67,46 +59,6 @@ class AdminPage extends ConsumerWidget {
                     openSeasonId: dashboard.openSeasonId,
                   ),
                 ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Registre des joueurs',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => context.push('/players'),
-                    icon: const Icon(Icons.open_in_new, size: 16),
-                    label: const Text('Gérer'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.group_outlined),
-                  title: const Text('Joueurs indépendants'),
-                  subtitle: const Text(
-                    'Gérez les fiches joueurs et leurs liens de revendication.',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/players'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.dashboard_customize_rounded),
-                  title: const Text('Tableau du coach'),
-                  subtitle: const Text(
-                    'Composition, chronomètre et événements en temps réel.',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/coach'),
-                ),
-              ),
             ],
           ),
         ),
@@ -114,50 +66,39 @@ class AdminPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _showInviteDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final surnomController = TextEditingController();
-    final firstNameController = TextEditingController();
-    final lastNameController = TextEditingController();
-    String? error;
-    var saving = false;
+  Future<void> _invitePlayer(BuildContext context, WidgetRef ref) async {
+    final firstName = TextEditingController();
+    final lastName = TextEditingController();
+    final nickname = TextEditingController();
     var isGoalkeeper = false;
+    var saving = false;
+    String? error;
 
     await showDialog<void>(
       context: context,
       barrierDismissible: !saving,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setState) => AlertDialog(
           title: const Text('Inviter un joueur'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Aucune adresse email n’est demandée. Un lien à partager sera généré.',
-                ),
-                const SizedBox(height: 16),
                 TextField(
-                  controller: surnomController,
-                  textInputAction: TextInputAction.next,
+                  controller: nickname,
                   decoration: const InputDecoration(
-                    labelText: 'Surnom',
-                    helperText: 'Facultatif — nom affiché dans l’application',
+                    labelText: 'Surnom (facultatif)',
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 TextField(
-                  controller: firstNameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Prénom *'),
+                  controller: firstName,
+                  decoration: const InputDecoration(labelText: 'Prénom'),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 TextField(
-                  controller: lastNameController,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(labelText: 'Nom *'),
+                  controller: lastName,
+                  decoration: const InputDecoration(labelText: 'Nom'),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -165,15 +106,13 @@ class AdminPage extends ConsumerWidget {
                   value: isGoalkeeper,
                   onChanged: saving
                       ? null
-                      : (value) => setDialogState(() => isGoalkeeper = value),
+                      : (value) => setState(() => isGoalkeeper = value),
                 ),
-                if (error != null) ...[
-                  const SizedBox(height: 12),
+                if (error != null)
                   Text(
                     error!,
                     style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
-                ],
               ],
             ),
           ),
@@ -186,14 +125,14 @@ class AdminPage extends ConsumerWidget {
               onPressed: saving
                   ? null
                   : () async {
-                      if (firstNameController.text.trim().isEmpty ||
-                          lastNameController.text.trim().isEmpty) {
-                        setDialogState(
+                      if (firstName.text.trim().isEmpty ||
+                          lastName.text.trim().isEmpty) {
+                        setState(
                           () => error = 'Le prénom et le nom sont obligatoires.',
                         );
                         return;
                       }
-                      setDialogState(() {
+                      setState(() {
                         saving = true;
                         error = null;
                       });
@@ -201,19 +140,41 @@ class AdminPage extends ConsumerWidget {
                         final token = await ref
                             .read(playersRepositoryProvider)
                             .createPlayerInvitation(
-                              firstName: firstNameController.text,
-                              lastName: lastNameController.text,
-                              surnom: surnomController.text,
+                              firstName: firstName.text,
+                              lastName: lastName.text,
+                              surnom: nickname.text,
                               isGoalkeeper: isGoalkeeper,
                             );
                         final link = Uri.base.resolve('claim?token=$token').toString();
                         ref.invalidate(playersListProvider);
+                        ref.invalidate(adminDashboardProvider);
                         if (!dialogContext.mounted) return;
                         Navigator.pop(dialogContext);
-                        await _showInvitationLink(context, link);
+                        await showDialog<void>(
+                          context: context,
+                          builder: (linkContext) => AlertDialog(
+                            title: const Text('Invitation prête'),
+                            content: SelectableText(link),
+                            actions: [
+                              TextButton.icon(
+                                onPressed: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: link),
+                                  );
+                                },
+                                icon: const Icon(Icons.copy),
+                                label: const Text('Copier'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(linkContext),
+                                child: const Text('Fermer'),
+                              ),
+                            ],
+                          ),
+                        );
                       } catch (exception) {
                         if (!dialogContext.mounted) return;
-                        setDialogState(() {
+                        setState(() {
                           saving = false;
                           error = exception.toString();
                         });
@@ -225,68 +186,78 @@ class AdminPage extends ConsumerWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Générer le lien'),
+                  : const Text('Créer le lien'),
             ),
           ],
         ),
       ),
     );
 
-    surnomController.dispose();
-    firstNameController.dispose();
-    lastNameController.dispose();
+    firstName.dispose();
+    lastName.dispose();
+    nickname.dispose();
   }
+}
 
-  Future<void> _showInvitationLink(BuildContext context, String link) async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Invitation prête'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+class _QuickActions extends StatelessWidget {
+  const _QuickActions({required this.onInvite});
+
+  final VoidCallback onInvite;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Envoie ce lien au joueur. Il créera son compte avec sa propre adresse email puis liera sa fiche.',
+            Text(
+              'Gestion rapide',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 12),
-            SelectableText(link),
-            const SizedBox(height: 8),
-            const Text('Le lien expire dans 7 jours.'),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => context.push('/matches'),
+                  icon: const Icon(Icons.sports_soccer_outlined),
+                  label: const Text('Matchs'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/players'),
+                  icon: const Icon(Icons.groups_outlined),
+                  label: const Text('Joueurs'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/statistics'),
+                  icon: const Icon(Icons.bar_chart_outlined),
+                  label: const Text('Statistiques'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onInvite,
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  label: const Text('Inviter'),
+                ),
+              ],
+            ),
           ],
         ),
-        actions: [
-          TextButton.icon(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: link));
-              if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Lien copié.')),
-                );
-              }
-            },
-            icon: const Icon(Icons.copy),
-            label: const Text('Copier le lien'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Fermer'),
-          ),
-        ],
       ),
     );
   }
 }
 
-class _SeasonSection extends ConsumerWidget {
-  const _SeasonSection({required this.dashboard});
+class _SeasonCard extends ConsumerWidget {
+  const _SeasonCard({required this.dashboard});
 
   final AdminDashboardData dashboard;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final openSeasons =
-        dashboard.seasons.where((season) => season.status == 'open');
+    final openSeasons = dashboard.seasons.where((item) => item.status == 'open');
     final openSeason = openSeasons.isEmpty ? null : openSeasons.first;
 
     return Card(
@@ -295,130 +266,63 @@ class _SeasonSection extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Saisons', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 12),
+            Text('Saison', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 10),
             if (openSeason == null)
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _showCreateSeasonDialog(context, ref),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Créer la saison ouverte'),
-                ),
+              FilledButton.icon(
+                onPressed: () => _createSeason(context, ref),
+                icon: const Icon(Icons.add),
+                label: const Text('Créer une saison'),
               )
             else ...[
               Text('Saison ouverte : ${openSeason.name}'),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _archiveSeason(context, ref, openSeason),
-                  icon: const Icon(Icons.archive_outlined),
-                  label: const Text('Archiver la saison'),
-                ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await ref
+                      .read(adminRepositoryProvider)
+                      .archiveSeason(openSeason.id);
+                  ref.invalidate(adminDashboardProvider);
+                },
+                icon: const Icon(Icons.archive_outlined),
+                label: const Text('Archiver'),
               ),
             ],
-            const SizedBox(height: 12),
-            ...dashboard.seasons.map(
-              (season) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(season.name),
-                trailing: Chip(label: Text(season.status)),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _archiveSeason(
-    BuildContext context,
-    WidgetRef ref,
-    AdminSeasonItem season,
-  ) async {
-    final confirmed = await showDialog<bool>(
+  Future<void> _createSeason(BuildContext context, WidgetRef ref) async {
+    final now = DateTime.now();
+    final controller = TextEditingController(
+      text: '${now.year}-${now.year + 1}',
+    );
+    final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Archiver la saison ?'),
-        content: Text('La saison ${season.name} sera clôturée.'),
+        title: const Text('Nouvelle saison'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: '2026-2027'),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Archiver'),
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Créer'),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
-    await ref.read(adminRepositoryProvider).archiveSeason(season.id);
-    ref.invalidate(adminDashboardProvider);
-  }
-
-  Future<void> _showCreateSeasonDialog(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final now = DateTime.now();
-    final controller =
-        TextEditingController(text: '${now.year}-${now.year + 1}');
-    String? error;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Nouvelle saison'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'Nom',
-                  hintText: '2026-2027',
-                ),
-              ),
-              if (error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                try {
-                  await ref
-                      .read(adminRepositoryProvider)
-                      .createSeason(controller.text);
-                  if (dialogContext.mounted) Navigator.pop(dialogContext);
-                  ref.invalidate(adminDashboardProvider);
-                } catch (exception) {
-                  if (dialogContext.mounted) {
-                    setDialogState(() => error = exception.toString());
-                  }
-                }
-              },
-              child: const Text('Créer'),
-            ),
-          ],
-        ),
-      ),
-    );
     controller.dispose();
+    if (name == null) return;
+    await ref.read(adminRepositoryProvider).createSeason(name);
+    ref.invalidate(adminDashboardProvider);
   }
 }
 
@@ -434,64 +338,33 @@ class _ProfileCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(adminRepositoryProvider);
-    final isPending = profile.status == 'pending';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        profile.fullName.isEmpty
-                            ? profile.email
-                            : profile.fullName,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (profile.email.trim().isNotEmpty)
-                        Text(
-                          profile.email,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
-                ),
-                if (isPending)
-                  const Chip(label: Text('En attente'))
-                else
-                  IconButton(
-                    tooltip: 'Supprimer définitivement',
-                    color: Theme.of(context).colorScheme.error,
-                    icon: const Icon(Icons.delete_forever_outlined),
-                    onPressed: () => _deletePermanently(context, ref),
-                  ),
-              ],
+            Text(
+              profile.displayName,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 12),
+            if (profile.email.trim().isNotEmpty) Text(profile.email),
+            const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: profile.role,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Type de compte'),
+              decoration: const InputDecoration(labelText: 'Rôle'),
               items: const [
                 DropdownMenuItem(
                   value: 'pronostiqueur',
                   child: Text('Joueur'),
                 ),
-                DropdownMenuItem(value: 'admin', child: Text('Admin')),
                 DropdownMenuItem(
                   value: 'moderateur',
                   child: Text('Modérateur'),
                 ),
-                DropdownMenuItem(value: 'coach', child: Text('Coach')),
+                DropdownMenuItem(value: 'admin', child: Text('Admin')),
               ],
               onChanged: (value) async {
                 if (value == null || value == profile.role) return;
@@ -499,222 +372,45 @@ class _ProfileCard extends ConsumerWidget {
                 ref.invalidate(adminDashboardProvider);
               },
             ),
-            if (profile.role == 'pronostiqueur') ...[
-              const SizedBox(height: 10),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Compte actif'),
+              value: profile.status == 'active',
+              onChanged: (value) async {
+                await repository.updateProfileStatus(
+                  profile.id,
+                  value ? 'active' : 'archived',
+                );
+                ref.invalidate(adminDashboardProvider);
+              },
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Gardien'),
+              value: profile.isGoalkeeper,
+              onChanged: (value) async {
+                await repository.updateGoalkeeper(profile.id, value);
+                ref.invalidate(adminDashboardProvider);
+              },
+            ),
+            if (openSeasonId != null)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Gardien'),
-                subtitle: const Text(
-                  'Un gardien est uniquement pronostiqué sur les clean sheets.',
-                ),
-                value: profile.isGoalkeeper,
+                title: const Text('Dans la saison ouverte'),
+                value: profile.inOpenSeason,
                 onChanged: (value) async {
-                  await repository.updateGoalkeeper(profile.id, value);
-                  ref.invalidate(adminDashboardProvider);
-                },
-              ),
-            ],
-            if (isPending) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _validateAccount(context, ref),
-                  icon: const Icon(Icons.verified_user_outlined),
-                  label: Text(
-                    profile.role == 'pronostiqueur'
-                        ? 'Valider comme joueur'
-                        : profile.role == 'admin'
-                            ? 'Valider comme admin'
-                            : profile.role == 'moderateur'
-                                ? 'Valider comme modérateur'
-                                : 'Valider comme coach',
-                  ),
-                ),
-              ),
-            ] else ...[
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Compte actif'),
-                value: profile.status == 'active',
-                onChanged: (value) async {
-                  await repository.updateProfileStatus(
-                    profile.id,
-                    value ? 'active' : 'archived',
+                  await repository.setSeasonMembership(
+                    seasonId: openSeasonId!,
+                    profile: profile,
+                    selected: value,
                   );
                   ref.invalidate(adminDashboardProvider);
                 },
               ),
-              if (openSeasonId != null && profile.role == 'pronostiqueur')
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Dans l’effectif de la saison ouverte'),
-                  value: profile.inOpenSeason,
-                  onChanged: (value) async {
-                    await repository.setSeasonMembership(
-                      seasonId: openSeasonId!,
-                      profile: profile,
-                      selected: value == true,
-                    );
-                    ref.invalidate(adminDashboardProvider);
-                  },
-                ),
-            ],
           ],
         ),
       ),
-    );
-  }
-
-  Future<void> _validateAccount(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final repository = ref.read(adminRepositoryProvider);
-    try {
-      await repository.updateProfileStatus(profile.id, 'active');
-      if (profile.role == 'pronostiqueur' && openSeasonId != null) {
-        await repository.setSeasonMembership(
-          seasonId: openSeasonId!,
-          profile: profile,
-          selected: true,
-        );
-      }
-      ref.invalidate(adminDashboardProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Compte validé.')),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
-      }
-    }
-  }
-
-  Future<void> _deletePermanently(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final confirmationController = TextEditingController();
-    final expected = profile.email;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Suppression définitive'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Cette action supprime le compte et toutes les données liées. Elle est irréversible.',
-              ),
-              const SizedBox(height: 12),
-              Text('Saisissez « $expected » pour confirmer.'),
-              const SizedBox(height: 8),
-              TextField(
-                controller: confirmationController,
-                decoration: const InputDecoration(
-                  labelText: 'Email de confirmation',
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              confirmationController.text.trim().toLowerCase() ==
-                  expected.toLowerCase(),
-            ),
-            child: const Text('Supprimer définitivement'),
-          ),
-        ],
-      ),
-    );
-    confirmationController.dispose();
-    if (confirmed != true || !context.mounted) return;
-
-    try {
-      await ref
-          .read(adminRepositoryProvider)
-          .permanentlyDeleteUser(profile.id);
-      ref.invalidate(adminDashboardProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Compte supprimé définitivement.')),
-        );
-      }
-    } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
-        );
-      }
-    }
-  }
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: const [
-        SizedBox(height: 220),
-        Center(child: CircularProgressIndicator()),
-      ],
-    );
-  }
-}
-
-class _AdminErrorView extends StatelessWidget {
-  const _AdminErrorView({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
-      children: [
-        Icon(
-          Icons.cloud_off_outlined,
-          size: 54,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Administration temporairement indisponible',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Actualise la page dans quelques instants.',
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 18),
-        Center(
-          child: FilledButton.icon(
-            onPressed: onRetry,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Actualiser'),
-          ),
-        ),
-      ],
     );
   }
 }
