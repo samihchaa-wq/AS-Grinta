@@ -5,15 +5,12 @@ security definer
 set search_path = public
 as $$
 declare
-  target_match_id uuid;
   current_status text;
 begin
-  target_match_id := coalesce(new.match_id, old.match_id);
-
   select m.status::text
   into current_status
   from public.matches m
-  where m.id = target_match_id;
+  where m.id = new.match_id;
 
   if current_status is null then
     raise exception 'Match introuvable';
@@ -23,7 +20,7 @@ begin
     raise exception 'Le Tableau du coach est verrouillé pour un match terminé';
   end if;
 
-  return coalesce(new, old);
+  return new;
 end;
 $$;
 
@@ -33,13 +30,13 @@ grant execute on function public.assert_match_live_editable() to authenticated;
 drop trigger if exists coach_match_sessions_match_open_guard
   on public.coach_match_sessions;
 create trigger coach_match_sessions_match_open_guard
-before insert or update or delete on public.coach_match_sessions
+before insert or update on public.coach_match_sessions
 for each row execute function public.assert_match_live_editable();
 
 drop trigger if exists coach_match_events_match_open_guard
   on public.coach_match_events;
 create trigger coach_match_events_match_open_guard
-before insert or update or delete on public.coach_match_events
+before insert or update on public.coach_match_events
 for each row execute function public.assert_match_live_editable();
 
 create or replace function public.recalculate_match_score_from_goals()
