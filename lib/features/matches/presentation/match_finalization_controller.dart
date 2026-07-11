@@ -50,6 +50,7 @@ class MatchFinalizationController
     }
 
     final playerIds = <String>{};
+    final presentPlayerIds = <String>{};
     for (final item in playerStats) {
       final profileId = item['profile_id']?.toString() ?? '';
       if (profileId.isEmpty || !playerIds.add(profileId)) {
@@ -59,6 +60,7 @@ class MatchFinalizationController
         );
         return false;
       }
+      if (item['present'] == true) presentPlayerIds.add(profileId);
     }
 
     final guestNames = <String>{};
@@ -129,10 +131,11 @@ class MatchFinalizationController
       return false;
     }
 
-    if (manOfTheMatchId != null && !playerIds.contains(manOfTheMatchId)) {
+    if (manOfTheMatchId != null &&
+        !presentPlayerIds.contains(manOfTheMatchId)) {
       state = state.copyWith(
         isLoading: false,
-        error: 'L’homme du match sélectionné est invalide.',
+        error: 'L’homme du match doit être un joueur présent.',
       );
       return false;
     }
