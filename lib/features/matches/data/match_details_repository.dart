@@ -185,7 +185,7 @@ class MatchDetailsRepository {
       }).toList();
 
       final motm = await _client.from('match_motm').select('''
-        profiles(first_name,surnom)
+        profiles!match_motm_profile_id_fkey(first_name,surnom)
       ''').eq('match_id', matchId).maybeSingle();
       if (motm != null && motm['profiles'] is Map) {
         manOfTheMatch = _displayName(
