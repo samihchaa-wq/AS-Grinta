@@ -90,11 +90,20 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        _firstConnection ? 'Bienvenue !' : 'Ma Petite Grinta',
-                        style: Theme.of(context).textTheme.headlineMedium,
-                        textAlign: TextAlign.center,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Image.asset(
+                          'assets/images/mpg_logo.png',
+                          height: 110,
+                          fit: BoxFit.contain,
+                        ),
                       ),
+                      if (_firstConnection)
+                        Text(
+                          'Bienvenue !',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                          textAlign: TextAlign.center,
+                        ),
                       const SizedBox(height: 8),
                       Text(
                         _firstConnection
