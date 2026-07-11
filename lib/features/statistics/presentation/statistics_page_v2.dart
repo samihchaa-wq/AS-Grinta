@@ -90,27 +90,29 @@ class StatisticsPageV2 extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _RankingSection(
                   title: 'Top 5 Buteurs',
+                  fullTitle: 'Classement des buteurs',
                   icon: Icons.sports_soccer_rounded,
-                  players: topGoals.where((p) => p.goals > 0).take(5).toList(),
+                  fullRanking: topGoals.where((p) => p.goals > 0).toList(),
                   value: (p) => p.goals,
                   unit: 'but',
                 ),
                 const SizedBox(height: 24),
                 _RankingSection(
                   title: 'Top 5 Passeurs décisifs',
+                  fullTitle: 'Classement des passeurs décisifs',
                   icon: Icons.swap_calls_rounded,
-                  players:
-                      topAssists.where((p) => p.assists > 0).take(5).toList(),
+                  fullRanking:
+                      topAssists.where((p) => p.assists > 0).toList(),
                   value: (p) => p.assists,
                   unit: 'passe',
                 ),
                 const SizedBox(height: 24),
                 _RankingSection(
                   title: 'Top 5 Fautes provoquant un penalty',
+                  fullTitle: 'Classement des fautes provoquant un penalty',
                   icon: Icons.warning_amber_rounded,
-                  players: topPenaltyFaults
+                  fullRanking: topPenaltyFaults
                       .where((p) => p.penaltyFaults > 0)
-                      .take(5)
                       .toList(),
                   value: (p) => p.penaltyFaults,
                   unit: 'faute',
@@ -118,8 +120,9 @@ class StatisticsPageV2 extends ConsumerWidget {
                 const SizedBox(height: 24),
                 _RankingSection(
                   title: 'Top 5 Hommes du match',
+                  fullTitle: 'Classement des hommes du match',
                   icon: Icons.emoji_events_rounded,
-                  players: topMotm.where((p) => p.motm > 0).take(5).toList(),
+                  fullRanking: topMotm.where((p) => p.motm > 0).toList(),
                   value: (p) => p.motm,
                   unit: 'HDM',
                 ),
@@ -165,41 +168,106 @@ class StatisticsPageV2 extends ConsumerWidget {
 class _RankingSection extends StatelessWidget {
   const _RankingSection({
     required this.title,
+    required this.fullTitle,
     required this.icon,
-    required this.players,
+    required this.fullRanking,
     required this.value,
     required this.unit,
   });
 
   final String title;
+  final String fullTitle;
   final IconData icon;
-  final List<PlayerStatistics> players;
+  final List<PlayerStatistics> fullRanking;
   final int Function(PlayerStatistics) value;
   final String unit;
 
+  String _line(PlayerStatistics player) =>
+      '${value(player)} $unit${value(player) > 1 && unit != 'HDM' ? 's' : ''}';
+
   @override
   Widget build(BuildContext context) {
+    final top = fullRanking.take(5).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(icon: icon, label: title),
         const SizedBox(height: 8),
-        if (players.isEmpty)
+        if (top.isEmpty)
           const Text('Aucune donnée enregistrée.')
-        else
-          ...players.indexed.map(
+        else ...[
+          ...top.indexed.map(
             (entry) => Card(
               child: ListTile(
                 leading: CircleAvatar(child: Text('${entry.$1 + 1}')),
                 title: Text(entry.$2.displayName),
                 trailing: Text(
-                  '${value(entry.$2)} $unit${value(entry.$2) > 1 && unit != 'HDM' ? 's' : ''}',
+                  _line(entry.$2),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
             ),
           ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _showFullRanking(context),
+              icon: const Icon(Icons.format_list_numbered, size: 18),
+              label: const Text('Classement complet'),
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  void _showFullRanking(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: Theme.of(sheetContext).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    fullTitle,
+                    style: Theme.of(sheetContext).textTheme.titleLarge,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...fullRanking.indexed.map(
+              (entry) => Card(
+                child: ListTile(
+                  leading: CircleAvatar(child: Text('${entry.$1 + 1}')),
+                  title: Text(entry.$2.displayName),
+                  trailing: Text(
+                    _line(entry.$2),
+                    style: Theme.of(sheetContext).textTheme.titleMedium,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
