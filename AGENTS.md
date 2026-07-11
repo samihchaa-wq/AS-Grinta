@@ -30,7 +30,7 @@ Tables Supabase déjà existantes :
 - Les pourcentages du maximum théorique et la répartition indicative d'environ 65 % matchs / 35 % saison sont des indicateurs d'affichage uniquement. Ils ne recalculent, ne normalisent et ne pondèrent jamais le total.
 - Tout `match_predictions.is_filled = false` rapporte toujours 0 point, y compris si le résultat réel est 0-0.
 - Tout `season_predictions.is_filled = false` rapporte toujours 0 point, y compris si la valeur réelle est 0.
-- Les cotes suggérées suivent le modèle V2.1 avec pondération 40/25/18/10/7 % et nul indépendant, sans marge bookmaker : ce sont les cotes équitables (1 / probabilité), ajustables par l'admin avant enregistrement.
+- Les cotes suggérées reflètent la forme du moment : buts marqués/encaissés des 4 derniers matchs pondérés 40/30/20/10 %, nul indépendant, sans marge bookmaker (cotes équitables 1 / probabilité, arrondies à une décimale), ajustables par l'admin avant enregistrement.
 - Un match possède exactement un seul homme du match.
 - Un Admin peut annuler ou archiver un match non archivé. Seul le Modérateur peut supprimer définitivement un match.
 - Seul un Admin peut prendre, demander ou céder volontairement le contrôle d'un Live.

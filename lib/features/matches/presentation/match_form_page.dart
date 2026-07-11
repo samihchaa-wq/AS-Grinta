@@ -230,9 +230,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Suggérées automatiquement d’après l’historique des rencontres '
-              '(pondération des saisons, adversaire, domicile/extérieur). '
-              'Tu peux les ajuster avant d’enregistrer.',
+              'Suggérées d’après la forme du moment : les 4 derniers matchs '
+              'pèsent 40, 30, 20 et 10 %. Tu peux les ajuster avant '
+              'd’enregistrer.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
