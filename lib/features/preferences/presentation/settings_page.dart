@@ -1,4 +1,5 @@
 import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
+import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,6 +54,13 @@ class SettingsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
+            Text(
+              'Notifications push',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            const _PushNotificationsCard(),
+            const SizedBox(height: 24),
             Text('Application', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             const Card(
@@ -103,6 +111,83 @@ class SettingsPage extends ConsumerWidget {
           ),
         );
       }
+    }
+  }
+}
+
+class _PushNotificationsCard extends ConsumerWidget {
+  const _PushNotificationsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(pushStatusProvider);
+
+    return Card(
+      child: statusAsync.when(
+        loading: () => const ListTile(
+          leading: Icon(Icons.notifications_outlined),
+          title: Text('Notifications push'),
+          trailing: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        error: (_, __) => const ListTile(
+          leading: Icon(Icons.notifications_off_outlined),
+          title: Text('Notifications push indisponibles'),
+        ),
+        data: (status) {
+          if (!status.supported) {
+            return const ListTile(
+              leading: Icon(Icons.notifications_off_outlined),
+              title: Text('Notifications push'),
+              subtitle: Text(
+                'Non disponibles dans ce navigateur. Sur iPhone, installe '
+                'd’abord l’application depuis Safari : Partager → '
+                '« Sur l’écran d’accueil ».',
+              ),
+            );
+          }
+          return SwitchListTile.adaptive(
+            secondary: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Recevoir les notifications'),
+            subtitle: const Text(
+              'Nouveau match, rappel avant la fermeture des pronostics et '
+              'résultat validé, selon tes rappels ci-dessus.',
+            ),
+            value: status.subscribed,
+            onChanged: (value) => _toggle(context, ref, value),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _toggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool enable,
+  ) async {
+    final repository = ref.read(pushSubscriptionsRepositoryProvider);
+    var message = '';
+    try {
+      if (enable) {
+        final enabled = await repository.enable();
+        message = enabled
+            ? 'Notifications activées sur cet appareil.'
+            : 'Autorisation refusée par le navigateur.';
+      } else {
+        await repository.disable();
+        message = 'Notifications désactivées sur cet appareil.';
+      }
+    } catch (_) {
+      message = 'Impossible de modifier les notifications.';
+    }
+    ref.invalidate(pushStatusProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 }
