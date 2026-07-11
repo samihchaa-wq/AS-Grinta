@@ -49,6 +49,37 @@ class MatchFinalizationController
       return false;
     }
 
+    final playerIds = <String>{};
+    for (final item in playerStats) {
+      final profileId = item['profile_id']?.toString() ?? '';
+      if (profileId.isEmpty || !playerIds.add(profileId)) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'La liste des joueurs contient un doublon ou un joueur invalide.',
+        );
+        return false;
+      }
+    }
+
+    final guestNames = <String>{};
+    for (final item in guestStats) {
+      final name = (item['display_name'] ?? '').toString().trim();
+      if (name.isEmpty) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Le nom de chaque invité est requis.',
+        );
+        return false;
+      }
+      if (!guestNames.add(name.toLowerCase())) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Deux invités ne peuvent pas avoir le même nom.',
+        );
+        return false;
+      }
+    }
+
     final allStats = [...playerStats, ...guestStats];
     for (final item in allStats) {
       final present = item['present'] == true;
@@ -56,6 +87,13 @@ class MatchFinalizationController
       final assists = _asInt(item['assists']);
       final penaltyFaults = _asInt(item['penalty_faults']);
       final cleanSheet = item['clean_sheet'] == true;
+      if (goals < 0 || assists < 0 || penaltyFaults < 0) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Les statistiques négatives sont interdites.',
+        );
+        return false;
+      }
       if (!present &&
           (goals > 0 || assists > 0 || penaltyFaults > 0 || cleanSheet)) {
         state = state.copyWith(
@@ -87,6 +125,14 @@ class MatchFinalizationController
       state = state.copyWith(
         isLoading: false,
         error: 'Un clean sheet est impossible si l’adversaire a marqué.',
+      );
+      return false;
+    }
+
+    if (manOfTheMatchId != null && !playerIds.contains(manOfTheMatchId)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'L’homme du match sélectionné est invalide.',
       );
       return false;
     }
