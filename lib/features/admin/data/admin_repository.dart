@@ -8,7 +8,8 @@ class AdminProfileItem {
     required this.firstName,
     required this.lastName,
     this.surnom,
-    required this.email,
+    required this.username,
+    required this.passwordSet,
     required this.role,
     required this.status,
     required this.isGoalkeeper,
@@ -19,7 +20,8 @@ class AdminProfileItem {
   final String firstName;
   final String lastName;
   final String? surnom;
-  final String email;
+  final String username;
+  final bool passwordSet;
   final String role;
   final String status;
   final bool isGoalkeeper;
@@ -104,7 +106,8 @@ class AdminRepository {
             firstName: (row['first_name'] ?? '').toString(),
             lastName: (row['last_name'] ?? '').toString(),
             surnom: row['surnom']?.toString(),
-            email: (row['email'] ?? '').toString(),
+            username: (row['username'] ?? '').toString(),
+            passwordSet: row['password_set'] != false,
             role: (row['role'] ?? 'pronostiqueur').toString(),
             status: (row['status'] ?? 'active').toString(),
             isGoalkeeper: row['is_goalkeeper'] == true,
@@ -120,32 +123,55 @@ class AdminRepository {
     );
   }
 
-  Future<void> inviteAccount({
-    required String email,
+  /// Invite un joueur par identifiant (prénom + initiale du nom).
+  /// Retourne l'identifiant généré, à communiquer au joueur.
+  Future<String> inviteAccount({
     required String firstName,
-    required String lastName,
+    required String lastInitial,
     String? surnom,
+    bool isGoalkeeper = false,
   }) async {
-    final cleanEmail = email.trim().toLowerCase();
-    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(cleanEmail)) {
-      throw ArgumentError('Adresse email invalide.');
+    if (firstName.trim().isEmpty || lastInitial.trim().isEmpty) {
+      throw ArgumentError('Prénom et initiale du nom sont requis.');
     }
     final response = await _client.functions.invoke(
       'manage-user',
       body: {
         'action': 'invite',
-        'email': cleanEmail,
         'firstName': firstName.trim(),
-        'lastName': lastName.trim(),
+        'lastInitial': lastInitial.trim(),
         if ((surnom ?? '').trim().isNotEmpty) 'surnom': surnom!.trim(),
-        'redirectTo': Uri.base.resolve('auth/sign-in').toString(),
+        'isGoalkeeper': isGoalkeeper,
       },
     );
-    if (response.status < 200 || response.status >= 300) {
-      final data = response.data;
+    final data = response.data;
+    if (response.status < 200 ||
+        response.status >= 300 ||
+        data is! Map ||
+        (data['username'] ?? '').toString().isEmpty) {
       final message = data is Map && data['error'] != null
           ? data['error'].toString()
           : 'L’invitation du compte a échoué.';
+      throw StateError(message);
+    }
+    return data['username'].toString();
+  }
+
+  /// Réinitialise le mot de passe d'un compte : le joueur devra refaire une
+  /// « première connexion » et choisir un nouveau mot de passe.
+  Future<void> resetAccountPassword(String userId) async {
+    final response = await _client.functions.invoke(
+      'manage-user',
+      body: {'action': 'reset-password', 'userId': userId},
+    );
+    final data = response.data;
+    if (response.status < 200 ||
+        response.status >= 300 ||
+        data is! Map ||
+        data['reset'] != true) {
+      final message = data is Map && data['error'] != null
+          ? data['error'].toString()
+          : 'La réinitialisation a échoué.';
       throw StateError(message);
     }
   }

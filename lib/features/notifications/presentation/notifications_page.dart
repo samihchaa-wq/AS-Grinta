@@ -1,4 +1,6 @@
 import 'package:as_grinta/features/notifications/data/notifications_repository.dart';
+import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
+import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,100 +11,163 @@ class NotificationsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
+    final preferencesAsync = ref.watch(appPreferencesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rappels'),
-        actions: [
-          IconButton(
-            tooltip: 'Paramètres des rappels',
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(Icons.tune_outlined),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Notifications')),
       body: RefreshIndicator(
         onRefresh: () async {
+          ref.invalidate(appPreferencesProvider);
           ref.invalidate(notificationsProvider);
           await ref.read(notificationsProvider.future);
         },
-        child: notificationsAsync.when(
-          loading: () => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            children: const [
-              SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (_, __) => ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
-            children: [
-              const Icon(Icons.notifications_off_outlined, size: 54),
-              const SizedBox(height: 16),
-              Text(
-                'Rappels temporairement indisponibles',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: FilledButton.icon(
-                  onPressed: () => ref.invalidate(notificationsProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Actualiser'),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            const _PushActivationCard(),
+            const SizedBox(height: 16),
+            Text(
+              'Me prévenir…',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            preferencesAsync.when(
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
               ),
-            ],
-          ),
-          data: (items) {
-            if (items.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
-                children: [
-                  const Icon(Icons.event_note_outlined, size: 54),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Aucun rappel',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge,
+              error: (_, __) => Card(
+                child: ListTile(
+                  title: const Text('Préférences indisponibles'),
+                  trailing: IconButton(
+                    onPressed: () => ref.invalidate(appPreferencesProvider),
+                    icon: const Icon(Icons.refresh),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Les prochains matchs et pronostics activés apparaîtront ici dans l’application.',
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              );
-            }
-
-            return ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(child: Icon(_iconFor(item.kind))),
-                    title: Text(item.title),
-                    subtitle: Text(
-                      '${item.message}\n${_formatDate(item.date)}',
+                ),
+              ),
+              data: (preferences) => Card(
+                child: Column(
+                  children: [
+                    SwitchListTile.adaptive(
+                      title: const Text('Quand un pronostic est ouvert'),
+                      subtitle: const Text(
+                        'Dès qu’un nouveau match est annoncé.',
+                      ),
+                      value: preferences.predictionOpen,
+                      onChanged: (value) => _save(
+                        context,
+                        ref,
+                        preferences.copyWith(predictionOpen: value),
+                      ),
                     ),
-                    isThreeLine: true,
-                    onTap: item.kind == 'prediction'
-                        ? () => context.push('/predictions')
-                        : () => context.push('/matches'),
-                  ),
+                    const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: const Text('2 h avant le match'),
+                      subtitle: const Text(
+                        'Seulement si tu n’as pas encore pronostiqué.',
+                      ),
+                      value: preferences.predictionReminders,
+                      onChanged: (value) => _save(
+                        context,
+                        ref,
+                        preferences.copyWith(predictionReminders: value),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    SwitchListTile.adaptive(
+                      title: const Text('Quand le match est fini'),
+                      subtitle: const Text(
+                        'Points gagnés et pronostics des autres révélés.',
+                      ),
+                      value: preferences.matchReminders,
+                      onChanged: (value) => _save(
+                        context,
+                        ref,
+                        preferences.copyWith(matchReminders: value),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'À venir',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            notificationsAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('Rappels temporairement indisponibles.'),
+                ),
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text(
+                        'Aucun rappel : les prochains matchs apparaîtront ici.',
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    for (final item in items) ...[
+                      Card(
+                        child: ListTile(
+                          leading:
+                              CircleAvatar(child: Icon(_iconFor(item.kind))),
+                          title: Text(item.title),
+                          subtitle: Text(
+                            '${item.message}\n${_formatDate(item.date)}',
+                          ),
+                          isThreeLine: true,
+                          onTap: item.kind == 'prediction'
+                              ? () => context.push('/predictions')
+                              : () => context.push('/matches'),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                  ],
                 );
               },
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _save(
+    BuildContext context,
+    WidgetRef ref,
+    AppPreferences preferences,
+  ) async {
+    try {
+      await ref.read(preferencesRepositoryProvider).update(preferences);
+      ref.invalidate(appPreferencesProvider);
+      ref.invalidate(notificationsProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Les préférences n’ont pas pu être enregistrées.'),
+          ),
+        );
+      }
+    }
   }
 
   IconData _iconFor(String kind) {
@@ -115,5 +180,82 @@ class NotificationsPage extends ConsumerWidget {
     String two(int value) => value.toString().padLeft(2, '0');
     return '${two(date.day)}/${two(date.month)}/${date.year} à '
         '${two(date.hour)}:${two(date.minute)}';
+  }
+}
+
+class _PushActivationCard extends ConsumerWidget {
+  const _PushActivationCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusAsync = ref.watch(pushStatusProvider);
+
+    return Card(
+      child: statusAsync.when(
+        loading: () => const ListTile(
+          leading: Icon(Icons.notifications_outlined),
+          title: Text('Notifications push'),
+          trailing: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        error: (_, __) => const ListTile(
+          leading: Icon(Icons.notifications_off_outlined),
+          title: Text('Notifications push indisponibles'),
+        ),
+        data: (status) {
+          if (!status.supported) {
+            return const ListTile(
+              leading: Icon(Icons.notifications_off_outlined),
+              title: Text('Notifications push'),
+              subtitle: Text(
+                'Non disponibles dans ce navigateur. Sur iPhone, installe '
+                'd’abord l’application depuis Safari : Partager → '
+                '« Sur l’écran d’accueil ».',
+              ),
+            );
+          }
+          return SwitchListTile.adaptive(
+            secondary: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Recevoir les notifications sur cet appareil'),
+            subtitle: const Text(
+              'Active d’abord ceci, puis choisis en dessous quand être '
+              'prévenu.',
+            ),
+            value: status.subscribed,
+            onChanged: (value) => _toggle(context, ref, value),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _toggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool enable,
+  ) async {
+    final repository = ref.read(pushSubscriptionsRepositoryProvider);
+    var message = '';
+    try {
+      if (enable) {
+        final enabled = await repository.enable();
+        message = enabled
+            ? 'Notifications activées sur cet appareil.'
+            : 'Autorisation refusée par le navigateur.';
+      } else {
+        await repository.disable();
+        message = 'Notifications désactivées sur cet appareil.';
+      }
+    } catch (_) {
+      message = 'Impossible de modifier les notifications.';
+    }
+    ref.invalidate(pushStatusProvider);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 }

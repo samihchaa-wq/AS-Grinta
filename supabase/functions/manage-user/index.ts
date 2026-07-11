@@ -1,5 +1,10 @@
+// Gestion des comptes par le staff : invitation par identifiant
+// (prénom + initiale du nom, sans email), réinitialisation de mot de passe
+// et suppression de compte.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const USERNAME_DOMAIN = "pronos.as-grinta.local";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +16,14 @@ const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
+}
+
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 Deno.serve(async (req: Request) => {
@@ -64,38 +77,92 @@ Deno.serve(async (req: Request) => {
     const action = String(body.action ?? "");
 
     if (action === "invite") {
-      const email = String(body.email ?? "").trim().toLowerCase();
       const firstName = String(body.firstName ?? "").trim();
-      const lastName = String(body.lastName ?? "").trim();
+      const lastInitial = String(body.lastInitial ?? "").trim();
       const surnom = String(body.surnom ?? "").trim();
-      const redirectTo = String(body.redirectTo ?? "").trim() || undefined;
-      const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      if (!emailIsValid || !firstName || !lastName) {
+      const isGoalkeeper = body.isGoalkeeper === true;
+
+      if (!firstName || firstName.length > 100) {
+        return jsonResponse({ error: "Prénom requis." }, 400);
+      }
+      const normalizedFirst = normalizeName(firstName);
+      const normalizedInitial = normalizeName(lastInitial).slice(0, 1);
+      if (!normalizedFirst || !normalizedInitial) {
         return jsonResponse(
-          { error: "Valid email, first name and last name are required" },
+          { error: "Prénom et initiale du nom sont requis." },
           400,
         );
       }
-      if (
-        firstName.length > 100 ||
-        lastName.length > 100 ||
-        surnom.length > 100 ||
-        email.length > 320
-      ) {
-        return jsonResponse({ error: "Input is too long" }, 400);
+
+      const base = `${normalizedFirst}${normalizedInitial}`;
+      let username = base;
+      for (let suffix = 2; suffix <= 20; suffix++) {
+        const { data: existing, error: existsError } = await admin
+          .from("profiles")
+          .select("id")
+          .eq("username", username)
+          .maybeSingle();
+        if (existsError) throw existsError;
+        if (!existing) break;
+        username = `${base}${suffix}`;
       }
 
-      const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
+      const { data: created, error: createError } =
+        await admin.auth.admin.createUser({
+          email: `${username}@${USERNAME_DOMAIN}`,
+          password: crypto.randomUUID() + crypto.randomUUID(),
+          email_confirm: true,
+          user_metadata: {
+            first_name: firstName,
+            last_name: `${normalizedInitial.toUpperCase()}.`,
+            surnom: surnom || null,
+            invited: true,
+          },
+        });
+      if (createError) throw createError;
+      const newUserId = created.user?.id;
+      if (!newUserId) throw new Error("Compte non créé");
+
+      const { error: updateError } = await admin
+        .from("profiles")
+        .update({
+          username,
+          password_set: false,
+          is_goalkeeper: isGoalkeeper,
           surnom: surnom || null,
-          invited: true,
-        },
-        redirectTo,
-      });
-      if (error) throw error;
-      return jsonResponse({ userId: data.user?.id, invitationSent: true });
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", newUserId);
+      if (updateError) throw updateError;
+
+      return jsonResponse({ userId: newUserId, username });
+    }
+
+    if (action === "reset-password") {
+      const userId = String(body.userId ?? "");
+      const uuidIsValid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+          .test(userId);
+      if (!uuidIsValid) {
+        return jsonResponse({ error: "Valid user id is required" }, 400);
+      }
+      if (userId === "00000000-0000-0000-0000-000000000001") {
+        return jsonResponse({ error: "Compte technique protégé." }, 400);
+      }
+
+      const { error: passwordError } = await admin.auth.admin.updateUserById(
+        userId,
+        { password: crypto.randomUUID() + crypto.randomUUID() },
+      );
+      if (passwordError) throw passwordError;
+
+      const { error: flagError } = await admin
+        .from("profiles")
+        .update({ password_set: false, updated_at: new Date().toISOString() })
+        .eq("id", userId);
+      if (flagError) throw flagError;
+
+      return jsonResponse({ reset: true });
     }
 
     if (action === "delete") {

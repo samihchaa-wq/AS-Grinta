@@ -235,8 +235,8 @@ class _PlayerCard extends ConsumerWidget {
               value: player.isActive ? 'archive' : 'restore',
               child: Text(player.isActive ? 'Archiver' : 'Restaurer'),
             ),
-            if (ref.read(authControllerProvider).profile?.role ==
-                AuthRole.moderateur)
+            if (ref.read(authControllerProvider).profile?.role.isStaff ==
+                true)
               const PopupMenuItem(
                 value: 'delete',
                 child: Text('Supprimer définitivement'),

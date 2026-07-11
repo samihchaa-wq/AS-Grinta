@@ -1,7 +1,6 @@
 import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
-import 'package:as_grinta/features/auth/presentation/auth_forgot_password_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -9,6 +8,7 @@ import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
+import 'package:as_grinta/features/more/presentation/faq_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/players/presentation/claim_player_page.dart';
@@ -16,7 +16,6 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
-import 'package:as_grinta/features/preferences/presentation/settings_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page_v2.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,10 +104,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/notifications',
             builder: (_, __) => const NotificationsPage(),
           ),
-          GoRoute(
-            path: '/settings',
-            builder: (_, __) => const SettingsPage(),
-          ),
+          GoRoute(path: '/faq', builder: (_, __) => const FaqPage()),
           GoRoute(
             path: '/claim',
             builder: (context, state) => ClaimPlayerPage(
@@ -124,10 +120,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/sign-in',
         builder: (_, __) => const AuthSignInPage(),
-      ),
-      GoRoute(
-        path: '/auth/forgot-password',
-        builder: (_, __) => const AuthForgotPasswordPage(),
       ),
     ],
   );

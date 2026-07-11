@@ -1,5 +1,4 @@
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
-import 'package:as_grinta/features/players/data/players_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,9 +74,8 @@ class AdminPage extends ConsumerWidget {
   }
 
   Future<void> _invitePlayer(BuildContext context, WidgetRef ref) async {
-    final email = TextEditingController();
     final firstName = TextEditingController();
-    final lastName = TextEditingController();
+    final lastInitial = TextEditingController();
     final nickname = TextEditingController();
     var isGoalkeeper = false;
     var saving = false;
@@ -94,9 +92,17 @@ class AdminPage extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email'),
+                  controller: firstName,
+                  decoration: const InputDecoration(labelText: 'Prénom'),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: lastInitial,
+                  maxLength: 1,
+                  decoration: const InputDecoration(
+                    labelText: 'Première lettre du nom',
+                    counterText: '',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -104,16 +110,6 @@ class AdminPage extends ConsumerWidget {
                   decoration: const InputDecoration(
                     labelText: 'Surnom (facultatif)',
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: firstName,
-                  decoration: const InputDecoration(labelText: 'Prénom'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: lastName,
-                  decoration: const InputDecoration(labelText: 'Nom'),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -126,7 +122,8 @@ class AdminPage extends ConsumerWidget {
                 if (error != null)
                   Text(
                     error!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
               ],
             ),
@@ -140,14 +137,11 @@ class AdminPage extends ConsumerWidget {
               onPressed: saving
                   ? null
                   : () async {
-                      final cleanEmail = email.text.trim();
-                      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                              .hasMatch(cleanEmail) ||
-                          firstName.text.trim().isEmpty ||
-                          lastName.text.trim().isEmpty) {
+                      if (firstName.text.trim().isEmpty ||
+                          lastInitial.text.trim().isEmpty) {
                         setState(
                           () => error =
-                              'Un email valide, le prénom et le nom sont obligatoires.',
+                              'Le prénom et la première lettre du nom sont obligatoires.',
                         );
                         return;
                       }
@@ -156,56 +150,52 @@ class AdminPage extends ConsumerWidget {
                         error = null;
                       });
                       try {
-                        await ref.read(adminRepositoryProvider).inviteAccount(
-                              email: cleanEmail,
+                        final username = await ref
+                            .read(adminRepositoryProvider)
+                            .inviteAccount(
                               firstName: firstName.text,
-                              lastName: lastName.text,
-                              surnom: nickname.text,
-                            );
-                        final token = await ref
-                            .read(playersRepositoryProvider)
-                            .createPlayerInvitation(
-                              firstName: firstName.text,
-                              lastName: lastName.text,
+                              lastInitial: lastInitial.text,
                               surnom: nickname.text,
                               isGoalkeeper: isGoalkeeper,
                             );
-                        final link = Uri.base.resolve('claim?token=$token').toString();
-                        ref.invalidate(playersListProvider);
                         ref.invalidate(adminDashboardProvider);
                         if (!dialogContext.mounted) return;
                         Navigator.pop(dialogContext);
                         await showDialog<void>(
                           context: context,
-                          builder: (linkContext) => AlertDialog(
-                            title: const Text('Invitation envoyée'),
+                          builder: (resultContext) => AlertDialog(
+                            title: const Text('Compte créé'),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Un email d’activation a été envoyé à $cleanEmail.',
+                                const Text(
+                                  'Communique cet identifiant au joueur. Il '
+                                  'choisira son mot de passe à sa première '
+                                  'connexion (« Première connexion ? » sur '
+                                  'l’écran d’accueil).',
                                 ),
                                 const SizedBox(height: 12),
-                                const Text(
-                                  'Après activation, le joueur doit ouvrir ce lien pour rattacher sa fiche :',
+                                SelectableText(
+                                  username,
+                                  style: Theme.of(resultContext)
+                                      .textTheme
+                                      .headlineSmall,
                                 ),
-                                const SizedBox(height: 8),
-                                SelectableText(link),
                               ],
                             ),
                             actions: [
                               TextButton.icon(
                                 onPressed: () async {
                                   await Clipboard.setData(
-                                    ClipboardData(text: link),
+                                    ClipboardData(text: username),
                                   );
                                 },
                                 icon: const Icon(Icons.copy),
-                                label: const Text('Copier le lien'),
+                                label: const Text('Copier'),
                               ),
                               FilledButton(
-                                onPressed: () => Navigator.pop(linkContext),
+                                onPressed: () => Navigator.pop(resultContext),
                                 child: const Text('Fermer'),
                               ),
                             ],
@@ -225,16 +215,15 @@ class AdminPage extends ConsumerWidget {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Envoyer l’invitation'),
+                  : const Text('Créer le compte'),
             ),
           ],
         ),
       ),
     );
 
-    email.dispose();
     firstName.dispose();
-    lastName.dispose();
+    lastInitial.dispose();
     nickname.dispose();
   }
 }
@@ -339,7 +328,17 @@ class _ProfileCard extends ConsumerWidget {
               profile.displayName,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (profile.email.trim().isNotEmpty) Text(profile.email),
+            if (profile.username.trim().isNotEmpty)
+              Text('Identifiant : ${profile.username}'),
+            if (!profile.passwordSet)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Chip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: const Icon(Icons.hourglass_top, size: 16),
+                  label: const Text('En attente de 1re connexion'),
+                ),
+              ),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: profile.role,
@@ -397,6 +396,62 @@ class _ProfileCard extends ConsumerWidget {
                   ref.invalidate(adminDashboardProvider);
                 },
               ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () async {
+                  final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Réinitialiser le mot de passe ?'),
+                          content: Text(
+                            '${profile.displayName} devra refaire une '
+                            '« première connexion » et choisir un nouveau '
+                            'mot de passe.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: const Text('Annuler'),
+                            ),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, true),
+                              child: const Text('Réinitialiser'),
+                            ),
+                          ],
+                        ),
+                      ) ??
+                      false;
+                  if (!confirmed) return;
+                  try {
+                    await repository.resetAccountPassword(profile.id);
+                    ref.invalidate(adminDashboardProvider);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Mot de passe réinitialisé : ${profile.username} '
+                            'doit refaire sa première connexion.',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('La réinitialisation a échoué.'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.lock_reset, size: 18),
+                label: const Text('Réinitialiser le mot de passe'),
+              ),
+            ),
           ],
         ),
       ),

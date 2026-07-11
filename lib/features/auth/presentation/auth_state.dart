@@ -76,28 +76,45 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> signIn({required String email, required String password}) async {
+  Future<void> signIn({
+    required String username,
+    required String password,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repository.signInWithPassword(email: email, password: password);
+      await _repository.signInWithUsername(
+        username: username,
+        password: password,
+      );
       await _refreshProfile();
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Connexion impossible. Vérifie ton email et ton mot de passe.',
+        error:
+            'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
       );
     }
   }
 
-  Future<void> resetPassword({required String email}) async {
+  /// Première connexion : active le compte invité puis connecte le joueur.
+  Future<void> claimAndSignIn({
+    required String username,
+    required String password,
+  }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repository.resetPassword(email: email);
-      state = state.copyWith(isLoading: false, clearError: true);
+      await _repository.claimAccount(username: username, password: password);
+      await _repository.signInWithUsername(
+        username: username,
+        password: password,
+      );
+      await _refreshProfile();
+    } on StateError catch (error) {
+      state = state.copyWith(isLoading: false, error: error.message);
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Le lien de réinitialisation n’a pas pu être envoyé.',
+        error: 'L’activation du compte a échoué.',
       );
     }
   }

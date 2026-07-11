@@ -12,15 +12,40 @@ class AuthRepository {
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
-  Future<void> signInWithPassword({
-    required String email,
+  /// Domaine technique : l'identifiant (prénom + initiale) sert de partie
+  /// locale à une adresse jamais montrée aux utilisateurs.
+  static const usernameDomain = 'pronos.as-grinta.local';
+
+  static String usernameToEmail(String username) =>
+      '${username.trim().toLowerCase()}@$usernameDomain';
+
+  Future<void> signInWithUsername({
+    required String username,
     required String password,
   }) async {
-    await _client.auth.signInWithPassword(email: email, password: password);
+    await _client.auth.signInWithPassword(
+      email: usernameToEmail(username),
+      password: password,
+    );
   }
 
-  Future<void> resetPassword({required String email}) async {
-    await _client.auth.resetPasswordForEmail(email);
+  /// Première connexion d'un compte invité : le joueur choisit son mot de
+  /// passe via l'Edge Function claim-account (appelée sans session).
+  Future<void> claimAccount({
+    required String username,
+    required String password,
+  }) async {
+    final response = await _client.functions.invoke(
+      'claim-account',
+      body: {
+        'username': username.trim().toLowerCase(),
+        'password': password,
+      },
+    );
+    final data = response.data;
+    if (data is Map && data['activated'] == true) return;
+    final message = data is Map ? data['error']?.toString() : null;
+    throw StateError(message ?? 'L’activation du compte a échoué.');
   }
 
   Future<void> updatePassword(String password) async {
@@ -43,14 +68,14 @@ class AuthRepository {
     final response = await _client
         .from('profiles')
         .select(
-          'id,first_name,last_name,surnom,photo_url,role,is_goalkeeper,status,created_at,updated_at',
+          'id,first_name,last_name,surnom,username,photo_url,role,is_goalkeeper,status,created_at,updated_at',
         )
         .eq('id', user.id)
         .maybeSingle();
     if (response == null) return null;
 
     final data = Map<String, dynamic>.from(response);
-    data['email'] = user.email ?? '';
+    data['email'] = (data['username'] ?? '').toString();
     return AuthProfile.fromJson(data);
   }
 

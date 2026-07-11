@@ -46,7 +46,7 @@ class NotificationsRepository {
           DateTime.now();
       final home = row['location'] == 'domicile';
 
-      if (preferences.matchReminders) {
+      if (preferences.predictionOpen) {
         reminders.add(
           AppNotificationItem(
             id: 'match-$matchId',

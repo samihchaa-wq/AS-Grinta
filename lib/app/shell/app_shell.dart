@@ -45,7 +45,7 @@ class AppShell extends ConsumerWidget {
       '/more',
       '/profile',
       '/notifications',
-      '/settings',
+      '/faq',
       '/admin',
       '/players',
     };

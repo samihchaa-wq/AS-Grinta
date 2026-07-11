@@ -19,15 +19,11 @@ class MorePage extends ConsumerWidget {
         children: [
           Card(
             child: ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Mon profil'),
-              subtitle: Text(
-                profile?.fullName.isNotEmpty == true
-                    ? profile!.fullName
-                    : 'Informations du compte',
-              ),
+              leading: const Icon(Icons.help_outline),
+              title: const Text('FAQ'),
+              subtitle: const Text('Les réponses aux questions fréquentes'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/profile'),
+              onTap: () => context.push('/faq'),
             ),
           ),
           const SizedBox(height: 10),
@@ -35,7 +31,8 @@ class MorePage extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.notifications_none_outlined),
               title: const Text('Notifications'),
-              subtitle: const Text('Matchs à venir et rappels de pronostics'),
+              subtitle:
+                  const Text('Choisis quand tu veux être prévenu'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/notifications'),
             ),
@@ -43,11 +40,15 @@ class MorePage extends ConsumerWidget {
           const SizedBox(height: 10),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('Paramètres'),
-              subtitle: const Text('Préférences et synchronisation'),
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Profil'),
+              subtitle: Text(
+                profile?.displayName.isNotEmpty == true
+                    ? profile!.displayName
+                    : 'Surnom, photo et mot de passe',
+              ),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/settings'),
+              onTap: () => context.push('/profile'),
             ),
           ),
           if (isStaff) ...[

@@ -102,7 +102,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     Text('Nom affiché : ${profile.displayName}'),
                   ],
                   const SizedBox(height: 8),
-                  if (profile?.email != null) Text(profile!.email!),
+                  if ((profile?.email ?? '').isNotEmpty)
+                    Text('Identifiant : ${profile!.email!}'),
                   Text('Rôle : ${profile?.role.label ?? 'inconnu'}'),
                   Text(
                     'Statut : ${profile?.isActive == true ? 'Actif' : 'Inactif'}',

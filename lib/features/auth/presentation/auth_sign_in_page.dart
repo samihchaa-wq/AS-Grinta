@@ -1,7 +1,6 @@
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class AuthSignInPage extends ConsumerStatefulWidget {
   const AuthSignInPage({super.key});
@@ -11,23 +10,55 @@ class AuthSignInPage extends ConsumerStatefulWidget {
 }
 
 class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
   bool _obscurePassword = true;
+  bool _firstConnection = false;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  String _forgotPasswordPath() {
-    final redirect = GoRouterState.of(context).uri.queryParameters['redirect'];
-    if (redirect == null || redirect.isEmpty) {
-      return '/auth/forgot-password';
+  Future<void> _submit() async {
+    final username = _usernameController.text.trim().toLowerCase();
+    final password = _passwordController.text;
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Renseigne ton identifiant et ton mot de passe.'),
+        ),
+      );
+      return;
     }
-    return '/auth/forgot-password?redirect=${Uri.encodeComponent(redirect)}';
+
+    final controller = ref.read(authControllerProvider.notifier);
+    if (_firstConnection) {
+      if (password.length < 8) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Le mot de passe doit contenir au moins 8 caractères.'),
+          ),
+        );
+        return;
+      }
+      if (password != _confirmController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Les deux mots de passe ne correspondent pas.'),
+          ),
+        );
+        return;
+      }
+      await controller.claimAndSignIn(username: username, password: password);
+    } else {
+      await controller.signIn(username: username, password: password);
+    }
   }
 
   @override
@@ -60,23 +91,27 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Rebonjour',
+                        _firstConnection ? 'Bienvenue !' : 'Rebonjour',
                         style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Accédez à votre espace AS Grinta.',
+                        _firstConnection
+                            ? 'Active ton compte : entre l’identifiant donné '
+                                'par Samih et choisis ton mot de passe.'
+                            : 'Accède à ton espace AS Grinta.',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
                       TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
+                        controller: _usernameController,
+                        autocorrect: false,
                         decoration: const InputDecoration(
-                          labelText: 'Email',
-                          prefixIcon: Icon(Icons.email_outlined),
+                          labelText: 'Identifiant',
+                          hintText: 'prénom + initiale du nom, ex. samihc',
+                          prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -84,7 +119,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
-                          labelText: 'Mot de passe',
+                          labelText: _firstConnection
+                              ? 'Choisis ton mot de passe'
+                              : 'Mot de passe',
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -100,29 +137,49 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                           ),
                         ),
                       ),
+                      if (_firstConnection) ...[
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _confirmController,
+                          obscureText: _obscurePassword,
+                          decoration: const InputDecoration(
+                            labelText: 'Confirme ton mot de passe',
+                            prefixIcon: Icon(Icons.lock_outline),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: authState.isLoading
-                            ? null
-                            : () async {
-                                await ref
-                                    .read(authControllerProvider.notifier)
-                                    .signIn(
-                                      email: _emailController.text.trim(),
-                                      password: _passwordController.text,
-                                    );
-                              },
-                        icon: const Icon(Icons.login_rounded),
-                        label: const Text('Se connecter'),
+                        onPressed: authState.isLoading ? null : _submit,
+                        icon: Icon(
+                          _firstConnection
+                              ? Icons.rocket_launch_outlined
+                              : Icons.login_rounded,
+                        ),
+                        label: Text(
+                          _firstConnection
+                              ? 'Activer mon compte'
+                              : 'Se connecter',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextButton(
-                        onPressed: () => context.go(_forgotPasswordPath()),
-                        child: const Text('Mot de passe oublié ?'),
+                        onPressed: () => setState(
+                          () => _firstConnection = !_firstConnection,
+                        ),
+                        child: Text(
+                          _firstConnection
+                              ? 'J’ai déjà un compte — se connecter'
+                              : 'Première connexion ? Active ton compte',
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Les comptes sont créés uniquement sur invitation d’un administrateur ou d’un modérateur.',
+                        _firstConnection
+                            ? 'Ton identifiant t’a été communiqué par Samih.'
+                            : 'Mot de passe oublié ? Demande à Samih de le '
+                                'réinitialiser, puis refais une première '
+                                'connexion.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

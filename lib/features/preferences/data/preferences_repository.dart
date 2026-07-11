@@ -4,20 +4,29 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppPreferences {
   const AppPreferences({
-    required this.matchReminders,
+    required this.predictionOpen,
     required this.predictionReminders,
+    required this.matchReminders,
   });
 
-  final bool matchReminders;
+  /// Prévenir quand un pronostic est ouvert (nouveau match).
+  final bool predictionOpen;
+
+  /// Prévenir 2 h avant le match si le pronostic n'est pas rempli.
   final bool predictionReminders;
 
+  /// Prévenir quand le match est fini (points + pronostics des autres).
+  final bool matchReminders;
+
   AppPreferences copyWith({
-    bool? matchReminders,
+    bool? predictionOpen,
     bool? predictionReminders,
+    bool? matchReminders,
   }) {
     return AppPreferences(
-      matchReminders: matchReminders ?? this.matchReminders,
+      predictionOpen: predictionOpen ?? this.predictionOpen,
       predictionReminders: predictionReminders ?? this.predictionReminders,
+      matchReminders: matchReminders ?? this.matchReminders,
     );
   }
 }
@@ -33,13 +42,16 @@ class PreferencesRepository {
 
     final row = await _client
         .from('profiles')
-        .select('notify_match_reminders,notify_prediction_reminders')
+        .select(
+          'notify_prediction_open,notify_prediction_reminders,notify_match_reminders',
+        )
         .eq('id', userId)
         .single();
 
     return AppPreferences(
-      matchReminders: row['notify_match_reminders'] != false,
+      predictionOpen: row['notify_prediction_open'] != false,
       predictionReminders: row['notify_prediction_reminders'] != false,
+      matchReminders: row['notify_match_reminders'] != false,
     );
   }
 
@@ -47,8 +59,9 @@ class PreferencesRepository {
     final result = await _client.rpc(
       'update_my_app_preferences',
       params: {
-        'p_notify_match_reminders': preferences.matchReminders,
+        'p_notify_prediction_open': preferences.predictionOpen,
         'p_notify_prediction_reminders': preferences.predictionReminders,
+        'p_notify_match_reminders': preferences.matchReminders,
       },
     );
     if (result != true) {
