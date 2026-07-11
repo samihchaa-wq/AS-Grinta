@@ -62,19 +62,14 @@ class MatchesRepository {
   }
 
   Future<String> createOpponent(String name) async {
-    final existing = await _client
-        .from('opponents')
-        .select('id')
-        .ilike('name', name)
-        .maybeSingle();
-    if (existing != null) return existing['id'].toString();
-
-    final response = await _client
-        .from('opponents')
-        .insert({'name': name})
-        .select('id')
-        .single();
-    return response['id'].toString();
+    final result = await _client.rpc(
+      'get_or_create_opponent',
+      params: {'p_name': name.trim()},
+    );
+    if (result == null || result.toString().isEmpty) {
+      throw StateError('L’adversaire n’a pas pu être créé.');
+    }
+    return result.toString();
   }
 
   Future<void> createMatch({
