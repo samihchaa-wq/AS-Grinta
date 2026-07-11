@@ -17,7 +17,6 @@ class MatchFormPage extends ConsumerStatefulWidget {
 
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _competitionController = TextEditingController();
   final _timeController = TextEditingController();
   final _oddsWinController = TextEditingController();
   final _oddsDrawController = TextEditingController();
@@ -61,7 +60,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _competitionController.text = match?.competition ?? 'Championnat';
     _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _timeController.text = _formatTime(_kickoffAt);
@@ -76,7 +74,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   @override
   void dispose() {
-    _competitionController.dispose();
     _timeController.dispose();
     _oddsWinController.dispose();
     _oddsDrawController.dispose();
@@ -168,16 +165,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               ],
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _competitionController,
-              decoration: const InputDecoration(
-                labelText: 'Championnat / compétition',
-              ),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Renseignez la compétition'
-                  : null,
-            ),
-            const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Date'),
@@ -227,13 +214,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     label: const Text('Recalculer'),
                   ),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Suggérées d’après la forme du moment : les 4 derniers matchs '
-              'pèsent 40, 30, 20 et 10 %. Tu peux les ajuster avant '
-              'd’enregistrer.',
-              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
             Row(
@@ -387,7 +367,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         opponentId: _opponentId,
         kickoffAt: _kickoffAt,
         isHome: _isHome,
-        competition: _competitionController.text.trim(),
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
@@ -399,7 +378,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         opponentId: _opponentId,
         kickoffAt: _kickoffAt,
         isHome: _isHome,
-        competition: _competitionController.text.trim(),
         status: widget.match!.status,
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,

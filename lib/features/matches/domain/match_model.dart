@@ -5,7 +5,6 @@ class MatchModel {
     required this.opponentId,
     required this.kickoffAt,
     required this.isHome,
-    required this.competition,
     required this.plannedDurationMinutes,
     required this.status,
     required this.grintaScore,
@@ -25,7 +24,6 @@ class MatchModel {
   final String opponentId;
   final DateTime kickoffAt;
   final bool isHome;
-  final String competition;
   final int plannedDurationMinutes;
   final String status;
   final int? grintaScore;
@@ -71,7 +69,6 @@ class MatchModel {
       opponentId: json['opponent_id']?.toString() ?? '',
       kickoffAt: kickoffAt,
       isHome: json['location'] == 'domicile',
-      competition: (json['competition'] ?? 'Championnat').toString(),
       plannedDurationMinutes:
           int.tryParse('${json['planned_duration_minutes']}') ?? 90,
       status: (json['status'] ?? 'a_venir').toString(),

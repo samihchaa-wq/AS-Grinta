@@ -53,7 +53,6 @@ class MatchDetailsData {
     required this.opponentName,
     required this.kickoffAt,
     required this.status,
-    required this.competition,
     required this.location,
     required this.scoreGrinta,
     required this.scoreOpponent,
@@ -73,7 +72,6 @@ class MatchDetailsData {
   final String opponentName;
   final DateTime kickoffAt;
   final String status;
-  final String competition;
   final String location;
   final int? scoreGrinta;
   final int? scoreOpponent;
@@ -97,7 +95,7 @@ class MatchDetailsRepository {
 
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client.from('matches').select('''
-      id, opponent_id, match_date, match_time, status, competition, location,
+      id, opponent_id, match_date, match_time, status, location,
       score_as_grinta, score_adverse, opponents(name),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
     ''').eq('id', matchId).single();
@@ -234,7 +232,6 @@ class MatchDetailsRepository {
       opponentName: opponent['name']?.toString() ?? 'Adversaire',
       kickoffAt: kickoffAt,
       status: status,
-      competition: (match['competition'] ?? 'Championnat').toString(),
       location: (match['location'] ?? 'domicile').toString(),
       scoreGrinta: match['score_as_grinta'] == null
           ? null

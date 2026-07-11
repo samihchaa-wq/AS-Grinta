@@ -148,7 +148,6 @@ class _MatchCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(match.competition),
               Text(_formatKickoff(match.kickoffAt)),
               const SizedBox(height: 12),
               Wrap(

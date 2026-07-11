@@ -119,7 +119,6 @@ class MatchesController extends StateNotifier<MatchesState> {
     required String opponentId,
     required DateTime kickoffAt,
     required bool isHome,
-    required String competition,
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
@@ -128,10 +127,10 @@ class MatchesController extends StateNotifier<MatchesState> {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
       return;
     }
-    if (seasonId.isEmpty || opponentId.isEmpty || competition.trim().isEmpty) {
+    if (seasonId.isEmpty || opponentId.isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Saison, adversaire et compétition sont obligatoires.',
+        error: 'Saison et adversaire sont obligatoires.',
       );
       return;
     }
@@ -149,7 +148,6 @@ class MatchesController extends StateNotifier<MatchesState> {
         opponentId: opponentId,
         kickoffAt: kickoffAt,
         isHome: isHome,
-        competition: competition,
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
@@ -166,7 +164,6 @@ class MatchesController extends StateNotifier<MatchesState> {
     required String opponentId,
     required DateTime kickoffAt,
     required bool isHome,
-    required String competition,
     required String status,
     required double oddsWin,
     required double oddsDraw,
@@ -176,13 +173,10 @@ class MatchesController extends StateNotifier<MatchesState> {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
       return;
     }
-    if (id.isEmpty ||
-        seasonId.isEmpty ||
-        opponentId.isEmpty ||
-        competition.trim().isEmpty) {
+    if (id.isEmpty || seasonId.isEmpty || opponentId.isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Match, saison, adversaire et compétition sont obligatoires.',
+        error: 'Match, saison et adversaire sont obligatoires.',
       );
       return;
     }
@@ -201,7 +195,6 @@ class MatchesController extends StateNotifier<MatchesState> {
         opponentId: opponentId,
         kickoffAt: kickoffAt,
         isHome: isHome,
-        competition: competition,
         status: status,
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
