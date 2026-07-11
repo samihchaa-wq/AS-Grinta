@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_controller.dart';
@@ -89,7 +90,12 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
       appBar: AppBar(title: const Text('Feuille de match')),
       body: contextAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(humanizeError(error), textAlign: TextAlign.center),
+          ),
+        ),
         data: (sheet) {
           _prefillFrom(sheet);
           for (final player in sheet.players) {

@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         clearError: true,
       );
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
 
@@ -109,7 +110,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load();
       return id;
     } catch (error) {
-      state = state.copyWith(error: error.toString());
+      state = state.copyWith(error: humanizeError(error));
       return null;
     }
   }
@@ -154,7 +155,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       await load(seasonId: state.selectedSeasonId);
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
 
@@ -202,7 +203,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       await load(seasonId: state.selectedSeasonId);
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
 
@@ -220,7 +221,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await _repository.updateMatchStatus(id: id, status: 'archive');
       await load(seasonId: state.selectedSeasonId);
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
 
@@ -234,7 +235,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await _repository.deleteMatch(id);
       await load(seasonId: state.selectedSeasonId);
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
 }

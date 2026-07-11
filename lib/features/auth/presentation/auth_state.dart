@@ -65,7 +65,8 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           isAuthenticated: false,
           clearProfile: true,
-          error: 'Ce compte doit être activé par un administrateur.',
+          error: 'Ton compte doit être validé par Samih avant de pouvoir '
+              'te connecter.',
         );
       }
     } catch (_) {

@@ -79,7 +79,10 @@ class MatchFinalizationRepository {
         .from('matches')
         .select('season_id,status,score_adverse')
         .eq('id', matchId)
-        .single();
+        .maybeSingle();
+    if (match == null) {
+      throw StateError('Ce match est introuvable ou a été supprimé.');
+    }
     final seasonId = match['season_id'].toString();
     final status = (match['status'] ?? 'a_venir').toString();
     final isValidated = status == 'termine' || status == 'archive';

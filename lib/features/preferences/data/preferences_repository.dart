@@ -4,9 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppPreferences {
   const AppPreferences({
-    required this.predictionOpen,
-    required this.predictionReminders,
-    required this.matchReminders,
+    this.predictionOpen = true,
+    this.predictionReminders = true,
+    this.matchReminders = true,
   });
 
   /// Prévenir quand un pronostic est ouvert (nouveau match).
@@ -46,7 +46,11 @@ class PreferencesRepository {
           'notify_prediction_open,notify_prediction_reminders,notify_match_reminders',
         )
         .eq('id', userId)
-        .single();
+        .maybeSingle();
+
+    // Profil introuvable (compte supprimé pendant la session) : on retombe
+    // sur les préférences par défaut plutôt que de planter.
+    if (row == null) return const AppPreferences();
 
     return AppPreferences(
       predictionOpen: row['notify_prediction_open'] != false,

@@ -186,7 +186,10 @@ class PredictionsRepository {
         .from('matches')
         .select('match_date, match_time, status')
         .eq('id', matchId)
-        .single();
+        .maybeSingle();
+    if (match == null) {
+      throw StateError('Ce match est introuvable ou a été supprimé.');
+    }
     final kickoffAt = DateTime.tryParse(
       '${match['match_date']}T${match['match_time']}',
     );

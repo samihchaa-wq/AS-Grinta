@@ -1,7 +1,5 @@
 enum AuthRole { pronostiqueur, admin, moderateur }
 
-enum ProfileStatus { active, archived }
-
 extension AuthRoleX on AuthRole {
   String get label {
     switch (this) {
@@ -23,7 +21,7 @@ extension AuthRoleX on AuthRole {
 class AuthProfile {
   const AuthProfile({
     this.id,
-    this.email,
+    this.username,
     required this.firstName,
     required this.lastName,
     this.surnom,
@@ -36,7 +34,7 @@ class AuthProfile {
   });
 
   final String? id;
-  final String? email;
+  final String? username;
   final String firstName;
   final String lastName;
   final String? surnom;
@@ -58,8 +56,6 @@ class AuthProfile {
   }
 
   String? get photoUrl => avatarPath;
-  ProfileStatus get status =>
-      isActive ? ProfileStatus.active : ProfileStatus.archived;
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
     final roleValue =
@@ -74,7 +70,7 @@ class AuthProfile {
 
     return AuthProfile(
       id: json['id']?.toString(),
-      email: json['email']?.toString(),
+      username: json['username']?.toString(),
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
       surnom: json['surnom']?.toString(),

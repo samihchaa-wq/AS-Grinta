@@ -103,9 +103,7 @@ class AuthRepository {
         .maybeSingle();
     if (response == null) return null;
 
-    final data = Map<String, dynamic>.from(response);
-    data['email'] = (data['username'] ?? '').toString();
-    return AuthProfile.fromJson(data);
+    return AuthProfile.fromJson(Map<String, dynamic>.from(response));
   }
 
   Future<String> uploadAvatar(Uint8List jpegBytes) async {

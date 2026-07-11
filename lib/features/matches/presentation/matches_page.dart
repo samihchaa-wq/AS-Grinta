@@ -96,10 +96,10 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
               ...state.matches.map(
                 (match) => _MatchCard(
                   match: match,
-                  canDelete: isModerator,
                   canEdit: canManage && !match.isArchived,
                   canFinalize: isAdmin && !match.isArchived,
                   canArchive: isAdmin && match.isFinished && !match.isArchived,
+                  canDelete: canManage,
                 ),
               ),
           ],
@@ -217,9 +217,40 @@ class _MatchCard extends StatelessWidget {
                     ),
                   if (canDelete)
                     OutlinedButton.icon(
-                      onPressed: () => ProviderScope.containerOf(context)
-                          .read(matchesControllerProvider.notifier)
-                          .deleteMatch(match.id),
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: const Text('Supprimer ce match ?'),
+                                content: const Text(
+                                  'Le match, ses pronostics et ses '
+                                  'statistiques seront définitivement '
+                                  'supprimés. Cette action est irréversible.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, false),
+                                    child: const Text('Annuler'),
+                                  ),
+                                  FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.error,
+                                    ),
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, true),
+                                    child: const Text('Supprimer'),
+                                  ),
+                                ],
+                              ),
+                            ) ??
+                            false;
+                        if (!confirmed || !context.mounted) return;
+                        await ProviderScope.containerOf(context)
+                            .read(matchesControllerProvider.notifier)
+                            .deleteMatch(match.id);
+                      },
                       icon: const Icon(Icons.delete_outline),
                       label: const Text('Supprimer'),
                     ),

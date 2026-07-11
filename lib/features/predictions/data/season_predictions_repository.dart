@@ -69,9 +69,9 @@ class SeasonPredictionsRepository {
         .from('profiles')
         .select('first_name,surnom')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
     final predictorName = _displayName(
-      Map<String, dynamic>.from(profile),
+      Map<String, dynamic>.from(profile ?? const {}),
       'Compte sans nom',
     );
 

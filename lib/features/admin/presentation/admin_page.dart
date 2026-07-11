@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -380,20 +381,28 @@ class _ProfileCard extends ConsumerWidget {
                     const SizedBox(width: 10),
                     FilledButton.icon(
                       onPressed: () async {
-                        await repository.updateProfileStatus(
-                          profile.id,
-                          'active',
-                        );
-                        ref.invalidate(adminDashboardProvider);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${profile.displayName} peut maintenant '
-                                'se connecter et pronostiquer.',
-                              ),
-                            ),
+                        try {
+                          await repository.updateProfileStatus(
+                            profile.id,
+                            'active',
                           );
+                          ref.invalidate(adminDashboardProvider);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '${profile.displayName} peut maintenant '
+                                  'se connecter et pronostiquer.',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (error) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(humanizeError(error))),
+                            );
+                          }
                         }
                       },
                       icon: const Icon(Icons.check_circle_outline, size: 18),
@@ -419,8 +428,47 @@ class _ProfileCard extends ConsumerWidget {
               ],
               onChanged: (value) async {
                 if (value == null || value == profile.role) return;
-                await repository.updateProfileRole(profile.id, value);
-                ref.invalidate(adminDashboardProvider);
+                // Confirmation lors d'une élévation de privilèges : accorder
+                // les droits staff est une action sensible.
+                if (value == 'admin' || value == 'moderateur') {
+                  final roleLabel =
+                      value == 'admin' ? 'administrateur' : 'modérateur';
+                  final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Accorder des droits ?'),
+                          content: Text(
+                            'Donner le rôle « $roleLabel » à '
+                            '${profile.displayName} lui ouvre l’accès à '
+                            'l’administration. Continuer ?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: const Text('Annuler'),
+                            ),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, true),
+                              child: const Text('Confirmer'),
+                            ),
+                          ],
+                        ),
+                      ) ??
+                      false;
+                  if (!confirmed) return;
+                }
+                try {
+                  await repository.updateProfileRole(profile.id, value);
+                  ref.invalidate(adminDashboardProvider);
+                } catch (error) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(humanizeError(error))),
+                    );
+                  }
+                }
               },
             ),
             const SizedBox(height: 8),

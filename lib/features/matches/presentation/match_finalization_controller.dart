@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
@@ -151,7 +152,7 @@ class MatchFinalizationController
       state = state.copyWith(isLoading: false, clearError: true);
       return true;
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: error.toString());
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
       return false;
     }
   }

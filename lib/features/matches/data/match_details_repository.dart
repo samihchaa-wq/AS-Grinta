@@ -98,7 +98,10 @@ class MatchDetailsRepository {
       id, opponent_id, match_date, match_time, status, location,
       score_as_grinta, score_adverse, opponents(name),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
-    ''').eq('id', matchId).single();
+    ''').eq('id', matchId).maybeSingle();
+    if (match == null) {
+      throw StateError('Ce match est introuvable ou a été supprimé.');
+    }
     final opponentId = match['opponent_id'].toString();
     final opponent = Map<String, dynamic>.from(match['opponents'] as Map);
     final kickoffAt = DateTime.tryParse(

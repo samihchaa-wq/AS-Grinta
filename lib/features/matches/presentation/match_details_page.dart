@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -37,7 +38,7 @@ class MatchDetailsPage extends ConsumerWidget {
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: Text(error.toString()),
+                  child: Text(humanizeError(error)),
                 ),
               ),
             ],
