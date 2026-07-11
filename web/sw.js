@@ -1,4 +1,4 @@
-// Service worker AS Grinta : cache réseau-d'abord (jamais de bundle périmé)
+// Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
 // et réception des notifications push Web Push.
 const CACHE_NAME = 'as-grinta-v1';
 
@@ -54,7 +54,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'AS Grinta', {
+    self.registration.showNotification(data.title || 'Ma Petite Grinta', {
       body: data.body || '',
       icon: 'icons/Icon-192.png',
       badge: 'icons/Icon-192.png',

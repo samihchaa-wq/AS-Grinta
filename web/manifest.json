@@ -1,12 +1,12 @@
 {
-  "name": "AS Grinta",
-  "short_name": "AS Grinta",
+  "name": "Ma Petite Grinta",
+  "short_name": "MPG",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "background_color": "#0B1F17",
   "theme_color": "#0B1F17",
-  "description": "Application officielle AS Grinta",
+  "description": "Ma Petite Grinta — les pronos de l'AS Grinta",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [

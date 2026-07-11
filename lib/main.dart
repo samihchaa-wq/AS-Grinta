@@ -75,7 +75,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                         const Icon(Icons.error_outline, size: 48),
                         const SizedBox(height: 16),
                         const Text(
-                          'Impossible de démarrer AS Grinta',
+                          'Impossible de démarrer Ma Petite Grinta',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 22,
@@ -110,7 +110,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
-                    Text('Chargement de AS Grinta…'),
+                    Text('Chargement de Ma Petite Grinta…'),
                   ],
                 ),
               ),

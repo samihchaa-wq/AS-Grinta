@@ -1,4 +1,6 @@
-# AS Grinta
+# Ma Petite Grinta (MPG)
+
+L’application de pronostics de l’AS Grinta — un clin d’œil à Mon Petit Prono.
 
 Application mobile et web pour une équipe de football amateur.
 

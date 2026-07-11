@@ -91,7 +91,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        _firstConnection ? 'Bienvenue !' : 'Rebonjour',
+                        _firstConnection ? 'Bienvenue !' : 'Ma Petite Grinta',
                         style: Theme.of(context).textTheme.headlineMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -100,7 +100,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         _firstConnection
                             ? 'Active ton compte : entre l’identifiant donné '
                                 'par Samih et choisis ton mot de passe.'
-                            : 'Accède à ton espace AS Grinta.',
+                            : 'Le petit prono maison de l’AS Grinta.',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),

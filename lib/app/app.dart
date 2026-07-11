@@ -15,7 +15,7 @@ class AsGrintaApp extends ConsumerWidget {
     final isOnline = onlineAsync.valueOrNull ?? true;
 
     return MaterialApp.router(
-      title: 'AS Grinta',
+      title: 'Ma Petite Grinta',
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR')],
