@@ -496,7 +496,13 @@ class _OddsRow extends StatelessWidget {
   final dynamic item;
 
   String _format(double? value) =>
-      value == null ? '—' : value.toStringAsFixed(2).replaceAll('.', ',');
+      value == null
+      ? '—'
+      : value
+          .toStringAsFixed(2)
+          .replaceFirst(RegExp(r'0+\$'), '')
+          .replaceFirst(RegExp(r'\.\$'), '')
+          .replaceAll('.', ',');
 
   @override
   Widget build(BuildContext context) {

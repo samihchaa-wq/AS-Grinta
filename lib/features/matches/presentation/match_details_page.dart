@@ -210,7 +210,13 @@ class _UpcomingInformation extends StatelessWidget {
   }
 
   static String _format(double? value) =>
-      value == null ? '—' : value.toStringAsFixed(2).replaceAll('.', ',');
+      value == null
+      ? '—'
+      : value
+          .toStringAsFixed(2)
+          .replaceFirst(RegExp(r'0+\$'), '')
+          .replaceFirst(RegExp(r'\.\$'), '')
+          .replaceAll('.', ',');
 }
 
 class _MatchSummary extends StatelessWidget {

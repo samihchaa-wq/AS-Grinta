@@ -442,6 +442,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return '${two(value.hour)}:${two(value.minute)}';
   }
 
-  String _formatOdds(double value) =>
-      value.toStringAsFixed(2).replaceAll('.', ',');
+  String _formatOdds(double value) {
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    text = text.replaceFirst(RegExp(r'\.$'), '');
+    return text.replaceAll('.', ',');
+  }
 }
