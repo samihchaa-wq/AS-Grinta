@@ -101,6 +101,32 @@ class MatchesRepository {
     }
   }
 
+  /// Cotes suggérées par le modèle historique (V2.1) pour un adversaire et
+  /// un lieu donnés. Retourne null si le calcul échoue.
+  Future<({double win, double draw, double loss})?> previewMatchOdds({
+    required String opponentId,
+    required bool isHome,
+  }) async {
+    try {
+      final result = await _client.rpc(
+        'preview_match_odds',
+        params: {
+          'p_opponent_id': opponentId,
+          'p_location': isHome ? 'domicile' : 'exterieur',
+        },
+      );
+      if (result is! Map) return null;
+      final map = Map<String, dynamic>.from(result);
+      final win = (map['win'] as num?)?.toDouble();
+      final draw = (map['draw'] as num?)?.toDouble();
+      final loss = (map['loss'] as num?)?.toDouble();
+      if (win == null || draw == null || loss == null) return null;
+      return (win: win, draw: draw, loss: loss);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> updateMatch({
     required String id,
     required String seasonId,

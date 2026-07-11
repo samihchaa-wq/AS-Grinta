@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,32 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   late String _opponentId;
   late DateTime _kickoffAt;
   late bool _isHome;
+
+  /// Vrai dès que l'admin a modifié une cote à la main : les suggestions
+  /// automatiques n'écrasent alors plus sa saisie.
+  bool _oddsEdited = false;
+  bool _suggestingOdds = false;
+
+  Future<void> _suggestOdds({bool force = false}) async {
+    if (_opponentId.isEmpty) return;
+    if (widget.match != null && !force) return;
+    if (_oddsEdited && !force) return;
+
+    setState(() => _suggestingOdds = true);
+    final odds = await ref
+        .read(matchesRepositoryProvider)
+        .previewMatchOdds(opponentId: _opponentId, isHome: _isHome);
+    if (!mounted) return;
+    setState(() {
+      _suggestingOdds = false;
+      if (odds != null) {
+        _oddsWinController.text = _formatOdds(odds.win);
+        _oddsDrawController.text = _formatOdds(odds.draw);
+        _oddsLossController.text = _formatOdds(odds.loss);
+        if (force) _oddsEdited = false;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -123,8 +150,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                           ),
                         )
                         .toList(),
-                    onChanged: (value) =>
-                        setState(() => _opponentId = value ?? ''),
+                    onChanged: (value) {
+                      setState(() => _opponentId = value ?? '');
+                      _suggestOdds();
+                    },
                     validator: (value) => value == null || value.isEmpty
                         ? 'Sélectionnez un adversaire'
                         : null,
@@ -173,13 +202,37 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 DropdownMenuItem(value: true, child: Text('Domicile')),
                 DropdownMenuItem(value: false, child: Text('Extérieur')),
               ],
-              onChanged: (value) => setState(() => _isHome = value ?? true),
+              onChanged: (value) {
+                setState(() => _isHome = value ?? true);
+                _suggestOdds();
+              },
             ),
             const SizedBox(height: 20),
-            Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                if (_suggestingOdds)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: _opponentId.isEmpty
+                        ? null
+                        : () => _suggestOdds(force: true),
+                    icon: const Icon(Icons.auto_awesome, size: 18),
+                    label: const Text('Recalculer'),
+                  ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text(
-              'Les cotes sont actuellement saisies manuellement et enregistrées à deux décimales.',
+              'Suggérées automatiquement d’après l’historique des rencontres '
+              '(pondération des saisons, adversaire, domicile/extérieur). '
+              'Tu peux les ajuster avant d’enregistrer.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
@@ -228,6 +281,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       decoration: InputDecoration(labelText: label),
       validator: _validateOdds,
+      onChanged: (_) => _oddsEdited = true,
     );
   }
 
