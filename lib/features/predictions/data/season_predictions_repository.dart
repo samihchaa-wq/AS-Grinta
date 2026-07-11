@@ -83,7 +83,7 @@ class SeasonPredictionsRepository {
         .eq('season_id', seasonId);
     final predictions = await _client
         .from('season_predictions')
-        .select('player_profile_id,category,predicted_value_20,is_filled')
+        .select('player_profile_id,category,predicted_value_30,is_filled')
         .eq('season_id', seasonId)
         .eq('predictor_profile_id', userId);
 
@@ -113,7 +113,7 @@ class SeasonPredictionsRepository {
             playerId: playerId,
             playerName: playerName,
             category: category,
-            value: int.tryParse('${existing?['predicted_value_20'] ?? 0}') ?? 0,
+            value: int.tryParse('${existing?['predicted_value_30'] ?? 0}') ?? 0,
             isFilled: existing?['is_filled'] == true,
           ),
         );
@@ -130,7 +130,7 @@ class SeasonPredictionsRepository {
       predictor_profile_id,
       player_profile_id,
       category,
-      predicted_value_20,
+      predicted_value_30,
       is_filled,
       predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,surnom,status),
       player:profiles!season_predictions_player_profile_id_fkey(first_name,surnom,status)
@@ -152,7 +152,7 @@ class SeasonPredictionsRepository {
           playerId: map['player_profile_id'].toString(),
           playerName: _displayName(player, 'Joueur sans nom'),
           category: map['category'].toString(),
-          value: int.tryParse('${map['predicted_value_20']}') ?? 0,
+          value: int.tryParse('${map['predicted_value_30']}') ?? 0,
           isFilled: true,
         ),
       );
@@ -178,7 +178,7 @@ class SeasonPredictionsRepository {
         'predictor_profile_id': userId,
         'player_profile_id': item.playerId,
         'category': item.category,
-        'predicted_value_20': item.value,
+        'predicted_value_30': item.value,
         'is_filled': true,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
