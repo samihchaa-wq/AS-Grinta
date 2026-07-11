@@ -322,7 +322,8 @@ class _PlayerCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Le joueur active d’abord le compte reçu par email, puis ouvre ce lien pour rattacher sa fiche.',
+              'Envoie ce lien au joueur (WhatsApp, SMS…). Une fois connecté '
+              'avec son identifiant, il l’ouvre pour rattacher sa fiche.',
             ),
             const SizedBox(height: 12),
             SelectableText(link),
