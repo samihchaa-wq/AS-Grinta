@@ -159,7 +159,15 @@ class MatchesRepository {
   }
 
   Future<void> deleteMatch(String id) async {
-    await _client.from('matches').delete().eq('id', id);
+    final result = await _client.rpc(
+      'delete_match',
+      params: {'p_match_id': id},
+    );
+    if (result != true) {
+      throw StateError(
+        'Le match n’existe plus ou n’a pas pu être supprimé.',
+      );
+    }
   }
 
   Future<void> finalizeMatchPostgame({
