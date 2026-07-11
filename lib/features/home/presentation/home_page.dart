@@ -115,16 +115,10 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            gradient: const LinearGradient(
-              colors: [AppTheme.primary, Color(0xFF0FAE60)],
-            ),
-          ),
-          child: const Icon(Icons.sports_soccer_rounded, color: Colors.black),
+        Image.asset(
+          'assets/images/mpg_logo.png',
+          height: 54,
+          fit: BoxFit.contain,
         ),
         const SizedBox(width: 14),
         Expanded(
