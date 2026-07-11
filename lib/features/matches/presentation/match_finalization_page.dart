@@ -238,9 +238,16 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                 icon: const Icon(Icons.verified_outlined),
                 label: Text(
                   sheet.isValidated
-                      ? 'Corriger le résultat'
-                      : 'Valider le résultat',
+                      ? 'Corriger les statistiques'
+                      : 'Enregistrer les statistiques',
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'L’enregistrement publie le résultat et les points, mais '
+                'n’archive pas le match : tu peux corriger tant que tu '
+                'veux, puis archiver depuis l’onglet Matchs.',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
           );

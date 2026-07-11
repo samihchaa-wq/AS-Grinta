@@ -67,9 +67,12 @@ class HomePage extends ConsumerWidget {
                         data: (dashboard) => Column(
                           children: [
                             _NextMatchHero(dashboard: dashboard),
-                            if (dashboard.nextMatchId != null) ...[
-                              const SizedBox(height: 16),
-                              _RecentMeetingsCard(dashboard: dashboard),
+                            if (dashboard.nextMatchId != null &&
+                                dashboard.isUpcoming) ...[
+                              if (!dashboard.isAwaitingResult) ...[
+                                const SizedBox(height: 16),
+                                _RecentMeetingsCard(dashboard: dashboard),
+                              ],
                               const SizedBox(height: 16),
                               _InlinePrediction(
                                 participantCount:
@@ -176,6 +179,14 @@ class _NextMatchHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasMatch = dashboard.nextMatchId != null;
+    final badge = !hasMatch
+        ? 'PROCHAIN MATCH'
+        : dashboard.isValidated
+            ? 'DERNIER MATCH'
+            : dashboard.isAwaitingResult
+                ? 'EN ATTENTE DU RÉSULTAT'
+                : 'PROCHAIN MATCH';
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -197,9 +208,9 @@ class _NextMatchHero extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(999),
             ),
-            child: const Text(
-              'PROCHAIN MATCH',
-              style: TextStyle(
+            child: Text(
+              badge,
+              style: const TextStyle(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.7,
@@ -215,7 +226,11 @@ class _NextMatchHero extends StatelessWidget {
             )
           else ...[
             Text(
-              'AS GRINTA  vs  ${dashboard.nextOpponent ?? 'Adversaire'}',
+              dashboard.isValidated
+                  ? 'AS GRINTA ${dashboard.nextGrintaScore ?? 0} – '
+                      '${dashboard.nextOpponentScore ?? 0} '
+                      '${dashboard.nextOpponent ?? 'Adversaire'}'
+                  : 'AS GRINTA  vs  ${dashboard.nextOpponent ?? 'Adversaire'}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -240,6 +255,25 @@ class _NextMatchHero extends StatelessWidget {
                         ),
                   ),
                 ],
+              ),
+            ],
+            if (dashboard.isAwaitingResult) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Le résultat sera publié dès que la feuille de match '
+                'sera validée.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                    ),
+              ),
+            ],
+            if (dashboard.isValidated) ...[
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: () =>
+                    context.push('/matches/${dashboard.nextMatchId}'),
+                icon: const Icon(Icons.emoji_events_outlined),
+                label: const Text('Voir les points et les pronostics'),
               ),
             ],
           ],

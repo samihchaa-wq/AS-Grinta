@@ -98,7 +98,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   match: match,
                   canDelete: isModerator,
                   canEdit: canManage && !match.isArchived,
-                  canFinalize: isAdmin && !match.isFinished,
+                  canFinalize: isAdmin && !match.isArchived,
                   canArchive: isAdmin && match.isFinished && !match.isArchived,
                 ),
               ),
@@ -174,13 +174,44 @@ class _MatchCard extends StatelessWidget {
                       onPressed: () =>
                           context.push('/matches/${match.id}/finalize'),
                       icon: const Icon(Icons.fact_check_outlined),
-                      label: const Text('Saisir les statistiques'),
+                      label: Text(
+                        match.isFinished
+                            ? 'Corriger les statistiques'
+                            : 'Saisir les statistiques',
+                      ),
                     ),
                   if (canArchive)
                     OutlinedButton.icon(
-                      onPressed: () => ProviderScope.containerOf(context)
-                          .read(matchesControllerProvider.notifier)
-                          .archiveMatch(match.id),
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: const Text('Archiver ce match ?'),
+                                content: const Text(
+                                  'Le match disparaîtra de l’accueil des '
+                                  'pronostiqueurs et restera consultable ici '
+                                  'avec le statut « Archivé ».',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, false),
+                                    child: const Text('Annuler'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext, true),
+                                    child: const Text('Archiver'),
+                                  ),
+                                ],
+                              ),
+                            ) ??
+                            false;
+                        if (!confirmed || !context.mounted) return;
+                        await ProviderScope.containerOf(context)
+                            .read(matchesControllerProvider.notifier)
+                            .archiveMatch(match.id);
+                      },
                       icon: const Icon(Icons.archive_outlined),
                       label: const Text('Archiver'),
                     ),

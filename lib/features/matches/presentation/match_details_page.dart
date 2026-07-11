@@ -179,7 +179,15 @@ class _MatchHeader extends StatelessWidget {
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
             Text(details.location == 'domicile' ? 'Domicile' : 'Extérieur'),
-            Text(details.isValidated ? 'Match validé' : 'À venir'),
+            Text(
+              details.status == 'archive'
+                  ? 'Archivé'
+                  : details.isValidated
+                      ? 'Terminé'
+                      : DateTime.now().isAfter(details.kickoffAt)
+                          ? 'En attente du résultat'
+                          : 'À venir',
+            ),
           ],
         ),
       ),

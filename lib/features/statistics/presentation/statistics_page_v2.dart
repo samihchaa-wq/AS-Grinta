@@ -89,8 +89,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _RankingSection(
-                  title: 'Top 5 Buteurs',
-                  fullTitle: 'Classement des buteurs',
+                  title: 'Classement buteurs',
                   icon: Icons.sports_soccer_rounded,
                   fullRanking: topGoals.where((p) => p.goals > 0).toList(),
                   value: (p) => p.goals,
@@ -98,8 +97,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 _RankingSection(
-                  title: 'Top 5 Passeurs décisifs',
-                  fullTitle: 'Classement des passeurs décisifs',
+                  title: 'Classement passeurs décisifs',
                   icon: Icons.swap_calls_rounded,
                   fullRanking:
                       topAssists.where((p) => p.assists > 0).toList(),
@@ -108,8 +106,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 _RankingSection(
-                  title: 'Top 5 Fautes provoquant un penalty',
-                  fullTitle: 'Classement des fautes provoquant un penalty',
+                  title: 'Classement fautes provoquant un penalty',
                   icon: Icons.warning_amber_rounded,
                   fullRanking: topPenaltyFaults
                       .where((p) => p.penaltyFaults > 0)
@@ -119,36 +116,24 @@ class StatisticsPageV2 extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 _RankingSection(
-                  title: 'Top 5 Hommes du match',
-                  fullTitle: 'Classement des hommes du match',
+                  title: 'Classement hommes du match',
                   icon: Icons.emoji_events_rounded,
                   fullRanking: topMotm.where((p) => p.motm > 0).toList(),
                   value: (p) => p.motm,
                   unit: 'HDM',
                 ),
                 const SizedBox(height: 24),
-                const _SectionTitle(
+                // Seule exception à la règle « un joueur à 0 n'apparaît
+                // pas » : les gardiens restent visibles ici, même sans
+                // clean sheet.
+                _RankingSection(
+                  title: 'Classement clean sheets',
                   icon: Icons.shield_outlined,
-                  label: 'Clean sheets gardiens',
+                  fullRanking: goalkeepers,
+                  value: (p) => p.cleanSheets,
+                  unit: 'clean sheet',
+                  emptyLabel: 'Aucun gardien enregistré.',
                 ),
-                const SizedBox(height: 8),
-                if (goalkeepers.isEmpty)
-                  const Text('Aucun gardien enregistré.')
-                else
-                  ...goalkeepers.map(
-                    (player) => Card(
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.sports_handball),
-                        ),
-                        title: Text(player.displayName),
-                        subtitle: Text(
-                          '${player.matches} match${player.matches > 1 ? 's' : ''}',
-                        ),
-                        trailing: _Badge(label: 'CS', value: player.cleanSheets),
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: 24),
                 const _SectionTitle(
                   icon: Icons.bar_chart_rounded,
@@ -165,39 +150,51 @@ class StatisticsPageV2 extends ConsumerWidget {
   }
 }
 
-class _RankingSection extends StatelessWidget {
+class _RankingSection extends StatefulWidget {
   const _RankingSection({
     required this.title,
-    required this.fullTitle,
     required this.icon,
     required this.fullRanking,
     required this.value,
     required this.unit,
+    this.emptyLabel = 'Aucune donnée enregistrée.',
   });
 
   final String title;
-  final String fullTitle;
   final IconData icon;
   final List<PlayerStatistics> fullRanking;
   final int Function(PlayerStatistics) value;
   final String unit;
+  final String emptyLabel;
 
-  String _line(PlayerStatistics player) =>
-      '${value(player)} $unit${value(player) > 1 && unit != 'HDM' ? 's' : ''}';
+  @override
+  State<_RankingSection> createState() => _RankingSectionState();
+}
+
+class _RankingSectionState extends State<_RankingSection> {
+  bool _expanded = false;
+
+  String _line(PlayerStatistics player) {
+    final count = widget.value(player);
+    final plural = count > 1 && !widget.unit.endsWith('HDM') ? 's' : '';
+    return '$count ${widget.unit}$plural';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final top = fullRanking.take(5).toList();
+    final visible =
+        _expanded ? widget.fullRanking : widget.fullRanking.take(5).toList();
+    final hasMore = widget.fullRanking.length > 5;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(icon: icon, label: title),
+        _SectionTitle(icon: widget.icon, label: widget.title),
         const SizedBox(height: 8),
-        if (top.isEmpty)
-          const Text('Aucune donnée enregistrée.')
+        if (visible.isEmpty)
+          Text(widget.emptyLabel)
         else ...[
-          ...top.indexed.map(
+          ...visible.indexed.map(
             (entry) => Card(
               child: ListTile(
                 leading: CircleAvatar(child: Text('${entry.$1 + 1}')),
@@ -209,65 +206,23 @@ class _RankingSection extends StatelessWidget {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => _showFullRanking(context),
-              icon: const Icon(Icons.format_list_numbered, size: 18),
-              label: const Text('Classement complet'),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  void _showFullRanking(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (_, scrollController) => ListView(
-          controller: scrollController,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: Theme.of(sheetContext).colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    fullTitle,
-                    style: Theme.of(sheetContext).textTheme.titleLarge,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...fullRanking.indexed.map(
-              (entry) => Card(
-                child: ListTile(
-                  leading: CircleAvatar(child: Text('${entry.$1 + 1}')),
-                  title: Text(entry.$2.displayName),
-                  trailing: Text(
-                    _line(entry.$2),
-                    style: Theme.of(sheetContext).textTheme.titleMedium,
-                  ),
+          if (hasMore)
+            Center(
+              child: IconButton(
+                tooltip: _expanded
+                    ? 'Réduire le classement'
+                    : 'Voir tout le classement',
+                onPressed: () => setState(() => _expanded = !_expanded),
+                icon: Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                  size: 30,
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+        ],
+      ],
     );
   }
 }

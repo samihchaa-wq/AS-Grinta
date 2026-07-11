@@ -12,7 +12,6 @@ import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/more/presentation/faq_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
-import 'package:as_grinta/features/players/presentation/claim_player_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
@@ -106,12 +105,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const NotificationsPage(),
           ),
           GoRoute(path: '/faq', builder: (_, __) => const FaqPage()),
-          GoRoute(
-            path: '/claim',
-            builder: (context, state) => ClaimPlayerPage(
-              token: state.uri.queryParameters['token'],
-            ),
-          ),
         ],
       ),
       GoRoute(

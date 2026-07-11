@@ -215,6 +215,20 @@ class AdminRepository {
       profileId: profileId,
       isGoalkeeper: value,
     );
+    // Aligne l'instantané gardien de la saison ouverte : la feuille de
+    // match et le droit au clean sheet s'appuient dessus.
+    final openSeasons =
+        await _client.from('seasons').select('id').eq('status', 'open');
+    final seasonIds = (openSeasons as List)
+        .map((row) => Map<String, dynamic>.from(row)['id'].toString())
+        .toList();
+    if (seasonIds.isNotEmpty) {
+      await _client
+          .from('season_players')
+          .update({'is_goalkeeper_snapshot': value})
+          .eq('profile_id', profileId)
+          .inFilter('season_id', seasonIds);
+    }
   }
 
   Future<void> createSeason(String name) async {

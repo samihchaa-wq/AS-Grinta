@@ -22,6 +22,9 @@ class HomeDashboardData {
     required this.nextMatchId,
     required this.nextOpponent,
     required this.nextKickoffAt,
+    required this.nextMatchStatus,
+    required this.nextGrintaScore,
+    required this.nextOpponentScore,
     required this.pendingPredictions,
     required this.predictionParticipantCount,
     required this.recentMeetings,
@@ -30,9 +33,22 @@ class HomeDashboardData {
   final String? nextMatchId;
   final String? nextOpponent;
   final DateTime? nextKickoffAt;
+
+  /// Statut du match mis en avant : 'a_venir' (avant ou après le coup
+  /// d'envoi) ou 'termine' (résultat validé mais pas encore archivé).
+  final String nextMatchStatus;
+  final int? nextGrintaScore;
+  final int? nextOpponentScore;
   final int pendingPredictions;
   final int predictionParticipantCount;
   final List<RecentMeeting> recentMeetings;
+
+  bool get isUpcoming => nextMatchStatus == 'a_venir';
+  bool get isValidated => nextMatchStatus == 'termine';
+  bool get isAwaitingResult =>
+      isUpcoming &&
+      nextKickoffAt != null &&
+      DateTime.now().isAfter(nextKickoffAt!);
 }
 
 class HomeRepository {
@@ -44,10 +60,16 @@ class HomeRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
 
+    // Un match reste à l'accueil tant que l'admin ne l'a pas archivé :
+    // « À venir » avant le coup d'envoi, « En attente » ensuite, puis le
+    // résultat une fois validé.
     final matches = await _client
         .from('matches')
-        .select('id, opponent_id, match_date, match_time, opponents(name)')
-        .eq('status', 'a_venir')
+        .select(
+          'id, opponent_id, match_date, match_time, status, '
+          'score_as_grinta, score_adverse, opponents(name)',
+        )
+        .inFilter('status', const ['a_venir', 'termine'])
         .order('match_date', ascending: true)
         .order('match_time', ascending: true);
 
@@ -65,32 +87,51 @@ class HomeRepository {
     String? nextOpponentId;
     String? nextOpponent;
     DateTime? nextKickoffAt;
+    var nextMatchStatus = 'a_venir';
+    int? nextGrintaScore;
+    int? nextOpponentScore;
     var pendingPredictions = 0;
     var predictionParticipantCount = 0;
     final now = DateTime.now();
 
+    Map<String, dynamic>? heroRow;
     for (final row in matches as List) {
       final map = Map<String, dynamic>.from(row);
       final id = map['id'].toString();
+      final status = (map['status'] ?? 'a_venir').toString();
       final date = map['match_date']?.toString() ?? '';
       final time = map['match_time']?.toString() ?? '00:00:00';
       final kickoff = DateTime.tryParse('${date}T$time');
-      final opponent = map['opponents'] is Map
-          ? Map<String, dynamic>.from(map['opponents'] as Map)
-          : const <String, dynamic>{};
 
-      if (nextMatchId == null) {
-        nextMatchId = id;
-        nextOpponentId = map['opponent_id']?.toString();
-        nextOpponent = opponent['name']?.toString() ?? 'Adversaire';
-        nextKickoffAt = kickoff;
+      // Match mis en avant : le premier « à venir » (même après le coup
+      // d'envoi) ; sinon le dernier « terminé » non archivé. La liste est
+      // triée par date croissante : les terminés se remplacent jusqu'à ce
+      // qu'un « à venir » prenne la place, qu'il garde ensuite.
+      if (heroRow == null || (heroRow['status'] ?? '') != 'a_venir') {
+        heroRow = map;
       }
 
-      if (kickoff != null &&
+      if (status == 'a_venir' &&
+          kickoff != null &&
           now.isBefore(kickoff.subtract(const Duration(minutes: 5))) &&
           filledByMatch[id] != true) {
         pendingPredictions++;
       }
+    }
+
+    if (heroRow != null) {
+      final opponent = heroRow['opponents'] is Map
+          ? Map<String, dynamic>.from(heroRow['opponents'] as Map)
+          : const <String, dynamic>{};
+      nextMatchId = heroRow['id'].toString();
+      nextOpponentId = heroRow['opponent_id']?.toString();
+      nextOpponent = opponent['name']?.toString() ?? 'Adversaire';
+      nextMatchStatus = (heroRow['status'] ?? 'a_venir').toString();
+      nextGrintaScore = (heroRow['score_as_grinta'] as num?)?.toInt();
+      nextOpponentScore = (heroRow['score_adverse'] as num?)?.toInt();
+      final date = heroRow['match_date']?.toString() ?? '';
+      final time = heroRow['match_time']?.toString() ?? '00:00:00';
+      nextKickoffAt = DateTime.tryParse('${date}T$time');
     }
 
     if (nextMatchId != null) {
@@ -134,6 +175,9 @@ class HomeRepository {
       nextMatchId: nextMatchId,
       nextOpponent: nextOpponent,
       nextKickoffAt: nextKickoffAt,
+      nextMatchStatus: nextMatchStatus,
+      nextGrintaScore: nextGrintaScore,
+      nextOpponentScore: nextOpponentScore,
       pendingPredictions: pendingPredictions,
       predictionParticipantCount: predictionParticipantCount,
       recentMeetings: recentMeetings,

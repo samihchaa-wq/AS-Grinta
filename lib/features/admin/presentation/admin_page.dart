@@ -448,7 +448,7 @@ class _ProfileCard extends ConsumerWidget {
             if (openSeasonId != null)
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Dans la saison ouverte'),
+                title: const Text('Joueur (feuille de match)'),
                 value: profile.inOpenSeason,
                 onChanged: (value) async {
                   await repository.setSeasonMembership(

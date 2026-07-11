@@ -41,6 +41,11 @@ class MatchModel {
   bool get isArchived => status == 'archive';
   bool get isFinished => status == 'termine' || status == 'archive';
 
+  /// Coup d'envoi passé mais résultat pas encore saisi : le match attend
+  /// que l'admin enregistre les statistiques (aucune clôture automatique).
+  bool get isAwaitingResult =>
+      status == 'a_venir' && DateTime.now().isAfter(kickoffAt);
+
   String get statusLabel {
     switch (status) {
       case 'termine':
@@ -48,7 +53,7 @@ class MatchModel {
       case 'archive':
         return 'Archivé';
       default:
-        return 'À venir';
+        return isAwaitingResult ? 'En attente' : 'À venir';
     }
   }
 
