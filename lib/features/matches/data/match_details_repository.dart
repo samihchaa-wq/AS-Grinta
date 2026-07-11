@@ -16,18 +16,6 @@ class HeadToHeadMatch {
   final int? scoreOpponent;
 }
 
-class MatchGoalEvent {
-  const MatchGoalEvent({
-    required this.minute,
-    required this.scorer,
-    this.assister,
-  });
-
-  final int minute;
-  final String scorer;
-  final String? assister;
-}
-
 class MatchStatLine {
   const MatchStatLine({
     required this.name,
@@ -74,7 +62,6 @@ class MatchDetailsData {
     required this.oddsLoss,
     required this.predictionParticipantCount,
     required this.headToHead,
-    required this.goals,
     required this.playerStats,
     required this.guestStats,
     required this.manOfTheMatch,
@@ -95,7 +82,6 @@ class MatchDetailsData {
   final double? oddsLoss;
   final int predictionParticipantCount;
   final List<HeadToHeadMatch> headToHead;
-  final List<MatchGoalEvent> goals;
   final List<MatchStatLine> playerStats;
   final List<MatchStatLine> guestStats;
   final String? manOfTheMatch;
@@ -160,35 +146,12 @@ class MatchDetailsRepository {
         )
         .toList();
 
-    var goals = const <MatchGoalEvent>[];
     var playerStats = const <MatchStatLine>[];
     var guestStats = const <MatchStatLine>[];
     String? manOfTheMatch;
     var predictions = const <MatchPredictionResult>[];
 
     if (isValidated) {
-      final goalRows = await _client.from('goals').select('''
-        minute, team, goal_type,
-        scorer:profiles!goals_scorer_profile_id_fkey(first_name,surnom),
-        assister:profiles!goals_assist_profile_id_fkey(first_name,surnom)
-      ''').eq('match_id', matchId).eq('team', 'as_grinta').order('minute');
-      goals = (goalRows as List).map((row) {
-        final map = Map<String, dynamic>.from(row);
-        final scorer = map['scorer'] is Map
-            ? _displayName(Map<String, dynamic>.from(map['scorer'] as Map))
-            : map['goal_type'] == 'csc_adverse'
-                ? 'CSC adverse'
-                : 'Buteur non renseigné';
-        final assister = map['assister'] is Map
-            ? _displayName(Map<String, dynamic>.from(map['assister'] as Map))
-            : null;
-        return MatchGoalEvent(
-          minute: (map['minute'] as num?)?.toInt() ?? 0,
-          scorer: scorer,
-          assister: assister,
-        );
-      }).toList();
-
       final statRows = await _client.from('match_player_stats').select('''
         goals,assists,penalty_faults,clean_sheet,
         profiles(first_name,surnom)
@@ -284,7 +247,6 @@ class MatchDetailsRepository {
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
       predictionParticipantCount: (countResult as num?)?.toInt() ?? 0,
       headToHead: history,
-      goals: goals,
       playerStats: playerStats,
       guestStats: guestStats,
       manOfTheMatch: manOfTheMatch,

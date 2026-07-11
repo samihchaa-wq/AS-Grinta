@@ -16,7 +16,6 @@ class MatchDetailsPage extends ConsumerWidget {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
     final role = ref.watch(authControllerProvider).profile?.role;
     final isAdmin = role == AuthRole.admin;
-    final isStaff = role?.isStaff == true;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détails du match')),
@@ -75,10 +74,10 @@ class MatchDetailsPage extends ConsumerWidget {
                   ],
                 ),
               ],
-              if (isStaff && details.isValidated) ...[
+              if (isAdmin && details.isValidated) ...[
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  onPressed: () => context.push('/matches/$matchId/correction'),
+                  onPressed: () => context.push('/matches/$matchId/finalize'),
                   icon: const Icon(Icons.history_edu_outlined),
                   label: const Text('Corriger le match'),
                 ),
@@ -241,17 +240,10 @@ class _MatchSummary extends StatelessWidget {
             const SizedBox(height: 16),
             _Section(
               title: 'Buteurs',
-              children: details.goals.isNotEmpty
-                  ? details.goals
-                      .map(
-                        (goal) => Text(
-                          '${goal.minute}’  ${goal.scorer}${goal.assister == null ? '' : ' — passe : ${goal.assister}'}',
-                        ),
-                      )
-                      .toList()
-                  : aggregateScorers
-                      .map((line) => Text('${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
-                      .toList(),
+              children: aggregateScorers
+                  .map((line) => Text(
+                      '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
+                  .toList(),
             ),
             const SizedBox(height: 14),
             _Section(

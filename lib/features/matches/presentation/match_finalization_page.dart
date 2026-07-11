@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_controller.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,34 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
   final List<_GuestInput> _guests = [];
   int _opponentScore = 0;
   String? _motmProfileId;
+  bool _prefilled = false;
+
+  void _prefillFrom(MatchFinalizationContext sheet) {
+    if (_prefilled) return;
+    _prefilled = true;
+    if (!sheet.isValidated) return;
+
+    _opponentScore = sheet.opponentScore;
+    _motmProfileId = sheet.motmProfileId;
+    for (final entry in sheet.existingPlayerStats.entries) {
+      _players[entry.key] = _PlayerInput()
+        ..present = entry.value.present
+        ..goals = entry.value.goals
+        ..assists = entry.value.assists
+        ..penaltyFaults = entry.value.penaltyFaults
+        ..cleanSheet = entry.value.cleanSheet;
+    }
+    for (final guest in sheet.existingGuests) {
+      final input = _GuestInput()
+        ..present = guest.present
+        ..goals = guest.goals
+        ..assists = guest.assists
+        ..penaltyFaults = guest.penaltyFaults;
+      input.name.text = guest.name;
+      input.position.text = guest.position;
+      _guests.add(input);
+    }
+  }
 
   @override
   void dispose() {
@@ -62,6 +91,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (sheet) {
+          _prefillFrom(sheet);
           for (final player in sheet.players) {
             _players.putIfAbsent(player.id, _PlayerInput.new);
           }
@@ -206,7 +236,11 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                     ? null
                     : () => _submit(sheet.players),
                 icon: const Icon(Icons.verified_outlined),
-                label: const Text('Valider le résultat'),
+                label: Text(
+                  sheet.isValidated
+                      ? 'Corriger le résultat'
+                      : 'Valider le résultat',
+                ),
               ),
             ],
           );
@@ -351,7 +385,10 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
           playerStats: playerStats,
           guestStats: guestStats,
         );
-    if (success && mounted) Navigator.pop(context);
+    if (success) {
+      ref.invalidate(matchDetailsProvider(widget.matchId));
+      if (mounted) Navigator.pop(context);
+    }
   }
 }
 

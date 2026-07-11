@@ -37,15 +37,13 @@ class PushSubscriptionsRepository {
     final auth = keys['auth']?.toString() ?? '';
     if (endpoint.isEmpty || p256dh.isEmpty || auth.isEmpty) return false;
 
-    await _client.from('push_subscriptions').upsert(
-      {
-        'profile_id': userId,
-        'endpoint': endpoint,
-        'p256dh': p256dh,
-        'auth': auth,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
+    await _client.rpc(
+      'register_push_subscription',
+      params: {
+        'p_endpoint': endpoint,
+        'p_p256dh': p256dh,
+        'p_auth': auth,
       },
-      onConflict: 'endpoint',
     );
     return true;
   }

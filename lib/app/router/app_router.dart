@@ -6,7 +6,6 @@ import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
-import 'package:as_grinta/features/matches/presentation/match_correction_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
@@ -49,13 +48,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isStaff = role?.isStaff == true;
       final isFinalizationRoute =
           location.startsWith('/matches/') && location.endsWith('/finalize');
-      final isCorrectionRoute =
-          location.startsWith('/matches/') && location.endsWith('/correction');
       final isAdminRoute = location == '/admin';
       final isPlayersRoute = location == '/players';
 
       if (isFinalizationRoute && !isAdmin) return '/matches';
-      if (isCorrectionRoute && !isStaff) return '/matches';
       if (isAdminRoute && !isStaff) return '/home';
       if (isPlayersRoute && !isStaff) return '/home';
       return null;
@@ -79,12 +75,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/matches/:matchId',
             builder: (context, state) => MatchDetailsPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/correction',
-            builder: (context, state) => MatchCorrectionPage(
               matchId: state.pathParameters['matchId'] ?? '',
             ),
           ),
