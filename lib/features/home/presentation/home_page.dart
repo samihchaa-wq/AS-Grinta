@@ -42,7 +42,6 @@ class HomePage extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                   sliver: SliverToBoxAdapter(
                     child: _Header(
-                      role: authState.profile?.role.label ?? 'Membre',
                       isStaff: isStaff,
                       onAdmin: () => context.go('/admin'),
                       onProfile: () => context.go('/profile'),
@@ -93,14 +92,12 @@ class HomePage extends ConsumerWidget {
 
 class _Header extends StatelessWidget {
   const _Header({
-    required this.role,
     required this.isStaff,
     required this.onAdmin,
     required this.onProfile,
     required this.onLogout,
   });
 
-  final String role;
   final bool isStaff;
   final VoidCallback onAdmin;
   final VoidCallback onProfile;
@@ -112,31 +109,10 @@ class _Header extends StatelessWidget {
       children: [
         Image.asset(
           'assets/images/mpg_logo.png',
-          height: 54,
+          height: 52,
           fit: BoxFit.contain,
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Ma Petite Grinta',
-                style: Theme.of(context).textTheme.headlineMedium,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                role.toUpperCase(),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppTheme.accent,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1,
-                    ),
-              ),
-            ],
-          ),
-        ),
+        const Spacer(),
         PopupMenuButton<String>(
           tooltip: 'Menu',
           icon: const Icon(Icons.more_horiz_rounded),
