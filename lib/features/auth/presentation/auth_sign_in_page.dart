@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class AuthSignInPage extends ConsumerStatefulWidget {
   const AuthSignInPage({super.key});
@@ -172,6 +173,12 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
+                      if (!_firstConnection)
+                        OutlinedButton.icon(
+                          onPressed: () => context.go('/auth/register'),
+                          icon: const Icon(Icons.person_add_alt_outlined),
+                          label: const Text('Créer mon compte'),
+                        ),
                       TextButton(
                         onPressed: () => setState(
                           () => _firstConnection = !_firstConnection,

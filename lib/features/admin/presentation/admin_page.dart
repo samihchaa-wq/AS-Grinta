@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Lien public d'auto-inscription à partager dans la conversation du club.
+const _registerLink = 'https://samihchaa-wq.github.io/AS-Grinta/auth/register';
+
 class AdminPage extends ConsumerWidget {
   const AdminPage({super.key});
 
@@ -51,7 +54,30 @@ class AdminPage extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      const ClipboardData(text: _registerLink),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Lien d’inscription copié — partage-le sur '
+                            'WhatsApp. Tu valideras ensuite chaque compte ici.',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.link, size: 18),
+                  label: const Text('Copier le lien d’inscription'),
+                ),
+              ),
+              const SizedBox(height: 4),
               if (dashboard.profiles.isEmpty)
                 const Card(
                   child: Padding(
@@ -337,6 +363,43 @@ class _ProfileCard extends ConsumerWidget {
                   visualDensity: VisualDensity.compact,
                   avatar: const Icon(Icons.hourglass_top, size: 16),
                   label: const Text('En attente de 1re connexion'),
+                ),
+              ),
+            if (profile.status == 'pending')
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Chip(
+                        visualDensity: VisualDensity.compact,
+                        avatar: const Icon(Icons.how_to_reg_outlined, size: 16),
+                        label: const Text('En attente de validation'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        await repository.updateProfileStatus(
+                          profile.id,
+                          'active',
+                        );
+                        ref.invalidate(adminDashboardProvider);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${profile.displayName} peut maintenant '
+                                'se connecter et pronostiquer.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: const Text('Valider'),
+                    ),
+                  ],
                 ),
               ),
             const SizedBox(height: 10),

@@ -5,12 +5,20 @@ class FaqPage extends StatelessWidget {
 
   static const _entries = <({String question, String answer})>[
     (
+      question: 'Comment je crée mon compte ?',
+      answer:
+          'Avec le lien d’inscription partagé dans la conversation du club : '
+          'tu renseignes ton prénom, ton nom, un surnom, une photo si tu '
+          'veux, et ton mot de passe. Ton identifiant est généré '
+          'automatiquement (prénom + première lettre du nom, ex. samihc) — '
+          'retiens-le bien ! Samih valide ensuite ton compte et tu peux te '
+          'connecter.',
+    ),
+    (
       question: 'Comment je me connecte ?',
       answer:
           'Avec ton identifiant (prénom + première lettre de ton nom, '
-          'ex. samihc) et ton mot de passe. Pas besoin d’email. '
-          'À ta toute première connexion, appuie sur « Première connexion ? » '
-          'et choisis ton mot de passe.',
+          'ex. samihc) et ton mot de passe. Pas besoin d’email.',
     ),
     (
       question: 'J’ai oublié mon mot de passe',

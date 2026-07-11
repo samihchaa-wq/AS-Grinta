@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
@@ -27,6 +28,34 @@ class AuthRepository {
       email: usernameToEmail(username),
       password: password,
     );
+  }
+
+  /// Auto-inscription via le lien partagé dans la conversation du club :
+  /// crée un compte « en attente de validation » et retourne l'identifiant
+  /// généré (prénom + initiale).
+  Future<String> registerAccount({
+    required String firstName,
+    required String lastName,
+    required String surnom,
+    required String password,
+    Uint8List? photoJpegBytes,
+  }) async {
+    final response = await _client.functions.invoke(
+      'register-account',
+      body: {
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'surnom': surnom.trim(),
+        'password': password,
+        if (photoJpegBytes != null && photoJpegBytes.isNotEmpty)
+          'photoBase64': base64Encode(photoJpegBytes),
+      },
+    );
+    final data = response.data;
+    final username = data is Map ? data['username']?.toString() : null;
+    if (username != null && username.isNotEmpty) return username;
+    final message = data is Map ? data['error']?.toString() : null;
+    throw StateError(message ?? 'La création du compte a échoué.');
   }
 
   /// Première connexion d'un compte invité : le joueur choisit son mot de

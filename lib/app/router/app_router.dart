@@ -2,6 +2,7 @@ import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
+import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
@@ -120,6 +121,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/sign-in',
         builder: (_, __) => const AuthSignInPage(),
+      ),
+      GoRoute(
+        path: '/auth/register',
+        builder: (_, __) => const AuthRegisterPage(),
       ),
     ],
   );
