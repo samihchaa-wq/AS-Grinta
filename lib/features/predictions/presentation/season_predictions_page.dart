@@ -131,7 +131,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                       DataColumn(label: Text('Buts')),
                       DataColumn(label: Text('Passes D.')),
                       DataColumn(label: Text('HDM')),
-                      DataColumn(label: Text('Clean sheets')),
+                      DataColumn(label: Text('Cleansheets')),
                       DataColumn(label: Text('Fautes pen.')),
                     ],
                     rows: grouped.values.map(_buildPredictionTableRow).toList(),
@@ -329,7 +329,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       'buts' => 'Buts',
       'passes' => 'Passes décisives',
       'hommes_du_match' => 'Hommes du match',
-      'clean_sheets' => 'Clean sheets',
+      'clean_sheets' => 'Cleansheets',
       'penalty_faults' => 'Fautes provoquant un penalty',
       _ => category,
     };

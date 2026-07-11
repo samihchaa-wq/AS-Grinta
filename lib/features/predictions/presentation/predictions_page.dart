@@ -110,7 +110,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                 leading: const Icon(Icons.edit_calendar_outlined),
                 title: const Text('Mes pronostics de saison'),
                 subtitle: const Text(
-                  'Modifier les buts, passes, clean sheets et autres objectifs.',
+                  'Modifier les buts, passes, cleansheets et autres objectifs.',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/predictions/season'),

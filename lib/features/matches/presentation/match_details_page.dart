@@ -283,7 +283,7 @@ class _MatchSummary extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             _Section(
-              title: 'Clean sheets',
+              title: 'Cleansheets',
               children: cleanSheets.map((line) => Text(line.name)).toList(),
             ),
             const SizedBox(height: 14),

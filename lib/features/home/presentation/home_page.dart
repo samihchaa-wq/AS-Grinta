@@ -16,8 +16,6 @@ class HomePage extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     final dashboardAsync = ref.watch(homeDashboardProvider);
     final isStaff = authState.profile?.role.isStaff == true;
-    final displayName = authState.profile?.displayName.trim() ?? '';
-    final greeting = displayName.isNotEmpty ? displayName : 'Grinta';
 
     return Scaffold(
       body: DecoratedBox(
@@ -44,7 +42,6 @@ class HomePage extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
                   sliver: SliverToBoxAdapter(
                     child: _Header(
-                      name: greeting,
                       role: authState.profile?.role.label ?? 'Membre',
                       isStaff: isStaff,
                       onAdmin: () => context.go('/admin'),
@@ -96,7 +93,6 @@ class HomePage extends ConsumerWidget {
 
 class _Header extends StatelessWidget {
   const _Header({
-    required this.name,
     required this.role,
     required this.isStaff,
     required this.onAdmin,
@@ -104,7 +100,6 @@ class _Header extends StatelessWidget {
     required this.onLogout,
   });
 
-  final String name;
   final String role;
   final bool isStaff;
   final VoidCallback onAdmin;
@@ -126,7 +121,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Salut $name',
+                'Ma Petite Grinta',
                 style: Theme.of(context).textTheme.headlineMedium,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
