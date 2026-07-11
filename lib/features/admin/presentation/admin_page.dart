@@ -3,7 +3,6 @@ import 'package:as_grinta/features/players/data/players_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class AdminPage extends ConsumerWidget {
   const AdminPage({super.key});
@@ -36,13 +35,22 @@ class AdminPage extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
-              _QuickActions(onInvite: () => _invitePlayer(context, ref)),
-              const SizedBox(height: 20),
               _SeasonCard(dashboard: dashboard),
               const SizedBox(height: 20),
-              Text(
-                'Comptes et effectif',
-                style: Theme.of(context).textTheme.headlineSmall,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Comptes et effectif',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: () => _invitePlayer(context, ref),
+                    icon: const Icon(Icons.person_add_alt_1_outlined),
+                    label: const Text('Inviter'),
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               if (dashboard.profiles.isEmpty)
@@ -228,57 +236,6 @@ class AdminPage extends ConsumerWidget {
     firstName.dispose();
     lastName.dispose();
     nickname.dispose();
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onInvite});
-
-  final VoidCallback onInvite;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Gestion rapide',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                FilledButton.icon(
-                  onPressed: () => context.push('/matches'),
-                  icon: const Icon(Icons.sports_soccer_outlined),
-                  label: const Text('Matchs'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/players'),
-                  icon: const Icon(Icons.groups_outlined),
-                  label: const Text('Joueurs'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/statistics'),
-                  icon: const Icon(Icons.bar_chart_outlined),
-                  label: const Text('Statistiques'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: onInvite,
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                  label: const Text('Inviter'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

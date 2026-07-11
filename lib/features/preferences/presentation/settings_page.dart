@@ -60,30 +60,7 @@ class SettingsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             const _PushNotificationsCard(),
-            const SizedBox(height: 24),
-            Text('Application', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            const Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.dark_mode_outlined),
-                    title: Text('Thème sombre'),
-                    subtitle: Text('Thème officiel AS Grinta'),
-                    trailing: Icon(Icons.check_circle),
-                  ),
-                  Divider(height: 1),
-                  ListTile(
-                    leading: Icon(Icons.cloud_outlined),
-                    title: Text('Données en ligne'),
-                    subtitle: Text(
-                      'Les données sont chargées depuis Supabase lorsque l’application est connectée.',
-                    ),
-                    trailing: Icon(Icons.check_circle),
-                  ),
-                ],
-              ),
-            ),
+
           ],
         ),
       ),

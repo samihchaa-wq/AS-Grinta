@@ -49,6 +49,17 @@ class MatchDetailsPage extends ConsumerWidget {
               if (!details.isValidated) ...[
                 const SizedBox(height: 16),
                 _UpcomingInformation(details: details),
+              ] else if (details.playerStats.isEmpty &&
+                  details.guestStats.isEmpty &&
+                  details.manOfTheMatch == null &&
+                  details.predictions.isEmpty) ...[
+                const SizedBox(height: 16),
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: Text('Pas d’informations sur ce match.'),
+                  ),
+                ),
               ] else ...[
                 const SizedBox(height: 16),
                 _MatchSummary(details: details),

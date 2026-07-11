@@ -136,6 +136,13 @@ class PlayersRepository {
     }).eq('id', playerId);
   }
 
+  /// Supprime définitivement la fiche du registre. Les statistiques des
+  /// matchs restent intactes : elles sont rattachées au profil, pas à la
+  /// fiche du registre.
+  Future<void> deletePlayer(String playerId) async {
+    await _client.from('players').delete().eq('id', playerId);
+  }
+
   Future<void> restorePlayer(String playerId) async {
     await _client.from('players').update({
       'is_active': true,

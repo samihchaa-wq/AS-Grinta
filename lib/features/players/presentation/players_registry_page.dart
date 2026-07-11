@@ -1,3 +1,5 @@
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/players/data/players_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -233,6 +235,12 @@ class _PlayerCard extends ConsumerWidget {
               value: player.isActive ? 'archive' : 'restore',
               child: Text(player.isActive ? 'Archiver' : 'Restaurer'),
             ),
+            if (ref.read(authControllerProvider).profile?.role ==
+                AuthRole.moderateur)
+              const PopupMenuItem(
+                value: 'delete',
+                child: Text('Supprimer définitivement'),
+              ),
           ],
         ),
       ),
@@ -263,6 +271,15 @@ class _PlayerCard extends ConsumerWidget {
         case 'restore':
           await repository.restorePlayer(player.id);
           onChanged();
+        case 'delete':
+          if (await _confirm(
+            context,
+            'Supprimer définitivement ${player.displayName} ? '
+            'Les statistiques déjà enregistrées sont conservées.',
+          )) {
+            await repository.deletePlayer(player.id);
+            onChanged();
+          }
       }
     } catch (_) {
       if (context.mounted) {
