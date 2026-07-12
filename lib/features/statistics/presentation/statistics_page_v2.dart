@@ -79,7 +79,8 @@ class StatisticsPageV2 extends ConsumerWidget {
                 _ScorerRanking(scorers: scorers),
                 const SizedBox(height: 24),
                 const _SectionTitle(
-                  leading: KeeperSaveIcon(size: 22),
+                  leadingSize: 40,
+                  leading: KeeperSaveIcon(size: 34),
                   label: 'Clean sheets',
                 ),
                 const SizedBox(height: 8),
@@ -136,8 +137,13 @@ class _ScorerRankingState extends State<_ScorerRanking> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionTitle(
-          leading: CrossedArmsIcon(size: 22),
+        _SectionTitle(
+          leadingSize: 40,
+          leading: Image.asset(
+            'assets/images/scorer_logo.png',
+            height: 40,
+            fit: BoxFit.contain,
+          ),
           label: 'Classement buteurs',
         ),
         const SizedBox(height: 8),
@@ -183,17 +189,26 @@ class _ScorerRankingState extends State<_ScorerRanking> {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.leading, required this.label});
+  const _SectionTitle({
+    required this.leading,
+    required this.label,
+    this.leadingSize = 24,
+  });
 
   final Widget leading;
   final String label;
+  final double leadingSize;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SizedBox(width: 24, height: 24, child: Center(child: leading)),
-        const SizedBox(width: 8),
+        SizedBox(
+          width: leadingSize,
+          height: leadingSize,
+          child: Center(child: leading),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(label, style: Theme.of(context).textTheme.titleLarge),
         ),
