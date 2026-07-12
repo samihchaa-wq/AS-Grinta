@@ -12,6 +12,11 @@ class NotificationsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsAsync = ref.watch(notificationsProvider);
     final preferencesAsync = ref.watch(appPreferencesProvider);
+    // Les « Me prévenir… » sont gouvernés par l'interrupteur principal :
+    // tant qu'on ne reçoit pas les notifications sur cet appareil, ils sont
+    // désactivés (et remis à zéro dès qu'on coupe le principal).
+    final pushSubscribed =
+        ref.watch(pushStatusProvider).valueOrNull?.subscribed ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Notifications')),
@@ -56,12 +61,14 @@ class NotificationsPage extends ConsumerWidget {
                       subtitle: const Text(
                         'Dès qu’un nouveau match est annoncé.',
                       ),
-                      value: preferences.predictionOpen,
-                      onChanged: (value) => _save(
-                        context,
-                        ref,
-                        preferences.copyWith(predictionOpen: value),
-                      ),
+                      value: pushSubscribed && preferences.predictionOpen,
+                      onChanged: pushSubscribed
+                          ? (value) => _save(
+                                context,
+                                ref,
+                                preferences.copyWith(predictionOpen: value),
+                              )
+                          : null,
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
@@ -69,12 +76,14 @@ class NotificationsPage extends ConsumerWidget {
                       subtitle: const Text(
                         'Seulement si tu n’as pas encore pronostiqué.',
                       ),
-                      value: preferences.predictionReminders,
-                      onChanged: (value) => _save(
-                        context,
-                        ref,
-                        preferences.copyWith(predictionReminders: value),
-                      ),
+                      value: pushSubscribed && preferences.predictionReminders,
+                      onChanged: pushSubscribed
+                          ? (value) => _save(
+                                context,
+                                ref,
+                                preferences.copyWith(predictionReminders: value),
+                              )
+                          : null,
                     ),
                     const Divider(height: 1),
                     SwitchListTile.adaptive(
@@ -82,12 +91,14 @@ class NotificationsPage extends ConsumerWidget {
                       subtitle: const Text(
                         'Points gagnés et pronostics des autres révélés.',
                       ),
-                      value: preferences.matchReminders,
-                      onChanged: (value) => _save(
-                        context,
-                        ref,
-                        preferences.copyWith(matchReminders: value),
-                      ),
+                      value: pushSubscribed && preferences.matchReminders,
+                      onChanged: pushSubscribed
+                          ? (value) => _save(
+                                context,
+                                ref,
+                                preferences.copyWith(matchReminders: value),
+                              )
+                          : null,
                     ),
                   ],
                 ),
