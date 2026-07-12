@@ -45,7 +45,7 @@ class MorePage extends ConsumerWidget {
               subtitle: Text(
                 profile?.displayName.isNotEmpty == true
                     ? profile!.displayName
-                    : 'Surnom, photo et mot de passe',
+                    : 'Ton prénom, ton nom et ton mot de passe',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/profile'),

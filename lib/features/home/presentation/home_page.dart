@@ -113,7 +113,7 @@ class _Header extends StatelessWidget {
       children: [
         Image.asset(
           'assets/images/mpg_logo.png',
-          height: 52,
+          height: 84,
           fit: BoxFit.contain,
         ),
         const Spacer(),
