@@ -4,6 +4,7 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
+import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +31,8 @@ class HomePage extends ConsumerWidget {
           child: RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(homeDashboardProvider);
+              ref.invalidate(seasonPredictionsProvider);
+              ref.invalidate(seasonPredictionsLockedProvider);
               await Future.wait([
                 ref.read(homeDashboardProvider.future),
                 ref.read(predictionsControllerProvider.notifier).load(),
@@ -75,6 +78,7 @@ class HomePage extends ConsumerWidget {
                                     dashboard.predictionParticipantCount,
                               ),
                             ],
+                            const _SeasonPredictionsCard(),
                           ],
                         ),
                       ),
@@ -582,6 +586,110 @@ class _ScoreCol extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Résumé des pronostics de saison de l'utilisateur, visible sur l'accueil
+/// tant que les paris de saison ne sont pas verrouillés. Après verrouillage,
+/// il est masqué (les jauges collectives prennent le relais dans l'onglet
+/// Pronos).
+class _SeasonPredictionsCard extends ConsumerWidget {
+  const _SeasonPredictionsCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locked =
+        ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? true;
+    if (locked) return const SizedBox.shrink();
+
+    final mineAsync = ref.watch(seasonPredictionsProvider);
+    final items = mineAsync.valueOrNull;
+    if (items == null || items.isEmpty) return const SizedBox.shrink();
+
+    final filledCount = items.where((i) => i.isFilled).length;
+    final allFilled = filledCount == items.length;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: _Panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.calendar_month_rounded,
+                    color: AppTheme.accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Mes pronostics de saison',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Chip(
+                  label: Text(allFilled ? 'Complet' : 'À compléter'),
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              allFilled
+                  ? 'Tes pronostics sont enregistrés. Tu peux encore les '
+                      'modifier tant que je ne les ai pas clôturés.'
+                  : '$filledCount / ${items.length} joueur${items.length > 1 ? 's' : ''} '
+                      'renseigné${filledCount > 1 ? 's' : ''}.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF91A69B),
+                  ),
+            ),
+            const SizedBox(height: 12),
+            ...items.map((item) {
+              final label =
+                  item.category == 'clean_sheets' ? 'clean sheets' : 'buts';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.playerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    Text(
+                      item.isFilled ? '${item.value} $label' : '— $label',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: item.isFilled
+                                ? AppTheme.primary
+                                : const Color(0xFF91A69B),
+                          ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => context.push('/predictions/season'),
+                icon: const Icon(Icons.edit_outlined),
+                label: Text(
+                  allFilled
+                      ? 'Modifier mes pronostics'
+                      : 'Compléter mes pronostics',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
