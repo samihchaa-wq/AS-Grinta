@@ -4,17 +4,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PlayerStatistics {
   const PlayerStatistics({
-    required this.profileId,
+    required this.id,
     required this.firstName,
-    this.surnom,
     required this.isGoalkeeper,
     required this.goals,
     required this.cleanSheets,
   });
 
-  final String profileId;
+  final String id;
   final String firstName;
-  final String? surnom;
   final bool isGoalkeeper;
   final int goals;
   final int cleanSheets;
@@ -54,15 +52,14 @@ class StatisticsRepository {
 
     final rows = await _client
         .from('v_scorer_standings')
-        .select('profile_id,first_name,surnom,is_goalkeeper,goals,clean_sheets')
+        .select('season_player_id,first_name,is_goalkeeper,goals,clean_sheets')
         .eq('season_id', seasonId);
 
     return (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       return PlayerStatistics(
-        profileId: map['profile_id'].toString(),
+        id: map['season_player_id'].toString(),
         firstName: (map['first_name'] ?? '').toString().trim(),
-        surnom: map['surnom']?.toString(),
         isGoalkeeper: map['is_goalkeeper'] == true,
         goals: int.tryParse('${map['goals'] ?? 0}') ?? 0,
         cleanSheets: int.tryParse('${map['clean_sheets'] ?? 0}') ?? 0,

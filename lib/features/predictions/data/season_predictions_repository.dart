@@ -102,7 +102,7 @@ class SeasonPredictionsRepository {
 
     final profile = await _client
         .from('profiles')
-        .select('first_name,surnom')
+        .select('first_name')
         .eq('id', userId)
         .maybeSingle();
     final predictorName = _displayName(
@@ -112,47 +112,40 @@ class SeasonPredictionsRepository {
 
     final players = await _client
         .from('season_players')
-        .select(
-          'profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,surnom,status)',
-        )
-        .eq('season_id', seasonId);
+        .select('id,first_name,is_goalkeeper')
+        .eq('season_id', seasonId)
+        .eq('is_active', true);
     final predictions = await _client
         .from('season_predictions')
-        .select('player_profile_id,category,predicted_value_30,is_filled')
+        .select('season_player_id,category,predicted_value_30,is_filled')
         .eq('season_id', seasonId)
         .eq('predictor_profile_id', userId);
 
     final byKey = <String, Map<String, dynamic>>{};
     for (final row in predictions as List) {
       final map = Map<String, dynamic>.from(row);
-      byKey['${map['player_profile_id']}:${map['category']}'] = map;
+      byKey['${map['season_player_id']}:${map['category']}'] = map;
     }
 
     final result = <SeasonPredictionItem>[];
     for (final row in players as List) {
       final map = Map<String, dynamic>.from(row);
-      final playerProfile = Map<String, dynamic>.from(map['profiles'] as Map);
-      if (playerProfile['status'] != 'active') continue;
-      final playerId = map['profile_id'].toString();
-      final playerName = _displayName(playerProfile, 'Joueur sans nom');
-      final categories = map['is_goalkeeper_snapshot'] == true
-          ? const ['clean_sheets']
-          : const ['buts'];
-      for (final category in categories) {
-        final existing = byKey['$playerId:$category'];
-        result.add(
-          SeasonPredictionItem(
-            seasonId: seasonId,
-            predictorId: userId,
-            predictorName: predictorName,
-            playerId: playerId,
-            playerName: playerName,
-            category: category,
-            value: int.tryParse('${existing?['predicted_value_30'] ?? 0}') ?? 0,
-            isFilled: existing?['is_filled'] == true,
-          ),
-        );
-      }
+      final playerId = map['id'].toString();
+      final playerName = _displayName(map, 'Joueur');
+      final category = map['is_goalkeeper'] == true ? 'clean_sheets' : 'buts';
+      final existing = byKey['$playerId:$category'];
+      result.add(
+        SeasonPredictionItem(
+          seasonId: seasonId,
+          predictorId: userId,
+          predictorName: predictorName,
+          playerId: playerId,
+          playerName: playerName,
+          category: category,
+          value: int.tryParse('${existing?['predicted_value_30'] ?? 0}') ?? 0,
+          isFilled: existing?['is_filled'] == true,
+        ),
+      );
     }
     return result;
   }
@@ -166,12 +159,12 @@ class SeasonPredictionsRepository {
 
     final standings = await _client
         .from('v_scorer_standings')
-        .select('profile_id,first_name,surnom,is_goalkeeper,goals,clean_sheets')
+        .select('season_player_id,first_name,is_goalkeeper,goals,clean_sheets')
         .eq('season_id', seasonId);
 
     final predictions = await _client.from('season_predictions').select('''
-      player_profile_id, category, predicted_value_30, is_filled,
-      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,surnom,status)
+      season_player_id, category, predicted_value_30, is_filled,
+      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,status)
     ''').eq('season_id', seasonId).eq('is_filled', true);
 
     final predictionsByPlayer = <String, List<Map<String, dynamic>>>{};
@@ -182,7 +175,7 @@ class SeasonPredictionsRepository {
           : const <String, dynamic>{};
       if (predictor['status'] != 'active') continue;
       predictionsByPlayer
-          .putIfAbsent(map['player_profile_id'].toString(), () => [])
+          .putIfAbsent(map['season_player_id'].toString(), () => [])
           .add({
         'value': int.tryParse('${map['predicted_value_30']}') ?? 0,
         'name': _displayName(predictor, 'Compte sans nom'),
@@ -192,7 +185,7 @@ class SeasonPredictionsRepository {
     final gauges = <PlayerGauge>[];
     for (final row in standings as List) {
       final map = Map<String, dynamic>.from(row);
-      final playerId = map['profile_id'].toString();
+      final playerId = map['season_player_id'].toString();
       final isGoalkeeper = map['is_goalkeeper'] == true;
       final actual = isGoalkeeper
           ? (int.tryParse('${map['clean_sheets'] ?? 0}') ?? 0)
@@ -240,13 +233,13 @@ class SeasonPredictionsRepository {
       {
         'season_id': item.seasonId,
         'predictor_profile_id': userId,
-        'player_profile_id': item.playerId,
+        'season_player_id': item.playerId,
         'category': item.category,
         'predicted_value_30': item.value,
         'is_filled': true,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
-      onConflict: 'season_id,predictor_profile_id,player_profile_id,category',
+      onConflict: 'season_id,predictor_profile_id,season_player_id,category',
     );
   }
 }

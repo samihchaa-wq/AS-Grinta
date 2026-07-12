@@ -67,7 +67,7 @@ class MorePage extends ConsumerWidget {
                   const Divider(height: 1),
                   ListTile(
                     leading: const Icon(Icons.group_outlined),
-                    title: const Text('Registre des joueurs'),
+                    title: const Text('Effectif'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/players'),
                   ),

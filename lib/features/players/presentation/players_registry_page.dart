@@ -1,207 +1,253 @@
-import 'package:as_grinta/features/admin/data/admin_repository.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Registre des joueurs : chaque profil est soit « pronostiqueur »
-/// (il participe uniquement aux pronos), soit « pronostiqueur + joueur »
-/// (il apparaît en plus sur la feuille de match, où l'admin saisit
-/// présence, buts, passes, HDM, fautes provoquant un penalty…).
+/// Effectif de la saison : la liste des joueurs (prénom, nom, gardien) sur qui
+/// les pronostiqueurs parient. Indépendant des comptes.
 class PlayersRegistryPage extends ConsumerWidget {
   const PlayersRegistryPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dashboardAsync = ref.watch(adminDashboardProvider);
+    final seasonAsync = ref.watch(openSeasonIdProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Registre des joueurs'),
-        actions: [
-          IconButton(
-            tooltip: 'Actualiser',
-            onPressed: () => ref.invalidate(adminDashboardProvider),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
-      body: dashboardAsync.when(
+      appBar: AppBar(title: const Text('Effectif')),
+      body: seasonAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off_outlined, size: 52),
-                const SizedBox(height: 14),
-                const Text(
-                  'Registre temporairement indisponible.',
+        error: (error, _) => Center(child: Text(humanizeError(error))),
+        data: (seasonId) {
+          if (seasonId == null) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Aucune saison ouverte. Crée une saison dans '
+                  'Administration pour définir ton effectif.',
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: () => ref.invalidate(adminDashboardProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Actualiser'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        data: (dashboard) => RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(adminDashboardProvider);
-            await ref.read(adminDashboardProvider.future);
-          },
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            children: [
-              const Card(
-                child: ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Pronostiqueur ou pronostiqueur + joueur'),
-                  subtitle: Text(
-                    'Tous les profils pronostiquent. Ceux marqués '
-                    '« joueur » apparaissent en plus sur la feuille de '
-                    'match : présence, buts, passes décisives, homme du '
-                    'match, fautes provoquant un penalty…',
-                  ),
-                ),
               ),
-              if (dashboard.openSeasonId == null) ...[
-                const SizedBox(height: 12),
-                const Card(
-                  child: ListTile(
-                    leading: Icon(Icons.warning_amber_rounded),
-                    title: Text('Aucune saison ouverte'),
-                    subtitle: Text(
-                      'Ouvre une saison dans Administration pour pouvoir '
-                      'définir les joueurs.',
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              if (dashboard.profiles.isEmpty)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(18),
-                    child: Text('Aucun profil enregistré.'),
-                  ),
-                )
-              else
-                ...dashboard.profiles.map(
-                  (profile) => _RegistryCard(
-                    profile: profile,
-                    openSeasonId: dashboard.openSeasonId,
-                  ),
-                ),
-            ],
-          ),
-        ),
+            );
+          }
+          return _RosterList(seasonId: seasonId);
+        },
       ),
+      floatingActionButton: seasonAsync.valueOrNull == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _showPlayerDialog(context, ref,
+                  seasonId: seasonAsync.value!),
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Ajouter'),
+            ),
     );
   }
 }
 
-class _RegistryCard extends ConsumerWidget {
-  const _RegistryCard({required this.profile, required this.openSeasonId});
+class _RosterList extends ConsumerWidget {
+  const _RosterList({required this.seasonId});
 
-  final AdminProfileItem profile;
-  final String? openSeasonId;
+  final String seasonId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repository = ref.read(adminRepositoryProvider);
-    final isPlayer = profile.inOpenSeason;
+    final rosterAsync = ref.watch(rosterProvider(seasonId));
 
-    Future<void> run(Future<void> Function() action) async {
-      try {
-        await action();
-        ref.invalidate(adminDashboardProvider);
-      } catch (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('L’opération n’a pas pu être effectuée.'),
-            ),
-          );
-        }
-      }
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return rosterAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text(humanizeError(error))),
+      data: (players) => RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(rosterProvider(seasonId));
+          await ref.read(rosterProvider(seasonId).future);
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  child: Icon(
-                    isPlayer
-                        ? (profile.isGoalkeeper
+            const Card(
+              child: ListTile(
+                leading: Icon(Icons.info_outline),
+                title: Text('Les joueurs sur qui on parie'),
+                subtitle: Text(
+                  'Ajoute ici les joueurs de l’équipe (prénom, nom, gardien). '
+                  'Les buts, clean sheets et pronostics de saison portent sur '
+                  'eux. Aucun compte requis.',
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (players.isEmpty)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(18),
+                  child: Text('Aucun joueur dans l’effectif.'),
+                ),
+              )
+            else
+              ...players.map(
+                (player) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      child: Icon(
+                        player.isGoalkeeper
                             ? Icons.sports_handball
-                            : Icons.sports_soccer)
-                        : Icons.bolt_outlined,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        profile.displayName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                            : Icons.sports_soccer,
                       ),
-                      Text(
-                        [
-                          if (profile.username.trim().isNotEmpty)
-                            profile.username,
-                          isPlayer
-                              ? 'Pronostiqueur + joueur'
-                              : 'Pronostiqueur',
-                          if (profile.isGoalkeeper) 'Gardien',
-                          if (profile.status == 'pending')
-                            'En attente de validation',
-                          if (profile.status == 'archived') 'Archivé',
-                        ].join(' · '),
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Joueur (feuille de match)'),
-              value: isPlayer,
-              onChanged: openSeasonId == null
-                  ? null
-                  : (value) => run(
-                        () => repository.setSeasonMembership(
-                          seasonId: openSeasonId!,
-                          profile: profile,
-                          selected: value,
+                    ),
+                    title: Text(player.fullName),
+                    subtitle: Text(
+                      [
+                        if (player.isGoalkeeper) 'Gardien',
+                        if (!player.isActive) 'Archivé',
+                      ].join(' · '),
+                    ),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (action) async {
+                        final repo = ref.read(rosterRepositoryProvider);
+                        try {
+                          if (action == 'edit') {
+                            await _showPlayerDialog(context, ref,
+                                seasonId: seasonId, existing: player);
+                            return;
+                          }
+                          if (action == 'archive') {
+                            await repo.setActive(id: player.id, active: false);
+                          } else if (action == 'restore') {
+                            await repo.setActive(id: player.id, active: true);
+                          }
+                          ref.invalidate(rosterProvider(seasonId));
+                        } catch (error) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(humanizeError(error))),
+                            );
+                          }
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Modifier'),
                         ),
-                      ),
-            ),
-            if (isPlayer)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Gardien'),
-                value: profile.isGoalkeeper,
-                onChanged: (value) =>
-                    run(() => repository.updateGoalkeeper(profile.id, value)),
+                        PopupMenuItem(
+                          value: player.isActive ? 'archive' : 'restore',
+                          child:
+                              Text(player.isActive ? 'Archiver' : 'Réactiver'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
           ],
         ),
       ),
     );
   }
+}
+
+Future<void> _showPlayerDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String seasonId,
+  RosterPlayer? existing,
+}) async {
+  final firstName = TextEditingController(text: existing?.firstName ?? '');
+  final lastName = TextEditingController(text: existing?.lastName ?? '');
+  var isGoalkeeper = existing?.isGoalkeeper ?? false;
+  var saving = false;
+  String? error;
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(existing == null ? 'Ajouter un joueur' : 'Modifier'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: firstName,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Prénom'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: lastName,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nom'),
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Gardien'),
+                value: isGoalkeeper,
+                onChanged: saving
+                    ? null
+                    : (value) => setState(() => isGoalkeeper = value),
+              ),
+              if (error != null)
+                Text(error!,
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: saving ? null : () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: saving
+                ? null
+                : () async {
+                    setState(() {
+                      saving = true;
+                      error = null;
+                    });
+                    try {
+                      final repo = ref.read(rosterRepositoryProvider);
+                      if (existing == null) {
+                        await repo.addPlayer(
+                          seasonId: seasonId,
+                          firstName: firstName.text,
+                          lastName: lastName.text,
+                          isGoalkeeper: isGoalkeeper,
+                        );
+                      } else {
+                        await repo.updatePlayer(
+                          id: existing.id,
+                          firstName: firstName.text,
+                          lastName: lastName.text,
+                          isGoalkeeper: isGoalkeeper,
+                        );
+                      }
+                      ref.invalidate(rosterProvider(seasonId));
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
+                    } catch (exception) {
+                      setState(() {
+                        saving = false;
+                        error = humanizeError(exception);
+                      });
+                    }
+                  },
+            child: saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  firstName.dispose();
+  lastName.dispose();
 }

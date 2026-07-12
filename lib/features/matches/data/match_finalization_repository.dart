@@ -63,21 +63,18 @@ class MatchFinalizationRepository {
 
     final membershipRows = await _client
         .from('season_players')
-        .select('profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,surnom,status)')
-        .eq('season_id', seasonId);
+        .select('id,first_name,last_name,is_goalkeeper,is_active')
+        .eq('season_id', seasonId)
+        .eq('is_active', true);
 
     final squad = <SquadMember>[];
     String? goalkeeperId;
     String? goalkeeperName;
     for (final row in membershipRows as List) {
       final map = Map<String, dynamic>.from(row);
-      final profile = map['profiles'] is Map
-          ? Map<String, dynamic>.from(map['profiles'] as Map)
-          : const <String, dynamic>{};
-      if (profile['status'] != 'active') continue;
-      final id = map['profile_id'].toString();
-      final name = _displayName(profile);
-      final isGoalkeeper = map['is_goalkeeper_snapshot'] == true;
+      final id = map['id'].toString();
+      final name = _displayName(map);
+      final isGoalkeeper = map['is_goalkeeper'] == true;
       squad.add(SquadMember(id: id, name: name, isGoalkeeper: isGoalkeeper));
       if (isGoalkeeper && goalkeeperId == null) {
         goalkeeperId = id;
@@ -91,11 +88,11 @@ class MatchFinalizationRepository {
     if (isValidated) {
       final statRows = await _client
           .from('match_player_stats')
-          .select('profile_id,goals,clean_sheet')
+          .select('season_player_id,goals,clean_sheet')
           .eq('match_id', matchId);
       for (final row in statRows as List) {
         final map = Map<String, dynamic>.from(row);
-        final id = map['profile_id'].toString();
+        final id = map['season_player_id'].toString();
         final goals = (map['goals'] as num?)?.toInt() ?? 0;
         for (var i = 0; i < goals; i++) {
           scorerGoalLines.add(id);
@@ -115,8 +112,8 @@ class MatchFinalizationRepository {
     );
   }
 
-  String _displayName(Map<String, dynamic> profile) {
-    final firstName = (profile['first_name'] ?? '').toString().trim();
+  String _displayName(Map<String, dynamic> player) {
+    final firstName = (player['first_name'] ?? '').toString().trim();
     return firstName.isNotEmpty ? firstName : 'Joueur';
   }
 }

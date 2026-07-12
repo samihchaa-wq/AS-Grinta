@@ -7,25 +7,19 @@ class AdminProfileItem {
     required this.id,
     required this.firstName,
     required this.lastName,
-    this.surnom,
     required this.username,
     required this.passwordSet,
     required this.role,
     required this.status,
-    required this.isGoalkeeper,
-    required this.inOpenSeason,
   });
 
   final String id;
   final String firstName;
   final String lastName;
-  final String? surnom;
   final String username;
   final bool passwordSet;
   final String role;
   final String status;
-  final bool isGoalkeeper;
-  final bool inOpenSeason;
 
   String get fullName => '$firstName $lastName'.trim();
 
@@ -87,19 +81,6 @@ class AdminRepository {
     final openSeason = seasons.where((season) => season.status == 'open');
     final openSeasonId = openSeason.isEmpty ? null : openSeason.first.id;
 
-    final memberships = <String>{};
-    if (openSeasonId != null) {
-      final membershipRows = await _client
-          .from('season_players')
-          .select('profile_id')
-          .eq('season_id', openSeasonId);
-      memberships.addAll(
-        (membershipRows as List).map(
-          (row) => Map<String, dynamic>.from(row)['profile_id'].toString(),
-        ),
-      );
-    }
-
     final profilesRaw = await _client.rpc('staff_list_profiles');
     final profiles = (profilesRaw as List)
         .map((row) => Map<String, dynamic>.from(row))
@@ -108,13 +89,10 @@ class AdminRepository {
             id: row['id'].toString(),
             firstName: (row['first_name'] ?? '').toString(),
             lastName: (row['last_name'] ?? '').toString(),
-            surnom: row['surnom']?.toString(),
             username: (row['username'] ?? '').toString(),
             passwordSet: row['password_set'] != false,
             role: (row['role'] ?? 'pronostiqueur').toString(),
             status: (row['status'] ?? 'active').toString(),
-            isGoalkeeper: row['is_goalkeeper'] == true,
-            inOpenSeason: memberships.contains(row['id'].toString()),
           ),
         )
         .toList();
@@ -124,40 +102,6 @@ class AdminRepository {
       seasons: seasons,
       openSeasonId: openSeasonId,
     );
-  }
-
-  /// Invite un joueur par identifiant (prénom + initiale du nom).
-  /// Retourne l'identifiant généré, à communiquer au joueur.
-  Future<String> inviteAccount({
-    required String firstName,
-    required String lastInitial,
-    String? surnom,
-    bool isGoalkeeper = false,
-  }) async {
-    if (firstName.trim().isEmpty || lastInitial.trim().isEmpty) {
-      throw ArgumentError('Prénom et initiale du nom sont requis.');
-    }
-    final response = await _client.functions.invoke(
-      'manage-user',
-      body: {
-        'action': 'invite',
-        'firstName': firstName.trim(),
-        'lastInitial': lastInitial.trim(),
-        if ((surnom ?? '').trim().isNotEmpty) 'surnom': surnom!.trim(),
-        'isGoalkeeper': isGoalkeeper,
-      },
-    );
-    final data = response.data;
-    if (response.status < 200 ||
-        response.status >= 300 ||
-        data is! Map ||
-        (data['username'] ?? '').toString().isEmpty) {
-      final message = data is Map && data['error'] != null
-          ? data['error'].toString()
-          : 'L’invitation du compte a échoué.';
-      throw StateError(message);
-    }
-    return data['username'].toString();
   }
 
   /// Réinitialise le mot de passe d'un compte : le joueur devra refaire une
@@ -199,39 +143,11 @@ class AdminRepository {
     }
   }
 
-  Future<void> updateProfileRole(String profileId, String role) async {
-    if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
-      throw ArgumentError('Rôle invalide.');
-    }
-    await _updatePrivilegedProfileFields(profileId: profileId, role: role);
-  }
-
   Future<void> updateProfileStatus(String profileId, String status) async {
     if (!const ['active', 'archived'].contains(status)) {
       throw ArgumentError('Statut invalide.');
     }
     await _updatePrivilegedProfileFields(profileId: profileId, status: status);
-  }
-
-  Future<void> updateGoalkeeper(String profileId, bool value) async {
-    await _updatePrivilegedProfileFields(
-      profileId: profileId,
-      isGoalkeeper: value,
-    );
-    // Aligne l'instantané gardien de la saison ouverte : la feuille de
-    // match et le droit au clean sheet s'appuient dessus.
-    final openSeasons =
-        await _client.from('seasons').select('id').eq('status', 'open');
-    final seasonIds = (openSeasons as List)
-        .map((row) => Map<String, dynamic>.from(row)['id'].toString())
-        .toList();
-    if (seasonIds.isNotEmpty) {
-      await _client
-          .from('season_players')
-          .update({'is_goalkeeper_snapshot': value})
-          .eq('profile_id', profileId)
-          .inFilter('season_id', seasonIds);
-    }
   }
 
   /// Ouvre (ou ré-ouvre) une saison et garantit qu'une seule reste ouverte.
@@ -274,29 +190,6 @@ class AdminRepository {
     );
     if (result != true) {
       throw StateError('Le verrou des pronostics n’a pas pu être modifié.');
-    }
-  }
-
-  Future<void> setSeasonMembership({
-    required String seasonId,
-    required AdminProfileItem profile,
-    required bool selected,
-  }) async {
-    if (selected) {
-      await _client.from('season_players').upsert(
-        {
-          'season_id': seasonId,
-          'profile_id': profile.id,
-          'is_goalkeeper_snapshot': profile.isGoalkeeper,
-        },
-        onConflict: 'season_id,profile_id',
-      );
-    } else {
-      await _client
-          .from('season_players')
-          .delete()
-          .eq('season_id', seasonId)
-          .eq('profile_id', profile.id);
     }
   }
 }

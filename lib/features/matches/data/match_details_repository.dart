@@ -145,15 +145,15 @@ class MatchDetailsRepository {
     if (isValidated) {
       final statRows = await _client.from('match_player_stats').select('''
         goals,clean_sheet,
-        profiles(first_name,surnom)
+        season_players(first_name,last_name)
       ''').eq('match_id', matchId);
       playerStats = (statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
-        final profile = map['profiles'] is Map
-            ? Map<String, dynamic>.from(map['profiles'] as Map)
+        final player = map['season_players'] is Map
+            ? Map<String, dynamic>.from(map['season_players'] as Map)
             : const <String, dynamic>{};
         return MatchStatLine(
-          name: _displayName(profile),
+          name: _displayName(player),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           cleanSheet: map['clean_sheet'] == true,
         );

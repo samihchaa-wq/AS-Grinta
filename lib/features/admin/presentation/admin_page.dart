@@ -4,6 +4,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// Lien public d'auto-inscription à partager dans la conversation du club.
 const _registerLink = 'https://samihchaa-wq.github.io/AS-Grinta/auth/register';
@@ -232,8 +233,15 @@ class _SeasonCard extends ConsumerWidget {
       ref.invalidate(adminDashboardProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saison « ${name.trim()} » ouverte.')),
+          SnackBar(
+            content: Text(
+              'Saison « ${name.trim()} » ouverte. Ajoute maintenant ton '
+              'effectif.',
+            ),
+          ),
         );
+        // Enchaîne sur la saisie de l'effectif (la liste des joueurs).
+        context.push('/players');
       }
     } catch (error) {
       if (context.mounted) {

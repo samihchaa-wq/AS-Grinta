@@ -62,7 +62,7 @@ class MatchFinalizationController
       goalsByPlayer.update(id, (value) => value + 1, ifAbsent: () => 1);
     }
     final scorers = goalsByPlayer.entries
-        .map((entry) => {'profile_id': entry.key, 'goals': entry.value})
+        .map((entry) => {'season_player_id': entry.key, 'goals': entry.value})
         .toList();
 
     state = state.copyWith(isLoading: true, clearError: true);

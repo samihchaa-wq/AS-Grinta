@@ -198,7 +198,7 @@ class MatchesRepository {
         'p_match_id': id,
         'p_score_adverse': opponentScore,
         'p_scorers': scorers,
-        'p_clean_sheet_profile_id': cleanSheetProfileId,
+        'p_clean_sheet_player_id': cleanSheetProfileId,
       },
     );
     if (result != true) {
