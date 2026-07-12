@@ -58,8 +58,13 @@ String _fromMessage(String raw) {
     'admin or moderator role required': 'Action réservée au staff.',
     'last active administrator':
         'Impossible : c’est le dernier administrateur actif.',
+    'last active admin':
+        'Impossible : c’est le dernier administrateur actif.',
     'cannot delete your own account':
         'Tu ne peux pas supprimer ton propre compte.',
+    'historical import actor':
+        'Ce compte technique ne peut pas être supprimé.',
+    'target account not found': 'Ce compte est introuvable.',
     'only upcoming or finished matches':
         'Ce match ne peut plus être modifié.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',

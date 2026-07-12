@@ -514,6 +514,29 @@ class _ProfileCard extends ConsumerWidget {
                       icon: const Icon(Icons.archive_outlined, size: 18),
                       label: const Text('Archiver'),
                     ),
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                    onPressed: () async {
+                      final confirmed = await _confirm(
+                        context,
+                        'Supprimer ce compte ?',
+                        '${profile.displayName} sera supprimé '
+                            'définitivement, ainsi que tous ses pronostics. '
+                            'Cette action est irréversible. Pour juste '
+                            'l’empêcher de se connecter, utilise plutôt '
+                            '« Archiver ».',
+                      );
+                      if (!confirmed) return;
+                      await run(
+                        () => repository.deleteAccount(profile.id),
+                        success: 'Compte supprimé.',
+                      );
+                    },
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Supprimer'),
+                  ),
                 ],
               ),
             ],

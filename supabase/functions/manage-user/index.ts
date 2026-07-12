@@ -67,10 +67,10 @@ Deno.serve(async (req: Request) => {
       .single();
     if (
       profileError ||
-      !["admin", "moderateur"].includes(String(callerProfile?.role)) ||
+      String(callerProfile?.role) !== "admin" ||
       callerProfile?.status !== "active"
     ) {
-      return jsonResponse({ error: "Active admin or moderator role required" }, 403);
+      return jsonResponse({ error: "Active admin role required" }, 403);
     }
 
     const body = await req.json();
@@ -192,19 +192,16 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Target account not found" }, 404);
       }
 
-      if (
-        ["admin", "moderateur"].includes(targetProfile.role) &&
-        targetProfile.status === "active"
-      ) {
+      if (targetProfile.role === "admin" && targetProfile.status === "active") {
         const { count, error: countError } = await admin
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("role", targetProfile.role)
+          .eq("role", "admin")
           .eq("status", "active");
         if (countError) throw countError;
         if ((count ?? 0) <= 1) {
           return jsonResponse(
-            { error: `The last active ${targetProfile.role} cannot be deleted` },
+            { error: "The last active admin cannot be deleted" },
             409,
           );
         }

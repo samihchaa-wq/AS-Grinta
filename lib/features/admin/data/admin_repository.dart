@@ -123,6 +123,24 @@ class AdminRepository {
     }
   }
 
+  /// Supprime définitivement un compte (et ses pronostics, en cascade).
+  Future<void> deleteAccount(String userId) async {
+    final response = await _client.functions.invoke(
+      'manage-user',
+      body: {'action': 'delete', 'userId': userId},
+    );
+    final data = response.data;
+    if (response.status < 200 ||
+        response.status >= 300 ||
+        data is! Map ||
+        data['deleted'] != true) {
+      final message = data is Map && data['error'] != null
+          ? data['error'].toString()
+          : 'La suppression du compte a échoué.';
+      throw StateError(message);
+    }
+  }
+
   Future<void> _updatePrivilegedProfileFields({
     required String profileId,
     String? role,
