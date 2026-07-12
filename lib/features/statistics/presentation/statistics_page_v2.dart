@@ -98,19 +98,11 @@ class StatisticsPageV2 extends ConsumerWidget {
                   ...goalkeepers.map(
                     (player) => Card(
                       child: ListTile(
-                        leading: CircleAvatar(
-                          child: Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: Image.asset(
-                              'assets/images/keeper_logo.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
                         title: Text(player.displayName),
-                        trailing: _Badge(
-                          label: 'clean sheets',
-                          value: player.cleanSheets,
+                        trailing: Text(
+                          '${player.cleanSheets} clean sheet'
+                          '${player.cleanSheets > 1 ? 's' : ''}',
+                          style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                     ),
@@ -226,20 +218,3 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge({required this.label, required this.value});
-
-  final String label;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('$value', style: Theme.of(context).textTheme.titleMedium),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-}
