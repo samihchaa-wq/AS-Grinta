@@ -28,17 +28,17 @@ class MatchFinalizationContext {
 
   final List<SquadMember> squad;
 
-  /// Vrai quand le match est déjà validé : la saisie sert de correction et
-  /// arrive pré-remplie.
+  /// Vrai quand le match est dÃ©jÃ  validÃ© : la saisie sert de correction et
+  /// arrive prÃ©-remplie.
   final bool isValidated;
   final int opponentScore;
 
-  /// Une entrée par but déjà enregistré (id du buteur, répété autant de fois
-  /// qu'il a marqué) — pour reconstruire la liste des buts en correction.
+  /// Une entrÃ©e par but dÃ©jÃ  enregistrÃ© (id du buteur, rÃ©pÃ©tÃ© autant de fois
+  /// qu'il a marquÃ©) â pour reconstruire la liste des buts en correction.
   final List<String> scorerGoalLines;
   final String? cleanSheetProfileId;
 
-  /// Le gardien de l'effectif (Samih) pour l'interrupteur clean sheet.
+  /// Le gardien de l'effectif (l’admin) pour l'interrupteur clean sheet.
   final String? goalkeeperId;
   final String? goalkeeperName;
 }
@@ -55,7 +55,7 @@ class MatchFinalizationRepository {
         .eq('id', matchId)
         .maybeSingle();
     if (match == null) {
-      throw StateError('Ce match est introuvable ou a été supprimé.');
+      throw StateError('Ce match est introuvable ou a Ã©tÃ© supprimÃ©.');
     }
     final seasonId = match['season_id'].toString();
     final status = (match['status'] ?? 'a_venir').toString();

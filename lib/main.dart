@@ -101,17 +101,36 @@ class _BootstrapAppState extends State<_BootstrapApp> {
             );
           }
 
-          return const Scaffold(
-            backgroundColor: Color(0xFF0B1F17),
+          return Scaffold(
+            backgroundColor: const Color(0xFF0B1F17),
             body: SafeArea(
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Chargement de Ma Petite Grinta…'),
-                  ],
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 320),
+                        child: Image.asset(
+                          'assets/images/mpg_logo.png',
+                          width: double.infinity,
+                          fit: BoxFit.fitWidth,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Ma Petite Grinta',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const CircularProgressIndicator(),
+                    ],
+                  ),
                 ),
               ),
             ),

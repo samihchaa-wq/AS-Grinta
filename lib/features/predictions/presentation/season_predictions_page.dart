@@ -13,17 +13,17 @@ final seasonGaugesProvider = FutureProvider<List<PlayerGauge>>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
 });
 
-/// Pronostics de saison fermés par le staff (ou aucune saison ouverte).
+/// Pronostics de saison fermÃ©s par le staff (ou aucune saison ouverte).
 final seasonPredictionsLockedProvider = FutureProvider<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
 });
 
 const _kSeasonExplanation =
-    'Les pronostics portent sur une saison complète de 30 matchs. Peu importe '
-    'le nombre de matchs réellement disputés par un joueur (blessure, arrivée '
-    'en cours de saison, suspension, etc.). Les classements affichés pendant '
-    'la saison sont calculés à partir d’une projection sur 30 matchs et '
-    'évolueront jusqu’à la fin de la saison.';
+    'Les pronostics portent sur une saison complÃ¨te de 30 matchs. Peu importe '
+    'le nombre de matchs rÃ©ellement disputÃ©s par un joueur (blessure, arrivÃ©e '
+    'en cours de saison, suspension, etc.). Les classements affichÃ©s pendant '
+    'la saison sont calculÃ©s Ã  partir dâune projection sur 30 matchs et '
+    'Ã©volueront jusquâÃ  la fin de la saison.';
 
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
   const SeasonPredictionsPage({super.key});
@@ -98,7 +98,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   padding: EdgeInsets.all(20),
                   child: Text(
                     'Aucune saison ouverte ou aucun joueur actif dans '
-                    'l’effectif.',
+                    'lâeffectif.',
                   ),
                 ),
               ),
@@ -120,10 +120,10 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   color: Theme.of(context).colorScheme.secondaryContainer,
                   child: const ListTile(
                     leading: Icon(Icons.lock_outline),
-                    title: Text('Pronostics de saison fermés'),
+                    title: Text('Pronostics de saison fermÃ©s'),
                     subtitle: Text(
-                      'Ils ne sont plus modifiables. Va dans « Jauges » pour '
-                      'suivre l’évolution.',
+                      'Ils ne sont plus modifiables. Va dans Â« Jauges Â» pour '
+                      'suivre lâÃ©volution.',
                     ),
                   ),
                 ),
@@ -136,7 +136,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Pour chaque joueur : le nombre de buts que tu prévois sur la '
+                'Pour chaque joueur : le nombre de buts que tu prÃ©vois sur la '
                 'saison (les clean sheets pour le gardien).',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -166,7 +166,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                     _isSavingAll
                         ? 'Enregistrement...'
                         : _locked
-                            ? 'Pronostics fermés'
+                            ? 'Pronostics fermÃ©s'
                             : 'Valider mes pronostics',
                   ),
                 ),
@@ -240,9 +240,9 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   Icon(Icons.visibility_off_outlined, size: 40),
                   SizedBox(height: 12),
                   Text(
-                    'Les pronostics de tout le monde seront révélés ici une '
-                    'fois que Samih aura verrouillé les paris de la saison. '
-                    'D’ici là, personne ne voit les pronostics des autres.',
+                    'Les pronostics de tout le monde seront rÃ©vÃ©lÃ©s ici une '
+                    'fois que l’admin aura verrouillÃ© les paris de la saison. '
+                    'Dâici lÃ , personne ne voit les pronostics des autres.',
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -276,7 +276,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 Card(
                   child: Padding(
                     padding: EdgeInsets.all(20),
-                    child: Text('Aucun joueur dans l’effectif.'),
+                    child: Text('Aucun joueur dans lâeffectif.'),
                   ),
                 ),
               ],
@@ -290,9 +290,9 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 child: const Padding(
                   padding: EdgeInsets.all(14),
                   child: Text(
-                    'Le curseur ▮ montre le total réel actuel. Les repères ● '
+                    'Le curseur â® montre le total rÃ©el actuel. Les repÃ¨res â '
                     'sont les pronostics. La jauge grandit si un joueur '
-                    'dépasse le plus gros pronostic.',
+                    'dÃ©passe le plus gros pronostic.',
                   ),
                 ),
               ),
@@ -323,7 +323,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       await ref.read(seasonPredictionsProvider.future);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pronostics enregistrés.')),
+          const SnackBar(content: Text('Pronostics enregistrÃ©s.')),
         );
       }
     } catch (error) {
@@ -417,7 +417,7 @@ class _GaugeBar extends StatelessWidget {
                   ),
                 ),
               ),
-              // Progression réelle
+              // Progression rÃ©elle
               Positioned(
                 left: 0,
                 top: 20,
@@ -430,7 +430,7 @@ class _GaugeBar extends StatelessWidget {
                   ),
                 ),
               ),
-              // Repères des pronostics
+              // RepÃ¨res des pronostics
               for (final marker in gauge.markers)
                 Positioned(
                   left: (posOf(marker.value) - 11).clamp(0.0, width - 22),
@@ -440,7 +440,7 @@ class _GaugeBar extends StatelessWidget {
                     playerName: gauge.playerName,
                   ),
                 ),
-              // Curseur réel
+              // Curseur rÃ©el
               Positioned(
                 left: (posOf(gauge.actual) - 3).clamp(0.0, width - 6),
                 top: 12,
@@ -480,7 +480,7 @@ class _MarkerDot extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
             Text(
-              '$playerName — pronostic ${marker.value}',
+              '$playerName â pronostic ${marker.value}',
               style: Theme.of(sheetContext).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
