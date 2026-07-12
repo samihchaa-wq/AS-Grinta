@@ -24,7 +24,10 @@ final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 });
 
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
-  const SeasonPredictionsPage({super.key});
+  const SeasonPredictionsPage({super.key, this.openMine = false});
+
+  /// Ouvre directement l'onglet « Mes pronos » (édition) plutôt que « Jauges ».
+  final bool openMine;
 
   @override
   ConsumerState<SeasonPredictionsPage> createState() =>
@@ -34,7 +37,7 @@ class SeasonPredictionsPage extends ConsumerStatefulWidget {
 class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   final Map<String, int> _draftValues = {};
   String? _error;
-  bool _showGauges = true;
+  late bool _showGauges = !widget.openMine;
   bool _isSavingAll = false;
   bool _locked = false;
 
@@ -178,19 +181,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         child: Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.playerName,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Text(label, style: Theme.of(context).textTheme.bodySmall),
-                ],
+              child: Text(
+                item.playerName,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
             SizedBox(
-              width: 84,
+              width: 72,
               child: TextFormField(
                 key: ValueKey('$key:$value'),
                 initialValue: value.toString(),
@@ -206,6 +203,14 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 onChanged: (raw) {
                   _draftValues[key] = int.tryParse(raw) ?? 0;
                 },
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 76,
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
           ],

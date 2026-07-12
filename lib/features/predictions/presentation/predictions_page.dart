@@ -25,7 +25,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
         actions: [
           IconButton(
             tooltip: 'Modifier mes pronostics de saison',
-            onPressed: () => context.push('/predictions/season'),
+            onPressed: () => context.push('/predictions/season?tab=mine'),
             icon: const Icon(Icons.edit_calendar_outlined),
           ),
         ],
@@ -111,7 +111,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                   leading: const Icon(Icons.edit_calendar_outlined),
                   title: const Text('Modifier mes pronostics de saison'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/predictions/season'),
+                  onTap: () => context.push('/predictions/season?tab=mine'),
                 ),
               ),
             ],
