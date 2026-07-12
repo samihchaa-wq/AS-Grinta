@@ -27,15 +27,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   late DateTime _kickoffAt;
   late bool _isHome;
 
-  /// Vrai dès que l'admin a modifié une cote à la main : les suggestions
-  /// automatiques n'écrasent alors plus sa saisie.
-  bool _oddsEdited = false;
   bool _suggestingOdds = false;
 
-  Future<void> _suggestOdds({bool force = false}) async {
+  /// Recalcule les cotes automatiquement à partir de la forme récente, dès que
+  /// l'adversaire ou le lieu change (création comme modification).
+  Future<void> _suggestOdds() async {
     if (_opponentId.isEmpty) return;
-    if (widget.match != null && !force) return;
-    if (_oddsEdited && !force) return;
 
     setState(() => _suggestingOdds = true);
     final odds = await ref
@@ -48,7 +45,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         _oddsWinController.text = _formatOdds(odds.win);
         _oddsDrawController.text = _formatOdds(odds.draw);
         _oddsLossController.text = _formatOdds(odds.loss);
-        if (force) _oddsEdited = false;
       }
     });
   }
@@ -198,20 +194,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             Row(
               children: [
                 Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'calculées automatiquement',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
                 if (_suggestingOdds)
                   const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  TextButton.icon(
-                    onPressed: _opponentId.isEmpty
-                        ? null
-                        : () => _suggestOdds(force: true),
-                    icon: const Icon(Icons.auto_awesome, size: 18),
-                    label: const Text('Recalculer'),
                   ),
               ],
             ),
@@ -258,10 +252,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Widget _oddsField(TextEditingController controller, String label) {
     return TextFormField(
       controller: controller,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      readOnly: true,
       decoration: InputDecoration(labelText: label),
       validator: _validateOdds,
-      onChanged: (_) => _oddsEdited = true,
     );
   }
 
