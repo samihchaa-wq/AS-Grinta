@@ -296,13 +296,36 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               ],
             );
           }
+          final buteurs = gauges.where((g) => !g.isGoalkeeper).toList();
+          final gardiens = gauges.where((g) => g.isGoalkeeper).toList();
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              ...gauges.map((gauge) => _GaugeCard(gauge: gauge)),
+              if (buteurs.isNotEmpty) ...[
+                _sectionHeader('assets/images/scorer_logo.png', 'Buts'),
+                ...buteurs.map((gauge) => _GaugeCard(gauge: gauge)),
+                const SizedBox(height: 16),
+              ],
+              if (gardiens.isNotEmpty) ...[
+                _sectionHeader('assets/images/keeper_logo.png', 'Clean sheets'),
+                ...gardiens.map((gauge) => _GaugeCard(gauge: gauge)),
+              ],
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String asset, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, bottom: 10),
+      child: Row(
+        children: [
+          Image.asset(asset, height: 36, fit: BoxFit.contain),
+          const SizedBox(width: 10),
+          Text(label, style: Theme.of(context).textTheme.titleLarge),
+        ],
       ),
     );
   }
@@ -343,7 +366,6 @@ class _GaugeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = gauge.isGoalkeeper ? 'clean sheets' : 'buts';
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -351,16 +373,9 @@ class _GaugeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    gauge.playerName,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                Text(label, style: Theme.of(context).textTheme.bodySmall),
-              ],
+            Text(
+              gauge.playerName,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 6),
             _GaugeBar(gauge: gauge),
