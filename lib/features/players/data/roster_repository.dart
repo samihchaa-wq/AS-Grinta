@@ -105,6 +105,12 @@ class RosterRepository {
         .from('season_players')
         .update({'is_active': active}).eq('id', id);
   }
+
+  /// Supprime définitivement un joueur de l'effectif. Ses buts, clean sheets et
+  /// les pronostics de saison le concernant sont supprimés en cascade.
+  Future<void> deletePlayer(String id) async {
+    await _client.from('season_players').delete().eq('id', id);
+  }
 }
 
 final rosterRepositoryProvider = Provider<RosterRepository>((ref) {

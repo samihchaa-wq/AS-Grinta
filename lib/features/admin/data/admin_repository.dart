@@ -173,11 +173,23 @@ class AdminRepository {
     return id;
   }
 
-  Future<void> archiveSeason(String seasonId) async {
-    await _client
-        .from('seasons')
-        .update({'status': 'archived'}).eq('id', seasonId);
+  /// Change le statut d'une saison : 'open', 'terminee' ou 'archived'.
+  /// Rouvrir une saison ferme automatiquement toute autre saison ouverte.
+  Future<void> setSeasonStatus(String seasonId, String status) async {
+    if (!const ['open', 'terminee', 'archived'].contains(status)) {
+      throw ArgumentError('Statut de saison invalide.');
+    }
+    final result = await _client.rpc(
+      'set_season_status',
+      params: {'p_season_id': seasonId, 'p_status': status},
+    );
+    if (result != true) {
+      throw StateError('Le statut de la saison n’a pas pu être modifié.');
+    }
   }
+
+  Future<void> archiveSeason(String seasonId) =>
+      setSeasonStatus(seasonId, 'archived');
 
   /// Ouvre ou ferme les pronostics de saison (réservé au staff).
   Future<void> setSeasonPredictionsLock({

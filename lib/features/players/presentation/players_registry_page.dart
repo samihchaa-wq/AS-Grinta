@@ -113,7 +113,12 @@ class _RosterList extends ConsumerWidget {
                                 seasonId: seasonId, existing: player);
                             return;
                           }
-                          if (action == 'archive') {
+                          if (action == 'delete') {
+                            final confirmed =
+                                await _confirmDelete(context, player);
+                            if (!confirmed) return;
+                            await repo.deletePlayer(player.id);
+                          } else if (action == 'archive') {
                             await repo.setActive(id: player.id, active: false);
                           } else if (action == 'restore') {
                             await repo.setActive(id: player.id, active: true);
@@ -137,6 +142,10 @@ class _RosterList extends ConsumerWidget {
                           child:
                               Text(player.isActive ? 'Archiver' : 'Réactiver'),
                         ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Supprimer'),
+                        ),
                       ],
                     ),
                   ),
@@ -147,6 +156,35 @@ class _RosterList extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<bool> _confirmDelete(BuildContext context, RosterPlayer player) async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text('Supprimer ${player.displayName} ?'),
+          content: const Text(
+            'Le joueur est retiré définitivement de l’effectif. Ses buts, '
+            'clean sheets et les pronostics de saison le concernant sont '
+            'également supprimés. Pour simplement le sortir sans rien effacer, '
+            'utilise plutôt « Archiver ».',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Supprimer'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 }
 
 Future<void> _showPlayerDialog(
