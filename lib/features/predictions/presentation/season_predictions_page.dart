@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -314,7 +315,6 @@ class _GaugeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final label = gauge.isGoalkeeper ? 'clean sheets' : 'buts';
 
     // Un pronostic par pronostiqueur, trié par valeur croissante puis par nom.
     final preds = <({String name, int value})>[];
@@ -353,7 +353,10 @@ class _GaugeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '${gauge.actual} $label',
+                    gauge.isGoalkeeper
+                        ? AppFormats.counted(
+                            gauge.actual, 'clean sheet', 'clean sheets')
+                        : AppFormats.counted(gauge.actual, 'but'),
                     style: TextStyle(
                       color: scheme.onPrimary,
                       fontWeight: FontWeight.w800,

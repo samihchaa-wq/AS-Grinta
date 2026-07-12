@@ -24,4 +24,17 @@ class AppFormats {
 
   /// Retourne date + heure : "12/07/26 • 21h00".
   static String dateTime(DateTime dt) => '${date(dt)} • ${time(dt)}';
+
+  /// Accorde un nom en français : le pluriel n'apparaît qu'à partir de 2.
+  /// Ex. : `plural(0, 'but')` → "but", `plural(1, 'but')` → "but",
+  /// `plural(2, 'but')` → "buts". Utiliser [plural] pour un suffixe
+  /// irrégulier (`plural(2, 'clean sheet', 'clean sheets')`).
+  static String plural(int count, String singular, [String? pluralForm]) {
+    if (count > 1) return pluralForm ?? '${singular}s';
+    return singular;
+  }
+
+  /// Comme [plural] mais préfixé de la valeur : "0 but", "1 but", "2 buts".
+  static String counted(int count, String singular, [String? pluralForm]) =>
+      '$count ${plural(count, singular, pluralForm)}';
 }

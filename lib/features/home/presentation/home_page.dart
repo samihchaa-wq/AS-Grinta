@@ -717,8 +717,11 @@ class _SeasonPredictionsCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             ...items.map((item) {
-              final label =
-                  item.category == 'clean_sheets' ? 'clean sheets' : 'buts';
+              final isKeeper = item.category == 'clean_sheets';
+              final unit = isKeeper ? 'clean sheets' : 'buts';
+              final filledLabel = isKeeper
+                  ? AppFormats.counted(item.value, 'clean sheet', 'clean sheets')
+                  : AppFormats.counted(item.value, 'but');
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
@@ -732,7 +735,7 @@ class _SeasonPredictionsCard extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      item.isFilled ? '${item.value} $label' : '— $label',
+                      item.isFilled ? filledLabel : '— $unit',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: item.isFilled
