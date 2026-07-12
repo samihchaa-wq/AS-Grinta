@@ -30,8 +30,6 @@ class AdminProfileItem {
   String get fullName => '$firstName $lastName'.trim();
 
   String get displayName {
-    final nickname = surnom?.trim() ?? '';
-    if (nickname.isNotEmpty) return nickname;
     if (firstName.trim().isNotEmpty) return firstName.trim();
     return fullName.isEmpty ? 'Compte sans nom' : fullName;
   }
@@ -236,7 +234,9 @@ class AdminRepository {
     }
   }
 
-  Future<void> createSeason(String name) async {
+  /// Ouvre (ou ré-ouvre) une saison et garantit qu'une seule reste ouverte.
+  /// Retourne l'identifiant de la saison ouverte.
+  Future<String> createSeason(String name) async {
     final trimmed = name.trim();
     if (!RegExp(r'^\d{4}-\d{4}$').hasMatch(trimmed)) {
       throw ArgumentError('Le nom doit respecter le format 2026-2027.');
@@ -246,7 +246,15 @@ class AdminRepository {
     if (endYear != startYear + 1) {
       throw ArgumentError('La saison doit couvrir deux années consécutives.');
     }
-    await _client.from('seasons').insert({'name': trimmed, 'status': 'open'});
+    final result = await _client.rpc(
+      'open_or_create_season',
+      params: {'p_name': trimmed},
+    );
+    final id = result?.toString() ?? '';
+    if (id.isEmpty) {
+      throw StateError('La saison n’a pas pu être ouverte.');
+    }
+    return id;
   }
 
   Future<void> archiveSeason(String seasonId) async {

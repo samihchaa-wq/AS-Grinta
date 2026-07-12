@@ -116,8 +116,6 @@ class MatchFinalizationRepository {
   }
 
   String _displayName(Map<String, dynamic> profile) {
-    final nickname = (profile['surnom'] ?? '').toString().trim();
-    if (nickname.isNotEmpty) return nickname;
     final firstName = (profile['first_name'] ?? '').toString().trim();
     return firstName.isNotEmpty ? firstName : 'Joueur';
   }

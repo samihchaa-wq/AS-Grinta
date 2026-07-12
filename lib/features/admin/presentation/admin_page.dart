@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,25 +41,21 @@ class AdminPage extends ConsumerWidget {
             children: [
               _SeasonCard(dashboard: dashboard),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Comptes et effectif',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                  ),
-                  FilledButton.tonalIcon(
-                    onPressed: () => _invitePlayer(context, ref),
-                    icon: const Icon(Icons.person_add_alt_1_outlined),
-                    label: const Text('Inviter'),
-                  ),
-                ],
+              Text(
+                'Pronostiqueurs',
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
+              Text(
+                'Chacun crée son compte via le lien. Tu valides ensuite les '
+                'nouveaux comptes ci-dessous. (L’effectif des joueurs se '
+                'gère dans « Registre des joueurs ».)',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton.icon(
+                child: FilledButton.tonalIcon(
                   onPressed: () async {
                     await Clipboard.setData(
                       const ClipboardData(text: _registerLink),
@@ -68,7 +65,7 @@ class AdminPage extends ConsumerWidget {
                         const SnackBar(
                           content: Text(
                             'Lien d’inscription copié — partage-le sur '
-                            'WhatsApp. Tu valideras ensuite chaque compte ici.',
+                            'WhatsApp.',
                           ),
                         ),
                       );
@@ -78,180 +75,23 @@ class AdminPage extends ConsumerWidget {
                   label: const Text('Copier le lien d’inscription'),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               if (dashboard.profiles.isEmpty)
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(18),
-                    child: Text('Aucun compte disponible.'),
+                    child: Text('Aucun compte pour l’instant.'),
                   ),
                 )
               else
                 ...dashboard.profiles.map(
-                  (profile) => _ProfileCard(
-                    profile: profile,
-                    openSeasonId: dashboard.openSeasonId,
-                  ),
+                  (profile) => _ProfileCard(profile: profile),
                 ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Future<void> _invitePlayer(BuildContext context, WidgetRef ref) async {
-    final firstName = TextEditingController();
-    final lastInitial = TextEditingController();
-    final nickname = TextEditingController();
-    var isGoalkeeper = false;
-    var saving = false;
-    String? error;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: !saving,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Inviter un joueur'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: firstName,
-                  decoration: const InputDecoration(labelText: 'Prénom'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: lastInitial,
-                  maxLength: 1,
-                  decoration: const InputDecoration(
-                    labelText: 'Première lettre du nom',
-                    counterText: '',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: nickname,
-                  decoration: const InputDecoration(
-                    labelText: 'Surnom (facultatif)',
-                  ),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Gardien'),
-                  value: isGoalkeeper,
-                  onChanged: saving
-                      ? null
-                      : (value) => setState(() => isGoalkeeper = value),
-                ),
-                if (error != null)
-                  Text(
-                    error!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: saving ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: saving
-                  ? null
-                  : () async {
-                      if (firstName.text.trim().isEmpty ||
-                          lastInitial.text.trim().isEmpty) {
-                        setState(
-                          () => error =
-                              'Le prénom et la première lettre du nom sont obligatoires.',
-                        );
-                        return;
-                      }
-                      setState(() {
-                        saving = true;
-                        error = null;
-                      });
-                      try {
-                        final username = await ref
-                            .read(adminRepositoryProvider)
-                            .inviteAccount(
-                              firstName: firstName.text,
-                              lastInitial: lastInitial.text,
-                              surnom: nickname.text,
-                              isGoalkeeper: isGoalkeeper,
-                            );
-                        ref.invalidate(adminDashboardProvider);
-                        if (!dialogContext.mounted) return;
-                        Navigator.pop(dialogContext);
-                        await showDialog<void>(
-                          context: context,
-                          builder: (resultContext) => AlertDialog(
-                            title: const Text('Compte créé'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Communique cet identifiant au joueur. Il '
-                                  'choisira son mot de passe à sa première '
-                                  'connexion (« Première connexion ? » sur '
-                                  'l’écran d’accueil).',
-                                ),
-                                const SizedBox(height: 12),
-                                SelectableText(
-                                  username,
-                                  style: Theme.of(resultContext)
-                                      .textTheme
-                                      .headlineSmall,
-                                ),
-                              ],
-                            ),
-                            actions: [
-                              TextButton.icon(
-                                onPressed: () async {
-                                  await Clipboard.setData(
-                                    ClipboardData(text: username),
-                                  );
-                                },
-                                icon: const Icon(Icons.copy),
-                                label: const Text('Copier'),
-                              ),
-                              FilledButton(
-                                onPressed: () => Navigator.pop(resultContext),
-                                child: const Text('Fermer'),
-                              ),
-                            ],
-                          ),
-                        );
-                      } catch (exception) {
-                        if (!dialogContext.mounted) return;
-                        setState(() {
-                          saving = false;
-                          error = exception.toString();
-                        });
-                      }
-                    },
-              child: saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Créer le compte'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    firstName.dispose();
-    lastInitial.dispose();
-    nickname.dispose();
   }
 }
 
@@ -283,20 +123,54 @@ class _SeasonCard extends ConsumerWidget {
               Text('Saison ouverte : ${openSeason.name}'),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Pronostics de saison ouverts'),
+                title: Text(
+                  openSeason.predictionsLocked
+                      ? 'Paris de saison verrouillés'
+                      : 'Paris de saison ouverts',
+                ),
                 subtitle: Text(
                   openSeason.predictionsLocked
-                      ? 'Fermés : plus personne ne peut les modifier.'
-                      : 'Ouverts : chacun peut encore les modifier.',
+                      ? 'Verrouillés : les pronostics de chacun sont visibles '
+                          'par tous et ne sont plus modifiables.'
+                      : 'Ouverts : chacun saisit ses pronostics en secret. '
+                          'Verrouille pour les révéler à tous et démarrer le '
+                          'classement.',
                 ),
-                value: !openSeason.predictionsLocked,
-                onChanged: (open) async {
+                value: openSeason.predictionsLocked,
+                onChanged: (lock) async {
+                  if (lock) {
+                    final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (dialogContext) => AlertDialog(
+                            title: const Text('Verrouiller les paris ?'),
+                            content: const Text(
+                              'Les pronostics de saison de tout le monde '
+                              'deviendront visibles et ne pourront plus être '
+                              'modifiés. Le classement de saison démarre.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(dialogContext, false),
+                                child: const Text('Annuler'),
+                              ),
+                              FilledButton(
+                                onPressed: () =>
+                                    Navigator.pop(dialogContext, true),
+                                child: const Text('Verrouiller'),
+                              ),
+                            ],
+                          ),
+                        ) ??
+                        false;
+                    if (!confirmed) return;
+                  }
                   try {
                     await ref
                         .read(adminRepositoryProvider)
                         .setSeasonPredictionsLock(
                           seasonId: openSeason.id,
-                          locked: !open,
+                          locked: lock,
                         );
                     ref.invalidate(adminDashboardProvider);
                   } catch (error) {
@@ -352,24 +226,54 @@ class _SeasonCard extends ConsumerWidget {
       ),
     );
     controller.dispose();
-    if (name == null) return;
-    await ref.read(adminRepositoryProvider).createSeason(name);
-    ref.invalidate(adminDashboardProvider);
+    if (name == null || name.trim().isEmpty) return;
+    try {
+      await ref.read(adminRepositoryProvider).createSeason(name);
+      ref.invalidate(adminDashboardProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Saison « ${name.trim()} » ouverte.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(humanizeError(error))),
+        );
+      }
+    }
   }
 }
 
 class _ProfileCard extends ConsumerWidget {
-  const _ProfileCard({
-    required this.profile,
-    required this.openSeasonId,
-  });
+  const _ProfileCard({required this.profile});
 
   final AdminProfileItem profile;
-  final String? openSeasonId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(adminRepositoryProvider);
+    final currentUserId = ref.watch(authControllerProvider).profile?.id;
+    final isSelf = currentUserId != null && currentUserId == profile.id;
+
+    Future<void> run(
+      Future<void> Function() action, {
+      String? success,
+    }) async {
+      try {
+        await action();
+        ref.invalidate(adminDashboardProvider);
+        if (success != null && context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(success)));
+        }
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+        }
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -378,9 +282,25 @@ class _ProfileCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              profile.displayName,
-              style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    profile.displayName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                if (isSelf)
+                  const Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text('Toi'),
+                  )
+                else if (profile.status == 'archived')
+                  const Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text('Archivé'),
+                  ),
+              ],
             ),
             if (profile.username.trim().isNotEmpty)
               Text('Identifiant : ${profile.username}'),
@@ -393,206 +313,103 @@ class _ProfileCard extends ConsumerWidget {
                   label: const Text('En attente de 1re connexion'),
                 ),
               ),
-            if (profile.status == 'pending')
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Chip(
-                        visualDensity: VisualDensity.compact,
-                        avatar: const Icon(Icons.how_to_reg_outlined, size: 16),
-                        label: const Text('En attente de validation'),
+            // Actions réservées aux autres comptes : l'admin ne se gère pas
+            // lui-même.
+            if (!isSelf) ...[
+              if (profile.status == 'pending')
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: FilledButton.icon(
+                    onPressed: () => run(
+                      () => repository.updateProfileStatus(profile.id, 'active'),
+                      success:
+                          '${profile.displayName} peut maintenant se connecter.',
+                    ),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    label: const Text('Valider ce compte'),
+                  ),
+                ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton.icon(
+                    onPressed: () async {
+                      final confirmed = await _confirm(
+                        context,
+                        'Réinitialiser le mot de passe ?',
+                        '${profile.displayName} devra refaire une '
+                            '« première connexion ».',
+                      );
+                      if (!confirmed) return;
+                      await run(
+                        () => repository.resetAccountPassword(profile.id),
+                        success: 'Mot de passe réinitialisé.',
+                      );
+                    },
+                    icon: const Icon(Icons.lock_reset, size: 18),
+                    label: const Text('Réinitialiser le mot de passe'),
+                  ),
+                  if (profile.status == 'archived')
+                    TextButton.icon(
+                      onPressed: () => run(
+                        () =>
+                            repository.updateProfileStatus(profile.id, 'active'),
+                        success: 'Compte réactivé.',
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    FilledButton.icon(
+                      icon: const Icon(Icons.unarchive_outlined, size: 18),
+                      label: const Text('Réactiver'),
+                    )
+                  else
+                    TextButton.icon(
                       onPressed: () async {
-                        try {
-                          await repository.updateProfileStatus(
-                            profile.id,
-                            'active',
-                          );
-                          ref.invalidate(adminDashboardProvider);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${profile.displayName} peut maintenant '
-                                  'se connecter et pronostiquer.',
-                                ),
-                              ),
-                            );
-                          }
-                        } catch (error) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(humanizeError(error))),
-                            );
-                          }
-                        }
+                        final confirmed = await _confirm(
+                          context,
+                          'Archiver ce compte ?',
+                          '${profile.displayName} ne pourra plus se '
+                              'connecter. Ses pronostics sont conservés.',
+                        );
+                        if (!confirmed) return;
+                        await run(
+                          () => repository.updateProfileStatus(
+                              profile.id, 'archived'),
+                          success: 'Compte archivé.',
+                        );
                       },
-                      icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: const Text('Valider'),
+                      icon: const Icon(Icons.archive_outlined, size: 18),
+                      label: const Text('Archiver'),
                     ),
-                  ],
-                ),
+                ],
               ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              initialValue: profile.role,
-              decoration: const InputDecoration(labelText: 'Rôle'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'pronostiqueur',
-                  child: Text('Joueur'),
-                ),
-                DropdownMenuItem(
-                  value: 'moderateur',
-                  child: Text('Modérateur'),
-                ),
-                DropdownMenuItem(value: 'admin', child: Text('Admin')),
-              ],
-              onChanged: (value) async {
-                if (value == null || value == profile.role) return;
-                // Confirmation lors d'une élévation de privilèges : accorder
-                // les droits staff est une action sensible.
-                if (value == 'admin' || value == 'moderateur') {
-                  final roleLabel =
-                      value == 'admin' ? 'administrateur' : 'modérateur';
-                  final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Accorder des droits ?'),
-                          content: Text(
-                            'Donner le rôle « $roleLabel » à '
-                            '${profile.displayName} lui ouvre l’accès à '
-                            'l’administration. Continuer ?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, false),
-                              child: const Text('Annuler'),
-                            ),
-                            FilledButton(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, true),
-                              child: const Text('Confirmer'),
-                            ),
-                          ],
-                        ),
-                      ) ??
-                      false;
-                  if (!confirmed) return;
-                }
-                try {
-                  await repository.updateProfileRole(profile.id, value);
-                  ref.invalidate(adminDashboardProvider);
-                } catch (error) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(humanizeError(error))),
-                    );
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Compte actif'),
-              value: profile.status == 'active',
-              onChanged: (value) async {
-                await repository.updateProfileStatus(
-                  profile.id,
-                  value ? 'active' : 'archived',
-                );
-                ref.invalidate(adminDashboardProvider);
-              },
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Gardien'),
-              value: profile.isGoalkeeper,
-              onChanged: (value) async {
-                await repository.updateGoalkeeper(profile.id, value);
-                ref.invalidate(adminDashboardProvider);
-              },
-            ),
-            if (openSeasonId != null)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Joueur (feuille de match)'),
-                value: profile.inOpenSeason,
-                onChanged: (value) async {
-                  await repository.setSeasonMembership(
-                    seasonId: openSeasonId!,
-                    profile: profile,
-                    selected: value,
-                  );
-                  ref.invalidate(adminDashboardProvider);
-                },
-              ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Réinitialiser le mot de passe ?'),
-                          content: Text(
-                            '${profile.displayName} devra refaire une '
-                            '« première connexion » et choisir un nouveau '
-                            'mot de passe.',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, false),
-                              child: const Text('Annuler'),
-                            ),
-                            FilledButton(
-                              onPressed: () =>
-                                  Navigator.pop(dialogContext, true),
-                              child: const Text('Réinitialiser'),
-                            ),
-                          ],
-                        ),
-                      ) ??
-                      false;
-                  if (!confirmed) return;
-                  try {
-                    await repository.resetAccountPassword(profile.id);
-                    ref.invalidate(adminDashboardProvider);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Mot de passe réinitialisé : ${profile.username} '
-                            'doit refaire sa première connexion.',
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('La réinitialisation a échoué.'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                icon: const Icon(Icons.lock_reset, size: 18),
-                label: const Text('Réinitialiser le mot de passe'),
-              ),
-            ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  Future<bool> _confirm(
+    BuildContext context,
+    String title,
+    String message,
+  ) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Confirmer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }

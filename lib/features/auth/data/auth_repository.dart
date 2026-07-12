@@ -36,7 +36,6 @@ class AuthRepository {
   Future<String> registerAccount({
     required String firstName,
     required String lastName,
-    required String surnom,
     required String password,
     Uint8List? photoJpegBytes,
   }) async {
@@ -45,7 +44,6 @@ class AuthRepository {
       body: {
         'firstName': firstName.trim(),
         'lastName': lastName.trim(),
-        'surnom': surnom.trim(),
         'password': password,
         if (photoJpegBytes != null && photoJpegBytes.isNotEmpty)
           'photoBase64': base64Encode(photoJpegBytes),
@@ -97,7 +95,7 @@ class AuthRepository {
     final response = await _client
         .from('profiles')
         .select(
-          'id,first_name,last_name,surnom,username,photo_url,role,is_goalkeeper,status,created_at,updated_at',
+          'id,first_name,last_name,username,photo_url,role,is_goalkeeper,status,created_at,updated_at',
         )
         .eq('id', user.id)
         .maybeSingle();
@@ -132,7 +130,6 @@ class AuthRepository {
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
-    required String surnom,
     required String avatarPath,
   }) async {
     final user = _client.auth.currentUser;
@@ -142,7 +139,6 @@ class AuthRepository {
 
     final cleanFirstName = firstName.trim();
     final cleanLastName = lastName.trim();
-    final cleanNickname = surnom.trim();
     if (cleanFirstName.isEmpty || cleanLastName.isEmpty) {
       throw ArgumentError('Le prénom et le nom sont obligatoires.');
     }
@@ -150,7 +146,6 @@ class AuthRepository {
     await _client.from('profiles').update({
       'first_name': cleanFirstName,
       'last_name': cleanLastName,
-      'surnom': cleanNickname.isEmpty ? null : cleanNickname,
       'photo_url': avatarPath.trim().isEmpty ? null : avatarPath.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', user.id);
@@ -160,7 +155,6 @@ class AuthRepository {
         data: {
           'first_name': cleanFirstName,
           'last_name': cleanLastName,
-          'surnom': cleanNickname.isEmpty ? null : cleanNickname,
         },
       ),
     );

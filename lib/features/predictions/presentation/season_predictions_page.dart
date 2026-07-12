@@ -228,6 +228,30 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   }
 
   Widget _buildGauges(AsyncValue<List<PlayerGauge>> asyncGauges) {
+    if (!_locked) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Icon(Icons.visibility_off_outlined, size: 40),
+                  SizedBox(height: 12),
+                  Text(
+                    'Les pronostics de tout le monde seront révélés ici une '
+                    'fois que Samih aura verrouillé les paris de la saison. '
+                    'D’ici là, personne ne voit les pronostics des autres.',
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(seasonGaugesProvider);

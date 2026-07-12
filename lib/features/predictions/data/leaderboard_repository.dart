@@ -33,7 +33,6 @@ class LeaderboardRepository {
         .select('''
           profile_id,
           first_name,
-          surnom,
           match_points,
           season_points,
           total_points
@@ -45,10 +44,7 @@ class LeaderboardRepository {
     return (response as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       final firstName = (map['first_name'] ?? '').toString().trim();
-      final nickname = (map['surnom'] ?? '').toString().trim();
-      final displayName = nickname.isNotEmpty
-          ? nickname
-          : (firstName.isNotEmpty ? firstName : 'Compte sans nom');
+      final displayName = firstName.isNotEmpty ? firstName : 'Compte sans nom';
 
       return LeaderboardEntry(
         profileId: map['profile_id'].toString(),

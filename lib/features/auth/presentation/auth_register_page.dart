@@ -21,7 +21,6 @@ class AuthRegisterPage extends ConsumerStatefulWidget {
 class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  final _surnomController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _obscurePassword = true;
@@ -32,7 +31,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _surnomController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -98,7 +96,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       final username = await ref.read(authRepositoryProvider).registerAccount(
             firstName: firstName,
             lastName: lastName,
-            surnom: _surnomController.text,
             password: password,
             photoJpegBytes: _photoBytes,
           );
@@ -249,15 +246,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                         decoration: const InputDecoration(
                           labelText: 'Nom',
                           prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _surnomController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Surnom (optionnel)',
-                          prefixIcon: Icon(Icons.emoji_emotions_outlined),
                         ),
                       ),
                       const SizedBox(height: 16),

@@ -24,7 +24,6 @@ class AuthProfile {
     this.username,
     required this.firstName,
     required this.lastName,
-    this.surnom,
     this.avatarPath,
     required this.role,
     required this.isGoalkeeper,
@@ -37,7 +36,6 @@ class AuthProfile {
   final String? username;
   final String firstName;
   final String lastName;
-  final String? surnom;
   final String? avatarPath;
   final AuthRole role;
   final bool isGoalkeeper;
@@ -48,8 +46,6 @@ class AuthProfile {
   String get fullName => '$firstName $lastName'.trim();
 
   String get displayName {
-    final nickname = surnom?.trim() ?? '';
-    if (nickname.isNotEmpty) return nickname;
     final first = firstName.trim();
     if (first.isNotEmpty) return first;
     return fullName.isEmpty ? 'Utilisateur' : fullName;
@@ -73,7 +69,6 @@ class AuthProfile {
       username: json['username']?.toString(),
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
-      surnom: json['surnom']?.toString(),
       avatarPath: json['photo_url']?.toString(),
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,

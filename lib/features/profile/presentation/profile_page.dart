@@ -19,7 +19,6 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
-  late final TextEditingController _nicknameController;
   Uint8List? _pendingAvatarBytes;
   String? _avatarUrl;
   bool _isUploadingAvatar = false;
@@ -32,7 +31,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _firstNameController =
         TextEditingController(text: profile?.firstName ?? '');
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
-    _nicknameController = TextEditingController(text: profile?.surnom ?? '');
     _avatarUrl = profile?.avatarPath;
   }
 
@@ -40,7 +38,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _nicknameController.dispose();
     super.dispose();
   }
 
@@ -96,11 +93,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         : 'Profil utilisateur',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
-                  if (profile != null &&
-                      profile.displayName != profile.fullName) ...[
-                    const SizedBox(height: 4),
-                    Text('Nom affiché : ${profile.displayName}'),
-                  ],
                   const SizedBox(height: 8),
                   if ((profile?.username ?? '').isNotEmpty)
                     Text('Identifiant : ${profile!.username!}'),
@@ -116,17 +108,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ),
           const SizedBox(height: 20),
-          TextField(
-            controller: _nicknameController,
-            textInputAction: TextInputAction.next,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Surnom (facultatif)',
-              helperText:
-                  'Affiché partout dans l’application. Sinon, seul le prénom apparaît.',
-            ),
-          ),
-          const SizedBox(height: 16),
           TextField(
             controller: _firstNameController,
             textInputAction: TextInputAction.next,
@@ -236,7 +217,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       await ref.read(authControllerProvider.notifier).updateProfile(
             firstName: firstName,
             lastName: lastName,
-            surnom: _nicknameController.text,
             avatarPath: avatarUrl,
           );
       if (!mounted) return;

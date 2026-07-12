@@ -149,7 +149,6 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> updateProfile({
     required String firstName,
     required String lastName,
-    required String surnom,
     required String avatarPath,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -157,7 +156,6 @@ class AuthController extends StateNotifier<AuthState> {
       final profile = await _repository.updateProfile(
         firstName: firstName,
         lastName: lastName,
-        surnom: surnom,
         avatarPath: avatarPath,
       );
       state = state.copyWith(

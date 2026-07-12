@@ -89,8 +89,6 @@ class SeasonPredictionsRepository {
   }
 
   String _displayName(Map<String, dynamic> profile, String fallback) {
-    final nickname = (profile['surnom'] ?? '').toString().trim();
-    if (nickname.isNotEmpty) return nickname;
     final firstName = (profile['first_name'] ?? '').toString().trim();
     if (firstName.isNotEmpty) return firstName;
     return fallback;

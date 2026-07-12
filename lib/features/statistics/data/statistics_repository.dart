@@ -20,8 +20,6 @@ class PlayerStatistics {
   final int cleanSheets;
 
   String get displayName {
-    final nickname = surnom?.trim() ?? '';
-    if (nickname.isNotEmpty) return nickname;
     final first = firstName.trim();
     return first.isEmpty ? 'Joueur sans nom' : first;
   }
