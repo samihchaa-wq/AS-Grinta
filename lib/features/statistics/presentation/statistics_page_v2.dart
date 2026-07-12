@@ -1,6 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
-import 'package:as_grinta/features/statistics/presentation/stat_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,9 +77,13 @@ class StatisticsPageV2 extends ConsumerWidget {
               children: [
                 _ScorerRanking(scorers: scorers),
                 const SizedBox(height: 24),
-                const _SectionTitle(
+                _SectionTitle(
                   leadingSize: 40,
-                  leading: KeeperSaveIcon(size: 34),
+                  leading: Image.asset(
+                    'assets/images/keeper_logo.png',
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
                   label: 'Clean sheets',
                 ),
                 const SizedBox(height: 8),
@@ -95,8 +98,14 @@ class StatisticsPageV2 extends ConsumerWidget {
                   ...goalkeepers.map(
                     (player) => Card(
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          child: KeeperSaveIcon(size: 22, color: Colors.white),
+                        leading: CircleAvatar(
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Image.asset(
+                              'assets/images/keeper_logo.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                         title: Text(player.displayName),
                         trailing: _Badge(
