@@ -46,9 +46,10 @@ class RosterRepository {
   Future<List<RosterPlayer>> fetchRoster(String seasonId) async {
     final rows = await _client
         .from('season_players')
-        .select('id,first_name,last_name,is_goalkeeper,is_active')
+        .select('id,first_name,last_name,is_goalkeeper,is_active,position')
         .eq('season_id', seasonId)
         .order('is_active', ascending: false)
+        .order('position', ascending: true, nullsFirst: false)
         .order('first_name');
     return (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
@@ -65,37 +66,43 @@ class RosterRepository {
   Future<void> addPlayer({
     required String seasonId,
     required String firstName,
-    required String lastName,
     required bool isGoalkeeper,
   }) async {
     final f = firstName.trim();
-    final l = lastName.trim();
-    if (f.isEmpty || l.isEmpty) {
-      throw ArgumentError('Le prénom et le nom sont obligatoires.');
+    if (f.isEmpty) {
+      throw ArgumentError('Le prénom est obligatoire.');
     }
+    // Nouveau joueur ajouté à la fin de la liste.
+    final maxRows = await _client
+        .from('season_players')
+        .select('position')
+        .eq('season_id', seasonId)
+        .order('position', ascending: false)
+        .limit(1);
+    final maxPos = (maxRows as List).isEmpty
+        ? 0
+        : ((maxRows.first['position'] as num?)?.toInt() ?? 0);
     await _client.from('season_players').insert({
       'season_id': seasonId,
       'first_name': f,
-      'last_name': l,
+      'last_name': '',
       'is_goalkeeper': isGoalkeeper,
       'is_active': true,
+      'position': maxPos + 1,
     });
   }
 
   Future<void> updatePlayer({
     required String id,
     required String firstName,
-    required String lastName,
     required bool isGoalkeeper,
   }) async {
     final f = firstName.trim();
-    final l = lastName.trim();
-    if (f.isEmpty || l.isEmpty) {
-      throw ArgumentError('Le prénom et le nom sont obligatoires.');
+    if (f.isEmpty) {
+      throw ArgumentError('Le prénom est obligatoire.');
     }
     await _client.from('season_players').update({
       'first_name': f,
-      'last_name': l,
       'is_goalkeeper': isGoalkeeper,
     }).eq('id', id);
   }

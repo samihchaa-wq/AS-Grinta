@@ -85,7 +85,7 @@ class _RosterList extends ConsumerWidget {
                             : Icons.sports_soccer,
                       ),
                     ),
-                    title: Text(player.fullName),
+                    title: Text(player.displayName),
                     subtitle: Text(
                       [
                         if (player.isGoalkeeper) 'Gardien',
@@ -182,7 +182,6 @@ Future<void> _showPlayerDialog(
   RosterPlayer? existing,
 }) async {
   final firstName = TextEditingController(text: existing?.firstName ?? '');
-  final lastName = TextEditingController(text: existing?.lastName ?? '');
   var isGoalkeeper = existing?.isGoalkeeper ?? false;
   var saving = false;
   String? error;
@@ -200,12 +199,6 @@ Future<void> _showPlayerDialog(
                 controller: firstName,
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(labelText: 'Prénom'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: lastName,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Nom'),
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
@@ -241,14 +234,12 @@ Future<void> _showPlayerDialog(
                         await repo.addPlayer(
                           seasonId: seasonId,
                           firstName: firstName.text,
-                          lastName: lastName.text,
                           isGoalkeeper: isGoalkeeper,
                         );
                       } else {
                         await repo.updatePlayer(
                           id: existing.id,
                           firstName: firstName.text,
-                          lastName: lastName.text,
                           isGoalkeeper: isGoalkeeper,
                         );
                       }
@@ -275,5 +266,4 @@ Future<void> _showPlayerDialog(
   );
 
   firstName.dispose();
-  lastName.dispose();
 }
