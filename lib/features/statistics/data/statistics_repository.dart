@@ -6,35 +6,24 @@ class PlayerStatistics {
   const PlayerStatistics({
     required this.profileId,
     required this.firstName,
-    required this.lastName,
     this.surnom,
     required this.isGoalkeeper,
-    required this.matches,
     required this.goals,
-    required this.assists,
-    required this.penaltyFaults,
-    required this.motm,
     required this.cleanSheets,
   });
 
   final String profileId;
   final String firstName;
-  final String lastName;
   final String? surnom;
   final bool isGoalkeeper;
-  final int matches;
   final int goals;
-  final int assists;
-  final int penaltyFaults;
-  final int motm;
   final int cleanSheets;
 
-  String get fullName => '$firstName $lastName'.trim();
   String get displayName {
     final nickname = surnom?.trim() ?? '';
     if (nickname.isNotEmpty) return nickname;
-    if (firstName.trim().isNotEmpty) return firstName.trim();
-    return fullName.isEmpty ? 'Joueur sans nom' : fullName;
+    final first = firstName.trim();
+    return first.isEmpty ? 'Joueur sans nom' : first;
   }
 
   String get sortName => displayName.toLowerCase();
@@ -45,66 +34,42 @@ class StatisticsRepository {
 
   final SupabaseClient _client;
 
+  /// Classement de la saison ouverte : buts par joueur + clean sheets du
+  /// gardien. Si aucune saison n'est ouverte, on prend la plus récente.
   Future<List<PlayerStatistics>> fetchCareerStatistics() async {
-    final squadResponse = await _client.from('season_players').select('''
-      profile_id,
-      is_goalkeeper_snapshot,
-      profiles!inner(first_name,last_name,surnom,status)
-    ''').eq('profiles.status', 'active');
-    final statsResponse = await _client.from('v_player_career_stats').select('''
-      profile_id,
-      matches_played,
-      goals,
-      assists,
-      penalty_faults,
-      motm,
-      clean_sheets
-    ''');
-
-    final statsByProfile = <String, Map<String, dynamic>>{};
-    for (final row in statsResponse as List) {
-      final map = Map<String, dynamic>.from(row);
-      statsByProfile[map['profile_id'].toString()] = map;
+    final openSeason = await _client
+        .from('seasons')
+        .select('id')
+        .eq('status', 'open')
+        .maybeSingle();
+    String? seasonId = openSeason?['id']?.toString();
+    if (seasonId == null) {
+      final latest = await _client
+          .from('seasons')
+          .select('id')
+          .order('name', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      seasonId = latest?['id']?.toString();
     }
+    if (seasonId == null) return const [];
 
-    final squadByProfile = <String, Map<String, dynamic>>{};
-    for (final row in squadResponse as List) {
+    final rows = await _client
+        .from('v_scorer_standings')
+        .select('profile_id,first_name,surnom,is_goalkeeper,goals,clean_sheets')
+        .eq('season_id', seasonId);
+
+    return (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
-      final id = map['profile_id'].toString();
-      final existing = squadByProfile[id];
-      if (existing == null) {
-        squadByProfile[id] = map;
-      } else if (map['is_goalkeeper_snapshot'] == true) {
-        existing['is_goalkeeper_snapshot'] = true;
-      }
-    }
-
-    final result = <PlayerStatistics>[];
-    for (final entry in squadByProfile.entries) {
-      final row = entry.value;
-      final profile = row['profiles'] is Map
-          ? Map<String, dynamic>.from(row['profiles'] as Map)
-          : const <String, dynamic>{};
-      final stats = statsByProfile[entry.key] ?? const <String, dynamic>{};
-      result.add(
-        PlayerStatistics(
-          profileId: entry.key,
-          firstName: (profile['first_name'] ?? '').toString().trim(),
-          lastName: (profile['last_name'] ?? '').toString().trim(),
-          surnom: profile['surnom']?.toString(),
-          isGoalkeeper: row['is_goalkeeper_snapshot'] == true,
-          matches: int.tryParse('${stats['matches_played'] ?? 0}') ?? 0,
-          goals: int.tryParse('${stats['goals'] ?? 0}') ?? 0,
-          assists: int.tryParse('${stats['assists'] ?? 0}') ?? 0,
-          penaltyFaults:
-              int.tryParse('${stats['penalty_faults'] ?? 0}') ?? 0,
-          motm: int.tryParse('${stats['motm'] ?? 0}') ?? 0,
-          cleanSheets: int.tryParse('${stats['clean_sheets'] ?? 0}') ?? 0,
-        ),
+      return PlayerStatistics(
+        profileId: map['profile_id'].toString(),
+        firstName: (map['first_name'] ?? '').toString().trim(),
+        surnom: map['surnom']?.toString(),
+        isGoalkeeper: map['is_goalkeeper'] == true,
+        goals: int.tryParse('${map['goals'] ?? 0}') ?? 0,
+        cleanSheets: int.tryParse('${map['clean_sheets'] ?? 0}') ?? 0,
       );
-    }
-
-    return result;
+    }).toList();
   }
 }
 

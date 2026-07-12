@@ -37,6 +37,31 @@ class SeasonPredictionItem {
   }
 }
 
+class GaugeMarker {
+  const GaugeMarker({required this.value, required this.predictorNames});
+
+  final int value;
+  final List<String> predictorNames;
+}
+
+class PlayerGauge {
+  const PlayerGauge({
+    required this.playerId,
+    required this.playerName,
+    required this.isGoalkeeper,
+    required this.actual,
+    required this.markers,
+    required this.maxValue,
+  });
+
+  final String playerId;
+  final String playerName;
+  final bool isGoalkeeper;
+  final int actual;
+  final List<GaugeMarker> markers;
+  final int maxValue;
+}
+
 class SeasonPredictionsRepository {
   SeasonPredictionsRepository(this._client);
 
@@ -113,8 +138,8 @@ class SeasonPredictionsRepository {
       final playerId = map['profile_id'].toString();
       final playerName = _displayName(playerProfile, 'Joueur sans nom');
       final categories = map['is_goalkeeper_snapshot'] == true
-          ? const ['clean_sheets', 'penalty_faults']
-          : const ['buts', 'passes', 'hommes_du_match', 'penalty_faults'];
+          ? const ['clean_sheets']
+          : const ['buts'];
       for (final category in categories) {
         final existing = byKey['$playerId:$category'];
         result.add(
@@ -134,49 +159,78 @@ class SeasonPredictionsRepository {
     return result;
   }
 
-  Future<List<SeasonPredictionItem>> fetchPublic() async {
+  /// Données de la jauge vivante : pour chaque joueur de l'effectif, la valeur
+  /// réelle actuelle (buts, ou clean sheets pour le gardien) et tous les
+  /// pronostics enregistrés, regroupés par valeur.
+  Future<List<PlayerGauge>> fetchGauges() async {
     final seasonId = await _openSeasonId();
     if (seasonId == null) return const [];
 
-    final rows = await _client.from('season_predictions').select('''
-      predictor_profile_id,
-      player_profile_id,
-      category,
-      predicted_value_30,
-      is_filled,
-      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,surnom,status),
-      player:profiles!season_predictions_player_profile_id_fkey(first_name,surnom,status)
+    final standings = await _client
+        .from('v_scorer_standings')
+        .select('profile_id,first_name,surnom,is_goalkeeper,goals,clean_sheets')
+        .eq('season_id', seasonId);
+
+    final predictions = await _client.from('season_predictions').select('''
+      player_profile_id, category, predicted_value_30, is_filled,
+      predictor:profiles!season_predictions_predictor_profile_id_fkey(first_name,surnom,status)
     ''').eq('season_id', seasonId).eq('is_filled', true);
 
-    final items = <SeasonPredictionItem>[];
-    for (final row in rows as List) {
+    final predictionsByPlayer = <String, List<Map<String, dynamic>>>{};
+    for (final row in predictions as List) {
       final map = Map<String, dynamic>.from(row);
-      final predictor = Map<String, dynamic>.from(map['predictor'] as Map);
-      final player = Map<String, dynamic>.from(map['player'] as Map);
-      if (predictor['status'] != 'active' || player['status'] != 'active') {
-        continue;
-      }
-      items.add(
-        SeasonPredictionItem(
-          seasonId: seasonId,
-          predictorId: map['predictor_profile_id'].toString(),
-          predictorName: _displayName(predictor, 'Compte sans nom'),
-          playerId: map['player_profile_id'].toString(),
-          playerName: _displayName(player, 'Joueur sans nom'),
-          category: map['category'].toString(),
-          value: int.tryParse('${map['predicted_value_30']}') ?? 0,
-          isFilled: true,
-        ),
-      );
+      final predictor = map['predictor'] is Map
+          ? Map<String, dynamic>.from(map['predictor'] as Map)
+          : const <String, dynamic>{};
+      if (predictor['status'] != 'active') continue;
+      predictionsByPlayer
+          .putIfAbsent(map['player_profile_id'].toString(), () => [])
+          .add({
+        'value': int.tryParse('${map['predicted_value_30']}') ?? 0,
+        'name': _displayName(predictor, 'Compte sans nom'),
+      });
     }
-    items.sort((a, b) {
-      final predictor = a.predictorName.compareTo(b.predictorName);
-      if (predictor != 0) return predictor;
-      final player = a.playerName.compareTo(b.playerName);
-      if (player != 0) return player;
-      return a.category.compareTo(b.category);
+
+    final gauges = <PlayerGauge>[];
+    for (final row in standings as List) {
+      final map = Map<String, dynamic>.from(row);
+      final playerId = map['profile_id'].toString();
+      final isGoalkeeper = map['is_goalkeeper'] == true;
+      final actual = isGoalkeeper
+          ? (int.tryParse('${map['clean_sheets'] ?? 0}') ?? 0)
+          : (int.tryParse('${map['goals'] ?? 0}') ?? 0);
+
+      final markersByValue = <int, List<String>>{};
+      for (final pred in predictionsByPlayer[playerId] ?? const []) {
+        markersByValue
+            .putIfAbsent(pred['value'] as int, () => [])
+            .add(pred['name'] as String);
+      }
+      final markers = markersByValue.entries
+          .map((e) => GaugeMarker(value: e.key, predictorNames: e.value))
+          .toList()
+        ..sort((a, b) => a.value.compareTo(b.value));
+
+      final maxMarker =
+          markers.isEmpty ? 0 : markers.map((m) => m.value).reduce((a, b) => a > b ? a : b);
+      final maxValue = [actual, maxMarker, 1].reduce((a, b) => a > b ? a : b);
+
+      gauges.add(PlayerGauge(
+        playerId: playerId,
+        playerName: _displayName(map, 'Joueur sans nom'),
+        isGoalkeeper: isGoalkeeper,
+        actual: actual,
+        markers: markers,
+        maxValue: maxValue,
+      ));
+    }
+
+    gauges.sort((a, b) {
+      final byActual = b.actual.compareTo(a.actual);
+      if (byActual != 0) return byActual;
+      return a.playerName.toLowerCase().compareTo(b.playerName.toLowerCase());
     });
-    return items;
+    return gauges;
   }
 
   Future<void> save(SeasonPredictionItem item) async {

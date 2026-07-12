@@ -110,7 +110,8 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                 leading: const Icon(Icons.edit_calendar_outlined),
                 title: const Text('Mes pronostics de saison'),
                 subtitle: const Text(
-                  'Modifier les buts, passes, cleansheets et autres objectifs.',
+                  'Prédis les buts de chaque joueur (et les clean sheets du '
+                  'gardien).',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/predictions/season'),
@@ -132,9 +133,12 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
 
   String _subtitle(_RankingType type) {
     return switch (type) {
-      _RankingType.general => 'Total des points matchs et saison.',
+      _RankingType.general =>
+        'Score pondéré : 70 % matchs, 30 % saison.',
       _RankingType.match => 'Points gagnés sur les scores des matchs.',
-      _RankingType.season => 'Points gagnés sur les pronostics de saison.',
+      _RankingType.season =>
+        'Classement provisoire : calculé sur une projection de 30 matchs, '
+            'il évolue jusqu’à la fin de la saison.',
     };
   }
 }
@@ -150,14 +154,6 @@ class _RankingCard extends StatelessWidget {
       _RankingType.general => entry.totalPoints,
       _RankingType.match => entry.matchPoints,
       _RankingType.season => entry.seasonPoints,
-    };
-  }
-
-  double _percentage(LeaderboardEntry entry) {
-    return switch (type) {
-      _RankingType.general => entry.totalPercentage,
-      _RankingType.match => entry.matchPercentage,
-      _RankingType.season => entry.seasonPercentage,
     };
   }
 
@@ -189,7 +185,6 @@ class _RankingCard extends StatelessWidget {
         children: sorted.indexed.map((indexed) {
           final rank = indexed.$1 + 1;
           final entry = indexed.$2;
-          final percentage = _percentage(entry);
           return Column(
             children: [
               ListTile(
@@ -206,9 +201,6 @@ class _RankingCard extends StatelessWidget {
                   entry.name,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                subtitle: percentage > 0
-                    ? Text('${_format(percentage)} % du maximum')
-                    : null,
                 trailing: Text(
                   '${_format(_points(entry))} pts',
                   style: Theme.of(context).textTheme.titleMedium,

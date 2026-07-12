@@ -5,6 +5,8 @@ import 'package:as_grinta/features/matches/presentation/match_finalization_contr
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Saisie d'un match en une vingtaine de secondes : score adverse, buteurs
+/// (recherche instantanée, focus conservé), clean sheet du gardien.
 class MatchFinalizationPage extends ConsumerStatefulWidget {
   const MatchFinalizationPage({super.key, required this.matchId});
 
@@ -15,79 +17,77 @@ class MatchFinalizationPage extends ConsumerStatefulWidget {
       _MatchFinalizationPageState();
 }
 
-class _PlayerInput {
-  bool present = false;
-  int goals = 0;
-  int assists = 0;
-  int penaltyFaults = 0;
-  bool cleanSheet = false;
-}
-
-class _GuestInput {
-  final name = TextEditingController();
-  final position = TextEditingController();
-  bool present = true;
-  int goals = 0;
-  int assists = 0;
-  int penaltyFaults = 0;
-
-  void dispose() {
-    name.dispose();
-    position.dispose();
-  }
-}
-
 class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
-  final Map<String, _PlayerInput> _players = {};
-  final List<_GuestInput> _guests = [];
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+
+  /// Un identifiant de buteur par but marqué (dans l'ordre de saisie).
+  final List<String> _goalLines = [];
   int _opponentScore = 0;
-  String? _motmProfileId;
+  bool _cleanSheet = false;
+  String _query = '';
   bool _prefilled = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
 
   void _prefillFrom(MatchFinalizationContext sheet) {
     if (_prefilled) return;
     _prefilled = true;
     if (!sheet.isValidated) return;
-
     _opponentScore = sheet.opponentScore;
-    _motmProfileId = sheet.motmProfileId;
-    for (final entry in sheet.existingPlayerStats.entries) {
-      _players[entry.key] = _PlayerInput()
-        ..present = entry.value.present
-        ..goals = entry.value.goals
-        ..assists = entry.value.assists
-        ..penaltyFaults = entry.value.penaltyFaults
-        ..cleanSheet = entry.value.cleanSheet;
-    }
-    for (final guest in sheet.existingGuests) {
-      final input = _GuestInput()
-        ..present = guest.present
-        ..goals = guest.goals
-        ..assists = guest.assists
-        ..penaltyFaults = guest.penaltyFaults;
-      input.name.text = guest.name;
-      input.position.text = guest.position;
-      _guests.add(input);
-    }
+    _goalLines.addAll(sheet.scorerGoalLines);
+    _cleanSheet = sheet.cleanSheetProfileId != null &&
+        sheet.cleanSheetProfileId == sheet.goalkeeperId;
   }
 
-  @override
-  void dispose() {
-    for (final guest in _guests) {
-      guest.dispose();
+  void _addGoal(String profileId) {
+    setState(() {
+      _goalLines.add(profileId);
+      _searchController.clear();
+      _query = '';
+    });
+    // Le clavier reste ouvert pour enchaîner le buteur suivant.
+    _searchFocus.requestFocus();
+  }
+
+  void _removeGoalAt(int index) {
+    setState(() => _goalLines.removeAt(index));
+  }
+
+  Future<void> _submit(MatchFinalizationContext sheet) async {
+    final cleanSheetId =
+        _cleanSheet && _opponentScore == 0 ? sheet.goalkeeperId : null;
+    final success =
+        await ref.read(matchFinalizationControllerProvider.notifier).finalizeMatch(
+              matchId: widget.matchId,
+              opponentScore: _opponentScore,
+              scorerProfileIds: _goalLines,
+              cleanSheetProfileId: cleanSheetId,
+            );
+    if (success) {
+      ref.invalidate(matchDetailsProvider(widget.matchId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Match enregistré.')),
+        );
+        Navigator.pop(context);
+      }
     }
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchFinalizationControllerProvider);
-    final contextAsync = ref.watch(
-      matchFinalizationContextProvider(widget.matchId),
-    );
+    final contextAsync =
+        ref.watch(matchFinalizationContextProvider(widget.matchId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Feuille de match')),
+      appBar: AppBar(title: const Text('Saisie du match')),
       body: contextAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
@@ -98,137 +98,122 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
         ),
         data: (sheet) {
           _prefillFrom(sheet);
-          for (final player in sheet.players) {
-            _players.putIfAbsent(player.id, _PlayerInput.new);
-          }
-          final computedScore =
-              _players.values.fold<int>(0, (sum, item) => sum + item.goals) +
-              _guests.fold<int>(0, (sum, item) => sum + item.goals);
+          final grintaScore = _goalLines.length;
+          final nameById = {for (final m in sheet.squad) m.id: m.name};
+
+          final query = _query.trim().toLowerCase();
+          final suggestions = query.isEmpty
+              ? const <SquadMember>[]
+              : sheet.squad
+                  .where((m) => m.name.toLowerCase().contains(query))
+                  .take(6)
+                  .toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
             children: [
               _ScoreCard(
-                grintaScore: computedScore,
+                grintaScore: grintaScore,
                 opponentScore: _opponentScore,
-                onOpponentChanged: (value) {
-                  setState(() => _opponentScore = value);
-                },
+                onOpponentChanged: (value) => setState(() {
+                  _opponentScore = value;
+                  if (_opponentScore > 0) _cleanSheet = false;
+                }),
               ),
               const SizedBox(height: 20),
-              Text('Joueurs', style: Theme.of(context).textTheme.titleLarge),
+              Text('Buteurs', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              ...sheet.players.map((player) {
-                final input = _players[player.id]!;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-                    childrenPadding: const EdgeInsets.only(bottom: 8),
-                    title: Text(player.name),
-                    leading: Checkbox(
-                      value: input.present,
-                      onChanged: (value) => setState(() {
-                        input.present = value ?? false;
-                        if (!input.present) {
-                          input.goals = 0;
-                          input.assists = 0;
-                          input.penaltyFaults = 0;
-                          input.cleanSheet = false;
-                          if (_motmProfileId == player.id) {
-                            _motmProfileId = null;
-                          }
-                        }
-                      }),
-                    ),
-                    subtitle: Text(
-                      input.present
-                          ? '⚽ ${input.goals}  👟 ${input.assists}  ⚠️ ${input.penaltyFaults}'
-                          : 'Absent',
-                    ),
+              TextField(
+                controller: _searchController,
+                focusNode: _searchFocus,
+                autofocus: !sheet.isValidated,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Rechercher un buteur…',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _query = '';
+                            });
+                            _searchFocus.requestFocus();
+                          },
+                        )
+                      : null,
+                ),
+                onChanged: (value) => setState(() => _query = value),
+                onSubmitted: (_) {
+                  if (suggestions.isNotEmpty) _addGoal(suggestions.first.id);
+                },
+              ),
+              if (suggestions.isNotEmpty)
+                Card(
+                  margin: const EdgeInsets.only(top: 4),
+                  child: Column(
                     children: [
-                      _CounterRow(
-                        label: '⚽ Buts',
-                        value: input.goals,
-                        enabled: input.present,
-                        onChanged: (value) =>
-                            setState(() => input.goals = value),
-                      ),
-                      _CounterRow(
-                        label: '👟 Passes décisives',
-                        value: input.assists,
-                        enabled: input.present,
-                        onChanged: (value) =>
-                            setState(() => input.assists = value),
-                      ),
-                      _CounterRow(
-                        label: '⚠️ Faute provoquant un penalty',
-                        value: input.penaltyFaults,
-                        enabled: input.present,
-                        onChanged: (value) =>
-                            setState(() => input.penaltyFaults = value),
-                      ),
-                      if (player.isGoalkeeper)
-                        SwitchListTile(
-                          title: const Text('🧤 Clean sheet'),
-                          value: input.cleanSheet,
-                          onChanged: input.present
-                              ? (value) =>
-                                  setState(() => input.cleanSheet = value)
-                              : null,
+                      for (final member in suggestions)
+                        ListTile(
+                          dense: true,
+                          leading: Icon(
+                            member.isGoalkeeper
+                                ? Icons.sports_handball
+                                : Icons.sports_soccer,
+                          ),
+                          title: Text(member.name),
+                          trailing: const Icon(Icons.add_circle_outline),
+                          onTap: () => _addGoal(member.id),
                         ),
                     ],
                   ),
-                );
-              }),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 12,
-                runSpacing: 10,
-                children: [
-                  Text(
-                    'Invités du match',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  FilledButton.tonalIcon(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () => setState(() => _guests.add(_GuestInput())),
-                    icon: const Icon(Icons.person_add_alt_1),
-                    label: const Text('Ajouter'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              for (var index = 0; index < _guests.length; index++)
-                _guestCard(index),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String?>(
-                initialValue: _motmProfileId,
-                decoration: const InputDecoration(
-                  labelText: '⭐ Homme du match (facultatif)',
                 ),
-                items: [
-                  const DropdownMenuItem<String?>(
-                    value: null,
-                    child: Text('Aucun'),
-                  ),
-                  ...sheet.players
-                      .where((player) => _players[player.id]!.present)
-                      .map(
-                        (player) => DropdownMenuItem<String?>(
-                          value: player.id,
-                          child: Text(player.name),
-                        ),
+              const SizedBox(height: 12),
+              if (_goalLines.isEmpty)
+                Text(
+                  'Aucun but pour l’instant.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                )
+              else
+                for (var index = 0; index < _goalLines.length; index++)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    child: ListTile(
+                      dense: true,
+                      leading: const Text('⚽', style: TextStyle(fontSize: 20)),
+                      title: Text(
+                        nameById[_goalLines[index]] ?? 'Joueur',
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                ],
-                onChanged: (value) => setState(() => _motmProfileId = value),
-              ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Retirer ce but',
+                        onPressed: () => _removeGoalAt(index),
+                      ),
+                    ),
+                  ),
+              const SizedBox(height: 20),
+              if (sheet.goalkeeperId != null)
+                Card(
+                  child: SwitchListTile(
+                    secondary: const Text('🧤', style: TextStyle(fontSize: 22)),
+                    title: Text(
+                      '${sheet.goalkeeperName ?? 'Le gardien'} a réalisé un '
+                      'clean sheet',
+                    ),
+                    subtitle: _opponentScore > 0
+                        ? const Text(
+                            'Impossible : l’adversaire a marqué.',
+                          )
+                        : const Text('Oui / Non'),
+                    value: _cleanSheet && _opponentScore == 0,
+                    onChanged: _opponentScore > 0
+                        ? null
+                        : (value) => setState(() => _cleanSheet = value),
+                  ),
+                ),
               if (state.error != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -238,21 +223,23 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               ],
               const SizedBox(height: 20),
               FilledButton.icon(
-                onPressed: state.isLoading
-                    ? null
-                    : () => _submit(sheet.players),
-                icon: const Icon(Icons.verified_outlined),
+                onPressed: state.isLoading ? null : () => _submit(sheet),
+                icon: state.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_circle_outline),
                 label: Text(
-                  sheet.isValidated
-                      ? 'Corriger les statistiques'
-                      : 'Enregistrer les statistiques',
+                  sheet.isValidated ? 'Corriger le match' : 'Enregistrer le match',
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'L’enregistrement publie le résultat et les points, mais '
-                'n’archive pas le match : tu peux corriger tant que tu '
-                'veux, puis archiver depuis l’onglet Matchs.',
+                'Le score d’AS Grinta ($grintaScore) est calculé à partir des '
+                'buts. L’enregistrement publie le résultat et les points sans '
+                'archiver le match : tu peux corriger quand tu veux.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -260,148 +247,6 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
         },
       ),
     );
-  }
-
-  Widget _guestCard(int index) {
-    final guest = _guests[index];
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 520;
-                final fields = [
-                  TextField(
-                    controller: guest.name,
-                    decoration: const InputDecoration(labelText: 'Nom'),
-                  ),
-                  TextField(
-                    controller: guest.position,
-                    decoration: const InputDecoration(labelText: 'Poste'),
-                  ),
-                ];
-
-                if (compact) {
-                  return Column(
-                    children: [
-                      fields[0],
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(child: fields[1]),
-                          IconButton(
-                            tooltip: 'Supprimer',
-                            onPressed: () => _removeGuest(index),
-                            icon: const Icon(Icons.delete_outline),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                }
-
-                return Row(
-                  children: [
-                    Expanded(child: fields[0]),
-                    const SizedBox(width: 8),
-                    Expanded(child: fields[1]),
-                    IconButton(
-                      tooltip: 'Supprimer',
-                      onPressed: () => _removeGuest(index),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                  ],
-                );
-              },
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Présent'),
-              value: guest.present,
-              onChanged: (value) => setState(() => guest.present = value),
-            ),
-            _CounterRow(
-              label: '⚽ Buts',
-              value: guest.goals,
-              enabled: guest.present,
-              onChanged: (value) => setState(() => guest.goals = value),
-            ),
-            _CounterRow(
-              label: '👟 Passes décisives',
-              value: guest.assists,
-              enabled: guest.present,
-              onChanged: (value) => setState(() => guest.assists = value),
-            ),
-            _CounterRow(
-              label: '⚠️ Faute provoquant un penalty',
-              value: guest.penaltyFaults,
-              enabled: guest.present,
-              onChanged: (value) => setState(() => guest.penaltyFaults = value),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _removeGuest(int index) {
-    final removed = _guests.removeAt(index);
-    removed.dispose();
-    setState(() {});
-  }
-
-  Future<void> _submit(List<MatchSheetPlayer> players) async {
-    for (final guest in _guests) {
-      if (guest.name.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Le nom de chaque invité est requis.')),
-        );
-        return;
-      }
-    }
-
-    final playerStats = players.map((player) {
-      final input = _players[player.id]!;
-      return {
-        'profile_id': player.id,
-        'present': input.present,
-        'goals': input.goals,
-        'assists': input.assists,
-        'penalty_faults': input.penaltyFaults,
-        'clean_sheet': player.isGoalkeeper && input.cleanSheet,
-      };
-    }).toList();
-    final guestStats = _guests
-        .map(
-          (guest) => {
-            'display_name': guest.name.text.trim(),
-            'position': guest.position.text.trim().isEmpty
-                ? 'Joueur'
-                : guest.position.text.trim(),
-            'present': guest.present,
-            'goals': guest.goals,
-            'assists': guest.assists,
-            'penalty_faults': guest.penaltyFaults,
-          },
-        )
-        .toList();
-
-    final success = await ref
-        .read(matchFinalizationControllerProvider.notifier)
-        .finalizeMatch(
-          matchId: widget.matchId,
-          opponentScore: _opponentScore,
-          manOfTheMatchId: _motmProfileId,
-          playerStats: playerStats,
-          guestStats: guestStats,
-        );
-    if (success) {
-      ref.invalidate(matchDetailsProvider(widget.matchId));
-      if (mounted) Navigator.pop(context);
-    }
   }
 }
 
@@ -424,156 +269,79 @@ class _ScoreCard extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: _TeamScore(
-                label: 'AS Grinta',
-                score: grintaScore,
-                helper: 'Calculé avec les buts',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'AS Grinta',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$grintaScore',
+                    style: Theme.of(context).textTheme.displaySmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Calculé avec les buts',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                '—',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              child:
+                  Text('—', style: Theme.of(context).textTheme.headlineMedium),
             ),
             Expanded(
-              child: _OpponentScoreStepper(
-                score: opponentScore,
-                onChanged: onOpponentChanged,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Adversaire',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton.filledTonal(
+                        tooltip: 'Retirer un but',
+                        onPressed: opponentScore > 0
+                            ? () => onOpponentChanged(opponentScore - 1)
+                            : null,
+                        icon: const Icon(Icons.remove),
+                      ),
+                      SizedBox(
+                        width: 48,
+                        child: Text(
+                          '$opponentScore',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                      ),
+                      IconButton.filledTonal(
+                        tooltip: 'Ajouter un but',
+                        onPressed: () => onOpponentChanged(opponentScore + 1),
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Saisie manuelle',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _TeamScore extends StatelessWidget {
-  const _TeamScore({
-    required this.label,
-    required this.score,
-    required this.helper,
-  });
-
-  final String label;
-  final int score;
-  final String helper;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '$score',
-          style: Theme.of(context).textTheme.displaySmall,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          helper,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
-class _OpponentScoreStepper extends StatelessWidget {
-  const _OpponentScoreStepper({
-    required this.score,
-    required this.onChanged,
-  });
-
-  final int score;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Adversaire',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton.filledTonal(
-              tooltip: 'Retirer un but',
-              onPressed: score > 0 ? () => onChanged(score - 1) : null,
-              icon: const Icon(Icons.remove),
-            ),
-            SizedBox(
-              width: 48,
-              child: Text(
-                '$score',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-            ),
-            IconButton.filledTonal(
-              tooltip: 'Ajouter un but',
-              onPressed: () => onChanged(score + 1),
-              icon: const Icon(Icons.add),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Saisie manuelle',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ],
-    );
-  }
-}
-
-class _CounterRow extends StatelessWidget {
-  const _CounterRow({
-    required this.label,
-    required this.value,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final String label;
-  final int value;
-  final bool enabled;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          IconButton(
-            onPressed: enabled && value > 0 ? () => onChanged(value - 1) : null,
-            icon: const Icon(Icons.remove_circle_outline),
-          ),
-          SizedBox(
-            width: 32,
-            child: Text('$value', textAlign: TextAlign.center),
-          ),
-          IconButton(
-            onPressed: enabled ? () => onChanged(value + 1) : null,
-            icon: const Icon(Icons.add_circle_outline),
-          ),
-        ],
       ),
     );
   }

@@ -51,8 +51,6 @@ class MatchDetailsPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _UpcomingInformation(details: details),
               ] else if (details.playerStats.isEmpty &&
-                  details.guestStats.isEmpty &&
-                  details.manOfTheMatch == null &&
                   details.predictions.isEmpty) ...[
                 const SizedBox(height: 16),
                 const Card(
@@ -246,15 +244,10 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final penaltyPlayers = [
-      ...details.playerStats.where((line) => line.penaltyFaults > 0),
-      ...details.guestStats.where((line) => line.penaltyFaults > 0),
-    ];
-    final cleanSheets = details.playerStats.where((line) => line.cleanSheet);
-    final aggregateScorers = [
-      ...details.playerStats.where((line) => line.goals > 0),
-      ...details.guestStats.where((line) => line.goals > 0),
-    ];
+    final cleanSheets =
+        details.playerStats.where((line) => line.cleanSheet).toList();
+    final scorers =
+        details.playerStats.where((line) => line.goals > 0).toList();
 
     return Card(
       child: Padding(
@@ -266,31 +259,15 @@ class _MatchSummary extends StatelessWidget {
             const SizedBox(height: 16),
             _Section(
               title: 'Buteurs',
-              children: aggregateScorers
+              children: scorers
                   .map((line) => Text(
                       '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
                   .toList(),
             ),
             const SizedBox(height: 14),
             _Section(
-              title: 'Penaltys provoqués',
-              children: penaltyPlayers
-                  .map(
-                    (line) => Text(
-                      '${line.name} — ${line.penaltyFaults}',
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 14),
-            _Section(
-              title: 'Cleansheets',
+              title: 'Clean sheet',
               children: cleanSheets.map((line) => Text(line.name)).toList(),
-            ),
-            const SizedBox(height: 14),
-            _Section(
-              title: 'Homme du match',
-              children: [Text(details.manOfTheMatch ?? 'Aucun')],
             ),
           ],
         ),

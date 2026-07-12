@@ -9,15 +9,21 @@ final seasonPredictionsProvider =
   return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
 });
 
-final publicSeasonPredictionsProvider =
-    FutureProvider<List<SeasonPredictionItem>>((ref) {
-  return ref.watch(seasonPredictionsRepositoryProvider).fetchPublic();
+final seasonGaugesProvider = FutureProvider<List<PlayerGauge>>((ref) {
+  return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
 });
 
 /// Pronostics de saison fermés par le staff (ou aucune saison ouverte).
 final seasonPredictionsLockedProvider = FutureProvider<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
 });
+
+const _kSeasonExplanation =
+    'Les pronostics portent sur une saison complète de 30 matchs. Peu importe '
+    'le nombre de matchs réellement disputés par un joueur (blessure, arrivée '
+    'en cours de saison, suspension, etc.). Les classements affichés pendant '
+    'la saison sont calculés à partir d’une projection sur 30 matchs et '
+    'évolueront jusqu’à la fin de la saison.';
 
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
   const SeasonPredictionsPage({super.key});
@@ -30,14 +36,14 @@ class SeasonPredictionsPage extends ConsumerStatefulWidget {
 class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   final Map<String, int> _draftValues = {};
   String? _error;
-  bool _showPublic = false;
+  bool _showGauges = false;
   bool _isSavingAll = false;
   bool _locked = false;
 
   @override
   Widget build(BuildContext context) {
     final mineAsync = ref.watch(seasonPredictionsProvider);
-    final publicAsync = ref.watch(publicSeasonPredictionsProvider);
+    final gaugesAsync = ref.watch(seasonGaugesProvider);
     _locked = ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
 
     return Scaffold(
@@ -51,23 +57,24 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 ButtonSegment(
                   value: false,
                   icon: Icon(Icons.edit_outlined),
-                  label: Text('Mes pronostics'),
+                  label: Text('Mes pronos'),
                 ),
                 ButtonSegment(
                   value: true,
-                  icon: Icon(Icons.public),
-                  label: Text('Pronostics publics'),
+                  icon: Icon(Icons.leaderboard_outlined),
+                  label: Text('Jauges'),
                 ),
               ],
-              selected: {_showPublic},
+              selected: {_showGauges},
               onSelectionChanged: (selection) {
-                setState(() => _showPublic = selection.first);
+                setState(() => _showGauges = selection.first);
               },
             ),
           ),
           Expanded(
-            child:
-                _showPublic ? _buildPublic(publicAsync) : _buildMine(mineAsync),
+            child: _showGauges
+                ? _buildGauges(gaugesAsync)
+                : _buildMine(mineAsync),
           ),
         ],
       ),
@@ -90,17 +97,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 child: Padding(
                   padding: EdgeInsets.all(20),
                   child: Text(
-                    'Aucune saison ouverte ou aucun joueur actif dans l’effectif.',
+                    'Aucune saison ouverte ou aucun joueur actif dans '
+                    'l’effectif.',
                   ),
                 ),
               ),
             ],
           );
-        }
-
-        final grouped = <String, List<SeasonPredictionItem>>{};
-        for (final item in items) {
-          grouped.putIfAbsent(item.playerId, () => []).add(item);
         }
 
         return RefreshIndicator(
@@ -119,19 +122,23 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                     leading: Icon(Icons.lock_outline),
                     title: Text('Pronostics de saison fermés'),
                     subtitle: Text(
-                      'Ils ne sont plus modifiables. Tu peux toujours '
-                      'consulter ceux de tout le monde dans l’onglet '
-                      '« Pronostics publics ».',
+                      'Ils ne sont plus modifiables. Va dans « Jauges » pour '
+                      'suivre l’évolution.',
                     ),
                   ),
                 ),
               if (_locked) const SizedBox(height: 12),
-              const Text(
-                'Valeurs prévues pour la saison. Une case vide rapporte 0 point.',
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(14),
+                  child: Text(_kSeasonExplanation),
+                ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Les fautes provoquant un penalty et les HDM sont pronostiqués pour tous les joueurs, gardiens compris.',
+              Text(
+                'Pour chaque joueur : le nombre de buts que tu prévois sur la '
+                'saison (les clean sheets pour le gardien).',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -140,26 +147,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
-              const SizedBox(height: 16),
-              Card(
-                clipBehavior: Clip.antiAlias,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columnSpacing: 18,
-                    horizontalMargin: 16,
-                    columns: const [
-                      DataColumn(label: Text('Joueur')),
-                      DataColumn(label: Text('Buts')),
-                      DataColumn(label: Text('Passes D.')),
-                      DataColumn(label: Text('HDM')),
-                      DataColumn(label: Text('Cleansheets')),
-                      DataColumn(label: Text('Fautes pen.')),
-                    ],
-                    rows: grouped.values.map(_buildPredictionTableRow).toList(),
-                  ),
-                ),
-              ),
+              const SizedBox(height: 12),
+              ...items.map(_buildPlayerRow),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -190,78 +179,61 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     );
   }
 
-  DataRow _buildPredictionTableRow(List<SeasonPredictionItem> playerItems) {
-    SeasonPredictionItem? find(String category) {
-      for (final item in playerItems) {
-        if (item.category == category) return item;
-      }
-      return null;
-    }
-
-    final isGoalkeeper = find('clean_sheets') != null;
-
-    return DataRow(
-      cells: [
-        DataCell(
-          SizedBox(
-            width: 130,
-            child: Text(
-              playerItems.first.playerName,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-        DataCell(isGoalkeeper ? _disabledCell() : _numberCell(find('buts'))),
-        DataCell(isGoalkeeper ? _disabledCell() : _numberCell(find('passes'))),
-        DataCell(_numberCell(find('hommes_du_match'))),
-        DataCell(
-          isGoalkeeper ? _numberCell(find('clean_sheets')) : _disabledCell(),
-        ),
-        DataCell(_numberCell(find('penalty_faults'))),
-      ],
-    );
-  }
-
-  Widget _numberCell(SeasonPredictionItem? item) {
-    if (item == null) return _disabledCell();
+  Widget _buildPlayerRow(SeasonPredictionItem item) {
     final key = '${item.playerId}:${item.category}';
     final value = _draftValues[key] ?? item.value;
+    final label = item.category == 'clean_sheets' ? 'clean sheets' : 'buts';
 
-    return SizedBox(
-      width: 72,
-      child: TextFormField(
-        key: ValueKey('$key:$value'),
-        initialValue: value.toString(),
-        enabled: !_locked,
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(
-          isDense: true,
-          hintText: '0',
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.playerName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(label, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 84,
+              child: TextFormField(
+                key: ValueKey('$key:$value'),
+                initialValue: value.toString(),
+                enabled: !_locked,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  isDense: true,
+                  hintText: '0',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (raw) {
+                  _draftValues[key] = int.tryParse(raw) ?? 0;
+                },
+              ),
+            ),
+          ],
         ),
-        onChanged: (raw) {
-          _draftValues[key] = int.tryParse(raw) ?? 0;
-        },
       ),
     );
   }
 
-  Widget _disabledCell() {
-    return const SizedBox(
-      width: 72,
-      child: Center(child: Text('—')),
-    );
-  }
-
-  Widget _buildPublic(AsyncValue<List<SeasonPredictionItem>> asyncItems) {
+  Widget _buildGauges(AsyncValue<List<PlayerGauge>> asyncGauges) {
     return RefreshIndicator(
       onRefresh: () async {
-        ref.invalidate(publicSeasonPredictionsProvider);
-        await ref.read(publicSeasonPredictionsProvider.future);
+        ref.invalidate(seasonGaugesProvider);
+        await ref.read(seasonGaugesProvider.future);
       },
-      child: asyncItems.when(
+      child: asyncGauges.when(
         loading: () => ListView(
           children: const [
             SizedBox(height: 220),
@@ -272,49 +244,37 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           padding: const EdgeInsets.all(16),
           children: [Text(humanizeError(error))],
         ),
-        data: (items) {
-          if (items.isEmpty) {
+        data: (gauges) {
+          if (gauges.isEmpty) {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: const [
                 Card(
                   child: Padding(
                     padding: EdgeInsets.all(20),
-                    child: Text('Aucun pronostic public enregistré.'),
+                    child: Text('Aucun joueur dans l’effectif.'),
                   ),
                 ),
               ],
             );
           }
-
-          final grouped = <String, List<SeasonPredictionItem>>{};
-          for (final item in items) {
-            grouped.putIfAbsent(item.predictorId, () => []).add(item);
-          }
-
           return ListView(
             padding: const EdgeInsets.all(16),
-            children: grouped.values.map((predictions) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ExpansionTile(
-                  title: Text(predictions.first.predictorName),
-                  subtitle: Text('${predictions.length} pronostic(s)'),
-                  children: predictions
-                      .map(
-                        (item) => ListTile(
-                          title: Text(item.playerName),
-                          subtitle: Text(_categoryLabel(item.category)),
-                          trailing: Text(
-                            '${item.value}',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                      )
-                      .toList(),
+            children: [
+              Card(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: Text(
+                    'Le curseur ▮ montre le total réel actuel. Les repères ● '
+                    'sont les pronostics. La jauge grandit si un joueur '
+                    'dépasse le plus gros pronostic.',
+                  ),
                 ),
-              );
-            }).toList(),
+              ),
+              const SizedBox(height: 12),
+              ...gauges.map((gauge) => _GaugeCard(gauge: gauge)),
+            ],
           );
         },
       ),
@@ -326,7 +286,6 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       _isSavingAll = true;
       _error = null;
     });
-
     try {
       final repository = ref.read(seasonPredictionsRepositoryProvider);
       for (final item in items) {
@@ -336,7 +295,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       }
       _draftValues.clear();
       ref.invalidate(seasonPredictionsProvider);
-      ref.invalidate(publicSeasonPredictionsProvider);
+      ref.invalidate(seasonGaugesProvider);
       await ref.read(seasonPredictionsProvider.future);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -349,15 +308,188 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       if (mounted) setState(() => _isSavingAll = false);
     }
   }
+}
 
-  String _categoryLabel(String category) {
-    return switch (category) {
-      'buts' => 'Buts',
-      'passes' => 'Passes décisives',
-      'hommes_du_match' => 'Hommes du match',
-      'clean_sheets' => 'Cleansheets',
-      'penalty_faults' => 'Fautes provoquant un penalty',
-      _ => category,
-    };
+class _GaugeCard extends StatelessWidget {
+  const _GaugeCard({required this.gauge});
+
+  final PlayerGauge gauge;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = gauge.isGoalkeeper ? 'clean sheets' : 'buts';
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    gauge.playerName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Text(
+                  '${gauge.actual} $label',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _GaugeBar(gauge: gauge),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('0', style: Theme.of(context).textTheme.bodySmall),
+                Text('${gauge.maxValue}',
+                    style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GaugeBar extends StatelessWidget {
+  const _GaugeBar({required this.gauge});
+
+  final PlayerGauge gauge;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final maxValue = gauge.maxValue <= 0 ? 1 : gauge.maxValue;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        double posOf(int value) =>
+            (value / maxValue).clamp(0.0, 1.0) * width;
+
+        return SizedBox(
+          height: 44,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Piste
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 20,
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              // Progression réelle
+              Positioned(
+                left: 0,
+                top: 20,
+                child: Container(
+                  height: 6,
+                  width: posOf(gauge.actual),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+              // Repères des pronostics
+              for (final marker in gauge.markers)
+                Positioned(
+                  left: (posOf(marker.value) - 11).clamp(0.0, width - 22),
+                  top: 6,
+                  child: _MarkerDot(
+                    marker: marker,
+                    playerName: gauge.playerName,
+                  ),
+                ),
+              // Curseur réel
+              Positioned(
+                left: (posOf(gauge.actual) - 3).clamp(0.0, width - 6),
+                top: 12,
+                child: Container(
+                  width: 6,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _MarkerDot extends StatelessWidget {
+  const _MarkerDot({required this.marker, required this.playerName});
+
+  final GaugeMarker marker;
+  final String playerName;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final count = marker.predictorNames.length;
+    return GestureDetector(
+      onTap: () => showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        builder: (sheetContext) => ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            Text(
+              '$playerName — pronostic ${marker.value}',
+              style: Theme.of(sheetContext).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            ...marker.predictorNames.map(
+              (name) => ListTile(
+                dense: true,
+                leading: const Icon(Icons.person_outline),
+                title: Text(name),
+              ),
+            ),
+          ],
+        ),
+      ),
+      child: Container(
+        width: 22,
+        height: 22,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: scheme.tertiaryContainer,
+          shape: BoxShape.circle,
+          border: Border.all(color: scheme.tertiary),
+        ),
+        child: count > 1
+            ? Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onTertiaryContainer,
+                ),
+              )
+            : Icon(Icons.circle, size: 8, color: scheme.tertiary),
+      ),
+    );
   }
 }

@@ -20,15 +20,11 @@ class MatchStatLine {
   const MatchStatLine({
     required this.name,
     required this.goals,
-    required this.assists,
-    required this.penaltyFaults,
     required this.cleanSheet,
   });
 
   final String name;
   final int goals;
-  final int assists;
-  final int penaltyFaults;
   final bool cleanSheet;
 }
 
@@ -62,8 +58,6 @@ class MatchDetailsData {
     required this.predictionParticipantCount,
     required this.headToHead,
     required this.playerStats,
-    required this.guestStats,
-    required this.manOfTheMatch,
     required this.predictions,
   });
 
@@ -81,8 +75,6 @@ class MatchDetailsData {
   final int predictionParticipantCount;
   final List<HeadToHeadMatch> headToHead;
   final List<MatchStatLine> playerStats;
-  final List<MatchStatLine> guestStats;
-  final String? manOfTheMatch;
   final List<MatchPredictionResult> predictions;
 
   bool get isValidated => status == 'termine' || status == 'archive';
@@ -148,15 +140,13 @@ class MatchDetailsRepository {
         .toList();
 
     var playerStats = const <MatchStatLine>[];
-    var guestStats = const <MatchStatLine>[];
-    String? manOfTheMatch;
     var predictions = const <MatchPredictionResult>[];
 
     if (isValidated) {
       final statRows = await _client.from('match_player_stats').select('''
-        goals,assists,penalty_faults,clean_sheet,
+        goals,clean_sheet,
         profiles(first_name,surnom)
-      ''').eq('match_id', matchId).eq('present', true);
+      ''').eq('match_id', matchId);
       playerStats = (statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final profile = map['profiles'] is Map
@@ -165,36 +155,10 @@ class MatchDetailsRepository {
         return MatchStatLine(
           name: _displayName(profile),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
-          assists: (map['assists'] as num?)?.toInt() ?? 0,
-          penaltyFaults: (map['penalty_faults'] as num?)?.toInt() ?? 0,
           cleanSheet: map['clean_sheet'] == true,
         );
-      }).toList();
-
-      final guestRows = await _client
-          .from('match_guest_stats')
-          .select('display_name,goals,assists,penalty_faults')
-          .eq('match_id', matchId)
-          .eq('present', true);
-      guestStats = (guestRows as List).map((row) {
-        final map = Map<String, dynamic>.from(row);
-        return MatchStatLine(
-          name: map['display_name']?.toString() ?? 'Invité',
-          goals: (map['goals'] as num?)?.toInt() ?? 0,
-          assists: (map['assists'] as num?)?.toInt() ?? 0,
-          penaltyFaults: (map['penalty_faults'] as num?)?.toInt() ?? 0,
-          cleanSheet: false,
-        );
-      }).toList();
-
-      final motm = await _client.from('match_motm').select('''
-        profiles!match_motm_profile_id_fkey(first_name,surnom)
-      ''').eq('match_id', matchId).maybeSingle();
-      if (motm != null && motm['profiles'] is Map) {
-        manOfTheMatch = _displayName(
-          Map<String, dynamic>.from(motm['profiles'] as Map),
-        );
-      }
+      }).toList()
+        ..sort((a, b) => b.goals.compareTo(a.goals));
 
       final pointRows = await _client
           .from('v_match_prediction_points')
@@ -248,8 +212,6 @@ class MatchDetailsRepository {
       predictionParticipantCount: (countResult as num?)?.toInt() ?? 0,
       headToHead: history,
       playerStats: playerStats,
-      guestStats: guestStats,
-      manOfTheMatch: manOfTheMatch,
       predictions: predictions,
     );
   }

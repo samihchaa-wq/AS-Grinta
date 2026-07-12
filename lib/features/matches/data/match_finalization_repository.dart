@@ -2,8 +2,9 @@ import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class MatchSheetPlayer {
-  const MatchSheetPlayer({
+/// Un membre de l'effectif de la saison, recherchable dans la saisie rapide.
+class SquadMember {
+  const SquadMember({
     required this.id,
     required this.name,
     required this.isGoalkeeper,
@@ -14,59 +15,32 @@ class MatchSheetPlayer {
   final bool isGoalkeeper;
 }
 
-class MatchSheetPlayerStats {
-  const MatchSheetPlayerStats({
-    required this.present,
-    required this.goals,
-    required this.assists,
-    required this.penaltyFaults,
-    required this.cleanSheet,
-  });
-
-  final bool present;
-  final int goals;
-  final int assists;
-  final int penaltyFaults;
-  final bool cleanSheet;
-}
-
-class MatchSheetGuestStats {
-  const MatchSheetGuestStats({
-    required this.name,
-    required this.position,
-    required this.present,
-    required this.goals,
-    required this.assists,
-    required this.penaltyFaults,
-  });
-
-  final String name;
-  final String position;
-  final bool present;
-  final int goals;
-  final int assists;
-  final int penaltyFaults;
-}
-
 class MatchFinalizationContext {
   const MatchFinalizationContext({
-    required this.players,
+    required this.squad,
     required this.isValidated,
     required this.opponentScore,
-    required this.motmProfileId,
-    required this.existingPlayerStats,
-    required this.existingGuests,
+    required this.scorerGoalLines,
+    required this.cleanSheetProfileId,
+    required this.goalkeeperId,
+    required this.goalkeeperName,
   });
 
-  final List<MatchSheetPlayer> players;
+  final List<SquadMember> squad;
 
-  /// Vrai quand le match est déjà validé : la feuille sert alors de
-  /// correction et arrive pré-remplie avec les statistiques existantes.
+  /// Vrai quand le match est déjà validé : la saisie sert de correction et
+  /// arrive pré-remplie.
   final bool isValidated;
   final int opponentScore;
-  final String? motmProfileId;
-  final Map<String, MatchSheetPlayerStats> existingPlayerStats;
-  final List<MatchSheetGuestStats> existingGuests;
+
+  /// Une entrée par but déjà enregistré (id du buteur, répété autant de fois
+  /// qu'il a marqué) — pour reconstruire la liste des buts en correction.
+  final List<String> scorerGoalLines;
+  final String? cleanSheetProfileId;
+
+  /// Le gardien de l'effectif (Samih) pour l'interrupteur clean sheet.
+  final String? goalkeeperId;
+  final String? goalkeeperName;
 }
 
 class MatchFinalizationRepository {
@@ -89,111 +63,63 @@ class MatchFinalizationRepository {
 
     final membershipRows = await _client
         .from('season_players')
-        .select('profile_id,is_goalkeeper_snapshot')
+        .select('profile_id,is_goalkeeper_snapshot,profiles!inner(first_name,surnom,status)')
         .eq('season_id', seasonId);
-    final memberships = <String, bool>{};
+
+    final squad = <SquadMember>[];
+    String? goalkeeperId;
+    String? goalkeeperName;
     for (final row in membershipRows as List) {
       final map = Map<String, dynamic>.from(row);
-      memberships[map['profile_id'].toString()] =
-          map['is_goalkeeper_snapshot'] == true;
+      final profile = map['profiles'] is Map
+          ? Map<String, dynamic>.from(map['profiles'] as Map)
+          : const <String, dynamic>{};
+      if (profile['status'] != 'active') continue;
+      final id = map['profile_id'].toString();
+      final name = _displayName(profile);
+      final isGoalkeeper = map['is_goalkeeper_snapshot'] == true;
+      squad.add(SquadMember(id: id, name: name, isGoalkeeper: isGoalkeeper));
+      if (isGoalkeeper && goalkeeperId == null) {
+        goalkeeperId = id;
+        goalkeeperName = name;
+      }
     }
+    squad.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-    final existingPlayerStats = <String, MatchSheetPlayerStats>{};
-    final existingGuests = <MatchSheetGuestStats>[];
-    String? motmProfileId;
-
+    final scorerGoalLines = <String>[];
+    String? cleanSheetProfileId;
     if (isValidated) {
       final statRows = await _client
           .from('match_player_stats')
-          .select('profile_id,present,goals,assists,penalty_faults,clean_sheet')
+          .select('profile_id,goals,clean_sheet')
           .eq('match_id', matchId);
       for (final row in statRows as List) {
         final map = Map<String, dynamic>.from(row);
-        final profileId = map['profile_id'].toString();
-        existingPlayerStats[profileId] = MatchSheetPlayerStats(
-          present: map['present'] == true,
-          goals: (map['goals'] as num?)?.toInt() ?? 0,
-          assists: (map['assists'] as num?)?.toInt() ?? 0,
-          penaltyFaults: (map['penalty_faults'] as num?)?.toInt() ?? 0,
-          cleanSheet: map['clean_sheet'] == true,
-        );
-        // Un joueur avec une feuille existante doit rester corrigeable même
-        // s'il a quitté l'effectif de la saison depuis.
-        memberships.putIfAbsent(profileId, () => false);
+        final id = map['profile_id'].toString();
+        final goals = (map['goals'] as num?)?.toInt() ?? 0;
+        for (var i = 0; i < goals; i++) {
+          scorerGoalLines.add(id);
+        }
+        if (map['clean_sheet'] == true) cleanSheetProfileId = id;
       }
-
-      final guestRows = await _client
-          .from('match_guest_stats')
-          .select('display_name,position,present,goals,assists,penalty_faults')
-          .eq('match_id', matchId)
-          .order('display_name');
-      for (final row in guestRows as List) {
-        final map = Map<String, dynamic>.from(row);
-        existingGuests.add(
-          MatchSheetGuestStats(
-            name: (map['display_name'] ?? '').toString(),
-            position: (map['position'] ?? 'Joueur').toString(),
-            present: map['present'] != false,
-            goals: (map['goals'] as num?)?.toInt() ?? 0,
-            assists: (map['assists'] as num?)?.toInt() ?? 0,
-            penaltyFaults: (map['penalty_faults'] as num?)?.toInt() ?? 0,
-          ),
-        );
-      }
-
-      final motm = await _client
-          .from('match_motm')
-          .select('profile_id')
-          .eq('match_id', matchId)
-          .maybeSingle();
-      motmProfileId = motm?['profile_id']?.toString();
     }
-
-    if (memberships.isEmpty) {
-      return MatchFinalizationContext(
-        players: const [],
-        isValidated: isValidated,
-        opponentScore: (match['score_adverse'] as num?)?.toInt() ?? 0,
-        motmProfileId: motmProfileId,
-        existingPlayerStats: existingPlayerStats,
-        existingGuests: existingGuests,
-      );
-    }
-
-    final profileRows = await _client
-        .from('profiles')
-        .select('id,first_name,surnom,status,is_goalkeeper')
-        .inFilter('id', memberships.keys.toList())
-        .order('first_name');
-
-    final players = (profileRows as List)
-        .map((row) => Map<String, dynamic>.from(row))
-        .where(
-          (map) =>
-              map['status'] == 'active' ||
-              existingPlayerStats.containsKey(map['id'].toString()),
-        )
-        .map((map) {
-      final firstName = (map['first_name'] ?? '').toString().trim();
-      final nickname = (map['surnom'] ?? '').toString().trim();
-      final id = map['id'].toString();
-      return MatchSheetPlayer(
-        id: id,
-        name: nickname.isNotEmpty
-            ? nickname
-            : (firstName.isNotEmpty ? firstName : 'Joueur sans nom'),
-        isGoalkeeper: memberships[id] == true || map['is_goalkeeper'] == true,
-      );
-    }).toList();
 
     return MatchFinalizationContext(
-      players: players,
+      squad: squad,
       isValidated: isValidated,
       opponentScore: (match['score_adverse'] as num?)?.toInt() ?? 0,
-      motmProfileId: motmProfileId,
-      existingPlayerStats: existingPlayerStats,
-      existingGuests: existingGuests,
+      scorerGoalLines: scorerGoalLines,
+      cleanSheetProfileId: cleanSheetProfileId,
+      goalkeeperId: goalkeeperId,
+      goalkeeperName: goalkeeperName,
     );
+  }
+
+  String _displayName(Map<String, dynamic> profile) {
+    final nickname = (profile['surnom'] ?? '').toString().trim();
+    if (nickname.isNotEmpty) return nickname;
+    final firstName = (profile['first_name'] ?? '').toString().trim();
+    return firstName.isNotEmpty ? firstName : 'Joueur';
   }
 }
 

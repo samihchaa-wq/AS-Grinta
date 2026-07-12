@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,12 +21,20 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
         : value.toStringAsFixed(1);
   }
 
+  double _points(LeaderboardEntry item) {
+    return switch (_mode) {
+      _LeaderboardMode.cumulative => item.totalPoints,
+      _LeaderboardMode.season => item.seasonPoints,
+      _LeaderboardMode.match => item.matchPoints,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Classements pronostics')),
+      appBar: AppBar(title: const Text('Classement général')),
       body: Column(
         children: [
           Padding(
@@ -34,7 +43,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
               segments: const [
                 ButtonSegment(
                   value: _LeaderboardMode.cumulative,
-                  label: Text('Cumulé'),
+                  label: Text('Général'),
                 ),
                 ButtonSegment(
                   value: _LeaderboardMode.season,
@@ -51,6 +60,15 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
               },
             ),
           ),
+          if (_mode == _LeaderboardMode.cumulative)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Text(
+                'Score pondéré : 70 % pronostics de match, 30 % pronostics '
+                'de saison.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
@@ -70,7 +88,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
-                        child: Text(error.toString()),
+                        child: Text(humanizeError(error)),
                       ),
                     ),
                   ],
@@ -83,7 +101,8 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                         Card(
                           child: Padding(
                             padding: EdgeInsets.all(20),
-                            child: Text('Aucun point calculable pour le moment.'),
+                            child:
+                                Text('Aucun point calculable pour le moment.'),
                           ),
                         ),
                       ],
@@ -92,6 +111,9 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
 
                   final sorted = [...entries]
                     ..sort((a, b) => _points(b).compareTo(_points(a)));
+                  final maxPoints = sorted
+                      .map(_points)
+                      .fold<double>(0, (m, p) => p > m ? p : m);
 
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -99,9 +121,8 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                     itemBuilder: (context, index) {
                       final item = sorted[index];
                       final points = _points(item);
-                      final maxPoints = _maxPoints(item);
-                      final percentage =
-                          maxPoints <= 0 ? 0.0 : points * 100 / maxPoints;
+                      final fraction =
+                          maxPoints <= 0 ? 0.0 : points / maxPoints;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
@@ -130,12 +151,8 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                                 ],
                               ),
                               const SizedBox(height: 10),
-                              Text('${_formatNumber(percentage)} %'),
-                              const SizedBox(height: 4),
                               LinearProgressIndicator(
-                                value: (percentage / 100)
-                                    .clamp(0.0, 1.0)
-                                    .toDouble(),
+                                value: fraction.clamp(0.0, 1.0).toDouble(),
                               ),
                             ],
                           ),
@@ -150,21 +167,5 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
         ],
       ),
     );
-  }
-
-  double _points(LeaderboardEntry item) {
-    return switch (_mode) {
-      _LeaderboardMode.cumulative => item.totalPoints,
-      _LeaderboardMode.season => item.seasonPoints,
-      _LeaderboardMode.match => item.matchPoints,
-    };
-  }
-
-  double _maxPoints(LeaderboardEntry item) {
-    return switch (_mode) {
-      _LeaderboardMode.cumulative => item.totalMaxPoints,
-      _LeaderboardMode.season => item.seasonMaxPoints,
-      _LeaderboardMode.match => item.matchMaxPoints,
-    };
   }
 }

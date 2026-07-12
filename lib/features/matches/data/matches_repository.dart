@@ -189,19 +189,16 @@ class MatchesRepository {
   Future<void> finalizeMatchPostgame({
     required String id,
     required int opponentScore,
-    required String? manOfTheMatchId,
-    required List<Map<String, dynamic>> playerStats,
-    required List<Map<String, dynamic>> guestStats,
+    required List<Map<String, dynamic>> scorers,
+    required String? cleanSheetProfileId,
   }) async {
     final result = await _client.rpc(
       'finalize_match_postgame',
       params: {
         'p_match_id': id,
-        'p_score_grinta': 0,
         'p_score_adverse': opponentScore,
-        'p_motm_profile_id': manOfTheMatchId,
-        'p_player_stats': playerStats,
-        'p_guest_stats': guestStats,
+        'p_scorers': scorers,
+        'p_clean_sheet_profile_id': cleanSheetProfileId,
       },
     );
     if (result != true) {

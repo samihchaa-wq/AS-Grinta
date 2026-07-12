@@ -63,18 +63,28 @@ class FaqPage extends StatelessWidget {
     (
       question: 'C’est quoi les pronostics de saison ?',
       answer:
-          'En début de saison, tu prédis pour chaque joueur ses totaux sur '
-          '30 matchs : buts, passes décisives, hommes du match, penalties '
-          'provoqués (et clean sheets pour le gardien). Chaque pronostic '
-          'rapporte jusqu’à 20 points selon ta précision, réévalués après '
-          'chaque match.',
+          'En début de saison, tu prédis le nombre de buts de chaque joueur '
+          'sur une saison complète de 30 matchs (et les clean sheets du '
+          'gardien). Pour chaque joueur, tous les participants sont classés '
+          'du pronostic le plus proche au plus éloigné : le plus proche '
+          'remporte le plus de points. Un petit bonus récompense le bon '
+          'classement prévisionnel des buteurs.',
+    ),
+    (
+      question: 'Pourquoi « classement provisoire » ?',
+      answer:
+          'Les pronostics portent sur 30 matchs. Tant que la saison n’est '
+          'pas finie, les points sont calculés sur une projection : par '
+          'exemple 10 buts en 15 matchs joués donne une projection de 20 '
+          'buts sur 30. Le classement évolue donc à chaque match, puis '
+          'devient définitif en fin de saison.',
     ),
     (
       question: 'Comment fonctionne le classement général ?',
       answer:
-          'Classement = somme de tes points de matchs + tes points de '
-          'saison. Tout est recalculé automatiquement à chaque résultat '
-          'validé.',
+          'Il combine tes points de pronostics de matchs (70 %) et de '
+          'pronostics de saison (30 %). Tout est recalculé automatiquement '
+          'à chaque résultat validé.',
     ),
     (
       question: 'Comment activer les notifications ?',

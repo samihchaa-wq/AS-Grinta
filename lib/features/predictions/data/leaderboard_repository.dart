@@ -8,25 +8,18 @@ class LeaderboardEntry {
     required this.name,
     required this.matchPoints,
     required this.seasonPoints,
-    required this.matchMaxPoints,
-    required this.seasonMaxPoints,
-    required this.matchPercentage,
-    required this.seasonPercentage,
+    required this.totalPoints,
   });
 
   final String profileId;
   final String name;
+
+  /// Points bruts sur chaque compétition (pour l'affichage détaillé).
   final double matchPoints;
   final double seasonPoints;
-  final double matchMaxPoints;
-  final double seasonMaxPoints;
-  final double matchPercentage;
-  final double seasonPercentage;
 
-  double get totalPoints => matchPoints + seasonPoints;
-  double get totalMaxPoints => matchMaxPoints + seasonMaxPoints;
-  double get totalPercentage =>
-      totalMaxPoints <= 0 ? 0 : totalPoints * 100 / totalMaxPoints;
+  /// Score final pondéré 70 % matchs / 30 % saison, normalisé (0 à 100).
+  final double totalPoints;
 }
 
 class LeaderboardRepository {
@@ -40,15 +33,10 @@ class LeaderboardRepository {
         .select('''
           profile_id,
           first_name,
-          last_name,
           surnom,
           match_points,
           season_points,
-          total_points,
-          match_max_points,
-          season_max_points,
-          match_percentage,
-          season_percentage
+          total_points
         ''')
         .order('total_points', ascending: false)
         .order('match_points', ascending: false)
@@ -67,10 +55,7 @@ class LeaderboardRepository {
         name: displayName,
         matchPoints: (map['match_points'] as num?)?.toDouble() ?? 0,
         seasonPoints: (map['season_points'] as num?)?.toDouble() ?? 0,
-        matchMaxPoints: (map['match_max_points'] as num?)?.toDouble() ?? 0,
-        seasonMaxPoints: (map['season_max_points'] as num?)?.toDouble() ?? 0,
-        matchPercentage: (map['match_percentage'] as num?)?.toDouble() ?? 0,
-        seasonPercentage: (map['season_percentage'] as num?)?.toDouble() ?? 0,
+        totalPoints: (map['total_points'] as num?)?.toDouble() ?? 0,
       );
     }).toList();
   }
