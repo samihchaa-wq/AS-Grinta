@@ -790,13 +790,19 @@ class _LoadingHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 160,
+      height: 200,
       decoration: BoxDecoration(
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: AppTheme.outline),
       ),
-      child: const Center(child: CircularProgressIndicator()),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(28),
+      child: Image.asset(
+        'assets/images/mpg_logo.png',
+        width: double.infinity,
+        fit: BoxFit.contain,
+      ),
     );
   }
 }
