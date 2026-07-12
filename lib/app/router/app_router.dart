@@ -17,7 +17,6 @@ import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dar
 import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
-import 'package:as_grinta/features/statistics/presentation/statistics_page_v2.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -84,6 +83,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/pronos',
+            builder: (_, __) =>
+                const SeasonPredictionsPage(gaugesOnly: true),
+          ),
+          GoRoute(
             path: '/predictions',
             builder: (_, __) => const PredictionsPage(),
           ),
@@ -96,10 +100,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/predictions/leaderboard',
             builder: (_, __) => const LeaderboardPage(),
-          ),
-          GoRoute(
-            path: '/statistics',
-            builder: (_, __) => const StatisticsPageV2(),
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           GoRoute(

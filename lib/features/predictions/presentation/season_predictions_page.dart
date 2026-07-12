@@ -3,6 +3,7 @@ import 'package:as_grinta/features/predictions/data/season_predictions_repositor
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 // autoDispose : ces états (verrou, pronos, jauges) sont relus à chaque ouverture
 // de l'écran. Sinon, si l'admin déverrouille les paris après avoir consulté la
@@ -24,10 +25,17 @@ final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 });
 
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
-  const SeasonPredictionsPage({super.key, this.openMine = false});
+  const SeasonPredictionsPage({
+    super.key,
+    this.openMine = false,
+    this.gaugesOnly = false,
+  });
 
   /// Ouvre directement l'onglet « Mes pronos » (édition) plutôt que « Jauges ».
   final bool openMine;
+
+  /// Affiche uniquement les jauges (onglet Pronos), avec un bouton pour éditer.
+  final bool gaugesOnly;
 
   @override
   ConsumerState<SeasonPredictionsPage> createState() =>
@@ -46,6 +54,22 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     final mineAsync = ref.watch(seasonPredictionsProvider);
     final gaugesAsync = ref.watch(seasonGaugesProvider);
     _locked = ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
+
+    if (widget.gaugesOnly) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Pronostics'),
+          actions: [
+            IconButton(
+              tooltip: 'Modifier mes pronostics',
+              icon: const Icon(Icons.edit_calendar_outlined),
+              onPressed: () => context.push('/predictions/season?tab=mine'),
+            ),
+          ],
+        ),
+        body: _buildGauges(gaugesAsync),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pronostics de saison')),

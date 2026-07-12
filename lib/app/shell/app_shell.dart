@@ -24,14 +24,14 @@ class AppShell extends ConsumerWidget {
       icon: Icons.sports_soccer_rounded,
     ),
     _ModuleDestination(
-      route: '/predictions',
+      route: '/pronos',
       label: 'Pronos',
       icon: Icons.bolt_rounded,
     ),
     _ModuleDestination(
-      route: '/statistics',
-      label: 'Stats',
-      icon: Icons.insights_rounded,
+      route: '/predictions',
+      label: 'Classement',
+      icon: Icons.emoji_events_rounded,
     ),
     _ModuleDestination(
       route: '/more',

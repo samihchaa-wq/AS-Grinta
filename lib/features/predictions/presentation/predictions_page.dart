@@ -20,16 +20,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pronostics'),
-        actions: [
-          IconButton(
-            tooltip: 'Modifier mes pronostics de saison',
-            onPressed: () => context.push('/predictions/season?tab=mine'),
-            icon: const Icon(Icons.edit_calendar_outlined),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Classement')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(leaderboardProvider);
