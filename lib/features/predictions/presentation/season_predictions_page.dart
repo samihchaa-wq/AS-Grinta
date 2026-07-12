@@ -4,17 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// autoDispose : ces états (verrou, pronos, jauges) sont relus à chaque ouverture
+// de l'écran. Sinon, si l'admin déverrouille les paris après avoir consulté la
+// page une fois, la valeur « verrouillé » resterait en cache et les champs
+// resteraient bloqués.
 final seasonPredictionsProvider =
-    FutureProvider<List<SeasonPredictionItem>>((ref) {
+    FutureProvider.autoDispose<List<SeasonPredictionItem>>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
 });
 
-final seasonGaugesProvider = FutureProvider<List<PlayerGauge>>((ref) {
+final seasonGaugesProvider =
+    FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
 });
 
 /// Pronostics de saison fermés par le staff (ou aucune saison ouverte).
-final seasonPredictionsLockedProvider = FutureProvider<bool>((ref) {
+final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
 });
 
@@ -109,6 +114,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         return RefreshIndicator(
           onRefresh: () async {
             _draftValues.clear();
+            ref.invalidate(seasonPredictionsLockedProvider);
             ref.invalidate(seasonPredictionsProvider);
             await ref.read(seasonPredictionsProvider.future);
           },
