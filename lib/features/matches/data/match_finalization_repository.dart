@@ -63,9 +63,11 @@ class MatchFinalizationRepository {
 
     final membershipRows = await _client
         .from('season_players')
-        .select('id,first_name,last_name,is_goalkeeper,is_active')
+        .select('id,first_name,last_name,is_goalkeeper,is_active,position')
         .eq('season_id', seasonId)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('position', ascending: true, nullsFirst: false)
+        .order('first_name');
 
     final squad = <SquadMember>[];
     String? goalkeeperId;
@@ -81,7 +83,6 @@ class MatchFinalizationRepository {
         goalkeeperName = name;
       }
     }
-    squad.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     final scorerGoalLines = <String>[];
     String? cleanSheetProfileId;
