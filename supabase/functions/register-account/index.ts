@@ -1,6 +1,6 @@
 // Inscription publique via le lien partagé dans la conversation du club :
-// le joueur saisit prénom, nom, surnom, photo et mot de passe. Le compte est
-// créé « en attente de validation » (status pending) et l'identifiant généré
+// le joueur saisit prénom, nom et mot de passe. Le compte est créé
+// « en attente de validation » (status pending) et l'identifiant généré
 // (prénom + initiale) lui est retourné. L'admin valide ensuite le compte.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -21,7 +21,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 function normalizeName(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 }
@@ -35,11 +35,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const contentLength = Number(req.headers.get("content-length") ?? "0");
-    if (contentLength > 3_000_000) {
-      return jsonResponse({ error: "Photo trop volumineuse." }, 413);
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
@@ -49,14 +44,11 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const firstName = String(body.firstName ?? "").trim();
     const lastName = String(body.lastName ?? "").trim();
-    const surnom = String(body.surnom ?? "").trim();
     const password = String(body.password ?? "");
-    const photoBase64 = String(body.photoBase64 ?? "");
 
     if (
       !firstName || firstName.length > 100 ||
-      !lastName || lastName.length > 100 ||
-      surnom.length > 100
+      !lastName || lastName.length > 100
     ) {
       return jsonResponse({ error: "Prénom et nom sont requis." }, 400);
     }
@@ -98,40 +90,15 @@ Deno.serve(async (req: Request) => {
         user_metadata: {
           first_name: firstName,
           last_name: lastName,
-          surnom: surnom || null,
         },
       });
     if (createError) throw createError;
     const newUserId = created.user?.id;
     if (!newUserId) throw new Error("Compte non créé");
 
-    let photoUrl: string | null = null;
-    if (photoBase64) {
-      try {
-        const bytes = Uint8Array.from(atob(photoBase64), (c) =>
-          c.charCodeAt(0));
-        const path = `${newUserId}/avatar.jpg`;
-        const { error: uploadError } = await admin.storage
-          .from("profile-photos")
-          .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
-        if (!uploadError) {
-          photoUrl =
-            `${supabaseUrl}/storage/v1/object/public/profile-photos/${path}` +
-            `?v=${Date.now()}`;
-        }
-      } catch (photoError) {
-        console.error("register-account photo failure", photoError);
-      }
-    }
-
     const { error: updateError } = await admin
       .from("profiles")
-      .update({
-        username,
-        surnom: surnom || null,
-        ...(photoUrl ? { photo_url: photoUrl } : {}),
-        updated_at: new Date().toISOString(),
-      })
+      .update({ username, updated_at: new Date().toISOString() })
       .eq("id", newUserId);
     if (updateError) throw updateError;
 

@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,7 +34,6 @@ class AuthRepository {
     required String firstName,
     required String lastName,
     required String password,
-    Uint8List? photoJpegBytes,
   }) async {
     final response = await _client.functions.invoke(
       'register-account',
@@ -45,8 +41,6 @@ class AuthRepository {
         'firstName': firstName.trim(),
         'lastName': lastName.trim(),
         'password': password,
-        if (photoJpegBytes != null && photoJpegBytes.isNotEmpty)
-          'photoBase64': base64Encode(photoJpegBytes),
       },
     );
     final data = response.data;
@@ -95,7 +89,7 @@ class AuthRepository {
     final response = await _client
         .from('profiles')
         .select(
-          'id,first_name,last_name,username,photo_url,role,is_goalkeeper,status,created_at,updated_at',
+          'id,first_name,last_name,username,role,is_goalkeeper,status,created_at,updated_at',
         )
         .eq('id', user.id)
         .maybeSingle();
@@ -104,33 +98,9 @@ class AuthRepository {
     return AuthProfile.fromJson(Map<String, dynamic>.from(response));
   }
 
-  Future<String> uploadAvatar(Uint8List jpegBytes) async {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      throw StateError('Aucun utilisateur connecté.');
-    }
-    if (jpegBytes.isEmpty) {
-      throw ArgumentError('Image vide.');
-    }
-
-    final path = '${user.id}/avatar.jpg';
-    await _client.storage.from('profile-photos').uploadBinary(
-          path,
-          jpegBytes,
-          fileOptions: const FileOptions(
-            cacheControl: '3600',
-            upsert: true,
-            contentType: 'image/jpeg',
-          ),
-        );
-    final publicUrl = _client.storage.from('profile-photos').getPublicUrl(path);
-    return '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
-  }
-
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
-    required String avatarPath,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -146,7 +116,6 @@ class AuthRepository {
     await _client.from('profiles').update({
       'first_name': cleanFirstName,
       'last_name': cleanLastName,
-      'photo_url': avatarPath.trim().isEmpty ? null : avatarPath.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', user.id);
 

@@ -1,11 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image/image.dart' as img;
-import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Page publique d'auto-inscription : le lien est partagé dans la
@@ -25,7 +21,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   final _confirmController = TextEditingController();
   bool _obscurePassword = true;
   bool _submitting = false;
-  Uint8List? _photoBytes;
 
   @override
   void dispose() {
@@ -39,38 +34,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   void _showError(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  Future<void> _pickPhoto() async {
-    try {
-      final picked = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 2048,
-        maxHeight: 2048,
-      );
-      if (picked == null) return;
-
-      final original = await picked.readAsBytes();
-      final decoded = img.decodeImage(original);
-      if (decoded == null) {
-        throw StateError('Format non pris en charge.');
-      }
-      final resized = decoded.width > 1024 || decoded.height > 1024
-          ? img.copyResize(
-              decoded,
-              width: decoded.width >= decoded.height ? 1024 : null,
-              height: decoded.height > decoded.width ? 1024 : null,
-              interpolation: img.Interpolation.average,
-            )
-          : decoded;
-      final compressed = Uint8List.fromList(
-        img.encodeJpg(resized, quality: 82),
-      );
-      if (!mounted) return;
-      setState(() => _photoBytes = compressed);
-    } catch (_) {
-      if (mounted) _showError('La photo n’a pas pu être préparée.');
-    }
   }
 
   Future<void> _submit() async {
@@ -97,7 +60,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
             firstName: firstName,
             lastName: lastName,
             password: password,
-            photoJpegBytes: _photoBytes,
           );
       if (!mounted) return;
       await _showSuccessDialog(username);
@@ -191,44 +153,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                         '(prénom + initiale du nom).',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      Center(
-                        child: Stack(
-                          children: [
-                            CircleAvatar(
-                              radius: 44,
-                              backgroundImage: _photoBytes != null
-                                  ? MemoryImage(_photoBytes!)
-                                  : null,
-                              child: _photoBytes == null
-                                  ? const Icon(Icons.person_outline, size: 40)
-                                  : null,
-                            ),
-                            Positioned(
-                              right: 0,
-                              bottom: 0,
-                              child: Material(
-                                shape: const CircleBorder(),
-                                color: Theme.of(context).colorScheme.primary,
-                                child: InkWell(
-                                  customBorder: const CircleBorder(),
-                                  onTap: _submitting ? null : _pickPhoto,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(6),
-                                    child: Icon(
-                                      Icons.photo_camera_outlined,
-                                      size: 18,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onPrimary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                       const SizedBox(height: 20),
                       TextField(

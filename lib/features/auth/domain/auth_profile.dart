@@ -24,7 +24,6 @@ class AuthProfile {
     this.username,
     required this.firstName,
     required this.lastName,
-    this.avatarPath,
     required this.role,
     required this.isGoalkeeper,
     required this.isActive,
@@ -36,7 +35,6 @@ class AuthProfile {
   final String? username;
   final String firstName;
   final String lastName;
-  final String? avatarPath;
   final AuthRole role;
   final bool isGoalkeeper;
   final bool isActive;
@@ -50,8 +48,6 @@ class AuthProfile {
     if (first.isNotEmpty) return first;
     return fullName.isEmpty ? 'Utilisateur' : fullName;
   }
-
-  String? get photoUrl => avatarPath;
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
     final roleValue =
@@ -69,7 +65,6 @@ class AuthProfile {
       username: json['username']?.toString(),
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
-      avatarPath: json['photo_url']?.toString(),
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
       isActive: statusValue == 'active',
