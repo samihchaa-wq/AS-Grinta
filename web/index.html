@@ -26,7 +26,19 @@
 <body>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+      navigator.serviceWorker.register('sw.js').then(function (registration) {
+        // Vérifie s'il existe une nouvelle version à chaque ouverture.
+        registration.update();
+      });
+      // Quand un nouveau service worker prend le contrôle (nouvelle version
+      // déployée), on recharge une seule fois pour afficher la mise à jour
+      // sans que l'utilisateur ait à vider son cache.
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
     }
     window.asGrintaPush = {
       support: function () {
