@@ -63,10 +63,9 @@ class MatchFinalizationRepository {
 
     final membershipRows = await _client
         .from('season_players')
-        .select('id,first_name,last_name,is_goalkeeper,is_active,position')
+        .select('id,first_name,last_name,is_goalkeeper,is_active')
         .eq('season_id', seasonId)
         .eq('is_active', true)
-        .order('position', ascending: true, nullsFirst: false)
         .order('first_name');
 
     final squad = <SquadMember>[];

@@ -112,10 +112,9 @@ class SeasonPredictionsRepository {
 
     final players = await _client
         .from('season_players')
-        .select('id,first_name,is_goalkeeper,position')
+        .select('id,first_name,is_goalkeeper')
         .eq('season_id', seasonId)
         .eq('is_active', true)
-        .order('position', ascending: true, nullsFirst: false)
         .order('first_name');
     final predictions = await _client
         .from('season_predictions')
