@@ -126,16 +126,15 @@ class _SeasonCard extends ConsumerWidget {
                 contentPadding: EdgeInsets.zero,
                 title: Text(
                   openSeason.predictionsLocked
-                      ? 'Paris de saison verrouillés'
+                      ? 'Paris de saison fermés'
                       : 'Paris de saison ouverts',
                 ),
                 subtitle: Text(
                   openSeason.predictionsLocked
-                      ? 'Verrouillés : les pronostics de chacun sont visibles '
-                          'par tous et ne sont plus modifiables.'
-                      : 'Ouverts : chacun saisit ses pronostics en secret. '
-                          'Verrouille pour les révéler à tous et démarrer le '
-                          'classement.',
+                      ? 'Fermés : les pronostics de chacun sont visibles par '
+                          'tous et figés. Le classement de saison tourne.'
+                      : 'Ouverts : chacun parie en secret. Ferme les paris '
+                          'pour les révéler à tous et lancer le classement.',
                 ),
                 value: openSeason.predictionsLocked,
                 onChanged: (lock) async {
@@ -143,7 +142,7 @@ class _SeasonCard extends ConsumerWidget {
                     final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (dialogContext) => AlertDialog(
-                            title: const Text('Verrouiller les paris ?'),
+                            title: const Text('Fermer les paris ?'),
                             content: const Text(
                               'Les pronostics de saison de tout le monde '
                               'deviendront visibles et ne pourront plus être '
@@ -158,7 +157,7 @@ class _SeasonCard extends ConsumerWidget {
                               FilledButton(
                                 onPressed: () =>
                                     Navigator.pop(dialogContext, true),
-                                child: const Text('Verrouiller'),
+                                child: const Text('Fermer'),
                               ),
                             ],
                           ),
@@ -184,109 +183,33 @@ class _SeasonCard extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => _changeStatus(
-                      context,
-                      ref,
-                      openSeason,
-                      'terminee',
-                      title: 'Mettre fin à la saison ?',
-                      message:
-                          'La saison « ${openSeason.name} » sera marquée comme '
-                          'terminée. Tu pourras la rouvrir plus tard.',
-                    ),
-                    icon: const Icon(Icons.flag_outlined),
-                    label: const Text('Mettre fin'),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
                   ),
-                  OutlinedButton.icon(
-                    onPressed: () => _changeStatus(
-                      context,
-                      ref,
-                      openSeason,
-                      'archived',
-                      title: 'Archiver la saison ?',
-                      message:
-                          'La saison « ${openSeason.name} » sera archivée. '
-                          'Tu pourras la rouvrir plus tard.',
-                    ),
-                    icon: const Icon(Icons.archive_outlined),
-                    label: const Text('Archiver'),
+                  onPressed: () => _changeStatus(
+                    context,
+                    ref,
+                    openSeason,
+                    'archived',
+                    title: 'Finir la saison ?',
+                    message:
+                        'La saison « ${openSeason.name} » sera archivée '
+                        'immédiatement et le classement final figé. '
+                        'C’est définitif. Tu pourras ensuite créer une '
+                        'nouvelle saison.',
                   ),
-                ],
+                  icon: const Icon(Icons.flag_outlined),
+                  label: const Text('Finir la saison'),
+                ),
               ),
             ],
-            ..._otherSeasons(context, ref),
           ],
         ),
       ),
     );
-  }
-
-  /// Les saisons qui ne sont pas ouvertes (terminées ou archivées), avec la
-  /// possibilité de les rouvrir ou de les archiver.
-  List<Widget> _otherSeasons(BuildContext context, WidgetRef ref) {
-    final others =
-        dashboard.seasons.where((s) => s.status != 'open').toList();
-    if (others.isEmpty) return const [];
-    return [
-      const Divider(height: 24),
-      Text(
-        'Autres saisons',
-        style: Theme.of(context).textTheme.titleSmall,
-      ),
-      const SizedBox(height: 4),
-      ...others.map(
-        (season) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(season.name),
-                    Text(
-                      season.status == 'terminee' ? 'Terminée' : 'Archivée',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => _changeStatus(
-                  context,
-                  ref,
-                  season,
-                  'open',
-                  title: 'Rouvrir la saison ?',
-                  message:
-                      'La saison « ${season.name} » redeviendra la saison en '
-                      'cours. Toute autre saison ouverte sera archivée.',
-                ),
-                icon: const Icon(Icons.lock_open_outlined, size: 18),
-                label: const Text('Rouvrir'),
-              ),
-              if (season.status == 'terminee')
-                IconButton(
-                  tooltip: 'Archiver',
-                  onPressed: () => _changeStatus(
-                    context,
-                    ref,
-                    season,
-                    'archived',
-                    title: 'Archiver la saison ?',
-                    message: 'La saison « ${season.name} » sera archivée.',
-                  ),
-                  icon: const Icon(Icons.archive_outlined, size: 20),
-                ),
-            ],
-          ),
-        ),
-      ),
-    ];
   }
 
   Future<void> _changeStatus(
