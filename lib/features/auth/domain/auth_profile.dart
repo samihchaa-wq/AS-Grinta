@@ -1,21 +1,20 @@
-enum AuthRole { pronostiqueur, admin, moderateur }
+enum AuthRole { pronostiqueur, admin }
 
 extension AuthRoleX on AuthRole {
   String get label {
     switch (this) {
       case AuthRole.admin:
         return 'Admin';
-      case AuthRole.moderateur:
-        return 'Modérateur';
       case AuthRole.pronostiqueur:
         return 'Joueur';
     }
   }
 
   bool get isAdmin => this == AuthRole.admin;
-  bool get isModerator => this == AuthRole.moderateur;
   bool get isPronostiqueur => this == AuthRole.pronostiqueur;
-  bool get isStaff => isAdmin || isModerator;
+
+  /// Un seul rôle privilégié : l'admin. « staff » lui est synonyme.
+  bool get isStaff => isAdmin;
 }
 
 class AuthProfile {
@@ -53,8 +52,7 @@ class AuthProfile {
     final roleValue =
         (json['role'] ?? 'pronostiqueur').toString().toLowerCase();
     final role = switch (roleValue) {
-      'admin' => AuthRole.admin,
-      'moderateur' || 'moderator' => AuthRole.moderateur,
+      'admin' || 'moderateur' || 'moderator' => AuthRole.admin,
       _ => AuthRole.pronostiqueur,
     };
 

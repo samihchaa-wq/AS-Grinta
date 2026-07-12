@@ -26,8 +26,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
     final isAdmin = role == AuthRole.admin;
-    final isModerator = role == AuthRole.moderateur;
-    final canManage = isAdmin || isModerator;
+    final canManage = isAdmin;
 
     return Scaffold(
       appBar: AppBar(

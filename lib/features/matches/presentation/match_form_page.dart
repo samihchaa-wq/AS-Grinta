@@ -85,7 +85,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
-    final canManage = role == AuthRole.admin || role == AuthRole.moderateur;
+    final canManage = role == AuthRole.admin;
     final seasons = widget.match == null
         ? state.seasons
             .where((season) => season['status']?.toString() == 'open')
