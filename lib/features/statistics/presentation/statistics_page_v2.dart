@@ -127,7 +127,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                 // pas » : les gardiens restent visibles ici, même sans
                 // clean sheet.
                 _RankingSection(
-                  title: 'Classement clean sheets',
+                  title: 'Clean sheets',
                   icon: Icons.shield_outlined,
                   fullRanking: goalkeepers,
                   value: (p) => p.cleanSheets,
