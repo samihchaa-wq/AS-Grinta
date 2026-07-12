@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Page publique d'auto-inscription : le lien est partagÃ© dans la
-/// conversation du club. Le compte crÃ©Ã© reste Â« en attente de validation Â»
-/// jusqu'Ã  ce que l’admin le valide dans Administration.
+/// Page publique d'auto-inscription : le lien est partagé dans la
+/// conversation du club. Le compte créé reste « en attente de validation »
+/// jusqu'à ce que l’admin le valide dans Administration.
 class AuthRegisterPage extends ConsumerStatefulWidget {
   const AuthRegisterPage({super.key});
 
@@ -42,11 +42,11 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
     final password = _passwordController.text;
 
     if (firstName.isEmpty || lastName.isEmpty) {
-      _showError('Renseigne ton prÃ©nom et ton nom.');
+      _showError('Renseigne ton prénom et ton nom.');
       return;
     }
     if (password.length < 8) {
-      _showError('Le mot de passe doit contenir au moins 8 caractÃ¨res.');
+      _showError('Le mot de passe doit contenir au moins 8 caractères.');
       return;
     }
     if (password != _confirmController.text) {
@@ -68,11 +68,11 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       final details = error.details;
       final message =
           details is Map ? details['error']?.toString() : null;
-      _showError(message ?? 'La crÃ©ation du compte a Ã©chouÃ©.');
+      _showError(message ?? 'La création du compte a échoué.');
     } on StateError catch (error) {
       _showError(error.message);
     } catch (_) {
-      _showError('La crÃ©ation du compte a Ã©chouÃ©.');
+      _showError('La création du compte a échoué.');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -83,7 +83,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Compte crÃ©Ã© ! ð'),
+        title: const Text('Compte créé ! 🎉'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -101,8 +101,8 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Ton compte doit maintenant Ãªtre validÃ© par l’admin. '
-              'Tu pourras te connecter dÃ¨s que câest fait.',
+              'Ton compte doit maintenant être validé par l’admin. '
+              'Tu pourras te connecter dès que c’est fait.',
             ),
           ],
         ),
@@ -143,14 +143,14 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                         ),
                       ),
                       Text(
-                        'CrÃ©er mon compte',
+                        'Créer mon compte',
                         style: Theme.of(context).textTheme.headlineSmall,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Ton identifiant sera gÃ©nÃ©rÃ© automatiquement '
-                        '(prÃ©nom + initiale du nom).',
+                        'Ton identifiant sera généré automatiquement '
+                        '(prénom + initiale du nom).',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -159,7 +159,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                         controller: _firstNameController,
                         textCapitalization: TextCapitalization.words,
                         decoration: const InputDecoration(
-                          labelText: 'PrÃ©nom',
+                          labelText: 'Prénom',
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
@@ -177,7 +177,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
-                          labelText: 'Mot de passe (8 caractÃ¨res min.)',
+                          labelText: 'Mot de passe (8 caractères min.)',
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -213,18 +213,18 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                                     CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.sports_soccer),
-                        label: const Text('CrÃ©er mon compte'),
+                        label: const Text('Créer mon compte'),
                       ),
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: _submitting
                             ? null
                             : () => context.go('/auth/sign-in'),
-                        child: const Text('Jâai dÃ©jÃ  un compte â se connecter'),
+                        child: const Text('J’ai déjà un compte — se connecter'),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'AprÃ¨s validation par l’admin, tu pourras te connecter '
+                        'Après validation par l’admin, tu pourras te connecter '
                         'avec ton identifiant et ton mot de passe.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,

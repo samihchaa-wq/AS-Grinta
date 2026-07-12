@@ -65,14 +65,14 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           isAuthenticated: false,
           clearProfile: true,
-          error: 'Ton compte doit Ãªtre validÃ© par l’admin avant de pouvoir '
+          error: 'Ton compte doit être validé par l’admin avant de pouvoir '
               'te connecter.',
         );
       }
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Le profil nâa pas pu Ãªtre chargÃ©.',
+        error: 'Le profil n’a pas pu être chargé.',
       );
     }
   }
@@ -92,12 +92,12 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         error:
-            'Connexion impossible. VÃ©rifie ton identifiant et ton mot de passe.',
+            'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
       );
     }
   }
 
-  /// PremiÃ¨re connexion : active le compte invitÃ© puis connecte le joueur.
+  /// Première connexion : active le compte invité puis connecte le joueur.
   Future<void> claimAndSignIn({
     required String username,
     required String password,
@@ -115,7 +115,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Lâactivation du compte a Ã©chouÃ©.',
+        error: 'L’activation du compte a échoué.',
       );
     }
   }
@@ -128,7 +128,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Le mot de passe nâa pas pu Ãªtre modifiÃ©.',
+        error: 'Le mot de passe n’a pas pu être modifié.',
       );
     }
   }
@@ -141,7 +141,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'La dÃ©connexion a Ã©chouÃ©.',
+        error: 'La déconnexion a échoué.',
       );
     }
   }
@@ -164,7 +164,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Le profil nâa pas pu Ãªtre enregistrÃ©.',
+        error: 'Le profil n’a pas pu être enregistré.',
       );
     }
   }

@@ -43,7 +43,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content:
-                Text('Le mot de passe doit contenir au moins 8 caractÃ¨res.'),
+                Text('Le mot de passe doit contenir au moins 8 caractères.'),
           ),
         );
         return;
@@ -108,9 +108,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       const SizedBox(height: 8),
                       Text(
                         _firstConnection
-                            ? 'Active ton compte : entre lâidentifiant donnÃ© '
+                            ? 'Active ton compte : entre l’identifiant donné '
                                 'par l’admin et choisis ton mot de passe.'
-                            : 'Le petit prono maison de lâAS Grinta.',
+                            : 'Le petit prono maison de l’AS Grinta.',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -120,7 +120,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         autocorrect: false,
                         decoration: const InputDecoration(
                           labelText: 'Identifiant',
-                          hintText: 'prÃ©nom + initiale du nom, ex. samihc',
+                          hintText: 'prénom + initiale du nom, ex. samihc',
                           prefixIcon: Icon(Icons.person_outline),
                         ),
                       ),
@@ -177,7 +177,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         OutlinedButton.icon(
                           onPressed: () => context.go('/auth/register'),
                           icon: const Icon(Icons.person_add_alt_outlined),
-                          label: const Text('CrÃ©er mon compte'),
+                          label: const Text('Créer mon compte'),
                         ),
                       TextButton(
                         onPressed: () => setState(
@@ -185,16 +185,16 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         ),
                         child: Text(
                           _firstConnection
-                              ? 'Jâai dÃ©jÃ  un compte â se connecter'
-                              : 'PremiÃ¨re connexion ? Active ton compte',
+                              ? 'J’ai déjà un compte — se connecter'
+                              : 'Première connexion ? Active ton compte',
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         _firstConnection
-                            ? 'Ton identifiant tâa Ã©tÃ© communiquÃ© par l’admin.'
-                            : 'Mot de passe oubliÃ© ? Demande Ã  l’admin de le '
-                                'rÃ©initialiser, puis refais une premiÃ¨re '
+                            ? 'Ton identifiant t’a été communiqué par l’admin.'
+                            : 'Mot de passe oublié ? Demande à l’admin de le '
+                                'réinitialiser, puis refais une première '
                                 'connexion.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
