@@ -42,11 +42,15 @@ class AdminSeasonItem {
     required this.id,
     required this.name,
     required this.status,
+    required this.predictionsLocked,
   });
 
   final String id;
   final String name;
   final String status;
+
+  /// Pronostics de saison fermés manuellement par le staff.
+  final bool predictionsLocked;
 }
 
 class AdminDashboardData {
@@ -69,7 +73,7 @@ class AdminRepository {
   Future<AdminDashboardData> fetchDashboard() async {
     final seasonsRaw = await _client
         .from('seasons')
-        .select('id, name, status')
+        .select('id, name, status, season_predictions_locked_at')
         .order('name', ascending: false);
     final seasons = (seasonsRaw as List)
         .map((row) => Map<String, dynamic>.from(row))
@@ -78,6 +82,7 @@ class AdminRepository {
             id: row['id'].toString(),
             name: row['name'].toString(),
             status: row['status'].toString(),
+            predictionsLocked: row['season_predictions_locked_at'] != null,
           ),
         )
         .toList();
@@ -248,6 +253,20 @@ class AdminRepository {
     await _client
         .from('seasons')
         .update({'status': 'archived'}).eq('id', seasonId);
+  }
+
+  /// Ouvre ou ferme les pronostics de saison (réservé au staff).
+  Future<void> setSeasonPredictionsLock({
+    required String seasonId,
+    required bool locked,
+  }) async {
+    final result = await _client.rpc(
+      'set_season_predictions_lock',
+      params: {'p_season_id': seasonId, 'p_locked': locked},
+    );
+    if (result != true) {
+      throw StateError('Le verrou des pronostics n’a pas pu être modifié.');
+    }
   }
 
   Future<void> setSeasonMembership({

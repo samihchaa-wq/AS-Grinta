@@ -281,6 +281,33 @@ class _SeasonCard extends ConsumerWidget {
               )
             else ...[
               Text('Saison ouverte : ${openSeason.name}'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Pronostics de saison ouverts'),
+                subtitle: Text(
+                  openSeason.predictionsLocked
+                      ? 'Fermés : plus personne ne peut les modifier.'
+                      : 'Ouverts : chacun peut encore les modifier.',
+                ),
+                value: !openSeason.predictionsLocked,
+                onChanged: (open) async {
+                  try {
+                    await ref
+                        .read(adminRepositoryProvider)
+                        .setSeasonPredictionsLock(
+                          seasonId: openSeason.id,
+                          locked: !open,
+                        );
+                    ref.invalidate(adminDashboardProvider);
+                  } catch (error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(humanizeError(error))),
+                      );
+                    }
+                  }
+                },
+              ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () async {

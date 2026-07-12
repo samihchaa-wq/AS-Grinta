@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,11 @@ final publicSeasonPredictionsProvider =
   return ref.watch(seasonPredictionsRepositoryProvider).fetchPublic();
 });
 
+/// Pronostics de saison fermés par le staff (ou aucune saison ouverte).
+final seasonPredictionsLockedProvider = FutureProvider<bool>((ref) {
+  return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
+});
+
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
   const SeasonPredictionsPage({super.key});
 
@@ -26,11 +32,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   String? _error;
   bool _showPublic = false;
   bool _isSavingAll = false;
+  bool _locked = false;
 
   @override
   Widget build(BuildContext context) {
     final mineAsync = ref.watch(seasonPredictionsProvider);
     final publicAsync = ref.watch(publicSeasonPredictionsProvider);
+    _locked = ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pronostics de saison')),
@@ -71,7 +79,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => ListView(
         padding: const EdgeInsets.all(16),
-        children: [Text(error.toString())],
+        children: [Text(humanizeError(error))],
       ),
       data: (items) {
         if (items.isEmpty) {
@@ -104,6 +112,20 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (_locked)
+                Card(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  child: const ListTile(
+                    leading: Icon(Icons.lock_outline),
+                    title: Text('Pronostics de saison fermés'),
+                    subtitle: Text(
+                      'Ils ne sont plus modifiables. Tu peux toujours '
+                      'consulter ceux de tout le monde dans l’onglet '
+                      '« Pronostics publics ».',
+                    ),
+                  ),
+                ),
+              if (_locked) const SizedBox(height: 12),
               const Text(
                 'Valeurs prévues pour la saison. Une case vide rapporte 0 point.',
               ),
@@ -142,7 +164,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _isSavingAll ? null : () => _saveAll(items),
+                  onPressed:
+                      _isSavingAll || _locked ? null : () => _saveAll(items),
                   icon: _isSavingAll
                       ? const SizedBox(
                           width: 18,
@@ -153,7 +176,9 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   label: Text(
                     _isSavingAll
                         ? 'Enregistrement...'
-                        : 'Valider mes pronostics',
+                        : _locked
+                            ? 'Pronostics fermés'
+                            : 'Valider mes pronostics',
                   ),
                 ),
               ),
@@ -208,6 +233,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       child: TextFormField(
         key: ValueKey('$key:$value'),
         initialValue: value.toString(),
+        enabled: !_locked,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -244,7 +270,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         ),
         error: (error, _) => ListView(
           padding: const EdgeInsets.all(16),
-          children: [Text(error.toString())],
+          children: [Text(humanizeError(error))],
         ),
         data: (items) {
           if (items.isEmpty) {
@@ -318,7 +344,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) setState(() => _error = humanizeError(error));
     } finally {
       if (mounted) setState(() => _isSavingAll = false);
     }

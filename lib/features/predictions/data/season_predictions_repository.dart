@@ -51,6 +51,18 @@ class SeasonPredictionsRepository {
     return season?['id']?.toString();
   }
 
+  /// Vrai quand les pronostics de saison ont été fermés par le staff (ou
+  /// qu'aucune saison n'est ouverte).
+  Future<bool> isLocked() async {
+    final season = await _client
+        .from('seasons')
+        .select('season_predictions_locked_at')
+        .eq('status', 'open')
+        .maybeSingle();
+    if (season == null) return true;
+    return season['season_predictions_locked_at'] != null;
+  }
+
   String _displayName(Map<String, dynamic> profile, String fallback) {
     final nickname = (profile['surnom'] ?? '').toString().trim();
     if (nickname.isNotEmpty) return nickname;
