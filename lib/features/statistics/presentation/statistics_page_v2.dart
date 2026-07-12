@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
+import 'package:as_grinta/features/statistics/presentation/stat_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -78,7 +79,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                 _ScorerRanking(scorers: scorers),
                 const SizedBox(height: 24),
                 const _SectionTitle(
-                  icon: Icons.shield_outlined,
+                  leading: KeeperSaveIcon(size: 22),
                   label: 'Clean sheets',
                 ),
                 const SizedBox(height: 8),
@@ -94,7 +95,7 @@ class StatisticsPageV2 extends ConsumerWidget {
                     (player) => Card(
                       child: ListTile(
                         leading: const CircleAvatar(
-                          child: Icon(Icons.sports_handball),
+                          child: KeeperSaveIcon(size: 22, color: Colors.white),
                         ),
                         title: Text(player.displayName),
                         trailing: _Badge(
@@ -136,7 +137,7 @@ class _ScorerRankingState extends State<_ScorerRanking> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _SectionTitle(
-          icon: Icons.sports_soccer_rounded,
+          leading: CrossedArmsIcon(size: 22),
           label: 'Classement buteurs',
         ),
         const SizedBox(height: 8),
@@ -182,16 +183,16 @@ class _ScorerRankingState extends State<_ScorerRanking> {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.icon, required this.label});
+  const _SectionTitle({required this.leading, required this.label});
 
-  final IconData icon;
+  final Widget leading;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        SizedBox(width: 24, height: 24, child: Center(child: leading)),
         const SizedBox(width: 8),
         Expanded(
           child: Text(label, style: Theme.of(context).textTheme.titleLarge),
