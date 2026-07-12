@@ -366,27 +366,71 @@ class _GaugeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = gauge.isGoalkeeper ? 'clean sheets' : 'buts';
+
+    // Un pronostic par pronostiqueur, trié par valeur croissante puis par nom.
+    final preds = <({String name, int value})>[];
+    for (final marker in gauge.markers) {
+      for (final name in marker.predictorNames) {
+        preds.add((name: name, value: marker.value));
+      }
+    }
+    preds.sort((a, b) {
+      final byValue = a.value.compareTo(b.value);
+      return byValue != 0
+          ? byValue
+          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              gauge.playerName,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 6),
-            _GaugeBar(gauge: gauge),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('0', style: Theme.of(context).textTheme.bodySmall),
-                Text('${gauge.maxValue}',
-                    style: Theme.of(context).textTheme.bodySmall),
+                Expanded(
+                  child: Text(
+                    gauge.playerName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${gauge.actual} $label',
+                    style: TextStyle(
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               ],
             ),
+            const SizedBox(height: 10),
+            if (preds.isEmpty)
+              Text(
+                'Aucun pronostic.',
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            else
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final p in preds)
+                    _PredChip(name: p.name, value: p.value),
+                ],
+              ),
           ],
         ),
       ),
@@ -394,120 +438,38 @@ class _GaugeCard extends StatelessWidget {
   }
 }
 
-class _GaugeBar extends StatelessWidget {
-  const _GaugeBar({required this.gauge});
+/// Un pronostic « Nom valeur » sous forme de pastille, qui passe à la ligne
+/// automatiquement (lisible même avec beaucoup de pronostiqueurs).
+class _PredChip extends StatelessWidget {
+  const _PredChip({required this.name, required this.value});
 
-  final PlayerGauge gauge;
+  final String name;
+  final int value;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final maxValue = gauge.maxValue <= 0 ? 1 : gauge.maxValue;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        double posOf(int value) => (value / maxValue).clamp(0.0, 1.0) * width;
-
-        const labelW = 74.0;
-        Widget label(double x, String text, Color color, FontWeight weight) {
-          return Positioned(
-            top: 2,
-            left: (x - labelW / 2).clamp(0.0, width - labelW),
-            width: labelW,
-            child: Text(
-              text,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                height: 1.1,
-                fontWeight: weight,
-                color: color,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(name, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(width: 6),
+          Text(
+            '$value',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: scheme.tertiary,
+              fontSize: 13,
             ),
-          );
-        }
-
-        return SizedBox(
-          height: 52,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Noms des pronostiqueurs, au-dessus de chaque repère rose.
-              for (final marker in gauge.markers)
-                label(
-                  posOf(marker.value),
-                  marker.predictorNames.join(', '),
-                  scheme.tertiary,
-                  FontWeight.w600,
-                ),
-              // Total réel, au-dessus du curseur bleu.
-              label(
-                posOf(gauge.actual),
-                '${gauge.actual}',
-                scheme.primary,
-                FontWeight.w900,
-              ),
-              // Piste
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 36,
-                child: Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: scheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              // Progression réelle
-              Positioned(
-                left: 0,
-                top: 36,
-                child: Container(
-                  height: 6,
-                  width: posOf(gauge.actual),
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              // Repères des pronostics (points roses)
-              for (final marker in gauge.markers)
-                Positioned(
-                  left: (posOf(marker.value) - 6).clamp(0.0, width - 12),
-                  top: 33,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: scheme.tertiaryContainer,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: scheme.tertiary, width: 2),
-                    ),
-                  ),
-                ),
-              // Curseur réel (barre bleue)
-              Positioned(
-                left: (posOf(gauge.actual) - 2.5).clamp(0.0, width - 5),
-                top: 28,
-                child: Container(
-                  width: 5,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: scheme.primary,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

@@ -17,6 +17,7 @@ class MatchPredictionItem {
     required this.oddsLoss,
     required this.actualScoreGrinta,
     required this.actualScoreOpponent,
+    this.predictionsClosedAt,
   });
 
   final String matchId;
@@ -32,11 +33,17 @@ class MatchPredictionItem {
   final int? actualScoreGrinta;
   final int? actualScoreOpponent;
 
+  /// Fermeture manuelle des pronostics par l'admin (avant l'heure limite).
+  final DateTime? predictionsClosedAt;
+
   DateTime get opensAt => DateTime.fromMillisecondsSinceEpoch(0);
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
   bool get isBeforeWindow => false;
   bool get isClosed =>
-      status != 'a_venir' || !DateTime.now().isBefore(closesAt);
+      status != 'a_venir' ||
+      !DateTime.now().isBefore(closesAt) ||
+      (predictionsClosedAt != null &&
+          !DateTime.now().isBefore(predictionsClosedAt!));
   bool get canEdit => !isClosed;
   bool get hasResult =>
       actualScoreGrinta != null && actualScoreOpponent != null;
@@ -83,6 +90,7 @@ class MatchPredictionItem {
       oddsLoss: oddsLoss,
       actualScoreGrinta: actualScoreGrinta,
       actualScoreOpponent: actualScoreOpponent,
+      predictionsClosedAt: predictionsClosedAt,
     );
   }
 }
@@ -105,6 +113,7 @@ class PredictionsRepository {
           status,
           score_as_grinta,
           score_adverse,
+          predictions_closed_at,
           opponents(name),
           match_odds(
             odds_victoire_as_grinta,
@@ -164,6 +173,9 @@ class PredictionsRepository {
         actualScoreOpponent: matchMap['score_adverse'] == null
             ? null
             : int.tryParse('${matchMap['score_adverse']}'),
+        predictionsClosedAt: DateTime.tryParse(
+          '${matchMap['predictions_closed_at'] ?? ''}',
+        ),
       ),
     ];
   }

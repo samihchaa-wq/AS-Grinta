@@ -20,6 +20,7 @@ class MatchesRepository {
       status,
       score_as_grinta,
       score_adverse,
+      predictions_closed_at,
       created_by,
       created_at,
       updated_at,
@@ -203,6 +204,16 @@ class MatchesRepository {
     );
     if (result != true) {
       throw StateError('Le match n’a pas pu être validé.');
+    }
+  }
+
+  Future<void> closeMatchPredictions(String id) async {
+    final result = await _client.rpc(
+      'close_match_predictions',
+      params: {'p_match_id': id},
+    );
+    if (result != true) {
+      throw StateError('Les pronostics n’ont pas pu être fermés.');
     }
   }
 

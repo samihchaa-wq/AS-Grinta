@@ -9,6 +9,7 @@ class MatchModel {
     required this.status,
     required this.grintaScore,
     required this.opponentScore,
+    this.predictionsClosedAt,
     this.oddsWin,
     this.oddsDraw,
     this.oddsLoss,
@@ -28,6 +29,7 @@ class MatchModel {
   final String status;
   final int? grintaScore;
   final int? opponentScore;
+  final DateTime? predictionsClosedAt;
   final double? oddsWin;
   final double? oddsDraw;
   final double? oddsLoss;
@@ -40,6 +42,9 @@ class MatchModel {
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
   bool get isArchived => status == 'archive';
   bool get isFinished => status == 'termine' || status == 'archive';
+
+  /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
+  bool get pronosClosed => predictionsClosedAt != null;
 
   /// Coup d'envoi passé mais résultat pas encore saisi : le match attend
   /// que l'admin enregistre les statistiques (aucune clôture automatique).
@@ -83,6 +88,8 @@ class MatchModel {
       opponentScore: json['score_adverse'] == null
           ? null
           : int.tryParse('${json['score_adverse']}'),
+      predictionsClosedAt:
+          DateTime.tryParse('${json['predictions_closed_at'] ?? ''}'),
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),

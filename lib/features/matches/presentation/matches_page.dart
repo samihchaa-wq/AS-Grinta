@@ -95,10 +95,11 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
               ...state.matches.map(
                 (match) => _MatchCard(
                   match: match,
-                  canEdit: canManage && !match.isArchived,
-                  canFinalize: isAdmin && !match.isArchived,
-                  canArchive: isAdmin && match.isFinished && !match.isArchived,
+                  canEdit: canManage && !match.isFinished,
+                  canFinalize: isAdmin,
                   canDelete: canManage,
+                  canClosePronos:
+                      isAdmin && !match.isFinished && !match.pronosClosed,
                 ),
               ),
           ],
@@ -114,14 +115,14 @@ class _MatchCard extends StatelessWidget {
     required this.canDelete,
     required this.canEdit,
     required this.canFinalize,
-    required this.canArchive,
+    required this.canClosePronos,
   });
 
   final MatchModel match;
   final bool canDelete;
   final bool canEdit;
   final bool canFinalize;
-  final bool canArchive;
+  final bool canClosePronos;
 
   @override
   Widget build(BuildContext context) {
@@ -153,11 +154,6 @@ class _MatchCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () => context.push('/matches/${match.id}'),
-                    icon: const Icon(Icons.history),
-                    label: const Text('Détails'),
-                  ),
                   if (canEdit)
                     FilledButton.icon(
                       onPressed: () => Navigator.of(context).push(
@@ -168,28 +164,16 @@ class _MatchCard extends StatelessWidget {
                       icon: const Icon(Icons.edit_outlined),
                       label: const Text('Modifier'),
                     ),
-                  if (canFinalize)
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.push('/matches/${match.id}/finalize'),
-                      icon: const Icon(Icons.fact_check_outlined),
-                      label: Text(
-                        match.isFinished
-                            ? 'Corriger les statistiques'
-                            : 'Saisir les statistiques',
-                      ),
-                    ),
-                  if (canArchive)
+                  if (canClosePronos)
                     OutlinedButton.icon(
                       onPressed: () async {
                         final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (dialogContext) => AlertDialog(
-                                title: const Text('Archiver ce match ?'),
+                                title: const Text('Fermer le prono ?'),
                                 content: const Text(
-                                  'Le match disparaîtra de l’accueil des '
-                                  'pronostiqueurs et restera consultable ici '
-                                  'avec le statut « Archivé ».',
+                                  'Plus personne ne pourra pronostiquer sur '
+                                  'ce match. C’est définitif.',
                                 ),
                                 actions: [
                                   TextButton(
@@ -200,7 +184,7 @@ class _MatchCard extends StatelessWidget {
                                   FilledButton(
                                     onPressed: () =>
                                         Navigator.pop(dialogContext, true),
-                                    child: const Text('Archiver'),
+                                    child: const Text('Fermer'),
                                   ),
                                 ],
                               ),
@@ -209,10 +193,21 @@ class _MatchCard extends StatelessWidget {
                         if (!confirmed || !context.mounted) return;
                         await ProviderScope.containerOf(context)
                             .read(matchesControllerProvider.notifier)
-                            .archiveMatch(match.id);
+                            .closePronos(match.id);
                       },
-                      icon: const Icon(Icons.archive_outlined),
-                      label: const Text('Archiver'),
+                      icon: const Icon(Icons.lock_clock_outlined),
+                      label: const Text('Fermer le prono'),
+                    ),
+                  if (canFinalize)
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.push('/matches/${match.id}/finalize'),
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: Text(
+                        match.isFinished
+                            ? 'Modifier les statistiques'
+                            : 'Saisir les statistiques',
+                      ),
                     ),
                   if (canDelete)
                     OutlinedButton.icon(
