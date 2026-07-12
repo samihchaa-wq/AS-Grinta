@@ -104,19 +104,17 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                 type: _selected,
               ),
             ),
-            const SizedBox(height: 18),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.edit_calendar_outlined),
-                title: const Text('Mes pronostics de saison'),
-                subtitle: const Text(
-                  'Prédis les buts de chaque joueur (et les clean sheets du '
-                  'gardien).',
+            if (_selected == _RankingType.season) ...[
+              const SizedBox(height: 18),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.edit_calendar_outlined),
+                  title: const Text('Modifier mes pronostics de saison'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/predictions/season'),
                 ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/predictions/season'),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -136,9 +134,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
       _RankingType.general =>
         'Score pondéré : 70 % matchs, 30 % saison.',
       _RankingType.match => 'Points gagnés sur les scores des matchs.',
-      _RankingType.season =>
-        'Classement provisoire : calculé sur une projection de 30 matchs, '
-            'il évolue jusqu’à la fin de la saison.',
+      _RankingType.season => 'Projection sur 30 matchs — provisoire.',
     };
   }
 }

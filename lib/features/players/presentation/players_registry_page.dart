@@ -66,18 +66,6 @@ class _RosterList extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
           children: [
-            const Card(
-              child: ListTile(
-                leading: Icon(Icons.info_outline),
-                title: Text('Les joueurs sur qui on parie'),
-                subtitle: Text(
-                  'Ajoute ici les joueurs de l’équipe (prénom, nom, gardien). '
-                  'Les buts, clean sheets et pronostics de saison portent sur '
-                  'eux. Aucun compte requis.',
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
             if (players.isEmpty)
               const Card(
                 child: Padding(

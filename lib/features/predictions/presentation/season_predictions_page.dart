@@ -23,13 +23,6 @@ final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
 });
 
-const _kSeasonExplanation =
-    'Les pronostics portent sur une saison complète de 30 matchs. Peu importe '
-    'le nombre de matchs réellement disputés par un joueur (blessure, arrivée '
-    'en cours de saison, suspension, etc.). Les classements affichés pendant '
-    'la saison sont calculés à partir d’une projection sur 30 matchs et '
-    'évolueront jusqu’à la fin de la saison.';
-
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
   const SeasonPredictionsPage({super.key});
 
@@ -41,7 +34,7 @@ class SeasonPredictionsPage extends ConsumerStatefulWidget {
 class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   final Map<String, int> _draftValues = {};
   String? _error;
-  bool _showGauges = false;
+  bool _showGauges = true;
   bool _isSavingAll = false;
   bool _locked = false;
 
@@ -60,14 +53,14 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             child: SegmentedButton<bool>(
               segments: const [
                 ButtonSegment(
-                  value: false,
-                  icon: Icon(Icons.edit_outlined),
-                  label: Text('Mes pronos'),
-                ),
-                ButtonSegment(
                   value: true,
                   icon: Icon(Icons.leaderboard_outlined),
                   label: Text('Jauges'),
+                ),
+                ButtonSegment(
+                  value: false,
+                  icon: Icon(Icons.edit_outlined),
+                  label: Text('Mes pronos'),
                 ),
               ],
               selected: {_showGauges},
@@ -134,18 +127,6 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   ),
                 ),
               if (_locked) const SizedBox(height: 12),
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(14),
-                  child: Text(_kSeasonExplanation),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pour chaque joueur : le nombre de buts que tu prévois sur la '
-                'saison (les clean sheets pour le gardien).',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -246,9 +227,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                   Icon(Icons.visibility_off_outlined, size: 40),
                   SizedBox(height: 12),
                   Text(
-                    'Les pronostics de tout le monde seront révélés ici une '
-                    'fois que l’admin aura verrouillé les paris de la saison. '
-                    'D’ici là, personne ne voit les pronostics des autres.',
+                    'Pronostics révélés au verrouillage.',
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -291,18 +270,6 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Card(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Padding(
-                  padding: EdgeInsets.all(14),
-                  child: Text(
-                    'Le curseur ▮ montre le total réel actuel. Les repères ● '
-                    'sont les pronostics. La jauge grandit si un joueur '
-                    'dépasse le plus gros pronostic.',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
               ...gauges.map((gauge) => _GaugeCard(gauge: gauge)),
             ],
           );
@@ -351,7 +318,7 @@ class _GaugeCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -363,17 +330,11 @@ class _GaugeCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                Text(
-                  '${gauge.actual} $label',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                ),
+                Text(label, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
-            const SizedBox(height: 16),
-            _GaugeBar(gauge: gauge),
             const SizedBox(height: 6),
+            _GaugeBar(gauge: gauge),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -402,19 +363,54 @@ class _GaugeBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        double posOf(int value) =>
-            (value / maxValue).clamp(0.0, 1.0) * width;
+        double posOf(int value) => (value / maxValue).clamp(0.0, 1.0) * width;
+
+        const labelW = 74.0;
+        Widget label(double x, String text, Color color, FontWeight weight) {
+          return Positioned(
+            top: 2,
+            left: (x - labelW / 2).clamp(0.0, width - labelW),
+            width: labelW,
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 10,
+                height: 1.1,
+                fontWeight: weight,
+                color: color,
+              ),
+            ),
+          );
+        }
 
         return SizedBox(
-          height: 44,
+          height: 52,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
+              // Noms des pronostiqueurs, au-dessus de chaque repère rose.
+              for (final marker in gauge.markers)
+                label(
+                  posOf(marker.value),
+                  marker.predictorNames.join(', '),
+                  scheme.tertiary,
+                  FontWeight.w600,
+                ),
+              // Total réel, au-dessus du curseur bleu.
+              label(
+                posOf(gauge.actual),
+                '${gauge.actual}',
+                scheme.primary,
+                FontWeight.w900,
+              ),
               // Piste
               Positioned(
                 left: 0,
                 right: 0,
-                top: 20,
+                top: 36,
                 child: Container(
                   height: 6,
                   decoration: BoxDecoration(
@@ -426,7 +422,7 @@ class _GaugeBar extends StatelessWidget {
               // Progression réelle
               Positioned(
                 left: 0,
-                top: 20,
+                top: 36,
                 child: Container(
                   height: 6,
                   width: posOf(gauge.actual),
@@ -436,22 +432,27 @@ class _GaugeBar extends StatelessWidget {
                   ),
                 ),
               ),
-              // Repères des pronostics
+              // Repères des pronostics (points roses)
               for (final marker in gauge.markers)
                 Positioned(
-                  left: (posOf(marker.value) - 11).clamp(0.0, width - 22),
-                  top: 6,
-                  child: _MarkerDot(
-                    marker: marker,
-                    playerName: gauge.playerName,
+                  left: (posOf(marker.value) - 6).clamp(0.0, width - 12),
+                  top: 33,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: scheme.tertiaryContainer,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.tertiary, width: 2),
+                    ),
                   ),
                 ),
-              // Curseur réel
+              // Curseur réel (barre bleue)
               Positioned(
-                left: (posOf(gauge.actual) - 3).clamp(0.0, width - 6),
-                top: 12,
+                left: (posOf(gauge.actual) - 2.5).clamp(0.0, width - 5),
+                top: 28,
                 child: Container(
-                  width: 6,
+                  width: 5,
                   height: 22,
                   decoration: BoxDecoration(
                     color: scheme.primary,
@@ -463,63 +464,6 @@ class _GaugeBar extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _MarkerDot extends StatelessWidget {
-  const _MarkerDot({required this.marker, required this.playerName});
-
-  final GaugeMarker marker;
-  final String playerName;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final count = marker.predictorNames.length;
-    return GestureDetector(
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        builder: (sheetContext) => ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-          children: [
-            Text(
-              '$playerName — pronostic ${marker.value}',
-              style: Theme.of(sheetContext).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            ...marker.predictorNames.map(
-              (name) => ListTile(
-                dense: true,
-                leading: const Icon(Icons.person_outline),
-                title: Text(name),
-              ),
-            ),
-          ],
-        ),
-      ),
-      child: Container(
-        width: 22,
-        height: 22,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: scheme.tertiaryContainer,
-          shape: BoxShape.circle,
-          border: Border.all(color: scheme.tertiary),
-        ),
-        child: count > 1
-            ? Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: scheme.onTertiaryContainer,
-                ),
-              )
-            : Icon(Icons.circle, size: 8, color: scheme.tertiary),
-      ),
     );
   }
 }
