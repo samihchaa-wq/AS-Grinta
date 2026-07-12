@@ -84,18 +84,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/pronos',
-            builder: (_, __) =>
-                const SeasonPredictionsPage(gaugesOnly: true),
+            builder: (_, __) => const SeasonPredictionsPage(),
           ),
           GoRoute(
             path: '/predictions',
             builder: (_, __) => const PredictionsPage(),
-          ),
-          GoRoute(
-            path: '/predictions/season',
-            builder: (_, state) => SeasonPredictionsPage(
-              openMine: state.uri.queryParameters['tab'] == 'mine',
-            ),
           ),
           GoRoute(
             path: '/predictions/leaderboard',

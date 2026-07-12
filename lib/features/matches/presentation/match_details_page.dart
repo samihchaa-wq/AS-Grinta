@@ -74,12 +74,12 @@ class MatchDetailsPage extends ConsumerWidget {
                     FilledButton.icon(
                       onPressed: () => context.push('/matches/$matchId/finalize'),
                       icon: const Icon(Icons.fact_check_outlined),
-                      label: const Text('Saisir les statistiques'),
+                      label: const Text('👑  Saisir les statistiques'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _report(context, ref, details),
                       icon: const Icon(Icons.event_repeat_outlined),
-                      label: const Text('Reporter'),
+                      label: const Text('👑  Reporter'),
                     ),
                   ],
                 ),
@@ -89,7 +89,7 @@ class MatchDetailsPage extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () => context.push('/matches/$matchId/finalize'),
                   icon: const Icon(Icons.history_edu_outlined),
-                  label: const Text('Modifier les statistiques'),
+                  label: const Text('👑  Modifier les statistiques'),
                 ),
               ],
               if (!details.isValidated) ...[

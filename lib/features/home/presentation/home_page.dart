@@ -748,8 +748,7 @@ class _SeasonPredictionsCard extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () =>
-                    context.push('/predictions/season?tab=mine'),
+                onPressed: () => context.go('/pronos'),
                 icon: const Icon(Icons.edit_outlined),
                 label: Text(
                   allFilled

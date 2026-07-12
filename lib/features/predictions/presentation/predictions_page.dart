@@ -1,7 +1,6 @@
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 enum _RankingType { general, match, season }
 
@@ -95,17 +94,6 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                 type: _selected,
               ),
             ),
-            if (_selected == _RankingType.season) ...[
-              const SizedBox(height: 18),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.edit_calendar_outlined),
-                  title: const Text('Modifier mes pronostics de saison'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/predictions/season?tab=mine'),
-                ),
-              ),
-            ],
           ],
         ),
       ),

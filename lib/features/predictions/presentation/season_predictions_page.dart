@@ -3,7 +3,6 @@ import 'package:as_grinta/features/predictions/data/season_predictions_repositor
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 // autoDispose : ces états (verrou, pronos, jauges) sont relus à chaque ouverture
 // de l'écran. Sinon, si l'admin déverrouille les paris après avoir consulté la
@@ -25,17 +24,7 @@ final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 });
 
 class SeasonPredictionsPage extends ConsumerStatefulWidget {
-  const SeasonPredictionsPage({
-    super.key,
-    this.openMine = false,
-    this.gaugesOnly = false,
-  });
-
-  /// Ouvre directement l'onglet « Mes pronos » (édition) plutôt que « Jauges ».
-  final bool openMine;
-
-  /// Affiche uniquement les jauges (onglet Pronos), avec un bouton pour éditer.
-  final bool gaugesOnly;
+  const SeasonPredictionsPage({super.key});
 
   @override
   ConsumerState<SeasonPredictionsPage> createState() =>
@@ -45,7 +34,6 @@ class SeasonPredictionsPage extends ConsumerStatefulWidget {
 class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   final Map<String, int> _draftValues = {};
   String? _error;
-  late bool _showGauges = !widget.openMine;
   bool _isSavingAll = false;
   bool _locked = false;
 
@@ -55,54 +43,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     final gaugesAsync = ref.watch(seasonGaugesProvider);
     _locked = ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
 
-    if (widget.gaugesOnly) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Pronostics'),
-          actions: [
-            IconButton(
-              tooltip: 'Modifier mes pronostics',
-              icon: const Icon(Icons.edit_calendar_outlined),
-              onPressed: () => context.push('/predictions/season?tab=mine'),
-            ),
-          ],
-        ),
-        body: _buildGauges(gaugesAsync),
-      );
-    }
-
+    // Paris ouverts : chacun saisit ses pronos. Une fois fermés par l'admin,
+    // on bascule sur les jauges (les pronos de tout le monde sont révélés).
     return Scaffold(
-      appBar: AppBar(title: const Text('Pronostics de saison')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(
-                  value: true,
-                  icon: Icon(Icons.leaderboard_outlined),
-                  label: Text('Jauges'),
-                ),
-                ButtonSegment(
-                  value: false,
-                  icon: Icon(Icons.edit_outlined),
-                  label: Text('Mes pronos'),
-                ),
-              ],
-              selected: {_showGauges},
-              onSelectionChanged: (selection) {
-                setState(() => _showGauges = selection.first);
-              },
-            ),
-          ),
-          Expanded(
-            child: _showGauges
-                ? _buildGauges(gaugesAsync)
-                : _buildMine(mineAsync),
-          ),
-        ],
+      appBar: AppBar(
+        title: Text(_locked ? 'Jauges de saison' : 'Mes pronos de saison'),
       ),
+      body: _locked ? _buildGauges(gaugesAsync) : _buildMine(mineAsync),
     );
   }
 
