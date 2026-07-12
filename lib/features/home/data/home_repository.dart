@@ -28,11 +28,15 @@ class HomeDashboardData {
     required this.pendingPredictions,
     required this.predictionParticipantCount,
     required this.recentMeetings,
+    required this.nextPredictionsClosed,
   });
 
   final String? nextMatchId;
   final String? nextOpponent;
   final DateTime? nextKickoffAt;
+
+  /// Pronostics du match mis en avant fermés manuellement par l'admin.
+  final bool nextPredictionsClosed;
 
   /// Statut du match mis en avant : 'a_venir' (avant ou après le coup
   /// d'envoi) ou 'termine' (résultat validé mais pas encore archivé).
@@ -67,7 +71,8 @@ class HomeRepository {
         .from('matches')
         .select(
           'id, opponent_id, match_date, match_time, status, '
-          'score_as_grinta, score_adverse, opponents(name)',
+          'score_as_grinta, score_adverse, predictions_closed_at, '
+          'opponents(name)',
         )
         .inFilter('status', const ['a_venir', 'termine'])
         .order('match_date', ascending: true)
@@ -88,6 +93,7 @@ class HomeRepository {
     String? nextOpponent;
     DateTime? nextKickoffAt;
     var nextMatchStatus = 'a_venir';
+    var nextPredictionsClosed = false;
     int? nextGrintaScore;
     int? nextOpponentScore;
     var pendingPredictions = 0;
@@ -127,6 +133,7 @@ class HomeRepository {
       nextOpponentId = heroRow['opponent_id']?.toString();
       nextOpponent = opponent['name']?.toString() ?? 'Adversaire';
       nextMatchStatus = (heroRow['status'] ?? 'a_venir').toString();
+      nextPredictionsClosed = heroRow['predictions_closed_at'] != null;
       nextGrintaScore = (heroRow['score_as_grinta'] as num?)?.toInt();
       nextOpponentScore = (heroRow['score_adverse'] as num?)?.toInt();
       final date = heroRow['match_date']?.toString() ?? '';
@@ -181,6 +188,7 @@ class HomeRepository {
       pendingPredictions: pendingPredictions,
       predictionParticipantCount: predictionParticipantCount,
       recentMeetings: recentMeetings,
+      nextPredictionsClosed: nextPredictionsClosed,
     );
   }
 }

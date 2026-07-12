@@ -34,7 +34,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
         actions: [
           if (canManage)
             IconButton(
-              tooltip: 'Créer un match',
+              tooltip: '👑 Créer un match',
               icon: const Icon(Icons.add_circle_outline),
               onPressed: () async {
                 await Navigator.of(context).push(
@@ -98,8 +98,6 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   canEdit: canManage && !match.isFinished,
                   canFinalize: isAdmin,
                   canDelete: canManage,
-                  canClosePronos:
-                      isAdmin && !match.isFinished && !match.pronosClosed,
                 ),
               ),
           ],
@@ -115,14 +113,12 @@ class _MatchCard extends StatelessWidget {
     required this.canDelete,
     required this.canEdit,
     required this.canFinalize,
-    required this.canClosePronos,
   });
 
   final MatchModel match;
   final bool canDelete;
   final bool canEdit;
   final bool canFinalize;
-  final bool canClosePronos;
 
   @override
   Widget build(BuildContext context) {
@@ -162,41 +158,7 @@ class _MatchCard extends StatelessWidget {
                         ),
                       ),
                       icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Modifier'),
-                    ),
-                  if (canClosePronos)
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('Fermer le prono ?'),
-                                content: const Text(
-                                  'Plus personne ne pourra pronostiquer sur '
-                                  'ce match. C’est définitif.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, false),
-                                    child: const Text('Annuler'),
-                                  ),
-                                  FilledButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, true),
-                                    child: const Text('Fermer'),
-                                  ),
-                                ],
-                              ),
-                            ) ??
-                            false;
-                        if (!confirmed || !context.mounted) return;
-                        await ProviderScope.containerOf(context)
-                            .read(matchesControllerProvider.notifier)
-                            .closePronos(match.id);
-                      },
-                      icon: const Icon(Icons.lock_clock_outlined),
-                      label: const Text('Fermer le prono'),
+                      label: const Text('👑  Modifier'),
                     ),
                   if (canFinalize)
                     FilledButton.icon(
@@ -205,8 +167,8 @@ class _MatchCard extends StatelessWidget {
                       icon: const Icon(Icons.fact_check_outlined),
                       label: Text(
                         match.isFinished
-                            ? 'Modifier les statistiques'
-                            : 'Saisir les statistiques',
+                            ? '👑  Modifier les statistiques'
+                            : '👑  Saisir les statistiques',
                       ),
                     ),
                   if (canDelete)
@@ -246,7 +208,7 @@ class _MatchCard extends StatelessWidget {
                             .deleteMatch(match.id);
                       },
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Supprimer'),
+                      label: const Text('👑  Supprimer'),
                     ),
                 ],
               ),

@@ -210,22 +210,6 @@ class MatchesController extends StateNotifier<MatchesState> {
     return [win, draw, loss].every((value) => value >= 1.01 && value <= 100);
   }
 
-  Future<void> closePronos(String id) async {
-    if (!_canManageMatches) {
-      state = state.copyWith(
-        error: 'Seul l’admin peut fermer les pronostics.',
-      );
-      return;
-    }
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      await _repository.closeMatchPredictions(id);
-      await load(seasonId: state.selectedSeasonId);
-    } catch (error) {
-      state = state.copyWith(isLoading: false, error: humanizeError(error));
-    }
-  }
-
   Future<void> deleteMatch(String id) async {
     if (!_canManageMatches) {
       state = state.copyWith(error: 'Seul le staff peut supprimer un match.');

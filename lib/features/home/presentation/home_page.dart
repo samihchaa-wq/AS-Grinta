@@ -1,8 +1,10 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
+import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +68,16 @@ class HomePage extends ConsumerWidget {
                         data: (dashboard) => Column(
                           children: [
                             _NextMatchHero(dashboard: dashboard),
+                            if (isStaff &&
+                                dashboard.nextMatchId != null &&
+                                dashboard.isUpcoming &&
+                                !dashboard.isAwaitingResult &&
+                                !dashboard.nextPredictionsClosed) ...[
+                              const SizedBox(height: 12),
+                              _CloseProsButton(
+                                matchId: dashboard.nextMatchId!,
+                              ),
+                            ],
                             if (dashboard.nextMatchId != null &&
                                 dashboard.isUpcoming) ...[
                               if (!dashboard.isAwaitingResult) ...[
@@ -129,13 +141,71 @@ class _Header extends StatelessWidget {
             if (isStaff)
               const PopupMenuItem(
                 value: 'admin',
-                child: Text('Administration'),
+                child: Text('👑  Administration'),
               ),
             const PopupMenuItem(value: 'profile', child: Text('Profil')),
             const PopupMenuItem(value: 'logout', child: Text('Déconnexion')),
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Bouton réservé à l'admin (👑) : fermer manuellement les pronostics du
+/// prochain match, en plus de la fermeture automatique 5 min avant le coup
+/// d'envoi.
+class _CloseProsButton extends ConsumerWidget {
+  const _CloseProsButton({required this.matchId});
+
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accent),
+        onPressed: () async {
+          final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Fermer le prono ?'),
+                  content: const Text(
+                    'Plus personne ne pourra pronostiquer sur ce match, '
+                    'même avant l’heure limite. C’est définitif.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: const Text('Annuler'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: const Text('Fermer'),
+                    ),
+                  ],
+                ),
+              ) ??
+              false;
+          if (!confirmed) return;
+          try {
+            await ref
+                .read(matchesRepositoryProvider)
+                .closeMatchPredictions(matchId);
+            ref.invalidate(homeDashboardProvider);
+            await ref.read(predictionsControllerProvider.notifier).load();
+          } catch (error) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(humanizeError(error))),
+              );
+            }
+          }
+        },
+        icon: const Icon(Icons.lock_clock_outlined),
+        label: const Text('👑  Fermer le prono manuellement'),
+      ),
     );
   }
 }

@@ -53,7 +53,7 @@ class MorePage extends ConsumerWidget {
           ),
           if (isStaff) ...[
             const SizedBox(height: 24),
-            Text('Staff', style: Theme.of(context).textTheme.titleLarge),
+            Text('👑  Admin', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Card(
               child: Column(
