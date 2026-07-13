@@ -186,13 +186,18 @@ class _RankingCard extends StatelessWidget {
                   entry.name,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
+                // L'onglet Général mélange matchs + saison : les compteurs
+                // Bons paris / Exacts n'y ont pas de sens, on ne les montre
+                // que pour Matchs et Saison.
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _StatBadge(label: 'Bons paris', value: _bons(entry)),
-                    const SizedBox(width: 10),
-                    _StatBadge(label: 'Exacts', value: _exacts(entry)),
-                    const SizedBox(width: 14),
+                    if (type != _RankingType.general) ...[
+                      _StatBadge(label: 'Bons paris', value: _bons(entry)),
+                      const SizedBox(width: 10),
+                      _StatBadge(label: 'Exacts', value: _exacts(entry)),
+                      const SizedBox(width: 14),
+                    ],
                     Text(
                       '${_format(_points(entry))} pts',
                       style: Theme.of(context).textTheme.titleMedium,
