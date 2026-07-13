@@ -1,10 +1,10 @@
-// Inscription publique via le lien partagé dans la conversation du club :
-// le joueur saisit prénom, nom et mot de passe. Le compte est créé
-// « en attente de validation » (status pending) et l'identifiant généré
-// (prénom + initiale) lui est retourné. L'admin valide ensuite le compte.
+// Inscription publique via le lien partagé dans la conversation du club.
+// Le compte reste en attente de validation par l'administrateur.
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const USERNAME_DOMAIN = "pronos.as-grinta.local";
+const MAX_BODY_BYTES = 4_096;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,16 +14,43 @@ const corsHeaders = {
 };
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
+function jsonResponse(
+  body: unknown,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...jsonHeaders, ...extraHeaders },
+  });
 }
 
 function normalizeName(value: string): string {
   return value
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+}
+
+function requestOrigin(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return (
+    req.headers.get("cf-connecting-ip")?.trim() ||
+    forwarded ||
+    req.headers.get("x-real-ip")?.trim() ||
+    "unknown"
+  ).slice(0, 128);
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(value),
+  );
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 Deno.serve(async (req: Request) => {
@@ -34,11 +61,37 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
+    return jsonResponse({ error: "Requête trop volumineuse." }, 413);
+  }
+
+  let newUserId: string | null = null;
+  let admin: ReturnType<typeof createClient> | null = null;
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
       throw new Error("Missing server configuration");
+    }
+
+    admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const originHash = await sha256Hex(requestOrigin(req));
+    const { data: allowed, error: rateLimitError } = await admin.rpc(
+      "consume_registration_rate_limit",
+      { p_origin_hash: originHash },
+    );
+    if (rateLimitError) throw rateLimitError;
+    if (allowed !== true) {
+      return jsonResponse(
+        { error: "Trop de tentatives. Réessaie plus tard." },
+        429,
+        { "Retry-After": "3600" },
+      );
     }
 
     const body = await req.json();
@@ -47,10 +100,11 @@ Deno.serve(async (req: Request) => {
     const password = String(body.password ?? "");
 
     if (
-      !firstName || firstName.length > 100 ||
-      !lastName || lastName.length > 100
+      firstName.length < 2 || firstName.length > 50 ||
+      lastName.length < 2 || lastName.length > 50 ||
+      /[\u0000-\u001f\u007f]/.test(firstName + lastName)
     ) {
-      return jsonResponse({ error: "Prénom et nom sont requis." }, 400);
+      return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
     }
     if (password.length < 8 || password.length > 72) {
       return jsonResponse(
@@ -65,21 +119,26 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
     }
 
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-
-    const base = `${normalizedFirst}${normalizedInitial}`;
-    let username = base;
-    for (let suffix = 2; suffix <= 20; suffix++) {
+    const base = `${normalizedFirst}${normalizedInitial}`.slice(0, 27);
+    let username = "";
+    for (let suffix = 1; suffix <= 20; suffix++) {
+      const candidate = suffix === 1 ? base : `${base}${suffix}`;
       const { data: existing, error: existsError } = await admin
         .from("profiles")
         .select("id")
-        .eq("username", username)
+        .eq("username", candidate)
         .maybeSingle();
       if (existsError) throw existsError;
-      if (!existing) break;
-      username = `${base}${suffix}`;
+      if (!existing) {
+        username = candidate;
+        break;
+      }
+    }
+    if (!username) {
+      return jsonResponse(
+        { error: "Impossible de générer un identifiant disponible." },
+        409,
+      );
     }
 
     const { data: created, error: createError } =
@@ -93,8 +152,8 @@ Deno.serve(async (req: Request) => {
         },
       });
     if (createError) throw createError;
-    const newUserId = created.user?.id;
-    if (!newUserId) throw new Error("Compte non créé");
+    newUserId = created.user?.id ?? null;
+    if (!newUserId) throw new Error("Account creation returned no user id");
 
     const { error: updateError } = await admin
       .from("profiles")
@@ -105,8 +164,19 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ username });
   } catch (error) {
     console.error("register-account failure", error);
+
+    if (newUserId && admin) {
+      const { error: cleanupError } = await admin.auth.admin.deleteUser(
+        newUserId,
+        false,
+      );
+      if (cleanupError) {
+        console.error("register-account cleanup failure", cleanupError);
+      }
+    }
+
     return jsonResponse(
-      { error: error instanceof Error ? error.message : "Erreur inattendue" },
+      { error: "La création du compte a échoué. Réessaie plus tard." },
       400,
     );
   }
