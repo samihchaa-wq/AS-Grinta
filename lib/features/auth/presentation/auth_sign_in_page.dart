@@ -42,8 +42,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
       if (password.length < 8) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content:
-                Text('Le mot de passe doit contenir au moins 8 caractères.'),
+            content: Text(
+              'Le mot de passe doit contenir au moins 8 caractères.',
+            ),
           ),
         );
         return;
@@ -67,9 +68,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if ((next.error ?? '').isNotEmpty &&
           (previous?.error ?? '') != next.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.error!)));
       }
     });
 
@@ -109,7 +110,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       Text(
                         _firstConnection
                             ? 'Active ton compte : entre l’identifiant donné '
-                                'par l’admin et choisis ton mot de passe.'
+                                  'par l’admin et choisis ton mot de passe.'
                             : 'Le petit prono maison de l’AS Grinta.',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
@@ -194,8 +195,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         _firstConnection
                             ? 'Ton identifiant t’a été communiqué par l’admin.'
                             : 'Mot de passe oublié ? Demande à l’admin de le '
-                                'réinitialiser, puis refais une première '
-                                'connexion.',
+                                  'réinitialiser, puis refais une première '
+                                  'connexion.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

@@ -78,7 +78,9 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                     children: [
                       const Icon(Icons.cloud_off_outlined, size: 42),
                       const SizedBox(height: 12),
-                      const Text('Le classement est temporairement indisponible.'),
+                      const Text(
+                        'Le classement est temporairement indisponible.',
+                      ),
                       const SizedBox(height: 12),
                       FilledButton.icon(
                         onPressed: () => ref.invalidate(leaderboardProvider),
@@ -89,10 +91,8 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                   ),
                 ),
               ),
-              data: (entries) => _RankingCard(
-                entries: entries,
-                type: _selected,
-              ),
+              data: (entries) =>
+                  _RankingCard(entries: entries, type: _selected),
             ),
           ],
         ),
@@ -110,8 +110,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
 
   String _subtitle(_RankingType type) {
     return switch (type) {
-      _RankingType.general =>
-        'Score pondéré : 70 % matchs, 30 % saison.',
+      _RankingType.general => 'Score pondéré : 70 % matchs, 30 % saison.',
       _RankingType.match => 'Points gagnés sur les scores des matchs.',
       _RankingType.season => 'Projection sur 30 matchs — provisoire.',
     };
@@ -237,10 +236,7 @@ class _StatBadge extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 10,
-            color: scheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
         ),
       ],
     );

@@ -41,7 +41,8 @@ class NotificationsRepository {
       final opponent = opponentMap is Map
           ? (opponentMap['name'] ?? 'Adversaire').toString()
           : 'Adversaire';
-      final date = DateTime.tryParse('${row['match_date']}T${row['match_time']}') ??
+      final date =
+          DateTime.tryParse('${row['match_date']}T${row['match_time']}') ??
           DateTime.tryParse('${row['match_date']}') ??
           DateTime.now();
       final home = row['location'] == 'domicile';
@@ -65,7 +66,8 @@ class NotificationsRepository {
           AppNotificationItem(
             id: 'prediction-$matchId',
             title: 'Pronostic à vérifier',
-            message: 'Pense à valider ton pronostic pour le match contre $opponent.',
+            message:
+                'Pense à valider ton pronostic pour le match contre $opponent.',
             date: date.subtract(const Duration(hours: 2)),
             kind: 'prediction',
           ),
@@ -78,12 +80,14 @@ class NotificationsRepository {
   }
 }
 
-final notificationsRepositoryProvider = Provider<NotificationsRepository>((ref) {
+final notificationsRepositoryProvider = Provider<NotificationsRepository>((
+  ref,
+) {
   return NotificationsRepository(ref.watch(supabaseClientProvider));
 });
 
 final notificationsProvider =
     FutureProvider.autoDispose<List<AppNotificationItem>>((ref) async {
-  final preferences = await ref.watch(appPreferencesProvider.future);
-  return ref.watch(notificationsRepositoryProvider).fetch(preferences);
-});
+      final preferences = await ref.watch(appPreferencesProvider.future);
+      return ref.watch(notificationsRepositoryProvider).fetch(preferences);
+    });

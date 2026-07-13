@@ -90,9 +90,7 @@ abstract final class AppTheme {
           color: textSecondary,
           height: 1.4,
         ),
-        bodySmall: base.textTheme.bodySmall?.copyWith(
-          color: textSecondary,
-        ),
+        bodySmall: base.textTheme.bodySmall?.copyWith(color: textSecondary),
         labelLarge: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
         ),
@@ -130,10 +128,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -144,10 +139,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -194,9 +186,7 @@ abstract final class AppTheme {
           color: textPrimary,
           fontWeight: FontWeight.w800,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
@@ -205,9 +195,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return IconThemeData(
-            color: selected ? Colors.white : textSecondary,
-          );
+          return IconThemeData(color: selected ? Colors.white : textSecondary);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);

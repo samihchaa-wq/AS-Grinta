@@ -57,10 +57,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/home'),
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.uri.path,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            AppShell(location: state.uri.path, child: child),
         routes: [
           GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),

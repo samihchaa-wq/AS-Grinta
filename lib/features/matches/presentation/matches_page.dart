@@ -41,17 +41,17 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   MaterialPageRoute(builder: (_) => const MatchFormPage()),
                 );
                 if (!mounted) return;
-                await ref.read(matchesControllerProvider.notifier).load(
-                      seasonId: state.selectedSeasonId,
-                    );
+                await ref
+                    .read(matchesControllerProvider.notifier)
+                    .load(seasonId: state.selectedSeasonId);
               },
             ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
-              seasonId: state.selectedSeasonId,
-            ),
+        onRefresh: () => ref
+            .read(matchesControllerProvider.notifier)
+            .load(seasonId: state.selectedSeasonId),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -174,7 +174,8 @@ class _MatchCard extends StatelessWidget {
                   if (canDelete)
                     OutlinedButton.icon(
                       onPressed: () async {
-                        final confirmed = await showDialog<bool>(
+                        final confirmed =
+                            await showDialog<bool>(
                               context: context,
                               builder: (dialogContext) => AlertDialog(
                                 title: const Text('Supprimer ce match ?'),
@@ -191,8 +192,9 @@ class _MatchCard extends StatelessWidget {
                                   ),
                                   FilledButton(
                                     style: FilledButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.error,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
                                     ),
                                     onPressed: () =>
                                         Navigator.pop(dialogContext, true),

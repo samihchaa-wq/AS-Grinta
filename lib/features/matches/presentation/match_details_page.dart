@@ -72,7 +72,8 @@ class MatchDetailsPage extends ConsumerWidget {
                   runSpacing: 8,
                   children: [
                     FilledButton.icon(
-                      onPressed: () => context.push('/matches/$matchId/finalize'),
+                      onPressed: () =>
+                          context.push('/matches/$matchId/finalize'),
                       icon: const Icon(Icons.fact_check_outlined),
                       label: const Text('👑  Saisir les statistiques'),
                     ),
@@ -142,7 +143,9 @@ class MatchDetailsPage extends ConsumerWidget {
       initialTime: TimeOfDay.fromDateTime(details.kickoffAt),
     );
     if (time == null || !context.mounted) return;
-    await ref.read(matchDetailsRepositoryProvider).reportMatch(
+    await ref
+        .read(matchDetailsRepositoryProvider)
+        .reportMatch(
           matchId: details.matchId,
           kickoffAt: DateTime(
             date.year,
@@ -192,10 +195,10 @@ class _MatchHeader extends StatelessWidget {
               details.status == 'archive'
                   ? 'Archivé'
                   : details.isValidated
-                      ? 'Terminé'
-                      : DateTime.now().isAfter(details.kickoffAt)
-                          ? 'En attente du résultat'
-                          : 'À venir',
+                  ? 'Terminé'
+                  : DateTime.now().isAfter(details.kickoffAt)
+                  ? 'En attente du résultat'
+                  : 'À venir',
             ),
           ],
         ),
@@ -224,11 +227,26 @@ class _UpcomingInformation extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _InfoTile(label: 'Cote 1', value: _format(details.oddsWin))),
+                Expanded(
+                  child: _InfoTile(
+                    label: 'Cote 1',
+                    value: _format(details.oddsWin),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _InfoTile(label: 'Cote N', value: _format(details.oddsDraw))),
+                Expanded(
+                  child: _InfoTile(
+                    label: 'Cote N',
+                    value: _format(details.oddsDraw),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _InfoTile(label: 'Cote 2', value: _format(details.oddsLoss))),
+                Expanded(
+                  child: _InfoTile(
+                    label: 'Cote 2',
+                    value: _format(details.oddsLoss),
+                  ),
+                ),
               ],
             ),
           ],
@@ -248,10 +266,12 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cleanSheets =
-        details.playerStats.where((line) => line.cleanSheet).toList();
-    final scorers =
-        details.playerStats.where((line) => line.goals > 0).toList();
+    final cleanSheets = details.playerStats
+        .where((line) => line.cleanSheet)
+        .toList();
+    final scorers = details.playerStats
+        .where((line) => line.goals > 0)
+        .toList();
 
     return Card(
       child: Padding(
@@ -259,13 +279,19 @@ class _MatchSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Résumé du match', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Résumé du match',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
             _Section(
               title: 'Buteurs',
               children: scorers
-                  .map((line) => Text(
-                      '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
+                  .map(
+                    (line) => Text(
+                      '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}',
+                    ),
+                  )
                   .toList(),
             ),
             const SizedBox(height: 14),

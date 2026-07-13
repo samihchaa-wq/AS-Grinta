@@ -58,15 +58,12 @@ String _fromMessage(String raw) {
     'admin or moderator role required': 'Action réservée au staff.',
     'last active administrator':
         'Impossible : c’est le dernier administrateur actif.',
-    'last active admin':
-        'Impossible : c’est le dernier administrateur actif.',
+    'last active admin': 'Impossible : c’est le dernier administrateur actif.',
     'cannot delete your own account':
         'Tu ne peux pas supprimer ton propre compte.',
-    'historical import actor':
-        'Ce compte technique ne peut pas être supprimé.',
+    'historical import actor': 'Ce compte technique ne peut pas être supprimé.',
     'target account not found': 'Ce compte est introuvable.',
-    'only upcoming or finished matches':
-        'Ce match ne peut plus être modifié.',
+    'only upcoming or finished matches': 'Ce match ne peut plus être modifié.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',
     'only a goalkeeper': 'Seul un gardien peut avoir un clean sheet.',
     'clean sheet is impossible':
@@ -86,7 +83,8 @@ String _fromMessage(String raw) {
     'row-level security': 'Tu n’as pas les droits pour cette action.',
     'permission denied': 'Tu n’as pas les droits pour cette action.',
     'jwt expired': 'Ta session a expiré. Reconnecte-toi.',
-    'failed host lookup': 'Connexion au serveur impossible. Vérifie ton réseau.',
+    'failed host lookup':
+        'Connexion au serveur impossible. Vérifie ton réseau.',
     'socketexception': 'Connexion au serveur impossible. Vérifie ton réseau.',
     'timeoutexception': 'Le serveur met trop de temps à répondre. Réessaie.',
   };

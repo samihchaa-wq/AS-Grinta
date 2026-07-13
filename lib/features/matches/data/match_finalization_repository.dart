@@ -126,10 +126,10 @@ class MatchFinalizationRepository {
 
 final matchFinalizationRepositoryProvider =
     Provider<MatchFinalizationRepository>((ref) {
-  return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
-});
+      return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
+    });
 
 final matchFinalizationContextProvider = FutureProvider.autoDispose
     .family<MatchFinalizationContext, String>((ref, matchId) {
-  return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
-});
+      return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
+    });

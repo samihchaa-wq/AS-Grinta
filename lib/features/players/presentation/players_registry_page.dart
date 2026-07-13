@@ -36,8 +36,8 @@ class PlayersRegistryPage extends ConsumerWidget {
       floatingActionButton: seasonAsync.valueOrNull == null
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _showPlayerDialog(context, ref,
-                  seasonId: seasonAsync.value!),
+              onPressed: () =>
+                  _showPlayerDialog(context, ref, seasonId: seasonAsync.value!),
               icon: const Icon(Icons.person_add_alt_1),
               label: const Text('Ajouter'),
             ),
@@ -97,13 +97,19 @@ class _RosterList extends ConsumerWidget {
                         final repo = ref.read(rosterRepositoryProvider);
                         try {
                           if (action == 'edit') {
-                            await _showPlayerDialog(context, ref,
-                                seasonId: seasonId, existing: player);
+                            await _showPlayerDialog(
+                              context,
+                              ref,
+                              seasonId: seasonId,
+                              existing: player,
+                            );
                             return;
                           }
                           if (action == 'delete') {
-                            final confirmed =
-                                await _confirmDelete(context, player);
+                            final confirmed = await _confirmDelete(
+                              context,
+                              player,
+                            );
                             if (!confirmed) return;
                             await repo.deletePlayer(player.id);
                           } else if (action == 'archive') {
@@ -127,8 +133,9 @@ class _RosterList extends ConsumerWidget {
                         ),
                         PopupMenuItem(
                           value: player.isActive ? 'archive' : 'restore',
-                          child:
-                              Text(player.isActive ? 'Archiver' : 'Réactiver'),
+                          child: Text(
+                            player.isActive ? 'Archiver' : 'Réactiver',
+                          ),
                         ),
                         const PopupMenuItem(
                           value: 'delete',
@@ -209,9 +216,10 @@ Future<void> _showPlayerDialog(
                     : (value) => setState(() => isGoalkeeper = value),
               ),
               if (error != null)
-                Text(error!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error)),
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
             ],
           ),
         ),

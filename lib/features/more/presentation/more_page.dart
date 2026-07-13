@@ -31,8 +31,7 @@ class MorePage extends ConsumerWidget {
             child: ListTile(
               leading: const Icon(Icons.notifications_none_outlined),
               title: const Text('Notifications'),
-              subtitle:
-                  const Text('Choisis quand tu veux être prévenu'),
+              subtitle: const Text('Choisis quand tu veux être prévenu'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/notifications'),
             ),

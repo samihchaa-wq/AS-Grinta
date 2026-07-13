@@ -37,8 +37,9 @@ class AuthState {
 
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
-    _authSubscription =
-        _repository.authStateChanges.listen((_) => _refreshProfile());
+    _authSubscription = _repository.authStateChanges.listen(
+      (_) => _refreshProfile(),
+    );
     _initialize();
   }
 
@@ -65,7 +66,8 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           isAuthenticated: false,
           clearProfile: true,
-          error: 'Ton compte doit être validé par l’admin avant de pouvoir '
+          error:
+              'Ton compte doit être validé par l’admin avant de pouvoir '
               'te connecter.',
         );
       }
@@ -176,8 +178,9 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, AuthState>((ref) {
-  final repository = ref.watch(authRepositoryProvider);
-  return AuthController(repository);
-});
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) {
+    final repository = ref.watch(authRepositoryProvider);
+    return AuthController(repository);
+  },
+);

@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// joueur sur cette ligne (case vide = 1).
 class _GoalRow {
   _GoalRow({this.playerId, String count = ''})
-      : countController = TextEditingController(text: count);
+    : countController = TextEditingController(text: count);
 
   String? playerId;
   final TextEditingController countController;
@@ -54,7 +54,8 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
     if (!sheet.isValidated) return;
     _opponentScore = sheet.opponentScore;
     _grintaScore = sheet.grintaScore;
-    _cleanSheet = sheet.cleanSheetProfileId != null &&
+    _cleanSheet =
+        sheet.cleanSheetProfileId != null &&
         sheet.cleanSheetProfileId == sheet.goalkeeperId;
 
     // Reconstitue les lignes à partir des buts déjà enregistrés (un buteur
@@ -108,23 +109,25 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
       scorerGoals.update(id, (v) => v + goals, ifAbsent: () => goals);
     }
 
-    final cleanSheetId =
-        _cleanSheet && _opponentScore == 0 ? sheet.goalkeeperId : null;
-    final success =
-        await ref.read(matchFinalizationControllerProvider.notifier).finalizeMatch(
-              matchId: widget.matchId,
-              grintaScore: _grintaScore,
-              opponentScore: _opponentScore,
-              scorerGoals: scorerGoals,
-              cleanSheetProfileId: cleanSheetId,
-            );
+    final cleanSheetId = _cleanSheet && _opponentScore == 0
+        ? sheet.goalkeeperId
+        : null;
+    final success = await ref
+        .read(matchFinalizationControllerProvider.notifier)
+        .finalizeMatch(
+          matchId: widget.matchId,
+          grintaScore: _grintaScore,
+          opponentScore: _opponentScore,
+          scorerGoals: scorerGoals,
+          cleanSheetProfileId: cleanSheetId,
+        );
     if (success) {
       ref.invalidate(matchDetailsProvider(widget.matchId));
       ref.invalidate(homeDashboardProvider);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Match enregistré.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Match enregistré.')));
         Navigator.pop(context);
       }
     }
@@ -133,8 +136,9 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchFinalizationControllerProvider);
-    final contextAsync =
-        ref.watch(matchFinalizationContextProvider(widget.matchId));
+    final contextAsync = ref.watch(
+      matchFinalizationContextProvider(widget.matchId),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Saisie du match')),
@@ -165,8 +169,10 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               const SizedBox(height: 22),
               Row(
                 children: [
-                  Text('Buteurs',
-                      style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    'Buteurs',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     _grintaScore == 0
@@ -180,10 +186,10 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               Text(
                 _grintaScore == 0
                     ? 'Choisis le score d’AS Grinta pour ouvrir les lignes de '
-                        'buteurs.'
+                          'buteurs.'
                     : 'Un buteur par but (facultatif). La petite case = son '
-                        'nombre de buts sur la ligne (vide = 1). Une ligne '
-                        'vide est acceptée.',
+                          'nombre de buts sur la ligne (vide = 1). Une ligne '
+                          'vide est acceptée.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -307,8 +313,10 @@ class _ScorerRowTile extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Text(hasPlayer ? '⚽' : '➕',
-                        style: const TextStyle(fontSize: 18)),
+                    Text(
+                      hasPlayer ? '⚽' : '➕',
+                      style: const TextStyle(fontSize: 18),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -326,8 +334,11 @@ class _ScorerRowTile extends StatelessWidget {
                     if (onClear != null)
                       GestureDetector(
                         onTap: onClear,
-                        child: Icon(Icons.close,
-                            size: 20, color: scheme.onSurfaceVariant),
+                        child: Icon(
+                          Icons.close,
+                          size: 20,
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                   ],
                 ),
@@ -346,8 +357,10 @@ class _ScorerRowTile extends StatelessWidget {
               decoration: const InputDecoration(
                 isDense: true,
                 hintText: '1',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 6, vertical: 14),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 14,
+                ),
               ),
             ),
           ),
@@ -376,8 +389,8 @@ class _PlayerPickerSheetState extends State<_PlayerPickerSheet> {
     final results = query.isEmpty
         ? widget.squad
         : widget.squad
-            .where((m) => m.name.toLowerCase().contains(query))
-            .toList();
+              .where((m) => m.name.toLowerCase().contains(query))
+              .toList();
 
     return Padding(
       padding: EdgeInsets.only(
@@ -456,8 +469,10 @@ class _ScoreCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child:
-                  Text('—', style: Theme.of(context).textTheme.headlineMedium),
+              child: Text(
+                '—',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
             ),
             Expanded(
               child: _Stepper(

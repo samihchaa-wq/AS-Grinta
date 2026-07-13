@@ -149,8 +149,8 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
 
     return [
       MatchPredictionItem(
@@ -160,7 +160,7 @@ class PredictionsRepository {
         status: matchMap['status']?.toString() ?? 'a_venir',
         scoreGrinta:
             int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ??
-                0,
+            0,
         scoreOpponent:
             int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
         isFilled: prediction?['is_filled'] == true,
@@ -208,22 +208,20 @@ class PredictionsRepository {
     if (kickoffAt == null || match['status'] != 'a_venir') {
       throw StateError('Ce pronostic est fermé.');
     }
-    if (!DateTime.now()
-        .isBefore(kickoffAt.subtract(const Duration(minutes: 5)))) {
+    if (!DateTime.now().isBefore(
+      kickoffAt.subtract(const Duration(minutes: 5)),
+    )) {
       throw StateError('Ce pronostic est fermé.');
     }
 
-    await _client.from('match_predictions').upsert(
-      {
-        'match_id': matchId,
-        'profile_id': userId,
-        'predicted_score_as_grinta': scoreGrinta,
-        'predicted_score_adverse': scoreOpponent,
-        'is_filled': true,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      },
-      onConflict: 'match_id,profile_id',
-    );
+    await _client.from('match_predictions').upsert({
+      'match_id': matchId,
+      'profile_id': userId,
+      'predicted_score_as_grinta': scoreGrinta,
+      'predicted_score_adverse': scoreOpponent,
+      'is_filled': true,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'match_id,profile_id');
   }
 }
 

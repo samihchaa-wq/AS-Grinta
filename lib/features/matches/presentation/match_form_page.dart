@@ -59,7 +59,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _kickoffAt = match?.kickoffAt ??
+    _kickoffAt =
+        match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
@@ -81,8 +82,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final canManage = role == AuthRole.admin;
     final seasons = widget.match == null
         ? state.seasons
-            .where((season) => season['status']?.toString() == 'open')
-            .toList()
+              .where((season) => season['status']?.toString() == 'open')
+              .toList()
         : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -93,7 +94,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
+        title: Text(
+          widget.match == null ? 'Créer un match' : 'Modifier le match',
+        ),
         actions: [
           if (widget.match != null && canManage)
             IconButton(
@@ -209,11 +212,17 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
+                Expanded(
+                  child: _OddsDisplay(label: 'Victoire (1)', value: _oddsWin),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
+                Expanded(
+                  child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
+                Expanded(
+                  child: _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss),
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -245,7 +254,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       ),
     );
   }
-
 
   Future<void> _createOpponent() async {
     final controller = TextEditingController();
@@ -282,7 +290,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Future<void> _confirmDelete() async {
     final match = widget.match;
     if (match == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),

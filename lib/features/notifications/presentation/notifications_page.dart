@@ -32,10 +32,7 @@ class NotificationsPage extends ConsumerWidget {
           children: [
             const _PushActivationCard(),
             const SizedBox(height: 16),
-            Text(
-              'Me prévenir…',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Me prévenir…', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             preferencesAsync.when(
               loading: () => const Card(
@@ -64,10 +61,10 @@ class NotificationsPage extends ConsumerWidget {
                       value: pushSubscribed && preferences.predictionOpen,
                       onChanged: pushSubscribed
                           ? (value) => _save(
-                                context,
-                                ref,
-                                preferences.copyWith(predictionOpen: value),
-                              )
+                              context,
+                              ref,
+                              preferences.copyWith(predictionOpen: value),
+                            )
                           : null,
                     ),
                     const Divider(height: 1),
@@ -79,10 +76,10 @@ class NotificationsPage extends ConsumerWidget {
                       value: pushSubscribed && preferences.predictionReminders,
                       onChanged: pushSubscribed
                           ? (value) => _save(
-                                context,
-                                ref,
-                                preferences.copyWith(predictionReminders: value),
-                              )
+                              context,
+                              ref,
+                              preferences.copyWith(predictionReminders: value),
+                            )
                           : null,
                     ),
                     const Divider(height: 1),
@@ -94,10 +91,10 @@ class NotificationsPage extends ConsumerWidget {
                       value: pushSubscribed && preferences.matchReminders,
                       onChanged: pushSubscribed
                           ? (value) => _save(
-                                context,
-                                ref,
-                                preferences.copyWith(matchReminders: value),
-                              )
+                              context,
+                              ref,
+                              preferences.copyWith(matchReminders: value),
+                            )
                           : null,
                     ),
                   ],
@@ -105,10 +102,7 @@ class NotificationsPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Text(
-              'À venir',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('À venir', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             notificationsAsync.when(
               loading: () => const Padding(
@@ -137,8 +131,9 @@ class NotificationsPage extends ConsumerWidget {
                     for (final item in items) ...[
                       Card(
                         child: ListTile(
-                          leading:
-                              CircleAvatar(child: Icon(_iconFor(item.kind))),
+                          leading: CircleAvatar(
+                            child: Icon(_iconFor(item.kind)),
+                          ),
                           title: Text(item.title),
                           subtitle: Text(
                             '${item.message}\n${_formatDate(item.date)}',
@@ -243,11 +238,7 @@ class _PushActivationCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggle(
-    BuildContext context,
-    WidgetRef ref,
-    bool enable,
-  ) async {
+  Future<void> _toggle(BuildContext context, WidgetRef ref, bool enable) async {
     final repository = ref.read(pushSubscriptionsRepositoryProvider);
     var message = '';
     try {
@@ -265,8 +256,9 @@ class _PushActivationCard extends ConsumerWidget {
     }
     ref.invalidate(pushStatusProvider);
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 }

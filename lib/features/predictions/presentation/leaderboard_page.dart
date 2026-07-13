@@ -101,8 +101,9 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                         Card(
                           child: Padding(
                             padding: EdgeInsets.all(20),
-                            child:
-                                Text('Aucun point calculable pour le moment.'),
+                            child: Text(
+                              'Aucun point calculable pour le moment.',
+                            ),
                           ),
                         ),
                       ],
@@ -121,8 +122,9 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                     itemBuilder: (context, index) {
                       final item = sorted[index];
                       final points = _points(item);
-                      final fraction =
-                          maxPoints <= 0 ? 0.0 : points / maxPoints;
+                      final fraction = maxPoints <= 0
+                          ? 0.0
+                          : points / maxPoints;
 
                       return Card(
                         margin: const EdgeInsets.only(bottom: 10),
@@ -138,15 +140,16 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                                   Expanded(
                                     child: Text(
                                       item.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
                                     ),
                                   ),
                                   Text(
                                     _formatNumber(points),
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
                                   ),
                                 ],
                               ),

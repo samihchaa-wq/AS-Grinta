@@ -58,10 +58,7 @@ class AuthRepository {
   }) async {
     final response = await _client.functions.invoke(
       'claim-account',
-      body: {
-        'username': username.trim().toLowerCase(),
-        'password': password,
-      },
+      body: {'username': username.trim().toLowerCase(), 'password': password},
     );
     final data = response.data;
     if (data is Map && data['activated'] == true) return;
@@ -113,18 +110,18 @@ class AuthRepository {
       throw ArgumentError('Le prénom et le nom sont obligatoires.');
     }
 
-    await _client.from('profiles').update({
-      'first_name': cleanFirstName,
-      'last_name': cleanLastName,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', user.id);
+    await _client
+        .from('profiles')
+        .update({
+          'first_name': cleanFirstName,
+          'last_name': cleanLastName,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', user.id);
 
     await _client.auth.updateUser(
       UserAttributes(
-        data: {
-          'first_name': cleanFirstName,
-          'last_name': cleanLastName,
-        },
+        data: {'first_name': cleanFirstName, 'last_name': cleanLastName},
       ),
     );
 

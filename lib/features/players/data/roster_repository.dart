@@ -100,16 +100,17 @@ class RosterRepository {
     if (f.isEmpty) {
       throw ArgumentError('Le prénom est obligatoire.');
     }
-    await _client.from('season_players').update({
-      'first_name': f,
-      'is_goalkeeper': isGoalkeeper,
-    }).eq('id', id);
+    await _client
+        .from('season_players')
+        .update({'first_name': f, 'is_goalkeeper': isGoalkeeper})
+        .eq('id', id);
   }
 
   Future<void> setActive({required String id, required bool active}) async {
     await _client
         .from('season_players')
-        .update({'is_active': active}).eq('id', id);
+        .update({'is_active': active})
+        .eq('id', id);
   }
 
   /// Supprime définitivement un joueur de l'effectif. Ses buts, clean sheets et
@@ -127,7 +128,9 @@ final openSeasonIdProvider = FutureProvider<String?>((ref) {
   return ref.watch(rosterRepositoryProvider).openSeasonId();
 });
 
-final rosterProvider =
-    FutureProvider.family<List<RosterPlayer>, String>((ref, seasonId) {
+final rosterProvider = FutureProvider.family<List<RosterPlayer>, String>((
+  ref,
+  seasonId,
+) {
   return ref.watch(rosterRepositoryProvider).fetchRoster(seasonId);
 });

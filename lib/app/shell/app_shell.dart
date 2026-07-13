@@ -3,11 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends ConsumerWidget {
-  const AppShell({
-    required this.child,
-    required this.location,
-    super.key,
-  });
+  const AppShell({required this.child, required this.location, super.key});
 
   final Widget child;
   final String location;
@@ -49,14 +45,16 @@ class AppShell extends ConsumerWidget {
       '/admin',
       '/players',
     };
-    final normalizedLocation = moreRoutes.any(
-      (route) => location == route || location.startsWith('$route/'),
-    )
+    final normalizedLocation =
+        moreRoutes.any(
+          (route) => location == route || location.startsWith('$route/'),
+        )
         ? '/more'
         : location;
 
     final index = _destinations.indexWhere(
-      (destination) => normalizedLocation == destination.route ||
+      (destination) =>
+          normalizedLocation == destination.route ||
           normalizedLocation.startsWith('${destination.route}/'),
     );
     return index < 0 ? 0 : index;

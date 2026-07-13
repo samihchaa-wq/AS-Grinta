@@ -186,7 +186,8 @@ class _CloseProsButton extends ConsumerWidget {
       child: OutlinedButton.icon(
         style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accent),
         onPressed: () async {
-          final confirmed = await showDialog<bool>(
+          final confirmed =
+              await showDialog<bool>(
                 context: context,
                 builder: (dialogContext) => AlertDialog(
                   title: const Text('Fermer le prono ?'),
@@ -216,9 +217,9 @@ class _CloseProsButton extends ConsumerWidget {
             await ref.read(predictionsControllerProvider.notifier).load();
           } catch (error) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(humanizeError(error))),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
             }
           }
         },
@@ -238,8 +239,9 @@ class _NextMatchHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final badge =
-        match.isAwaitingResult ? 'EN ATTENTE DU RÉSULTAT' : 'PROCHAIN MATCH';
+    final badge = match.isAwaitingResult
+        ? 'EN ATTENTE DU RÉSULTAT'
+        : 'PROCHAIN MATCH';
     // L'ordre indique le lieu : AS Grinta en premier = domicile.
     final title = match.isHome
         ? 'AS GRINTA  vs  ${match.opponent}'
@@ -280,9 +282,9 @@ class _NextMatchHero extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -290,15 +292,17 @@ class _NextMatchHero extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.schedule_rounded,
-                    size: 16, color: Colors.white70),
+                const Icon(
+                  Icons.schedule_rounded,
+                  size: 16,
+                  color: Colors.white70,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   AppFormats.dateTime(match.kickoffAt!),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: Colors.white70),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
                 ),
               ],
             ),
@@ -309,21 +313,26 @@ class _NextMatchHero extends StatelessWidget {
               child: Text(
                 'Le résultat sera publié dès que la feuille de match sera '
                 'validée.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.white70),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.white70),
               ),
             )
           else if (match.hasOdds) ...[
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _OddsPill(label: '1', value: match.oddsWin!)),
+                Expanded(
+                  child: _OddsPill(label: '1', value: match.oddsWin!),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsPill(label: 'N', value: match.oddsDraw!)),
+                Expanded(
+                  child: _OddsPill(label: 'N', value: match.oddsDraw!),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsPill(label: '2', value: match.oddsLoss!)),
+                Expanded(
+                  child: _OddsPill(label: '2', value: match.oddsLoss!),
+                ),
               ],
             ),
           ],
@@ -395,8 +404,11 @@ class _LastMatchCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.sports_soccer_rounded,
-                  color: AppTheme.primaryBright, size: 20),
+              const Icon(
+                Icons.sports_soccer_rounded,
+                color: AppTheme.primaryBright,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'DERNIER MATCH JOUÉ',
@@ -511,13 +523,13 @@ class _RecentMeetingsCard extends StatelessWidget {
               final result = meeting.isWin
                   ? 'V'
                   : meeting.isDraw
-                      ? 'N'
-                      : 'D';
+                  ? 'N'
+                  : 'D';
               final resultColor = meeting.isWin
                   ? Colors.greenAccent
                   : meeting.isDraw
-                      ? Colors.amberAccent
-                      : Colors.redAccent;
+                  ? Colors.amberAccent
+                  : Colors.redAccent;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
@@ -608,8 +620,8 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                           ? 'Pronostics fermés'
                           : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -619,8 +631,8 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                   item.isClosed
                       ? 'Fermés'
                       : item.isFilled
-                          ? 'Enregistré'
-                          : 'À saisir',
+                      ? 'Enregistré'
+                      : 'À saisir',
                 ),
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
@@ -720,24 +732,29 @@ class _OddsRow extends StatelessWidget {
 
   final dynamic item;
 
-  String _format(double? value) =>
-      value == null
+  String _format(double? value) => value == null
       ? '—'
       : value
-          .toStringAsFixed(2)
-          .replaceFirst(RegExp(r'0+\$'), '')
-          .replaceFirst(RegExp(r'\.\$'), '')
-          .replaceAll('.', ',');
+            .toStringAsFixed(2)
+            .replaceFirst(RegExp(r'0+\$'), '')
+            .replaceFirst(RegExp(r'\.\$'), '')
+            .replaceAll('.', ',');
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _OddTile(label: '1', value: _format(item.oddsWin))),
+        Expanded(
+          child: _OddTile(label: '1', value: _format(item.oddsWin)),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _OddTile(label: 'N', value: _format(item.oddsDraw))),
+        Expanded(
+          child: _OddTile(label: 'N', value: _format(item.oddsDraw)),
+        ),
         const SizedBox(width: 8),
-        Expanded(child: _OddTile(label: '2', value: _format(item.oddsLoss))),
+        Expanded(
+          child: _OddTile(label: '2', value: _format(item.oddsLoss)),
+        ),
       ],
     );
   }
@@ -840,8 +857,10 @@ class _SeasonPredictionsCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.calendar_month_rounded,
-                    color: AppTheme.accent),
+                const Icon(
+                  Icons.calendar_month_rounded,
+                  color: AppTheme.accent,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -860,19 +879,23 @@ class _SeasonPredictionsCard extends ConsumerWidget {
             Text(
               allFilled
                   ? 'Tes pronostics sont enregistrés. Tu peux encore les '
-                      'modifier tant que je ne les ai pas clôturés.'
+                        'modifier tant que je ne les ai pas clôturés.'
                   : '$filledCount / ${items.length} joueur${items.length > 1 ? 's' : ''} '
-                      'renseigné${filledCount > 1 ? 's' : ''}.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                        'renseigné${filledCount > 1 ? 's' : ''}.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             ...items.map((item) {
               final isKeeper = item.category == 'clean_sheets';
               final unit = isKeeper ? 'clean sheets' : 'buts';
               final filledLabel = isKeeper
-                  ? AppFormats.counted(item.value, 'clean sheet', 'clean sheets')
+                  ? AppFormats.counted(
+                      item.value,
+                      'clean sheet',
+                      'clean sheets',
+                    )
                   : AppFormats.counted(item.value, 'but');
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -889,11 +912,11 @@ class _SeasonPredictionsCard extends ConsumerWidget {
                     Text(
                       item.isFilled ? filledLabel : '— $unit',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: item.isFilled
-                                ? AppTheme.primary
-                                : AppTheme.textSecondary,
-                          ),
+                        fontWeight: FontWeight.w700,
+                        color: item.isFilled
+                            ? AppTheme.primary
+                            : AppTheme.textSecondary,
+                      ),
                     ),
                   ],
                 ),
