@@ -1,8 +1,8 @@
 name: Migration inventory
 
 on:
-  push:
-    branches: [ci/supabase-migration-drift-guard]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
