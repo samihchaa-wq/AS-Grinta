@@ -35,21 +35,21 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
   final Map<String, int> _draftValues = {};
   String? _error;
   bool _isSavingAll = false;
-  bool _locked = false;
   _GaugeView _gaugeView = _GaugeView.players;
   String? _selectedPredictorId;
 
   @override
   Widget build(BuildContext context) {
-    final mineAsync = ref.watch(seasonPredictionsProvider);
-    final gaugesAsync = ref.watch(seasonGaugesProvider);
-    _locked = ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
+    final locked =
+        ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_locked ? 'Pronos de saison' : 'Mes pronos de saison'),
+        title: Text(locked ? 'Pronos de saison' : 'Mes pronos de saison'),
       ),
-      body: _locked ? _buildGauges(gaugesAsync) : _buildMine(mineAsync),
+      body: locked
+          ? _buildGauges(ref.watch(seasonGaugesProvider))
+          : _buildMine(ref.watch(seasonPredictionsProvider)),
     );
   }
 
@@ -207,10 +207,12 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           final currentUserId =
               ref.read(seasonPredictionsRepositoryProvider).currentUserId;
           final predictors = _predictorsFrom(gauges);
-          _selectedPredictorId ??= currentUserId != null &&
-                  predictors.any((entry) => entry.id == currentUserId)
-              ? currentUserId
-              : predictors.firstOrNull?.id;
+          if (_selectedPredictorId == null && predictors.isNotEmpty) {
+            final hasCurrentUser = currentUserId != null &&
+                predictors.any((entry) => entry.id == currentUserId);
+            _selectedPredictorId =
+                hasCurrentUser ? currentUserId : predictors.first.id;
+          }
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
@@ -245,8 +247,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
                 child: _gaugeView == _GaugeView.players
-                    ? _buildPlayersView(gauges, currentUserId)
-                    : _buildPredictorView(
+                    ? _playersView(gauges, currentUserId)
+                    : _predictorView(
                         gauges,
                         predictors,
                         currentUserId,
@@ -259,9 +261,11 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     );
   }
 
-  Widget _buildPlayersView(List<PlayerGauge> gauges, String? currentUserId) {
+  Widget _playersView(List<PlayerGauge> gauges, String? currentUserId) {
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
+    final scorerScale = _sectionScale(scorers, defaultMax: 20);
+    final keeperScale = _sectionScale(keepers, defaultMax: 15);
 
     return Column(
       key: const ValueKey('players'),
@@ -271,13 +275,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           _sectionHeader(
             'assets/images/scorer_logo.png',
             'Buteurs',
-            'Échelle commune · 0 à ${_sectionScale(scorers)} buts',
+            'Échelle commune · 0 à $scorerScale buts',
           ),
           ...scorers.map(
             (gauge) => _PlayerSummaryCard(
               gauge: gauge,
               currentUserId: currentUserId,
-              scaleMax: _sectionScale(scorers),
+              scaleMax: scorerScale,
               onTap: () => _showPlayerDetails(gauge, currentUserId),
             ),
           ),
@@ -287,13 +291,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           _sectionHeader(
             'assets/images/keeper_logo.png',
             'Gardiens',
-            'Clean sheets · 0 à ${_sectionScale(keepers)}',
+            'Clean sheets · 0 à $keeperScale',
           ),
           ...keepers.map(
             (gauge) => _PlayerSummaryCard(
               gauge: gauge,
               currentUserId: currentUserId,
-              scaleMax: _sectionScale(keepers),
+              scaleMax: keeperScale,
               onTap: () => _showPlayerDetails(gauge, currentUserId),
             ),
           ),
@@ -302,14 +306,16 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     );
   }
 
-  Widget _buildPredictorView(
+  Widget _predictorView(
     List<PlayerGauge> gauges,
     List<({String id, String name})> predictors,
     String? currentUserId,
   ) {
     final selectedId = _selectedPredictorId;
-    final selected = predictors.where((entry) => entry.id == selectedId);
-    final selectedName = selected.isEmpty ? 'Pronostiqueur' : selected.first.name;
+    final selectedEntries =
+        predictors.where((entry) => entry.id == selectedId).toList();
+    final selectedName =
+        selectedEntries.isEmpty ? 'Pronostiqueur' : selectedEntries.first.name;
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
 
@@ -336,7 +342,9 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               ),
           ],
           onChanged: (value) {
-            if (value != null) setState(() => _selectedPredictorId = value);
+            if (value != null) {
+              setState(() => _selectedPredictorId = value);
+            }
           },
         ),
         const SizedBox(height: 18),
@@ -358,7 +366,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           _PredictorSheet(
             gauges: scorers,
             predictorId: selectedId,
-            scaleMax: _sectionScale(scorers),
+            scaleMax: _sectionScale(scorers, defaultMax: 20),
           ),
           const SizedBox(height: 18),
         ],
@@ -367,7 +375,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
           _PredictorSheet(
             gauges: keepers,
             predictorId: selectedId,
-            scaleMax: _sectionScale(keepers),
+            scaleMax: _sectionScale(keepers, defaultMax: 15),
           ),
         ],
       ],
@@ -427,17 +435,20 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     final result = byId.entries
         .map((entry) => (id: entry.key, name: entry.value))
         .toList()
-      ..sort((a, b) =>
-          a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      ..sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
     return result;
   }
 
-  int _sectionScale(List<PlayerGauge> gauges) {
-    final defaultMax = gauges.any((gauge) => gauge.isGoalkeeper) ? 15 : 20;
-    final observedMax = gauges.fold<int>(
-      defaultMax,
-      (maxValue, gauge) => math.max(maxValue, gauge.maxValue),
-    );
+  int _sectionScale(
+    List<PlayerGauge> gauges, {
+    required int defaultMax,
+  }) {
+    var observedMax = defaultMax;
+    for (final gauge in gauges) {
+      observedMax = math.max(observedMax, gauge.maxValue);
+    }
     return ((observedMax + 4) ~/ 5) * 5;
   }
 
@@ -490,9 +501,13 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         );
       }
     } catch (error) {
-      if (mounted) setState(() => _error = humanizeError(error));
+      if (mounted) {
+        setState(() => _error = humanizeError(error));
+      }
     } finally {
-      if (mounted) setState(() => _isSavingAll = false);
+      if (mounted) {
+        setState(() => _isSavingAll = false);
+      }
     }
   }
 }
@@ -585,18 +600,20 @@ class _PlayerSummaryCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               _ComparisonGauge(
                 actual: gauge.actual,
                 median: gauge.median,
                 mine: mine?.value,
                 maxValue: scaleMax,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 5),
               Row(
                 children: [
                   Text(
-                    gauge.predictions.isEmpty ? 'Aucun prono' : 'Min ${gauge.minimum}',
+                    gauge.predictions.isEmpty
+                        ? 'Aucun prono'
+                        : 'Min ${gauge.minimum}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const Spacer(),
@@ -673,6 +690,10 @@ class _OptimistChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final initial = prediction.predictorName.isEmpty
+        ? '?'
+        : prediction.predictorName.substring(0, 1).toUpperCase();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
@@ -686,7 +707,7 @@ class _OptimistChip extends StatelessWidget {
             radius: 10,
             backgroundColor: scheme.primaryContainer,
             child: Text(
-              prediction.predictorName.characters.first.toUpperCase(),
+              initial,
               style: TextStyle(
                 color: scheme.onPrimaryContainer,
                 fontSize: 10,
@@ -726,181 +747,142 @@ class _ComparisonGauge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const markerSize = 18.0;
-        final usableWidth = math.max(0.0, constraints.maxWidth - markerSize);
-        double leftFor(num value) {
-          final ratio = (value / math.max(1, maxValue)).clamp(0.0, 1.0);
-          return usableWidth * ratio;
-        }
 
-        return SizedBox(
-          height: 58,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: markerSize / 2,
-                right: markerSize / 2,
-                top: 28,
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: scheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 0,
-                top: 23,
-                child: _ActualMarker(
-                  value: actual,
-                  color: scheme.primary,
-                ),
-              ),
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 550),
-                curve: Curves.easeOutCubic,
-                left: leftFor(actual),
-                top: 19,
-                child: _ActualMarker(
-                  value: actual,
-                  color: scheme.primary,
-                ),
-              ),
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 700),
-                curve: Curves.easeOutCubic,
-                left: leftFor(median),
-                top: 14,
-                child: _TriangleMarker(
-                  value: _formatNumber(median),
-                  color: scheme.tertiary,
-                ),
-              ),
-              if (mine != null)
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 850),
-                  curve: Curves.easeOutCubic,
-                  left: leftFor(mine!),
-                  top: 18,
-                  child: _DiamondMarker(
-                    value: mine.toString(),
-                    color: Colors.greenAccent.shade400,
-                  ),
-                ),
-              Positioned(
-                left: 0,
-                bottom: 0,
-                child: Text('0', style: Theme.of(context).textTheme.labelSmall),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Text(
-                  '$maxValue',
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ActualMarker extends StatelessWidget {
-  const _ActualMarker({required this.value, required this.color});
-
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 18,
-          height: 18,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(.25), width: 2),
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '$value',
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TriangleMarker extends StatelessWidget {
-  const _TriangleMarker({required this.value, required this.color});
-
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(Icons.change_history, size: 20, color: color),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DiamondMarker extends StatelessWidget {
-  const _DiamondMarker({required this.value, required this.color});
-
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Transform.rotate(
-          angle: math.pi / 4,
-          child: Container(
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
+        SizedBox(
+          height: 62,
+          child: CustomPaint(
+            painter: _GaugePainter(
+              actual: actual.toDouble(),
+              median: median,
+              mine: mine?.toDouble(),
+              maxValue: maxValue.toDouble(),
+              lineColor: scheme.outlineVariant,
+              actualColor: scheme.primary,
+              medianColor: scheme.tertiary,
+              mineColor: Colors.greenAccent.shade400,
             ),
+            child: const SizedBox.expand(),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          children: [
+            Text('0', style: Theme.of(context).textTheme.labelSmall),
+            const Spacer(),
+            Text('$maxValue', style: Theme.of(context).textTheme.labelSmall),
+          ],
         ),
       ],
     );
+  }
+}
+
+class _GaugePainter extends CustomPainter {
+  _GaugePainter({
+    required this.actual,
+    required this.median,
+    required this.mine,
+    required this.maxValue,
+    required this.lineColor,
+    required this.actualColor,
+    required this.medianColor,
+    required this.mineColor,
+  });
+
+  final double actual;
+  final double median;
+  final double? mine;
+  final double maxValue;
+  final Color lineColor;
+  final Color actualColor;
+  final Color medianColor;
+  final Color mineColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const left = 9.0;
+    final right = size.width - 9;
+    const y = 28.0;
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(const Offset(left, y), Offset(right, y), linePaint);
+
+    double xFor(double value) {
+      final safeMax = math.max(1.0, maxValue);
+      final ratio = (value / safeMax).clamp(0.0, 1.0).toDouble();
+      return left + ((right - left) * ratio);
+    }
+
+    final actualX = xFor(actual);
+    canvas.drawCircle(
+      Offset(actualX, y),
+      8,
+      Paint()..color = actualColor,
+    );
+    _drawLabel(canvas, '$actual'.replaceAll('.0', ''), actualX, 45, actualColor);
+
+    final medianX = xFor(median);
+    final triangle = Path()
+      ..moveTo(medianX, y - 11)
+      ..lineTo(medianX - 8, y + 4)
+      ..lineTo(medianX + 8, y + 4)
+      ..close();
+    canvas.drawPath(triangle, Paint()..color = medianColor);
+    _drawLabel(canvas, _formatNumber(median), medianX, 4, medianColor);
+
+    if (mine != null) {
+      final mineX = xFor(mine!);
+      final diamond = Path()
+        ..moveTo(mineX, y - 9)
+        ..lineTo(mineX + 8, y)
+        ..lineTo(mineX, y + 9)
+        ..lineTo(mineX - 8, y)
+        ..close();
+      canvas.drawPath(diamond, Paint()..color = mineColor);
+      _drawLabel(
+        canvas,
+        '${mine!}'.replaceAll('.0', ''),
+        mineX,
+        45,
+        mineColor,
+      );
+    }
+  }
+
+  void _drawLabel(
+    Canvas canvas,
+    String text,
+    double x,
+    double y,
+    Color color,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(canvas, Offset(x - (painter.width / 2), y));
+  }
+
+  @override
+  bool shouldRepaint(covariant _GaugePainter oldDelegate) {
+    return oldDelegate.actual != actual ||
+        oldDelegate.median != median ||
+        oldDelegate.mine != mine ||
+        oldDelegate.maxValue != maxValue ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.actualColor != actualColor ||
+        oldDelegate.medianColor != medianColor ||
+        oldDelegate.mineColor != mineColor;
   }
 }
 
@@ -954,7 +936,10 @@ class _PredictorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final ratio = (prediction?.value ?? 0) / math.max(1, scaleMax);
+    final progress = ((prediction?.value ?? 0) / math.max(1, scaleMax))
+        .clamp(0.0, 1.0)
+        .toDouble();
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       child: Row(
@@ -975,7 +960,7 @@ class _PredictorRow extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
                   child: LinearProgressIndicator(
-                    value: ratio.clamp(0.0, 1.0),
+                    value: progress,
                     minHeight: 8,
                     backgroundColor: scheme.surfaceContainerHighest,
                   ),
@@ -1059,7 +1044,7 @@ class _PlayerDetailsSheet extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                   ),
-                  Text('Détail des pronostics'),
+                  const Text('Détail des pronostics'),
                 ],
               ),
             ),
@@ -1177,9 +1162,10 @@ class _PlayerDetailsSheet extends StatelessWidget {
   static List<({String label, int count})> _distributionBuckets(
     PlayerGauge gauge,
   ) {
-    final max = math.max(20, gauge.maximum);
-    final step = max <= 20 ? 5 : math.max(5, (max / 4).ceil());
+    final maxValue = math.max(20, gauge.maximum);
+    final step = maxValue <= 20 ? 5 : math.max(5, (maxValue / 4).ceil());
     final result = <({String label, int count})>[];
+
     for (var start = 0; start < step * 4; start += step) {
       final end = start + step - 1;
       final count = gauge.values
@@ -1187,6 +1173,7 @@ class _PlayerDetailsSheet extends StatelessWidget {
           .length;
       result.add((label: '$start–$end', count: count));
     }
+
     final lastStart = step * 4;
     result.add(
       (
@@ -1244,7 +1231,10 @@ class _StatTile extends StatelessWidget {
 }
 
 class _DistributionChart extends StatelessWidget {
-  const _DistributionChart({required this.buckets, required this.total});
+  const _DistributionChart({
+    required this.buckets,
+    required this.total,
+  });
 
   final List<({String label, int count})> buckets;
   final int total;
@@ -1252,10 +1242,10 @@ class _DistributionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final maxCount = buckets.fold<int>(
-      1,
-      (value, bucket) => math.max(value, bucket.count),
-    );
+    var maxCount = 1;
+    for (final bucket in buckets) {
+      maxCount = math.max(maxCount, bucket.count);
+    }
 
     return SizedBox(
       height: 145,
@@ -1329,6 +1319,7 @@ class _RankingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final progress = (prediction.value / maxValue).clamp(0.0, 1.0).toDouble();
     final medalColor = switch (rank) {
       1 => Colors.amber,
       2 => Colors.blueGrey.shade200,
@@ -1365,7 +1356,9 @@ class _RankingRow extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              isMine ? '${prediction.predictorName} (moi)' : prediction.predictorName,
+              isMine
+                  ? '${prediction.predictorName} (moi)'
+                  : prediction.predictorName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -1379,7 +1372,7 @@ class _RankingRow extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
-                value: (prediction.value / maxValue).clamp(0.0, 1.0),
+                value: progress,
                 minHeight: 7,
                 backgroundColor: scheme.surfaceContainerHighest,
                 color: isMine ? Colors.greenAccent.shade400 : scheme.primary,
@@ -1404,8 +1397,4 @@ class _RankingRow extends StatelessWidget {
 String _formatNumber(double value) {
   if (value == value.roundToDouble()) return value.toInt().toString();
   return value.toStringAsFixed(1).replaceAll('.', ',');
-}
-
-extension<T> on List<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
