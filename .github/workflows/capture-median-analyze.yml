@@ -1,0 +1,31 @@
+name: Capture median analyze
+
+on:
+  push:
+    branches:
+      - agent/median-season-gauges
+
+permissions:
+  contents: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/median-season-gauges
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze > median-analyze.txt 2>&1 || true
+      - run: rm .github/workflows/capture-median-analyze.yml
+      - name: Commit diagnostic
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add median-analyze.txt .github/workflows/capture-median-analyze.yml
+          git diff --cached --quiet || git commit -m "Capturer le diagnostic des médianes"
+          git push origin HEAD:agent/median-season-gauges
