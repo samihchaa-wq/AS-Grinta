@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,11 +43,12 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error('predictions.load', error, stackTrace);
       state = state.copyWith(
         items: const [],
         isLoading: false,
-        error: error.toString(),
+        error: humanizeError(error),
       );
     }
   }
@@ -102,8 +105,12 @@ class PredictionsController extends StateNotifier<PredictionsState> {
           )
           .toList();
       state = state.copyWith(items: items, clearSaving: true, clearError: true);
-    } catch (error) {
-      state = state.copyWith(clearSaving: true, error: error.toString());
+    } catch (error, stackTrace) {
+      AppLogger.error('predictions.save', error, stackTrace);
+      state = state.copyWith(
+        clearSaving: true,
+        error: humanizeError(error),
+      );
     }
   }
 }
