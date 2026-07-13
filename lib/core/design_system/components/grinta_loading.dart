@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 
 /// Compact loading indicator for controls and inline content.
 class GrintaLoadingIndicator extends StatelessWidget {
-  const GrintaLoadingIndicator({
-    super.key,
-    this.label,
-    this.centered = true,
-  });
+  const GrintaLoadingIndicator({super.key, this.label, this.centered = true});
 
   final String? label;
   final bool centered;
