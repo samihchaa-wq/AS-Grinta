@@ -2,7 +2,7 @@ import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum _RankingType { general, match, season }
+enum _RankingType { match, general }
 
 class PredictionsPage extends ConsumerStatefulWidget {
   const PredictionsPage({super.key});
@@ -12,7 +12,7 @@ class PredictionsPage extends ConsumerStatefulWidget {
 }
 
 class _PredictionsPageState extends ConsumerState<PredictionsPage> {
-  _RankingType _selected = _RankingType.general;
+  _RankingType _selected = _RankingType.match;
 
   @override
   Widget build(BuildContext context) {
@@ -32,19 +32,14 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
             SegmentedButton<_RankingType>(
               segments: const [
                 ButtonSegment(
-                  value: _RankingType.general,
-                  label: Text('Général'),
-                  icon: Icon(Icons.emoji_events_outlined),
-                ),
-                ButtonSegment(
                   value: _RankingType.match,
                   label: Text('Matchs'),
                   icon: Icon(Icons.sports_soccer_outlined),
                 ),
                 ButtonSegment(
-                  value: _RankingType.season,
-                  label: Text('Saison'),
-                  icon: Icon(Icons.calendar_month_outlined),
+                  value: _RankingType.general,
+                  label: Text('Général'),
+                  icon: Icon(Icons.emoji_events_outlined),
                 ),
               ],
               selected: {_selected},
@@ -55,12 +50,16 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
             ),
             const SizedBox(height: 22),
             Text(
-              _title(_selected),
+              _selected == _RankingType.match
+                  ? 'Classement matchs'
+                  : 'Classement général',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 4),
             Text(
-              _subtitle(_selected),
+              _selected == _RankingType.match
+                  ? 'Points gagnés sur les scores des matchs.'
+                  : 'Score pondéré : 70 % matchs, 30 % saison.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 14),
@@ -101,24 +100,6 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
       ),
     );
   }
-
-  String _title(_RankingType type) {
-    return switch (type) {
-      _RankingType.general => 'Classement général',
-      _RankingType.match => 'Classement matchs',
-      _RankingType.season => 'Classement saison',
-    };
-  }
-
-  String _subtitle(_RankingType type) {
-    return switch (type) {
-      _RankingType.general =>
-        'Score pondéré : 70 % matchs, 30 % saison.',
-      _RankingType.match => 'Points gagnés sur les scores des matchs.',
-      _RankingType.season =>
-        'État actuel selon les buts et clean sheets déjà enregistrés.',
-    };
-  }
 }
 
 class _RankingCard extends StatelessWidget {
@@ -127,22 +108,8 @@ class _RankingCard extends StatelessWidget {
   final List<LeaderboardEntry> entries;
   final _RankingType type;
 
-  double _points(LeaderboardEntry entry) {
-    return switch (type) {
-      _RankingType.general => entry.totalPoints,
-      _RankingType.match => entry.matchPoints,
-      _RankingType.season => entry.seasonPoints,
-    };
-  }
-
-  int _closestOrCorrect(LeaderboardEntry entry) =>
-      type == _RankingType.season ? entry.seasonBons : entry.matchBons;
-
-  int _exacts(LeaderboardEntry entry) =>
-      type == _RankingType.season ? entry.seasonExacts : entry.matchExacts;
-
-  String _primaryStatLabel() =>
-      type == _RankingType.season ? 'Le plus proche' : 'Bons paris';
+  double _points(LeaderboardEntry entry) =>
+      type == _RankingType.match ? entry.matchPoints : entry.totalPoints;
 
   String _format(double value) {
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
@@ -191,13 +158,10 @@ class _RankingCard extends StatelessWidget {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (type != _RankingType.general) ...[
-                      _StatBadge(
-                        label: _primaryStatLabel(),
-                        value: _closestOrCorrect(entry),
-                      ),
+                    if (type == _RankingType.match) ...[
+                      _StatBadge(label: 'Bons paris', value: entry.matchBons),
                       const SizedBox(width: 10),
-                      _StatBadge(label: 'Exacts', value: _exacts(entry)),
+                      _StatBadge(label: 'Exacts', value: entry.matchExacts),
                       const SizedBox(width: 14),
                     ],
                     Text(
@@ -238,10 +202,7 @@ class _StatBadge extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 10,
-            color: scheme.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
         ),
       ],
     );
