@@ -31,7 +31,8 @@ class SeasonRankingPanel extends ConsumerWidget {
             final points = b.seasonPoints.compareTo(a.seasonPoints);
             return points != 0 ? points : a.name.compareTo(b.name);
           });
-        if (sorted.isEmpty || sorted.every((entry) => entry.seasonPoints == 0)) {
+        if (sorted.isEmpty ||
+            sorted.every((entry) => entry.seasonPoints == 0)) {
           return const Card(
             child: Padding(
               padding: EdgeInsets.all(20),

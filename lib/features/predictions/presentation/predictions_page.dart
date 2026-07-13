@@ -90,10 +90,8 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                   ),
                 ),
               ),
-              data: (entries) => _RankingCard(
-                entries: entries,
-                type: _selected,
-              ),
+              data: (entries) =>
+                  _RankingCard(entries: entries, type: _selected),
             ),
           ],
         ),

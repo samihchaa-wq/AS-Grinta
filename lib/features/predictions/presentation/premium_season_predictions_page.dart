@@ -4,6 +4,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart'
     as legacy;
+import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,7 @@ final premiumSeasonGaugesProvider =
       return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
     });
 
-enum _PremiumView { players, predictors }
+enum _PremiumView { players, predictors, ranking }
 
 class PremiumSeasonPredictionsPage extends ConsumerStatefulWidget {
   const PremiumSeasonPredictionsPage({super.key});
