@@ -33,15 +33,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Format changed Dart file
-        run: dart format lib/features/predictions/presentation/widgets/premium_season_gauges.dart
-
-      - name: Upload formatted Dart file
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-prediction-distance-file
-          path: lib/features/predictions/presentation/widgets/premium_season_gauges.dart
-          if-no-files-found: error
+      - name: Check formatting of changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            range="$base...HEAD"
+          else
+            range="HEAD^...HEAD"
+          fi
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Dart files to format."
+            exit 0
+          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
