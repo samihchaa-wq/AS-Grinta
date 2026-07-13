@@ -48,9 +48,8 @@ class GrintaSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: _backgroundColor,
         borderRadius: borderRadius,
-        border: showBorder
-            ? Border.all(color: GrintaColors.borderSubtle)
-            : null,
+        border:
+            showBorder ? Border.all(color: GrintaColors.borderSubtle) : null,
         boxShadow: shadow,
       ),
       clipBehavior: clipBehavior,
