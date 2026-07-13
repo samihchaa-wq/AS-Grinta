@@ -64,7 +64,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
 
           if (snapshot.hasError) {
             return Scaffold(
-              backgroundColor: const Color(0xFF0B1F17),
+              backgroundColor: const Color(0xFF07142E),
               body: SafeArea(
                 child: Center(
                   child: Padding(
@@ -102,7 +102,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           }
 
           return Scaffold(
-            backgroundColor: const Color(0xFF0B1F17),
+            backgroundColor: const Color(0xFF07142E),
             body: SafeArea(
               child: Center(
                 child: SingleChildScrollView(

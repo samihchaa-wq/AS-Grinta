@@ -163,21 +163,31 @@ class _MatchHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // L'ordre d'écriture indique déjà le lieu : AS Grinta en premier = domicile,
+    // en second = extérieur. On n'affiche donc pas « Domicile / Extérieur ».
+    final home = details.location == 'domicile';
+    final grinta = details.scoreGrinta ?? 0;
+    final adverse = details.scoreOpponent ?? 0;
+    final String title;
+    if (details.isValidated) {
+      title = home
+          ? 'AS Grinta $grinta – $adverse ${details.opponentName}'
+          : '${details.opponentName} $adverse – $grinta AS Grinta';
+    } else {
+      title = home
+          ? 'AS Grinta – ${details.opponentName}'
+          : '${details.opponentName} – AS Grinta';
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              details.isValidated
-                  ? 'AS Grinta ${details.scoreGrinta ?? 0} – ${details.scoreOpponent ?? 0} ${details.opponentName}'
-                  : 'AS Grinta – ${details.opponentName}',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
-            Text(details.location == 'domicile' ? 'Domicile' : 'Extérieur'),
             Text(
               details.status == 'archive'
                   ? 'Archivé'

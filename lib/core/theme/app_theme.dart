@@ -1,24 +1,52 @@
 import 'package:flutter/material.dart';
 
+/// Identité visuelle unique : bleu nuit + rose flamant.
+///
+/// Règle de lisibilité : le bleu plein ([primary]) ne sert QUE de remplissage
+/// (boutons, indicateur de nav) avec du texte blanc dessus — jamais comme
+/// couleur de texte/icône sur fond sombre (c'était le fameux « bleu sur bleu »).
+/// Pour une icône ou un texte bleu sur fond sombre, utiliser [primaryBright] ;
+/// pour un point fort coloré, le rose [accent].
 abstract final class AppTheme {
-  static const Color primary = Color(0xFF1658D6);
+  // Fonds (du plus sombre au plus clair).
+  static const Color background = Color(0xFF07142E);
+  static const Color surface = Color(0xFF0F2148);
+  static const Color surfaceHigh = Color(0xFF172C58);
+  static const Color outline = Color(0xFF2A4574);
+
+  // Bleu de marque : remplissage de boutons (texte blanc dessus).
+  static const Color primary = Color(0xFF2E6BF2);
+  // Bleu clair lisible sur fond sombre (icônes, liens, texte bleu).
+  static const Color primaryBright = Color(0xFF6BA0FF);
+
+  // Rose flamant : accent, points forts, éléments actifs.
   static const Color accent = Color(0xFFFF3F8E);
-  static const Color background = Color(0xFF08152F);
-  static const Color surface = Color(0xFF10224A);
-  static const Color surfaceHigh = Color(0xFF173266);
-  static const Color outline = Color(0xFF29477E);
+
+  // Textes.
+  static const Color textPrimary = Color(0xFFEFF3FC);
+  static const Color textSecondary = Color(0xFF9FB1D6);
+  static const Color textFaint = Color(0xFF6E80A6);
 
   static ThemeData get dark {
     const scheme = ColorScheme.dark(
       primary: primary,
       onPrimary: Colors.white,
+      primaryContainer: surfaceHigh,
+      onPrimaryContainer: textPrimary,
       secondary: accent,
       onSecondary: Colors.white,
+      secondaryContainer: Color(0xFF3A1430),
+      onSecondaryContainer: Color(0xFFFFD9E8),
+      tertiary: primaryBright,
+      onTertiary: Color(0xFF07142E),
       surface: surface,
-      onSurface: Color(0xFFF8FAFF),
+      onSurface: textPrimary,
+      onSurfaceVariant: textSecondary,
+      surfaceContainerHighest: surfaceHigh,
       error: Color(0xFFFF6B7A),
       onError: Colors.white,
       outline: outline,
+      outlineVariant: Color(0xFF203760),
     );
 
     final base = ThemeData(
@@ -32,43 +60,56 @@ abstract final class AppTheme {
     return base.copyWith(
       textTheme: base.textTheme.copyWith(
         displaySmall: base.textTheme.displaySmall?.copyWith(
+          color: textPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.4,
         ),
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
+          color: textPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.8,
         ),
         headlineSmall: base.textTheme.headlineSmall?.copyWith(
+          color: textPrimary,
           fontWeight: FontWeight.w800,
         ),
         titleLarge: base.textTheme.titleLarge?.copyWith(
+          color: textPrimary,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
         ),
         titleMedium: base.textTheme.titleMedium?.copyWith(
+          color: textPrimary,
           fontWeight: FontWeight.w700,
         ),
         bodyLarge: base.textTheme.bodyLarge?.copyWith(
-          color: const Color(0xFFE7EDFA),
+          color: textPrimary,
           height: 1.4,
         ),
         bodyMedium: base.textTheme.bodyMedium?.copyWith(
-          color: const Color(0xFFB8C6E3),
+          color: textSecondary,
           height: 1.4,
+        ),
+        bodySmall: base.textTheme.bodySmall?.copyWith(
+          color: textSecondary,
+        ),
+        labelLarge: base.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w800,
         ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
+        foregroundColor: textPrimary,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: textPrimary,
           fontSize: 22,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
         ),
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -83,6 +124,8 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
+          disabledBackgroundColor: surfaceHigh,
+          disabledForegroundColor: textFaint,
           minimumSize: const Size(64, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -93,9 +136,29 @@ abstract final class AppTheme {
           ),
         ),
       ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: primaryBright,
+          minimumSize: const Size(64, 52),
+          side: const BorderSide(color: outline),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: primaryBright),
+      ),
+      iconTheme: const IconThemeData(color: textSecondary),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceHigh,
+        hintStyle: const TextStyle(color: textFaint),
+        labelStyle: const TextStyle(color: textSecondary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: outline),
@@ -106,14 +169,29 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: primary, width: 1.5),
+          borderSide: const BorderSide(color: accent, width: 1.6),
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            return states.contains(WidgetState.selected)
+                ? primary
+                : Colors.transparent;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            return states.contains(WidgetState.selected)
+                ? Colors.white
+                : textSecondary;
+          }),
+          side: WidgetStateProperty.all(const BorderSide(color: outline)),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: primary.withValues(alpha: 0.16),
-        side: BorderSide(color: primary.withValues(alpha: 0.40)),
+        backgroundColor: surfaceHigh,
+        side: const BorderSide(color: outline),
         labelStyle: const TextStyle(
-          color: Color(0xFFDCE7FF),
+          color: textPrimary,
           fontWeight: FontWeight.w800,
         ),
         shape: RoundedRectangleBorder(
@@ -122,22 +200,39 @@ abstract final class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
-        backgroundColor: const Color(0xFF0C1C3C),
+        backgroundColor: const Color(0xFF0B1B3C),
         indicatorColor: primary,
+        surfaceTintColor: Colors.transparent,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            color: selected ? Colors.white : textSecondary,
+          );
+        }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            color: selected ? Colors.white : const Color(0xFF91A2C5),
+            color: selected ? Colors.white : textSecondary,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           );
         }),
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        backgroundColor: surfaceHigh,
+        contentTextStyle: TextStyle(color: textPrimary),
+        behavior: SnackBarBehavior.floating,
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(color: accent),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: accent,
         foregroundColor: Colors.white,
       ),
-      dividerColor: outline,
+      dividerTheme: const DividerThemeData(color: Color(0xFF203760)),
+      dividerColor: const Color(0xFF203760),
     );
   }
 }

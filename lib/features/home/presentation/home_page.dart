@@ -26,7 +26,7 @@ class HomePage extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0B1A13), AppTheme.background],
+            colors: [Color(0xFF0C1D40), AppTheme.background],
           ),
         ),
         child: SafeArea(
@@ -233,9 +233,9 @@ class _NextMatchHero extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF17392A), Color(0xFF0D2018)],
+          colors: [Color(0xFF1B3B6B), Color(0xFF0B1D40)],
         ),
-        border: Border.all(color: const Color(0xFF2D5B45)),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.35)),
       ),
       padding: const EdgeInsets.all(22),
       child: Column(
@@ -250,7 +250,7 @@ class _NextMatchHero extends StatelessWidget {
             child: Text(
               badge,
               style: const TextStyle(
-                color: AppTheme.primary,
+                color: AppTheme.accent,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.7,
                 fontSize: 12,
@@ -336,7 +336,7 @@ class _RecentMeetingsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.history_rounded, color: AppTheme.primary),
+              const Icon(Icons.history_rounded, color: AppTheme.primaryBright),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -456,7 +456,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                           ? 'Pronostics fermés'
                           : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF91A69B),
+                            color: AppTheme.textSecondary,
                           ),
                     ),
                   ],
@@ -712,7 +712,7 @@ class _SeasonPredictionsCard extends ConsumerWidget {
                   : '$filledCount / ${items.length} joueur${items.length > 1 ? 's' : ''} '
                       'renseigné${filledCount > 1 ? 's' : ''}.',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF91A69B),
+                    color: AppTheme.textSecondary,
                   ),
             ),
             const SizedBox(height: 12),
@@ -740,7 +740,7 @@ class _SeasonPredictionsCard extends ConsumerWidget {
                             fontWeight: FontWeight.w700,
                             color: item.isFilled
                                 ? AppTheme.primary
-                                : const Color(0xFF91A69B),
+                                : AppTheme.textSecondary,
                           ),
                     ),
                   ],
