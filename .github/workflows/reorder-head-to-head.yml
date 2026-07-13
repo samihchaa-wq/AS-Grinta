@@ -1,16 +1,15 @@
 name: Reorder head to head
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/reorder-head-to-head-trigger'
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.event.issue.title == 'RUN-REORDER-HEAD-TO-HEAD'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,9 +81,7 @@ class _HeadToHeadPanel extends StatelessWidget {
           )
           pronos.write_text(text)
 
-          details_page = Path(
-              'lib/features/matches/presentation/upcoming_match_prediction_page.dart'
-          )
+          details_page = Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart')
           details_text = details_page.read_text()
           old_order = '''                const SizedBox(height: 16),
                 details.when(
@@ -117,26 +114,20 @@ class _HeadToHeadPanel extends StatelessWidget {
           if old_order not in details_text:
             raise SystemExit('Match details order block not found')
           details_text = details_text.replace(old_order, new_order, 1)
-          details_text = details_text.replace(
-              "'5 derniers face-à-face'",
-              "'Les derniers face-à-face'",
-              1,
-          )
+          details_text = details_text.replace("'5 derniers face-à-face'", "'Les derniers face-à-face'", 1)
           details_text = details_text.replace(
               '...details.headToHead.map(_historyRow),',
               '...details.headToHead.take(5).map(_historyRow),',
               1,
           )
           details_page.write_text(details_text)
-
-          Path('.github/reorder-head-to-head-trigger').unlink(missing_ok=True)
-          Path('.github/workflows/reorder-head-to-head.yml').unlink()
           PY
 
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add lib/features/predictions/presentation/pronos_hub_page.dart
+          git add lib/features/matches/presentation/upcoming_match_prediction_page.dart
           git commit -m "Placer les derniers face-à-face sous le pronostic"
           git push
