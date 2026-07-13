@@ -10,10 +10,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: GrintaButton(
-            label: 'Valider',
-            onPressed: () => tapCount += 1,
-          ),
+          body: GrintaButton(label: 'Valider', onPressed: () => tapCount += 1),
         ),
       ),
     );
