@@ -31,10 +31,10 @@ jobs:
           path = Path('lib/features/predictions/presentation/pronos_hub_page.dart')
           text = path.read_text()
 
-          marker_matches = 'class _MatchesSection'
-          marker_rankings = 'class _MatchRankingView'
-          marker_upcoming = 'class _UpcomingPredictionCard'
-          marker_components = 'class _LeaderboardCard'
+          marker_matches = 'class _MatchesSection extends ConsumerStatefulWidget'
+          marker_rankings = 'class _MatchRankingView extends ConsumerWidget'
+          marker_upcoming = 'class _UpcomingPredictionCard extends ConsumerWidget'
+          marker_components = 'class _LeaderboardCard extends StatelessWidget'
           marker_declarations = 'enum _PronosSection'
 
           for marker in (
