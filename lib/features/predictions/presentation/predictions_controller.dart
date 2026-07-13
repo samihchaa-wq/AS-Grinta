@@ -63,7 +63,7 @@ class PredictionsController extends StateNotifier<PredictionsState> {
       final nextOpponent = grinta
           ? item.scoreOpponent
           : (item.scoreOpponent + delta).clamp(0, 99);
-      return item.copyWith(
+      return item.updated(
         scoreGrinta: nextGrinta,
         scoreOpponent: nextOpponent,
       );
@@ -75,7 +75,7 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     final items = state.items.map((item) {
       if (item.matchId != matchId || !item.canEdit) return item;
       if (!item.useX2 && item.x2Available <= 0) return item;
-      return item.copyWith(useX2: !item.useX2);
+      return item.updated(useX2: !item.useX2);
     }).toList();
     state = state.copyWith(items: items, clearError: true);
   }
@@ -97,7 +97,7 @@ class PredictionsController extends StateNotifier<PredictionsState> {
       final items = state.items
           .map(
             (value) => value.matchId == matchId
-                ? value.copyWith(isFilled: true)
+                ? value.updated(isFilled: true)
                 : value,
           )
           .toList();
@@ -110,8 +110,36 @@ class PredictionsController extends StateNotifier<PredictionsState> {
 
 final predictionsControllerProvider =
     StateNotifierProvider<PredictionsController, PredictionsState>((ref) {
-      return PredictionsController(ref.watch(predictionsRepositoryProvider));
-    });
+  return PredictionsController(ref.watch(predictionsRepositoryProvider));
+});
+
+extension MatchPredictionItemUpdate on MatchPredictionItem {
+  MatchPredictionItem updated({
+    int? scoreGrinta,
+    int? scoreOpponent,
+    bool? isFilled,
+    bool? useX2,
+    int? x2Available,
+  }) {
+    return MatchPredictionItem(
+      matchId: matchId,
+      opponentName: opponentName,
+      kickoffAt: kickoffAt,
+      status: status,
+      scoreGrinta: scoreGrinta ?? this.scoreGrinta,
+      scoreOpponent: scoreOpponent ?? this.scoreOpponent,
+      isFilled: isFilled ?? this.isFilled,
+      useX2: useX2 ?? this.useX2,
+      x2Available: x2Available ?? this.x2Available,
+      oddsWin: oddsWin,
+      oddsDraw: oddsDraw,
+      oddsLoss: oddsLoss,
+      actualScoreGrinta: actualScoreGrinta,
+      actualScoreOpponent: actualScoreOpponent,
+      predictionsClosedAt: predictionsClosedAt,
+    );
+  }
+}
 
 extension _FirstOrNull<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
