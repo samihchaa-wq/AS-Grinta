@@ -39,10 +39,7 @@ class GrintaIconButton extends StatelessWidget {
               dimension: GrintaIconography.inline,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : Icon(
-              icon,
-              size: GrintaIconography.control,
-            ),
+          : Icon(icon, size: GrintaIconography.control),
     );
   }
 }
