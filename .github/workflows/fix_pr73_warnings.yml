@@ -1,0 +1,59 @@
+name: Fix PR73 warnings
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/pr73-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/unified-pronos-module
+
+      - name: Remove analyzer warnings
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/features/predictions/presentation/pronos_hub_page.dart')
+          t = p.read_text().replace(
+            "import 'package:as_grinta/features/predictions/data/predictions_repository.dart';\n",
+            '',
+          )
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
+          t = p.read_text().replace(
+            '    final accent = gaugeAccentFor(gauge.playerId);\n',
+            '',
+            1,
+          )
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          t = p.read_text()
+          old = '''const _violet = Color(0xFF7C3CFF);
+const _pink = Color(0xFFFF4FCB);
+const _cyan = Color(0xFF1DCBFF);
+const _green = Color(0xFF39E784);
+const _amber = Color(0xFFFFBE3D);
+const _orange = Color(0xFFFF6A26);
+'''
+          t = t.replace(old, "const _green = Color(0xFF39E784);\n")
+          p.write_text(t)
+          PY
+
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Corriger les avertissements du module Pronos"
+          git push origin HEAD:feature/unified-pronos-module
