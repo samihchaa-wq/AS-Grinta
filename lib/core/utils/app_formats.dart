@@ -38,9 +38,7 @@ class AppFormats {
   static String counted(int count, String singular, [String? pluralForm]) =>
       '$count ${plural(count, singular, pluralForm)}';
 
-  /// Cote affichée : la valeur réelle (ex. 2,10) est montrée ×100 en entier
-  /// (« 210 »). Purement cosmétique — la cote réelle utilisée pour les points
-  /// n'est pas modifiée.
+  /// Cote affichée au format décimal français : 2,00 ; 3,80 ; 4,00.
   static String odds(double? value) =>
-      value == null ? '—' : '${(value * 100).round()}';
+      value == null ? '—' : value.toStringAsFixed(2).replaceAll('.', ',');
 }
