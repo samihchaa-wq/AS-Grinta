@@ -694,6 +694,55 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
           ),
           if (!item.isClosed) ...[
             const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: item.useX2
+                    ? const Color(0xFF6A32C7).withValues(alpha: .22)
+                    : Colors.white.withValues(alpha: .04),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: item.useX2
+                      ? const Color(0xFF9B6CFF)
+                      : Colors.white.withValues(alpha: .10),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.bolt_rounded,
+                    color: item.useX2
+                        ? const Color(0xFFC5A7FF)
+                        : AppTheme.textSecondary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.useX2 ? '×2 activé' : 'Activer le ×2',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          '${item.x2Available} en réserve · consommé même si le pronostic est faux',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: item.useX2,
+                    onChanged:
+                        (!item.useX2 && item.x2Available <= 0) || isSaving
+                        ? null
+                        : (_) => controller.toggleX2(item.matchId),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(

@@ -107,9 +107,34 @@ class _PremiumSeasonPredictionsPageState
                 const SizedBox(height: 24),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
-                  child: _view == _PremiumView.players
-                      ? _playersView(gauges, currentUserId)
-                      : _predictorView(gauges, predictors, currentUserId),
+                  child: switch (_view) {
+                    _PremiumView.players => _playersView(gauges, currentUserId),
+                    _PremiumView.predictors => _predictorView(
+                      gauges,
+                      predictors,
+                      currentUserId,
+                    ),
+                    _PremiumView.ranking => const Column(
+                      key: ValueKey('season-ranking'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Classement saison',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'État actuel selon les buts et clean sheets déjà enregistrés.',
+                          style: TextStyle(color: Colors.white60),
+                        ),
+                        SizedBox(height: 14),
+                        SeasonRankingPanel(),
+                      ],
+                    ),
+                  },
                 ),
               ],
             ),
