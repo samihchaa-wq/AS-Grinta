@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -153,6 +154,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsLoss: oddsLoss,
       );
       await load(seasonId: state.selectedSeasonId);
+      _ref.invalidate(homeDashboardProvider);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
@@ -201,6 +203,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsLoss: oddsLoss,
       );
       await load(seasonId: state.selectedSeasonId);
+      _ref.invalidate(homeDashboardProvider);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
@@ -219,6 +222,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     try {
       await _repository.deleteMatch(id);
       await load(seasonId: state.selectedSeasonId);
+      _ref.invalidate(homeDashboardProvider);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
     }

@@ -225,9 +225,10 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
   return HomeRepository(ref.watch(supabaseClientProvider));
 });
 
-// autoDispose : recharge le tableau de bord à chaque retour sur l'accueil, pour
-// qu'un match qu'on vient de créer apparaisse tout de suite.
-final homeDashboardProvider =
-    FutureProvider.autoDispose<HomeDashboardData>((ref) {
+// Mis en cache (pas d'autoDispose) : l'accueil s'affiche instantanément sans
+// écran de chargement à chaque visite. Le tableau de bord est réinvalidé
+// explicitement quand un match change (création, modification, résultat), donc
+// un nouveau match apparaît quand même tout de suite.
+final homeDashboardProvider = FutureProvider<HomeDashboardData>((ref) {
   return ref.watch(homeRepositoryProvider).fetchDashboard();
 });

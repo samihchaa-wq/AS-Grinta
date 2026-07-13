@@ -60,7 +60,16 @@ class HomePage extends ConsumerWidget {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       dashboardAsync.when(
-                        loading: () => const _LoadingHero(),
+                        // On garde les données affichées pendant un
+                        // rafraîchissement (pas d'écran de chargement au retour
+                        // sur l'accueil) ; discret spinner au tout premier
+                        // chargement.
+                        skipLoadingOnRefresh: true,
+                        skipLoadingOnReload: true,
+                        loading: () => const Padding(
+                          padding: EdgeInsets.only(top: 60),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
                         error: (error, _) => _ErrorCard(
                           message: error.toString(),
                           onRetry: () => ref.invalidate(homeDashboardProvider),
@@ -933,29 +942,6 @@ class _Panel extends StatelessWidget {
         border: Border.all(color: AppTheme.outline),
       ),
       child: child,
-    );
-  }
-}
-
-class _LoadingHero extends StatelessWidget {
-  const _LoadingHero();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppTheme.outline),
-      ),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(28),
-      child: Image.asset(
-        'assets/images/mpg_logo.png',
-        width: double.infinity,
-        fit: BoxFit.contain,
-      ),
     );
   }
 }
