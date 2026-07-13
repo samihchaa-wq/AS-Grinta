@@ -22,18 +22,18 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
     required this.gauge,
     required this.scaleMax,
     required this.onOpenAll,
-    required this.onOpenPopular,
+    required this.onOpenMedian,
   });
 
   final PlayerGauge gauge;
   final int scaleMax;
   final VoidCallback onOpenAll;
-  final ValueChanged<GaugeMarker> onOpenPopular;
+  final VoidCallback onOpenMedian;
 
   @override
   Widget build(BuildContext context) {
     final accent = gaugeAccentFor(gauge.playerId);
-    final popular = _popularMarker(gauge.markers);
+    final median = gauge.predictions.isEmpty ? null : gauge.median;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -87,11 +87,9 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                 PremiumGaugeLine(
                   actual: gauge.actual,
                   maxValue: scaleMax,
-                  popular: popular,
+                  median: median,
                   accent: accent,
-                  onPopularTap: popular == null
-                      ? null
-                      : () => onOpenPopular(popular),
+                  onMedianTap: median == null ? null : onOpenMedian,
                 ),
               ],
             ),
@@ -100,17 +98,6 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
       ),
     );
   }
-
-  GaugeMarker? _popularMarker(List<GaugeMarker> markers) {
-    if (markers.isEmpty) return null;
-    final sorted = [...markers]
-      ..sort((a, b) {
-        final count = b.predictions.length.compareTo(a.predictions.length);
-        if (count != 0) return count;
-        return b.value.compareTo(a.value);
-      });
-    return sorted.first;
-  }
 }
 
 class PremiumGaugeLine extends StatelessWidget {
@@ -118,16 +105,16 @@ class PremiumGaugeLine extends StatelessWidget {
     super.key,
     required this.actual,
     required this.maxValue,
-    required this.popular,
+    required this.median,
     required this.accent,
-    required this.onPopularTap,
+    required this.onMedianTap,
   });
 
   final int actual;
   final int maxValue;
-  final GaugeMarker? popular;
+  final double? median;
   final Color accent;
-  final VoidCallback? onPopularTap;
+  final VoidCallback? onMedianTap;
 
   @override
   Widget build(BuildContext context) {
@@ -170,17 +157,14 @@ class PremiumGaugeLine extends StatelessWidget {
                 top: 4,
                 child: _CurrentBall(value: actual, accent: accent),
               ),
-              if (popular != null && popular!.value != actual)
+              if (median != null && median != actual)
                 Positioned(
-                  left: xFor(popular!.value) - markerRadius,
+                  left: xFor(median!) - markerRadius,
                   top: 2,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: onPopularTap,
-                    child: _PopularBubble(
-                      value: popular!.value,
-                      accent: accent,
-                    ),
+                    onTap: onMedianTap,
+                    child: _MedianBubble(value: median!, accent: accent),
                   ),
                 ),
               Positioned(
@@ -254,10 +238,10 @@ class _CurrentBall extends StatelessWidget {
   }
 }
 
-class _PopularBubble extends StatelessWidget {
-  const _PopularBubble({required this.value, required this.accent});
+class _MedianBubble extends StatelessWidget {
+  const _MedianBubble({required this.value, required this.accent});
 
-  final int value;
+  final double value;
   final Color accent;
 
   @override
@@ -276,7 +260,7 @@ class _PopularBubble extends StatelessWidget {
         ],
       ),
       child: Text(
-        '$value',
+        _formatGaugeValue(value),
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w900,
@@ -543,4 +527,9 @@ class _RankBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatGaugeValue(double value) {
+  if (value == value.roundToDouble()) return value.toInt().toString();
+  return value.toStringAsFixed(1).replaceAll('.', ',');
 }
