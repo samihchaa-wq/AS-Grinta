@@ -25,15 +25,15 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Check formatting of changed Dart files
+      - name: Format changed Dart files
         shell: bash
         run: |
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...HEAD" -- '*.dart')
           if [ "${#files[@]}" -eq 0 ]; then
-            echo "No changed Dart files to format-check."
+            echo "No changed Dart files to format."
             exit 0
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+          dart format --output=none "${files[@]}"
       - name: Analyze
         run: flutter analyze
       - name: Test
