@@ -9,11 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final seasonPredictionsProvider =
     FutureProvider.autoDispose<List<SeasonPredictionItem>>((ref) {
-  return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
-});
+      return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
+    });
 
-final seasonGaugesProvider =
-    FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
+final seasonGaugesProvider = FutureProvider.autoDispose<List<PlayerGauge>>((
+  ref,
+) {
   return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
 });
 
@@ -201,14 +202,17 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             );
           }
 
-          final currentUserId =
-              ref.read(seasonPredictionsRepositoryProvider).currentUserId;
+          final currentUserId = ref
+              .read(seasonPredictionsRepositoryProvider)
+              .currentUserId;
           final predictors = _predictorsFrom(gauges);
           if (_selectedPredictorId == null && predictors.isNotEmpty) {
-            final hasCurrentUser = currentUserId != null &&
+            final hasCurrentUser =
+                currentUserId != null &&
                 predictors.any((entry) => entry.id == currentUserId);
-            _selectedPredictorId =
-                hasCurrentUser ? currentUserId : predictors.first.id;
+            _selectedPredictorId = hasCurrentUser
+                ? currentUserId
+                : predictors.first.id;
           }
 
           return ListView(
@@ -217,8 +221,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               Text(
                 '${predictors.length} pronostiqueurs',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 14),
               SegmentedButton<_GaugeView>(
@@ -245,11 +249,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 duration: const Duration(milliseconds: 250),
                 child: _gaugeView == _GaugeView.players
                     ? _playersView(gauges, currentUserId)
-                    : _predictorView(
-                        gauges,
-                        predictors,
-                        currentUserId,
-                      ),
+                    : _predictorView(gauges, predictors, currentUserId),
               ),
             ],
           );
@@ -311,10 +311,12 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     String? currentUserId,
   ) {
     final selectedId = _selectedPredictorId;
-    final selectedEntries =
-        predictors.where((entry) => entry.id == selectedId).toList();
-    final selectedName =
-        selectedEntries.isEmpty ? 'Pronostiqueur' : selectedEntries.first.name;
+    final selectedEntries = predictors
+        .where((entry) => entry.id == selectedId)
+        .toList();
+    final selectedName = selectedEntries.isEmpty
+        ? 'Pronostiqueur'
+        : selectedEntries.first.name;
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
 
@@ -349,15 +351,15 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         const SizedBox(height: 18),
         Text(
           selectedName,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         Text(
           'Sa fiche complète de pronostics',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 18),
         if (scorers.isNotEmpty) ...[
@@ -394,15 +396,15 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -417,9 +419,9 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
       ),
     );
   }
@@ -431,19 +433,15 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         byId[prediction.predictorId] = prediction.predictorName;
       }
     }
-    final result = byId.entries
-        .map((entry) => (id: entry.key, name: entry.value))
-        .toList()
-      ..sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-      );
+    final result =
+        byId.entries.map((entry) => (id: entry.key, name: entry.value)).toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
     return result;
   }
 
-  int _sectionScale(
-    List<PlayerGauge> gauges, {
-    required int defaultMax,
-  }) {
+  int _sectionScale(List<PlayerGauge> gauges, {required int defaultMax}) {
     var observedMax = defaultMax;
     for (final gauge in gauges) {
       observedMax = math.max(observedMax, gauge.maxValue);
@@ -451,10 +449,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     return ((observedMax + 4) ~/ 5) * 5;
   }
 
-  Future<void> _showMarkerDetails(
-    PlayerGauge gauge,
-    GaugeMarker marker,
-  ) async {
+  Future<void> _showMarkerDetails(PlayerGauge gauge, GaugeMarker marker) async {
     await showModalBottomSheet<void>(
       context: context,
       useSafeArea: true,
@@ -468,17 +463,17 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             children: [
               Text(
                 gauge.playerName,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 4),
               Text(
                 '${marker.value} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -617,9 +612,8 @@ class _NeonGaugeCard extends StatelessWidget {
                       children: [
                         Text(
                           gauge.playerName,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         Text(
                           gauge.isGoalkeeper
@@ -734,8 +728,7 @@ class _InteractiveNeonGauge extends StatelessWidget {
               ),
               for (final marker in markers)
                 Positioned(
-                  left: xFor(marker.value) -
-                      (marker == modeMarker ? 18 : 7),
+                  left: xFor(marker.value) - (marker == modeMarker ? 18 : 7),
                   top: marker == modeMarker ? 21 : 32,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -829,10 +822,7 @@ class _PredictionDot extends StatelessWidget {
         color: scheme.tertiary,
         border: Border.all(color: Colors.white.withOpacity(.35)),
         boxShadow: [
-          BoxShadow(
-            color: scheme.tertiary.withOpacity(.55),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: scheme.tertiary.withOpacity(.55), blurRadius: 10),
         ],
       ),
     );
@@ -1001,8 +991,8 @@ class _PredictorRow extends StatelessWidget {
                 Text(
                   'Actuel ${gauge.actual}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -1072,8 +1062,8 @@ class _PlayerDetailsSheet extends StatelessWidget {
                   Text(
                     gauge.playerName,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   Text(
                     gauge.isGoalkeeper
@@ -1100,9 +1090,9 @@ class _PlayerDetailsSheet extends StatelessWidget {
         const SizedBox(height: 20),
         Text(
           'Tous les pronostics (${predictions.length})',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 10),
         Card(
