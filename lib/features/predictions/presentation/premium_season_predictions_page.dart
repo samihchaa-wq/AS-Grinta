@@ -140,7 +140,7 @@ class _PremiumSeasonPredictionsPageState
               gauge: gauge,
               scaleMax: scorerScale,
               onOpenAll: () => _openAll(gauge, currentUserId),
-              onOpenPopular: (marker) => _openPopular(gauge, marker),
+              onOpenMedian: () => _openMedian(gauge),
             ),
           ),
           const SizedBox(height: 20),
@@ -157,7 +157,7 @@ class _PremiumSeasonPredictionsPageState
               gauge: gauge,
               scaleMax: keeperScale,
               onOpenAll: () => _openAll(gauge, currentUserId),
-              onOpenPopular: (marker) => _openPopular(gauge, marker),
+              onOpenMedian: () => _openMedian(gauge),
             ),
           ),
         ],
@@ -276,7 +276,7 @@ class _PremiumSeasonPredictionsPageState
     );
   }
 
-  Future<void> _openPopular(PlayerGauge gauge, GaugeMarker marker) async {
+  Future<void> _openMedian(PlayerGauge gauge) async {
     final accent = gaugeAccentFor(gauge.playerId);
     await showModalBottomSheet<void>(
       context: context,
@@ -297,26 +297,16 @@ class _PremiumSeasonPredictionsPageState
             ),
             const SizedBox(height: 2),
             Text(
-              '${marker.value} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
+              'Médiane : ${_formatMedian(gauge.median)} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: accent,
                 fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final prediction in marker.predictions)
-                  Chip(
-                    avatar: CircleAvatar(
-                      backgroundColor: accent.withValues(alpha: .2),
-                      child: Text(_initial(prediction.predictorName)),
-                    ),
-                    label: Text(prediction.predictorName),
-                  ),
-              ],
+            const Text(
+              'La moitié des pronostics est en dessous ou égale à cette valeur, et l’autre moitié au-dessus ou égale.',
+              style: TextStyle(color: Colors.white70),
             ),
           ],
         ),
@@ -503,10 +493,7 @@ class _MinimalLegend extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _Legend(icon: Icons.sports_soccer, label: 'Score actuel'),
-          _Legend(
-            icon: Icons.circle_outlined,
-            label: 'Score le plus pronostiqué',
-          ),
+          _Legend(icon: Icons.circle_outlined, label: 'Médiane des pronostics'),
         ],
       ),
     );
@@ -652,4 +639,9 @@ String _initial(String name) {
 
 extension<T> on List<T> {
   T? get firstOrNull => isEmpty ? null : first;
+}
+
+String _formatMedian(double value) {
+  if (value == value.roundToDouble()) return value.toInt().toString();
+  return value.toStringAsFixed(1).replaceAll('.', ',');
 }
