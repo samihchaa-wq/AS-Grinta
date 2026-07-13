@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('PredictionScoring', () {
-    test('score exact = cote x20', () {
+    test('score exact = cote x2', () {
       expect(
         PredictionScoring.points(
           predictedHome: 2,
@@ -12,11 +12,11 @@ void main() {
           actualAway: 1,
           baseOdds: 2,
         ),
-        40,
+        4,
       );
     });
 
-    test('bon vainqueur + bon écart = cote x15', () {
+    test('bon vainqueur + bon écart = cote x1,5', () {
       expect(
         PredictionScoring.points(
           predictedHome: 3,
@@ -25,11 +25,11 @@ void main() {
           actualAway: 1,
           baseOdds: 2,
         ),
-        30,
+        3,
       );
     });
 
-    test('bon vainqueur + score exact d’une équipe = cote x15', () {
+    test('bon vainqueur + score exact d’une équipe = cote x1,5', () {
       expect(
         PredictionScoring.points(
           predictedHome: 2,
@@ -38,11 +38,11 @@ void main() {
           actualAway: 1,
           baseOdds: 2,
         ),
-        30,
+        3,
       );
     });
 
-    test('bon vainqueur seul = cote x10', () {
+    test('bon vainqueur seul = cote x1', () {
       expect(
         PredictionScoring.points(
           predictedHome: 3,
@@ -51,11 +51,11 @@ void main() {
           actualAway: 1,
           baseOdds: 2,
         ),
-        20,
+        2,
       );
     });
 
-    test('nul prédit et nul réel sans score exact = cote x15 (écart nul)', () {
+    test('nul prédit et nul réel sans score exact = cote x1,5', () {
       expect(
         PredictionScoring.points(
           predictedHome: 1,
@@ -64,7 +64,7 @@ void main() {
           actualAway: 2,
           baseOdds: 3,
         ),
-        45,
+        4.5,
       );
     });
 
