@@ -4,14 +4,25 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  analyze-test-build:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -21,6 +32,23 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Check formatting of changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            range="$base...HEAD"
+          else
+            range="HEAD^...HEAD"
+          fi
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Dart files to format."
+            exit 0
+          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
@@ -38,7 +66,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          flutter build web --release 2>&1 | tee build-web.log
+          flutter build web --release --base-href "/AS-Grinta/" --pwa-strategy=none 2>&1 | tee build-web.log
 
       - name: Upload validation logs
         if: always()
