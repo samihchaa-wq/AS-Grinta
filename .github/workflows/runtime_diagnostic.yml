@@ -43,40 +43,92 @@ jobs:
           python3 -m http.server 8080 --directory build/web >/tmp/http.log 2>&1 &
           echo $! > /tmp/http.pid
           sleep 2
-      - name: Inspect rendered app
+      - name: Inspect rendered app on multiple viewports
         run: |
           node <<'NODE'
           const fs = require('fs');
           const { chromium } = require('playwright-core');
+
+          const viewports = [
+            { name: 'mobile-narrow', width: 320, height: 568 },
+            { name: 'mobile-standard', width: 390, height: 844 },
+            { name: 'desktop', width: 1440, height: 900 },
+          ];
+
           (async () => {
             const browser = await chromium.launch({
               headless: true,
               executablePath: '/usr/bin/google-chrome',
               args: ['--no-sandbox', '--disable-dev-shm-usage'],
             });
-            const context = await browser.newContext({
-              viewport: { width: 390, height: 844 },
-              serviceWorkers: 'block',
-            });
-            const page = await context.newPage();
-            const events = [];
-            page.on('console', msg => events.push(`console.${msg.type()}: ${msg.text()}`));
-            page.on('pageerror', error => events.push(`pageerror: ${error.stack || error.message}`));
-            page.on('requestfailed', request => events.push(`requestfailed: ${request.url()} ${request.failure()?.errorText}`));
-            page.on('response', response => {
-              if (response.status() >= 400 && !response.url().endsWith('/favicon.ico')) {
-                events.push(`http ${response.status()}: ${response.url()}`);
+            const allEvents = [];
+
+            for (const viewport of viewports) {
+              const context = await browser.newContext({
+                viewport: { width: viewport.width, height: viewport.height },
+                serviceWorkers: 'block',
+              });
+              const page = await context.newPage();
+              const events = [];
+              const prefix = `[${viewport.name}]`;
+
+              page.on('console', message => {
+                const text = message.text();
+                events.push(`${prefix} console.${message.type()}: ${text}`);
+              });
+              page.on('pageerror', error => {
+                events.push(`${prefix} pageerror: ${error.stack || error.message}`);
+              });
+              page.on('requestfailed', request => {
+                events.push(
+                  `${prefix} requestfailed: ${request.url()} ${request.failure()?.errorText ?? ''}`,
+                );
+              });
+              page.on('response', response => {
+                if (response.status() >= 400 && !response.url().endsWith('/favicon.ico')) {
+                  events.push(`${prefix} http ${response.status()}: ${response.url()}`);
+                }
+              });
+
+              const response = await page.goto(
+                `http://127.0.0.1:8080/?viewport=${viewport.name}`,
+                { waitUntil: 'networkidle', timeout: 90000 },
+              );
+              if (!response || response.status() >= 400) {
+                throw new Error(`${prefix} HTTP ${response?.status() ?? 'sans réponse'}`);
               }
-            });
-            await page.goto('http://127.0.0.1:8080/', { waitUntil: 'networkidle', timeout: 90000 });
-            await page.waitForTimeout(5000);
-            await page.screenshot({ path: 'runtime.png', fullPage: true });
-            fs.writeFileSync('runtime.html', await page.content());
-            fs.writeFileSync('runtime.log', events.join('\n'));
-            console.log(events.join('\n'));
-            if (events.some(line => line.startsWith('console.error:') || line.startsWith('pageerror:'))) {
-              throw new Error('Runtime error detected');
+
+              await page.waitForFunction(() => {
+                return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
+              }, null, { timeout: 45000 });
+              await page.waitForTimeout(3000);
+
+              const screenshot = `runtime-${viewport.name}.png`;
+              await page.screenshot({ path: screenshot, fullPage: true });
+              const size = fs.statSync(screenshot).size;
+              if (size < 5000) {
+                throw new Error(`${prefix} capture anormalement vide: ${size} octets`);
+              }
+
+              const html = await page.content();
+              fs.writeFileSync(`runtime-${viewport.name}.html`, html);
+              allEvents.push(...events);
+              await context.close();
             }
+
+            fs.writeFileSync('runtime.log', allEvents.join('\n'));
+            console.log(allEvents.join('\n'));
+
+            const fatal = allEvents.filter(line =>
+              line.includes('console.error:') ||
+              line.includes('pageerror:') ||
+              line.includes('A RenderFlex overflowed') ||
+              line.includes('OVERFLOWING'),
+            );
+            if (fatal.length > 0) {
+              throw new Error(fatal.join(' | '));
+            }
+
             await browser.close();
           })().catch(error => {
             console.error(error);
@@ -88,8 +140,8 @@ jobs:
         with:
           name: runtime-diagnostic
           path: |
-            runtime.png
-            runtime.html
+            runtime-*.png
+            runtime-*.html
             runtime.log
             build/web/main.dart.js
             build/web/main.dart.js.map
