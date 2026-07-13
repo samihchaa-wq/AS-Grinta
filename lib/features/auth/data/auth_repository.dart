@@ -27,9 +27,6 @@ class AuthRepository {
     );
   }
 
-  /// Auto-inscription via le lien partagé dans la conversation du club :
-  /// crée un compte « en attente de validation » et retourne l'identifiant
-  /// généré (prénom + initiale).
   Future<String> registerAccount({
     required String firstName,
     required String lastName,
@@ -50,8 +47,6 @@ class AuthRepository {
     throw StateError(message ?? 'La création du compte a échoué.');
   }
 
-  /// Première connexion d'un compte invité : le joueur choisit son mot de
-  /// passe via l'Edge Function claim-account (appelée sans session).
   Future<void> claimAccount({
     required String username,
     required String password,
@@ -76,6 +71,14 @@ class AuthRepository {
       );
     }
     await _client.auth.updateUser(UserAttributes(password: password));
+
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Aucun utilisateur connecté.');
+    await _client.from('profiles').update({
+      'must_change_password': false,
+      'password_set': true,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', userId);
   }
 
   Future<void> signOut() async {
@@ -89,7 +92,8 @@ class AuthRepository {
     final response = await _client
         .from('profiles')
         .select(
-          'id,first_name,last_name,username,role,is_goalkeeper,status,created_at,updated_at',
+          'id,first_name,last_name,username,role,is_goalkeeper,status,'
+          'must_change_password,created_at,updated_at',
         )
         .eq('id', user.id)
         .maybeSingle();
