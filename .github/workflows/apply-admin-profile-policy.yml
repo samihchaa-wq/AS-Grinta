@@ -1,0 +1,90 @@
+name: Apply admin profile policy
+
+on:
+  push:
+    branches: [test/admin-profile-policies]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Apply refactor and format
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/admin/presentation/admin_page.dart')
+          text = path.read_text()
+
+          replacements = [
+              (
+                  "import 'package:as_grinta/features/admin/data/admin_repository.dart';\n",
+                  "import 'package:as_grinta/features/admin/data/admin_repository.dart';\n"
+                  "import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';\n",
+              ),
+              (
+                  "            final pendingProfiles = dashboard.profiles\n"
+                  "                .where((profile) => profile.status == 'pending')\n"
+                  "                .toList();\n"
+                  "            final validatedProfiles = dashboard.profiles\n"
+                  "                .where((profile) => profile.status != 'pending')\n"
+                  "                .toList();\n",
+                  "            final groups = groupAdminProfiles(dashboard.profiles);\n",
+              ),
+              ("profiles: pendingProfiles,", "profiles: groups.pending,"),
+              ("profiles: validatedProfiles,", "profiles: groups.validated,"),
+              (
+                  "    final currentUserId = ref.watch(authControllerProvider).profile?.id;\n"
+                  "    final isSelf = currentUserId != null && currentUserId == profile.id;\n"
+                  "    final isPending = profile.status == 'pending';\n",
+                  "    final currentUserId = ref.watch(authControllerProvider).profile?.id;\n"
+                  "    final policy = adminProfileActionPolicy(\n"
+                  "      profile: profile,\n"
+                  "      currentUserId: currentUserId,\n"
+                  "    );\n",
+              ),
+              ("if (isSelf)", "if (policy.isSelf)"),
+              ("else if (profile.status == 'archived')", "else if (policy.isArchived)"),
+              ("if (!profile.passwordSet && !isPending)", "if (!profile.passwordSet && !policy.isPending)"),
+              ("if (!isSelf) ...[", "if (!policy.isSelf) ...["),
+              ("if (isPending) ...[", "if (policy.isPending) ...["),
+              ("if (profile.status == 'archived')", "if (policy.isArchived)"),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Missing expected fragment:\n{old}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+
+      - run: dart format lib/features/admin/presentation/admin_page.dart lib/features/admin/presentation/admin_profile_policy.dart test/admin_profile_policy_test.dart
+
+      - name: Commit and clean workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-admin-profile-policy.yml
+          rm -f .github/apply-admin-profile-policy-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "refactor(admin): use tested profile policies"
+          git push origin HEAD:test/admin-profile-policies
