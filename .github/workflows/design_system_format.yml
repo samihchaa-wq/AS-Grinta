@@ -1,4 +1,4 @@
-name: Design System Format Patch
+name: Design System Format Diagnostic
 
 on:
   pull_request:
@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  format-patch:
+  format-diagnostic:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,20 +22,31 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Format changed Dart files
+      - name: Capture formatter result
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           base="origin/${{ github.base_ref }}"
           mapfile -t files < <(
             git diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.dart'
           )
-          dart format "${files[@]}"
-          git diff --binary > design-system-format.patch
+          printf '%s\n' "${files[@]}" > formatted-files.txt
+          set +e
+          dart format --output=none --set-exit-if-changed "${files[@]}" \
+            > formatter.log 2>&1
+          status=$?
+          set -e
+          echo "exit_code=$status" >> formatter.log
+          dart format "${files[@]}" > formatter-apply.log 2>&1
+          git diff --binary > residual-format.patch
 
-      - name: Upload formatting patch
+      - name: Upload formatter diagnostics
         uses: actions/upload-artifact@v4
         with:
-          name: design-system-format-patch-2
-          path: design-system-format.patch
+          name: design-system-format-diagnostic
+          path: |
+            formatted-files.txt
+            formatter.log
+            formatter-apply.log
+            residual-format.patch
           if-no-files-found: error
