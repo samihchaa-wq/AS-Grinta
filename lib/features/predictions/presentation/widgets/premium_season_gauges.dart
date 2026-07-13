@@ -12,8 +12,7 @@ const _amber = Color(0xFFFFBE3D);
 const _orange = Color(0xFFFF6A26);
 
 Color gaugeAccentFor(String key) {
-  const colors = [_violet, _cyan, _green, _amber, _orange, _pink];
-  return colors[key.hashCode.abs() % colors.length];
+  return const Color(0xFF4B6FFF);
 }
 
 class PremiumSeasonGaugeCard extends StatelessWidget {
@@ -158,7 +157,7 @@ class PremiumGaugeLine extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(99),
                     gradient: LinearGradient(
-                      colors: [accent.withValues(alpha: .72), accent, _pink],
+                      colors: [accent.withValues(alpha: .72), accent],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -273,9 +272,9 @@ class _MedianBubble extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: const Color(0xFF111B35),
-        border: Border.all(color: _pink, width: 1.7),
+        border: Border.all(color: accent, width: 1.7),
         boxShadow: [
-          BoxShadow(color: _pink.withValues(alpha: .75), blurRadius: 18),
+          BoxShadow(color: accent.withValues(alpha: .75), blurRadius: 18),
           BoxShadow(color: accent.withValues(alpha: .35), blurRadius: 28),
         ],
       ),
