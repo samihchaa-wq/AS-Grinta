@@ -30,9 +30,8 @@ class GrintaIconButton extends StatelessWidget {
         backgroundColor: isSelected
             ? colorScheme.primary
             : colorScheme.surfaceContainerHighest,
-        foregroundColor: isSelected
-            ? colorScheme.onPrimary
-            : colorScheme.onSurfaceVariant,
+        foregroundColor:
+            isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
       ),
       icon: isLoading
           ? const SizedBox.square(
