@@ -40,6 +40,9 @@ class MatchPredictionResult {
   final String name;
   final int scoreGrinta;
   final int scoreOpponent;
+
+  /// Points déjà convertis en base 100 pour l'affichage.
+  /// Exemple : 3,10 points réels deviennent 310.
   final double points;
   final bool usedX2;
 }
@@ -175,8 +178,8 @@ class MatchDetailsRepository {
       final pointsByProfile = <String, double>{};
       for (final row in pointRows as List) {
         final map = Map<String, dynamic>.from(row);
-        pointsByProfile[map['profile_id'].toString()] =
-            (map['points'] as num?)?.toDouble() ?? 0;
+        final decimalPoints = (map['points'] as num?)?.toDouble() ?? 0;
+        pointsByProfile[map['profile_id'].toString()] = decimalPoints * 100;
       }
 
       final predictionRows = await _client
