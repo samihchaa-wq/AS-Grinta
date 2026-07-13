@@ -97,28 +97,6 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> claimAndSignIn({
-    required String username,
-    required String password,
-  }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      await _repository.claimAccount(username: username, password: password);
-      await _repository.signInWithUsername(
-        username: username,
-        password: password,
-      );
-      await _refreshProfile();
-    } on StateError catch (error) {
-      state = state.copyWith(isLoading: false, error: error.message);
-    } catch (_) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'L’activation du compte a échoué.',
-      );
-    }
-  }
-
   Future<bool> updatePassword(String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
