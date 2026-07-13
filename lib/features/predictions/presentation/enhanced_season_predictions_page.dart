@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
@@ -14,6 +15,25 @@ final enhancedSeasonLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 final enhancedSeasonGaugesProvider =
     FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
+});
+
+final enhancedSeasonCompletedMatchesProvider =
+    FutureProvider.autoDispose<int>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final season = await client
+      .from('seasons')
+      .select('id')
+      .eq('status', 'open')
+      .maybeSingle();
+  final seasonId = season?['id']?.toString();
+  if (seasonId == null) return 0;
+
+  final rows = await client
+      .from('matches')
+      .select('id')
+      .eq('season_id', seasonId)
+      .inFilter('status', const ['termine', 'archive']);
+  return (rows as List).length;
 });
 
 enum _SeasonView { players, predictors, ranking }
@@ -47,6 +67,9 @@ class _EnhancedSeasonPredictionsPageState
 
   Widget _lockedPage() {
     final gaugesAsync = ref.watch(enhancedSeasonGaugesProvider);
+    final completedMatchesAsync =
+        ref.watch(enhancedSeasonCompletedMatchesProvider);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -70,7 +93,11 @@ class _EnhancedSeasonPredictionsPageState
             onRefresh: () async {
               ref.invalidate(enhancedSeasonLockedProvider);
               ref.invalidate(enhancedSeasonGaugesProvider);
-              await ref.read(enhancedSeasonGaugesProvider.future);
+              ref.invalidate(enhancedSeasonCompletedMatchesProvider);
+              await Future.wait([
+                ref.read(enhancedSeasonGaugesProvider.future),
+                ref.read(enhancedSeasonCompletedMatchesProvider.future),
+              ]);
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
@@ -82,23 +109,38 @@ class _EnhancedSeasonPredictionsPageState
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 4),
+                completedMatchesAsync.when(
+                  loading: () => const Text(
+                    'Nombre de matchs joués : …',
+                    style: TextStyle(color: Colors.white60),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (count) => Text(
+                    'Nombre de matchs joués : $count',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 14),
                 SegmentedButton<_SeasonView>(
                   segments: const [
                     ButtonSegment(
                       value: _SeasonView.players,
                       icon: Icon(Icons.sports_soccer),
-                      label: Text('Par joueur'),
+                      label: FittedBox(child: Text('Joueurs')),
                     ),
                     ButtonSegment(
                       value: _SeasonView.predictors,
                       icon: Icon(Icons.group_outlined),
-                      label: Text('Par pronostiqueur'),
+                      label: FittedBox(child: Text('Pronostiqueurs')),
                     ),
                     ButtonSegment(
                       value: _SeasonView.ranking,
                       icon: Icon(Icons.emoji_events_outlined),
-                      label: Text('Classement'),
+                      label: FittedBox(child: Text('Classement')),
                     ),
                   ],
                   selected: {_view},
@@ -111,7 +153,7 @@ class _EnhancedSeasonPredictionsPageState
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
                   child: switch (_view) {
-                    _SeasonView.players => _playersView(gauges, currentUserId),
+                    _SeasonView.players => _playersView(gauges),
                     _SeasonView.predictors =>
                       _predictorsView(gauges, predictors, currentUserId),
                     _SeasonView.ranking => const SeasonRankingPanel(),
@@ -125,7 +167,7 @@ class _EnhancedSeasonPredictionsPageState
     );
   }
 
-  Widget _playersView(List<PlayerGauge> gauges, String? currentUserId) {
+  Widget _playersView(List<PlayerGauge> gauges) {
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
     return Column(
@@ -167,10 +209,21 @@ class _EnhancedSeasonPredictionsPageState
     final selectedId = _selectedPredictorId;
     final selected = predictors.where((item) => item.id == selectedId).toList();
     final selectedName = selected.firstOrNull?.name ?? 'Pronostiqueur';
+
+    int compareByPrediction(PlayerGauge a, PlayerGauge b) {
+      final aPrediction = a.predictionFor(selectedId)?.value ?? -1;
+      final bPrediction = b.predictionFor(selectedId)?.value ?? -1;
+      final byPrediction = bPrediction.compareTo(aPrediction);
+      if (byPrediction != 0) return byPrediction;
+      final byActual = b.actual.compareTo(a.actual);
+      if (byActual != 0) return byActual;
+      return a.playerName.toLowerCase().compareTo(b.playerName.toLowerCase());
+    }
+
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
-      ..sort((a, b) => a.playerName.compareTo(b.playerName));
+      ..sort(compareByPrediction);
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
-      ..sort((a, b) => a.playerName.compareTo(b.playerName));
+      ..sort(compareByPrediction);
 
     return Column(
       key: const ValueKey('predictors'),
@@ -196,6 +249,7 @@ class _EnhancedSeasonPredictionsPageState
                   predictor.id == currentUserId
                       ? '${predictor.name} (moi)'
                       : predictor.name,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
           ],
@@ -210,7 +264,7 @@ class _EnhancedSeasonPredictionsPageState
               ?.copyWith(fontWeight: FontWeight.w900),
         ),
         const Text(
-          'La barre suit le score réel. Le trait vertical indique ton prono.',
+          'Barre = score réel · Trait = ton pronostic',
           style: TextStyle(color: Colors.white60),
         ),
         const SizedBox(height: 18),
@@ -320,14 +374,18 @@ class _PredictorProgressRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 82,
+            width: 104,
             child: Text(
               gauge.playerName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w800),
+              maxLines: 2,
+              softWrap: true,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+              ),
             ),
           ),
+          const SizedBox(width: 6),
           Expanded(
             child: _ActualAgainstPredictionGauge(
               actual: gauge.actual,
@@ -335,18 +393,20 @@ class _PredictorProgressRow extends StatelessWidget {
               accent: accent,
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           SizedBox(
-            width: 58,
+            width: 54,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
-                  'PRONO',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
+                const FittedBox(
+                  child: Text(
+                    'PRONO',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 Text(
@@ -383,12 +443,14 @@ class _ActualAgainstPredictionGauge extends StatelessWidget {
       return const Text('Aucun prono', style: TextStyle(color: Colors.white54));
     }
 
-    final target = math.max(1, predicted!);
-    final visualMax = actual <= target
-        ? target.toDouble()
-        : math.max(actual * 1.18, target + 1).toDouble();
+    final predictionValue = predicted!;
+    final baseMax = math.max(1, math.max(actual, predictionValue));
+    final visualMax = actual > predictionValue
+        ? math.max(baseMax * 1.18, actual + 0.2).toDouble()
+        : baseMax.toDouble();
     final actualRatio = (actual / visualMax).clamp(0.0, 1.0).toDouble();
-    final predictionRatio = (target / visualMax).clamp(0.0, 1.0).toDouble();
+    final predictionRatio =
+        (predictionValue / visualMax).clamp(0.0, 1.0).toDouble();
 
     return LayoutBuilder(
       builder: (context, constraints) {
