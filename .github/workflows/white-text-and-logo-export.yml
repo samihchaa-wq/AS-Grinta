@@ -1,0 +1,82 @@
+name: White text and logo export
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'agent/white-text-and-logo-review'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/white-text-and-logo-review
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply white text palette
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('lib/core/theme/app_theme.dart')
+          t = p.read_text()
+          t = t.replace('static const Color textSecondary = Color(0xFF9FB1D6);', 'static const Color textSecondary = Color(0xFFC7CDD8);')
+          t = t.replace('static const Color textFaint = Color(0xFF6E80A6);', 'static const Color textFaint = Color(0xFF9299A5);')
+          t = t.replace('error: Color(0xFFFF6B7A),', 'error: textPrimary,')
+          t = t.replace('foregroundColor: primaryBright,', 'foregroundColor: textPrimary,')
+          t = t.replace('style: TextButton.styleFrom(foregroundColor: primaryBright),', 'style: TextButton.styleFrom(foregroundColor: textPrimary),')
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
+          t = p.read_text()
+          t = t.replace('color: accent,\n                    fontWeight: FontWeight.w900,', 'color: Colors.white,\n                    fontWeight: FontWeight.w900,')
+          t = t.replace('color: accent,\n              fontSize: 18,', 'color: Colors.white,\n              fontSize: 18,')
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          t = p.read_text()
+          t = t.replace('style: TextStyle(\n                    color: accent,\n                    fontWeight: FontWeight.w700,\n                  ),', 'style: const TextStyle(\n                    color: Colors.white70,\n                    fontWeight: FontWeight.w700,\n                  ),')
+          t = t.replace('style: TextStyle(\n                        color: accent,\n                        fontWeight: FontWeight.w700,\n                      ),', 'style: const TextStyle(\n                        color: Colors.white70,\n                        fontWeight: FontWeight.w700,\n                      ),')
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/season_predictions_page.dart')
+          t = p.read_text().replace(
+            'style: TextStyle(color: Theme.of(context).colorScheme.error),',
+            'style: const TextStyle(color: Colors.white70),'
+          )
+          p.write_text(t)
+          PY
+          dart format lib/core/theme/app_theme.dart lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/season_predictions_page.dart
+          flutter analyze
+          flutter test
+          flutter build web
+      - name: Prepare logos
+        run: |
+          mkdir -p logo-pack
+          cp assets/images/mpg_logo.png logo-pack/
+          cp assets/images/scorer_logo.png logo-pack/
+          cp assets/images/keeper_logo.png logo-pack/
+          cp web/favicon.png logo-pack/
+          cp web/icons/Icon-192.png logo-pack/
+          cp web/icons/Icon-512.png logo-pack/
+          cp web/icons/Icon-maskable-512.png logo-pack/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: as-grinta-logos
+          path: logo-pack
+      - name: Commit patch
+        run: |
+          rm -f .github/workflows/apply-white-text.yml
+          rm -f .github/workflows/export-logos.yml
+          rm -f .github/white-text-trigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Uniformiser les textes en blanc"
+          git push origin HEAD:agent/white-text-and-logo-review
