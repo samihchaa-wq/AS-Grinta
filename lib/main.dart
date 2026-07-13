@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:as_grinta/app/app.dart';
-import 'package:as_grinta/core/config/supabase_config.dart';
+import 'package:as_grinta/core/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,10 +29,10 @@ class _BootstrapAppState extends State<_BootstrapApp> {
   }
 
   Future<void> _initialize() async {
-    SupabaseConfig.validate();
+    AppConfig.validate();
     await Supabase.initialize(
-      url: SupabaseConfig.url,
-      publishableKey: SupabaseConfig.anonKey,
+      url: AppConfig.supabaseUrl,
+      publishableKey: AppConfig.supabaseAnonKey,
     ).timeout(const Duration(seconds: 20));
   }
 
