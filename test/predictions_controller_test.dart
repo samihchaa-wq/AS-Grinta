@@ -289,5 +289,5 @@ class _FakePredictionsRepository implements PredictionsRepository {
 }
 
 extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
+  T? get firstOrNull => this.isEmpty ? null : first;
 }
