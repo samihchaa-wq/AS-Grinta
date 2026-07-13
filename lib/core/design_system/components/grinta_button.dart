@@ -56,25 +56,25 @@ class GrintaButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = switch (variant) {
       GrintaButtonVariant.primary => FilledButton(
-        onPressed: _effectiveOnPressed,
-        child: _content,
-      ),
-      GrintaButtonVariant.secondary => OutlinedButton(
-        onPressed: _effectiveOnPressed,
-        child: _content,
-      ),
-      GrintaButtonVariant.tertiary => TextButton(
-        onPressed: _effectiveOnPressed,
-        child: _content,
-      ),
-      GrintaButtonVariant.destructive => FilledButton(
-        onPressed: _effectiveOnPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.error,
-          foregroundColor: Theme.of(context).colorScheme.onError,
+          onPressed: _effectiveOnPressed,
+          child: _content,
         ),
-        child: _content,
-      ),
+      GrintaButtonVariant.secondary => OutlinedButton(
+          onPressed: _effectiveOnPressed,
+          child: _content,
+        ),
+      GrintaButtonVariant.tertiary => TextButton(
+          onPressed: _effectiveOnPressed,
+          child: _content,
+        ),
+      GrintaButtonVariant.destructive => FilledButton(
+          onPressed: _effectiveOnPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Theme.of(context).colorScheme.onError,
+          ),
+          child: _content,
+        ),
     };
 
     if (!expand) {
