@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
   <!-- iOS : icône de l'écran d'accueil (le manifest ne suffit pas sur iPhone). -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -28,8 +28,8 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(function (registration) {
         // Vérifie s'il existe une nouvelle version à chaque ouverture.
-        registration.update();
-      });
+        if (registration) registration.update();
+      }).catch(function () {});
       // Quand un nouveau service worker prend le contrôle (nouvelle version
       // déployée), on recharge une seule fois pour afficher la mise à jour
       // sans que l'utilisateur ait à vider son cache.

@@ -9,6 +9,10 @@ class LeaderboardEntry {
     required this.matchPoints,
     required this.seasonPoints,
     required this.totalPoints,
+    required this.matchBons,
+    required this.matchExacts,
+    required this.seasonBons,
+    required this.seasonExacts,
   });
 
   final String profileId;
@@ -20,6 +24,15 @@ class LeaderboardEntry {
 
   /// Score final pondéré 70 % matchs / 30 % saison, normalisé (0 à 100).
   final double totalPoints;
+
+  /// Statistiques matchs : bons vainqueurs et scores exacts trouvés.
+  final int matchBons;
+  final int matchExacts;
+
+  /// Statistiques saison : joueurs où l'on est le plus proche (égalités
+  /// comprises) et où l'on a trouvé le bon nombre de buts.
+  final int seasonBons;
+  final int seasonExacts;
 }
 
 class LeaderboardRepository {
@@ -35,7 +48,11 @@ class LeaderboardRepository {
           first_name,
           match_points,
           season_points,
-          total_points
+          total_points,
+          match_bons,
+          match_exacts,
+          season_bons,
+          season_exacts
         ''')
         .order('total_points', ascending: false)
         .order('match_points', ascending: false)
@@ -52,6 +69,10 @@ class LeaderboardRepository {
         matchPoints: (map['match_points'] as num?)?.toDouble() ?? 0,
         seasonPoints: (map['season_points'] as num?)?.toDouble() ?? 0,
         totalPoints: (map['total_points'] as num?)?.toDouble() ?? 0,
+        matchBons: (map['match_bons'] as num?)?.toInt() ?? 0,
+        matchExacts: (map['match_exacts'] as num?)?.toInt() ?? 0,
+        seasonBons: (map['season_bons'] as num?)?.toInt() ?? 0,
+        seasonExacts: (map['season_exacts'] as num?)?.toInt() ?? 0,
       );
     }).toList();
   }

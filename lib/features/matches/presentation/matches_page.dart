@@ -232,8 +232,10 @@ class _MatchCard extends StatelessWidget {
   }
 
   String _formatKickoff(DateTime value) {
+    // Pas besoin d'afficher Domicile/Extérieur : l'ordre d'écriture le dit déjà
+    // (1er = domicile, 2e = extérieur).
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.day)}/${two(value.month)}/${value.year} • '
-        '${two(value.hour)}h${two(value.minute)} • ${match.locationLabel}';
+        '${two(value.hour)}h${two(value.minute)}';
   }
 }

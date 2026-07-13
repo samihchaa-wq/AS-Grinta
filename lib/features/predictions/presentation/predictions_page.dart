@@ -132,9 +132,19 @@ class _RankingCard extends StatelessWidget {
     };
   }
 
+  // Le classement saison compte les joueurs où l'on est le plus proche ;
+  // le général et les matchs comptent les bons vainqueurs.
+  int _bons(LeaderboardEntry entry) =>
+      type == _RankingType.season ? entry.seasonBons : entry.matchBons;
+
+  // Saison : bons nombres de buts trouvés ; sinon : scores exacts.
+  int _exacts(LeaderboardEntry entry) =>
+      type == _RankingType.season ? entry.seasonExacts : entry.matchExacts;
+
   String _format(double value) {
+    // Tous les points sont des entiers (arrondis au supérieur côté serveur).
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
-    return value.toStringAsFixed(1).replaceAll('.', ',');
+    return '${value.ceil()}';
   }
 
   @override
@@ -176,9 +186,18 @@ class _RankingCard extends StatelessWidget {
                   entry.name,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                trailing: Text(
-                  '${_format(_points(entry))} pts',
-                  style: Theme.of(context).textTheme.titleMedium,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _StatBadge(label: 'Bons paris', value: _bons(entry)),
+                    const SizedBox(width: 10),
+                    _StatBadge(label: 'Exacts', value: _exacts(entry)),
+                    const SizedBox(width: 14),
+                    Text(
+                      '${_format(_points(entry))} pts',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
                 ),
               ),
               if (rank < sorted.length) const Divider(height: 1),
@@ -186,6 +205,39 @@ class _RankingCard extends StatelessWidget {
           );
         }).toList(),
       ),
+    );
+  }
+}
+
+/// Petite statistique empilée (valeur + libellé) affichée à gauche des points.
+class _StatBadge extends StatelessWidget {
+  const _StatBadge({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$value',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            color: scheme.primary,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }
