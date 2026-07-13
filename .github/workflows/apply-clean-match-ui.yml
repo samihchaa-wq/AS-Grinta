@@ -1,0 +1,162 @@
+name: Apply clean match UI
+
+on:
+  push:
+    branches:
+      - agent/clean-match-ui-centered-median
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/clean-match-ui-centered-median
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply UI refinements
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          matches = Path('lib/features/matches/presentation/matches_page.dart')
+          text = matches.read_text()
+          old = """              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _scoreLine(),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                  Chip(label: Text(match.statusLabel)),
+                ],
+              ),"""
+          new = """              Text(
+                _scoreLine(),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),"""
+          if old not in text:
+              raise SystemExit('Match card status block not found')
+          matches.write_text(text.replace(old, new))
+
+          details = Path('lib/features/matches/presentation/match_details_page.dart')
+          text = details.read_text()
+          status_block = """            Text(
+              details.status == 'archive'
+                  ? 'Archivé'
+                  : details.isValidated
+                      ? 'Terminé'
+                      : DateTime.now().isAfter(details.kickoffAt)
+                          ? 'En attente du résultat'
+                          : 'À venir',
+            ),
+"""
+          if status_block not in text:
+              raise SystemExit('Match details status block not found')
+          text = text.replace(status_block, '')
+          old_summary = """            _Section(
+              title: 'Buteurs',
+              children: scorers
+                  .map((line) => Text(
+                      '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
+                  .toList(),
+            ),
+            const SizedBox(height: 14),
+            _Section(
+              title: 'Clean sheet',
+              children: cleanSheets.map((line) => Text(line.name)).toList(),
+            ),"""
+          new_summary = """            if (scorers.isNotEmpty)
+              _Section(
+                title: 'Buteurs',
+                children: scorers
+                    .map((line) => Text(
+                        '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
+                    .toList(),
+              ),
+            if (scorers.isNotEmpty && cleanSheets.isNotEmpty)
+              const SizedBox(height: 14),
+            if (cleanSheets.isNotEmpty)
+              _Section(
+                title: 'Clean sheet',
+                children: cleanSheets.map((line) => Text(line.name)).toList(),
+              ),"""
+          if old_summary not in text:
+              raise SystemExit('Match summary block not found')
+          text = text.replace(old_summary, new_summary)
+          text = text.replace("        if (children.isEmpty) const Text('Aucun') else ...children,", "        ...children,")
+          details.write_text(text)
+
+          gauges = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          text = gauges.read_text()
+          text = text.replace(
+              "    final median = gauge.predictions.isEmpty ? null : gauge.median;",
+              "    final median = gauge.predictions.isEmpty\n        ? null\n        : gauge.median.roundToDouble();",
+          )
+          old_mapping = """        const markerRadius = 16.0;
+        final usable = math.max(1.0, constraints.maxWidth - markerRadius * 2);
+        double xFor(num value) {
+          final ratio = (value / math.max(1, maxValue)).clamp(0.0, 1.0);
+          return markerRadius + usable * ratio;
+        }
+"""
+          new_mapping = """        const markerRadius = 16.0;
+        final usable = math.max(1.0, constraints.maxWidth - markerRadius * 2);
+        final roundedMedian = median?.roundToDouble();
+        final centeredMax = roundedMedian == null
+            ? math.max(1.0, maxValue.toDouble())
+            : math.max(1.0, roundedMedian * 2);
+        final actualStronglyAboveMedian = roundedMedian != null &&
+            roundedMedian > 0 &&
+            actual > roundedMedian * 1.35;
+        final visualMax = actualStronglyAboveMedian
+            ? math.max(centeredMax, actual * 1.15)
+            : centeredMax;
+
+        double xFor(num value) {
+          final ratio = (value / visualMax).clamp(0.0, 1.0);
+          return markerRadius + usable * ratio;
+        }
+"""
+          if old_mapping not in text:
+              raise SystemExit('Gauge mapping block not found')
+          text = text.replace(old_mapping, new_mapping)
+          text = text.replace('if (median != null && median != actual)', 'if (roundedMedian != null && roundedMedian != actual)')
+          text = text.replace('left: xFor(median!) - markerRadius,', 'left: xFor(roundedMedian!) - markerRadius,')
+          text = text.replace('child: _MedianBubble(value: median!, accent: accent),', 'child: _MedianBubble(value: roundedMedian!, accent: accent),')
+          text = text.replace('        _formatGaugeValue(value),', "        value.round().toString(),")
+          text = re.sub(
+              r"\nString _formatGaugeValue\(double value\) \{.*?\n\}",
+              "",
+              text,
+              flags=re.S,
+          )
+          gauges.write_text(text)
+
+          page = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
+          text = page.read_text()
+          text = re.sub(
+              r"String _formatMedian\(double value\) \{.*?\n\}",
+              "String _formatMedian(double value) => value.round().toString();",
+              text,
+              flags=re.S,
+          )
+          page.write_text(text)
+          PY
+          dart format lib/features/matches/presentation/matches_page.dart lib/features/matches/presentation/match_details_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/premium_season_predictions_page.dart
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/matches_page.dart lib/features/matches/presentation/match_details_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/premium_season_predictions_page.dart
+          git diff --cached --quiet || git commit -m "Épurer les matchs et recentrer la médiane"
+          git push origin HEAD:agent/clean-match-ui-centered-median
