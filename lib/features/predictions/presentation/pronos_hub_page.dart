@@ -39,7 +39,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
                 ButtonSegment(
                   value: _PronosSection.season,
                   icon: Icon(Icons.calendar_month_outlined),
-                  label: Text('Saison'),
+                  label: Text('Buteur'),
                 ),
                 ButtonSegment(
                   value: _PronosSection.general,
