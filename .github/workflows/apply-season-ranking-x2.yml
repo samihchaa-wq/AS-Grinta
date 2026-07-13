@@ -25,16 +25,13 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           p = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
           t = p.read_text()
-          anchor = "import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart'\n    as legacy;\n"
-          if 'season_ranking_panel.dart' not in t:
-              t = t.replace(anchor, anchor + "import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';\n")
-          t = t.replace('enum _PremiumView { players, predictors }', 'enum _PremiumView { players, predictors, ranking }')
-          t = t.replace("""child: _view == _PremiumView.players
-                      ? _playersView(gauges, currentUserId)
-                      : _predictorView(gauges, predictors, currentUserId),""", """child: switch (_view) {
+          t = re.sub(
+              r"child: _view == _PremiumView\.players\s*\? _playersView\(gauges, currentUserId\)\s*: _predictorView\(gauges, predictors, currentUserId\),",
+              """child: switch (_view) {
                     _PremiumView.players => _playersView(gauges, currentUserId),
                     _PremiumView.predictors => _predictorView(gauges, predictors, currentUserId),
                     _PremiumView.ranking => const Column(
@@ -48,8 +45,12 @@ jobs:
                         SeasonRankingPanel(),
                       ],
                     ),
-                  },""")
-          old = """          Expanded(
+                  },""",
+              t,
+              count=1,
+          )
+          if "label: 'Classement saison'" not in t:
+              needle = """          Expanded(
             child: _SwitchItem(
               active: selected == _PremiumView.predictors,
               icon: Icons.group_outlined,
@@ -57,8 +58,7 @@ jobs:
               onTap: () => onChanged(_PremiumView.predictors),
             ),
           ),"""
-          if 'label: \'Classement saison\'' not in t:
-              t = t.replace(old, old + """
+              t = t.replace(needle, needle + """
           Expanded(
             child: _SwitchItem(
               active: selected == _PremiumView.ranking,
@@ -71,12 +71,10 @@ jobs:
 
           p = Path('lib/features/home/presentation/home_page.dart')
           t = p.read_text()
-          marker = """          if (!item.isClosed) ...[
-            const SizedBox(height: 16),
-            SizedBox("""
           if 'Activer le ×2' not in t:
-              t = t.replace(marker, """          if (!item.isClosed) ...[
-            const SizedBox(height: 16),
+              t = re.sub(
+                  r"(\s*if \(!item\.isClosed\) \.\.\.\[\s*const SizedBox\(height: 16\),)\s*(SizedBox\()",
+                  r"""\1
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
@@ -106,37 +104,17 @@ jobs:
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox(""")
-          p.write_text(t)
-
-          p = Path('lib/features/matches/data/match_details_repository.dart')
-          t = p.read_text()
-          if 'usedX2' not in t:
-              t = t.replace('required this.points,\n  });', 'required this.points,\n    required this.usedX2,\n  });')
-              t = t.replace('final double points;\n}', 'final double points;\n  final bool usedX2;\n}')
-              t = t.replace('profile_id,predicted_score_as_grinta,predicted_score_adverse,\n        profiles', 'profile_id,predicted_score_as_grinta,predicted_score_adverse,use_x2,\n        profiles')
-              t = t.replace('points: pointsByProfile[profileId] ?? 0,\n        );', "points: pointsByProfile[profileId] ?? 0,\n          usedX2: map['use_x2'] == true,\n        );")
-          p.write_text(t)
-
-          p = Path('lib/features/matches/presentation/match_details_page.dart')
-          t = p.read_text()
-          if 'prediction.usedX2' not in t:
-              t = t.replace("""Text(
-                          _points(prediction.points),
-                          textAlign: TextAlign.end,
-                        ),""", """Text(
-                          prediction.usedX2
-                              ? '${_points(prediction.points)} ⚡×2'
-                              : _points(prediction.points),
-                          textAlign: TextAlign.end,
-                        ),""")
+            \2""",
+                  t,
+                  count=1,
+              )
           p.write_text(t)
           PY
-          dart format lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/season_ranking_panel.dart lib/features/home/presentation/home_page.dart lib/features/matches/data/match_details_repository.dart lib/features/matches/presentation/match_details_page.dart lib/features/predictions/data/predictions_repository.dart lib/features/predictions/presentation/predictions_controller.dart lib/features/predictions/presentation/predictions_page.dart
+          dart format lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/home/presentation/home_page.dart
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "Intégrer le classement saison et les bonus x2"
+          git diff --cached --quiet || git commit -m "Finaliser le classement saison et les bonus x2"
           git push origin HEAD:agent/season-ranking-x2
