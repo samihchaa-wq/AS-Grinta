@@ -1,16 +1,15 @@
 name: Fix x100 odds and points
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/fix_x100_odds_points.yml'
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.event.issue.number == 43 && github.event.comment.body == '/fix-x100'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +21,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          # Keep decimal odds in the model and use AppFormats.odds only in UI.
           repo = Path('lib/features/predictions/data/predictions_repository.dart')
           text = repo.read_text()
           text = text.replace(
@@ -42,20 +40,13 @@ jobs:
 
     // Le moteur de points attend la cote décimale réelle, pas son affichage ×100.
     final decimalOdds = displayedOdds == null ? null : displayedOdds / 100;
-    final points = PredictionScoring.points(
 ''',
               '''    final decimalOdds = switch (actualResult) {
       1 => oddsWin,
       0 => oddsDraw,
       _ => oddsLoss,
     };
-
-    final points = PredictionScoring.points(
 ''',
-          )
-          text = text.replace(
-              '      baseOdds: decimalOdds,\n',
-              '      baseOdds: decimalOdds,\n',
           )
           old_helper = '''    double? displayOdds(Object? value) {
       final decimal = (value as num?)?.toDouble();
@@ -70,7 +61,6 @@ jobs:
           )
           repo.write_text(text)
 
-          # Home prediction card: show 155, 263, 283 instead of 155,00 etc.
           home = Path('lib/features/home/presentation/home_page.dart')
           text = home.read_text()
           old = '''  String _format(double? value) => value == null
@@ -87,7 +77,6 @@ jobs:
             raise SystemExit('Home odds formatter not found')
           home.write_text(text.replace(old, new, 1))
 
-          # Match details: display points in base 100, rounded to nearest integer.
           details = Path('lib/features/matches/presentation/match_details_page.dart')
           text = details.read_text()
           old = '''  String _points(double value) {
