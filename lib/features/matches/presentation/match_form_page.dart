@@ -246,7 +246,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     );
   }
 
-
   Future<void> _createOpponent() async {
     final controller = TextEditingController();
     final name = await showDialog<String>(
@@ -277,6 +276,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         .createOpponent(name.trim());
     if (!mounted || id == null) return;
     setState(() => _opponentId = id);
+
+    // L'équipe vient d'être ajoutée durablement à Supabase et sélectionnée dans
+    // le formulaire. Le moteur doit calculer immédiatement ses cotes prudentes,
+    // même lorsqu'aucune confrontation directe n'existe encore.
+    await _suggestOdds();
   }
 
   Future<void> _confirmDelete() async {
@@ -382,27 +386,24 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   String? _validateTime(String? raw) {
     final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(raw?.trim() ?? '');
-    if (match == null) return 'Format attendu : 21:00';
-    final hour = int.tryParse(match.group(1)!);
-    final minute = int.tryParse(match.group(2)!);
+    if (match == null) return 'Format attendu : HH:mm';
+    final hour = int.tryParse(match.group(1) ?? '');
+    final minute = int.tryParse(match.group(2) ?? '');
     if (hour == null || minute == null || hour > 23 || minute > 59) {
       return 'Heure invalide';
     }
     return null;
   }
 
-  String _formatDate(DateTime value) {
-    String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(value.day)}/${two(value.month)}/${value.year}';
-  }
+  String _formatDate(DateTime value) =>
+      '${value.day.toString().padLeft(2, '0')}/'
+      '${value.month.toString().padLeft(2, '0')}/${value.year}';
 
-  String _formatTime(DateTime value) {
-    String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(value.hour)}:${two(value.minute)}';
-  }
+  String _formatTime(DateTime value) =>
+      '${value.hour.toString().padLeft(2, '0')}:'
+      '${value.minute.toString().padLeft(2, '0')}';
 }
 
-/// Cote calculée, en lecture seule, affichée ×100 (ex. « 210 »).
 class _OddsDisplay extends StatelessWidget {
   const _OddsDisplay({required this.label, required this.value});
 
@@ -411,22 +412,25 @@ class _OddsDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: scheme.outline),
       ),
       child: Column(
         children: [
           Text(
-            AppFormats.odds(value),
-            style: Theme.of(context).textTheme.titleLarge,
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 2),
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          Text(
+            value == null ? '—' : AppFormats.odds(value!),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ],
       ),
     );
