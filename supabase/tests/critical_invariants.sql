@@ -66,6 +66,8 @@ begin
 end
 $$;
 
+grant select on critical_test_context to authenticated;
+
 select set_config(
   'request.jwt.claims',
   json_build_object(
