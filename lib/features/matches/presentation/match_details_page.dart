@@ -237,14 +237,8 @@ class _UpcomingInformation extends StatelessWidget {
     );
   }
 
-  static String _format(double? value) =>
-      value == null
-      ? '—'
-      : value
-          .toStringAsFixed(2)
-          .replaceFirst(RegExp(r'0+\$'), '')
-          .replaceFirst(RegExp(r'\.\$'), '')
-          .replaceAll('.', ',');
+  // Cote affichée ×100 (cosmétique) — la valeur réelle des points est inchangée.
+  static String _format(double? value) => AppFormats.odds(value);
 }
 
 class _MatchSummary extends StatelessWidget {
@@ -310,9 +304,10 @@ class _PredictionsTable extends StatelessWidget {
 
   final List<MatchPredictionResult> predictions;
 
+  // Points arrondis à l'entier supérieur.
   String _points(double value) {
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
-    return value.toStringAsFixed(1).replaceAll('.', ',');
+    return '${value.ceil()}';
   }
 
   @override

@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
@@ -18,9 +19,11 @@ class MatchFormPage extends ConsumerStatefulWidget {
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _timeController = TextEditingController();
-  final _oddsWinController = TextEditingController();
-  final _oddsDrawController = TextEditingController();
-  final _oddsLossController = TextEditingController();
+
+  // Cotes réelles (ex. 2.10). Affichées ×100 mais enregistrées telles quelles.
+  double? _oddsWin;
+  double? _oddsDraw;
+  double? _oddsLoss;
 
   late String _seasonId;
   late String _opponentId;
@@ -42,9 +45,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     setState(() {
       _suggestingOdds = false;
       if (odds != null) {
-        _oddsWinController.text = _formatOdds(odds.win);
-        _oddsDrawController.text = _formatOdds(odds.draw);
-        _oddsLossController.text = _formatOdds(odds.loss);
+        _oddsWin = odds.win;
+        _oddsDraw = odds.draw;
+        _oddsLoss = odds.loss;
       }
     });
   }
@@ -60,20 +63,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
-    _oddsWinController.text =
-        match?.oddsWin == null ? '' : _formatOdds(match!.oddsWin!);
-    _oddsDrawController.text =
-        match?.oddsDraw == null ? '' : _formatOdds(match!.oddsDraw!);
-    _oddsLossController.text =
-        match?.oddsLoss == null ? '' : _formatOdds(match!.oddsLoss!);
+    _oddsWin = match?.oddsWin;
+    _oddsDraw = match?.oddsDraw;
+    _oddsLoss = match?.oddsLoss;
   }
 
   @override
   void dispose() {
     _timeController.dispose();
-    _oddsWinController.dispose();
-    _oddsDrawController.dispose();
-    _oddsLossController.dispose();
     super.dispose();
   }
 
@@ -212,11 +209,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _oddsField(_oddsWinController, 'Victoire')),
+                Expanded(child: _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
                 const SizedBox(width: 8),
-                Expanded(child: _oddsField(_oddsDrawController, 'Nul')),
+                Expanded(child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
                 const SizedBox(width: 8),
-                Expanded(child: _oddsField(_oddsLossController, 'Défaite')),
+                Expanded(child: _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
               ],
             ),
             const SizedBox(height: 24),
@@ -249,14 +246,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     );
   }
 
-  Widget _oddsField(TextEditingController controller, String label) {
-    return TextFormField(
-      controller: controller,
-      readOnly: true,
-      decoration: InputDecoration(labelText: label),
-      validator: _validateOdds,
-    );
-  }
 
   Future<void> _createOpponent() async {
     final controller = TextEditingController();
@@ -342,6 +331,17 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final oddsWin = _oddsWin;
+    final oddsDraw = _oddsDraw;
+    final oddsLoss = _oddsLoss;
+    if (oddsWin == null || oddsDraw == null || oddsLoss == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sélectionne un adversaire pour calculer les cotes.'),
+        ),
+      );
+      return;
+    }
     final parts = _timeController.text.trim().split(':');
     _kickoffAt = DateTime(
       _kickoffAt.year,
@@ -351,9 +351,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       int.parse(parts[1]),
     );
     final notifier = ref.read(matchesControllerProvider.notifier);
-    final oddsWin = _parseOdds(_oddsWinController.text)!;
-    final oddsDraw = _parseOdds(_oddsDrawController.text)!;
-    final oddsLoss = _parseOdds(_oddsLossController.text)!;
     if (widget.match == null) {
       await notifier.createMatch(
         seasonId: _seasonId,
@@ -394,15 +391,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return null;
   }
 
-  String? _validateOdds(String? raw) {
-    final value = _parseOdds(raw ?? '');
-    if (value == null || value < 1.01 || value > 100) return '1,01 à 100';
-    return null;
-  }
-
-  double? _parseOdds(String raw) =>
-      double.tryParse(raw.trim().replaceAll(',', '.'));
-
   String _formatDate(DateTime value) {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.day)}/${two(value.month)}/${value.year}';
@@ -412,11 +400,35 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.hour)}:${two(value.minute)}';
   }
+}
 
-  String _formatOdds(double value) {
-    var text = value.toStringAsFixed(2);
-    text = text.replaceFirst(RegExp(r'0+$'), '');
-    text = text.replaceFirst(RegExp(r'\.$'), '');
-    return text.replaceAll('.', ',');
+/// Cote calculée, en lecture seule, affichée ×100 (ex. « 210 »).
+class _OddsDisplay extends StatelessWidget {
+  const _OddsDisplay({required this.label, required this.value});
+
+  final String label;
+  final double? value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outline),
+      ),
+      child: Column(
+        children: [
+          Text(
+            AppFormats.odds(value),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 2),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
   }
 }

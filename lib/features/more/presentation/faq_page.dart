@@ -45,12 +45,13 @@ class FaqPage extends StatelessWidget {
       answer:
           'Chaque issue (victoire, nul, défaite) a une cote. Tes points '
           'dépendent de ta précision :\n'
-          '• Score exact : cote × 20\n'
-          '• Bon vainqueur + bon écart de buts : cote × 15\n'
-          '• Bon vainqueur + score exact d’une équipe : cote × 15\n'
-          '• Bon vainqueur seulement : cote × 10\n'
+          '• Score exact : cote × 2\n'
+          '• Bon vainqueur + bon écart de buts : cote × 1,5\n'
+          '• Bon vainqueur + score exact d’une équipe : cote × 1,5\n'
+          '• Bon vainqueur seulement : cote × 1\n'
           '• Mauvais vainqueur ou pronostic non rempli : 0\n'
-          'Plus l’issue était improbable (cote élevée), plus elle rapporte.',
+          'Plus l’issue était improbable (cote élevée), plus elle rapporte. '
+          '(Les cotes sont affichées ×100 : « 210 » = 2,10.)',
     ),
     (
       question: 'D’où viennent les cotes ?',

@@ -340,13 +340,6 @@ class _OddsPill extends StatelessWidget {
   final String label;
   final double value;
 
-  String get _formatted {
-    var text = value.toStringAsFixed(2);
-    text = text.replaceFirst(RegExp(r'0+$'), '');
-    text = text.replaceFirst(RegExp(r'\.$'), '');
-    return text.replaceAll('.', ',');
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -368,7 +361,7 @@ class _OddsPill extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            _formatted,
+            AppFormats.odds(value),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,

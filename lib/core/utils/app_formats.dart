@@ -37,4 +37,10 @@ class AppFormats {
   /// Comme [plural] mais préfixé de la valeur : "0 but", "1 but", "2 buts".
   static String counted(int count, String singular, [String? pluralForm]) =>
       '$count ${plural(count, singular, pluralForm)}';
+
+  /// Cote affichée : la valeur réelle (ex. 2,10) est montrée ×100 en entier
+  /// (« 210 »). Purement cosmétique — la cote réelle utilisée pour les points
+  /// n'est pas modifiée.
+  static String odds(double? value) =>
+      value == null ? '—' : '${(value * 100).round()}';
 }
