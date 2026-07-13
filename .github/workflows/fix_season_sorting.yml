@@ -1,16 +1,15 @@
 name: Fix season prediction sorting
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/season-sorting-trigger'
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
 
 jobs:
   patch:
+    if: github.event.issue.title == 'RUN-SEASON-SORTING-FIX'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
