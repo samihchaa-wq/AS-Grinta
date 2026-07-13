@@ -252,14 +252,6 @@ class _UpcomingPredictionCard extends ConsumerWidget {
 
     return Column(
       children: [
-        details.when(
-          loading: () => const _LoadingCard(),
-          error: (_, __) => const _MessageCard(
-            message: 'Les derniers face-à-face sont indisponibles.',
-          ),
-          data: (data) => _HeadToHeadPanel(data: data),
-        ),
-        const SizedBox(height: 16),
         _Panel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,6 +431,14 @@ class _UpcomingPredictionCard extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        details.when(
+          loading: () => const _LoadingCard(),
+          error: (_, __) => const _MessageCard(
+            message: 'Les derniers face-à-face sont indisponibles.',
+          ),
+          data: (data) => _HeadToHeadPanel(data: data),
+        ),
       ],
     );
   }
@@ -461,7 +461,7 @@ class _HeadToHeadPanel extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '5 derniers face-à-face',
+                  'Les derniers face-à-face',
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
@@ -479,7 +479,9 @@ class _HeadToHeadPanel extends StatelessWidget {
           if (data.headToHead.isEmpty)
             const Text('Aucune confrontation précédente.')
           else
-            ...data.headToHead.map((match) => _HeadToHeadRow(match: match)),
+            ...data.headToHead
+                .take(5)
+                .map((match) => _HeadToHeadRow(match: match)),
         ],
       ),
     );
