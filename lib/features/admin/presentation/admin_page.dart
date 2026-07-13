@@ -123,7 +123,9 @@ class _SeasonCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final openSeasons = dashboard.seasons.where((item) => item.status == 'open');
+    final openSeasons = dashboard.seasons.where(
+      (item) => item.status == 'open',
+    );
     final openSeason = openSeasons.isEmpty ? null : openSeasons.first;
 
     return Card(
@@ -152,14 +154,15 @@ class _SeasonCard extends ConsumerWidget {
                 subtitle: Text(
                   openSeason.predictionsLocked
                       ? 'Fermés : les pronostics de chacun sont visibles par '
-                          'tous et figés. Le classement de saison tourne.'
+                            'tous et figés. Le classement de saison tourne.'
                       : 'Ouverts : chacun parie en secret. Ferme les paris '
-                          'pour les révéler à tous et lancer le classement.',
+                            'pour les révéler à tous et lancer le classement.',
                 ),
                 value: openSeason.predictionsLocked,
                 onChanged: (lock) async {
                   if (lock) {
-                    final confirmed = await showDialog<bool>(
+                    final confirmed =
+                        await showDialog<bool>(
                           context: context,
                           builder: (dialogContext) => AlertDialog(
                             title: const Text('Fermer les paris ?'),
@@ -240,7 +243,8 @@ class _SeasonCard extends ConsumerWidget {
     required String title,
     required String message,
   }) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(title),
@@ -260,13 +264,15 @@ class _SeasonCard extends ConsumerWidget {
         false;
     if (!confirmed) return;
     try {
-      await ref.read(adminRepositoryProvider).setSeasonStatus(season.id, status);
+      await ref
+          .read(adminRepositoryProvider)
+          .setSeasonStatus(season.id, status);
       ref.invalidate(adminDashboardProvider);
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
@@ -315,9 +321,9 @@ class _SeasonCard extends ConsumerWidget {
       }
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     }
   }
@@ -346,10 +352,7 @@ class _ProfilesSection extends StatelessWidget {
             Icon(icon, size: 22),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
             ),
             Chip(
               visualDensity: VisualDensity.compact,
@@ -390,21 +393,20 @@ class _ProfileCard extends ConsumerWidget {
     final isSelf = currentUserId != null && currentUserId == profile.id;
     final isPending = profile.status == 'pending';
 
-    Future<void> run(
-      Future<void> Function() action, {
-      String? success,
-    }) async {
+    Future<void> run(Future<void> Function() action, {String? success}) async {
       try {
         await action();
         ref.invalidate(adminDashboardProvider);
         if (success != null && context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(success)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(success)));
         }
       } catch (error) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
         }
       }
     }
@@ -456,7 +458,8 @@ class _ProfileCard extends ConsumerWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: () => run(
-                      () => repository.updateProfileStatus(profile.id, 'active'),
+                      () =>
+                          repository.updateProfileStatus(profile.id, 'active'),
                       success:
                           '${profile.displayName} peut maintenant se connecter.',
                     ),
