@@ -1,15 +1,16 @@
 name: Sort season predictions by distance
 
 on:
-  issues:
-    types: [opened]
+  push:
+    branches: [main]
+    paths:
+      - '.github/sort-predictions-trigger'
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.event.issue.title == 'RUN-SORT-PREDICTIONS-BY-DISTANCE'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,10 +50,8 @@ jobs:
             raise SystemExit('prediction sort block not found')
           text = text.replace(old_sort, new_sort, 1)
 
-          old_rank_call = '''                    rank: _rankFor(predictions, index),
-'''
-          new_rank_call = '''                    rank: _rankFor(predictions, index, gauge.actual),
-'''
+          old_rank_call = '                    rank: _rankFor(predictions, index),\n'
+          new_rank_call = '                    rank: _rankFor(predictions, index, gauge.actual),\n'
           if old_rank_call not in text:
             raise SystemExit('rank call not found')
           text = text.replace(old_rank_call, new_rank_call, 1)
@@ -83,6 +82,8 @@ jobs:
             raise SystemExit('rank method not found')
           text = text.replace(old_rank, new_rank, 1)
 
+          Path('.github/sort-predictions-trigger').unlink(missing_ok=True)
+          Path('.github/workflows/sort_predictions_by_distance.yml').unlink()
           path.write_text(text)
           PY
 
@@ -90,6 +91,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+          git add -A
           git commit -m "Trier les pronostics par proximité du résultat actuel"
           git push
