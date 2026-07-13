@@ -328,3 +328,8 @@ class SeasonPredictionsRepository {
     );
   }
 }
+
+final seasonPredictionsRepositoryProvider =
+    Provider<SeasonPredictionsRepository>((ref) {
+  return SeasonPredictionsRepository(ref.watch(supabaseClientProvider));
+});
