@@ -3,12 +3,7 @@ import 'package:as_grinta/core/design_system/foundations/grinta_spacing.dart';
 import 'package:flutter/material.dart';
 
 /// Visual hierarchy available to application actions.
-enum GrintaButtonVariant {
-  primary,
-  secondary,
-  tertiary,
-  destructive,
-}
+enum GrintaButtonVariant { primary, secondary, tertiary, destructive }
 
 /// Shared action button for the Ma Petite Grinta interface.
 ///
@@ -61,34 +56,31 @@ class GrintaButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final button = switch (variant) {
       GrintaButtonVariant.primary => FilledButton(
-          onPressed: _effectiveOnPressed,
-          child: _content,
-        ),
+        onPressed: _effectiveOnPressed,
+        child: _content,
+      ),
       GrintaButtonVariant.secondary => OutlinedButton(
-          onPressed: _effectiveOnPressed,
-          child: _content,
-        ),
+        onPressed: _effectiveOnPressed,
+        child: _content,
+      ),
       GrintaButtonVariant.tertiary => TextButton(
-          onPressed: _effectiveOnPressed,
-          child: _content,
-        ),
+        onPressed: _effectiveOnPressed,
+        child: _content,
+      ),
       GrintaButtonVariant.destructive => FilledButton(
-          onPressed: _effectiveOnPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.error,
-            foregroundColor: Theme.of(context).colorScheme.onError,
-          ),
-          child: _content,
+        onPressed: _effectiveOnPressed,
+        style: FilledButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.error,
+          foregroundColor: Theme.of(context).colorScheme.onError,
         ),
+        child: _content,
+      ),
     };
 
     if (!expand) {
       return button;
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: button,
-    );
+    return SizedBox(width: double.infinity, child: button);
   }
 }
