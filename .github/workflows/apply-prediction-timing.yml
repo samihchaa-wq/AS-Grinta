@@ -1,0 +1,70 @@
+name: Apply prediction timing
+
+on:
+  push:
+    branches: [test/predictions-controller-rules]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Add deterministic timing helpers
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/data/predictions_repository.dart')
+          text = path.read_text()
+          old = """  DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
+  bool get isClosed =>
+      status != 'a_venir' ||
+      !DateTime.now().isBefore(closesAt) ||
+      (predictionsClosedAt != null &&
+          !DateTime.now().isBefore(predictionsClosedAt!));
+  bool get canEdit => !isClosed;
+"""
+          new = """  DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
+
+  bool isClosedAt(DateTime now) =>
+      status != 'a_venir' ||
+      !now.isBefore(closesAt) ||
+      (predictionsClosedAt != null && !now.isBefore(predictionsClosedAt!));
+
+  bool canEditAt(DateTime now) => !isClosedAt(now);
+  bool get isClosed => isClosedAt(DateTime.now());
+  bool get canEdit => canEditAt(DateTime.now());
+"""
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one timing block, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+
+      - run: dart format lib/features/predictions/data/predictions_repository.dart test/predictions_controller_test.dart
+
+      - name: Commit and clean workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/apply-prediction-timing.yml
+          rm -f .github/apply-prediction-timing-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "refactor(predictions): make closure timing testable"
+          git push origin HEAD:test/predictions-controller-rules
