@@ -1,15 +1,16 @@
 name: Reorder head to head
 
 on:
-  issues:
-    types: [opened]
+  push:
+    branches: [main]
+    paths:
+      - '.github/reorder-head-to-head-v2.trigger'
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.event.issue.title == 'RUN-REORDER-HEAD-TO-HEAD'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,7 +25,7 @@ jobs:
           pronos = Path('lib/features/predictions/presentation/pronos_hub_page.dart')
           text = pronos.read_text()
 
-          opening = '''    return Column(
+          before = '''    return Column(
       children: [
         details.when(
           loading: () => const _LoadingCard(),
@@ -36,15 +37,15 @@ jobs:
         const SizedBox(height: 16),
         _Panel(
 '''
-          replacement = '''    return Column(
+          after = '''    return Column(
       children: [
         _Panel(
 '''
-          if opening not in text:
-            raise SystemExit('Opening pronos block not found')
-          text = text.replace(opening, replacement, 1)
+          if before not in text:
+            raise SystemExit('pronos opening block not found')
+          text = text.replace(before, after, 1)
 
-          tail = '''          ),
+          marker = '''          ),
         ),
       ],
     );
@@ -53,7 +54,7 @@ jobs:
 
 class _HeadToHeadPanel extends StatelessWidget {
 '''
-          tail_replacement = '''          ),
+          moved = '''          ),
         ),
         const SizedBox(height: 16),
         details.when(
@@ -70,20 +71,20 @@ class _HeadToHeadPanel extends StatelessWidget {
 
 class _HeadToHeadPanel extends StatelessWidget {
 '''
-          if tail not in text:
-            raise SystemExit('Closing pronos block not found')
-          text = text.replace(tail, tail_replacement, 1)
+          if marker not in text:
+            raise SystemExit('pronos closing block not found')
+          text = text.replace(marker, moved, 1)
           text = text.replace("'5 derniers face-à-face'", "'Les derniers face-à-face'", 1)
           text = text.replace(
-              '...data.headToHead.map((match) => _HeadToHeadRow(match: match)),',
-              '...data.headToHead.take(5).map((match) => _HeadToHeadRow(match: match)),',
-              1,
+            '...data.headToHead.map((match) => _HeadToHeadRow(match: match)),',
+            '...data.headToHead.take(5).map((match) => _HeadToHeadRow(match: match)),',
+            1,
           )
           pronos.write_text(text)
 
-          details_page = Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart')
-          details_text = details_page.read_text()
-          old_order = '''                const SizedBox(height: 16),
+          page = Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart')
+          text = page.read_text()
+          before = '''                const SizedBox(height: 16),
                 details.when(
                   loading: () => const Card(
                     child: Padding(
@@ -97,7 +98,7 @@ class _HeadToHeadPanel extends StatelessWidget {
                 const SizedBox(height: 16),
                 _predictionCard(item),
 '''
-          new_order = '''                const SizedBox(height: 16),
+          after = '''                const SizedBox(height: 16),
                 _predictionCard(item),
                 const SizedBox(height: 16),
                 details.when(
@@ -111,23 +112,23 @@ class _HeadToHeadPanel extends StatelessWidget {
                   data: _historyCard,
                 ),
 '''
-          if old_order not in details_text:
-            raise SystemExit('Match details order block not found')
-          details_text = details_text.replace(old_order, new_order, 1)
-          details_text = details_text.replace("'5 derniers face-à-face'", "'Les derniers face-à-face'", 1)
-          details_text = details_text.replace(
-              '...details.headToHead.map(_historyRow),',
-              '...details.headToHead.take(5).map(_historyRow),',
-              1,
+          if before not in text:
+            raise SystemExit('details order block not found')
+          text = text.replace(before, after, 1)
+          text = text.replace("'5 derniers face-à-face'", "'Les derniers face-à-face'", 1)
+          text = text.replace(
+            '...details.headToHead.map(_historyRow),',
+            '...details.headToHead.take(5).map(_historyRow),',
+            1,
           )
-          details_page.write_text(details_text)
+          page.write_text(text)
           PY
 
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/predictions/presentation/pronos_hub_page.dart
-          git add lib/features/matches/presentation/upcoming_match_prediction_page.dart
+          rm -f .github/reorder-head-to-head-v2.trigger
+          git add -A
           git commit -m "Placer les derniers face-à-face sous le pronostic"
           git push
