@@ -4,6 +4,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart'
     as legacy;
+import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,10 +15,10 @@ final premiumSeasonLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 
 final premiumSeasonGaugesProvider =
     FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
-      return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
-    });
+  return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
+});
 
-enum _PremiumView { players, predictors }
+enum _PremiumView { players, predictors, ranking }
 
 class PremiumSeasonPredictionsPage extends ConsumerStatefulWidget {
   const PremiumSeasonPredictionsPage({super.key});
@@ -76,12 +77,10 @@ class _PremiumSeasonPredictionsPageState
             );
           }
 
-          final currentUserId = ref
-              .read(seasonPredictionsRepositoryProvider)
-              .currentUserId;
+          final currentUserId =
+              ref.read(seasonPredictionsRepositoryProvider).currentUserId;
           final predictors = _predictors(gauges);
-          _selectedPredictorId ??=
-              currentUserId != null &&
+          _selectedPredictorId ??= currentUserId != null &&
                   predictors.any((item) => item.id == currentUserId)
               ? currentUserId
               : predictors.firstOrNull?.id;
@@ -94,9 +93,9 @@ class _PremiumSeasonPredictionsPageState
                 Text(
                   '${predictors.length} pronostiqueurs',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Colors.white60,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: Colors.white60,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
                 const SizedBox(height: 18),
                 _PremiumSwitcher(
@@ -106,9 +105,12 @@ class _PremiumSeasonPredictionsPageState
                 const SizedBox(height: 24),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
-                  child: _view == _PremiumView.players
-                      ? _playersView(gauges, currentUserId)
-                      : _predictorView(gauges, predictors, currentUserId),
+                  child: switch (_view) {
+                    _PremiumView.players => _playersView(gauges, currentUserId),
+                    _PremiumView.predictors =>
+                      _predictorView(gauges, predictors, currentUserId),
+                    _PremiumView.ranking => const _SeasonRankingView(),
+                  },
                 ),
               ],
             ),
@@ -129,7 +131,7 @@ class _PremiumSeasonPredictionsPageState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (scorers.isNotEmpty) ...[
-          _SectionHeader(
+          const _SectionHeader(
             asset: 'assets/images/scorer_logo.png',
             title: 'Buteurs',
             subtitle: 'Échelle commune',
@@ -146,7 +148,7 @@ class _PremiumSeasonPredictionsPageState
           const SizedBox(height: 20),
         ],
         if (keepers.isNotEmpty) ...[
-          _SectionHeader(
+          const _SectionHeader(
             asset: 'assets/images/keeper_logo.png',
             title: 'Gardiens',
             subtitle: 'Clean sheets',
@@ -174,21 +176,14 @@ class _PremiumSeasonPredictionsPageState
   ) {
     final selectedId = _selectedPredictorId;
     final selected = predictors.where((item) => item.id == selectedId).toList();
-    final selectedName = selected.isEmpty
-        ? 'Pronostiqueur'
-        : selected.first.name;
+    final selectedName =
+        selected.isEmpty ? 'Pronostiqueur' : selected.first.name;
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
-      ..sort(
-        (a, b) => (b.predictionFor(selectedId)?.value ?? -1).compareTo(
-          a.predictionFor(selectedId)?.value ?? -1,
-        ),
-      );
+      ..sort((a, b) => (b.predictionFor(selectedId)?.value ?? -1)
+          .compareTo(a.predictionFor(selectedId)?.value ?? -1));
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
-      ..sort(
-        (a, b) => (b.predictionFor(selectedId)?.value ?? -1).compareTo(
-          a.predictionFor(selectedId)?.value ?? -1,
-        ),
-      );
+      ..sort((a, b) => (b.predictionFor(selectedId)?.value ?? -1)
+          .compareTo(a.predictionFor(selectedId)?.value ?? -1));
 
     return Column(
       key: const ValueKey('premium-predictors'),
@@ -224,15 +219,17 @@ class _PremiumSeasonPredictionsPageState
         const SizedBox(height: 20),
         Text(
           selectedName,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontWeight: FontWeight.w900),
         ),
         Text(
           'Sa fiche complète de pronostics',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: Colors.white54),
+          style: Theme.of(context)
+              .textTheme
+              .bodyMedium
+              ?.copyWith(color: Colors.white54),
         ),
         const SizedBox(height: 18),
         if (scorers.isNotEmpty) ...[
@@ -291,17 +288,18 @@ class _PremiumSeasonPredictionsPageState
           children: [
             Text(
               gauge.playerName,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 2),
             Text(
-              'Médiane : ${_formatMedian(gauge.median)} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
+              'Médiane : ${gauge.median.round()} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: accent,
-                fontWeight: FontWeight.w900,
-              ),
+                    color: accent,
+                    fontWeight: FontWeight.w900,
+                  ),
             ),
             const SizedBox(height: 14),
             const Text(
@@ -317,6 +315,7 @@ class _PremiumSeasonPredictionsPageState
   Future<void> _refresh() async {
     ref.invalidate(premiumSeasonLockedProvider);
     ref.invalidate(premiumSeasonGaugesProvider);
+    ref.invalidate(leaderboardProvider);
     await ref.read(premiumSeasonGaugesProvider.future);
   }
 
@@ -335,10 +334,36 @@ class _PremiumSeasonPredictionsPageState
         byId[prediction.predictorId] = prediction.predictorName;
       }
     }
-    final result =
-        byId.entries.map((entry) => (id: entry.key, name: entry.value)).toList()
-          ..sort((a, b) => a.name.compareTo(b.name));
+    final result = byId.entries
+        .map((entry) => (id: entry.key, name: entry.value))
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
     return result;
+  }
+}
+
+class _SeasonRankingView extends StatelessWidget {
+  const _SeasonRankingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      key: ValueKey('season-ranking'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Classement saison',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'État actuel selon les buts et clean sheets déjà enregistrés.',
+          style: TextStyle(color: Colors.white60),
+        ),
+        SizedBox(height: 14),
+        SeasonRankingPanel(),
+      ],
+    );
   }
 }
 
@@ -375,6 +400,14 @@ class _PremiumSwitcher extends StatelessWidget {
               onTap: () => onChanged(_PremiumView.predictors),
             ),
           ),
+          Expanded(
+            child: _SwitchItem(
+              active: selected == _PremiumView.ranking,
+              icon: Icons.emoji_events_outlined,
+              label: 'Classement saison',
+              onTap: () => onChanged(_PremiumView.ranking),
+            ),
+          ),
         ],
       ),
     );
@@ -401,7 +434,7 @@ class _SwitchItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(21),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 4),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(21),
           gradient: active
@@ -418,20 +451,20 @@ class _SwitchItem extends StatelessWidget {
                 ]
               : null,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 21),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: active ? FontWeight.w900 : FontWeight.w700,
-                  color: active ? Colors.white : Colors.white60,
-                ),
+            Icon(icon, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: active ? FontWeight.w900 : FontWeight.w700,
+                color: active ? Colors.white : Colors.white60,
               ),
             ),
           ],
@@ -464,9 +497,10 @@ class _SectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               Text(subtitle, style: const TextStyle(color: Colors.white54)),
             ],
@@ -532,9 +566,10 @@ class _SmallTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 9),
       child: Text(
         label,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium
+            ?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -634,9 +669,4 @@ class _PredictorRow extends StatelessWidget {
 
 extension<T> on List<T> {
   T? get firstOrNull => isEmpty ? null : first;
-}
-
-String _formatMedian(double value) {
-  if (value == value.roundToDouble()) return value.toInt().toString();
-  return value.toStringAsFixed(1).replaceAll('.', ',');
 }
