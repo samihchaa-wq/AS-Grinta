@@ -1,4 +1,6 @@
 import 'package:as_grinta/core/design_system/foundations/grinta_colors.dart';
+import 'package:as_grinta/core/design_system/foundations/grinta_elevation.dart';
+import 'package:as_grinta/core/design_system/foundations/grinta_radii.dart';
 import 'package:as_grinta/core/design_system/foundations/grinta_typography.dart';
 import 'package:flutter/material.dart';
 
@@ -60,7 +62,7 @@ abstract final class AppTheme {
         backgroundColor: GrintaColors.transparent,
         surfaceTintColor: GrintaColors.transparent,
         foregroundColor: GrintaColors.contentPrimary,
-        elevation: 0,
+        elevation: GrintaElevation.flat,
         centerTitle: false,
         titleTextStyle: TextStyle(
           fontSize: 21,
@@ -77,13 +79,13 @@ abstract final class AppTheme {
         ),
         iconTheme: IconThemeData(color: GrintaColors.contentPrimary),
       ),
-      cardTheme: CardThemeData(
+      cardTheme: const CardThemeData(
         color: GrintaColors.surfaceRaised,
-        elevation: 0,
+        elevation: GrintaElevation.flat,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: GrintaColors.borderDefault),
+          borderRadius: GrintaRadii.cardRadius,
+          side: BorderSide(color: GrintaColors.borderDefault),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -93,8 +95,8 @@ abstract final class AppTheme {
           disabledBackgroundColor: GrintaColors.surfaceElevated,
           disabledForegroundColor: GrintaColors.contentDisabled,
           minimumSize: const Size(64, 52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+          shape: const RoundedRectangleBorder(
+            borderRadius: GrintaRadii.controlRadius,
           ),
           textStyle: GrintaTypography.darkTextTheme.labelLarge,
         ),
@@ -104,8 +106,8 @@ abstract final class AppTheme {
           foregroundColor: GrintaColors.contentPrimary,
           minimumSize: const Size(64, 52),
           side: const BorderSide(color: GrintaColors.borderDefault),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+          shape: const RoundedRectangleBorder(
+            borderRadius: GrintaRadii.controlRadius,
           ),
           textStyle: GrintaTypography.darkTextTheme.labelLarge,
         ),
@@ -127,17 +129,17 @@ abstract final class AppTheme {
         floatingLabelStyle: GrintaTypography.darkTextTheme.labelMedium?.copyWith(
           color: GrintaColors.brandContent,
         ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: GrintaColors.borderDefault),
+        border: const OutlineInputBorder(
+          borderRadius: GrintaRadii.fieldRadius,
+          borderSide: BorderSide(color: GrintaColors.borderDefault),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: GrintaColors.borderDefault),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: GrintaRadii.fieldRadius,
+          borderSide: BorderSide(color: GrintaColors.borderDefault),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: GrintaRadii.fieldRadius,
+          borderSide: BorderSide(
             color: GrintaColors.accentPrimary,
             width: 1.6,
           ),
@@ -161,16 +163,24 @@ abstract final class AppTheme {
           side: WidgetStateProperty.all(
             const BorderSide(color: GrintaColors.borderDefault),
           ),
+          shape: WidgetStateProperty.all(
+            const RoundedRectangleBorder(
+              borderRadius: GrintaRadii.controlRadius,
+            ),
+          ),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: GrintaColors.surfaceElevated,
         side: const BorderSide(color: GrintaColors.borderDefault),
         labelStyle: GrintaTypography.darkTextTheme.labelMedium,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: GrintaRadii.badgeRadius,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
+        elevation: GrintaElevation.flat,
         backgroundColor: GrintaColors.surfaceRaised,
         indicatorColor: GrintaColors.actionPrimary,
         surfaceTintColor: GrintaColors.transparent,
@@ -194,6 +204,11 @@ abstract final class AppTheme {
       dialogTheme: const DialogThemeData(
         backgroundColor: GrintaColors.surfaceRaised,
         surfaceTintColor: GrintaColors.transparent,
+        elevation: GrintaElevation.modal,
+        shape: RoundedRectangleBorder(
+          borderRadius: GrintaRadii.dialogRadius,
+          side: BorderSide(color: GrintaColors.borderSubtle),
+        ),
         titleTextStyle: TextStyle(
           fontSize: 21,
           height: 1.29,
@@ -222,6 +237,11 @@ abstract final class AppTheme {
       ),
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: GrintaColors.surfaceElevated,
+        elevation: GrintaElevation.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: GrintaRadii.controlRadius,
+          side: BorderSide(color: GrintaColors.borderSubtle),
+        ),
         contentTextStyle: TextStyle(
           fontSize: 14,
           height: 1.5,
@@ -240,8 +260,12 @@ abstract final class AppTheme {
         color: GrintaColors.accentPrimary,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        elevation: GrintaElevation.floating,
         backgroundColor: GrintaColors.accentPrimary,
         foregroundColor: GrintaColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: GrintaRadii.controlRadius,
+        ),
       ),
       dividerTheme: const DividerThemeData(
         color: GrintaColors.borderSubtle,
