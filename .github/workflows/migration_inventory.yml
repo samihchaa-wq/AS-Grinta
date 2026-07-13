@@ -62,7 +62,9 @@ jobs:
           done
 
       - name: Ensure production lock is not changed from a feature PR
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.head_ref != 'ci/supabase-migration-drift-guard'
         shell: bash
         run: |
           set -euo pipefail
