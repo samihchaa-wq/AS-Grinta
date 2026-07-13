@@ -14,11 +14,6 @@ class AppShell extends ConsumerWidget {
 
   static const _destinations = <_ModuleDestination>[
     _ModuleDestination(
-      route: '/home',
-      label: 'Accueil',
-      icon: Icons.home_rounded,
-    ),
-    _ModuleDestination(
       route: '/matches',
       label: 'Matchs',
       icon: Icons.sports_soccer_rounded,
@@ -50,7 +45,9 @@ class AppShell extends ConsumerWidget {
         ? '/more'
         : location.startsWith('/predictions')
             ? '/pronos'
-            : location;
+            : location == '/home'
+                ? '/matches'
+                : location;
 
     final index = _destinations.indexWhere(
       (destination) => normalizedLocation == destination.route ||
