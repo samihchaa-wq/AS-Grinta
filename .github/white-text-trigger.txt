@@ -1,1 +1,1 @@
-apply white text palette
+apply white text palette and export logos
