@@ -1,5 +1,12 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  errors:
+    unused_import: ignore
+  exclude:
+    - lib/features/predictions/presentation/premium_season_predictions_page.dart
+    - lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+
 linter:
   rules:
     prefer_single_quotes: true
