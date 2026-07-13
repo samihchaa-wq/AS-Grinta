@@ -2,7 +2,6 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
-import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
@@ -121,7 +120,7 @@ class _MatchesSectionState extends ConsumerState<_MatchesSection> {
           ),
           const SizedBox(height: 24),
           Text(
-            'Classement matchs',
+            'Classement des matchs',
             style: Theme.of(context)
                 .textTheme
                 .headlineSmall
@@ -131,7 +130,7 @@ class _MatchesSectionState extends ConsumerState<_MatchesSection> {
           leaderboard.when(
             loading: () => const _LoadingCard(),
             error: (_, __) => const _MessageCard(
-              message: 'Le classement matchs est indisponible.',
+              message: 'Le classement des matchs est indisponible.',
             ),
             data: (entries) => _LeaderboardCard(
               entries: entries,
@@ -386,6 +385,12 @@ class _LeaderboardCard extends StatelessWidget {
   final double Function(LeaderboardEntry) points;
   final bool showMatchStats;
 
+  String _goodPredictionsLabel(int count) =>
+      '$count bon${count > 1 ? 's' : ''} pronostic${count > 1 ? 's' : ''}';
+
+  String _exactScoresLabel(int count) =>
+      '$count score${count > 1 ? 's' : ''} exact${count > 1 ? 's' : ''}';
+
   @override
   Widget build(BuildContext context) {
     final sorted = [...entries]
@@ -415,8 +420,8 @@ class _LeaderboardCard extends StatelessWidget {
               ),
               subtitle: showMatchStats
                   ? Text(
-                      '${sorted[index].matchBons} bons paris · '
-                      '${sorted[index].matchExacts} exacts',
+                      '${_goodPredictionsLabel(sorted[index].matchBons)} · '
+                      '${_exactScoresLabel(sorted[index].matchExacts)}',
                     )
                   : Text(
                       'Matchs ${(sorted[index].matchPoints * 100).round()} · '
