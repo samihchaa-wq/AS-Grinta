@@ -163,8 +163,6 @@ class _MatchHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // L'ordre d'écriture indique déjà le lieu : AS Grinta en premier = domicile,
-    // en second = extérieur. On n'affiche donc pas « Domicile / Extérieur ».
     final home = details.location == 'domicile';
     final grinta = details.scoreGrinta ?? 0;
     final adverse = details.scoreOpponent ?? 0;
@@ -188,15 +186,6 @@ class _MatchHeader extends StatelessWidget {
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
-            Text(
-              details.status == 'archive'
-                  ? 'Archivé'
-                  : details.isValidated
-                      ? 'Terminé'
-                      : DateTime.now().isAfter(details.kickoffAt)
-                          ? 'En attente du résultat'
-                          : 'À venir',
-            ),
           ],
         ),
       ),
@@ -237,7 +226,6 @@ class _UpcomingInformation extends StatelessWidget {
     );
   }
 
-  // Cote affichée ×100 (cosmétique) — la valeur réelle des points est inchangée.
   static String _format(double? value) => AppFormats.odds(value);
 }
 
@@ -261,18 +249,24 @@ class _MatchSummary extends StatelessWidget {
           children: [
             Text('Résumé du match', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
-            _Section(
-              title: 'Buteurs',
-              children: scorers
-                  .map((line) => Text(
-                      '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}'))
-                  .toList(),
-            ),
-            const SizedBox(height: 14),
-            _Section(
-              title: 'Clean sheet',
-              children: cleanSheets.map((line) => Text(line.name)).toList(),
-            ),
+            if (scorers.isNotEmpty)
+              _Section(
+                title: 'Buteurs',
+                children: scorers
+                    .map(
+                      (line) => Text(
+                        '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}',
+                      ),
+                    )
+                    .toList(),
+              ),
+            if (scorers.isNotEmpty && cleanSheets.isNotEmpty)
+              const SizedBox(height: 14),
+            if (cleanSheets.isNotEmpty)
+              _Section(
+                title: 'Clean sheet',
+                children: cleanSheets.map((line) => Text(line.name)).toList(),
+              ),
           ],
         ),
       ),
@@ -293,7 +287,7 @@ class _Section extends StatelessWidget {
       children: [
         Text(title, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 6),
-        if (children.isEmpty) const Text('Aucun') else ...children,
+        ...children,
       ],
     );
   }
@@ -304,7 +298,6 @@ class _PredictionsTable extends StatelessWidget {
 
   final List<MatchPredictionResult> predictions;
 
-  // Points arrondis à l'entier supérieur.
   String _points(double value) {
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
     return '${value.ceil()}';

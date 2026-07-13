@@ -78,7 +78,8 @@ class PlayerGauge {
   final List<GaugeMarker> markers;
   final int maxValue;
 
-  List<int> get values => predictions.map((prediction) => prediction.value).toList();
+  List<int> get values =>
+      predictions.map((prediction) => prediction.value).toList();
 
   double get average {
     if (predictions.isEmpty) return 0;
@@ -89,8 +90,10 @@ class PlayerGauge {
     if (predictions.isEmpty) return 0;
     final sorted = [...values]..sort();
     final middle = sorted.length ~/ 2;
-    if (sorted.length.isOdd) return sorted[middle].toDouble();
-    return (sorted[middle - 1] + sorted[middle]) / 2;
+    final raw = sorted.length.isOdd
+        ? sorted[middle].toDouble()
+        : (sorted[middle - 1] + sorted[middle]) / 2;
+    return raw.roundToDouble();
   }
 
   int get minimum => predictions.isEmpty
@@ -126,8 +129,6 @@ class SeasonPredictionsRepository {
     return season?['id']?.toString();
   }
 
-  /// Vrai quand les pronostics de saison ont été fermés par le staff (ou
-  /// qu'aucune saison n'est ouverte).
   Future<bool> isLocked() async {
     final season = await _client
         .from('seasons')
@@ -203,7 +204,6 @@ class SeasonPredictionsRepository {
     return result;
   }
 
-  /// Données synthétiques et détaillées des jauges de saison.
   Future<List<PlayerGauge>> fetchGauges() async {
     final seasonId = await _openSeasonId();
     if (seasonId == null) return const [];
@@ -268,16 +268,17 @@ class SeasonPredictionsRepository {
             .add(prediction);
       }
       final markers = markersByValue.entries
-          .map((entry) => GaugeMarker(
-                value: entry.key,
-                predictions: entry.value,
-              ))
+          .map(
+            (entry) => GaugeMarker(
+              value: entry.key,
+              predictions: entry.value,
+            ),
+          )
           .toList()
         ..sort((a, b) => a.value.compareTo(b.value));
 
-      final maxMarker = playerPredictions.isEmpty
-          ? 0
-          : playerPredictions.first.value;
+      final maxMarker =
+          playerPredictions.isEmpty ? 0 : playerPredictions.first.value;
       final maxValue = [actual, maxMarker, isGoalkeeper ? 15 : 20]
           .reduce((a, b) => a > b ? a : b);
 

@@ -132,16 +132,9 @@ class _MatchCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _scoreLine(),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  Chip(label: Text(match.statusLabel)),
-                ],
+              Text(
+                _scoreLine(),
+                style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 6),
               Text(_formatKickoff(match.kickoffAt)),
@@ -232,8 +225,6 @@ class _MatchCard extends StatelessWidget {
   }
 
   String _formatKickoff(DateTime value) {
-    // Pas besoin d'afficher Domicile/Extérieur : l'ordre d'écriture le dit déjà
-    // (1er = domicile, 2e = extérieur).
     String two(int number) => number.toString().padLeft(2, '0');
     return '${two(value.day)}/${two(value.month)}/${value.year} • '
         '${two(value.hour)}h${two(value.minute)}';
