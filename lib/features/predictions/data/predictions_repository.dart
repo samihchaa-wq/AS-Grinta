@@ -39,12 +39,15 @@ class MatchPredictionItem {
   final DateTime? predictionsClosedAt;
 
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
-  bool get isClosed =>
+
+  bool isClosedAt(DateTime now) =>
       status != 'a_venir' ||
-      !DateTime.now().isBefore(closesAt) ||
-      (predictionsClosedAt != null &&
-          !DateTime.now().isBefore(predictionsClosedAt!));
-  bool get canEdit => !isClosed;
+      !now.isBefore(closesAt) ||
+      (predictionsClosedAt != null && !now.isBefore(predictionsClosedAt!));
+
+  bool canEditAt(DateTime now) => !isClosedAt(now);
+  bool get isClosed => isClosedAt(DateTime.now());
+  bool get canEdit => canEditAt(DateTime.now());
   bool get hasResult =>
       actualScoreGrinta != null && actualScoreOpponent != null;
 
@@ -103,7 +106,8 @@ class PredictionsRepository {
         .order('match_time', ascending: true)
         .limit(1);
     if ((matches as List).isEmpty) return const [];
-    final item = await _buildItem(Map<String, dynamic>.from(matches.first as Map));
+    final item =
+        await _buildItem(Map<String, dynamic>.from(matches.first as Map));
     return [item];
   }
 
