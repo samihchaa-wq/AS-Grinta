@@ -29,36 +29,11 @@ jobs:
 
           p = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
           t = p.read_text()
-          t = re.sub(
-              r"child: _view == _PremiumView\.players\s*\? _playersView\(gauges, currentUserId\)\s*: _predictorView\(gauges, predictors, currentUserId\),",
-              """child: switch (_view) {
-                    _PremiumView.players => _playersView(gauges, currentUserId),
-                    _PremiumView.predictors => _predictorView(gauges, predictors, currentUserId),
-                    _PremiumView.ranking => const Column(
-                      key: ValueKey('season-ranking'),
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Classement saison', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-                        SizedBox(height: 4),
-                        Text('État actuel selon les buts et clean sheets déjà enregistrés.', style: TextStyle(color: Colors.white60)),
-                        SizedBox(height: 14),
-                        SeasonRankingPanel(),
-                      ],
-                    ),
-                  },""",
-              t,
-              count=1,
-          )
           if "label: 'Classement saison'" not in t:
-              needle = """          Expanded(
-            child: _SwitchItem(
-              active: selected == _PremiumView.predictors,
-              icon: Icons.group_outlined,
-              label: 'Par pronostiqueur',
-              onTap: () => onChanged(_PremiumView.predictors),
-            ),
-          ),"""
-              t = t.replace(needle, needle + """
+              start = t.index("label: 'Par pronostiqueur'")
+              needle = "          ),\n        ],"
+              end = t.index(needle, start)
+              addition = """          ),
           Expanded(
             child: _SwitchItem(
               active: selected == _PremiumView.ranking,
@@ -66,7 +41,9 @@ jobs:
               label: 'Classement saison',
               onTap: () => onChanged(_PremiumView.ranking),
             ),
-          ),""")
+          ),
+        ],"""
+              t = t[:end] + addition + t[end + len(needle):]
           p.write_text(t)
 
           p = Path('lib/features/home/presentation/home_page.dart')
