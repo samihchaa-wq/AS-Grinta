@@ -1,0 +1,72 @@
+name: Apply white text palette
+
+on:
+  push:
+    branches:
+      - agent/white-text-and-logo-review
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/white-text-and-logo-review
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply monochrome text palette
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          theme = Path('lib/core/theme/app_theme.dart')
+          t = theme.read_text()
+          t = t.replace('static const Color textSecondary = Color(0xFF9FB1D6);', 'static const Color textSecondary = Color(0xFFC7CDD8);')
+          t = t.replace('static const Color textFaint = Color(0xFF6E80A6);', 'static const Color textFaint = Color(0xFF9299A5);')
+          t = t.replace('error: Color(0xFFFF6B7A),', 'error: textPrimary,')
+          t = t.replace('foregroundColor: primaryBright,', 'foregroundColor: textPrimary,')
+          t = t.replace('style: TextButton.styleFrom(foregroundColor: primaryBright),', 'style: TextButton.styleFrom(foregroundColor: textPrimary),')
+          t = t.replace('borderSide: const BorderSide(color: accent, width: 1.6),', 'borderSide: const BorderSide(color: textPrimary, width: 1.6),')
+          theme.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
+          t = p.read_text()
+          t = t.replace('color: accent,\n                    fontWeight: FontWeight.w900,', 'color: Colors.white,\n                    fontWeight: FontWeight.w900,')
+          t = t.replace('color: accent,\n              fontSize: 18,', 'color: Colors.white,\n              fontSize: 18,')
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          t = p.read_text()
+          t = t.replace('style: TextStyle(\n                    color: accent,\n                    fontWeight: FontWeight.w700,\n                  ),', 'style: const TextStyle(\n                    color: Colors.white70,\n                    fontWeight: FontWeight.w700,\n                  ),')
+          t = t.replace('style: TextStyle(\n                        color: accent,\n                        fontWeight: FontWeight.w700,\n                      ),', 'style: const TextStyle(\n                        color: Colors.white70,\n                        fontWeight: FontWeight.w700,\n                      ),')
+          p.write_text(t)
+
+          p = Path('lib/features/predictions/presentation/season_predictions_page.dart')
+          t = p.read_text()
+          t = t.replace('style: TextStyle(color: Theme.of(context).colorScheme.error),', 'style: const TextStyle(color: Colors.white70),')
+          p.write_text(t)
+
+          p = Path('lib/features/home/presentation/home_page.dart')
+          t = p.read_text()
+          t = t.replace('color: Colors.redAccent,', 'color: Colors.white70,')
+          t = t.replace('color: Colors.red,', 'color: Colors.white70,')
+          p.write_text(t)
+          PY
+          dart format lib/core/theme/app_theme.dart lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/season_predictions_page.dart lib/features/home/presentation/home_page.dart
+          flutter analyze
+          flutter test
+          flutter build web
+          rm -f .github/workflows/apply-white-text.yml
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Uniformiser tous les textes en blanc"
+          git push origin HEAD:agent/white-text-and-logo-review
