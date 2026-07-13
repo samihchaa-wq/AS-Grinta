@@ -6,8 +6,8 @@ Application mobile et web pour une équipe de football amateur.
 
 ## Fonctionnement
 
-- Comptes sur invitation
-- Rôles : joueur, administrateur et modérateur
+- Comptes avec validation administrative
+- Rôles : pronostiqueur et administrateur
 - Saisons et effectif
 - Création des matchs avec adversaire, date, heure, lieu et compétition
 - Pronostics ouverts dès la création du match et fermés à H-5
@@ -21,12 +21,26 @@ Application mobile et web pour une équipe de football amateur.
 
 ## Navigation
 
-- Accueil
 - Matchs
-- Statistiques
 - Pronostics
 - Profil
-- Administration pour les administrateurs et modérateurs
+- Notifications
+- Administration pour les administrateurs
+
+## Configuration
+
+Les valeurs publiques de production sont centralisées dans `config/production.json`.
+Le code Dart ne contient aucune valeur de production par défaut.
+
+Exemple de lancement local :
+
+```bash
+flutter run \
+  --dart-define-from-file=config/production.json \
+  --dart-define=APP_VERSION=dev
+```
+
+Le numéro de version officiel se trouve dans `pubspec.yaml` et les changements sont documentés dans `CHANGELOG.md`.
 
 ## Invités d’un match
 
@@ -57,6 +71,7 @@ Chaque modification exécute :
 
 - l’analyse statique Flutter ;
 - les tests automatisés ;
-- le build Flutter Web en mode release.
+- le build Flutter Web en mode release ;
+- un diagnostic du rendu Web.
 
-Le déploiement GitHub Pages vérifie ensuite les fichiers publics essentiels et la disponibilité de l’API Supabase.
+Le déploiement GitHub Pages vérifie ensuite les fichiers publics essentiels, la disponibilité de l’API Supabase et l’absence d’erreur console.
