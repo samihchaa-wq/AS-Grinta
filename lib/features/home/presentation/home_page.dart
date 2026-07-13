@@ -726,7 +726,7 @@ class _InlinePredictionState extends ConsumerState<_InlinePrediction> {
                           style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
                         Text(
-                          '${item.x2Available} en réserve · consommé même si le pronostic est faux',
+                          '${item.x2Available} en réserve',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
