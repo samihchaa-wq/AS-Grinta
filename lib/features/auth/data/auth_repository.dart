@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,12 +13,8 @@ class AuthRepository {
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
-  /// Domaine technique : l'identifiant (prénom + initiale) sert de partie
-  /// locale à une adresse jamais montrée aux utilisateurs.
-  static const usernameDomain = 'pronos.as-grinta.local';
-
   static String usernameToEmail(String username) =>
-      '${username.trim().toLowerCase()}@$usernameDomain';
+      '${username.trim().toLowerCase()}@${AppConfig.usernameDomain}';
 
   Future<void> signInWithUsername({
     required String username,
@@ -78,58 +75,49 @@ class AuthRepository {
     for (var attempt = 0; attempt < attempts; attempt++) {
       try {
         final response = await _client.rpc('get_my_profile');
-        if (response is Map) {
-          return AuthProfile.fromJson(Map<String, dynamic>.from(response));
-        }
-        lastError = StateError('Réponse de profil invalide.');
+        if (response == null) return null;
+        return AuthProfile.fromJson(
+          Map<String, dynamic>.from(response as Map),
+        );
       } catch (error) {
         lastError = error;
-      }
-
-      if (attempt + 1 < attempts) {
-        await Future<void>.delayed(
-          Duration(milliseconds: 200 * (attempt + 1)),
-        );
+        if (attempt + 1 < attempts) {
+          await Future<void>.delayed(
+            Duration(milliseconds: 150 * (attempt + 1)),
+          );
+        }
       }
     }
-
-    if (lastError != null) throw lastError;
-    return null;
+    throw lastError ?? StateError('Le profil n’a pas pu être chargé.');
   }
 
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
   }) async {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      throw StateError('Aucun utilisateur connecté.');
-    }
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
 
-    final cleanFirstName = firstName.trim();
-    final cleanLastName = lastName.trim();
-    if (cleanFirstName.isEmpty || cleanLastName.isEmpty) {
-      throw ArgumentError('Le prénom et le nom sont obligatoires.');
-    }
-
-    await _client.from('profiles').update({
-      'first_name': cleanFirstName,
-      'last_name': cleanLastName,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', user.id);
+    await _client
+        .from('profiles')
+        .update({
+          'first_name': firstName.trim(),
+          'last_name': lastName.trim(),
+        })
+        .eq('id', userId);
 
     await _client.auth.updateUser(
       UserAttributes(
         data: {
-          'first_name': cleanFirstName,
-          'last_name': cleanLastName,
+          'first_name': firstName.trim(),
+          'last_name': lastName.trim(),
         },
       ),
     );
 
     final profile = await fetchProfile();
     if (profile == null) {
-      throw StateError('Profil introuvable après la mise à jour.');
+      throw StateError('Le profil mis à jour est introuvable.');
     }
     return profile;
   }
