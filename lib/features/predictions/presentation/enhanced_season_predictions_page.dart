@@ -67,8 +67,7 @@ class _EnhancedSeasonPredictionsPageState
 
   Widget _lockedPage() {
     final gaugesAsync = ref.watch(enhancedSeasonGaugesProvider);
-    final completedMatchesAsync =
-        ref.watch(enhancedSeasonCompletedMatchesProvider);
+    final completedMatches = ref.watch(enhancedSeasonCompletedMatchesProvider);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -110,7 +109,7 @@ class _EnhancedSeasonPredictionsPageState
                   ),
                 ),
                 const SizedBox(height: 4),
-                completedMatchesAsync.when(
+                completedMatches.when(
                   loading: () => const Text(
                     'Nombre de matchs joués : …',
                     style: TextStyle(color: Colors.white60),
@@ -150,15 +149,13 @@ class _EnhancedSeasonPredictionsPageState
                   },
                 ),
                 const SizedBox(height: 22),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  child: switch (_view) {
-                    _SeasonView.players => _playersView(gauges),
-                    _SeasonView.predictors =>
-                      _predictorsView(gauges, predictors, currentUserId),
-                    _SeasonView.ranking => const SeasonRankingPanel(),
-                  },
-                ),
+                switch (_view) {
+                  _SeasonView.players =>
+                    _playersView(context, gauges, currentUserId),
+                  _SeasonView.predictors =>
+                    _predictorsView(gauges, predictors, currentUserId),
+                  _SeasonView.ranking => const SeasonRankingPanel(),
+                },
               ],
             ),
           );
@@ -167,11 +164,15 @@ class _EnhancedSeasonPredictionsPageState
     );
   }
 
-  Widget _playersView(List<PlayerGauge> gauges) {
+  Widget _playersView(
+    BuildContext context,
+    List<PlayerGauge> gauges,
+    String? currentUserId,
+  ) {
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
+
     return Column(
-      key: const ValueKey('players'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (scorers.isNotEmpty) ...[
@@ -180,8 +181,10 @@ class _EnhancedSeasonPredictionsPageState
             (gauge) => PremiumSeasonGaugeCard(
               gauge: gauge,
               scaleMax: _scale(scorers, 20),
-              onOpenAll: () {},
-              onOpenMedian: () {},
+              onOpenAll: () =>
+                  _openPlayerDetails(context, gauge, currentUserId),
+              onOpenMedian: () =>
+                  _openPlayerDetails(context, gauge, currentUserId),
             ),
           ),
           const SizedBox(height: 18),
@@ -192,8 +195,10 @@ class _EnhancedSeasonPredictionsPageState
             (gauge) => PremiumSeasonGaugeCard(
               gauge: gauge,
               scaleMax: _scale(keepers, 15),
-              onOpenAll: () {},
-              onOpenMedian: () {},
+              onOpenAll: () =>
+                  _openPlayerDetails(context, gauge, currentUserId),
+              onOpenMedian: () =>
+                  _openPlayerDetails(context, gauge, currentUserId),
             ),
           ),
         ],
@@ -207,13 +212,16 @@ class _EnhancedSeasonPredictionsPageState
     String? currentUserId,
   ) {
     final selectedId = _selectedPredictorId;
-    final selected = predictors.where((item) => item.id == selectedId).toList();
-    final selectedName = selected.firstOrNull?.name ?? 'Pronostiqueur';
+    final selectedName = predictors
+            .where((item) => item.id == selectedId)
+            .firstOrNull
+            ?.name ??
+        'Pronostiqueur';
 
-    int compareByPrediction(PlayerGauge a, PlayerGauge b) {
-      final aPrediction = a.predictionFor(selectedId)?.value ?? -1;
-      final bPrediction = b.predictionFor(selectedId)?.value ?? -1;
-      final byPrediction = bPrediction.compareTo(aPrediction);
+    int compare(PlayerGauge a, PlayerGauge b) {
+      final aValue = a.predictionFor(selectedId)?.value ?? -1;
+      final bValue = b.predictionFor(selectedId)?.value ?? -1;
+      final byPrediction = bValue.compareTo(aValue);
       if (byPrediction != 0) return byPrediction;
       final byActual = b.actual.compareTo(a.actual);
       if (byActual != 0) return byActual;
@@ -221,12 +229,11 @@ class _EnhancedSeasonPredictionsPageState
     }
 
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
-      ..sort(compareByPrediction);
+      ..sort(compare);
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
-      ..sort(compareByPrediction);
+      ..sort(compare);
 
     return Column(
-      key: const ValueKey('predictors'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
@@ -270,14 +277,37 @@ class _EnhancedSeasonPredictionsPageState
         const SizedBox(height: 18),
         if (scorers.isNotEmpty) ...[
           const _SectionTitle('Buteurs'),
-          _PredictorProgressList(gauges: scorers, predictorId: selectedId),
+          _PredictorList(gauges: scorers, predictorId: selectedId),
           const SizedBox(height: 20),
         ],
         if (keepers.isNotEmpty) ...[
           const _SectionTitle('Gardiens · clean sheets'),
-          _PredictorProgressList(gauges: keepers, predictorId: selectedId),
+          _PredictorList(gauges: keepers, predictorId: selectedId),
         ],
       ],
+    );
+  }
+
+  Future<void> _openPlayerDetails(
+    BuildContext context,
+    PlayerGauge gauge,
+    String? currentUserId,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: .78,
+        minChildSize: .5,
+        maxChildSize: .94,
+        expand: false,
+        builder: (_, controller) => PremiumPlayerDetailsSheet(
+          gauge: gauge,
+          currentUserId: currentUserId,
+          scrollController: controller,
+        ),
+      ),
     );
   }
 
@@ -305,6 +335,7 @@ class _EnhancedSeasonPredictionsPageState
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
+
   final String text;
 
   @override
@@ -322,11 +353,8 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _PredictorProgressList extends StatelessWidget {
-  const _PredictorProgressList({
-    required this.gauges,
-    required this.predictorId,
-  });
+class _PredictorList extends StatelessWidget {
+  const _PredictorList({required this.gauges, required this.predictorId});
 
   final List<PlayerGauge> gauges;
   final String? predictorId;
@@ -342,7 +370,7 @@ class _PredictorProgressList extends StatelessWidget {
       child: Column(
         children: [
           for (var index = 0; index < gauges.length; index++) ...[
-            _PredictorProgressRow(
+            _PredictorRow(
               gauge: gauges[index],
               prediction: gauges[index].predictionFor(predictorId),
             ),
@@ -355,19 +383,16 @@ class _PredictorProgressList extends StatelessWidget {
   }
 }
 
-class _PredictorProgressRow extends StatelessWidget {
-  const _PredictorProgressRow({
-    required this.gauge,
-    required this.prediction,
-  });
+class _PredictorRow extends StatelessWidget {
+  const _PredictorRow({required this.gauge, required this.prediction});
 
   final PlayerGauge gauge;
   final GaugePrediction? prediction;
 
   @override
   Widget build(BuildContext context) {
-    final accent = gaugeAccentFor(gauge.playerId);
     final predicted = prediction?.value;
+    final accent = gaugeAccentFor(gauge.playerId);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
@@ -378,16 +403,12 @@ class _PredictorProgressRow extends StatelessWidget {
             child: Text(
               gauge.playerName,
               maxLines: 2,
-              softWrap: true,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                height: 1.05,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w800, height: 1.05),
             ),
           ),
           const SizedBox(width: 6),
           Expanded(
-            child: _ActualAgainstPredictionGauge(
+            child: _ActualPredictionGauge(
               actual: gauge.actual,
               predicted: predicted,
               accent: accent,
@@ -399,14 +420,12 @@ class _PredictorProgressRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const FittedBox(
-                  child: Text(
-                    'PRONO',
-                    style: TextStyle(
-                      color: Colors.white54,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                    ),
+                const Text(
+                  'PRONO',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
@@ -426,8 +445,8 @@ class _PredictorProgressRow extends StatelessWidget {
   }
 }
 
-class _ActualAgainstPredictionGauge extends StatelessWidget {
-  const _ActualAgainstPredictionGauge({
+class _ActualPredictionGauge extends StatelessWidget {
+  const _ActualPredictionGauge({
     required this.actual,
     required this.predicted,
     required this.accent,
@@ -443,14 +462,9 @@ class _ActualAgainstPredictionGauge extends StatelessWidget {
       return const Text('Aucun prono', style: TextStyle(color: Colors.white54));
     }
 
-    final predictionValue = predicted!;
-    final baseMax = math.max(1, math.max(actual, predictionValue));
-    final visualMax = actual > predictionValue
-        ? math.max(baseMax * 1.18, actual + 0.2).toDouble()
-        : baseMax.toDouble();
+    final visualMax = math.max(1, math.max(actual, predicted!)).toDouble();
     final actualRatio = (actual / visualMax).clamp(0.0, 1.0).toDouble();
-    final predictionRatio =
-        (predictionValue / visualMax).clamp(0.0, 1.0).toDouble();
+    final predictionRatio = (predicted! / visualMax).clamp(0.0, 1.0).toDouble();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -472,16 +486,8 @@ class _ActualAgainstPredictionGauge extends StatelessWidget {
                 child: Container(
                   height: 10,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [accent.withValues(alpha: .72), accent],
-                    ),
+                    color: accent,
                     borderRadius: BorderRadius.circular(99),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accent.withValues(alpha: .35),
-                        blurRadius: 10,
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -494,9 +500,6 @@ class _ActualAgainstPredictionGauge extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(3),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black54, blurRadius: 5),
-                    ],
                   ),
                 ),
               ),
@@ -520,6 +523,6 @@ class _ActualAgainstPredictionGauge extends StatelessWidget {
   }
 }
 
-extension<T> on List<T> {
+extension<T> on Iterable<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
