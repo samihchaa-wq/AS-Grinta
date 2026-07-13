@@ -1,6 +1,5 @@
-// Gestion des comptes par le staff : invitation par identifiant
-// (prénom + initiale du nom, sans email), réinitialisation de mot de passe
-// et suppression de compte.
+// Gestion des comptes par le staff : invitation par identifiant,
+// réinitialisation sécurisée par mot de passe temporaire et suppression.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -24,6 +23,35 @@ function normalizeName(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+}
+
+function randomCharacter(alphabet: string): string {
+  const value = new Uint32Array(1);
+  crypto.getRandomValues(value);
+  return alphabet[value[0] % alphabet.length];
+}
+
+function generateTemporaryPassword(): string {
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const digits = "23456789";
+  const symbols = "!@#$%+-_";
+  const all = lower + upper + digits + symbols;
+  const characters = [
+    randomCharacter(lower),
+    randomCharacter(upper),
+    randomCharacter(digits),
+    randomCharacter(symbols),
+  ];
+  while (characters.length < 14) characters.push(randomCharacter(all));
+  for (let index = characters.length - 1; index > 0; index--) {
+    const value = new Uint32Array(1);
+    crypto.getRandomValues(value);
+    const target = value[0] % (index + 1);
+    [characters[index], characters[target]] =
+      [characters[target], characters[index]];
+  }
+  return characters.join("");
 }
 
 Deno.serve(async (req: Request) => {
@@ -128,6 +156,7 @@ Deno.serve(async (req: Request) => {
         .update({
           username,
           password_set: false,
+          must_change_password: false,
           is_goalkeeper: isGoalkeeper,
           surnom: surnom || null,
           updated_at: new Date().toISOString(),
@@ -146,23 +175,34 @@ Deno.serve(async (req: Request) => {
       if (!uuidIsValid) {
         return jsonResponse({ error: "Valid user id is required" }, 400);
       }
+      if (userId === userData.user.id) {
+        return jsonResponse(
+          { error: "Utilise ton profil pour modifier ton mot de passe." },
+          400,
+        );
+      }
       if (userId === "00000000-0000-0000-0000-000000000001") {
         return jsonResponse({ error: "Compte technique protégé." }, 400);
       }
 
+      const temporaryPassword = generateTemporaryPassword();
       const { error: passwordError } = await admin.auth.admin.updateUserById(
         userId,
-        { password: crypto.randomUUID() + crypto.randomUUID() },
+        { password: temporaryPassword },
       );
       if (passwordError) throw passwordError;
 
       const { error: flagError } = await admin
         .from("profiles")
-        .update({ password_set: false, updated_at: new Date().toISOString() })
+        .update({
+          password_set: true,
+          must_change_password: true,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", userId);
       if (flagError) throw flagError;
 
-      return jsonResponse({ reset: true });
+      return jsonResponse({ reset: true, temporaryPassword });
     }
 
     if (action === "delete") {
