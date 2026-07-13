@@ -1,6 +1,6 @@
+import 'package:as_grinta/app/router/auth_redirect.dart';
 import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:as_grinta/features/admin/presentation/admin_page.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
@@ -24,44 +24,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/matches',
-    redirect: (context, state) {
-      final location = state.matchedLocation;
-      if (authState.isLoading) return '/auth/loading';
-
-      final isPasswordChangeRoute = location == '/auth/new-password';
-      final mustChangePassword =
-          authState.profile?.mustChangePassword == true;
-
-      if (authState.isAuthenticated && mustChangePassword) {
-        return isPasswordChangeRoute ? null : '/auth/new-password';
-      }
-      if (isPasswordChangeRoute && !mustChangePassword) return '/matches';
-
-      final isAuthRoute = location.startsWith('/auth');
-      if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
-        final target = state.uri.toString();
-        return '/auth/sign-in?redirect=${Uri.encodeComponent(target)}';
-      }
-      if (authState.isAuthenticated && isAuthRoute) {
-        final redirect = state.uri.queryParameters['redirect'];
-        if (redirect != null && redirect.startsWith('/')) return redirect;
-        return '/matches';
-      }
-      if (location == '/' || location == '/home') return '/matches';
-
-      final role = authState.profile?.role;
-      final isAdmin = role == AuthRole.admin;
-      final isStaff = role?.isStaff == true;
-      final isFinalizationRoute =
-          location.startsWith('/matches/') && location.endsWith('/finalize');
-      final isAdminRoute = location == '/admin';
-      final isPlayersRoute = location == '/players';
-
-      if (isFinalizationRoute && !isAdmin) return '/matches';
-      if (isAdminRoute && !isStaff) return '/matches';
-      if (isPlayersRoute && !isStaff) return '/matches';
-      return null;
-    },
+    redirect: (context, state) => resolveAuthRedirect(
+      authState: authState,
+      uri: state.uri,
+      matchedLocation: state.matchedLocation,
+    ),
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/matches'),
       GoRoute(path: '/home', redirect: (_, __) => '/matches'),
