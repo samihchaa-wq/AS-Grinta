@@ -6,7 +6,6 @@ import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/forced_password_change_page.dart';
-import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
@@ -24,7 +23,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
 
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/matches',
     redirect: (context, state) {
       final location = state.matchedLocation;
       if (authState.isLoading) return '/auth/loading';
@@ -36,7 +35,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (authState.isAuthenticated && mustChangePassword) {
         return isPasswordChangeRoute ? null : '/auth/new-password';
       }
-      if (isPasswordChangeRoute && !mustChangePassword) return '/home';
+      if (isPasswordChangeRoute && !mustChangePassword) return '/matches';
 
       final isAuthRoute = location.startsWith('/auth');
       if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
@@ -46,9 +45,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (authState.isAuthenticated && isAuthRoute) {
         final redirect = state.uri.queryParameters['redirect'];
         if (redirect != null && redirect.startsWith('/')) return redirect;
-        return '/home';
+        return '/matches';
       }
-      if (location == '/') return '/home';
+      if (location == '/' || location == '/home') return '/matches';
 
       final role = authState.profile?.role;
       final isAdmin = role == AuthRole.admin;
@@ -59,19 +58,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isPlayersRoute = location == '/players';
 
       if (isFinalizationRoute && !isAdmin) return '/matches';
-      if (isAdminRoute && !isStaff) return '/home';
-      if (isPlayersRoute && !isStaff) return '/home';
+      if (isAdminRoute && !isStaff) return '/matches';
+      if (isPlayersRoute && !isStaff) return '/matches';
       return null;
     },
     routes: [
-      GoRoute(path: '/', redirect: (_, __) => '/home'),
+      GoRoute(path: '/', redirect: (_, __) => '/matches'),
+      GoRoute(path: '/home', redirect: (_, __) => '/matches'),
       ShellRoute(
         builder: (context, state, child) => AppShell(
           location: state.uri.path,
           child: child,
         ),
         routes: [
-          GoRoute(path: '/home', builder: (_, __) => const HomePage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
           GoRoute(path: '/more', builder: (_, __) => const MorePage()),
           GoRoute(
