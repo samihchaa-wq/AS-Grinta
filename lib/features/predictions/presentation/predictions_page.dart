@@ -78,7 +78,9 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
                     children: [
                       const Icon(Icons.cloud_off_outlined, size: 42),
                       const SizedBox(height: 12),
-                      const Text('Le classement est temporairement indisponible.'),
+                      const Text(
+                        'Le classement est temporairement indisponible.',
+                      ),
                       const SizedBox(height: 12),
                       FilledButton.icon(
                         onPressed: () => ref.invalidate(leaderboardProvider),
@@ -113,7 +115,8 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
       _RankingType.general =>
         'Score pondéré : 70 % matchs, 30 % saison.',
       _RankingType.match => 'Points gagnés sur les scores des matchs.',
-      _RankingType.season => 'Projection sur 30 matchs — provisoire.',
+      _RankingType.season =>
+        'État actuel selon les buts et clean sheets déjà enregistrés.',
     };
   }
 }
@@ -132,17 +135,16 @@ class _RankingCard extends StatelessWidget {
     };
   }
 
-  // Le classement saison compte les joueurs où l'on est le plus proche ;
-  // le général et les matchs comptent les bons vainqueurs.
-  int _bons(LeaderboardEntry entry) =>
+  int _closestOrCorrect(LeaderboardEntry entry) =>
       type == _RankingType.season ? entry.seasonBons : entry.matchBons;
 
-  // Saison : bons nombres de buts trouvés ; sinon : scores exacts.
   int _exacts(LeaderboardEntry entry) =>
       type == _RankingType.season ? entry.seasonExacts : entry.matchExacts;
 
+  String _primaryStatLabel() =>
+      type == _RankingType.season ? 'Le plus proche' : 'Bons paris';
+
   String _format(double value) {
-    // Tous les points sont des entiers (arrondis au supérieur côté serveur).
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
     return '${value.ceil()}';
   }
@@ -186,14 +188,14 @@ class _RankingCard extends StatelessWidget {
                   entry.name,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                // L'onglet Général mélange matchs + saison : les compteurs
-                // Bons paris / Exacts n'y ont pas de sens, on ne les montre
-                // que pour Matchs et Saison.
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (type != _RankingType.general) ...[
-                      _StatBadge(label: 'Bons paris', value: _bons(entry)),
+                      _StatBadge(
+                        label: _primaryStatLabel(),
+                        value: _closestOrCorrect(entry),
+                      ),
                       const SizedBox(width: 10),
                       _StatBadge(label: 'Exacts', value: _exacts(entry)),
                       const SizedBox(width: 14),
@@ -214,7 +216,6 @@ class _RankingCard extends StatelessWidget {
   }
 }
 
-/// Petite statistique empilée (valeur + libellé) affichée à gauche des points.
 class _StatBadge extends StatelessWidget {
   const _StatBadge({required this.label, required this.value});
 

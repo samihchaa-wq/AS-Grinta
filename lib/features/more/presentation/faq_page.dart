@@ -67,20 +67,19 @@ class FaqPage extends StatelessWidget {
       answer:
           'En début de saison, tu prédis le nombre de buts de chaque joueur '
           'sur une saison complète de 30 matchs (et les clean sheets du '
-          'gardien). Pour chaque joueur, tous les participants sont classés '
-          'du pronostic le plus proche au plus éloigné : le plus proche '
-          'remporte le plus de points. Et si tu trouves le nombre exact, '
+          'gardien). À tout moment, chaque pronostic est comparé au total '
+          'réel déjà enregistré. Pour chaque joueur, le pronostic le plus '
+          'proche rapporte le plus de points. Si tu trouves le nombre exact, '
           'tes points sur ce joueur sont doublés (x2). Un petit bonus '
-          'récompense aussi le bon classement prévisionnel des buteurs.',
+          'récompense aussi le bon classement actuel des buteurs.',
     ),
     (
-      question: 'Pourquoi « classement provisoire » ?',
+      question: 'Comment évolue le classement saison ?',
       answer:
-          'Les pronostics portent sur 30 matchs. Tant que la saison n’est '
-          'pas finie, les points sont calculés sur une projection : par '
-          'exemple 10 buts en 15 matchs joués donne une projection de 20 '
-          'buts sur 30. Le classement évolue donc à chaque match, puis '
-          'devient définitif en fin de saison.',
+          'Il montre uniquement l’état actuel de la saison. Il n’y a aucune '
+          'projection sur 30 matchs : les pronostics sont comparés aux buts '
+          'et clean sheets réellement enregistrés à cet instant. Le '
+          'classement est recalculé après chaque résultat validé.',
     ),
     (
       question: 'Comment fonctionne le classement général ?',
