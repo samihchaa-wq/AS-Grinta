@@ -31,20 +31,14 @@ class MatchPredictionItem {
   final bool isFilled;
   final bool useX2;
   final int x2Available;
-
-  /// Cotes décimales réelles stockées en base (ex. 1,55).
-  /// L'interface les affiche en base 100 (155).
   final double? oddsWin;
   final double? oddsDraw;
   final double? oddsLoss;
-
   final int? actualScoreGrinta;
   final int? actualScoreOpponent;
   final DateTime? predictionsClosedAt;
 
-  DateTime get opensAt => DateTime.fromMillisecondsSinceEpoch(0);
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
-  bool get isBeforeWindow => false;
   bool get isClosed =>
       status != 'a_venir' ||
       !DateTime.now().isBefore(closesAt) ||
@@ -62,7 +56,6 @@ class MatchPredictionItem {
       0 => oddsDraw,
       _ => oddsLoss,
     };
-
     final points = PredictionScoring.points(
       predictedHome: scoreGrinta,
       predictedAway: scoreOpponent,
@@ -78,32 +71,6 @@ class MatchPredictionItem {
     if (grinta == opponent) return 0;
     return -1;
   }
-
-  MatchPredictionItem copyWith({
-    int? scoreGrinta,
-    int? scoreOpponent,
-    bool? isFilled,
-    bool? useX2,
-    int? x2Available,
-  }) {
-    return MatchPredictionItem(
-      matchId: matchId,
-      opponentName: opponentName,
-      kickoffAt: kickoffAt,
-      status: status,
-      scoreGrinta: scoreGrinta ?? this.scoreGrinta,
-      scoreOpponent: scoreOpponent ?? this.scoreOpponent,
-      isFilled: isFilled ?? this.isFilled,
-      useX2: useX2 ?? this.useX2,
-      x2Available: x2Available ?? this.x2Available,
-      oddsWin: oddsWin,
-      oddsDraw: oddsDraw,
-      oddsLoss: oddsLoss,
-      actualScoreGrinta: actualScoreGrinta,
-      actualScoreOpponent: actualScoreOpponent,
-      predictionsClosedAt: predictionsClosedAt,
-    );
-  }
 }
 
 class PredictionsRepository {
@@ -111,35 +78,48 @@ class PredictionsRepository {
 
   final SupabaseClient _client;
 
-  Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+  static const _matchSelect = '''
+    id,
+    match_date,
+    match_time,
+    status,
+    score_as_grinta,
+    score_adverse,
+    predictions_closed_at,
+    opponents(name),
+    match_odds(
+      odds_victoire_as_grinta,
+      odds_nul,
+      odds_victoire_adverse
+    )
+  ''';
 
+  Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
     final matches = await _client
         .from('matches')
-        .select('''
-          id,
-          match_date,
-          match_time,
-          status,
-          score_as_grinta,
-          score_adverse,
-          predictions_closed_at,
-          opponents(name),
-          match_odds(
-            odds_victoire_as_grinta,
-            odds_nul,
-            odds_victoire_adverse
-          )
-        ''')
+        .select(_matchSelect)
         .eq('status', 'a_venir')
         .order('match_date', ascending: true)
         .order('match_time', ascending: true)
         .limit(1);
-
     if ((matches as List).isEmpty) return const [];
+    final item = await _buildItem(Map<String, dynamic>.from(matches.first as Map));
+    return [item];
+  }
 
-    final matchMap = Map<String, dynamic>.from(matches.first as Map);
+  Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async {
+    final match = await _client
+        .from('matches')
+        .select(_matchSelect)
+        .eq('id', matchId)
+        .maybeSingle();
+    if (match == null) return null;
+    return _buildItem(Map<String, dynamic>.from(match));
+  }
+
+  Future<MatchPredictionItem> _buildItem(Map<String, dynamic> matchMap) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
     final matchId = matchMap['id'].toString();
     final prediction = await _client
         .from('match_predictions')
@@ -165,37 +145,34 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-        ? Map<String, dynamic>.from(oddsRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
 
-    return [
-      MatchPredictionItem(
-        matchId: matchId,
-        opponentName: opponent['name']?.toString() ?? 'Adversaire',
-        kickoffAt: kickoffAt,
-        status: matchMap['status']?.toString() ?? 'a_venir',
-        scoreGrinta:
-            int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ??
-            0,
-        scoreOpponent:
-            int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
-        isFilled: prediction?['is_filled'] == true,
-        useX2: prediction?['use_x2'] == true,
-        x2Available: (wallet?['available_count'] as num?)?.toInt() ?? 0,
-        oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
-        oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
-        oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
-        actualScoreGrinta: matchMap['score_as_grinta'] == null
-            ? null
-            : int.tryParse('${matchMap['score_as_grinta']}'),
-        actualScoreOpponent: matchMap['score_adverse'] == null
-            ? null
-            : int.tryParse('${matchMap['score_adverse']}'),
-        predictionsClosedAt: DateTime.tryParse(
-          '${matchMap['predictions_closed_at'] ?? ''}',
-        ),
+    return MatchPredictionItem(
+      matchId: matchId,
+      opponentName: opponent['name']?.toString() ?? 'Adversaire',
+      kickoffAt: kickoffAt,
+      status: matchMap['status']?.toString() ?? 'a_venir',
+      scoreGrinta:
+          int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ?? 0,
+      scoreOpponent:
+          int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
+      isFilled: prediction?['is_filled'] == true,
+      useX2: prediction?['use_x2'] == true,
+      x2Available: (wallet?['available_count'] as num?)?.toInt() ?? 0,
+      oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
+      oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
+      oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
+      actualScoreGrinta: matchMap['score_as_grinta'] == null
+          ? null
+          : int.tryParse('${matchMap['score_as_grinta']}'),
+      actualScoreOpponent: matchMap['score_adverse'] == null
+          ? null
+          : int.tryParse('${matchMap['score_adverse']}'),
+      predictionsClosedAt: DateTime.tryParse(
+        '${matchMap['predictions_closed_at'] ?? ''}',
       ),
-    ];
+    );
   }
 
   Future<void> savePrediction({
