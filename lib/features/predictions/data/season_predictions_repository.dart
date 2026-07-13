@@ -141,8 +141,11 @@ class SeasonPredictionsRepository {
 
   String _displayName(Map<String, dynamic> profile, String fallback) {
     final nickname = (profile['surnom'] ?? '').toString().trim();
-    if (nickname.isNotEmpty) return nickname;
     final firstName = (profile['first_name'] ?? '').toString().trim();
+    if (nickname.toLowerCase() == 'samsam' && firstName.isNotEmpty) {
+      return firstName;
+    }
+    if (nickname.isNotEmpty) return nickname;
     if (firstName.isNotEmpty) return firstName;
     return fallback;
   }
@@ -325,8 +328,3 @@ class SeasonPredictionsRepository {
     );
   }
 }
-
-final seasonPredictionsRepositoryProvider =
-    Provider<SeasonPredictionsRepository>((ref) {
-  return SeasonPredictionsRepository(ref.watch(supabaseClientProvider));
-});
