@@ -360,12 +360,17 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
     final accent = gaugeAccentFor(gauge.playerId);
     final predictions = [...gauge.predictions]
       ..sort((a, b) {
-        final value = b.value.compareTo(a.value);
-        return value != 0
-            ? value
-            : a.predictorName.toLowerCase().compareTo(
-                b.predictorName.toLowerCase(),
-              );
+        final aDistance = (a.value - gauge.actual).abs();
+        final bDistance = (b.value - gauge.actual).abs();
+        final byDistance = aDistance.compareTo(bDistance);
+        if (byDistance != 0) return byDistance;
+
+        final byValue = a.value.compareTo(b.value);
+        if (byValue != 0) return byValue;
+
+        return a.predictorName.toLowerCase().compareTo(
+              b.predictorName.toLowerCase(),
+            );
       });
 
     return Container(
@@ -445,7 +450,11 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                 for (var index = 0; index < predictions.length; index++)
                   _PredictionRow(
                     prediction: predictions[index],
-                    rank: _rankFor(predictions, index),
+                    rank: _rankFor(
+                      predictions,
+                      index,
+                      gauge.actual,
+                    ),
                     maxValue: math.max(1, gauge.maximum),
                     isMine:
                         predictions[index].predictorId == widget.currentUserId,
@@ -459,10 +468,17 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
     );
   }
 
-  int _rankFor(List<GaugePrediction> predictions, int index) {
+  int _rankFor(
+    List<GaugePrediction> predictions,
+    int index,
+    int actual,
+  ) {
     if (index == 0) return 1;
-    if (predictions[index].value == predictions[index - 1].value) {
-      return _rankFor(predictions, index - 1);
+
+    final currentDistance = (predictions[index].value - actual).abs();
+    final previousDistance = (predictions[index - 1].value - actual).abs();
+    if (currentDistance == previousDistance) {
+      return _rankFor(predictions, index - 1, actual);
     }
     return index + 1;
   }
