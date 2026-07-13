@@ -20,6 +20,7 @@ class MatchFinalizationContext {
     required this.squad,
     required this.isValidated,
     required this.opponentScore,
+    required this.grintaScore,
     required this.scorerGoalLines,
     required this.cleanSheetProfileId,
     required this.goalkeeperId,
@@ -32,6 +33,10 @@ class MatchFinalizationContext {
   /// arrive pré-remplie.
   final bool isValidated;
   final int opponentScore;
+
+  /// Score d'AS Grinta déjà enregistré (peut être supérieur au nombre de buts
+  /// attribués : des buts peuvent être sans buteur renseigné).
+  final int grintaScore;
 
   /// Une entrée par but déjà enregistré (id du buteur, répété autant de fois
   /// qu'il a marqué) — pour reconstruire la liste des buts en correction.
@@ -51,7 +56,7 @@ class MatchFinalizationRepository {
   Future<MatchFinalizationContext> fetch(String matchId) async {
     final match = await _client
         .from('matches')
-        .select('season_id,status,score_adverse')
+        .select('season_id,status,score_adverse,score_as_grinta')
         .eq('id', matchId)
         .maybeSingle();
     if (match == null) {
@@ -105,6 +110,7 @@ class MatchFinalizationRepository {
       squad: squad,
       isValidated: isValidated,
       opponentScore: (match['score_adverse'] as num?)?.toInt() ?? 0,
+      grintaScore: (match['score_as_grinta'] as num?)?.toInt() ?? 0,
       scorerGoalLines: scorerGoalLines,
       cleanSheetProfileId: cleanSheetProfileId,
       goalkeeperId: goalkeeperId,

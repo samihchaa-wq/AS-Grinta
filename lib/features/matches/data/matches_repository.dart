@@ -189,6 +189,7 @@ class MatchesRepository {
 
   Future<void> finalizeMatchPostgame({
     required String id,
+    required int grintaScore,
     required int opponentScore,
     required List<Map<String, dynamic>> scorers,
     required String? cleanSheetProfileId,
@@ -200,6 +201,7 @@ class MatchesRepository {
         'p_score_adverse': opponentScore,
         'p_scorers': scorers,
         'p_clean_sheet_player_id': cleanSheetProfileId,
+        'p_score_as_grinta': grintaScore,
       },
     );
     if (result != true) {

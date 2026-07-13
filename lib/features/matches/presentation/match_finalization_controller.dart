@@ -30,13 +30,14 @@ class MatchFinalizationController
   final MatchesRepository _repository;
   final Ref _ref;
 
-  /// [scorerProfileIds] contient un identifiant par but marqué (un buteur
-  /// qui a marqué deux fois apparaît deux fois). Le score d'AS Grinta en
-  /// découle automatiquement.
+  /// [grintaScore] est choisi par l'admin. [scorerGoals] attribue des buts à
+  /// des joueurs (facultatif) : la somme des buts attribués ne peut pas
+  /// dépasser le score, mais peut être inférieure (buts sans buteur).
   Future<bool> finalizeMatch({
     required String matchId,
+    required int grintaScore,
     required int opponentScore,
-    required List<String> scorerProfileIds,
+    required Map<String, int> scorerGoals,
     required String? cleanSheetProfileId,
   }) async {
     if (_ref.read(authControllerProvider).profile?.role != AuthRole.admin) {
@@ -45,8 +46,8 @@ class MatchFinalizationController
       );
       return false;
     }
-    if (opponentScore < 0) {
-      state = state.copyWith(error: 'Score adverse invalide.');
+    if (grintaScore < 0 || opponentScore < 0) {
+      state = state.copyWith(error: 'Score invalide.');
       return false;
     }
     if (opponentScore > 0 && cleanSheetProfileId != null) {
@@ -56,19 +57,25 @@ class MatchFinalizationController
       return false;
     }
 
-    // Agrège les buts par joueur.
-    final goalsByPlayer = <String, int>{};
-    for (final id in scorerProfileIds) {
-      goalsByPlayer.update(id, (value) => value + 1, ifAbsent: () => 1);
-    }
-    final scorers = goalsByPlayer.entries
+    final scorers = scorerGoals.entries
+        .where((entry) => entry.value > 0)
         .map((entry) => {'season_player_id': entry.key, 'goals': entry.value})
         .toList();
+    final attributed =
+        scorers.fold<int>(0, (sum, s) => sum + (s['goals'] as int));
+    if (attributed > grintaScore) {
+      state = state.copyWith(
+        error: 'Tu as attribué plus de buts ($attributed) que le score '
+            'd’AS Grinta ($grintaScore).',
+      );
+      return false;
+    }
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.finalizeMatchPostgame(
         id: matchId,
+        grintaScore: grintaScore,
         opponentScore: opponentScore,
         scorers: scorers,
         cleanSheetProfileId: cleanSheetProfileId,
