@@ -3,6 +3,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,13 +27,12 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
     final isAdmin = role == AuthRole.admin;
-    final canManage = isAdmin;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Matchs'),
         actions: [
-          if (canManage)
+          if (isAdmin)
             IconButton(
               tooltip: '👑 Créer un match',
               icon: const Icon(Icons.add_circle_outline),
@@ -95,9 +95,9 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
               ...state.matches.map(
                 (match) => _MatchCard(
                   match: match,
-                  canEdit: canManage && !match.isFinished,
+                  canEdit: isAdmin && !match.isFinished,
                   canFinalize: isAdmin,
-                  canDelete: canManage,
+                  canDelete: isAdmin,
                 ),
               ),
           ],
@@ -122,19 +122,67 @@ class _MatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isFinished = match.isFinished;
+    final cardColor = isFinished
+        ? const Color(0xFF1C2433)
+        : const Color(0xFF102A66);
+    final borderColor = isFinished
+        ? Colors.white.withValues(alpha: .10)
+        : const Color(0xFF4B6FFF);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: borderColor, width: 1.4),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/matches/${match.id}'),
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          if (isFinished) {
+            context.push('/matches/${match.id}');
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => UpcomingMatchPredictionPage(matchId: match.id),
+              ),
+            );
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _scoreLine(),
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _scoreLine(),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isFinished
+                          ? Colors.white.withValues(alpha: .08)
+                          : const Color(0xFF4B6FFF).withValues(alpha: .22),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      isFinished ? 'Terminé' : 'À venir',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
               Text(_formatKickoff(match.kickoffAt)),
@@ -151,7 +199,7 @@ class _MatchCard extends StatelessWidget {
                         ),
                       ),
                       icon: const Icon(Icons.edit_outlined),
-                      label: const Text('👑  Modifier'),
+                      label: const Text('👑 Modifier'),
                     ),
                   if (canFinalize)
                     FilledButton.icon(
@@ -159,9 +207,9 @@ class _MatchCard extends StatelessWidget {
                           context.push('/matches/${match.id}/finalize'),
                       icon: const Icon(Icons.fact_check_outlined),
                       label: Text(
-                        match.isFinished
-                            ? '👑  Modifier les statistiques'
-                            : '👑  Saisir les statistiques',
+                        isFinished
+                            ? '👑 Modifier les statistiques'
+                            : '👑 Saisir les statistiques',
                       ),
                     ),
                   if (canDelete)
@@ -172,9 +220,8 @@ class _MatchCard extends StatelessWidget {
                               builder: (dialogContext) => AlertDialog(
                                 title: const Text('Supprimer ce match ?'),
                                 content: const Text(
-                                  'Le match, ses pronostics et ses '
-                                  'statistiques seront définitivement '
-                                  'supprimés. Cette action est irréversible.',
+                                  'Le match, ses pronostics et ses statistiques '
+                                  'seront définitivement supprimés.',
                                 ),
                                 actions: [
                                   TextButton(
@@ -183,10 +230,6 @@ class _MatchCard extends StatelessWidget {
                                     child: const Text('Annuler'),
                                   ),
                                   FilledButton(
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor:
-                                          Theme.of(context).colorScheme.error,
-                                    ),
                                     onPressed: () =>
                                         Navigator.pop(dialogContext, true),
                                     child: const Text('Supprimer'),
@@ -201,7 +244,7 @@ class _MatchCard extends StatelessWidget {
                             .deleteMatch(match.id);
                       },
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('👑  Supprimer'),
+                      label: const Text('👑 Supprimer'),
                     ),
                 ],
               ),
