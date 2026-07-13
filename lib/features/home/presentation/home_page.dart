@@ -65,34 +65,44 @@ class HomePage extends ConsumerWidget {
                           message: error.toString(),
                           onRetry: () => ref.invalidate(homeDashboardProvider),
                         ),
-                        data: (dashboard) => Column(
-                          children: [
-                            _NextMatchHero(dashboard: dashboard),
-                            if (isStaff &&
-                                dashboard.nextMatchId != null &&
-                                dashboard.isUpcoming &&
-                                !dashboard.isAwaitingResult &&
-                                !dashboard.nextPredictionsClosed) ...[
-                              const SizedBox(height: 12),
-                              _CloseProsButton(
-                                matchId: dashboard.nextMatchId!,
-                              ),
-                            ],
-                            if (dashboard.nextMatchId != null &&
-                                dashboard.isUpcoming) ...[
-                              if (!dashboard.isAwaitingResult) ...[
+                        data: (dashboard) {
+                          final next = dashboard.nextMatch;
+                          final last = dashboard.lastMatch;
+                          return Column(
+                            children: [
+                              // Prochain match en haut.
+                              if (next != null) ...[
+                                _NextMatchHero(match: next),
+                                if (isStaff &&
+                                    !next.isAwaitingResult &&
+                                    !next.predictionsClosed) ...[
+                                  const SizedBox(height: 12),
+                                  _CloseProsButton(matchId: next.id),
+                                ],
+                                if (!next.isAwaitingResult) ...[
+                                  const SizedBox(height: 16),
+                                  _RecentMeetingsCard(
+                                    opponent: next.opponent,
+                                    meetings: dashboard.recentMeetings,
+                                  ),
+                                ],
                                 const SizedBox(height: 16),
-                                _RecentMeetingsCard(dashboard: dashboard),
-                              ],
+                                _InlinePrediction(
+                                  participantCount:
+                                      dashboard.predictionParticipantCount,
+                                ),
+                              ] else
+                                const _NoUpcomingCard(),
                               const SizedBox(height: 16),
-                              _InlinePrediction(
-                                participantCount:
-                                    dashboard.predictionParticipantCount,
-                              ),
+                              const _SeasonPredictionsCard(),
+                              // Dernier match joué tout en bas.
+                              if (last != null) ...[
+                                const SizedBox(height: 16),
+                                _LastMatchCard(match: last),
+                              ],
                             ],
-                            const _SeasonPredictionsCard(),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ]),
                   ),
@@ -210,21 +220,21 @@ class _CloseProsButton extends ConsumerWidget {
   }
 }
 
+/// Carte « Prochain match » (en haut de l'accueil) : intitulé dans l'ordre
+/// domicile/extérieur, heure, cotes, et note d'attente de résultat.
 class _NextMatchHero extends StatelessWidget {
-  const _NextMatchHero({required this.dashboard});
+  const _NextMatchHero({required this.match});
 
-  final HomeDashboardData dashboard;
+  final HomeMatch match;
 
   @override
   Widget build(BuildContext context) {
-    final hasMatch = dashboard.nextMatchId != null;
-    final badge = !hasMatch
-        ? 'PROCHAIN MATCH'
-        : dashboard.isValidated
-            ? 'DERNIER MATCH'
-            : dashboard.isAwaitingResult
-                ? 'EN ATTENTE DU RÉSULTAT'
-                : 'PROCHAIN MATCH';
+    final badge =
+        match.isAwaitingResult ? 'EN ATTENTE DU RÉSULTAT' : 'PROCHAIN MATCH';
+    // L'ordre indique le lieu : AS Grinta en premier = domicile.
+    final title = match.isHome
+        ? 'AS GRINTA  vs  ${match.opponent}'
+        : '${match.opponent}  vs  AS GRINTA';
 
     return Container(
       width: double.infinity,
@@ -258,63 +268,55 @@ class _NextMatchHero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          if (!hasMatch)
-            Text(
-              'Aucun match programmé',
-              style: Theme.of(context).textTheme.headlineMedium,
-            )
-          else ...[
-            Text(
-              dashboard.isValidated
-                  ? 'AS GRINTA ${dashboard.nextGrintaScore ?? 0} – '
-                      '${dashboard.nextOpponentScore ?? 0} '
-                      '${dashboard.nextOpponent ?? 'Adversaire'}'
-                  : 'AS GRINTA  vs  ${dashboard.nextOpponent ?? 'Adversaire'}',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                  ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (match.kickoffAt != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.schedule_rounded,
+                    size: 16, color: Colors.white70),
+                const SizedBox(width: 6),
+                Text(
+                  AppFormats.dateTime(match.kickoffAt!),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.white70),
+                ),
+              ],
             ),
-            if (dashboard.nextKickoffAt != null) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    size: 16,
-                    color: Colors.white70,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    AppFormats.dateTime(dashboard.nextKickoffAt!),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white70,
-                        ),
-                  ),
-                ],
+          ],
+          if (match.isAwaitingResult)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                'Le résultat sera publié dès que la feuille de match sera '
+                'validée.',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.white70),
               ),
-            ],
-            if (dashboard.isAwaitingResult) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Le résultat sera publié dès que la feuille de match '
-                'sera validée.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
-                    ),
-              ),
-            ],
-            if (dashboard.isValidated) ...[
-              const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: () =>
-                    context.push('/matches/${dashboard.nextMatchId}'),
-                icon: const Icon(Icons.emoji_events_outlined),
-                label: const Text('Voir les points et les pronostics'),
-              ),
-            ],
+            )
+          else if (match.hasOdds) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _OddsPill(label: '1', value: match.oddsWin!)),
+                const SizedBox(width: 8),
+                Expanded(child: _OddsPill(label: 'N', value: match.oddsDraw!)),
+                const SizedBox(width: 8),
+                Expanded(child: _OddsPill(label: '2', value: match.oddsLoss!)),
+              ],
+            ),
           ],
         ],
       ),
@@ -322,14 +324,162 @@ class _NextMatchHero extends StatelessWidget {
   }
 }
 
-class _RecentMeetingsCard extends StatelessWidget {
-  const _RecentMeetingsCard({required this.dashboard});
+/// Une cote sous forme de pastille : « 1 · 2,10 ».
+class _OddsPill extends StatelessWidget {
+  const _OddsPill({required this.label, required this.value});
 
-  final HomeDashboardData dashboard;
+  final String label;
+  final double value;
+
+  String get _formatted {
+    var text = value.toStringAsFixed(2);
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    text = text.replaceFirst(RegExp(r'\.$'), '');
+    return text.replaceAll('.', ',');
+  }
 
   @override
   Widget build(BuildContext context) {
-    final meetings = dashboard.recentMeetings;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _formatted,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Carte « Dernier match joué » (en bas de l'accueil).
+class _LastMatchCard extends StatelessWidget {
+  const _LastMatchCard({required this.match});
+
+  final HomeMatch match;
+
+  @override
+  Widget build(BuildContext context) {
+    final g = match.grintaScore ?? 0;
+    final o = match.opponentScore ?? 0;
+    // L'ordre indique le lieu : AS Grinta en premier = domicile.
+    final title = match.isHome
+        ? 'AS Grinta $g – $o ${match.opponent}'
+        : '${match.opponent} $o – $g AS Grinta';
+
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.sports_soccer_rounded,
+                  color: AppTheme.primaryBright, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'DERNIER MATCH JOUÉ',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          if (match.kickoffAt != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              AppFormats.date(match.kickoffAt!),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => context.push('/matches/${match.id}'),
+              icon: const Icon(Icons.emoji_events_outlined),
+              label: const Text('Voir les points et les pronostics'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Affiché quand aucun match n'est programmé.
+class _NoUpcomingCard extends StatelessWidget {
+  const _NoUpcomingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1B3B6B), Color(0xFF0B1D40)],
+        ),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PROCHAIN MATCH',
+            style: TextStyle(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.7,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aucun match programmé',
+            style: Theme.of(context).textTheme.headlineMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentMeetingsCard extends StatelessWidget {
+  const _RecentMeetingsCard({required this.opponent, required this.meetings});
+
+  final String opponent;
+  final List<RecentMeeting> meetings;
+
+  @override
+  Widget build(BuildContext context) {
     return _Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -348,7 +498,7 @@ class _RecentMeetingsCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Contre ${dashboard.nextOpponent ?? 'cet adversaire'}',
+            'Contre $opponent',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
