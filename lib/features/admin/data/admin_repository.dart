@@ -122,8 +122,7 @@ class AdminRepository {
       throw StateError(message);
     }
 
-    final temporaryPassword =
-        (resetData['temporaryPassword'] ?? '').toString();
+    final temporaryPassword = (resetData['temporaryPassword'] ?? '').toString();
     if (temporaryPassword.isEmpty) {
       throw StateError('Le mot de passe temporaire n’a pas été retourné.');
     }
