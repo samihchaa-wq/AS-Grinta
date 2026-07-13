@@ -66,8 +66,9 @@ class FaqPage extends StatelessWidget {
           'sur une saison complète de 30 matchs (et les clean sheets du '
           'gardien). Pour chaque joueur, tous les participants sont classés '
           'du pronostic le plus proche au plus éloigné : le plus proche '
-          'remporte le plus de points. Un petit bonus récompense le bon '
-          'classement prévisionnel des buteurs.',
+          'remporte le plus de points. Et si tu trouves le nombre exact, '
+          'tes points sur ce joueur sont doublés (x2). Un petit bonus '
+          'récompense aussi le bon classement prévisionnel des buteurs.',
     ),
     (
       question: 'Pourquoi « classement provisoire » ?',
