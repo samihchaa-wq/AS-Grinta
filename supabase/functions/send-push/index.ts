@@ -1,7 +1,7 @@
 // Envoi des notifications Web Push (VAPID).
 // Appelée par la base via pg_net avec le jeton interne x-push-token :
 // { kind: 'new_match' | 'closing_soon' | 'result_validated', match_id: uuid }
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
 
 type SubscriptionRow = { endpoint: string; p256dh: string; auth: string };
@@ -11,15 +11,21 @@ Deno.serve(async (req: Request) => {
     return new Response("method not allowed", { status: 405 });
   }
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) {
+    return new Response("configuration indisponible", { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   const { data: config, error: configError } = await supabase.rpc(
     "internal_push_config",
   );
   if (configError || !config?.token) {
+    console.error("send-push config failure", configError);
     return new Response("configuration indisponible", { status: 500 });
   }
 
@@ -43,10 +49,8 @@ Deno.serve(async (req: Request) => {
     { p_kind: body.kind, p_match_id: body.match_id },
   );
   if (dispatchError || !dispatch) {
-    return new Response(
-      `préparation impossible: ${dispatchError?.message ?? "inconnue"}`,
-      { status: 500 },
-    );
+    console.error("send-push dispatch failure", dispatchError);
+    return new Response("préparation impossible", { status: 500 });
   }
 
   const subscriptions: SubscriptionRow[] = dispatch.subscriptions ?? [];
@@ -77,6 +81,8 @@ Deno.serve(async (req: Request) => {
         const statusCode = (error as { statusCode?: number }).statusCode;
         if (statusCode === 404 || statusCode === 410) {
           dead.push(sub.endpoint);
+        } else {
+          console.error("send-push delivery failure", { statusCode });
         }
       }
     }),
@@ -84,10 +90,14 @@ Deno.serve(async (req: Request) => {
 
   let pruned = 0;
   if (dead.length > 0) {
-    const { data } = await supabase.rpc("internal_push_prune", {
+    const { data, error } = await supabase.rpc("internal_push_prune", {
       p_endpoints: dead,
     });
-    pruned = data ?? 0;
+    if (error) {
+      console.error("send-push prune failure", error);
+    } else {
+      pruned = data ?? 0;
+    }
   }
 
   return Response.json({ sent, pruned });
