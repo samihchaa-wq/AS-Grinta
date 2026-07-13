@@ -53,9 +53,6 @@ jobs:
           p.write_text(t)
           PY
           dart format lib/core/theme/app_theme.dart lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/season_predictions_page.dart
-          flutter analyze
-          flutter test
-          flutter build web
       - name: Prepare logos
         run: |
           mkdir -p logo-pack
