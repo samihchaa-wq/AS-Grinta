@@ -161,10 +161,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             const SizedBox(width: 10),
             SizedBox(
               width: 76,
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              child: Text(label, style: Theme.of(context).textTheme.bodySmall),
             ),
           ],
         ),
@@ -278,11 +275,11 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             'Échelle commune · 0 à $scorerScale buts',
           ),
           ...scorers.map(
-            (gauge) => _PlayerSummaryCard(
+            (gauge) => _NeonGaugeCard(
               gauge: gauge,
-              currentUserId: currentUserId,
               scaleMax: scorerScale,
-              onTap: () => _showPlayerDetails(gauge, currentUserId),
+              onOpenAll: () => _showPlayerDetails(gauge, currentUserId),
+              onOpenMarker: (marker) => _showMarkerDetails(gauge, marker),
             ),
           ),
           const SizedBox(height: 18),
@@ -294,14 +291,16 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             'Clean sheets · 0 à $keeperScale',
           ),
           ...keepers.map(
-            (gauge) => _PlayerSummaryCard(
+            (gauge) => _NeonGaugeCard(
               gauge: gauge,
-              currentUserId: currentUserId,
               scaleMax: keeperScale,
-              onTap: () => _showPlayerDetails(gauge, currentUserId),
+              onOpenAll: () => _showPlayerDetails(gauge, currentUserId),
+              onOpenMarker: (marker) => _showMarkerDetails(gauge, marker),
             ),
           ),
         ],
+        const SizedBox(height: 12),
+        const _GaugeLegend(),
       ],
     );
   }
@@ -452,6 +451,63 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     return ((observedMax + 4) ~/ 5) * 5;
   }
 
+  Future<void> _showMarkerDetails(
+    PlayerGauge gauge,
+    GaugeMarker marker,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                gauge.playerName,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${marker.value} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                marker.predictions.length == 1
+                    ? 'Pronostiqué par'
+                    : 'Pronostiqué par ${marker.predictions.length} personnes',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final prediction in marker.predictions)
+                    Chip(
+                      avatar: CircleAvatar(
+                        child: Text(_initial(prediction.predictorName)),
+                      ),
+                      label: Text(prediction.predictorName),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _showPlayerDetails(
     PlayerGauge gauge,
     String? currentUserId,
@@ -464,8 +520,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       builder: (context) {
         return DraggableScrollableSheet(
           expand: false,
-          initialChildSize: .92,
-          minChildSize: .65,
+          initialChildSize: .9,
+          minChildSize: .62,
           maxChildSize: .98,
           builder: (context, scrollController) {
             return _PlayerDetailsSheet(
@@ -501,43 +557,55 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         );
       }
     } catch (error) {
-      if (mounted) {
-        setState(() => _error = humanizeError(error));
-      }
+      if (mounted) setState(() => _error = humanizeError(error));
     } finally {
-      if (mounted) {
-        setState(() => _isSavingAll = false);
-      }
+      if (mounted) setState(() => _isSavingAll = false);
     }
   }
 }
 
-class _PlayerSummaryCard extends StatelessWidget {
-  const _PlayerSummaryCard({
+class _NeonGaugeCard extends StatelessWidget {
+  const _NeonGaugeCard({
     required this.gauge,
-    required this.currentUserId,
     required this.scaleMax,
-    required this.onTap,
+    required this.onOpenAll,
+    required this.onOpenMarker,
   });
 
   final PlayerGauge gauge;
-  final String? currentUserId;
   final int scaleMax;
-  final VoidCallback onTap;
+  final VoidCallback onOpenAll;
+  final ValueChanged<GaugeMarker> onOpenMarker;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final mine = gauge.predictionFor(currentUserId);
-    final optimistic = gauge.predictions.take(3).toList();
+    final modeMarker = _modeMarker(gauge.markers);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: scheme.primary.withOpacity(.28)),
+        gradient: LinearGradient(
+          colors: [
+            scheme.surfaceContainerHigh.withOpacity(.96),
+            scheme.surfaceContainer.withOpacity(.88),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withOpacity(.07),
+            blurRadius: 22,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
       child: InkWell(
-        onTap: onTap,
+        onTap: onOpenAll,
+        borderRadius: BorderRadius.circular(22),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -573,157 +641,197 @@ class _PlayerSummaryCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  FilledButton.tonalIcon(
-                    onPressed: onTap,
+                  OutlinedButton.icon(
+                    onPressed: onOpenAll,
                     icon: const Icon(Icons.chevron_right, size: 18),
                     label: Text('Voir les ${gauge.predictions.length}'),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Metric(
-                      label: 'Médiane du groupe',
-                      value: _formatNumber(gauge.median),
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _Metric(
-                      label: 'Mon prono',
-                      value: mine?.value.toString() ?? '—',
-                      color: Colors.greenAccent.shade400,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _ComparisonGauge(
+              _InteractiveNeonGauge(
                 actual: gauge.actual,
-                median: gauge.median,
-                mine: mine?.value,
                 maxValue: scaleMax,
+                markers: gauge.markers,
+                modeMarker: modeMarker,
+                onMarkerTap: onOpenMarker,
               ),
-              const SizedBox(height: 5),
-              Row(
-                children: [
-                  Text(
-                    gauge.predictions.isEmpty
-                        ? 'Aucun prono'
-                        : 'Min ${gauge.minimum}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Spacer(),
-                  Text(
-                    gauge.predictions.isEmpty ? '' : 'Max ${gauge.maximum}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              if (optimistic.isNotEmpty) ...[
-                const Divider(height: 24),
-                Text(
-                  'Plus optimistes',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                ),
-                const SizedBox(height: 7),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 7,
-                  children: [
-                    for (final prediction in optimistic)
-                      _OptimistChip(prediction: prediction),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
       ),
     );
   }
+
+  GaugeMarker? _modeMarker(List<GaugeMarker> markers) {
+    if (markers.isEmpty) return null;
+    final sorted = [...markers]
+      ..sort((a, b) {
+        final byCount = b.predictions.length.compareTo(a.predictions.length);
+        if (byCount != 0) return byCount;
+        return b.value.compareTo(a.value);
+      });
+    return sorted.first;
+  }
 }
 
-class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.label,
-    required this.value,
-    required this.color,
+class _InteractiveNeonGauge extends StatelessWidget {
+  const _InteractiveNeonGauge({
+    required this.actual,
+    required this.maxValue,
+    required this.markers,
+    required this.modeMarker,
+    required this.onMarkerTap,
   });
 
-  final String label;
-  final String value;
-  final Color color;
+  final int actual;
+  final int maxValue;
+  final List<GaugeMarker> markers;
+  final GaugeMarker? modeMarker;
+  final ValueChanged<GaugeMarker> onMarkerTap;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const edge = 16.0;
+        final width = math.max(1.0, constraints.maxWidth - edge * 2);
+        double xFor(num value) {
+          final ratio = (value / math.max(1, maxValue)).clamp(0.0, 1.0);
+          return edge + width * ratio;
+        }
+
+        return SizedBox(
+          height: 86,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: edge,
+                right: edge,
+                top: 38,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(99),
+                    gradient: LinearGradient(
+                      colors: [
+                        scheme.primary.withOpacity(.95),
+                        const Color(0xFF6B5CFF),
+                        const Color(0xFFD64BC8),
+                      ],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.primary.withOpacity(.28),
+                        blurRadius: 14,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              for (final marker in markers)
+                Positioned(
+                  left: xFor(marker.value) -
+                      (marker == modeMarker ? 18 : 7),
+                  top: marker == modeMarker ? 21 : 32,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onMarkerTap(marker),
+                    child: marker == modeMarker
+                        ? _PopularPredictionBubble(marker: marker)
+                        : _PredictionDot(marker: marker),
+                  ),
+                ),
+              Positioned(
+                left: xFor(actual) - 18,
+                top: 20,
+                child: _CurrentBall(value: actual),
+              ),
+              Positioned(
+                left: 0,
+                bottom: 0,
+                child: Text('0', style: Theme.of(context).textTheme.labelSmall),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Text(
+                  '$maxValue',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CurrentBall extends StatelessWidget {
+  const _CurrentBall({required this.value});
+
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: scheme.surface,
+            border: Border.all(color: scheme.primary, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withOpacity(.55),
+                blurRadius: 16,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Icon(Icons.sports_soccer, color: scheme.onSurface, size: 25),
         ),
         const SizedBox(height: 2),
         Text(
-          value,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w900,
-              ),
+          '$value',
+          style: TextStyle(
+            color: scheme.primary,
+            fontWeight: FontWeight.w900,
+            fontSize: 12,
+          ),
         ),
       ],
     );
   }
 }
 
-class _OptimistChip extends StatelessWidget {
-  const _OptimistChip({required this.prediction});
+class _PredictionDot extends StatelessWidget {
+  const _PredictionDot({required this.marker});
 
-  final GaugePrediction prediction;
+  final GaugeMarker marker;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final initial = prediction.predictorName.isEmpty
-        ? '?'
-        : prediction.predictorName.substring(0, 1).toUpperCase();
-
+    final size = 10.0 + math.min(7, marker.predictions.length * 1.5);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 10,
-            backgroundColor: scheme.primaryContainer,
-            child: Text(
-              initial,
-              style: TextStyle(
-                color: scheme.onPrimaryContainer,
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(prediction.predictorName),
-          const SizedBox(width: 5),
-          Text(
-            '${prediction.value}',
-            style: TextStyle(
-              color: scheme.primary,
-              fontWeight: FontWeight.w900,
-            ),
+        shape: BoxShape.circle,
+        color: scheme.tertiary,
+        border: Border.all(color: Colors.white.withOpacity(.35)),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.tertiary.withOpacity(.55),
+            blurRadius: 10,
           ),
         ],
       ),
@@ -731,158 +839,82 @@ class _OptimistChip extends StatelessWidget {
   }
 }
 
-class _ComparisonGauge extends StatelessWidget {
-  const _ComparisonGauge({
-    required this.actual,
-    required this.median,
-    required this.mine,
-    required this.maxValue,
-  });
+class _PopularPredictionBubble extends StatelessWidget {
+  const _PopularPredictionBubble({required this.marker});
 
-  final int actual;
-  final double median;
-  final int? mine;
-  final int maxValue;
+  final GaugeMarker marker;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Column(
-      children: [
-        SizedBox(
-          height: 62,
-          child: CustomPaint(
-            painter: _GaugePainter(
-              actual: actual.toDouble(),
-              median: median,
-              mine: mine?.toDouble(),
-              maxValue: maxValue.toDouble(),
-              lineColor: scheme.outlineVariant,
-              actualColor: scheme.primary,
-              medianColor: scheme.tertiary,
-              mineColor: Colors.greenAccent.shade400,
-            ),
-            child: const SizedBox.expand(),
+    final color = Theme.of(context).colorScheme.tertiary;
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withOpacity(.24),
+        border: Border.all(color: color, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(.6),
+            blurRadius: 18,
+            spreadRadius: 2,
           ),
-        ),
-        Row(
-          children: [
-            Text('0', style: Theme.of(context).textTheme.labelSmall),
-            const Spacer(),
-            Text('$maxValue', style: Theme.of(context).textTheme.labelSmall),
-          ],
-        ),
-      ],
+        ],
+      ),
+      child: Text(
+        '${marker.value}',
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
     );
   }
 }
 
-class _GaugePainter extends CustomPainter {
-  _GaugePainter({
-    required this.actual,
-    required this.median,
-    required this.mine,
-    required this.maxValue,
-    required this.lineColor,
-    required this.actualColor,
-    required this.medianColor,
-    required this.mineColor,
-  });
-
-  final double actual;
-  final double median;
-  final double? mine;
-  final double maxValue;
-  final Color lineColor;
-  final Color actualColor;
-  final Color medianColor;
-  final Color mineColor;
+class _GaugeLegend extends StatelessWidget {
+  const _GaugeLegend();
 
   @override
-  void paint(Canvas canvas, Size size) {
-    const left = 9.0;
-    final right = size.width - 9;
-    const y = 28.0;
-    final linePaint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(const Offset(left, y), Offset(right, y), linePaint);
-
-    double xFor(double value) {
-      final safeMax = math.max(1.0, maxValue);
-      final ratio = (value / safeMax).clamp(0.0, 1.0).toDouble();
-      return left + ((right - left) * ratio);
-    }
-
-    final actualX = xFor(actual);
-    canvas.drawCircle(
-      Offset(actualX, y),
-      8,
-      Paint()..color = actualColor,
-    );
-    _drawLabel(canvas, '$actual'.replaceAll('.0', ''), actualX, 45, actualColor);
-
-    final medianX = xFor(median);
-    final triangle = Path()
-      ..moveTo(medianX, y - 11)
-      ..lineTo(medianX - 8, y + 4)
-      ..lineTo(medianX + 8, y + 4)
-      ..close();
-    canvas.drawPath(triangle, Paint()..color = medianColor);
-    _drawLabel(canvas, _formatNumber(median), medianX, 4, medianColor);
-
-    if (mine != null) {
-      final mineX = xFor(mine!);
-      final diamond = Path()
-        ..moveTo(mineX, y - 9)
-        ..lineTo(mineX + 8, y)
-        ..lineTo(mineX, y + 9)
-        ..lineTo(mineX - 8, y)
-        ..close();
-      canvas.drawPath(diamond, Paint()..color = mineColor);
-      _drawLabel(
-        canvas,
-        '${mine!}'.replaceAll('.0', ''),
-        mineX,
-        45,
-        mineColor,
-      );
-    }
-  }
-
-  void _drawLabel(
-    Canvas canvas,
-    String text,
-    double x,
-    double y,
-    Color color,
-  ) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Wrap(
+          spacing: 18,
+          runSpacing: 10,
+          children: [
+            _LegendItem(
+              icon: Icon(Icons.sports_soccer, color: scheme.primary, size: 19),
+              label: 'Buts actuels',
+            ),
+            _LegendItem(
+              icon: Icon(Icons.circle, color: scheme.tertiary, size: 12),
+              label: 'Chaque point = un score pronostiqué',
+            ),
+            const _LegendItem(
+              icon: Icon(Icons.touch_app_outlined, size: 18),
+              label: 'Appuie sur un point pour voir les noms',
+            ),
+          ],
         ),
       ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    painter.paint(canvas, Offset(x - (painter.width / 2), y));
+    );
   }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.icon, required this.label});
+
+  final Widget icon;
+  final String label;
 
   @override
-  bool shouldRepaint(covariant _GaugePainter oldDelegate) {
-    return oldDelegate.actual != actual ||
-        oldDelegate.median != median ||
-        oldDelegate.mine != mine ||
-        oldDelegate.maxValue != maxValue ||
-        oldDelegate.lineColor != lineColor ||
-        oldDelegate.actualColor != actualColor ||
-        oldDelegate.medianColor != medianColor ||
-        oldDelegate.mineColor != mineColor;
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [icon, const SizedBox(width: 7), Text(label)],
+    );
   }
 }
 
@@ -1010,7 +1042,6 @@ class _PlayerDetailsSheet extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final predictions = [...gauge.predictions];
     final maxValue = math.max(1, gauge.maximum);
-    final buckets = _distributionBuckets(gauge);
 
     return ListView(
       controller: scrollController,
@@ -1044,86 +1075,29 @@ class _PlayerDetailsSheet extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                   ),
-                  const Text('Détail des pronostics'),
+                  Text(
+                    gauge.isGoalkeeper
+                        ? AppFormats.counted(
+                            gauge.actual,
+                            'clean sheet actuel',
+                            'clean sheets actuels',
+                          )
+                        : AppFormats.counted(
+                            gauge.actual,
+                            'but actuel',
+                            'buts actuels',
+                          ),
+                    style: TextStyle(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                gauge.isGoalkeeper
-                    ? AppFormats.counted(
-                        gauge.actual,
-                        'clean sheet',
-                        'clean sheets',
-                      )
-                    : AppFormats.counted(gauge.actual, 'but'),
-                style: TextStyle(
-                  color: scheme.onPrimaryContainer,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
           ],
         ),
-        const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: _StatTile(
-                label: 'Médiane',
-                value: _formatNumber(gauge.median),
-                color: scheme.primary,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatTile(
-                label: 'Moyenne',
-                value: gauge.average.toStringAsFixed(1).replaceAll('.', ','),
-                color: scheme.tertiary,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatTile(
-                label: 'Écart',
-                value: gauge.predictions.isEmpty
-                    ? '—'
-                    : '${gauge.minimum}–${gauge.maximum}',
-                color: Colors.amberAccent.shade400,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Distribution des pronostics',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                const SizedBox(height: 16),
-                _DistributionChart(
-                  buckets: buckets,
-                  total: gauge.predictions.length,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Text(
           'Tous les pronostics (${predictions.length})',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -1148,40 +1122,8 @@ class _PlayerDetailsSheet extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          'En cas d’égalité, le même rang est attribué.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-        ),
       ],
     );
-  }
-
-  static List<({String label, int count})> _distributionBuckets(
-    PlayerGauge gauge,
-  ) {
-    final maxValue = math.max(20, gauge.maximum);
-    final step = maxValue <= 20 ? 5 : math.max(5, (maxValue / 4).ceil());
-    final result = <({String label, int count})>[];
-
-    for (var start = 0; start < step * 4; start += step) {
-      final end = start + step - 1;
-      final count = gauge.values
-          .where((value) => value >= start && value <= end)
-          .length;
-      result.add((label: '$start–$end', count: count));
-    }
-
-    final lastStart = step * 4;
-    result.add(
-      (
-        label: '$lastStart+',
-        count: gauge.values.where((value) => value >= lastStart).length,
-      ),
-    );
-    return result;
   }
 
   static int _rankFor(List<GaugePrediction> predictions, int index) {
@@ -1190,116 +1132,6 @@ class _PlayerDetailsSheet extends StatelessWidget {
       return _rankFor(predictions, index - 1);
     }
     return index + 1;
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children: [
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DistributionChart extends StatelessWidget {
-  const _DistributionChart({
-    required this.buckets,
-    required this.total,
-  });
-
-  final List<({String label, int count})> buckets;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    var maxCount = 1;
-    for (final bucket in buckets) {
-      maxCount = math.max(maxCount, bucket.count);
-    }
-
-    return SizedBox(
-      height: 145,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (final bucket in buckets)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${bucket.count}',
-                      style: TextStyle(
-                        color: scheme.primary,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      total == 0
-                          ? '0 %'
-                          : '${(bucket.count * 100 / total).round()} %',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    const SizedBox(height: 5),
-                    Flexible(
-                      child: FractionallySizedBox(
-                        heightFactor: bucket.count / maxCount,
-                        alignment: Alignment.bottomCenter,
-                        child: Container(
-                          constraints: const BoxConstraints(minHeight: 3),
-                          decoration: BoxDecoration(
-                            color: scheme.primary,
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(7),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      bucket.label,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
 
@@ -1394,7 +1226,7 @@ class _RankingRow extends StatelessWidget {
   }
 }
 
-String _formatNumber(double value) {
-  if (value == value.roundToDouble()) return value.toInt().toString();
-  return value.toStringAsFixed(1).replaceAll('.', ',');
+String _initial(String name) {
+  final trimmed = name.trim();
+  return trimmed.isEmpty ? '?' : trimmed.substring(0, 1).toUpperCase();
 }
