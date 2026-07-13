@@ -1,3 +1,5 @@
+export 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
+
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
