@@ -16,16 +16,24 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
+  final refreshNotifier = _RouterRefreshNotifier();
+  ref
+    ..listen<AuthState>(
+      authControllerProvider,
+      (_, __) => refreshNotifier.refresh(),
+    )
+    ..onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/matches',
+    refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
-      authState: authState,
+      authState: ref.read(authControllerProvider),
       uri: state.uri,
       matchedLocation: state.matchedLocation,
     ),
@@ -93,3 +101,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void refresh() => notifyListeners();
+}
