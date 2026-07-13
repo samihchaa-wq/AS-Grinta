@@ -1,0 +1,106 @@
+name: Split pronos hub
+
+on:
+  push:
+    branches: [refactor/split-pronos-hub]
+
+permissions:
+  contents: write
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Split file into private library parts
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/presentation/pronos_hub_page.dart')
+          text = path.read_text()
+
+          marker_matches = 'class _MatchesSection'
+          marker_rankings = 'class _MatchRankingView'
+          marker_upcoming = 'class _UpcomingPredictionCard'
+          marker_components = 'class _LeaderboardCard'
+          marker_declarations = 'enum _PronosSection'
+
+          for marker in (
+              marker_matches,
+              marker_rankings,
+              marker_upcoming,
+              marker_components,
+              marker_declarations,
+          ):
+              if text.count(marker) != 1:
+                  raise SystemExit(f'Expected one marker {marker!r}, found {text.count(marker)}')
+
+          matches_index = text.index(marker_matches)
+          rankings_index = text.index(marker_rankings)
+          upcoming_index = text.index(marker_upcoming)
+          components_index = text.index(marker_components)
+          declarations_index = text.index(marker_declarations)
+
+          if not (
+              declarations_index < matches_index < rankings_index < upcoming_index < components_index
+          ):
+              raise SystemExit('Unexpected pronos hub class ordering')
+
+          parts = {
+              'pronos_hub_matches_section.dart': text[matches_index:rankings_index],
+              'pronos_hub_ranking_sections.dart': text[rankings_index:upcoming_index],
+              'pronos_hub_upcoming_section.dart': text[upcoming_index:components_index],
+              'pronos_hub_components.dart': text[components_index:],
+          }
+
+          part_directives = (
+              "part 'pronos_hub_matches_section.dart';\n"
+              "part 'pronos_hub_ranking_sections.dart';\n"
+              "part 'pronos_hub_upcoming_section.dart';\n"
+              "part 'pronos_hub_components.dart';\n\n"
+          )
+          main = (
+              text[:declarations_index]
+              + part_directives
+              + text[declarations_index:matches_index].rstrip()
+              + '\n'
+          )
+          path.write_text(main)
+
+          for filename, content in parts.items():
+              target = path.with_name(filename)
+              target.write_text(
+                  "part of 'pronos_hub_page.dart';\n\n" + content.strip() + '\n'
+              )
+
+      - name: Format split files
+        run: |
+          dart format \
+            lib/features/predictions/presentation/pronos_hub_page.dart \
+            lib/features/predictions/presentation/pronos_hub_matches_section.dart \
+            lib/features/predictions/presentation/pronos_hub_ranking_sections.dart \
+            lib/features/predictions/presentation/pronos_hub_upcoming_section.dart \
+            lib/features/predictions/presentation/pronos_hub_components.dart
+
+      - name: Commit split and clean workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/split-pronos-hub.yml
+          rm -f .github/split-pronos-hub-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor(predictions): split pronos hub into focused parts"
+          git push origin HEAD:refactor/split-pronos-hub
