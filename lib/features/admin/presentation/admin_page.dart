@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
+import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,12 +38,7 @@ class AdminPage extends ConsumerWidget {
             ],
           ),
           data: (dashboard) {
-            final pendingProfiles = dashboard.profiles
-                .where((profile) => profile.status == 'pending')
-                .toList();
-            final validatedProfiles = dashboard.profiles
-                .where((profile) => profile.status != 'pending')
-                .toList();
+            final groups = groupAdminProfiles(dashboard.profiles);
 
             return ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -95,14 +91,14 @@ class AdminPage extends ConsumerWidget {
                 else ...[
                   _ProfilesSection(
                     title: 'En attente de validation',
-                    profiles: pendingProfiles,
+                    profiles: groups.pending,
                     emptyMessage: 'Aucun compte en attente.',
                     icon: Icons.hourglass_top_rounded,
                   ),
                   const SizedBox(height: 20),
                   _ProfilesSection(
                     title: 'Validés',
-                    profiles: validatedProfiles,
+                    profiles: groups.validated,
                     emptyMessage: 'Aucun compte validé.',
                     icon: Icons.verified_outlined,
                   ),
@@ -387,8 +383,10 @@ class _ProfileCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.read(adminRepositoryProvider);
     final currentUserId = ref.watch(authControllerProvider).profile?.id;
-    final isSelf = currentUserId != null && currentUserId == profile.id;
-    final isPending = profile.status == 'pending';
+    final policy = adminProfileActionPolicy(
+      profile: profile,
+      currentUserId: currentUserId,
+    );
 
     Future<void> run(Future<void> Function() action, {String? success}) async {
       try {
@@ -423,12 +421,12 @@ class _ProfileCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                if (isSelf)
+                if (policy.isSelf)
                   const Chip(
                     visualDensity: VisualDensity.compact,
                     label: Text('Toi'),
                   )
-                else if (profile.status == 'archived')
+                else if (policy.isArchived)
                   const Chip(
                     visualDensity: VisualDensity.compact,
                     label: Text('Archivé'),
@@ -437,7 +435,7 @@ class _ProfileCard extends ConsumerWidget {
             ),
             if (profile.username.trim().isNotEmpty)
               Text('Identifiant : ${profile.username}'),
-            if (!profile.passwordSet && !isPending)
+            if (!profile.passwordSet && !policy.isPending)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Chip(
@@ -448,8 +446,8 @@ class _ProfileCard extends ConsumerWidget {
               ),
             // Actions réservées aux autres comptes : l'admin ne se gère pas
             // lui-même.
-            if (!isSelf) ...[
-              if (isPending) ...[
+            if (!policy.isSelf) ...[
+              if (policy.isPending) ...[
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
@@ -509,7 +507,7 @@ class _ProfileCard extends ConsumerWidget {
                       icon: const Icon(Icons.lock_reset, size: 18),
                       label: const Text('Réinitialiser le mot de passe'),
                     ),
-                    if (profile.status == 'archived')
+                    if (policy.isArchived)
                       TextButton.icon(
                         onPressed: () => run(
                           () => repository.updateProfileStatus(
