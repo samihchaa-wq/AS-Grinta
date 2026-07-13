@@ -108,15 +108,11 @@ class AdminRepository {
   /// Réinitialise l'ancien mot de passe, active un mot de passe temporaire
   /// sécurisé, puis force son remplacement à la prochaine connexion.
   Future<void> resetAccountPassword(String userId) async {
-    final profile = await _client
-        .from('profiles')
-        .select('username')
-        .eq('id', userId)
-        .maybeSingle();
-    final cleanUsername = (profile?['username'] ?? '')
-        .toString()
-        .trim()
-        .toLowerCase();
+    final usernameResult = await _client.rpc(
+      'staff_profile_username',
+      params: {'p_profile_id': userId},
+    );
+    final cleanUsername = (usernameResult ?? '').toString().trim().toLowerCase();
     if (cleanUsername.isEmpty) {
       throw StateError('Identifiant du joueur introuvable.');
     }
