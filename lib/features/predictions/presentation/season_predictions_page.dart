@@ -325,7 +325,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
-          value: selectedId,
+          initialValue: selectedId,
           decoration: const InputDecoration(
             labelText: 'Consulter les pronostics de',
             prefixIcon: Icon(Icons.person_outline),
@@ -581,16 +581,16 @@ class _NeonGaugeCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: scheme.primary.withOpacity(.28)),
+        border: Border.all(color: scheme.primary.withValues(alpha: .28)),
         gradient: LinearGradient(
           colors: [
-            scheme.surfaceContainerHigh.withOpacity(.96),
-            scheme.surfaceContainer.withOpacity(.88),
+            scheme.surfaceContainerHigh.withValues(alpha: .96),
+            scheme.surfaceContainer.withValues(alpha: .88),
           ],
         ),
         boxShadow: [
           BoxShadow(
-            color: scheme.primary.withOpacity(.07),
+            color: scheme.primary.withValues(alpha: .07),
             blurRadius: 22,
             spreadRadius: 1,
           ),
@@ -712,14 +712,14 @@ class _InteractiveNeonGauge extends StatelessWidget {
                     borderRadius: BorderRadius.circular(99),
                     gradient: LinearGradient(
                       colors: [
-                        scheme.primary.withOpacity(.95),
+                        scheme.primary.withValues(alpha: .95),
                         const Color(0xFF6B5CFF),
                         const Color(0xFFD64BC8),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: scheme.primary.withOpacity(.28),
+                        color: scheme.primary.withValues(alpha: .28),
                         blurRadius: 14,
                       ),
                     ],
@@ -783,7 +783,7 @@ class _CurrentBall extends StatelessWidget {
             border: Border.all(color: scheme.primary, width: 2),
             boxShadow: [
               BoxShadow(
-                color: scheme.primary.withOpacity(.55),
+                color: scheme.primary.withValues(alpha: .55),
                 blurRadius: 16,
                 spreadRadius: 2,
               ),
@@ -820,9 +820,12 @@ class _PredictionDot extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: scheme.tertiary,
-        border: Border.all(color: Colors.white.withOpacity(.35)),
+        border: Border.all(color: Colors.white.withValues(alpha: .35)),
         boxShadow: [
-          BoxShadow(color: scheme.tertiary.withOpacity(.55), blurRadius: 10),
+          BoxShadow(
+            color: scheme.tertiary.withValues(alpha: .55),
+            blurRadius: 10,
+          ),
         ],
       ),
     );
@@ -843,11 +846,11 @@ class _PopularPredictionBubble extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(.24),
+        color: color.withValues(alpha: .24),
         border: Border.all(color: color, width: 2),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(.6),
+            color: color.withValues(alpha: .6),
             blurRadius: 18,
             spreadRadius: 2,
           ),
@@ -1153,7 +1156,9 @@ class _RankingRow extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: isMine ? Colors.green.withOpacity(.16) : Colors.transparent,
+        color: isMine
+            ? Colors.green.withValues(alpha: .16)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
