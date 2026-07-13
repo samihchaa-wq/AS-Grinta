@@ -36,7 +36,7 @@ final enhancedSeasonCompletedMatchesProvider =
   return (rows as List).length;
 });
 
-enum _SeasonView { players, predictors, ranking }
+enum _SeasonView { players, ranking }
 
 class EnhancedSeasonPredictionsPage extends ConsumerStatefulWidget {
   const EnhancedSeasonPredictionsPage({super.key});
@@ -49,7 +49,6 @@ class EnhancedSeasonPredictionsPage extends ConsumerStatefulWidget {
 class _EnhancedSeasonPredictionsPageState
     extends ConsumerState<EnhancedSeasonPredictionsPage> {
   _SeasonView _view = _SeasonView.players;
-  String? _selectedPredictorId;
 
   @override
   Widget build(BuildContext context) {
@@ -82,11 +81,6 @@ class _EnhancedSeasonPredictionsPageState
           final currentUserId = ref
               .read(seasonPredictionsRepositoryProvider)
               .currentUserId;
-          final predictors = _predictors(gauges);
-          _selectedPredictorId ??=
-              predictors.any((item) => item.id == currentUserId)
-                  ? currentUserId
-                  : predictors.firstOrNull?.id;
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -102,7 +96,7 @@ class _EnhancedSeasonPredictionsPageState
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               children: [
                 Text(
-                  '${predictors.length} pronostiqueurs',
+                  '${_predictorCount(gauges)} pronostiqueurs',
                   style: const TextStyle(
                     color: Colors.white60,
                     fontWeight: FontWeight.w700,
@@ -129,17 +123,12 @@ class _EnhancedSeasonPredictionsPageState
                     ButtonSegment(
                       value: _SeasonView.players,
                       icon: Icon(Icons.sports_soccer),
-                      label: FittedBox(child: Text('Joueurs')),
-                    ),
-                    ButtonSegment(
-                      value: _SeasonView.predictors,
-                      icon: Icon(Icons.group_outlined),
-                      label: FittedBox(child: Text('Pronostiqueurs')),
+                      label: Text('Joueurs'),
                     ),
                     ButtonSegment(
                       value: _SeasonView.ranking,
                       icon: Icon(Icons.emoji_events_outlined),
-                      label: FittedBox(child: Text('Classement')),
+                      label: Text('Classement'),
                     ),
                   ],
                   selected: {_view},
@@ -148,12 +137,12 @@ class _EnhancedSeasonPredictionsPageState
                     setState(() => _view = selection.first);
                   },
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 14),
+                const _GaugeLegend(),
+                const SizedBox(height: 18),
                 switch (_view) {
                   _SeasonView.players =>
                     _playersView(context, gauges, currentUserId),
-                  _SeasonView.predictors =>
-                    _predictorsView(gauges, predictors, currentUserId),
                   _SeasonView.ranking => const SeasonRankingPanel(),
                 },
               ],
@@ -191,6 +180,7 @@ class _EnhancedSeasonPredictionsPageState
             (gauge) => PremiumSeasonGaugeCard(
               gauge: gauge,
               scaleMax: _scale(scorers, 20),
+              personalPrediction: gauge.predictionFor(currentUserId)?.value,
               onOpenAll: () =>
                   _openPlayerDetails(context, gauge, currentUserId),
               onOpenMedian: () =>
@@ -205,94 +195,13 @@ class _EnhancedSeasonPredictionsPageState
             (gauge) => PremiumSeasonGaugeCard(
               gauge: gauge,
               scaleMax: _scale(keepers, 15),
+              personalPrediction: gauge.predictionFor(currentUserId)?.value,
               onOpenAll: () =>
                   _openPlayerDetails(context, gauge, currentUserId),
               onOpenMedian: () =>
                   _openPlayerDetails(context, gauge, currentUserId),
             ),
           ),
-        ],
-      ],
-    );
-  }
-
-  Widget _predictorsView(
-    List<PlayerGauge> gauges,
-    List<({String id, String name})> predictors,
-    String? currentUserId,
-  ) {
-    final selectedId = _selectedPredictorId;
-    final selectedName = predictors
-            .where((item) => item.id == selectedId)
-            .firstOrNull
-            ?.name ??
-        'Pronostiqueur';
-
-    int compare(PlayerGauge a, PlayerGauge b) {
-      final byActual = b.actual.compareTo(a.actual);
-      if (byActual != 0) return byActual;
-      final aPrediction = a.predictionFor(selectedId)?.value ?? -1;
-      final bPrediction = b.predictionFor(selectedId)?.value ?? -1;
-      final byPrediction = bPrediction.compareTo(aPrediction);
-      if (byPrediction != 0) return byPrediction;
-      return a.playerName.toLowerCase().compareTo(b.playerName.toLowerCase());
-    }
-
-    final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
-      ..sort(compare);
-    final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
-      ..sort(compare);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DropdownButtonFormField<String>(
-          initialValue: selectedId,
-          decoration: InputDecoration(
-            labelText: 'Consulter les pronostics de',
-            prefixIcon: const Icon(Icons.person_search_outlined),
-            filled: true,
-            fillColor: const Color(0xFF0A1931),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-          ),
-          items: [
-            for (final predictor in predictors)
-              DropdownMenuItem(
-                value: predictor.id,
-                child: Text(
-                  predictor.id == currentUserId
-                      ? '${predictor.name} (moi)'
-                      : predictor.name,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
-          onChanged: (value) => setState(() => _selectedPredictorId = value),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          selectedName,
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const Text(
-          'Tri : score réel, puis prono en cas d’égalité',
-          style: TextStyle(color: Colors.white60),
-        ),
-        const SizedBox(height: 18),
-        if (scorers.isNotEmpty) ...[
-          const _SectionTitle('Buteurs'),
-          _PredictorList(gauges: scorers, predictorId: selectedId),
-          const SizedBox(height: 20),
-        ],
-        if (keepers.isNotEmpty) ...[
-          const _SectionTitle('Gardiens · clean sheets'),
-          _PredictorList(gauges: keepers, predictorId: selectedId),
         ],
       ],
     );
@@ -329,17 +238,75 @@ class _EnhancedSeasonPredictionsPageState
     return ((observed + 4) ~/ 5) * 5;
   }
 
-  List<({String id, String name})> _predictors(List<PlayerGauge> gauges) {
-    final byId = <String, String>{};
+  int _predictorCount(List<PlayerGauge> gauges) {
+    final ids = <String>{};
     for (final gauge in gauges) {
-      for (final prediction in gauge.predictions) {
-        byId[prediction.predictorId] = prediction.predictorName;
-      }
+      ids.addAll(gauge.predictions.map((prediction) => prediction.predictorId));
     }
-    return byId.entries
-        .map((entry) => (id: entry.key, name: entry.value))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    return ids.length;
+  }
+}
+
+class _GaugeLegend extends StatelessWidget {
+  const _GaugeLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 14,
+      runSpacing: 8,
+      children: const [
+        _LegendItem(
+          icon: Icons.sports_soccer,
+          label: 'Score actuel',
+          color: Color(0xFF4B6FFF),
+        ),
+        _LegendItem(
+          icon: Icons.circle,
+          label: 'Mon prono',
+          color: Color(0xFFFFBE3D),
+        ),
+        Text(
+          '⚖️ Trait = médiane',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 14),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -361,178 +328,4 @@ class _SectionTitle extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PredictorList extends StatelessWidget {
-  const _PredictorList({required this.gauges, required this.predictorId});
-
-  final List<PlayerGauge> gauges;
-  final String? predictorId;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF08162C),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
-      child: Column(
-        children: [
-          for (var index = 0; index < gauges.length; index++) ...[
-            _PredictorRow(
-              gauge: gauges[index],
-              prediction: gauges[index].predictionFor(predictorId),
-            ),
-            if (index != gauges.length - 1)
-              Divider(height: 1, color: Colors.white.withValues(alpha: .08)),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _PredictorRow extends StatelessWidget {
-  const _PredictorRow({required this.gauge, required this.prediction});
-
-  final PlayerGauge gauge;
-  final GaugePrediction? prediction;
-
-  @override
-  Widget build(BuildContext context) {
-    final predicted = prediction?.value;
-    final accent = gaugeAccentFor(gauge.playerId);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 104,
-            child: Text(
-              gauge.playerName,
-              maxLines: 2,
-              style: const TextStyle(fontWeight: FontWeight.w800, height: 1.05),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _ActualPredictionGauge(
-              actual: gauge.actual,
-              predicted: predicted,
-              accent: accent,
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 54,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'PRONO',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  predicted?.toString() ?? '—',
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActualPredictionGauge extends StatelessWidget {
-  const _ActualPredictionGauge({
-    required this.actual,
-    required this.predicted,
-    required this.accent,
-  });
-
-  final int actual;
-  final int? predicted;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    if (predicted == null) {
-      return const Text('Aucun prono', style: TextStyle(color: Colors.white54));
-    }
-
-    final visualMax = math.max(1, math.max(actual, predicted!)).toDouble();
-    final actualRatio = (actual / visualMax).clamp(0.0, 1.0).toDouble();
-    final predictionRatio = (predicted! / visualMax).clamp(0.0, 1.0).toDouble();
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final markerX = constraints.maxWidth * predictionRatio;
-        return SizedBox(
-          height: 38,
-          child: Stack(
-            alignment: Alignment.centerLeft,
-            children: [
-              Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: actualRatio,
-                child: Container(
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: (markerX - 1.5).clamp(0.0, constraints.maxWidth - 3),
-                top: 4,
-                child: Container(
-                  width: 3,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 6,
-                top: 0,
-                child: Text(
-                  'Actuel $actual',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-extension<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
