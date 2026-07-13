@@ -1,0 +1,16 @@
+project_id = "ovzijmqrnsgcmryinkfa"
+
+[functions.manage-user]
+verify_jwt = true
+
+[functions.claim-account]
+verify_jwt = true
+
+[functions.register-account]
+verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false
+
+[functions.send-prediction-reminders]
+verify_jwt = false
