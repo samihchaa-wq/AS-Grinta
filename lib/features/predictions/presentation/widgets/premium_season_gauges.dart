@@ -118,17 +118,35 @@ class PremiumGaugeLine extends StatelessWidget {
             personalPrediction?.toDouble() ?? 0,
           ),
         );
-        final centeredMax = roundedMedian == null
-            ? math.max(1.0, fallbackMax.toDouble())
-            : math.max(1.0, roundedMedian * 2);
         final visualMax = math.max(
-          math.max(centeredMax, fallbackMax.toDouble()),
-          largestMarker > centeredMax ? largestMarker * 1.15 : largestMarker,
+          math.max(1.0, fallbackMax.toDouble()),
+          largestMarker * 1.15,
         );
 
         double xFor(num value) {
-          final ratio = (value / visualMax).clamp(0.0, 1.0);
-          return markerRadius + usable * ratio;
+          if (roundedMedian == null) {
+            final ratio = (value / visualMax).clamp(0.0, 1.0);
+            return markerRadius + usable * ratio;
+          }
+
+          const centerRatio = .5;
+          final numericValue = value.toDouble();
+          final medianValue = roundedMedian;
+          if (numericValue <= medianValue) {
+            final leftRatio = medianValue <= 0
+                ? centerRatio
+                : (numericValue / medianValue).clamp(0.0, 1.0) * centerRatio;
+            return markerRadius + usable * leftRatio;
+          }
+
+          final rightMax = math.max(
+            medianValue + 1,
+            math.max(visualMax, largestMarker),
+          );
+          final rightRatio = ((numericValue - medianValue) /
+                  (rightMax - medianValue))
+              .clamp(0.0, 1.0);
+          return markerRadius + usable * (centerRatio + rightRatio * .5);
         }
 
         return Column(
