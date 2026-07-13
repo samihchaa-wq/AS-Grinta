@@ -33,7 +33,8 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = gaugeAccentFor(gauge.playerId);
-    final median = gauge.predictions.isEmpty ? null : gauge.median;
+    final roundedMedian =
+        gauge.predictions.isEmpty ? null : gauge.median.roundToDouble();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -64,9 +65,9 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.3,
-                  ),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -.3,
+                      ),
                 ),
                 const SizedBox(height: 1),
                 Text(
@@ -81,15 +82,19 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                           'but actuel',
                           'buts actuels',
                         ),
-                  style: TextStyle(color: accent, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 11),
                 PremiumGaugeLine(
                   actual: gauge.actual,
-                  maxValue: scaleMax,
-                  median: median,
+                  fallbackMax: scaleMax,
+                  median: roundedMedian,
                   accent: accent,
-                  onMedianTap: median == null ? null : onOpenMedian,
+                  onMedianTap:
+                      roundedMedian == null ? null : onOpenMedian,
                 ),
               ],
             ),
@@ -104,14 +109,14 @@ class PremiumGaugeLine extends StatelessWidget {
   const PremiumGaugeLine({
     super.key,
     required this.actual,
-    required this.maxValue,
+    required this.fallbackMax,
     required this.median,
     required this.accent,
     required this.onMedianTap,
   });
 
   final int actual;
-  final int maxValue;
+  final int fallbackMax;
   final double? median;
   final Color accent;
   final VoidCallback? onMedianTap;
@@ -122,8 +127,19 @@ class PremiumGaugeLine extends StatelessWidget {
       builder: (context, constraints) {
         const markerRadius = 16.0;
         final usable = math.max(1.0, constraints.maxWidth - markerRadius * 2);
+        final roundedMedian = median?.roundToDouble();
+        final centeredMax = roundedMedian == null
+            ? math.max(1.0, fallbackMax.toDouble())
+            : math.max(1.0, roundedMedian * 2);
+        final actualStronglyAboveMedian = roundedMedian != null &&
+            roundedMedian > 0 &&
+            actual > roundedMedian * 1.35;
+        final visualMax = actualStronglyAboveMedian
+            ? math.max(centeredMax, actual * 1.15)
+            : centeredMax;
+
         double xFor(num value) {
-          final ratio = (value / math.max(1, maxValue)).clamp(0.0, 1.0);
+          final ratio = (value / visualMax).clamp(0.0, 1.0);
           return markerRadius + usable * ratio;
         }
 
@@ -141,7 +157,11 @@ class PremiumGaugeLine extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(99),
                     gradient: LinearGradient(
-                      colors: [accent.withValues(alpha: .72), accent, _pink],
+                      colors: [
+                        accent.withValues(alpha: .72),
+                        accent,
+                        _pink,
+                      ],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -157,14 +177,17 @@ class PremiumGaugeLine extends StatelessWidget {
                 top: 4,
                 child: _CurrentBall(value: actual, accent: accent),
               ),
-              if (median != null && median != actual)
+              if (roundedMedian != null && roundedMedian != actual)
                 Positioned(
-                  left: xFor(median!) - markerRadius,
+                  left: xFor(roundedMedian) - markerRadius,
                   top: 2,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: onMedianTap,
-                    child: _MedianBubble(value: median!, accent: accent),
+                    child: _MedianBubble(
+                      value: roundedMedian.round(),
+                      accent: accent,
+                    ),
                   ),
                 ),
               Positioned(
@@ -172,9 +195,10 @@ class PremiumGaugeLine extends StatelessWidget {
                 bottom: 0,
                 child: Text(
                   '0',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: Colors.white70),
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: Colors.white70),
                 ),
               ),
             ],
@@ -241,7 +265,7 @@ class _CurrentBall extends StatelessWidget {
 class _MedianBubble extends StatelessWidget {
   const _MedianBubble({required this.value, required this.accent});
 
-  final double value;
+  final int value;
   final Color accent;
 
   @override
@@ -260,7 +284,7 @@ class _MedianBubble extends StatelessWidget {
         ],
       ),
       child: Text(
-        _formatGaugeValue(value),
+        '$value',
         style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w900,
@@ -288,20 +312,21 @@ class PremiumPlayerDetailsSheet extends StatefulWidget {
       _PremiumPlayerDetailsSheetState();
 }
 
-class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
+class _PremiumPlayerDetailsSheetState
+    extends State<PremiumPlayerDetailsSheet> {
   @override
   Widget build(BuildContext context) {
     final gauge = widget.gauge;
     final accent = gaugeAccentFor(gauge.playerId);
-    final predictions = [...gauge.predictions];
-    predictions.sort((a, b) {
-      final value = b.value.compareTo(a.value);
-      return value != 0
-          ? value
-          : a.predictorName.toLowerCase().compareTo(
-              b.predictorName.toLowerCase(),
-            );
-    });
+    final predictions = [...gauge.predictions]
+      ..sort((a, b) {
+        final value = b.value.compareTo(a.value);
+        return value != 0
+            ? value
+            : a.predictorName
+                .toLowerCase()
+                .compareTo(b.predictorName.toLowerCase());
+      });
 
     return Container(
       decoration: const BoxDecoration(
@@ -336,7 +361,9 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                   children: [
                     Text(
                       gauge.playerName,
-                      style: Theme.of(context).textTheme.headlineMedium
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
                           ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     Text(
@@ -364,11 +391,11 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
           const SizedBox(height: 22),
           Text(
             'Tous les pronostics (${predictions.length})',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 12),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
@@ -527,9 +554,4 @@ class _RankBadge extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatGaugeValue(double value) {
-  if (value == value.roundToDouble()) return value.toInt().toString();
-  return value.toStringAsFixed(1).replaceAll('.', ',');
 }
