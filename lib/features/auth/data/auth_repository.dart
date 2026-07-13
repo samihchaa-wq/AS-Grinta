@@ -72,13 +72,10 @@ class AuthRepository {
     }
     await _client.auth.updateUser(UserAttributes(password: password));
 
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Aucun utilisateur connecté.');
-    await _client.from('profiles').update({
-      'must_change_password': false,
-      'password_set': true,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', userId);
+    final result = await _client.rpc('complete_password_change');
+    if (result != true) {
+      throw StateError('Le changement de mot de passe n’a pas été finalisé.');
+    }
   }
 
   Future<void> signOut() async {
