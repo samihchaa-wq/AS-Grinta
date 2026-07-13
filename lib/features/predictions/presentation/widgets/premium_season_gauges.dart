@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 const _green = Color(0xFF39E784);
 const _personalPrediction = Color(0xFFFFBE3D);
+const _medianPrediction = Color(0xFF9B6CFF);
 
 Color gaugeAccentFor(String key) {
   return const Color(0xFF4B6FFF);
@@ -170,8 +171,14 @@ class PremiumGaugeLine extends StatelessWidget {
                           height: 39,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Colors.white70,
+                              color: _medianPrediction,
                               borderRadius: BorderRadius.circular(2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _medianPrediction.withValues(alpha: .55),
+                                  blurRadius: 8,
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -234,7 +241,7 @@ class PremiumGaugeLine extends StatelessWidget {
                 Expanded(
                   child: _GaugeValueLabel(
                     icon: Icons.circle,
-                    label: 'Toi',
+                    label: 'Ton prono',
                     value: personalPrediction?.toString() ?? '—',
                     color: _personalPrediction,
                     alignment: CrossAxisAlignment.center,
@@ -242,10 +249,10 @@ class PremiumGaugeLine extends StatelessWidget {
                 ),
                 Expanded(
                   child: _GaugeValueLabel(
-                    icon: Icons.balance,
+                    icon: Icons.circle,
                     label: 'Médiane',
                     value: roundedMedian?.round().toString() ?? '—',
-                    color: Colors.white70,
+                    color: _medianPrediction,
                     alignment: CrossAxisAlignment.end,
                   ),
                 ),
