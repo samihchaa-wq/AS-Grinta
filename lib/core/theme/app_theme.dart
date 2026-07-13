@@ -1,11 +1,12 @@
 import 'package:as_grinta/core/design_system/foundations/grinta_colors.dart';
+import 'package:as_grinta/core/design_system/foundations/grinta_typography.dart';
 import 'package:flutter/material.dart';
 
 /// Application theme built from the semantic Design System foundations.
 ///
-/// New UI code should use [Theme.of] and [GrintaColors] semantic roles rather
-/// than introducing literal colors. The compatibility aliases below remain
-/// temporarily available while existing screens are migrated incrementally.
+/// New UI code should use [Theme.of] and semantic Design System roles rather
+/// than introducing literal visual values. The compatibility aliases below
+/// remain temporarily available while existing screens are migrated.
 abstract final class AppTheme {
   // Compatibility aliases. Do not add new aliases here.
   static const Color background = GrintaColors.surfaceBase;
@@ -48,50 +49,13 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: scheme,
+      textTheme: GrintaTypography.darkTextTheme,
+      primaryTextTheme: GrintaTypography.darkTextTheme,
       scaffoldBackgroundColor: GrintaColors.surfaceBase,
       splashFactory: InkSparkle.splashFactory,
     );
 
     return base.copyWith(
-      textTheme: base.textTheme.copyWith(
-        displaySmall: base.textTheme.displaySmall?.copyWith(
-          color: GrintaColors.contentPrimary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -1.4,
-        ),
-        headlineMedium: base.textTheme.headlineMedium?.copyWith(
-          color: GrintaColors.contentPrimary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.8,
-        ),
-        headlineSmall: base.textTheme.headlineSmall?.copyWith(
-          color: GrintaColors.contentPrimary,
-          fontWeight: FontWeight.w800,
-        ),
-        titleLarge: base.textTheme.titleLarge?.copyWith(
-          color: GrintaColors.contentPrimary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.3,
-        ),
-        titleMedium: base.textTheme.titleMedium?.copyWith(
-          color: GrintaColors.contentPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-        bodyLarge: base.textTheme.bodyLarge?.copyWith(
-          color: GrintaColors.contentPrimary,
-          height: 1.4,
-        ),
-        bodyMedium: base.textTheme.bodyMedium?.copyWith(
-          color: GrintaColors.contentSecondary,
-          height: 1.4,
-        ),
-        bodySmall: base.textTheme.bodySmall?.copyWith(
-          color: GrintaColors.contentSecondary,
-        ),
-        labelLarge: base.textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w800,
-        ),
-      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: GrintaColors.transparent,
         surfaceTintColor: GrintaColors.transparent,
@@ -99,10 +63,17 @@ abstract final class AppTheme {
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
+          fontSize: 21,
+          height: 1.29,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
           color: GrintaColors.contentPrimary,
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.5,
+          fontFamilyFallback: [
+            'SF Pro Display',
+            'SF Pro Text',
+            'Inter',
+            'Roboto',
+          ],
         ),
         iconTheme: IconThemeData(color: GrintaColors.contentPrimary),
       ),
@@ -125,7 +96,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          textStyle: GrintaTypography.darkTextTheme.labelLarge,
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -136,20 +107,26 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          textStyle: GrintaTypography.darkTextTheme.labelLarge,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: GrintaColors.contentPrimary,
+          textStyle: GrintaTypography.darkTextTheme.labelLarge,
         ),
       ),
       iconTheme: const IconThemeData(color: GrintaColors.contentSecondary),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: GrintaColors.surfaceElevated,
-        hintStyle: const TextStyle(color: GrintaColors.contentTertiary),
-        labelStyle: const TextStyle(color: GrintaColors.contentSecondary),
+        hintStyle: GrintaTypography.darkTextTheme.bodyMedium?.copyWith(
+          color: GrintaColors.contentTertiary,
+        ),
+        labelStyle: GrintaTypography.darkTextTheme.bodyMedium,
+        floatingLabelStyle: GrintaTypography.darkTextTheme.labelMedium?.copyWith(
+          color: GrintaColors.brandContent,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: const BorderSide(color: GrintaColors.borderDefault),
@@ -178,6 +155,9 @@ abstract final class AppTheme {
                 ? GrintaColors.actionPrimaryContent
                 : GrintaColors.contentSecondary;
           }),
+          textStyle: WidgetStateProperty.all(
+            GrintaTypography.darkTextTheme.labelMedium,
+          ),
           side: WidgetStateProperty.all(
             const BorderSide(color: GrintaColors.borderDefault),
           ),
@@ -186,10 +166,7 @@ abstract final class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: GrintaColors.surfaceElevated,
         side: const BorderSide(color: GrintaColors.borderDefault),
-        labelStyle: const TextStyle(
-          color: GrintaColors.contentPrimary,
-          fontWeight: FontWeight.w800,
-        ),
+        labelStyle: GrintaTypography.darkTextTheme.labelMedium,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -207,21 +184,56 @@ abstract final class AppTheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return TextStyle(
+          return GrintaTypography.darkTextTheme.labelSmall?.copyWith(
             color: selected
                 ? GrintaColors.actionPrimaryContent
                 : GrintaColors.contentSecondary,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           );
         }),
       ),
       dialogTheme: const DialogThemeData(
         backgroundColor: GrintaColors.surfaceRaised,
         surfaceTintColor: GrintaColors.transparent,
+        titleTextStyle: TextStyle(
+          fontSize: 21,
+          height: 1.29,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+          color: GrintaColors.contentPrimary,
+          fontFamilyFallback: [
+            'SF Pro Display',
+            'SF Pro Text',
+            'Inter',
+            'Roboto',
+          ],
+        ),
+        contentTextStyle: TextStyle(
+          fontSize: 14,
+          height: 1.5,
+          fontWeight: FontWeight.w400,
+          color: GrintaColors.contentSecondary,
+          fontFamilyFallback: [
+            'SF Pro Display',
+            'SF Pro Text',
+            'Inter',
+            'Roboto',
+          ],
+        ),
       ),
       snackBarTheme: const SnackBarThemeData(
         backgroundColor: GrintaColors.surfaceElevated,
-        contentTextStyle: TextStyle(color: GrintaColors.contentPrimary),
+        contentTextStyle: TextStyle(
+          fontSize: 14,
+          height: 1.5,
+          fontWeight: FontWeight.w400,
+          color: GrintaColors.contentPrimary,
+          fontFamilyFallback: [
+            'SF Pro Display',
+            'SF Pro Text',
+            'Inter',
+            'Roboto',
+          ],
+        ),
         behavior: SnackBarBehavior.floating,
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
