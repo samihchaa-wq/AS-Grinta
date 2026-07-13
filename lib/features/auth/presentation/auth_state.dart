@@ -97,7 +97,6 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  /// Première connexion : active le compte invité puis connecte le joueur.
   Future<void> claimAndSignIn({
     required String username,
     required String password,
@@ -120,16 +119,18 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> updatePassword(String password) async {
+  Future<bool> updatePassword(String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updatePassword(password);
-      state = state.copyWith(isLoading: false, clearError: true);
+      await _refreshProfile();
+      return true;
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
         error: 'Le mot de passe n’a pas pu être modifié.',
       );
+      return false;
     }
   }
 
