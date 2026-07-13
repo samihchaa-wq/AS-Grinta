@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,13 @@ class MorePage extends ConsumerWidget {
               subtitle: const Text('Les réponses aux questions fréquentes'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/faq'),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Center(
+            child: Text(
+              'Ma Petite Grinta • version ${AppConfig.version}',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
         ],

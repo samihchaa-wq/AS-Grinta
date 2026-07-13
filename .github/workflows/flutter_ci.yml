@@ -33,6 +33,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Read application version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          test -n "$version"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Check formatting of changed Dart files
         shell: bash
         run: |
@@ -66,7 +74,13 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          flutter build web --release --base-href "/AS-Grinta/" --pwa-strategy=none 2>&1 | tee build-web.log
+          flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --dart-define-from-file=config/production.json \
+            --dart-define=APP_VERSION="$APP_VERSION" \
+            2>&1 | tee build-web.log
 
       - name: Upload validation logs
         if: always()
