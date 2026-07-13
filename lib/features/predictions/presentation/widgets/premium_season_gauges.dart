@@ -148,117 +148,169 @@ class PremiumGaugeLine extends StatelessWidget {
           return markerRadius + usable * ratio;
         }
 
-        return SizedBox(
-          height: 72,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: markerRadius,
-                right: markerRadius,
-                top: 27,
-                child: Container(
-                  height: 5,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(99),
-                    gradient: LinearGradient(
-                      colors: [accent.withValues(alpha: .72), accent],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accent.withValues(alpha: .3),
-                        blurRadius: 12,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 52,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: markerRadius,
+                    right: markerRadius,
+                    top: 27,
+                    child: Container(
+                      height: 5,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(99),
+                        gradient: LinearGradient(
+                          colors: [accent.withValues(alpha: .72), accent],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accent.withValues(alpha: .3),
+                            blurRadius: 12,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              if (roundedMedian != null)
-                Positioned(
-                  left: xFor(roundedMedian) - 1,
-                  top: 4,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onMedianTap,
-                    child: SizedBox(
-                      width: 2,
-                      height: 45,
-                      child: DecoratedBox(
+                  if (roundedMedian != null)
+                    Positioned(
+                      left: xFor(roundedMedian) - 1,
+                      top: 6,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onMedianTap,
+                        child: SizedBox(
+                          width: 2,
+                          height: 42,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white70,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (personalPrediction != null)
+                    Positioned(
+                      left: xFor(personalPrediction!) - 6,
+                      top: 23,
+                      child: Container(
+                        width: 12,
+                        height: 12,
                         decoration: BoxDecoration(
-                          color: Colors.white70,
-                          borderRadius: BorderRadius.circular(2),
+                          shape: BoxShape.circle,
+                          color: _personalPrediction,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _personalPrediction.withValues(alpha: .65),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                  Positioned(
+                    left: xFor(actual) - markerRadius,
+                    top: 4,
+                    child: _CurrentBall(value: actual, accent: accent),
                   ),
-                ),
-              if (roundedMedian != null)
-                Positioned(
-                  left: (xFor(roundedMedian) - 28)
-                      .clamp(0.0, constraints.maxWidth - 56),
-                  top: 50,
-                  child: Text(
-                    '⚖️ ${roundedMedian.round()}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              if (personalPrediction != null)
-                Positioned(
-                  left: xFor(personalPrediction!) - 6,
-                  top: 23,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _personalPrediction,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _personalPrediction.withValues(alpha: .65),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              if (personalPrediction != null)
-                Positioned(
-                  left: (xFor(personalPrediction!) - 28)
-                      .clamp(0.0, constraints.maxWidth - 56),
-                  top: 36,
-                  child: Text(
-                    'Moi ${personalPrediction!}',
-                    style: const TextStyle(
-                      color: _personalPrediction,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              Positioned(
-                left: xFor(actual) - markerRadius,
-                top: 4,
-                child: _CurrentBall(value: actual, accent: accent),
+                ],
               ),
-              Positioned(
-                left: 0,
-                bottom: 0,
-                child: Text(
-                  '0',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _GaugeValueLabel(
+                    icon: Icons.sports_soccer,
+                    label: 'Actuel',
+                    value: '$actual',
+                    color: accent,
+                    alignment: CrossAxisAlignment.start,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                Expanded(
+                  child: _GaugeValueLabel(
+                    icon: Icons.circle,
+                    label: 'Toi',
+                    value: personalPrediction?.toString() ?? '—',
+                    color: _personalPrediction,
+                    alignment: CrossAxisAlignment.center,
+                  ),
+                ),
+                Expanded(
+                  child: _GaugeValueLabel(
+                    icon: Icons.balance,
+                    label: 'Médiane',
+                    value: roundedMedian?.round().toString() ?? '—',
+                    color: Colors.white70,
+                    alignment: CrossAxisAlignment.end,
+                  ),
+                ),
+              ],
+            ),
+          ],
         );
       },
+    );
+  }
+}
+
+class _GaugeValueLabel extends StatelessWidget {
+  const _GaugeValueLabel({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.alignment,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final CrossAxisAlignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: alignment,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ],
     );
   }
 }
