@@ -26,6 +26,7 @@ class AuthProfile {
     required this.role,
     required this.isGoalkeeper,
     required this.isActive,
+    required this.mustChangePassword,
     this.createdAt,
     this.updatedAt,
   });
@@ -37,6 +38,7 @@ class AuthProfile {
   final AuthRole role;
   final bool isGoalkeeper;
   final bool isActive;
+  final bool mustChangePassword;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -66,6 +68,7 @@ class AuthProfile {
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
       isActive: statusValue == 'active',
+      mustChangePassword: json['must_change_password'] == true,
       createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
       updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
     );

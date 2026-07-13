@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -40,8 +41,6 @@ class AdminSeasonItem {
   final String id;
   final String name;
   final String status;
-
-  /// Pronostics de saison fermés manuellement par le staff.
   final bool predictionsLocked;
 }
 
@@ -104,26 +103,31 @@ class AdminRepository {
     );
   }
 
-  /// Réinitialise le mot de passe d'un compte : le joueur devra refaire une
-  /// « première connexion » et choisir un nouveau mot de passe.
+  /// Génère un mot de passe temporaire, le copie immédiatement dans le
+  /// presse-papiers de l'admin et force le joueur à le remplacer après connexion.
   Future<void> resetAccountPassword(String userId) async {
     final response = await _client.functions.invoke(
       'manage-user',
       body: {'action': 'reset-password', 'userId': userId},
     );
     final data = response.data;
+    final temporaryPassword =
+        data is Map ? data['temporaryPassword']?.toString() : null;
     if (response.status < 200 ||
         response.status >= 300 ||
         data is! Map ||
-        data['reset'] != true) {
+        data['reset'] != true ||
+        temporaryPassword == null ||
+        temporaryPassword.isEmpty) {
       final message = data is Map && data['error'] != null
           ? data['error'].toString()
           : 'La réinitialisation a échoué.';
       throw StateError(message);
     }
+
+    await Clipboard.setData(ClipboardData(text: temporaryPassword));
   }
 
-  /// Supprime définitivement un compte (et ses pronostics, en cascade).
   Future<void> deleteAccount(String userId) async {
     final response = await _client.functions.invoke(
       'manage-user',
@@ -168,8 +172,6 @@ class AdminRepository {
     await _updatePrivilegedProfileFields(profileId: profileId, status: status);
   }
 
-  /// Ouvre (ou ré-ouvre) une saison et garantit qu'une seule reste ouverte.
-  /// Retourne l'identifiant de la saison ouverte.
   Future<String> createSeason(String name) async {
     final trimmed = name.trim();
     if (!RegExp(r'^\d{4}-\d{4}$').hasMatch(trimmed)) {
@@ -191,8 +193,6 @@ class AdminRepository {
     return id;
   }
 
-  /// Change le statut d'une saison : 'open', 'terminee' ou 'archived'.
-  /// Rouvrir une saison ferme automatiquement toute autre saison ouverte.
   Future<void> setSeasonStatus(String seasonId, String status) async {
     if (!const ['open', 'terminee', 'archived'].contains(status)) {
       throw ArgumentError('Statut de saison invalide.');
@@ -209,7 +209,6 @@ class AdminRepository {
   Future<void> archiveSeason(String seasonId) =>
       setSeasonStatus(seasonId, 'archived');
 
-  /// Ouvre ou ferme les pronostics de saison (réservé au staff).
   Future<void> setSeasonPredictionsLock({
     required String seasonId,
     required bool locked,
