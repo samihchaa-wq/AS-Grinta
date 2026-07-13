@@ -112,3 +112,5 @@ jobs:
           git add lib/features/predictions/presentation/widgets/premium_season_gauges.dart .github/workflows/apply_prediction_distance_sort.yml
           git commit -m "fix(predictions): sort by distance from current total"
           git push origin HEAD:fix/sort-player-predictions-by-distance
+
+# Triggered after the push workflow was present on the branch.
