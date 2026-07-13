@@ -117,7 +117,8 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('ignores a refresh result that became stale after signedOut', () async {
+    test('ignores a refresh result that became stale after signedOut',
+        () async {
       final pendingRefresh = Completer<AuthProfile?>();
       final repository = _FakeAuthRepository(
         fetchResults: [pendingRefresh.future],
