@@ -33,7 +33,10 @@ class GrintaCard extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
 
   bool get _hasHeader {
-    return title != null || subtitle != null || leading != null || trailing != null;
+    return title != null ||
+        subtitle != null ||
+        leading != null ||
+        trailing != null;
   }
 
   @override
@@ -80,12 +83,7 @@ class GrintaCard extends StatelessWidget {
 }
 
 class _CardHeader extends StatelessWidget {
-  const _CardHeader({
-    this.title,
-    this.subtitle,
-    this.leading,
-    this.trailing,
-  });
+  const _CardHeader({this.title, this.subtitle, this.leading, this.trailing});
 
   final String? title;
   final String? subtitle;
@@ -111,17 +109,10 @@ class _CardHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (title != null)
-                Text(
-                  title!,
-                  style: textTheme.titleMedium,
-                ),
+              if (title != null) Text(title!, style: textTheme.titleMedium),
               if (subtitle != null) ...[
                 const SizedBox(height: GrintaSpacing.space1),
-                Text(
-                  subtitle!,
-                  style: textTheme.bodySmall,
-                ),
+                Text(subtitle!, style: textTheme.bodySmall),
               ],
             ],
           ),
