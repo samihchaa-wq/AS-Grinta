@@ -9,6 +9,7 @@ declare
   v_player_season_id uuid;
   v_is_goalkeeper boolean;
   v_is_active boolean;
+  v_max_value integer;
 begin
   select sp.season_id, sp.is_goalkeeper, sp.is_active
   into v_player_season_id, v_is_goalkeeper, v_is_active
@@ -35,8 +36,8 @@ begin
     raise exception 'Un joueur de champ doit être pronostiqué en buts.' using errcode = '23514';
   end if;
 
-  if new.predicted_value_30 < 0
-     or new.predicted_value_30 > case when v_is_goalkeeper then 30 else 99 end then
+  v_max_value := case when v_is_goalkeeper then 30 else 99 end;
+  if new.predicted_value_30 < 0 or new.predicted_value_30 > v_max_value then
     raise exception 'Valeur de pronostic hors limites.' using errcode = '22003';
   end if;
 
