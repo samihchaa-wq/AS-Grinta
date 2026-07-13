@@ -37,20 +37,13 @@ class PreferencesRepository {
   final SupabaseClient _client;
 
   Future<AppPreferences> fetch() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (_client.auth.currentUser == null) {
+      throw StateError('Utilisateur non authentifié.');
+    }
 
-    final row = await _client
-        .from('profiles')
-        .select(
-          'notify_prediction_open,notify_prediction_reminders,notify_match_reminders',
-        )
-        .eq('id', userId)
-        .maybeSingle();
-
-    // Profil introuvable (compte supprimé pendant la session) : on retombe
-    // sur les préférences par défaut plutôt que de planter.
-    if (row == null) return const AppPreferences();
+    final response = await _client.rpc('get_my_profile');
+    if (response is! Map) return const AppPreferences();
+    final row = Map<String, dynamic>.from(response);
 
     return AppPreferences(
       predictionOpen: row['notify_prediction_open'] != false,
