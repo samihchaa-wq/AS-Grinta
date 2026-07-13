@@ -1,0 +1,52 @@
+name: Apply safe logging updates
+
+on:
+  push:
+    branches: [quality/safe-error-logging]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Update tests and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('test/predictions_controller_test.dart')
+          text = path.read_text()
+          replacements = {
+              "expect(controller.state.error, contains('load failed'));": "expect(\n        controller.state.error,\n        'Une erreur est survenue. Réessaie dans un instant.',\n      );",
+              "expect(controller.state.error, contains('save failed'));": "expect(\n        controller.state.error,\n        'Une erreur est survenue. Réessaie dans un instant.',\n      );",
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected one occurrence of {old!r}')
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+          dart format \
+            lib/core/logging/app_logger.dart \
+            lib/main.dart \
+            lib/features/predictions/presentation/predictions_controller.dart \
+            test/app_logger_test.dart \
+            test/predictions_controller_test.dart
+          rm -f .github/workflows/apply-safe-logging.yml
+          rm -f .github/apply-safe-logging-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test(logging): align safe error expectations"
+          git push origin HEAD:quality/safe-error-logging
