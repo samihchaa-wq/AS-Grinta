@@ -39,7 +39,12 @@ final enhancedSeasonCompletedMatchesProvider =
 enum _SeasonView { players, ranking }
 
 class EnhancedSeasonPredictionsPage extends ConsumerStatefulWidget {
-  const EnhancedSeasonPredictionsPage({super.key});
+  const EnhancedSeasonPredictionsPage({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
 
   @override
   ConsumerState<EnhancedSeasonPredictionsPage> createState() =>
@@ -54,9 +59,14 @@ class _EnhancedSeasonPredictionsPageState
   Widget build(BuildContext context) {
     final locked = ref.watch(enhancedSeasonLockedProvider);
     return locked.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, _) => Scaffold(body: Center(child: Text('$error'))),
+      loading: () => const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text('$error')),
+      ),
       data: (isLocked) {
         if (!isLocked) return const SeasonPredictionsPage();
         return _lockedPage();
@@ -70,10 +80,12 @@ class _EnhancedSeasonPredictionsPageState
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text('Pronos de saison ✨'),
-        backgroundColor: Colors.transparent,
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: const Text('Pronos de saison ✨'),
+              backgroundColor: Colors.transparent,
+            ),
       body: gaugesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('$error')),
@@ -93,58 +105,64 @@ class _EnhancedSeasonPredictionsPageState
               ]);
             },
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
               children: [
-                Text(
-                  '${_predictorCount(gauges)} pronostiqueurs',
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                completedMatches.when(
-                  loading: () => const Text(
-                    'Nombre de matchs joués : …',
-                    style: TextStyle(color: Colors.white60),
-                  ),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (count) => Text(
-                    'Nombre de matchs joués : $count',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w700,
-                    ),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<_SeasonView>(
+                    segments: const [
+                      ButtonSegment(
+                        value: _SeasonView.players,
+                        icon: Icon(Icons.sports_soccer),
+                        label: Text('Joueurs'),
+                      ),
+                      ButtonSegment(
+                        value: _SeasonView.ranking,
+                        icon: Icon(Icons.emoji_events_outlined),
+                        label: Text('Classement'),
+                      ),
+                    ],
+                    selected: {_view},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) {
+                      setState(() => _view = selection.first);
+                    },
                   ),
                 ),
                 const SizedBox(height: 14),
-                SegmentedButton<_SeasonView>(
-                  segments: const [
-                    ButtonSegment(
-                      value: _SeasonView.players,
-                      icon: Icon(Icons.sports_soccer),
-                      label: Text('Joueurs'),
-                    ),
-                    ButtonSegment(
-                      value: _SeasonView.ranking,
-                      icon: Icon(Icons.emoji_events_outlined),
-                      label: Text('Classement'),
-                    ),
-                  ],
-                  selected: {_view},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (selection) {
-                    setState(() => _view = selection.first);
-                  },
-                ),
-                const SizedBox(height: 14),
-                const _GaugeLegend(),
-                const SizedBox(height: 18),
-                switch (_view) {
-                  _SeasonView.players =>
-                    _playersView(context, gauges, currentUserId),
-                  _SeasonView.ranking => const SeasonRankingPanel(),
-                },
+                if (_view == _SeasonView.players) ...[
+                  Row(
+                    children: [
+                      Text(
+                        '${_predictorCount(gauges)} pronostiqueurs',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      completedMatches.when(
+                        loading: () => const Text(
+                          'Matchs joués : …',
+                          style: TextStyle(color: Colors.white60),
+                        ),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (count) => Text(
+                          'Matchs joués : $count',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const _GaugeLegend(),
+                  const SizedBox(height: 16),
+                  _playersView(context, gauges, currentUserId),
+                ] else
+                  const SeasonRankingPanel(),
               ],
             ),
           );
@@ -175,34 +193,45 @@ class _EnhancedSeasonPredictionsPageState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (scorers.isNotEmpty) ...[
-          const _SectionTitle('Buteurs'),
-          ...scorers.map(
-            (gauge) => PremiumSeasonGaugeCard(
-              gauge: gauge,
-              scaleMax: _scale(scorers, 20),
-              personalPrediction: gauge.predictionFor(currentUserId)?.value,
-              onOpenAll: () =>
-                  _openPlayerDetails(context, gauge, currentUserId),
-              onOpenMedian: () =>
-                  _openPlayerDetails(context, gauge, currentUserId),
-            ),
+          _SeasonGroupPanel(
+            title: 'Buteurs',
+            icon: Icons.sports_soccer,
+            children: scorers
+                .map(
+                  (gauge) => PremiumSeasonGaugeCard(
+                    gauge: gauge,
+                    scaleMax: _scale(scorers, 20),
+                    personalPrediction:
+                        gauge.predictionFor(currentUserId)?.value,
+                    onOpenAll: () =>
+                        _openPlayerDetails(context, gauge, currentUserId),
+                    onOpenMedian: () =>
+                        _openPlayerDetails(context, gauge, currentUserId),
+                  ),
+                )
+                .toList(),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
         ],
-        if (keepers.isNotEmpty) ...[
-          const _SectionTitle('Gardiens · clean sheets'),
-          ...keepers.map(
-            (gauge) => PremiumSeasonGaugeCard(
-              gauge: gauge,
-              scaleMax: _scale(keepers, 15),
-              personalPrediction: gauge.predictionFor(currentUserId)?.value,
-              onOpenAll: () =>
-                  _openPlayerDetails(context, gauge, currentUserId),
-              onOpenMedian: () =>
-                  _openPlayerDetails(context, gauge, currentUserId),
-            ),
+        if (keepers.isNotEmpty)
+          _SeasonGroupPanel(
+            title: 'Gardien · clean sheets',
+            icon: Icons.sports_handball_outlined,
+            children: keepers
+                .map(
+                  (gauge) => PremiumSeasonGaugeCard(
+                    gauge: gauge,
+                    scaleMax: _scale(keepers, 15),
+                    personalPrediction:
+                        gauge.predictionFor(currentUserId)?.value,
+                    onOpenAll: () =>
+                        _openPlayerDetails(context, gauge, currentUserId),
+                    onOpenMedian: () =>
+                        _openPlayerDetails(context, gauge, currentUserId),
+                  ),
+                )
+                .toList(),
           ),
-        ],
       ],
     );
   }
@@ -247,6 +276,51 @@ class _EnhancedSeasonPredictionsPageState
   }
 }
 
+class _SeasonGroupPanel extends StatelessWidget {
+  const _SeasonGroupPanel({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E1D3B),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF4B6FFF).withValues(alpha: .38)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: const Color(0xFF79A4FF)),
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
 class _GaugeLegend extends StatelessWidget {
   const _GaugeLegend();
 
@@ -257,22 +331,19 @@ class _GaugeLegend extends StatelessWidget {
       runSpacing: 8,
       children: const [
         _LegendItem(
-          icon: Icons.sports_soccer,
-          label: 'Score actuel',
+          icon: Icons.circle,
+          label: 'Actuel',
           color: Color(0xFF4B6FFF),
         ),
         _LegendItem(
           icon: Icons.circle,
-          label: 'Mon prono',
+          label: 'Ton prono',
           color: Color(0xFFFFBE3D),
         ),
-        Text(
-          '⚖️ Trait = médiane',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
+        _LegendItem(
+          icon: Icons.circle,
+          label: 'Médiane',
+          color: Color(0xFF9B6CFF),
         ),
       ],
     );
@@ -306,26 +377,6 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        text,
-        style: Theme.of(context)
-            .textTheme
-            .titleLarge
-            ?.copyWith(fontWeight: FontWeight.w900),
-      ),
     );
   }
 }

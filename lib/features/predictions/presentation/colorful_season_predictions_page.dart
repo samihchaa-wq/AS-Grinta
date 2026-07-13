@@ -28,7 +28,7 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
                 space: 1,
               ),
             ),
-            child: const EnhancedSeasonPredictionsPage(),
+            child: EnhancedSeasonPredictionsPage(embedded: embedded),
           ),
         ],
       ),
