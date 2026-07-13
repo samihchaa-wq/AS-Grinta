@@ -4,12 +4,8 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:flutter/material.dart';
 
-const _violet = Color(0xFF7C3CFF);
-const _pink = Color(0xFFFF4FCB);
-const _cyan = Color(0xFF1DCBFF);
 const _green = Color(0xFF39E784);
-const _amber = Color(0xFFFFBE3D);
-const _orange = Color(0xFFFF6A26);
+const _personalPrediction = Color(0xFFFFBE3D);
 
 Color gaugeAccentFor(String key) {
   return const Color(0xFF4B6FFF);
@@ -22,12 +18,14 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
     required this.scaleMax,
     required this.onOpenAll,
     required this.onOpenMedian,
+    this.personalPrediction,
   });
 
   final PlayerGauge gauge;
   final int scaleMax;
   final VoidCallback onOpenAll;
   final VoidCallback onOpenMedian;
+  final int? personalPrediction;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +90,7 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   actual: gauge.actual,
                   fallbackMax: scaleMax,
                   median: roundedMedian,
+                  personalPrediction: personalPrediction,
                   accent: accent,
                   onMedianTap: roundedMedian == null ? null : onOpenMedian,
                 ),
@@ -110,6 +109,7 @@ class PremiumGaugeLine extends StatelessWidget {
     required this.actual,
     required this.fallbackMax,
     required this.median,
+    required this.personalPrediction,
     required this.accent,
     required this.onMedianTap,
   });
@@ -117,6 +117,7 @@ class PremiumGaugeLine extends StatelessWidget {
   final int actual;
   final int fallbackMax;
   final double? median;
+  final int? personalPrediction;
   final Color accent;
   final VoidCallback? onMedianTap;
 
@@ -127,16 +128,20 @@ class PremiumGaugeLine extends StatelessWidget {
         const markerRadius = 16.0;
         final usable = math.max(1.0, constraints.maxWidth - markerRadius * 2);
         final roundedMedian = median?.roundToDouble();
+        final largestMarker = math.max(
+          actual.toDouble(),
+          math.max(
+            roundedMedian ?? 0,
+            personalPrediction?.toDouble() ?? 0,
+          ),
+        );
         final centeredMax = roundedMedian == null
             ? math.max(1.0, fallbackMax.toDouble())
             : math.max(1.0, roundedMedian * 2);
-        final actualStronglyAboveMedian =
-            roundedMedian != null &&
-            roundedMedian > 0 &&
-            actual > roundedMedian * 1.35;
-        final visualMax = actualStronglyAboveMedian
-            ? math.max(centeredMax, actual * 1.15)
-            : centeredMax;
+        final visualMax = math.max(
+          math.max(centeredMax, fallbackMax.toDouble()),
+          largestMarker > centeredMax ? largestMarker * 1.15 : largestMarker,
+        );
 
         double xFor(num value) {
           final ratio = (value / visualMax).clamp(0.0, 1.0);
@@ -144,14 +149,14 @@ class PremiumGaugeLine extends StatelessWidget {
         }
 
         return SizedBox(
-          height: 54,
+          height: 72,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Positioned(
                 left: markerRadius,
                 right: markerRadius,
-                top: 22,
+                top: 27,
                 child: Container(
                   height: 5,
                   decoration: BoxDecoration(
@@ -168,24 +173,78 @@ class PremiumGaugeLine extends StatelessWidget {
                   ),
                 ),
               ),
+              if (roundedMedian != null)
+                Positioned(
+                  left: xFor(roundedMedian) - 1,
+                  top: 4,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onMedianTap,
+                    child: SizedBox(
+                      width: 2,
+                      height: 45,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white70,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (roundedMedian != null)
+                Positioned(
+                  left: (xFor(roundedMedian) - 28)
+                      .clamp(0.0, constraints.maxWidth - 56),
+                  top: 50,
+                  child: Text(
+                    '⚖️ ${roundedMedian.round()}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              if (personalPrediction != null)
+                Positioned(
+                  left: xFor(personalPrediction!) - 6,
+                  top: 23,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _personalPrediction,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _personalPrediction.withValues(alpha: .65),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (personalPrediction != null)
+                Positioned(
+                  left: (xFor(personalPrediction!) - 28)
+                      .clamp(0.0, constraints.maxWidth - 56),
+                  top: 36,
+                  child: Text(
+                    'Moi ${personalPrediction!}',
+                    style: const TextStyle(
+                      color: _personalPrediction,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
               Positioned(
                 left: xFor(actual) - markerRadius,
                 top: 4,
                 child: _CurrentBall(value: actual, accent: accent),
               ),
-              if (roundedMedian != null && roundedMedian != actual)
-                Positioned(
-                  left: xFor(roundedMedian) - markerRadius,
-                  top: 2,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onMedianTap,
-                    child: _MedianBubble(
-                      value: roundedMedian.round(),
-                      accent: accent,
-                    ),
-                  ),
-                ),
               Positioned(
                 left: 0,
                 bottom: 0,
@@ -253,39 +312,6 @@ class _CurrentBall extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _MedianBubble extends StatelessWidget {
-  const _MedianBubble({required this.value, required this.accent});
-
-  final int value;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 34,
-      height: 34,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF111B35),
-        border: Border.all(color: accent, width: 1.7),
-        boxShadow: [
-          BoxShadow(color: accent.withValues(alpha: .75), blurRadius: 18),
-          BoxShadow(color: accent.withValues(alpha: .35), blurRadius: 28),
-        ],
-      ),
-      child: Text(
-        '$value',
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          fontSize: 14,
-        ),
-      ),
     );
   }
 }
