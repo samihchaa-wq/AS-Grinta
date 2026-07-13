@@ -1,15 +1,16 @@
 name: Apply season ranking and x2
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/season-ranking-x2
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: github.head_ref == 'agent/season-ranking-x2'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,20 +26,17 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          # Move season ranking into Pronos.
           p = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
           t = p.read_text()
           anchor = "import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart'\n    as legacy;\n"
           if 'season_ranking_panel.dart' not in t:
               t = t.replace(anchor, anchor + "import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';\n")
           t = t.replace('enum _PremiumView { players, predictors }', 'enum _PremiumView { players, predictors, ranking }')
-          old = """child: _view == _PremiumView.players
+          t = t.replace("""child: _view == _PremiumView.players
                       ? _playersView(gauges, currentUserId)
-                      : _predictorView(gauges, predictors, currentUserId),"""
-          new = """child: switch (_view) {
+                      : _predictorView(gauges, predictors, currentUserId),""", """child: switch (_view) {
                     _PremiumView.players => _playersView(gauges, currentUserId),
-                    _PremiumView.predictors =>
-                      _predictorView(gauges, predictors, currentUserId),
+                    _PremiumView.predictors => _predictorView(gauges, predictors, currentUserId),
                     _PremiumView.ranking => const Column(
                       key: ValueKey('season-ranking'),
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,8 +48,7 @@ jobs:
                         SeasonRankingPanel(),
                       ],
                     ),
-                  },"""
-          t = t.replace(old, new)
+                  },""")
           old = """          Expanded(
             child: _SwitchItem(
               active: selected == _PremiumView.predictors,
@@ -60,7 +57,8 @@ jobs:
               onTap: () => onChanged(_PremiumView.predictors),
             ),
           ),"""
-          new = old + """
+          if 'label: \'Classement saison\'' not in t:
+              t = t.replace(old, old + """
           Expanded(
             child: _SwitchItem(
               active: selected == _PremiumView.ranking,
@@ -68,97 +66,75 @@ jobs:
               label: 'Classement saison',
               onTap: () => onChanged(_PremiumView.ranking),
             ),
-          ),"""
-          t = t.replace(old, new)
+          ),""")
           p.write_text(t)
 
-          # Add x2 control to the home prediction card.
           p = Path('lib/features/home/presentation/home_page.dart')
           t = p.read_text()
           marker = """          if (!item.isClosed) ...[
             const SizedBox(height: 16),
             SizedBox("""
-          bonus = """          if (!item.isClosed) ...[
+          if 'Activer le ×2' not in t:
+              t = t.replace(marker, """          if (!item.isClosed) ...[
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: item.useX2
-                    ? const Color(0xFF6A32C7).withValues(alpha: .22)
-                    : Colors.white.withValues(alpha: .04),
+                color: item.useX2 ? const Color(0xFF6A32C7).withValues(alpha: .22) : Colors.white.withValues(alpha: .04),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: item.useX2
-                      ? const Color(0xFF9B6CFF)
-                      : Colors.white.withValues(alpha: .10),
-                ),
+                border: Border.all(color: item.useX2 ? const Color(0xFF9B6CFF) : Colors.white.withValues(alpha: .10)),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.bolt_rounded,
-                    color: item.useX2 ? const Color(0xFFC5A7FF) : AppTheme.textSecondary,
-                  ),
+                  Icon(Icons.bolt_rounded, color: item.useX2 ? const Color(0xFFC5A7FF) : AppTheme.textSecondary),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.useX2 ? '×2 activé' : 'Activer le ×2',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                        Text(
-                          '${item.x2Available} en réserve · consommé même si le pronostic est faux',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+                        Text(item.useX2 ? '×2 activé' : 'Activer le ×2', style: const TextStyle(fontWeight: FontWeight.w900)),
+                        Text('${item.x2Available} en réserve · consommé même si le pronostic est faux', style: Theme.of(context).textTheme.bodySmall),
                       ],
                     ),
                   ),
                   Switch(
                     value: item.useX2,
-                    onChanged: (!item.useX2 && item.x2Available <= 0) || isSaving
-                        ? null
-                        : (_) => controller.toggleX2(item.matchId),
+                    onChanged: (!item.useX2 && item.x2Available <= 0) || isSaving ? null : (_) => controller.toggleX2(item.matchId),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox("""
-          t = t.replace(marker, bonus)
+            SizedBox(""")
           p.write_text(t)
 
-          # Show x2 usage in match results.
           p = Path('lib/features/matches/data/match_details_repository.dart')
           t = p.read_text()
-          t = t.replace('required this.points,\n  });', 'required this.points,\n    required this.usedX2,\n  });')
-          t = t.replace('final double points;\n}', 'final double points;\n  final bool usedX2;\n}')
-          t = t.replace('profile_id,predicted_score_as_grinta,predicted_score_adverse,\n        profiles', 'profile_id,predicted_score_as_grinta,predicted_score_adverse,use_x2,\n        profiles')
-          t = t.replace('points: pointsByProfile[profileId] ?? 0,\n        );', "points: pointsByProfile[profileId] ?? 0,\n          usedX2: map['use_x2'] == true,\n        );")
+          if 'usedX2' not in t:
+              t = t.replace('required this.points,\n  });', 'required this.points,\n    required this.usedX2,\n  });')
+              t = t.replace('final double points;\n}', 'final double points;\n  final bool usedX2;\n}')
+              t = t.replace('profile_id,predicted_score_as_grinta,predicted_score_adverse,\n        profiles', 'profile_id,predicted_score_as_grinta,predicted_score_adverse,use_x2,\n        profiles')
+              t = t.replace('points: pointsByProfile[profileId] ?? 0,\n        );', "points: pointsByProfile[profileId] ?? 0,\n          usedX2: map['use_x2'] == true,\n        );")
           p.write_text(t)
 
           p = Path('lib/features/matches/presentation/match_details_page.dart')
           t = p.read_text()
-          old = """Text(
+          if 'prediction.usedX2' not in t:
+              t = t.replace("""Text(
                           _points(prediction.points),
                           textAlign: TextAlign.end,
-                        ),"""
-          new = """Text(
+                        ),""", """Text(
                           prediction.usedX2
                               ? '${_points(prediction.points)} ⚡×2'
                               : _points(prediction.points),
                           textAlign: TextAlign.end,
-                        ),"""
-          t = t.replace(old, new)
+                        ),""")
           p.write_text(t)
           PY
           dart format lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/season_ranking_panel.dart lib/features/home/presentation/home_page.dart lib/features/matches/data/match_details_repository.dart lib/features/matches/presentation/match_details_page.dart lib/features/predictions/data/predictions_repository.dart lib/features/predictions/presentation/predictions_controller.dart lib/features/predictions/presentation/predictions_page.dart
-      - name: Remove workflow and commit
+      - name: Commit changes
         run: |
-          rm -f .github/workflows/apply-season-ranking-x2.yml
-          rm -f .github/season-ranking-x2-trigger.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
