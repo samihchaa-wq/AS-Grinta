@@ -10,7 +10,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  issues: write
 
 concurrency:
   group: pages
@@ -30,10 +29,23 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
+      - name: Read application version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          test -n "$version"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Build Flutter Web
-        run: flutter build web --release --base-href "/AS-Grinta/" --pwa-strategy=none
+        run: |
+          flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --dart-define-from-file=config/production.json \
+            --dart-define=APP_VERSION="$APP_VERSION"
       - name: Add SPA fallback
         run: cp build/web/index.html build/web/404.html
       - name: Validate generated assets
@@ -70,14 +82,13 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-      issues: write
     steps:
       - name: Checkout configuration
         uses: actions/checkout@v4
       - name: Verify public application files
         run: |
           set -euo pipefail
-          base='https://samihchaa-wq.github.io/AS-Grinta/'
+          base=$(jq -r '.PUBLIC_APP_URL' config/production.json)
           token="${GITHUB_SHA}-$(date +%s)"
           curl --retry 5 --retry-delay 5 -LfsS "${base}?audit=${token}" -o /tmp/index.html
           curl --retry 5 --retry-delay 5 -LfsS "${base}flutter_bootstrap.js?audit=${token}" -o /tmp/flutter_bootstrap.js
@@ -92,8 +103,8 @@ jobs:
       - name: Verify Supabase availability
         run: |
           set -euo pipefail
-          supabase_url=$(grep -oE "https://[a-z0-9]+\.supabase\.co" lib/core/config/supabase_config.dart | head -1)
-          publishable_key=$(grep -oE "sb_publishable_[A-Za-z0-9_-]+" lib/core/config/supabase_config.dart | head -1)
+          supabase_url=$(jq -r '.SUPABASE_URL' config/production.json)
+          publishable_key=$(jq -r '.SUPABASE_ANON_KEY' config/production.json)
           test -n "$supabase_url"
           test -n "$publishable_key"
           curl --retry 5 --retry-delay 3 -LfsS \
@@ -172,10 +183,3 @@ jobs:
             as-grinta-smoke.png
             as-grinta-smoke-errors.log
           if-no-files-found: error
-      - name: Record verified production deployment
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue comment 43 \
-            --repo "$GITHUB_REPOSITORY" \
-            --body "✅ Production vérifiée pour le commit \`$GITHUB_SHA\` — build, déploiement Pages, assets, Supabase et rendu Flutter sans erreur console. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
