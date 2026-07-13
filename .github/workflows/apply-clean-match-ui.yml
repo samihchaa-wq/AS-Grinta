@@ -1,16 +1,16 @@
 name: Apply clean match UI
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/clean-match-ui-centered-median
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: github.head_ref == 'agent/clean-match-ui-centered-median'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,9 +44,9 @@ jobs:
                 _scoreLine(),
                 style: Theme.of(context).textTheme.titleMedium,
               ),"""
-          if old not in text:
-              raise SystemExit('Match card status block not found')
-          matches.write_text(text.replace(old, new))
+          if old in text:
+              text = text.replace(old, new)
+          matches.write_text(text)
 
           details = Path('lib/features/matches/presentation/match_details_page.dart')
           text = details.read_text()
@@ -60,8 +60,6 @@ jobs:
                           : 'À venir',
             ),
 """
-          if status_block not in text:
-              raise SystemExit('Match details status block not found')
           text = text.replace(status_block, '')
           old_summary = """            _Section(
               title: 'Buteurs',
@@ -90,8 +88,6 @@ jobs:
                 title: 'Clean sheet',
                 children: cleanSheets.map((line) => Text(line.name)).toList(),
               ),"""
-          if old_summary not in text:
-              raise SystemExit('Match summary block not found')
           text = text.replace(old_summary, new_summary)
           text = text.replace("        if (children.isEmpty) const Text('Aucun') else ...children,", "        ...children,")
           details.write_text(text)
@@ -127,19 +123,12 @@ jobs:
           return markerRadius + usable * ratio;
         }
 """
-          if old_mapping not in text:
-              raise SystemExit('Gauge mapping block not found')
           text = text.replace(old_mapping, new_mapping)
           text = text.replace('if (median != null && median != actual)', 'if (roundedMedian != null && roundedMedian != actual)')
           text = text.replace('left: xFor(median!) - markerRadius,', 'left: xFor(roundedMedian!) - markerRadius,')
           text = text.replace('child: _MedianBubble(value: median!, accent: accent),', 'child: _MedianBubble(value: roundedMedian!, accent: accent),')
           text = text.replace('        _formatGaugeValue(value),', "        value.round().toString(),")
-          text = re.sub(
-              r"\nString _formatGaugeValue\(double value\) \{.*?\n\}",
-              "",
-              text,
-              flags=re.S,
-          )
+          text = re.sub(r"\nString _formatGaugeValue\(double value\) \{.*?\n\}", "", text, flags=re.S)
           gauges.write_text(text)
 
           page = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
