@@ -57,10 +57,7 @@ class GrintaTextField extends StatelessWidget {
         errorText: errorText,
         prefixIcon: leadingIcon == null
             ? null
-            : Icon(
-                leadingIcon,
-                size: GrintaIconography.control,
-              ),
+            : Icon(leadingIcon, size: GrintaIconography.control),
         suffixIcon: trailing,
       ),
     );
