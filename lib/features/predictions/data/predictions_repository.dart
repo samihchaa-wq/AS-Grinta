@@ -12,6 +12,8 @@ class MatchPredictionItem {
     required this.scoreGrinta,
     required this.scoreOpponent,
     required this.isFilled,
+    required this.useX2,
+    required this.x2Available,
     required this.oddsWin,
     required this.oddsDraw,
     required this.oddsLoss,
@@ -27,13 +29,13 @@ class MatchPredictionItem {
   final int scoreGrinta;
   final int scoreOpponent;
   final bool isFilled;
+  final bool useX2;
+  final int x2Available;
   final double? oddsWin;
   final double? oddsDraw;
   final double? oddsLoss;
   final int? actualScoreGrinta;
   final int? actualScoreOpponent;
-
-  /// Fermeture manuelle des pronostics par l'admin (avant l'heure limite).
   final DateTime? predictionsClosedAt;
 
   DateTime get opensAt => DateTime.fromMillisecondsSinceEpoch(0);
@@ -57,13 +59,14 @@ class MatchPredictionItem {
       _ => oddsLoss,
     };
 
-    return PredictionScoring.points(
+    final points = PredictionScoring.points(
       predictedHome: scoreGrinta,
       predictedAway: scoreOpponent,
       actualHome: actualScoreGrinta!,
       actualAway: actualScoreOpponent!,
       baseOdds: odds,
     );
+    return points == null ? null : points * (useX2 ? 2 : 1);
   }
 
   static int _result(int grinta, int opponent) {
@@ -76,6 +79,8 @@ class MatchPredictionItem {
     int? scoreGrinta,
     int? scoreOpponent,
     bool? isFilled,
+    bool? useX2,
+    int? x2Available,
   }) {
     return MatchPredictionItem(
       matchId: matchId,
@@ -85,6 +90,8 @@ class MatchPredictionItem {
       scoreGrinta: scoreGrinta ?? this.scoreGrinta,
       scoreOpponent: scoreOpponent ?? this.scoreOpponent,
       isFilled: isFilled ?? this.isFilled,
+      useX2: useX2 ?? this.useX2,
+      x2Available: x2Available ?? this.x2Available,
       oddsWin: oddsWin,
       oddsDraw: oddsDraw,
       oddsLoss: oddsLoss,
@@ -133,10 +140,15 @@ class PredictionsRepository {
     final prediction = await _client
         .from('match_predictions')
         .select(
-          'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled',
+          'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled, use_x2',
         )
         .eq('profile_id', userId)
         .eq('match_id', matchId)
+        .maybeSingle();
+    final wallet = await _client
+        .from('v_x2_wallet')
+        .select('available_count')
+        .eq('profile_id', userId)
         .maybeSingle();
 
     final date = matchMap['match_date']?.toString() ?? '';
@@ -164,6 +176,8 @@ class PredictionsRepository {
         scoreOpponent:
             int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
         isFilled: prediction?['is_filled'] == true,
+        useX2: prediction?['use_x2'] == true,
+        x2Available: (wallet?['available_count'] as num?)?.toInt() ?? 0,
         oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
         oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
         oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
@@ -184,6 +198,7 @@ class PredictionsRepository {
     required String matchId,
     required int scoreGrinta,
     required int scoreOpponent,
+    required bool useX2,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
@@ -220,6 +235,7 @@ class PredictionsRepository {
         'predicted_score_as_grinta': scoreGrinta,
         'predicted_score_adverse': scoreOpponent,
         'is_filled': true,
+        'use_x2': useX2,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
       onConflict: 'match_id,profile_id',
