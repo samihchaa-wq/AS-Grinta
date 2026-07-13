@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/core/config/app_config.dart';
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +11,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const _BootstrapApp());
+
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    AppLogger.error('flutter.framework', details.exception, details.stack);
+  };
+  PlatformDispatcher.instance.onError = (error, stackTrace) {
+    AppLogger.error('flutter.platform', error, stackTrace);
+    return true;
+  };
+
+  runZonedGuarded(
+    () => runApp(const _BootstrapApp()),
+    (error, stackTrace) => AppLogger.error('flutter.zone', error, stackTrace),
+  );
 }
 
 class _BootstrapApp extends StatefulWidget {
@@ -29,11 +44,16 @@ class _BootstrapAppState extends State<_BootstrapApp> {
   }
 
   Future<void> _initialize() async {
-    AppConfig.validate();
-    await Supabase.initialize(
-      url: AppConfig.supabaseUrl,
-      publishableKey: AppConfig.supabaseAnonKey,
-    ).timeout(const Duration(seconds: 20));
+    try {
+      AppConfig.validate();
+      await Supabase.initialize(
+        url: AppConfig.supabaseUrl,
+        publishableKey: AppConfig.supabaseAnonKey,
+      ).timeout(const Duration(seconds: 20));
+    } catch (error, stackTrace) {
+      AppLogger.error('bootstrap.supabase', error, stackTrace);
+      rethrow;
+    }
   }
 
   void _retry() {
@@ -83,8 +103,9 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          snapshot.error.toString(),
+                        const Text(
+                          'La configuration ou le service est momentanément '
+                          'indisponible. Réessaie dans un instant.',
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
