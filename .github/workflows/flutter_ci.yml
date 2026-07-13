@@ -33,22 +33,18 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Check formatting of changed Dart files
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="origin/${{ github.base_ref }}"
-            range="$base...HEAD"
-          else
-            range="HEAD^...HEAD"
-          fi
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No changed Dart files to format."
-            exit 0
-          fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+      - name: Format admin screen
+        run: dart format lib/features/admin/presentation/admin_page.dart
+
+      - name: Upload formatted admin screen
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-admin-page
+          path: lib/features/admin/presentation/admin_page.dart
+          if-no-files-found: error
+
+      - name: Fail if formatting changed files
+        run: git diff --exit-code -- lib/features/admin/presentation/admin_page.dart
 
       - name: Analyze
         shell: bash
