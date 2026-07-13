@@ -1,0 +1,99 @@
+name: Sort player predictions by distance
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.issue.title == 'RUN-SORT-PREDICTIONS-BY-DISTANCE'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Sort predictions by distance from current result
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          text = path.read_text()
+
+          old_sort = '''    final predictions = [...gauge.predictions]
+      ..sort((a, b) {
+        final value = b.value.compareTo(a.value);
+        return value != 0
+            ? value
+            : a.predictorName.toLowerCase().compareTo(
+                b.predictorName.toLowerCase(),
+              );
+      });
+'''
+          new_sort = '''    final predictions = [...gauge.predictions]
+      ..sort((a, b) {
+        final distanceA = (a.value - gauge.actual).abs();
+        final distanceB = (b.value - gauge.actual).abs();
+        final byDistance = distanceA.compareTo(distanceB);
+        if (byDistance != 0) return byDistance;
+
+        final byValue = a.value.compareTo(b.value);
+        if (byValue != 0) return byValue;
+
+        return a.predictorName.toLowerCase().compareTo(
+              b.predictorName.toLowerCase(),
+            );
+      });
+'''
+          if old_sort not in text:
+            raise SystemExit('prediction sort block not found')
+          text = text.replace(old_sort, new_sort, 1)
+
+          old_call = '''                    rank: _rankFor(predictions, index),
+'''
+          new_call = '''                    rank: _rankFor(predictions, index, gauge.actual),
+'''
+          if old_call not in text:
+            raise SystemExit('rank call not found')
+          text = text.replace(old_call, new_call, 1)
+
+          old_rank = '''  int _rankFor(List<GaugePrediction> predictions, int index) {
+    if (index == 0) return 1;
+    if (predictions[index].value == predictions[index - 1].value) {
+      return _rankFor(predictions, index - 1);
+    }
+    return index + 1;
+  }
+'''
+          new_rank = '''  int _rankFor(
+    List<GaugePrediction> predictions,
+    int index,
+    int actual,
+  ) {
+    if (index == 0) return 1;
+    final currentDistance = (predictions[index].value - actual).abs();
+    final previousDistance = (predictions[index - 1].value - actual).abs();
+    if (currentDistance == previousDistance) {
+      return _rankFor(predictions, index - 1, actual);
+    }
+    return index + 1;
+  }
+'''
+          if old_rank not in text:
+            raise SystemExit('rank method not found')
+          text = text.replace(old_rank, new_rank, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Commit sorting fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+          git commit -m "Trier les pronostics par proximité du résultat actuel"
+          git push
