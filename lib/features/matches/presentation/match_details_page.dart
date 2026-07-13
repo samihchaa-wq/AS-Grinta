@@ -60,6 +60,7 @@ class MatchDetailsPage extends ConsumerWidget {
                     predictions: details.predictions,
                     actualGrinta: details.scoreGrinta ?? 0,
                     actualOpponent: details.scoreOpponent ?? 0,
+                    isHome: details.location == 'domicile',
                   ),
                 ],
               ],
@@ -267,11 +268,13 @@ class _PredictionsTable extends StatelessWidget {
     required this.predictions,
     required this.actualGrinta,
     required this.actualOpponent,
+    required this.isHome,
   });
 
   final List<MatchPredictionResult> predictions;
   final int actualGrinta;
   final int actualOpponent;
+  final bool isHome;
 
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
@@ -331,7 +334,9 @@ class _PredictionsTable extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        '${prediction.scoreGrinta}–${prediction.scoreOpponent}',
+                        isHome
+                            ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
+                            : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
                         textAlign: TextAlign.center,
                       ),
                     ),
