@@ -14,14 +14,14 @@ class AppShell extends ConsumerWidget {
 
   static const _destinations = <_ModuleDestination>[
     _ModuleDestination(
-      route: '/matches',
-      label: 'Matchs',
-      icon: Icons.sports_soccer_rounded,
-    ),
-    _ModuleDestination(
       route: '/pronos',
       label: 'Pronos',
       icon: Icons.bolt_rounded,
+    ),
+    _ModuleDestination(
+      route: '/matches',
+      label: 'Matchs',
+      icon: Icons.sports_soccer_rounded,
     ),
     _ModuleDestination(
       route: '/more',
