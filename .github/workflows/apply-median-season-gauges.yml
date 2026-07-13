@@ -1,0 +1,79 @@
+name: Apply median season gauges
+
+on:
+  push:
+    branches:
+      - agent/median-season-gauges
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/median-season-gauges
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Replace mode with median
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          widget = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          text = widget.read_text()
+          text = text.replace('required this.onOpenPopular,', 'required this.onOpenMedian,')
+          text = text.replace('final ValueChanged<GaugeMarker> onOpenPopular;', 'final VoidCallback onOpenMedian;')
+          text = text.replace('final popular = _popularMarker(gauge.markers);', 'final median = gauge.predictions.isEmpty ? null : gauge.median;')
+          text = text.replace('popular: popular,', 'median: median,')
+          text = text.replace("onPopularTap: popular == null\n                      ? null\n                      : () => onOpenPopular(popular),", "onMedianTap: median == null ? null : onOpenMedian,")
+          start = text.find('  GaugeMarker? _popularMarker(List<GaugeMarker> markers) {')
+          if start != -1:
+              end = text.find('\n  }\n}', start)
+              if end != -1:
+                  text = text[:start] + text[end + 5:]
+          text = text.replace('required this.popular,', 'required this.median,')
+          text = text.replace('required this.onPopularTap,', 'required this.onMedianTap,')
+          text = text.replace('final GaugeMarker? popular;', 'final double? median;')
+          text = text.replace('final VoidCallback? onPopularTap;', 'final VoidCallback? onMedianTap;')
+          text = text.replace('if (popular != null && popular!.value != actual)', 'if (median != null && median != actual)')
+          text = text.replace('left: xFor(popular!.value) - markerRadius,', 'left: xFor(median!) - markerRadius,')
+          text = text.replace('onTap: onPopularTap,', 'onTap: onMedianTap,')
+          text = text.replace('child: _PopularBubble(\n                      value: popular!.value,', 'child: _MedianBubble(\n                      value: median!,')
+          text = text.replace('class _PopularBubble extends StatelessWidget {', 'class _MedianBubble extends StatelessWidget {')
+          text = text.replace('const _PopularBubble({required this.value, required this.accent});', 'const _MedianBubble({required this.value, required this.accent});')
+          text = text.replace('final int value;', 'final double value;', 1)
+          text = text.replace("        '$value',", "        _formatGaugeValue(value),", 1)
+          if 'String _formatGaugeValue(double value)' not in text:
+              text += "\nString _formatGaugeValue(double value) {\n  if (value == value.roundToDouble()) return value.toInt().toString();\n  return value.toStringAsFixed(1).replaceAll('.', ',');\n}\n"
+          widget.write_text(text)
+
+          page = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
+          text = page.read_text()
+          text = text.replace('onOpenPopular: (marker) => _openPopular(gauge, marker),', 'onOpenMedian: () => _openMedian(gauge),')
+          text = text.replace('Future<void> _openPopular(PlayerGauge gauge, GaugeMarker marker) async {', 'Future<void> _openMedian(PlayerGauge gauge) async {')
+          text = text.replace("'${marker.value} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',", "'Médiane : ${_formatMedian(gauge.median)} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',")
+          start = text.find('            const SizedBox(height: 14),\n            Wrap(', text.find('Future<void> _openMedian'))
+          if start != -1:
+              end = text.find('            ),\n          ],', start)
+              if end != -1:
+                  replacement = "            const SizedBox(height: 14),\n            const Text(\n              'La moitié des pronostics est en dessous ou égale à cette valeur, et l’autre moitié au-dessus ou égale.',\n              style: TextStyle(color: Colors.white70),\n            ),\n"
+                  text = text[:start] + replacement + text[end + len('            ),\n'):]
+          text = text.replace("label: 'Score le plus pronostiqué',", "label: 'Médiane des pronostics',")
+          if 'String _formatMedian(double value)' not in text:
+              text += "\nString _formatMedian(double value) {\n  if (value == value.roundToDouble()) return value.toInt().toString();\n  return value.toStringAsFixed(1).replaceAll('.', ',');\n}\n"
+          page.write_text(text)
+          PY
+          dart format lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/premium_season_predictions_page.dart
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/widgets/premium_season_gauges.dart lib/features/predictions/presentation/premium_season_predictions_page.dart
+          git diff --cached --quiet || git commit -m "Afficher la médiane sur les jauges de saison"
+          git push origin HEAD:agent/median-season-gauges
