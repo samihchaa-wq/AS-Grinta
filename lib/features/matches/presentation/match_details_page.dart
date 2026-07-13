@@ -197,9 +197,10 @@ class _MatchHero extends StatelessWidget {
                       )
                     : Text(
                         'VS',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: GrintaColors.contentTertiary,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: GrintaColors.contentTertiary,
+                                ),
                       ),
               ),
               Expanded(
@@ -241,9 +242,8 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isValidated
-        ? GrintaColors.statusSuccess
-        : GrintaColors.statusWarning;
+    final color =
+        isValidated ? GrintaColors.statusSuccess : GrintaColors.statusWarning;
     final background = isValidated
         ? GrintaColors.statusSuccessSoft
         : GrintaColors.statusWarningSoft;
@@ -364,7 +364,8 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scorers = details.playerStats.where((line) => line.goals > 0).toList();
+    final scorers =
+        details.playerStats.where((line) => line.goals > 0).toList();
     final cleanSheets =
         details.playerStats.where((line) => line.cleanSheet).toList();
 
@@ -382,8 +383,7 @@ class _MatchSummary extends StatelessWidget {
                   .map(
                     (line) => _SummaryRow(
                       name: line.name,
-                      value:
-                          '${line.goals} but${line.goals > 1 ? 's' : ''}',
+                      value: '${line.goals} but${line.goals > 1 ? 's' : ''}',
                     ),
                   )
                   .toList(),
@@ -492,7 +492,8 @@ class _PredictionsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return GrintaCard(
       title: 'Pronostics',
-      subtitle: '${predictions.length} participation${predictions.length > 1 ? 's' : ''}',
+      subtitle:
+          '${predictions.length} participation${predictions.length > 1 ? 's' : ''}',
       leading: const Icon(Icons.bolt_outlined),
       child: Column(
         children: [

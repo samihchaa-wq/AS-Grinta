@@ -266,9 +266,8 @@ class _MatchCard extends StatelessWidget {
     final awayScore = match.isHome ? match.opponentScore : match.grintaScore;
 
     return GrintaCard(
-      level: isFinished
-          ? GrintaSurfaceLevel.raised
-          : GrintaSurfaceLevel.emphasis,
+      level:
+          isFinished ? GrintaSurfaceLevel.raised : GrintaSurfaceLevel.emphasis,
       onTap: () {
         if (isFinished) {
           context.push('/matches/${match.id}');
@@ -323,9 +322,10 @@ class _MatchCard extends StatelessWidget {
                       )
                     : Text(
                         'VS',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: GrintaColors.contentTertiary,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: GrintaColors.contentTertiary,
+                                ),
                       ),
               ),
               Expanded(
@@ -408,9 +408,8 @@ class _MatchStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isFinished
-        ? GrintaColors.statusSuccess
-        : GrintaColors.statusWarning;
+    final color =
+        isFinished ? GrintaColors.statusSuccess : GrintaColors.statusWarning;
     final background = isFinished
         ? GrintaColors.statusSuccessSoft
         : GrintaColors.statusWarningSoft;
