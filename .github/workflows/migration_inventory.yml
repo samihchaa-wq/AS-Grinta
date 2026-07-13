@@ -30,7 +30,7 @@ jobs:
           base="origin/${{ github.base_ref }}"
           changed=$(git diff --name-status "$base...HEAD" -- supabase/migrations)
           echo "$changed"
-          if echo "$changed" | awk '$1 != "A" { found=1 } END { exit !found }'; then
+          if [ -n "$changed" ] && echo "$changed" | awk '$1 != "A" { found=1 } END { exit !found }'; then
             echo "Existing migration files are immutable. Add a new migration instead." >&2
             exit 1
           fi
