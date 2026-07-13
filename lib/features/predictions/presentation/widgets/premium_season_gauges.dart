@@ -33,8 +33,9 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = gaugeAccentFor(gauge.playerId);
-    final roundedMedian =
-        gauge.predictions.isEmpty ? null : gauge.median.roundToDouble();
+    final roundedMedian = gauge.predictions.isEmpty
+        ? null
+        : gauge.median.roundToDouble();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -65,9 +66,9 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -.3,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.3,
+                  ),
                 ),
                 const SizedBox(height: 1),
                 Text(
@@ -82,8 +83,8 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                           'but actuel',
                           'buts actuels',
                         ),
-                  style: TextStyle(
-                    color: accent,
+                  style: const TextStyle(
+                    color: Colors.white70,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -93,8 +94,7 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   fallbackMax: scaleMax,
                   median: roundedMedian,
                   accent: accent,
-                  onMedianTap:
-                      roundedMedian == null ? null : onOpenMedian,
+                  onMedianTap: roundedMedian == null ? null : onOpenMedian,
                 ),
               ],
             ),
@@ -131,7 +131,8 @@ class PremiumGaugeLine extends StatelessWidget {
         final centeredMax = roundedMedian == null
             ? math.max(1.0, fallbackMax.toDouble())
             : math.max(1.0, roundedMedian * 2);
-        final actualStronglyAboveMedian = roundedMedian != null &&
+        final actualStronglyAboveMedian =
+            roundedMedian != null &&
             roundedMedian > 0 &&
             actual > roundedMedian * 1.35;
         final visualMax = actualStronglyAboveMedian
@@ -157,11 +158,7 @@ class PremiumGaugeLine extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(99),
                     gradient: LinearGradient(
-                      colors: [
-                        accent.withValues(alpha: .72),
-                        accent,
-                        _pink,
-                      ],
+                      colors: [accent.withValues(alpha: .72), accent, _pink],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -195,10 +192,9 @@ class PremiumGaugeLine extends StatelessWidget {
                 bottom: 0,
                 child: Text(
                   '0',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: Colors.white70),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Colors.white70),
                 ),
               ),
             ],
@@ -312,8 +308,7 @@ class PremiumPlayerDetailsSheet extends StatefulWidget {
       _PremiumPlayerDetailsSheetState();
 }
 
-class _PremiumPlayerDetailsSheetState
-    extends State<PremiumPlayerDetailsSheet> {
+class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
   @override
   Widget build(BuildContext context) {
     final gauge = widget.gauge;
@@ -323,9 +318,9 @@ class _PremiumPlayerDetailsSheetState
         final value = b.value.compareTo(a.value);
         return value != 0
             ? value
-            : a.predictorName
-                .toLowerCase()
-                .compareTo(b.predictorName.toLowerCase());
+            : a.predictorName.toLowerCase().compareTo(
+                b.predictorName.toLowerCase(),
+              );
       });
 
     return Container(
@@ -361,9 +356,7 @@ class _PremiumPlayerDetailsSheetState
                   children: [
                     Text(
                       gauge.playerName,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
+                      style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     Text(
@@ -378,8 +371,8 @@ class _PremiumPlayerDetailsSheetState
                               'but actuel',
                               'buts actuels',
                             ),
-                      style: TextStyle(
-                        color: accent,
+                      style: const TextStyle(
+                        color: Colors.white70,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -391,10 +384,9 @@ class _PremiumPlayerDetailsSheetState
           const SizedBox(height: 22),
           Text(
             'Tous les pronostics (${predictions.length})',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
           Container(
