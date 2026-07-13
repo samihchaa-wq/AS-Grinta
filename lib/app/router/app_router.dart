@@ -14,9 +14,8 @@ import 'package:as_grinta/features/more/presentation/faq_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
-import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
-import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -94,12 +93,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/pronos',
-            builder: (_, __) => const ColorfulSeasonPredictionsPage(),
+            builder: (_, __) => const PronosHubPage(),
           ),
-          GoRoute(
-            path: '/predictions',
-            builder: (_, __) => const PredictionsPage(),
-          ),
+          GoRoute(path: '/predictions', redirect: (_, __) => '/pronos'),
           GoRoute(
             path: '/predictions/leaderboard',
             builder: (_, __) => const LeaderboardPage(),
