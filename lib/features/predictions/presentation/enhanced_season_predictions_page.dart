@@ -169,8 +169,18 @@ class _EnhancedSeasonPredictionsPageState
     List<PlayerGauge> gauges,
     String? currentUserId,
   ) {
-    final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
-    final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
+    int compareByActualThenMedian(PlayerGauge a, PlayerGauge b) {
+      final byActual = b.actual.compareTo(a.actual);
+      if (byActual != 0) return byActual;
+      final byMedian = b.median.compareTo(a.median);
+      if (byMedian != 0) return byMedian;
+      return a.playerName.toLowerCase().compareTo(b.playerName.toLowerCase());
+    }
+
+    final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
+      ..sort(compareByActualThenMedian);
+    final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
+      ..sort(compareByActualThenMedian);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,12 +229,12 @@ class _EnhancedSeasonPredictionsPageState
         'Pronostiqueur';
 
     int compare(PlayerGauge a, PlayerGauge b) {
-      final aValue = a.predictionFor(selectedId)?.value ?? -1;
-      final bValue = b.predictionFor(selectedId)?.value ?? -1;
-      final byPrediction = bValue.compareTo(aValue);
-      if (byPrediction != 0) return byPrediction;
       final byActual = b.actual.compareTo(a.actual);
       if (byActual != 0) return byActual;
+      final aPrediction = a.predictionFor(selectedId)?.value ?? -1;
+      final bPrediction = b.predictionFor(selectedId)?.value ?? -1;
+      final byPrediction = bPrediction.compareTo(aPrediction);
+      if (byPrediction != 0) return byPrediction;
       return a.playerName.toLowerCase().compareTo(b.playerName.toLowerCase());
     }
 
@@ -271,7 +281,7 @@ class _EnhancedSeasonPredictionsPageState
               ?.copyWith(fontWeight: FontWeight.w900),
         ),
         const Text(
-          'Barre = score réel · Trait = ton pronostic',
+          'Tri : score réel, puis prono en cas d’égalité',
           style: TextStyle(color: Colors.white60),
         ),
         const SizedBox(height: 18),
