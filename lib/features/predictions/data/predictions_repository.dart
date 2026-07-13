@@ -106,7 +106,8 @@ class PredictionsRepository {
         .order('match_time', ascending: true)
         .limit(1);
     if ((matches as List).isEmpty) return const [];
-    final item = await _buildItem(Map<String, dynamic>.from(matches.first as Map));
+    final item =
+        await _buildItem(Map<String, dynamic>.from(matches.first as Map));
     return [item];
   }
 
