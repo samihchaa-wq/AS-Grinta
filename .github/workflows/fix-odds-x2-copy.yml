@@ -1,0 +1,44 @@
+name: Fix odds display and x2 copy
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'agent/fix-odds-display-x2-copy'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-odds-display-x2-copy
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Remove x2 warning copy
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/features/home/presentation/home_page.dart')
+          t = p.read_text()
+          t = t.replace(
+            "'${item.x2Available} en réserve · consommé même si le pronostic est faux'",
+            "'${item.x2Available} en réserve'",
+          )
+          p.write_text(t)
+          PY
+          dart format lib/core/utils/app_formats.dart lib/features/home/presentation/home_page.dart
+          flutter analyze
+          flutter test
+          flutter build web
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Uniformiser les cotes et alléger le texte x2"
+          git push origin HEAD:agent/fix-odds-display-x2-copy
