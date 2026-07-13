@@ -1,0 +1,96 @@
+name: Remove season gauge ball
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.issue.title == 'RUN-REMOVE-SEASON-BALL'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Remove ball and current-goals subtitle
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          text = path.read_text()
+
+          subtitle = '''                const SizedBox(height: 1),
+                Text(
+                  gauge.isGoalkeeper
+                      ? AppFormats.counted(
+                          gauge.actual,
+                          'clean sheet actuel',
+                          'clean sheets actuels',
+                        )
+                      : AppFormats.counted(
+                          gauge.actual,
+                          'but actuel',
+                          'buts actuels',
+                        ),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 11),
+'''
+          if subtitle not in text:
+            raise SystemExit('subtitle block not found')
+          text = text.replace(subtitle, '                const SizedBox(height: 14),\n', 1)
+
+          marker = '''                  Positioned(
+                    left: xFor(actual) - markerRadius,
+                    top: 4,
+                    child: _CurrentBall(value: actual, accent: accent),
+                  ),
+'''
+          replacement = '''                  Positioned(
+                    left: xFor(actual) - 7,
+                    top: 21,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accent.withValues(alpha: .65),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+'''
+          if marker not in text:
+            raise SystemExit('current marker block not found')
+          text = text.replace(marker, replacement, 1)
+
+          start = text.find('class _CurrentBall extends StatelessWidget {')
+          end = text.find('class PremiumPlayerDetailsSheet extends StatefulWidget {')
+          if start == -1 or end == -1 or end <= start:
+            raise SystemExit('current ball class block not found')
+          text = text[:start] + text[end:]
+
+          path.write_text(text)
+          PY
+
+      - name: Commit simplification
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+          git commit -m "Simplifier les jauges de pronostics de saison"
+          git push
