@@ -22,15 +22,10 @@ jobs:
           p=Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
           t=p.read_text()
           if "label: 'Classement saison'" not in t:
-            marker="""          Expanded(
-            child: _SwitchItem(
-              active: selected == _PremiumView.predictors,
-              icon: Icons.group_outlined,
-              label: 'Par pronostiqueur',
-              onTap: () => onChanged(_PremiumView.predictors),
-            ),
-          ),"""
-            add=marker+"""
+            start=t.index("label: 'Par pronostiqueur'")
+            needle="          ),\n        ],"
+            end=t.index(needle,start)
+            addition="""          ),
           Expanded(
             child: _SwitchItem(
               active: selected == _PremiumView.ranking,
@@ -38,10 +33,9 @@ jobs:
               label: 'Classement saison',
               onTap: () => onChanged(_PremiumView.ranking),
             ),
-          ),"""
-            if marker not in t:
-              raise SystemExit('predictor tab marker not found')
-            t=t.replace(marker,add)
+          ),
+        ],"""
+            t=t[:end]+addition+t[end+len(needle):]
           p.write_text(t)
           PY
           git config user.name "github-actions[bot]"
