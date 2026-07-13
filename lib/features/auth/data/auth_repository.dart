@@ -98,13 +98,10 @@ class AuthRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
 
-    await _client
-        .from('profiles')
-        .update({
-          'first_name': firstName.trim(),
-          'last_name': lastName.trim(),
-        })
-        .eq('id', userId);
+    await _client.from('profiles').update({
+      'first_name': firstName.trim(),
+      'last_name': lastName.trim(),
+    }).eq('id', userId);
 
     await _client.auth.updateUser(
       UserAttributes(
