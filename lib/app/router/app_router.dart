@@ -5,6 +5,7 @@ import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/auth/presentation/forced_password_change_page.dart';
 import 'package:as_grinta/features/home/presentation/home_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
@@ -28,6 +29,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final location = state.matchedLocation;
       if (authState.isLoading) return '/auth/loading';
+
+      final isPasswordChangeRoute = location == '/auth/new-password';
+      final mustChangePassword =
+          authState.profile?.mustChangePassword == true;
+
+      if (authState.isAuthenticated && mustChangePassword) {
+        return isPasswordChangeRoute ? null : '/auth/new-password';
+      }
+      if (isPasswordChangeRoute && !mustChangePassword) return '/home';
 
       final isAuthRoute = location.startsWith('/auth');
       if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
@@ -113,6 +123,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/register',
         builder: (_, __) => const AuthRegisterPage(),
+      ),
+      GoRoute(
+        path: '/auth/new-password',
+        builder: (_, __) => const ForcedPasswordChangePage(),
       ),
     ],
   );
