@@ -12,6 +12,3 @@ $$;
 
 DROP EXTENSION IF EXISTS pg_net;
 CREATE EXTENSION pg_net WITH SCHEMA extensions;
-
--- Re-apply the platform helper grants after recreation.
-SELECT extensions.grant_pg_net_access();
