@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,11 +43,12 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
-    } catch (error) {
+    } catch (error, stackTrace) {
+      AppLogger.error('predictions.load', error, stackTrace);
       state = state.copyWith(
         items: const [],
         isLoading: false,
-        error: error.toString(),
+        error: humanizeError(error),
       );
     }
   }
@@ -57,9 +60,8 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   }) {
     final items = state.items.map((item) {
       if (item.matchId != matchId || !item.canEdit) return item;
-      final nextGrinta = grinta
-          ? (item.scoreGrinta + delta).clamp(0, 99)
-          : item.scoreGrinta;
+      final nextGrinta =
+          grinta ? (item.scoreGrinta + delta).clamp(0, 99) : item.scoreGrinta;
       final nextOpponent = grinta
           ? item.scoreOpponent
           : (item.scoreOpponent + delta).clamp(0, 99);
@@ -81,9 +83,8 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   }
 
   Future<void> save(String matchId) async {
-    final item = state.items
-        .where((value) => value.matchId == matchId)
-        .firstOrNull;
+    final item =
+        state.items.where((value) => value.matchId == matchId).firstOrNull;
     if (item == null || !item.canEdit) return;
 
     state = state.copyWith(savingMatchId: matchId, clearError: true);
@@ -102,8 +103,12 @@ class PredictionsController extends StateNotifier<PredictionsState> {
           )
           .toList();
       state = state.copyWith(items: items, clearSaving: true, clearError: true);
-    } catch (error) {
-      state = state.copyWith(clearSaving: true, error: error.toString());
+    } catch (error, stackTrace) {
+      AppLogger.error('predictions.save', error, stackTrace);
+      state = state.copyWith(
+        clearSaving: true,
+        error: humanizeError(error),
+      );
     }
   }
 }

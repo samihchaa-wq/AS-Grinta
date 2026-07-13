@@ -63,7 +63,10 @@ void main() {
 
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.items, isEmpty);
-      expect(controller.state.error, contains('load failed'));
+      expect(
+        controller.state.error,
+        'Une erreur est survenue. Réessaie dans un instant.',
+      );
     });
 
     test('changes scores and clamps them between zero and 99', () async {
@@ -178,7 +181,10 @@ void main() {
 
       expect(controller.state.items.single.isFilled, isFalse);
       expect(controller.state.savingMatchId, isNull);
-      expect(controller.state.error, contains('save failed'));
+      expect(
+        controller.state.error,
+        'Une erreur est survenue. Réessaie dans un instant.',
+      );
     });
 
     test('does not call the repository for a closed prediction', () async {
