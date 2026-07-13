@@ -19,27 +19,6 @@ class MorePage extends ConsumerWidget {
         children: [
           Card(
             child: ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: const Text('FAQ'),
-              subtitle: const Text('Les réponses aux questions fréquentes'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/faq'),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.notifications_none_outlined),
-              title: const Text('Notifications'),
-              subtitle:
-                  const Text('Choisis quand tu veux être prévenu'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/notifications'),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
               leading: const Icon(Icons.person_outline),
               title: const Text('Profil'),
               subtitle: Text(
@@ -49,6 +28,16 @@ class MorePage extends ConsumerWidget {
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/profile'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_none_outlined),
+              title: const Text('Notifications'),
+              subtitle: const Text('Choisis quand tu veux être prévenu'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/notifications'),
             ),
           ),
           if (isStaff) ...[
@@ -75,6 +64,16 @@ class MorePage extends ConsumerWidget {
               ),
             ),
           ],
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.help_outline),
+              title: const Text('FAQ'),
+              subtitle: const Text('Les réponses aux questions fréquentes'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/faq'),
+            ),
+          ),
         ],
       ),
     );
