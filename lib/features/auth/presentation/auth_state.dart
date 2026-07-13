@@ -39,6 +39,7 @@ class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((event) {
       if (event.event == supabase.AuthChangeEvent.signedOut) {
+        _retryRefreshQueued = false;
         state = const AuthState(isLoading: false);
         return;
       }
@@ -50,18 +51,38 @@ class AuthController extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   StreamSubscription<supabase.AuthState>? _authSubscription;
   Future<void>? _refreshInFlight;
+  bool _retryRefreshQueued = false;
 
   Future<void> _refreshProfile({bool retryAfterSignIn = false}) {
+    if (retryAfterSignIn) {
+      _retryRefreshQueued = true;
+    }
+
     final existing = _refreshInFlight;
     if (existing != null) return existing;
 
-    final refresh = _performRefresh(retryAfterSignIn: retryAfterSignIn);
+    final refresh = _drainRefreshQueue(
+      initialRetryAfterSignIn: retryAfterSignIn,
+    );
     _refreshInFlight = refresh;
     return refresh.whenComplete(() {
       if (identical(_refreshInFlight, refresh)) {
         _refreshInFlight = null;
       }
     });
+  }
+
+  Future<void> _drainRefreshQueue({
+    required bool initialRetryAfterSignIn,
+  }) async {
+    var retryAfterSignIn = initialRetryAfterSignIn;
+    do {
+      if (retryAfterSignIn) {
+        _retryRefreshQueued = false;
+      }
+      await _performRefresh(retryAfterSignIn: retryAfterSignIn);
+      retryAfterSignIn = _retryRefreshQueued;
+    } while (retryAfterSignIn);
   }
 
   Future<void> _performRefresh({required bool retryAfterSignIn}) async {
