@@ -13,15 +13,12 @@ class AuthSignInPage extends ConsumerStatefulWidget {
 class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
   bool _obscurePassword = true;
-  bool _firstConnection = false;
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _confirmController.dispose();
     super.dispose();
   }
 
@@ -37,29 +34,10 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
       return;
     }
 
-    final controller = ref.read(authControllerProvider.notifier);
-    if (_firstConnection) {
-      if (password.length < 8) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Le mot de passe doit contenir au moins 8 caractères.'),
-          ),
+    await ref.read(authControllerProvider.notifier).signIn(
+          username: username,
+          password: password,
         );
-        return;
-      }
-      if (password != _confirmController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Les deux mots de passe ne correspondent pas.'),
-          ),
-        );
-        return;
-      }
-      await controller.claimAndSignIn(username: username, password: password);
-    } else {
-      await controller.signIn(username: username, password: password);
-    }
   }
 
   @override
@@ -99,18 +77,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                           fit: BoxFit.fitWidth,
                         ),
                       ),
-                      if (_firstConnection)
-                        Text(
-                          'Bienvenue !',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                      const SizedBox(height: 8),
                       Text(
-                        _firstConnection
-                            ? 'Active ton compte : entre l’identifiant donné '
-                                'par l’admin et choisis ton mot de passe.'
-                            : 'Le petit prono maison de l’AS Grinta.',
+                        'Le petit prono maison de l’AS Grinta.',
                         style: Theme.of(context).textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -128,10 +96,10 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        onSubmitted: (_) =>
+                            authState.isLoading ? null : _submit(),
                         decoration: InputDecoration(
-                          labelText: _firstConnection
-                              ? 'Choisis ton mot de passe'
-                              : 'Mot de passe',
+                          labelText: 'Mot de passe',
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -147,55 +115,23 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                           ),
                         ),
                       ),
-                      if (_firstConnection) ...[
-                        const SizedBox(height: 16),
-                        TextField(
-                          controller: _confirmController,
-                          obscureText: _obscurePassword,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirme ton mot de passe',
-                            prefixIcon: Icon(Icons.lock_outline),
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 20),
                       FilledButton.icon(
                         onPressed: authState.isLoading ? null : _submit,
-                        icon: Icon(
-                          _firstConnection
-                              ? Icons.rocket_launch_outlined
-                              : Icons.login_rounded,
-                        ),
-                        label: Text(
-                          _firstConnection
-                              ? 'Activer mon compte'
-                              : 'Se connecter',
-                        ),
+                        icon: const Icon(Icons.login_rounded),
+                        label: const Text('Se connecter'),
                       ),
                       const SizedBox(height: 12),
-                      if (!_firstConnection)
-                        OutlinedButton.icon(
-                          onPressed: () => context.go('/auth/register'),
-                          icon: const Icon(Icons.person_add_alt_outlined),
-                          label: const Text('Créer mon compte'),
-                        ),
-                      TextButton(
-                        onPressed: () => setState(
-                          () => _firstConnection = !_firstConnection,
-                        ),
-                        child: Text(
-                          _firstConnection
-                              ? 'J’ai déjà un compte — se connecter'
-                              : 'Première connexion ? Active ton compte',
-                        ),
+                      OutlinedButton.icon(
+                        onPressed: () => context.go('/auth/register'),
+                        icon: const Icon(Icons.person_add_alt_outlined),
+                        label: const Text('Créer mon compte'),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _firstConnection
-                            ? 'Ton identifiant t’a été communiqué par l’admin.'
-                            : 'Mot de passe oublié ? Demande à l’admin de le '
-                                'réinitialiser, puis refais une première '
-                                'connexion.',
+                        'Mot de passe oublié ? Demande à l’admin de le '
+                        'réinitialiser. Il te transmettra un mot de passe '
+                        'temporaire à remplacer après connexion.',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),

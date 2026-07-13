@@ -124,27 +124,34 @@ Deno.serve(async (req: Request) => {
 
       const base = `${normalizedFirst}${normalizedInitial}`;
       let username = base;
-      for (let suffix = 2; suffix <= 20; suffix++) {
+      let usernameAvailable = false;
+      for (let suffix = 1; suffix <= 20; suffix++) {
+        username = suffix === 1 ? base : `${base}${suffix}`;
         const { data: existing, error: existsError } = await admin
           .from("profiles")
           .select("id")
           .eq("username", username)
           .maybeSingle();
         if (existsError) throw existsError;
-        if (!existing) break;
-        username = `${base}${suffix}`;
+        if (!existing) {
+          usernameAvailable = true;
+          break;
+        }
+      }
+      if (!usernameAvailable) {
+        return jsonResponse({ error: "Aucun identifiant disponible." }, 409);
       }
 
+      const temporaryPassword = generateTemporaryPassword();
       const { data: created, error: createError } =
         await admin.auth.admin.createUser({
           email: `${username}@${USERNAME_DOMAIN}`,
-          password: crypto.randomUUID() + crypto.randomUUID(),
+          password: temporaryPassword,
           email_confirm: true,
           user_metadata: {
             first_name: firstName,
             last_name: `${normalizedInitial.toUpperCase()}.`,
             surnom: surnom || null,
-            invited: true,
           },
         });
       if (createError) throw createError;
@@ -155,8 +162,9 @@ Deno.serve(async (req: Request) => {
         .from("profiles")
         .update({
           username,
-          password_set: false,
-          must_change_password: false,
+          password_set: true,
+          must_change_password: true,
+          status: "active",
           is_goalkeeper: isGoalkeeper,
           surnom: surnom || null,
           updated_at: new Date().toISOString(),
@@ -164,7 +172,11 @@ Deno.serve(async (req: Request) => {
         .eq("id", newUserId);
       if (updateError) throw updateError;
 
-      return jsonResponse({ userId: newUserId, username });
+      return jsonResponse({
+        userId: newUserId,
+        username,
+        temporaryPassword,
+      });
     }
 
     if (action === "reset-password") {
@@ -183,6 +195,18 @@ Deno.serve(async (req: Request) => {
       }
       if (userId === "00000000-0000-0000-0000-000000000001") {
         return jsonResponse({ error: "Compte technique protégé." }, 400);
+      }
+
+      const { data: targetProfile, error: targetError } = await admin
+        .from("profiles")
+        .select("id,status")
+        .eq("id", userId)
+        .maybeSingle();
+      if (targetError || !targetProfile) {
+        return jsonResponse({ error: "Target account not found" }, 404);
+      }
+      if (targetProfile.status === "archived") {
+        return jsonResponse({ error: "Réactive d’abord ce compte." }, 409);
       }
 
       const temporaryPassword = generateTemporaryPassword();

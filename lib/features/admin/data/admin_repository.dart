@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,18 +103,10 @@ class AdminRepository {
     );
   }
 
-  /// Réinitialise l'ancien mot de passe, active un mot de passe temporaire
-  /// sécurisé, puis force son remplacement à la prochaine connexion.
+  /// Génère côté serveur un mot de passe temporaire à usage unique, force son
+  /// remplacement à la prochaine connexion et le copie dans le presse-papiers
+  /// de l'administrateur.
   Future<void> resetAccountPassword(String userId) async {
-    final usernameResult = await _client.rpc(
-      'staff_profile_username',
-      params: {'p_profile_id': userId},
-    );
-    final cleanUsername = (usernameResult ?? '').toString().trim().toLowerCase();
-    if (cleanUsername.isEmpty) {
-      throw StateError('Identifiant du joueur introuvable.');
-    }
-
     final resetResponse = await _client.functions.invoke(
       'manage-user',
       body: {'action': 'reset-password', 'userId': userId},
@@ -132,54 +122,13 @@ class AdminRepository {
       throw StateError(message);
     }
 
-    final temporaryPassword = _generateTemporaryPassword();
-    final activateResponse = await _client.functions.invoke(
-      'claim-account',
-      body: {
-        'username': cleanUsername,
-        'password': temporaryPassword,
-      },
-    );
-    final activateData = activateResponse.data;
-    if (activateResponse.status < 200 ||
-        activateResponse.status >= 300 ||
-        activateData is! Map ||
-        activateData['activated'] != true) {
-      final message = activateData is Map && activateData['error'] != null
-          ? activateData['error'].toString()
-          : 'Le mot de passe temporaire n’a pas pu être activé.';
-      throw StateError(message);
-    }
-
-    final forced = await _client.rpc(
-      'admin_require_password_change',
-      params: {'p_profile_id': userId},
-    );
-    if (forced != true) {
-      throw StateError('Le changement obligatoire n’a pas pu être activé.');
+    final temporaryPassword =
+        (resetData['temporaryPassword'] ?? '').toString();
+    if (temporaryPassword.isEmpty) {
+      throw StateError('Le mot de passe temporaire n’a pas été retourné.');
     }
 
     await Clipboard.setData(ClipboardData(text: temporaryPassword));
-  }
-
-  String _generateTemporaryPassword() {
-    const lower = 'abcdefghijkmnopqrstuvwxyz';
-    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const digits = '23456789';
-    const symbols = '!@#%+-_';
-    const all = '$lower$upper$digits$symbols';
-    final random = Random.secure();
-    final characters = <String>[
-      lower[random.nextInt(lower.length)],
-      upper[random.nextInt(upper.length)],
-      digits[random.nextInt(digits.length)],
-      symbols[random.nextInt(symbols.length)],
-    ];
-    while (characters.length < 14) {
-      characters.add(all[random.nextInt(all.length)]);
-    }
-    characters.shuffle(random);
-    return characters.join();
   }
 
   Future<void> deleteAccount(String userId) async {
