@@ -47,23 +47,6 @@ class AuthRepository {
     throw StateError(message ?? 'La création du compte a échoué.');
   }
 
-  Future<void> claimAccount({
-    required String username,
-    required String password,
-  }) async {
-    final response = await _client.functions.invoke(
-      'claim-account',
-      body: {
-        'username': username.trim().toLowerCase(),
-        'password': password,
-      },
-    );
-    final data = response.data;
-    if (data is Map && data['activated'] == true) return;
-    final message = data is Map ? data['error']?.toString() : null;
-    throw StateError(message ?? 'L’activation du compte a échoué.');
-  }
-
   Future<void> updatePassword(String password) async {
     if (password.length < 8) {
       throw ArgumentError(
