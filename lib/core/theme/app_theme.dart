@@ -24,8 +24,8 @@ abstract final class AppTheme {
 
   // Textes.
   static const Color textPrimary = Color(0xFFEFF3FC);
-  static const Color textSecondary = Color(0xFF9FB1D6);
-  static const Color textFaint = Color(0xFF6E80A6);
+  static const Color textSecondary = Color(0xFFC7CDD8);
+  static const Color textFaint = Color(0xFF9299A5);
 
   static ThemeData get dark {
     const scheme = ColorScheme.dark(
@@ -43,7 +43,7 @@ abstract final class AppTheme {
       onSurface: textPrimary,
       onSurfaceVariant: textSecondary,
       surfaceContainerHighest: surfaceHigh,
-      error: Color(0xFFFF6B7A),
+      error: textPrimary,
       onError: Colors.white,
       outline: outline,
       outlineVariant: Color(0xFF203760),
@@ -90,9 +90,7 @@ abstract final class AppTheme {
           color: textSecondary,
           height: 1.4,
         ),
-        bodySmall: base.textTheme.bodySmall?.copyWith(
-          color: textSecondary,
-        ),
+        bodySmall: base.textTheme.bodySmall?.copyWith(color: textSecondary),
         labelLarge: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
         ),
@@ -130,28 +128,22 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: primaryBright,
+          foregroundColor: textPrimary,
           minimumSize: const Size(64, 52),
           side: const BorderSide(color: outline),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: primaryBright),
+        style: TextButton.styleFrom(foregroundColor: textPrimary),
       ),
       iconTheme: const IconThemeData(color: textSecondary),
       inputDecorationTheme: InputDecorationTheme(
@@ -194,9 +186,7 @@ abstract final class AppTheme {
           color: textPrimary,
           fontWeight: FontWeight.w800,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
@@ -205,9 +195,7 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return IconThemeData(
-            color: selected ? Colors.white : textSecondary,
-          );
+          return IconThemeData(color: selected ? Colors.white : textSecondary);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);

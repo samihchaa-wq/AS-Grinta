@@ -90,10 +90,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             padding: const EdgeInsets.all(16),
             children: [
               if (_error != null) ...[
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+                Text(_error!, style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 12),
               ],
               ...items.map(_buildPlayerRow),

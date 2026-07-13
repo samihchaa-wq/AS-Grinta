@@ -15,8 +15,8 @@ final premiumSeasonLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 
 final premiumSeasonGaugesProvider =
     FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
-  return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
-});
+      return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
+    });
 
 enum _PremiumView { players, predictors, ranking }
 
@@ -77,10 +77,12 @@ class _PremiumSeasonPredictionsPageState
             );
           }
 
-          final currentUserId =
-              ref.read(seasonPredictionsRepositoryProvider).currentUserId;
+          final currentUserId = ref
+              .read(seasonPredictionsRepositoryProvider)
+              .currentUserId;
           final predictors = _predictors(gauges);
-          _selectedPredictorId ??= currentUserId != null &&
+          _selectedPredictorId ??=
+              currentUserId != null &&
                   predictors.any((item) => item.id == currentUserId)
               ? currentUserId
               : predictors.firstOrNull?.id;
@@ -93,9 +95,9 @@ class _PremiumSeasonPredictionsPageState
                 Text(
                   '${predictors.length} pronostiqueurs',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white60,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: Colors.white60,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 _PremiumSwitcher(
@@ -107,8 +109,11 @@ class _PremiumSeasonPredictionsPageState
                   duration: const Duration(milliseconds: 220),
                   child: switch (_view) {
                     _PremiumView.players => _playersView(gauges, currentUserId),
-                    _PremiumView.predictors =>
-                      _predictorView(gauges, predictors, currentUserId),
+                    _PremiumView.predictors => _predictorView(
+                      gauges,
+                      predictors,
+                      currentUserId,
+                    ),
                     _PremiumView.ranking => const _SeasonRankingView(),
                   },
                 ),
@@ -176,14 +181,21 @@ class _PremiumSeasonPredictionsPageState
   ) {
     final selectedId = _selectedPredictorId;
     final selected = predictors.where((item) => item.id == selectedId).toList();
-    final selectedName =
-        selected.isEmpty ? 'Pronostiqueur' : selected.first.name;
+    final selectedName = selected.isEmpty
+        ? 'Pronostiqueur'
+        : selected.first.name;
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
-      ..sort((a, b) => (b.predictionFor(selectedId)?.value ?? -1)
-          .compareTo(a.predictionFor(selectedId)?.value ?? -1));
+      ..sort(
+        (a, b) => (b.predictionFor(selectedId)?.value ?? -1).compareTo(
+          a.predictionFor(selectedId)?.value ?? -1,
+        ),
+      );
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
-      ..sort((a, b) => (b.predictionFor(selectedId)?.value ?? -1)
-          .compareTo(a.predictionFor(selectedId)?.value ?? -1));
+      ..sort(
+        (a, b) => (b.predictionFor(selectedId)?.value ?? -1).compareTo(
+          a.predictionFor(selectedId)?.value ?? -1,
+        ),
+      );
 
     return Column(
       key: const ValueKey('premium-predictors'),
@@ -219,17 +231,15 @@ class _PremiumSeasonPredictionsPageState
         const SizedBox(height: 20),
         Text(
           selectedName,
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w900),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
         ),
         Text(
           'Sa fiche complète de pronostics',
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: Colors.white54),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.white54),
         ),
         const SizedBox(height: 18),
         if (scorers.isNotEmpty) ...[
@@ -288,18 +298,17 @@ class _PremiumSeasonPredictionsPageState
           children: [
             Text(
               gauge.playerName,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 2),
             Text(
               'Médiane : ${gauge.median.round()} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 14),
             const Text(
@@ -334,10 +343,9 @@ class _PremiumSeasonPredictionsPageState
         byId[prediction.predictorId] = prediction.predictorName;
       }
     }
-    final result = byId.entries
-        .map((entry) => (id: entry.key, name: entry.value))
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    final result =
+        byId.entries.map((entry) => (id: entry.key, name: entry.value)).toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
     return result;
   }
 }
@@ -497,10 +505,9 @@ class _SectionHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               Text(subtitle, style: const TextStyle(color: Colors.white54)),
             ],
@@ -566,10 +573,9 @@ class _SmallTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 9),
       child: Text(
         label,
-        style: Theme.of(context)
-            .textTheme
-            .titleMedium
-            ?.copyWith(fontWeight: FontWeight.w900),
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -656,7 +662,7 @@ class _PredictorRow extends StatelessWidget {
           Text(
             prediction?.value.toString() ?? '—',
             style: TextStyle(
-              color: accent,
+              color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
