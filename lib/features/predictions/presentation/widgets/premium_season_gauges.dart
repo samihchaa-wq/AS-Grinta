@@ -67,25 +67,7 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                     letterSpacing: -.3,
                   ),
                 ),
-                const SizedBox(height: 1),
-                Text(
-                  gauge.isGoalkeeper
-                      ? AppFormats.counted(
-                          gauge.actual,
-                          'clean sheet actuel',
-                          'clean sheets actuels',
-                        )
-                      : AppFormats.counted(
-                          gauge.actual,
-                          'but actuel',
-                          'buts actuels',
-                        ),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 11),
+                const SizedBox(height: 12),
                 PremiumGaugeLine(
                   actual: gauge.actual,
                   fallbackMax: scaleMax,
@@ -152,14 +134,14 @@ class PremiumGaugeLine extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: 52,
+              height: 44,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
                     left: markerRadius,
                     right: markerRadius,
-                    top: 27,
+                    top: 20,
                     child: Container(
                       height: 5,
                       decoration: BoxDecoration(
@@ -179,13 +161,13 @@ class PremiumGaugeLine extends StatelessWidget {
                   if (roundedMedian != null)
                     Positioned(
                       left: xFor(roundedMedian) - 1,
-                      top: 6,
+                      top: 2,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: onMedianTap,
                         child: SizedBox(
                           width: 2,
-                          height: 42,
+                          height: 39,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: Colors.white70,
@@ -198,7 +180,7 @@ class PremiumGaugeLine extends StatelessWidget {
                   if (personalPrediction != null)
                     Positioned(
                       left: xFor(personalPrediction!) - 6,
-                      top: 23,
+                      top: 16,
                       child: Container(
                         width: 12,
                         height: 12,
@@ -216,9 +198,23 @@ class PremiumGaugeLine extends StatelessWidget {
                       ),
                     ),
                   Positioned(
-                    left: xFor(actual) - markerRadius,
-                    top: 4,
-                    child: _CurrentBall(value: actual, accent: accent),
+                    left: xFor(actual) - 6,
+                    top: 16,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accent.withValues(alpha: .65),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -228,7 +224,7 @@ class PremiumGaugeLine extends StatelessWidget {
               children: [
                 Expanded(
                   child: _GaugeValueLabel(
-                    icon: Icons.sports_soccer,
+                    icon: Icons.circle,
                     label: 'Actuel',
                     value: '$actual',
                     color: accent,
@@ -308,59 +304,6 @@ class _GaugeValueLabel extends StatelessWidget {
             color: color,
             fontSize: 13,
             fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CurrentBall extends StatelessWidget {
-  const _CurrentBall({required this.value, required this.accent});
-
-  final int value;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-          decoration: BoxDecoration(
-            color: accent,
-            borderRadius: BorderRadius.circular(999),
-            boxShadow: [BoxShadow(color: accent, blurRadius: 12)],
-          ),
-          child: Text(
-            '$value',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ),
-        const SizedBox(height: 1),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFFF8FAFF),
-            border: Border.all(color: accent, width: 2.4),
-            boxShadow: [
-              BoxShadow(
-                color: accent.withValues(alpha: .7),
-                blurRadius: 14,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.sports_soccer,
-            color: Color(0xFF09152A),
-            size: 23,
           ),
         ),
       ],
