@@ -64,9 +64,9 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -.3,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.3,
+                  ),
                 ),
                 const SizedBox(height: 1),
                 Text(
@@ -81,10 +81,7 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                           'but actuel',
                           'buts actuels',
                         ),
-                  style: TextStyle(
-                    color: accent,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(color: accent, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 11),
                 PremiumGaugeLine(
@@ -157,11 +154,7 @@ class PremiumGaugeLine extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(99),
                     gradient: LinearGradient(
-                      colors: [
-                        accent.withValues(alpha: .72),
-                        accent,
-                        _pink,
-                      ],
+                      colors: [accent.withValues(alpha: .72), accent, _pink],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -195,19 +188,9 @@ class PremiumGaugeLine extends StatelessWidget {
                 bottom: 0,
                 child: Text(
                   '0',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white70,
-                      ),
-                ),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Text(
-                  '$maxValue',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white70,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: Colors.white70),
                 ),
               ),
             ],
@@ -322,29 +305,19 @@ class PremiumPlayerDetailsSheet extends StatefulWidget {
 }
 
 class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
-  bool _sortByScore = true;
-
   @override
   Widget build(BuildContext context) {
     final gauge = widget.gauge;
     final accent = gaugeAccentFor(gauge.playerId);
     final predictions = [...gauge.predictions];
-    if (_sortByScore) {
-      predictions.sort((a, b) {
-        final value = b.value.compareTo(a.value);
-        return value != 0
-            ? value
-            : a.predictorName
-                .toLowerCase()
-                .compareTo(b.predictorName.toLowerCase());
-      });
-    } else {
-      predictions.sort(
-        (a, b) => a.predictorName
-            .toLowerCase()
-            .compareTo(b.predictorName.toLowerCase()),
-      );
-    }
+    predictions.sort((a, b) {
+      final value = b.value.compareTo(a.value);
+      return value != 0
+          ? value
+          : a.predictorName.toLowerCase().compareTo(
+              b.predictorName.toLowerCase(),
+            );
+    });
 
     return Container(
       decoration: const BoxDecoration(
@@ -379,10 +352,8 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                   children: [
                     Text(
                       gauge.playerName,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     Text(
                       gauge.isGoalkeeper
@@ -409,39 +380,11 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
           const SizedBox(height: 22),
           Text(
             'Tous les pronostics (${predictions.length})',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .035),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withValues(alpha: .06)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _SortButton(
-                    selected: _sortByScore,
-                    label: 'Trier par score',
-                    accent: accent,
-                    onTap: () => setState(() => _sortByScore = true),
-                  ),
-                ),
-                Expanded(
-                  child: _SortButton(
-                    selected: !_sortByScore,
-                    label: 'Trier par nom',
-                    accent: accent,
-                    onTap: () => setState(() => _sortByScore = false),
-                  ),
-                ),
-              ],
-            ),
-          ),
           const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
@@ -454,9 +397,7 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                 for (var index = 0; index < predictions.length; index++)
                   _PredictionRow(
                     prediction: predictions[index],
-                    rank: _sortByScore
-                        ? _rankFor(predictions, index)
-                        : index + 1,
+                    rank: _rankFor(predictions, index),
                     maxValue: math.max(1, gauge.maximum),
                     isMine:
                         predictions[index].predictorId == widget.currentUserId,
@@ -476,44 +417,6 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
       return _rankFor(predictions, index - 1);
     }
     return index + 1;
-  }
-}
-
-class _SortButton extends StatelessWidget {
-  const _SortButton({
-    required this.selected,
-    required this.label,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final String label;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 11),
-        decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: .23) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.white60,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -547,10 +450,7 @@ class _PredictionRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 34,
-            child: _RankBadge(rank: rank),
-          ),
+          SizedBox(width: 34, child: _RankBadge(rank: rank)),
           CircleAvatar(
             radius: 16,
             backgroundColor: accent.withValues(alpha: .18),
