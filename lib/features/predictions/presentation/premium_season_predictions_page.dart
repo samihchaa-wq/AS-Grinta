@@ -632,11 +632,6 @@ class _PredictorRow extends StatelessWidget {
   }
 }
 
-String _initial(String name) {
-  final trimmed = name.trim();
-  return trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
-}
-
 extension<T> on List<T> {
   T? get firstOrNull => isEmpty ? null : first;
 }
