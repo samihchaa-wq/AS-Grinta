@@ -22,8 +22,9 @@ class FaqPage extends StatelessWidget {
     (
       question: 'J’ai oublié mon mot de passe',
       answer:
-          'Demande à l’admin de le réinitialiser. Tu pourras ensuite refaire '
-          'une « première connexion » et choisir un nouveau mot de passe.',
+          'Demande à l’admin de le réinitialiser. Il te transmettra un mot de '
+          'passe temporaire. Connecte-toi avec celui-ci : l’application te '
+          'demandera immédiatement d’en choisir un nouveau.',
     ),
     (
       question: 'Comment je pronostique ?',
