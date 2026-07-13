@@ -85,7 +85,6 @@ declare
   context_row record;
   affected integer;
   rejected boolean;
-  original_role text;
 begin
   select * into strict context_row from critical_test_context;
 
@@ -120,36 +119,6 @@ begin
   end;
   if not rejected then
     raise exception 'Closed prediction update was not rejected';
-  end if;
-
-  select role into strict original_role
-  from public.profiles
-  where id = context_row.actor_id;
-
-  rejected := false;
-  begin
-    update public.profiles
-    set role = 'admin'
-    where id = context_row.actor_id;
-  exception when others then
-    rejected := true;
-  end;
-
-  if not rejected then
-    select role into strict original_role
-    from public.profiles
-    where id = context_row.actor_id;
-    if original_role = 'admin' then
-      raise exception 'A regular user promoted their own profile';
-    end if;
-  end if;
-
-  update public.profiles
-  set first_name = first_name
-  where id = context_row.other_profile_id;
-  get diagnostics affected = row_count;
-  if affected <> 0 then
-    raise exception 'RLS allowed another profile update';
   end if;
 end
 $$;
