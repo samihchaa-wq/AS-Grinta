@@ -1,7 +1,7 @@
 // Gestion des comptes par le staff : invitation par identifiant,
 // réinitialisation sécurisée par mot de passe temporaire et suppression.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.95.0";
 
 const USERNAME_DOMAIN = "pronos.as-grinta.local";
 
@@ -55,8 +55,12 @@ function generateTemporaryPassword(): string {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405);
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -158,19 +162,34 @@ Deno.serve(async (req: Request) => {
       const newUserId = created.user?.id;
       if (!newUserId) throw new Error("Compte non créé");
 
-      const { error: updateError } = await admin
-        .from("profiles")
-        .update({
-          username,
-          password_set: true,
-          must_change_password: true,
-          status: "active",
-          is_goalkeeper: isGoalkeeper,
-          surnom: surnom || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", newUserId);
-      if (updateError) throw updateError;
+      try {
+        const { error: updateError } = await admin
+          .from("profiles")
+          .update({
+            username,
+            password_set: true,
+            must_change_password: true,
+            status: "active",
+            is_goalkeeper: isGoalkeeper,
+            surnom: surnom || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", newUserId);
+        if (updateError) throw updateError;
+      } catch (profileUpdateError) {
+        const { error: cleanupError } = await admin.auth.admin.deleteUser(
+          newUserId,
+          false,
+        );
+        if (cleanupError) {
+          console.error("manage-user invite cleanup failure", {
+            newUserId,
+            profileUpdateError,
+            cleanupError,
+          });
+        }
+        throw profileUpdateError;
+      }
 
       return jsonResponse({
         userId: newUserId,
@@ -279,12 +298,6 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Unsupported action" }, 400);
   } catch (error) {
     console.error("manage-user failure", error);
-    return jsonResponse(
-      {
-        error:
-          error instanceof Error ? error.message : "Unexpected server error",
-      },
-      400,
-    );
+    return jsonResponse({ error: "La demande n’a pas pu être traitée." }, 500);
   }
 });
