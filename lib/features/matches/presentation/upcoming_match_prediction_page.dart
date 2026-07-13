@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,6 +30,8 @@ class _UpcomingMatchPredictionPageState
   @override
   Widget build(BuildContext context) {
     final prediction = ref.watch(matchPredictionDetailsProvider(widget.matchId));
+    final details = ref.watch(matchDetailsProvider(widget.matchId));
+
     return Scaffold(
       appBar: AppBar(title: const Text('Détails du match')),
       body: prediction.when(
@@ -45,7 +48,11 @@ class _UpcomingMatchPredictionPageState
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(matchPredictionDetailsProvider(widget.matchId));
-              await ref.read(matchPredictionDetailsProvider(widget.matchId).future);
+              ref.invalidate(matchDetailsProvider(widget.matchId));
+              await Future.wait([
+                ref.read(matchPredictionDetailsProvider(widget.matchId).future),
+                ref.read(matchDetailsProvider(widget.matchId).future),
+              ]);
             },
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -71,11 +78,118 @@ class _UpcomingMatchPredictionPageState
                   ),
                 ),
                 const SizedBox(height: 16),
+                details.when(
+                  loading: () => const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: _historyCard,
+                ),
+                const SizedBox(height: 16),
                 _predictionCard(item),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _historyCard(MatchDetailsData details) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.history_rounded, color: Color(0xFF79A4FF)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '5 derniers face-à-face',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Contre ${details.opponentName}',
+              style: const TextStyle(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            if (details.headToHead.isEmpty)
+              const Text('Aucune confrontation précédente.')
+            else
+              ...details.headToHead.map(_historyRow),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _historyRow(HeadToHeadMatch match) {
+    final grinta = match.scoreGrinta ?? 0;
+    final opponent = match.scoreOpponent ?? 0;
+    final result = grinta > opponent
+        ? ('V', const Color(0xFF39E784), 'Victoire')
+        : grinta == opponent
+            ? ('N', const Color(0xFFFFC84D), 'Nul')
+            : ('D', const Color(0xFFFF6B6B), 'Défaite');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: result.$2.withValues(alpha: .16),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              result.$1,
+              style: TextStyle(
+                color: result.$2,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(AppFormats.date(match.date)),
+                Text(
+                  result.$3,
+                  style: TextStyle(
+                    color: result.$2,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$grinta – $opponent',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+        ],
       ),
     );
   }
