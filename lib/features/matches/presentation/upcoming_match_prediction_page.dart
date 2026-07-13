@@ -78,6 +78,8 @@ class _UpcomingMatchPredictionPageState
                   ),
                 ),
                 const SizedBox(height: 16),
+                _predictionCard(item),
+                const SizedBox(height: 16),
                 details.when(
                   loading: () => const Card(
                     child: Padding(
@@ -88,8 +90,6 @@ class _UpcomingMatchPredictionPageState
                   error: (_, __) => const SizedBox.shrink(),
                   data: _historyCard,
                 ),
-                const SizedBox(height: 16),
-                _predictionCard(item),
               ],
             ),
           );
@@ -111,7 +111,7 @@ class _UpcomingMatchPredictionPageState
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '5 derniers face-à-face',
+                    'Les derniers face-à-face',
                     style: Theme.of(context)
                         .textTheme
                         .titleLarge
@@ -129,7 +129,7 @@ class _UpcomingMatchPredictionPageState
             if (details.headToHead.isEmpty)
               const Text('Aucune confrontation précédente.')
             else
-              ...details.headToHead.map(_historyRow),
+              ...details.headToHead.take(5).map(_historyRow),
           ],
         ),
       ),
@@ -244,11 +244,17 @@ class _UpcomingMatchPredictionPageState
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: _Odd(label: '1', value: AppFormats.odds(item.oddsWin))),
+              Expanded(
+                child: _Odd(label: '1', value: AppFormats.odds(item.oddsWin)),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _Odd(label: 'N', value: AppFormats.odds(item.oddsDraw))),
+              Expanded(
+                child: _Odd(label: 'N', value: AppFormats.odds(item.oddsDraw)),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _Odd(label: '2', value: AppFormats.odds(item.oddsLoss))),
+              Expanded(
+                child: _Odd(label: '2', value: AppFormats.odds(item.oddsLoss)),
+              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -350,6 +356,7 @@ class _UpcomingMatchPredictionPageState
 
 class _Odd extends StatelessWidget {
   const _Odd({required this.label, required this.value});
+
   final String label;
   final String value;
 
