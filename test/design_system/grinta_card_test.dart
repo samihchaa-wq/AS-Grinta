@@ -40,9 +40,9 @@ void main() {
 
     expect(tapCount, 1);
     expect(
-      tester.getSemantics(find.byType(GrintaCard)).hasFlag(
-            SemanticsFlag.isButton,
-          ),
+      tester
+          .getSemantics(find.byType(GrintaCard))
+          .hasFlag(SemanticsFlag.isButton),
       isTrue,
     );
   });
