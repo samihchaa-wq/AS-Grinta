@@ -1,0 +1,31 @@
+name: Export logos
+
+on:
+  push:
+    branches:
+      - agent/white-text-and-logo-review
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/white-text-and-logo-review
+      - name: Prepare logo pack
+        run: |
+          mkdir -p logo-pack
+          cp assets/images/mpg_logo.png logo-pack/
+          cp assets/images/scorer_logo.png logo-pack/
+          cp assets/images/keeper_logo.png logo-pack/
+          cp web/favicon.png logo-pack/
+          cp web/icons/Icon-192.png logo-pack/
+          cp web/icons/Icon-512.png logo-pack/
+          cp web/icons/Icon-maskable-512.png logo-pack/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: as-grinta-logos
+          path: logo-pack
