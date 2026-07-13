@@ -55,60 +55,46 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
           onTap: onOpenAll,
           borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 13),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _PlayerAvatar(name: gauge.playerName, accent: accent),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        gauge.playerName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -.3,
-                            ),
+                Text(
+                  gauge.playerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -.3,
                       ),
-                      const SizedBox(height: 1),
-                      Text(
-                        gauge.isGoalkeeper
-                            ? AppFormats.counted(
-                                gauge.actual,
-                                'clean sheet actuel',
-                                'clean sheets actuels',
-                              )
-                            : AppFormats.counted(
-                                gauge.actual,
-                                'but actuel',
-                                'buts actuels',
-                              ),
-                        style: TextStyle(
-                          color: accent,
-                          fontWeight: FontWeight.w700,
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  gauge.isGoalkeeper
+                      ? AppFormats.counted(
+                          gauge.actual,
+                          'clean sheet actuel',
+                          'clean sheets actuels',
+                        )
+                      : AppFormats.counted(
+                          gauge.actual,
+                          'but actuel',
+                          'buts actuels',
                         ),
-                      ),
-                      const SizedBox(height: 11),
-                      PremiumGaugeLine(
-                        actual: gauge.actual,
-                        maxValue: scaleMax,
-                        popular: popular,
-                        accent: accent,
-                        onPopularTap: popular == null
-                            ? null
-                            : () => onOpenPopular(popular),
-                      ),
-                    ],
+                  style: TextStyle(
+                    color: accent,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 10),
-                _OpenButton(
-                  count: gauge.predictions.length,
+                const SizedBox(height: 11),
+                PremiumGaugeLine(
+                  actual: gauge.actual,
+                  maxValue: scaleMax,
+                  popular: popular,
                   accent: accent,
-                  onTap: onOpenAll,
+                  onPopularTap: popular == null
+                      ? null
+                      : () => onOpenPopular(popular),
                 ),
               ],
             ),
@@ -232,43 +218,6 @@ class PremiumGaugeLine extends StatelessWidget {
   }
 }
 
-class _PlayerAvatar extends StatelessWidget {
-  const _PlayerAvatar({required this.name, required this.accent});
-
-  final String name;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF0C1D38),
-        border: Border.all(color: accent, width: 1.8),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .34),
-            blurRadius: 16,
-          ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 19,
-          fontWeight: FontWeight.w900,
-          shadows: [Shadow(color: accent, blurRadius: 14)],
-        ),
-      ),
-    );
-  }
-}
-
 class _CurrentBall extends StatelessWidget {
   const _CurrentBall({required this.value, required this.accent});
 
@@ -311,7 +260,11 @@ class _CurrentBall extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.sports_soccer, color: Color(0xFF09152A), size: 23),
+          child: const Icon(
+            Icons.sports_soccer,
+            color: Color(0xFF09152A),
+            size: 23,
+          ),
         ),
       ],
     );
@@ -351,42 +304,6 @@ class _PopularBubble extends StatelessWidget {
   }
 }
 
-class _OpenButton extends StatelessWidget {
-  const _OpenButton({
-    required this.count,
-    required this.accent,
-    required this.onTap,
-  });
-
-  final int count;
-  final Color accent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: accent,
-        side: BorderSide(color: accent.withValues(alpha: .34)),
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 13),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Voir les $count',
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(width: 2),
-          const Icon(Icons.chevron_right, size: 18),
-        ],
-      ),
-    );
-  }
-}
-
 class PremiumPlayerDetailsSheet extends StatefulWidget {
   const PremiumPlayerDetailsSheet({
     super.key,
@@ -417,11 +334,16 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
         final value = b.value.compareTo(a.value);
         return value != 0
             ? value
-            : a.predictorName.toLowerCase().compareTo(b.predictorName.toLowerCase());
+            : a.predictorName
+                .toLowerCase()
+                .compareTo(b.predictorName.toLowerCase());
       });
     } else {
-      predictions.sort((a, b) =>
-          a.predictorName.toLowerCase().compareTo(b.predictorName.toLowerCase()));
+      predictions.sort(
+        (a, b) => a.predictorName
+            .toLowerCase()
+            .compareTo(b.predictorName.toLowerCase()),
+      );
     }
 
     return Container(
@@ -451,17 +373,16 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                 icon: const Icon(Icons.close),
               ),
               const SizedBox(width: 12),
-              _PlayerAvatar(name: gauge.playerName, accent: accent),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       gauge.playerName,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
                     ),
                     Text(
                       gauge.isGoalkeeper
@@ -475,7 +396,10 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                               'but actuel',
                               'buts actuels',
                             ),
-                      style: TextStyle(color: accent, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -499,18 +423,22 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
             ),
             child: Row(
               children: [
-                Expanded(child: _SortButton(
-                  selected: _sortByScore,
-                  label: 'Trier par score',
-                  accent: accent,
-                  onTap: () => setState(() => _sortByScore = true),
-                )),
-                Expanded(child: _SortButton(
-                  selected: !_sortByScore,
-                  label: 'Trier par nom',
-                  accent: accent,
-                  onTap: () => setState(() => _sortByScore = false),
-                )),
+                Expanded(
+                  child: _SortButton(
+                    selected: _sortByScore,
+                    label: 'Trier par score',
+                    accent: accent,
+                    onTap: () => setState(() => _sortByScore = true),
+                  ),
+                ),
+                Expanded(
+                  child: _SortButton(
+                    selected: !_sortByScore,
+                    label: 'Trier par nom',
+                    accent: accent,
+                    onTap: () => setState(() => _sortByScore = false),
+                  ),
+                ),
               ],
             ),
           ),
@@ -526,9 +454,12 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                 for (var index = 0; index < predictions.length; index++)
                   _PredictionRow(
                     prediction: predictions[index],
-                    rank: _sortByScore ? _rankFor(predictions, index) : index + 1,
+                    rank: _sortByScore
+                        ? _rankFor(predictions, index)
+                        : index + 1,
                     maxValue: math.max(1, gauge.maximum),
-                    isMine: predictions[index].predictorId == widget.currentUserId,
+                    isMine:
+                        predictions[index].predictorId == widget.currentUserId,
                     accent: accent,
                   ),
               ],
@@ -610,7 +541,9 @@ class _PredictionRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMine ? _green.withValues(alpha: .12) : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        border: isMine ? Border.all(color: _green.withValues(alpha: .18)) : null,
+        border: isMine
+            ? Border.all(color: _green.withValues(alpha: .18))
+            : null,
       ),
       child: Row(
         children: [
