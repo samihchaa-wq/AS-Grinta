@@ -29,11 +29,6 @@ class AppShell extends ConsumerWidget {
       icon: Icons.bolt_rounded,
     ),
     _ModuleDestination(
-      route: '/predictions',
-      label: 'Classement',
-      icon: Icons.emoji_events_rounded,
-    ),
-    _ModuleDestination(
       route: '/more',
       label: 'Plus',
       icon: Icons.more_horiz_rounded,
@@ -53,7 +48,9 @@ class AppShell extends ConsumerWidget {
       (route) => location == route || location.startsWith('$route/'),
     )
         ? '/more'
-        : location;
+        : location.startsWith('/predictions')
+            ? '/pronos'
+            : location;
 
     final index = _destinations.indexWhere(
       (destination) => normalizedLocation == destination.route ||

@@ -15,8 +15,7 @@ class MatchDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
-    final role = ref.watch(authControllerProvider).profile?.role;
-    final isAdmin = role == AuthRole.admin;
+    final isAdmin = ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détails du match')),
@@ -50,20 +49,19 @@ class MatchDetailsPage extends ConsumerWidget {
               if (!details.isValidated) ...[
                 const SizedBox(height: 16),
                 _UpcomingInformation(details: details),
-              ] else if (details.playerStats.isEmpty &&
-                  details.predictions.isEmpty) ...[
-                const SizedBox(height: 16),
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(18),
-                    child: Text('Pas d’informations sur ce match.'),
-                  ),
-                ),
               ] else ...[
-                const SizedBox(height: 16),
-                _MatchSummary(details: details),
-                const SizedBox(height: 16),
-                _PredictionsTable(predictions: details.predictions),
+                if (details.playerStats.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _MatchSummary(details: details),
+                ],
+                if (details.predictions.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _PredictionsTable(
+                    predictions: details.predictions,
+                    actualGrinta: details.scoreGrinta ?? 0,
+                    actualOpponent: details.scoreOpponent ?? 0,
+                  ),
+                ],
               ],
               if (isAdmin && details.status == 'a_venir') ...[
                 const SizedBox(height: 16),
@@ -72,8 +70,7 @@ class MatchDetailsPage extends ConsumerWidget {
                   runSpacing: 8,
                   children: [
                     FilledButton.icon(
-                      onPressed: () =>
-                          context.push('/matches/$matchId/finalize'),
+                      onPressed: () => context.push('/matches/$matchId/finalize'),
                       icon: const Icon(Icons.fact_check_outlined),
                       label: const Text('👑  Saisir les statistiques'),
                     ),
@@ -143,9 +140,7 @@ class MatchDetailsPage extends ConsumerWidget {
       initialTime: TimeOfDay.fromDateTime(details.kickoffAt),
     );
     if (time == null || !context.mounted) return;
-    await ref
-        .read(matchDetailsRepositoryProvider)
-        .reportMatch(
+    await ref.read(matchDetailsRepositoryProvider).reportMatch(
           matchId: details.matchId,
           kickoffAt: DateTime(
             date.year,
@@ -168,17 +163,14 @@ class _MatchHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final home = details.location == 'domicile';
     final grinta = details.scoreGrinta ?? 0;
-    final adverse = details.scoreOpponent ?? 0;
-    final String title;
-    if (details.isValidated) {
-      title = home
-          ? 'AS Grinta $grinta – $adverse ${details.opponentName}'
-          : '${details.opponentName} $adverse – $grinta AS Grinta';
-    } else {
-      title = home
-          ? 'AS Grinta – ${details.opponentName}'
-          : '${details.opponentName} – AS Grinta';
-    }
+    final opponent = details.scoreOpponent ?? 0;
+    final title = details.isValidated
+        ? home
+            ? 'AS Grinta $grinta – $opponent ${details.opponentName}'
+            : '${details.opponentName} $opponent – $grinta AS Grinta'
+        : home
+            ? 'AS Grinta – ${details.opponentName}'
+            : '${details.opponentName} – AS Grinta';
 
     return Card(
       child: Padding(
@@ -216,26 +208,11 @@ class _UpcomingInformation extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: _InfoTile(
-                    label: 'Cote 1',
-                    value: _format(details.oddsWin),
-                  ),
-                ),
+                Expanded(child: _InfoTile(label: 'Cote 1', value: AppFormats.odds(details.oddsWin))),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _InfoTile(
-                    label: 'Cote N',
-                    value: _format(details.oddsDraw),
-                  ),
-                ),
+                Expanded(child: _InfoTile(label: 'Cote N', value: AppFormats.odds(details.oddsDraw))),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: _InfoTile(
-                    label: 'Cote 2',
-                    value: _format(details.oddsLoss),
-                  ),
-                ),
+                Expanded(child: _InfoTile(label: 'Cote 2', value: AppFormats.odds(details.oddsLoss))),
               ],
             ),
           ],
@@ -243,8 +220,6 @@ class _UpcomingInformation extends StatelessWidget {
       ),
     );
   }
-
-  static String _format(double? value) => AppFormats.odds(value);
 }
 
 class _MatchSummary extends StatelessWidget {
@@ -254,12 +229,8 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cleanSheets = details.playerStats
-        .where((line) => line.cleanSheet)
-        .toList();
-    final scorers = details.playerStats
-        .where((line) => line.goals > 0)
-        .toList();
+    final scorers = details.playerStats.where((line) => line.goals > 0).toList();
+    final cleanSheets = details.playerStats.where((line) => line.cleanSheet).toList();
 
     return Card(
       child: Padding(
@@ -267,29 +238,23 @@ class _MatchSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Résumé du match',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            if (scorers.isNotEmpty)
-              _Section(
-                title: 'Buteurs',
-                children: scorers
-                    .map(
-                      (line) => Text(
-                        '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}',
-                      ),
-                    )
-                    .toList(),
+            Text('Résumé du match', style: Theme.of(context).textTheme.titleLarge),
+            if (scorers.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Buteurs', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              ...scorers.map(
+                (line) => Text(
+                  '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}',
+                ),
               ),
-            if (scorers.isNotEmpty && cleanSheets.isNotEmpty)
-              const SizedBox(height: 14),
-            if (cleanSheets.isNotEmpty)
-              _Section(
-                title: 'Clean sheet',
-                children: cleanSheets.map((line) => Text(line.name)).toList(),
-              ),
+            ],
+            if (cleanSheets.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Clean sheet', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 6),
+              ...cleanSheets.map((line) => Text(line.name)),
+            ],
           ],
         ),
       ),
@@ -297,33 +262,33 @@ class _MatchSummary extends StatelessWidget {
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 6),
-        ...children,
-      ],
-    );
-  }
-}
-
 class _PredictionsTable extends StatelessWidget {
-  const _PredictionsTable({required this.predictions});
+  const _PredictionsTable({
+    required this.predictions,
+    required this.actualGrinta,
+    required this.actualOpponent,
+  });
 
   final List<MatchPredictionResult> predictions;
+  final int actualGrinta;
+  final int actualOpponent;
 
-  String _points(double value) {
-    if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
-    return '${value.ceil()}';
+  Color? _colorFor(MatchPredictionResult prediction) {
+    if (prediction.points <= 0) return null;
+    if (prediction.scoreGrinta == actualGrinta &&
+        prediction.scoreOpponent == actualOpponent) {
+      return const Color(0xFF39E784);
+    }
+    final predictedDifference = prediction.scoreGrinta - prediction.scoreOpponent;
+    final actualDifference = actualGrinta - actualOpponent;
+    if (predictedDifference == actualDifference) {
+      return const Color(0xFF1DCBFF);
+    }
+    if (prediction.scoreGrinta == actualGrinta ||
+        prediction.scoreOpponent == actualOpponent) {
+      return const Color(0xFFFFBE3D);
+    }
+    return const Color(0xFF7C3CFF);
   }
 
   @override
@@ -336,40 +301,54 @@ class _PredictionsTable extends StatelessWidget {
           children: [
             Text('Pronostics', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            if (predictions.isEmpty)
-              const Text('Aucun pronostic enregistré.')
-            else ...[
-              const Row(
-                children: [
-                  Expanded(flex: 2, child: Text('Joueur')),
-                  Expanded(child: Text('Prono', textAlign: TextAlign.center)),
-                  Expanded(child: Text('Points', textAlign: TextAlign.end)),
-                ],
-              ),
-              const Divider(),
-              ...predictions.map(
-                (prediction) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 7),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 2, child: Text(prediction.name)),
-                      Expanded(
-                        child: Text(
-                          '${prediction.scoreGrinta}–${prediction.scoreOpponent}',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          _points(prediction.points),
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
-                    ],
-                  ),
+            const Row(
+              children: [
+                Expanded(flex: 2, child: Text('Joueur')),
+                Expanded(child: Text('Prono', textAlign: TextAlign.center)),
+                Expanded(child: Text('Points', textAlign: TextAlign.end)),
+              ],
+            ),
+            const Divider(),
+            ...predictions.map((prediction) {
+              final color = _colorFor(prediction);
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: color == null ? null : Border.all(color: color, width: 1.7),
+                  color: color?.withValues(alpha: .08),
                 ),
-              ),
-            ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        prediction.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${prediction.scoreGrinta}–${prediction.scoreOpponent}',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        prediction.points.round().toString(),
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: color == null ? FontWeight.normal : FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),
@@ -386,15 +365,16 @@ class _InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         children: [
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
           Text(label, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          Text(value, style: Theme.of(context).textTheme.titleMedium),
         ],
       ),
     );
