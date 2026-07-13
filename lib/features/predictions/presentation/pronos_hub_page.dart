@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum _PronosSection { matches, season, general }
+
 enum _MatchView { upcoming, ranking }
 
 class PronosHubPage extends ConsumerStatefulWidget {
@@ -272,9 +273,10 @@ class _UpcomingPredictionCard extends ConsumerWidget {
                           item.isClosed
                               ? 'Pronostics fermés'
                               : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondary,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
                         ),
                       ],
                     ),
@@ -391,7 +393,8 @@ class _UpcomingPredictionCard extends ConsumerWidget {
                           children: [
                             Text(
                               item.useX2 ? '×2 activé' : 'Activer le ×2',
-                              style: const TextStyle(fontWeight: FontWeight.w900),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w900),
                             ),
                             Text('${item.x2Available} en réserve'),
                           ],
@@ -572,8 +575,7 @@ class _LeaderboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...entries]
-      ..sort((a, b) {
+    final sorted = [...entries]..sort((a, b) {
         final byPoints = points(b).compareTo(points(a));
         return byPoints != 0 ? byPoints : a.name.compareTo(b.name);
       });
