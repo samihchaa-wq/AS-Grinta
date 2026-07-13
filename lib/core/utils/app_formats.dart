@@ -38,7 +38,7 @@ class AppFormats {
   static String counted(int count, String singular, [String? pluralForm]) =>
       '$count ${plural(count, singular, pluralForm)}';
 
-  /// Cote affichée au format décimal français : 2,00 ; 3,80 ; 4,00.
+  /// Cote affichée sur une base 100 : 2,00 → 200 ; 3,80 → 380.
   static String odds(double? value) =>
-      value == null ? '—' : value.toStringAsFixed(2).replaceAll('.', ',');
+      value == null ? '—' : (value * 100).round().toString();
 }
