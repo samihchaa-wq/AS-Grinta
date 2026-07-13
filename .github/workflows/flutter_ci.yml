@@ -48,7 +48,9 @@ jobs:
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+          dart format "${files[@]}"
+          git diff -- "${files[@]}"
+          git diff --quiet -- "${files[@]}"
 
       - name: Analyze
         shell: bash
