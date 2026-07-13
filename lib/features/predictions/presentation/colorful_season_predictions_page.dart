@@ -1,13 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:as_grinta/features/predictions/presentation/premium_season_predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
 import 'package:flutter/material.dart';
 
-/// Habillage visuel des pronostics de saison.
-///
-/// Les données et interactions restent gérées par [PremiumSeasonPredictionsPage].
-/// Ce wrapper ajoute un fond plus vivant avec plusieurs lignes colorées, sans
-/// modifier la lisibilité des cartes ni le comportement fonctionnel de l'écran.
+/// Habillage visuel des pronostics de saison avec lignes multicolores.
 class ColorfulSeasonPredictionsPage extends StatelessWidget {
   const ColorfulSeasonPredictionsPage({super.key});
 
@@ -30,7 +26,7 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
                 space: 1,
               ),
             ),
-            child: const PremiumSeasonPredictionsPage(),
+            child: const EnhancedSeasonPredictionsPage(),
           ),
         ],
       ),
@@ -52,7 +48,8 @@ class _SeasonLinesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final diagonalLength = math.sqrt(size.width * size.width + size.height * size.height);
+    final diagonalLength =
+        math.sqrt(size.width * size.width + size.height * size.height);
 
     for (var index = 0; index < 18; index++) {
       final color = _colors[index % _colors.length];
@@ -75,7 +72,11 @@ class _SeasonLinesPainter extends CustomPainter {
       final paint = Paint()
         ..color = color.withValues(alpha: .055)
         ..strokeWidth = 1.1;
-      canvas.drawLine(Offset(x, 0), Offset(x - size.width * .18, size.height), paint);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x - size.width * .18, size.height),
+        paint,
+      );
     }
   }
 
