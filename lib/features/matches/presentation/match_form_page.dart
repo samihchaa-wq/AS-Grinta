@@ -197,7 +197,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'calculées automatiquement',
+                    'd’après les précédentes rencontres',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),

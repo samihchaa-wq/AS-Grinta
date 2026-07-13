@@ -55,9 +55,11 @@ class FaqPage extends StatelessWidget {
     (
       question: 'D’où viennent les cotes ?',
       answer:
-          'Elles reflètent la forme du moment de l’équipe : les buts marqués '
-          'et encaissés sur les 4 derniers matchs, le plus récent pesant le '
-          'plus lourd (40 %, puis 30, 20 et 10 %).',
+          'Elles se basent sur les précédentes rencontres face à cet '
+          'adversaire : les buts marqués et encaissés lors des derniers '
+          'face-à-face, la confrontation la plus récente pesant le plus '
+          'lourd, avec un ajustement domicile / extérieur. Sans historique '
+          'connu, on repart de la forme récente de l’équipe.',
     ),
     (
       question: 'C’est quoi les pronostics de saison ?',
