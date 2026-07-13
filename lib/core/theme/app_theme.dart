@@ -126,9 +126,8 @@ abstract final class AppTheme {
           color: GrintaColors.contentTertiary,
         ),
         labelStyle: GrintaTypography.darkTextTheme.bodyMedium,
-        floatingLabelStyle: GrintaTypography.darkTextTheme.labelMedium?.copyWith(
-          color: GrintaColors.brandContent,
-        ),
+        floatingLabelStyle: GrintaTypography.darkTextTheme.labelMedium
+            ?.copyWith(color: GrintaColors.brandContent),
         border: const OutlineInputBorder(
           borderRadius: GrintaRadii.fieldRadius,
           borderSide: BorderSide(color: GrintaColors.borderDefault),
@@ -139,10 +138,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: GrintaRadii.fieldRadius,
-          borderSide: BorderSide(
-            color: GrintaColors.accentPrimary,
-            width: 1.6,
-          ),
+          borderSide: BorderSide(color: GrintaColors.accentPrimary, width: 1.6),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
@@ -263,13 +259,9 @@ abstract final class AppTheme {
         elevation: GrintaElevation.floating,
         backgroundColor: GrintaColors.accentPrimary,
         foregroundColor: GrintaColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: GrintaRadii.controlRadius,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: GrintaRadii.controlRadius),
       ),
-      dividerTheme: const DividerThemeData(
-        color: GrintaColors.borderSubtle,
-      ),
+      dividerTheme: const DividerThemeData(color: GrintaColors.borderSubtle),
       dividerColor: GrintaColors.borderSubtle,
     );
   }
