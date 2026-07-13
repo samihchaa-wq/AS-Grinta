@@ -1,6 +1,8 @@
 name: Apply prediction distance sort
 
 on:
+  push:
+    branches: [fix/sort-player-predictions-by-distance]
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
