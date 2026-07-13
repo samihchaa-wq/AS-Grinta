@@ -37,14 +37,11 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   final PredictionsRepository _repository;
 
   Future<void> load() async {
-    // Vide les items immédiatement pour éviter d'afficher des données périmées.
     state = state.copyWith(isLoading: true, items: const [], clearError: true);
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
     } catch (error) {
-      // En cas d'erreur, on vide aussi les items pour ne pas afficher
-      // une interface modifiable basée sur des données périmées.
       state = state.copyWith(
         items: const [],
         isLoading: false,
@@ -73,6 +70,15 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     state = state.copyWith(items: items, clearError: true);
   }
 
+  void toggleX2(String matchId) {
+    final items = state.items.map((item) {
+      if (item.matchId != matchId || !item.canEdit) return item;
+      if (!item.useX2 && item.x2Available <= 0) return item;
+      return item.copyWith(useX2: !item.useX2);
+    }).toList();
+    state = state.copyWith(items: items, clearError: true);
+  }
+
   Future<void> save(String matchId) async {
     final item =
         state.items.where((value) => value.matchId == matchId).firstOrNull;
@@ -84,10 +90,12 @@ class PredictionsController extends StateNotifier<PredictionsState> {
         matchId: matchId,
         scoreGrinta: item.scoreGrinta,
         scoreOpponent: item.scoreOpponent,
+        useX2: item.useX2,
       );
       final items = state.items
-          .map((value) =>
-              value.matchId == matchId ? value.copyWith(isFilled: true) : value)
+          .map((value) => value.matchId == matchId
+              ? value.copyWith(isFilled: true)
+              : value)
           .toList();
       state = state.copyWith(
         items: items,
