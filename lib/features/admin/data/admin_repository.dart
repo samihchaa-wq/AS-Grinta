@@ -155,7 +155,7 @@ class AdminRepository {
     bool? isGoalkeeper,
   }) async {
     final result = await _client.rpc(
-      'moderator_update_profile_admin_fields',
+      'admin_update_profile_fields',
       params: {
         'p_profile_id': profileId,
         'p_role': role,
