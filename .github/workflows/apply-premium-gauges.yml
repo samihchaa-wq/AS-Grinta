@@ -1,0 +1,48 @@
+name: Apply premium season gauges
+
+on:
+  push:
+    branches:
+      - agent/premium-season-gauges
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/premium-season-gauges
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Wire premium widgets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/predictions/presentation/season_predictions_page.dart')
+          text = path.read_text()
+          anchor = "import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';\n"
+          addition = anchor + "import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';\n"
+          if 'premium_season_gauges.dart' not in text:
+              text = text.replace(anchor, addition)
+          text = text.replace('_NeonGaugeCard(', 'PremiumSeasonGaugeCard(')
+          text = text.replace('onOpenMarker:', 'onOpenPopular:')
+          text = text.replace('_PlayerDetailsSheet(', 'PremiumPlayerDetailsSheet(')
+          text = text.replace("        const SizedBox(height: 12),\n        const _GaugeLegend(),\n", "")
+          path.write_text(text)
+          PY
+          dart format lib/features/predictions/presentation/season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+          rm .github/workflows/apply-premium-gauges.yml
+      - name: Commit integration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart .github/workflows/apply-premium-gauges.yml
+          git diff --cached --quiet || git commit -m "Intégrer les jauges de saison premium"
+          git push origin HEAD:agent/premium-season-gauges
