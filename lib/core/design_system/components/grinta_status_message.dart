@@ -6,12 +6,7 @@ import 'package:as_grinta/core/design_system/foundations/grinta_spacing.dart';
 import 'package:flutter/material.dart';
 
 /// Semantic feedback states available to the interface.
-enum GrintaStatusTone {
-  info,
-  success,
-  warning,
-  danger,
-}
+enum GrintaStatusTone { info, success, warning, danger }
 
 /// Shared inline feedback message for forms and content sections.
 class GrintaStatusMessage extends StatelessWidget {
@@ -85,16 +80,10 @@ class GrintaStatusMessage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (title != null) ...[
-                      Text(
-                        title!,
-                        style: textTheme.titleSmall,
-                      ),
+                      Text(title!, style: textTheme.titleSmall),
                       const SizedBox(height: GrintaSpacing.space1),
                     ],
-                    Text(
-                      message,
-                      style: textTheme.bodyMedium,
-                    ),
+                    Text(message, style: textTheme.bodyMedium),
                     if (action != null) ...[
                       const SizedBox(height: GrintaSpacing.controlGap),
                       action!,
