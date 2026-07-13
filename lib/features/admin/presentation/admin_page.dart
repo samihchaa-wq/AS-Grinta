@@ -154,15 +154,14 @@ class _SeasonCard extends ConsumerWidget {
                 subtitle: Text(
                   openSeason.predictionsLocked
                       ? 'Fermés : les pronostics de chacun sont visibles par '
-                            'tous et figés. Le classement de saison tourne.'
+                          'tous et figés. Le classement de saison tourne.'
                       : 'Ouverts : chacun parie en secret. Ferme les paris '
-                            'pour les révéler à tous et lancer le classement.',
+                          'pour les révéler à tous et lancer le classement.',
                 ),
                 value: openSeason.predictionsLocked,
                 onChanged: (lock) async {
                   if (lock) {
-                    final confirmed =
-                        await showDialog<bool>(
+                    final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (dialogContext) => AlertDialog(
                             title: const Text('Fermer les paris ?'),
@@ -218,8 +217,7 @@ class _SeasonCard extends ConsumerWidget {
                     openSeason,
                     'archived',
                     title: 'Finir la saison ?',
-                    message:
-                        'La saison « ${openSeason.name} » sera archivée '
+                    message: 'La saison « ${openSeason.name} » sera archivée '
                         'immédiatement et le classement final figé. '
                         'C’est définitif. Tu pourras ensuite créer une '
                         'nouvelle saison.',
@@ -243,8 +241,7 @@ class _SeasonCard extends ConsumerWidget {
     required String title,
     required String message,
   }) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(title),
