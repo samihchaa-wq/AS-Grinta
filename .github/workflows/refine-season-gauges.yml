@@ -1,0 +1,78 @@
+name: Refine season gauges
+
+on:
+  push:
+    branches:
+      - agent/refine-season-gauges
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/refine-season-gauges
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply requested UI changes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          page = Path('lib/features/predictions/presentation/premium_season_predictions_page.dart')
+          text = page.read_text()
+          text = text.replace("subtitle: 'Échelle commune · 0 à $scorerScale buts',", "subtitle: 'Échelle commune',")
+          text = text.replace("subtitle: 'Clean sheets · 0 à $keeperScale',", "subtitle: 'Clean sheets',")
+          text = text.replace(
+              "    final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();\n    final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();\n\n    return Column(\n      key: const ValueKey('premium-predictors'),",
+              "    final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()\n      ..sort((a, b) => (b.predictionFor(selectedId)?.value ?? -1)\n          .compareTo(a.predictionFor(selectedId)?.value ?? -1));\n    final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()\n      ..sort((a, b) => (b.predictionFor(selectedId)?.value ?? -1)\n          .compareTo(a.predictionFor(selectedId)?.value ?? -1));\n\n    return Column(\n      key: const ValueKey('premium-predictors'),"
+          )
+          page.write_text(text)
+
+          widget = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          text = widget.read_text()
+          text = re.sub(
+              r"\n\s*Positioned\(\n\s*right: 0,\n\s*bottom: 0,\n\s*child: Text\(\n\s*'\$maxValue',\n\s*style: Theme\.of\(context\)\.textTheme\.labelSmall\?\.copyWith\(\n\s*color: Colors\.white70,\n\s*\),\n\s*\),\n\s*\),",
+              "",
+              text,
+              count=1,
+          )
+          text = text.replace("  bool _sortByScore = true;\n\n", "")
+          text = re.sub(
+              r"    if \(_sortByScore\) \{\n      predictions\.sort\(\(a, b\) \{\n        final value = b\.value\.compareTo\(a\.value\);\n        return value != 0\n            \? value\n            : a\.predictorName\n                \.toLowerCase\(\)\n                \.compareTo\(b\.predictorName\.toLowerCase\(\)\);\n      \}\);\n    \} else \{\n      predictions\.sort\(\n        \(a, b\) => a\.predictorName\n            \.toLowerCase\(\)\n            \.compareTo\(b\.predictorName\.toLowerCase\(\)\),\n      \);\n    \}",
+              "    predictions.sort((a, b) {\n      final value = b.value.compareTo(a.value);\n      return value != 0\n          ? value\n          : a.predictorName\n              .toLowerCase()\n              .compareTo(b.predictorName.toLowerCase());\n    });",
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r"\n          Container\(\n            padding: const EdgeInsets\.all\(4\),\n            decoration: BoxDecoration\(.*?\n          const SizedBox\(height: 12\),",
+              "\n          const SizedBox(height: 12),",
+              text,
+              count=1,
+              flags=re.S,
+          )
+          text = text.replace(
+              "rank: _sortByScore\n                        ? _rankFor(predictions, index)\n                        : index + 1,",
+              "rank: _rankFor(predictions, index),",
+          )
+          start = text.find('class _SortButton extends StatelessWidget {')
+          end = text.find('class _PredictionRow extends StatelessWidget {')
+          if start != -1 and end != -1:
+              text = text[:start] + text[end:]
+          widget.write_text(text)
+          PY
+          dart format lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/premium_season_predictions_page.dart lib/features/predictions/presentation/widgets/premium_season_gauges.dart
+          git diff --cached --quiet || git commit -m "Affiner l’affichage des jauges et des pronostiqueurs"
+          git push origin HEAD:agent/refine-season-gauges
