@@ -38,6 +38,7 @@ class AuthState {
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((event) {
+      _authGeneration += 1;
       if (event.event == supabase.AuthChangeEvent.signedOut) {
         _retryRefreshQueued = false;
         state = const AuthState(isLoading: false);
@@ -52,6 +53,7 @@ class AuthController extends StateNotifier<AuthState> {
   StreamSubscription<supabase.AuthState>? _authSubscription;
   Future<void>? _refreshInFlight;
   bool _retryRefreshQueued = false;
+  int _authGeneration = 0;
 
   Future<void> _refreshProfile({bool retryAfterSignIn = false}) {
     if (retryAfterSignIn) {
@@ -86,10 +88,13 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> _performRefresh({required bool retryAfterSignIn}) async {
+    final refreshGeneration = _authGeneration;
     try {
       final profile = await _repository.fetchProfile(
         retryAfterSignIn: retryAfterSignIn,
       );
+      if (refreshGeneration != _authGeneration) return;
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: profile != null && profile.isActive,
@@ -99,6 +104,7 @@ class AuthController extends StateNotifier<AuthState> {
       );
       if (profile != null && !profile.isActive) {
         await _repository.signOut();
+        if (refreshGeneration != _authGeneration) return;
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: false,
@@ -108,6 +114,7 @@ class AuthController extends StateNotifier<AuthState> {
         );
       }
     } catch (_) {
+      if (refreshGeneration != _authGeneration) return;
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: false,
