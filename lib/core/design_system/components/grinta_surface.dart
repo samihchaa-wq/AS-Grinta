@@ -4,12 +4,7 @@ import 'package:as_grinta/core/design_system/foundations/grinta_radii.dart';
 import 'package:flutter/material.dart';
 
 /// Visual hierarchy available to reusable surfaces.
-enum GrintaSurfaceLevel {
-  base,
-  raised,
-  elevated,
-  emphasis,
-}
+enum GrintaSurfaceLevel { base, raised, elevated, emphasis }
 
 /// Shared surface primitive for cards, panels and grouped content.
 ///
@@ -59,12 +54,7 @@ class GrintaSurface extends StatelessWidget {
         boxShadow: shadow,
       ),
       clipBehavior: clipBehavior,
-      child: padding == null
-          ? child
-          : Padding(
-              padding: padding!,
-              child: child,
-            ),
+      child: padding == null ? child : Padding(padding: padding!, child: child),
     );
   }
 }
