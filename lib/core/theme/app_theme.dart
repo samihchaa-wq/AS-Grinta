@@ -1,129 +1,126 @@
+import 'package:as_grinta/core/design_system/foundations/grinta_colors.dart';
 import 'package:flutter/material.dart';
 
-/// Identité visuelle unique : bleu nuit + rose flamant.
+/// Application theme built from the semantic Design System foundations.
 ///
-/// Règle de lisibilité : le bleu plein ([primary]) ne sert QUE de remplissage
-/// (boutons, indicateur de nav) avec du texte blanc dessus — jamais comme
-/// couleur de texte/icône sur fond sombre (c'était le fameux « bleu sur bleu »).
-/// Pour une icône ou un texte bleu sur fond sombre, utiliser [primaryBright] ;
-/// pour un point fort coloré, le rose [accent].
+/// New UI code should use [Theme.of] and [GrintaColors] semantic roles rather
+/// than introducing literal colors. The compatibility aliases below remain
+/// temporarily available while existing screens are migrated incrementally.
 abstract final class AppTheme {
-  // Fonds (du plus sombre au plus clair).
-  static const Color background = Color(0xFF07142E);
-  static const Color surface = Color(0xFF0F2148);
-  static const Color surfaceHigh = Color(0xFF172C58);
-  static const Color outline = Color(0xFF2A4574);
-
-  // Bleu de marque : remplissage de boutons (texte blanc dessus).
-  static const Color primary = Color(0xFF2E6BF2);
-  // Bleu clair lisible sur fond sombre (icônes, liens, texte bleu).
-  static const Color primaryBright = Color(0xFF6BA0FF);
-
-  // Rose flamant : accent, points forts, éléments actifs.
-  static const Color accent = Color(0xFFFF3F8E);
-
-  // Textes.
-  static const Color textPrimary = Color(0xFFEFF3FC);
-  static const Color textSecondary = Color(0xFFC7CDD8);
-  static const Color textFaint = Color(0xFF9299A5);
+  // Compatibility aliases. Do not add new aliases here.
+  static const Color background = GrintaColors.surfaceBase;
+  static const Color surface = GrintaColors.surfaceRaised;
+  static const Color surfaceHigh = GrintaColors.surfaceElevated;
+  static const Color outline = GrintaColors.borderDefault;
+  static const Color primary = GrintaColors.actionPrimary;
+  static const Color primaryBright = GrintaColors.brandContent;
+  static const Color accent = GrintaColors.accentPrimary;
+  static const Color textPrimary = GrintaColors.contentPrimary;
+  static const Color textSecondary = GrintaColors.contentSecondary;
+  static const Color textFaint = GrintaColors.contentTertiary;
 
   static ThemeData get dark {
     const scheme = ColorScheme.dark(
-      primary: primary,
-      onPrimary: Colors.white,
-      primaryContainer: surfaceHigh,
-      onPrimaryContainer: textPrimary,
-      secondary: accent,
-      onSecondary: Colors.white,
-      secondaryContainer: Color(0xFF3A1430),
-      onSecondaryContainer: Color(0xFFFFD9E8),
-      tertiary: primaryBright,
-      onTertiary: Color(0xFF07142E),
-      surface: surface,
-      onSurface: textPrimary,
-      onSurfaceVariant: textSecondary,
-      surfaceContainerHighest: surfaceHigh,
-      error: textPrimary,
-      onError: Colors.white,
-      outline: outline,
-      outlineVariant: Color(0xFF203760),
+      primary: GrintaColors.actionPrimary,
+      onPrimary: GrintaColors.actionPrimaryContent,
+      primaryContainer: GrintaColors.surfaceEmphasis,
+      onPrimaryContainer: GrintaColors.contentPrimary,
+      secondary: GrintaColors.accentPrimary,
+      onSecondary: GrintaColors.white,
+      secondaryContainer: GrintaColors.accentSoft,
+      onSecondaryContainer: GrintaColors.accentContent,
+      tertiary: GrintaColors.brandContent,
+      onTertiary: GrintaColors.contentInverse,
+      surface: GrintaColors.surfaceRaised,
+      onSurface: GrintaColors.contentPrimary,
+      onSurfaceVariant: GrintaColors.contentSecondary,
+      surfaceContainerHighest: GrintaColors.surfaceElevated,
+      error: GrintaColors.statusDanger,
+      onError: GrintaColors.white,
+      errorContainer: GrintaColors.statusDangerSoft,
+      onErrorContainer: GrintaColors.contentPrimary,
+      outline: GrintaColors.borderDefault,
+      outlineVariant: GrintaColors.borderSubtle,
+      scrim: GrintaColors.surfaceScrim,
     );
 
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: scheme,
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: GrintaColors.surfaceBase,
       splashFactory: InkSparkle.splashFactory,
     );
 
     return base.copyWith(
       textTheme: base.textTheme.copyWith(
         displaySmall: base.textTheme.displaySmall?.copyWith(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -1.4,
         ),
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.8,
         ),
         headlineSmall: base.textTheme.headlineSmall?.copyWith(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontWeight: FontWeight.w800,
         ),
         titleLarge: base.textTheme.titleLarge?.copyWith(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
         ),
         titleMedium: base.textTheme.titleMedium?.copyWith(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontWeight: FontWeight.w700,
         ),
         bodyLarge: base.textTheme.bodyLarge?.copyWith(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           height: 1.4,
         ),
         bodyMedium: base.textTheme.bodyMedium?.copyWith(
-          color: textSecondary,
+          color: GrintaColors.contentSecondary,
           height: 1.4,
         ),
-        bodySmall: base.textTheme.bodySmall?.copyWith(color: textSecondary),
+        bodySmall: base.textTheme.bodySmall?.copyWith(
+          color: GrintaColors.contentSecondary,
+        ),
         labelLarge: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
         ),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        foregroundColor: textPrimary,
+        backgroundColor: GrintaColors.transparent,
+        surfaceTintColor: GrintaColors.transparent,
+        foregroundColor: GrintaColors.contentPrimary,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontSize: 22,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.5,
         ),
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: IconThemeData(color: GrintaColors.contentPrimary),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: GrintaColors.surfaceRaised,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: outline),
+          side: const BorderSide(color: GrintaColors.borderDefault),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: surfaceHigh,
-          disabledForegroundColor: textFaint,
+          backgroundColor: GrintaColors.actionPrimary,
+          foregroundColor: GrintaColors.actionPrimaryContent,
+          disabledBackgroundColor: GrintaColors.surfaceElevated,
+          disabledForegroundColor: GrintaColors.contentDisabled,
           minimumSize: const Size(64, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
@@ -133,9 +130,9 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
+          foregroundColor: GrintaColors.contentPrimary,
           minimumSize: const Size(64, 52),
-          side: const BorderSide(color: outline),
+          side: const BorderSide(color: GrintaColors.borderDefault),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
@@ -143,84 +140,101 @@ abstract final class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: textPrimary),
+        style: TextButton.styleFrom(
+          foregroundColor: GrintaColors.contentPrimary,
+        ),
       ),
-      iconTheme: const IconThemeData(color: textSecondary),
+      iconTheme: const IconThemeData(color: GrintaColors.contentSecondary),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceHigh,
-        hintStyle: const TextStyle(color: textFaint),
-        labelStyle: const TextStyle(color: textSecondary),
+        fillColor: GrintaColors.surfaceElevated,
+        hintStyle: const TextStyle(color: GrintaColors.contentTertiary),
+        labelStyle: const TextStyle(color: GrintaColors.contentSecondary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: outline),
+          borderSide: const BorderSide(color: GrintaColors.borderDefault),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: outline),
+          borderSide: const BorderSide(color: GrintaColors.borderDefault),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: accent, width: 1.6),
+          borderSide: const BorderSide(
+            color: GrintaColors.accentPrimary,
+            width: 1.6,
+          ),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
-                ? primary
-                : Colors.transparent;
+                ? GrintaColors.actionPrimary
+                : GrintaColors.transparent;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
-                ? Colors.white
-                : textSecondary;
+                ? GrintaColors.actionPrimaryContent
+                : GrintaColors.contentSecondary;
           }),
-          side: WidgetStateProperty.all(const BorderSide(color: outline)),
+          side: WidgetStateProperty.all(
+            const BorderSide(color: GrintaColors.borderDefault),
+          ),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: surfaceHigh,
-        side: const BorderSide(color: outline),
+        backgroundColor: GrintaColors.surfaceElevated,
+        side: const BorderSide(color: GrintaColors.borderDefault),
         labelStyle: const TextStyle(
-          color: textPrimary,
+          color: GrintaColors.contentPrimary,
           fontWeight: FontWeight.w800,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 74,
-        backgroundColor: const Color(0xFF0B1B3C),
-        indicatorColor: primary,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: GrintaColors.surfaceRaised,
+        indicatorColor: GrintaColors.actionPrimary,
+        surfaceTintColor: GrintaColors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return IconThemeData(color: selected ? Colors.white : textSecondary);
+          return IconThemeData(
+            color: selected
+                ? GrintaColors.actionPrimaryContent
+                : GrintaColors.contentSecondary,
+          );
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            color: selected ? Colors.white : textSecondary,
+            color: selected
+                ? GrintaColors.actionPrimaryContent
+                : GrintaColors.contentSecondary,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           );
         }),
       ),
       dialogTheme: const DialogThemeData(
-        backgroundColor: surface,
-        surfaceTintColor: Colors.transparent,
+        backgroundColor: GrintaColors.surfaceRaised,
+        surfaceTintColor: GrintaColors.transparent,
       ),
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: surfaceHigh,
-        contentTextStyle: TextStyle(color: textPrimary),
+        backgroundColor: GrintaColors.surfaceElevated,
+        contentTextStyle: TextStyle(color: GrintaColors.contentPrimary),
         behavior: SnackBarBehavior.floating,
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(color: accent),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: accent,
-        foregroundColor: Colors.white,
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: GrintaColors.accentPrimary,
       ),
-      dividerTheme: const DividerThemeData(color: Color(0xFF203760)),
-      dividerColor: const Color(0xFF203760),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: GrintaColors.accentPrimary,
+        foregroundColor: GrintaColors.white,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: GrintaColors.borderSubtle,
+      ),
+      dividerColor: GrintaColors.borderSubtle,
     );
   }
 }
