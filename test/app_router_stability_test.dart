@@ -9,7 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
-  test('keeps the same GoRouter instance across authentication changes', () async {
+  test('keeps the same GoRouter instance across authentication changes',
+      () async {
     final controller = _TestAuthController();
     final container = ProviderContainer(
       overrides: [
