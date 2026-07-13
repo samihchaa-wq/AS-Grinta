@@ -1,0 +1,39 @@
+name: Format auth tests
+
+on:
+  push:
+    branches: [test/auth-controller-reliability]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Format and clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format test/auth_controller_test.dart
+          rm -f .github/workflows/format-auth-tests.yml
+          rm -f .github/format-auth-tests-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "style(test): format auth controller tests"
+          git push origin HEAD:test/auth-controller-reliability
