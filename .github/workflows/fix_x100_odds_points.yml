@@ -1,15 +1,16 @@
 name: Fix x100 odds and points
 
 on:
-  issue_comment:
-    types: [created]
+  push:
+    branches: [main]
+    paths:
+      - '.github/x100-trigger'
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.event.issue.number == 43 && github.event.comment.body == '/fix-x100'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,13 +49,15 @@ jobs:
     };
 ''',
           )
-          old_helper = '''    double? displayOdds(Object? value) {
+          text = text.replace(
+              '''    double? displayOdds(Object? value) {
       final decimal = (value as num?)?.toDouble();
       return decimal == null ? null : decimal * 100;
     }
 
-'''
-          text = text.replace(old_helper, '')
+''',
+              '',
+          )
           text = text.replace(
               "        oddsWin: displayOdds(odds['odds_victoire_as_grinta']),\n        oddsDraw: displayOdds(odds['odds_nul']),\n        oddsLoss: displayOdds(odds['odds_victoire_adverse']),",
               "        oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),\n        oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),\n        oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),",
@@ -90,6 +93,7 @@ jobs:
             raise SystemExit('Match details points formatter not found')
           details.write_text(text.replace(old, new, 1))
 
+          Path('.github/x100-trigger').unlink(missing_ok=True)
           Path('.github/workflows/fix_x100_odds_points.yml').unlink()
           PY
 
