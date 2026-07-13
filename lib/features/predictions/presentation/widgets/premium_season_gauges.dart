@@ -31,9 +31,8 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = gaugeAccentFor(gauge.playerId);
-    final roundedMedian = gauge.predictions.isEmpty
-        ? null
-        : gauge.median.roundToDouble();
+    final roundedMedian =
+        gauge.predictions.isEmpty ? null : gauge.median.roundToDouble();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -64,9 +63,9 @@ class PremiumSeasonGaugeCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.3,
-                  ),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -.3,
+                      ),
                 ),
                 const SizedBox(height: 12),
                 PremiumGaugeLine(
@@ -143,9 +142,9 @@ class PremiumGaugeLine extends StatelessWidget {
             medianValue + 1,
             math.max(visualMax, largestMarker),
           );
-          final rightRatio = ((numericValue - medianValue) /
-                  (rightMax - medianValue))
-              .clamp(0.0, 1.0);
+          final rightRatio =
+              ((numericValue - medianValue) / (rightMax - medianValue))
+                  .clamp(0.0, 1.0);
           return markerRadius + usable * (centerRatio + rightRatio * .5);
         }
 
@@ -193,7 +192,8 @@ class PremiumGaugeLine extends StatelessWidget {
                               borderRadius: BorderRadius.circular(2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _medianPrediction.withValues(alpha: .55),
+                                  color:
+                                      _medianPrediction.withValues(alpha: .55),
                                   blurRadius: 8,
                                 ),
                               ],
@@ -358,8 +358,7 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
   Widget build(BuildContext context) {
     final gauge = widget.gauge;
     final accent = gaugeAccentFor(gauge.playerId);
-    final predictions = [...gauge.predictions]
-      ..sort((a, b) {
+    final predictions = [...gauge.predictions]..sort((a, b) {
         final aDistance = (a.value - gauge.actual).abs();
         final bDistance = (b.value - gauge.actual).abs();
         final byDistance = aDistance.compareTo(bDistance);
@@ -406,7 +405,9 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
                   children: [
                     Text(
                       gauge.playerName,
-                      style: Theme.of(context).textTheme.headlineMedium
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
                           ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     Text(
@@ -508,9 +509,8 @@ class _PredictionRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMine ? _green.withValues(alpha: .12) : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        border: isMine
-            ? Border.all(color: _green.withValues(alpha: .18))
-            : null,
+        border:
+            isMine ? Border.all(color: _green.withValues(alpha: .18)) : null,
       ),
       child: Row(
         children: [
