@@ -22,77 +22,75 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
+          import re
 
           path = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
           text = path.read_text()
 
-          old_sort = """    final predictions = [...gauge.predictions]
-            ..sort((a, b) {
-              final value = b.value.compareTo(a.value);
-              return value != 0
-                  ? value
-                  : a.predictorName.toLowerCase().compareTo(
-                      b.predictorName.toLowerCase(),
-                    );
-            });
-          """
-          new_sort = """    final predictions = [...gauge.predictions]
-            ..sort((a, b) {
-              final aDistance = (a.value - gauge.actual).abs();
-              final bDistance = (b.value - gauge.actual).abs();
-              final byDistance = aDistance.compareTo(bDistance);
-              if (byDistance != 0) return byDistance;
+          text, sort_count = re.subn(
+              r"    final predictions = \[\.\.\.gauge\.predictions\]\n"
+              r"      \.\.sort\(\(a, b\) \{\n"
+              r".*?"
+              r"      \}\);\n",
+              """    final predictions = [...gauge.predictions]
+      ..sort((a, b) {
+        final aDistance = (a.value - gauge.actual).abs();
+        final bDistance = (b.value - gauge.actual).abs();
+        final byDistance = aDistance.compareTo(bDistance);
+        if (byDistance != 0) return byDistance;
 
-              final byValue = a.value.compareTo(b.value);
-              if (byValue != 0) return byValue;
+        final byValue = a.value.compareTo(b.value);
+        if (byValue != 0) return byValue;
 
-              return a.predictorName.toLowerCase().compareTo(
-                    b.predictorName.toLowerCase(),
-                  );
-            });
-          """
+        return a.predictorName.toLowerCase().compareTo(
+              b.predictorName.toLowerCase(),
+            );
+      });
+""",
+              text,
+              count=1,
+              flags=re.S,
+          )
 
-          old_rank_call = """                    rank: _rankFor(predictions, index),
-          """
-          new_rank_call = """                    rank: _rankFor(
+          text, call_count = re.subn(
+              r"                    rank: _rankFor\(predictions, index\),",
+              """                    rank: _rankFor(
                       predictions,
                       index,
                       gauge.actual,
-                    ),
-          """
+                    ),""",
+              text,
+              count=1,
+          )
 
-          old_rank = """  int _rankFor(List<GaugePrediction> predictions, int index) {
-            if (index == 0) return 1;
-            if (predictions[index].value == predictions[index - 1].value) {
-              return _rankFor(predictions, index - 1);
-            }
-            return index + 1;
-          }
-          """
-          new_rank = """  int _rankFor(
-            List<GaugePrediction> predictions,
-            int index,
-            int actual,
-          ) {
-            if (index == 0) return 1;
+          text, rank_count = re.subn(
+              r"  int _rankFor\(List<GaugePrediction> predictions, int index\) \{\n"
+              r".*?"
+              r"  \}\n",
+              """  int _rankFor(
+    List<GaugePrediction> predictions,
+    int index,
+    int actual,
+  ) {
+    if (index == 0) return 1;
 
-            final currentDistance = (predictions[index].value - actual).abs();
-            final previousDistance = (predictions[index - 1].value - actual).abs();
-            if (currentDistance == previousDistance) {
-              return _rankFor(predictions, index - 1, actual);
-            }
-            return index + 1;
-          }
-          """
+    final currentDistance = (predictions[index].value - actual).abs();
+    final previousDistance = (predictions[index - 1].value - actual).abs();
+    if (currentDistance == previousDistance) {
+      return _rankFor(predictions, index - 1, actual);
+    }
+    return index + 1;
+  }
+""",
+              text,
+              count=1,
+              flags=re.S,
+          )
 
-          for old, new in [
-            (old_sort, new_sort),
-            (old_rank_call, new_rank_call),
-            (old_rank, new_rank),
-          ]:
-            if old not in text:
-              raise SystemExit('Expected source block not found')
-            text = text.replace(old, new, 1)
+          if (sort_count, call_count, rank_count) != (1, 1, 1):
+            raise SystemExit(
+                f'Unexpected replacement counts: {(sort_count, call_count, rank_count)}'
+            )
 
           path.write_text(text)
           Path('.github/workflows/apply_prediction_distance_sort.yml').unlink()
