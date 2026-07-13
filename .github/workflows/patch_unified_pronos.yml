@@ -1,0 +1,237 @@
+name: Patch unified pronos branch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch_unified_pronos.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/unified-pronos-module
+
+      - name: Patch season drilldown, match colors and navigation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # Restore player drilldown in season predictions.
+          path = Path('lib/features/predictions/presentation/enhanced_season_predictions_page.dart')
+          text = path.read_text()
+          text = text.replace(
+              '_SeasonView.players => _playersView(gauges),',
+              '_SeasonView.players => _playersView(gauges, currentUserId),',
+          )
+          text = text.replace(
+              'Widget _playersView(List<PlayerGauge> gauges) {',
+              'Widget _playersView(List<PlayerGauge> gauges, String? currentUserId) {',
+          )
+          text = text.replace(
+              'onOpenAll: () {},',
+              'onOpenAll: () => _openPlayerDetails(context, gauge, currentUserId),',
+          )
+          anchor = '  int _scale(List<PlayerGauge> gauges, int fallback) {'
+          method = '''  Future<void> _openPlayerDetails(
+    BuildContext context,
+    PlayerGauge gauge,
+    String? currentUserId,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        initialChildSize: .78,
+        minChildSize: .5,
+        maxChildSize: .94,
+        expand: false,
+        builder: (_, controller) => PremiumPlayerDetailsSheet(
+          gauge: gauge,
+          currentUserId: currentUserId,
+          scrollController: controller,
+        ),
+      ),
+    );
+  }
+
+'''
+          if anchor not in text:
+            raise SystemExit('scale anchor missing')
+          text = text.replace(anchor, method + anchor, 1)
+          path.write_text(text)
+
+          # Add result colors to match prediction rows.
+          path = Path('lib/features/matches/presentation/match_details_page.dart')
+          text = path.read_text()
+          text = text.replace(
+              '_PredictionsTable(predictions: details.predictions),',
+              '''_PredictionsTable(
+                  predictions: details.predictions,
+                  actualGrinta: details.scoreGrinta ?? 0,
+                  actualOpponent: details.scoreOpponent ?? 0,
+                ),''',
+          )
+          start = text.index('class _PredictionsTable extends StatelessWidget {')
+          end = text.index('class _InfoTile extends StatelessWidget {')
+          replacement = '''class _PredictionsTable extends StatelessWidget {
+  const _PredictionsTable({
+    required this.predictions,
+    required this.actualGrinta,
+    required this.actualOpponent,
+  });
+
+  final List<MatchPredictionResult> predictions;
+  final int actualGrinta;
+  final int actualOpponent;
+
+  String _points(double value) => value.round().toString();
+
+  Color? _resultColor(MatchPredictionResult prediction) {
+    if (prediction.points <= 0) return null;
+    final exact = prediction.scoreGrinta == actualGrinta &&
+        prediction.scoreOpponent == actualOpponent;
+    if (exact) return const Color(0xFF39E784);
+
+    final predictedDifference = prediction.scoreGrinta - prediction.scoreOpponent;
+    final actualDifference = actualGrinta - actualOpponent;
+    if (predictedDifference == actualDifference) {
+      return const Color(0xFF1DCBFF);
+    }
+
+    final oneTeamExact = prediction.scoreGrinta == actualGrinta ||
+        prediction.scoreOpponent == actualOpponent;
+    if (oneTeamExact) return const Color(0xFFFFBE3D);
+
+    return const Color(0xFF7C3CFF);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Pronostics', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 12),
+            if (predictions.isEmpty)
+              const Text('Aucun pronostic enregistré.')
+            else ...[
+              const Row(
+                children: [
+                  Expanded(flex: 2, child: Text('Joueur')),
+                  Expanded(child: Text('Prono', textAlign: TextAlign.center)),
+                  Expanded(child: Text('Points', textAlign: TextAlign.end)),
+                ],
+              ),
+              const Divider(),
+              ...predictions.map((prediction) {
+                final color = _resultColor(prediction);
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: color == null ? null : Border.all(color: color, width: 1.7),
+                    color: color?.withValues(alpha: .08),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          prediction.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${prediction.scoreGrinta}–${prediction.scoreOpponent}',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _points(prediction.points),
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: color == null ? FontWeight.normal : FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+'''
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text)
+
+          # Merge bottom navigation modules.
+          path = Path('lib/app/shell/app_shell.dart')
+          text = path.read_text()
+          old = '''    _ModuleDestination(
+      route: '/predictions',
+      label: 'Classement',
+      icon: Icons.emoji_events_rounded,
+    ),
+'''
+          text = text.replace(old, '')
+          path.write_text(text)
+
+          # Route /pronos to the new hub and redirect the old ranking module.
+          path = Path('lib/app/router/app_router.dart')
+          text = path.read_text()
+          text = text.replace(
+              "import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';\n",
+              "import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';\n",
+          )
+          text = text.replace(
+              "import 'package:as_grinta/features/predictions/presentation/predictions_page.dart';\n",
+              '',
+          )
+          text = text.replace(
+              '''          GoRoute(
+            path: '/pronos',
+            builder: (_, __) => const ColorfulSeasonPredictionsPage(),
+          ),
+          GoRoute(
+            path: '/predictions',
+            builder: (_, __) => const PredictionsPage(),
+          ),
+''',
+              '''          GoRoute(
+            path: '/pronos',
+            builder: (_, __) => const PronosHubPage(),
+          ),
+          GoRoute(path: '/predictions', redirect: (_, __) => '/pronos'),
+''',
+          )
+          path.write_text(text)
+          PY
+
+      - name: Commit branch patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finaliser le module Pronos unifié"
+          git push origin HEAD:feature/unified-pronos-module
