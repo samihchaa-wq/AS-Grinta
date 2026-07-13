@@ -83,18 +83,10 @@ class AuthRepository {
   }
 
   Future<AuthProfile?> fetchProfile() async {
-    final user = _client.auth.currentUser;
-    if (user == null) return null;
+    if (_client.auth.currentUser == null) return null;
 
-    final response = await _client
-        .from('profiles')
-        .select(
-          'id,first_name,last_name,username,role,is_goalkeeper,status,'
-          'must_change_password,created_at,updated_at',
-        )
-        .eq('id', user.id)
-        .maybeSingle();
-    if (response == null) return null;
+    final response = await _client.rpc('get_my_profile');
+    if (response is! Map) return null;
 
     return AuthProfile.fromJson(Map<String, dynamic>.from(response));
   }
@@ -138,6 +130,5 @@ class AuthRepository {
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  return AuthRepository(client);
+  return AuthRepository(ref.watch(supabaseClientProvider));
 });
