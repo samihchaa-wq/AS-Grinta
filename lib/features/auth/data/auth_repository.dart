@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,10 +23,13 @@ class AuthRepository {
     required String username,
     required String password,
   }) async {
-    await _client.auth.signInWithPassword(
+    final response = await _client.auth.signInWithPassword(
       email: usernameToEmail(username),
       password: password,
     );
+    if (response.session == null || response.user == null) {
+      throw const AuthException('Session non créée après authentification.');
+    }
   }
 
   Future<String> registerAccount({
@@ -65,13 +70,31 @@ class AuthRepository {
     await _client.auth.signOut();
   }
 
-  Future<AuthProfile?> fetchProfile() async {
+  Future<AuthProfile?> fetchProfile({bool retryAfterSignIn = false}) async {
     if (_client.auth.currentUser == null) return null;
 
-    final response = await _client.rpc('get_my_profile');
-    if (response is! Map) return null;
+    final attempts = retryAfterSignIn ? 5 : 1;
+    Object? lastError;
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      try {
+        final response = await _client.rpc('get_my_profile');
+        if (response is Map) {
+          return AuthProfile.fromJson(Map<String, dynamic>.from(response));
+        }
+        lastError = StateError('Réponse de profil invalide.');
+      } catch (error) {
+        lastError = error;
+      }
 
-    return AuthProfile.fromJson(Map<String, dynamic>.from(response));
+      if (attempt + 1 < attempts) {
+        await Future<void>.delayed(
+          Duration(milliseconds: 200 * (attempt + 1)),
+        );
+      }
+    }
+
+    if (lastError != null) throw lastError;
+    return null;
   }
 
   Future<AuthProfile> updateProfile({

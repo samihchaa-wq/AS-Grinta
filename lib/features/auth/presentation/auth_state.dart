@@ -37,21 +37,38 @@ class AuthState {
 
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
-    _authSubscription =
-        _repository.authStateChanges.listen((_) => _refreshProfile());
-    _initialize();
+    _authSubscription = _repository.authStateChanges.listen((event) {
+      if (event.event == supabase.AuthChangeEvent.signedOut) {
+        state = const AuthState(isLoading: false);
+        return;
+      }
+      unawaited(_refreshProfile(retryAfterSignIn: true));
+    });
+    unawaited(_refreshProfile());
   }
 
   final AuthRepository _repository;
   StreamSubscription<supabase.AuthState>? _authSubscription;
+  Future<void>? _refreshInFlight;
 
-  Future<void> _initialize() async {
-    await _refreshProfile();
+  Future<void> _refreshProfile({bool retryAfterSignIn = false}) {
+    final existing = _refreshInFlight;
+    if (existing != null) return existing;
+
+    final refresh = _performRefresh(retryAfterSignIn: retryAfterSignIn);
+    _refreshInFlight = refresh;
+    return refresh.whenComplete(() {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+      }
+    });
   }
 
-  Future<void> _refreshProfile() async {
+  Future<void> _performRefresh({required bool retryAfterSignIn}) async {
     try {
-      final profile = await _repository.fetchProfile();
+      final profile = await _repository.fetchProfile(
+        retryAfterSignIn: retryAfterSignIn,
+      );
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: profile != null && profile.isActive,
@@ -72,7 +89,9 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Le profil n’a pas pu être chargé.',
+        isAuthenticated: false,
+        clearProfile: true,
+        error: 'Le profil n’a pas pu être chargé. Réessaie dans un instant.',
       );
     }
   }
@@ -87,10 +106,12 @@ class AuthController extends StateNotifier<AuthState> {
         username: username,
         password: password,
       );
-      await _refreshProfile();
+      await _refreshProfile(retryAfterSignIn: true);
     } catch (_) {
       state = state.copyWith(
         isLoading: false,
+        isAuthenticated: false,
+        clearProfile: true,
         error:
             'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
       );

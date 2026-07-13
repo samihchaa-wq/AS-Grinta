@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
 // et réception des notifications push Web Push.
-const CACHE_NAME = 'as-grinta-v4';
+const CACHE_NAME = 'as-grinta-v5';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -28,10 +28,6 @@ self.addEventListener('fetch', (event) => {
     (async () => {
       const cache = await caches.open(CACHE_NAME);
       try {
-        // `no-store` : on court-circuite le cache HTTP du navigateur pour
-        // toujours récupérer la dernière version depuis le serveur (le bundle
-        // Flutter garde un nom de fichier fixe, sinon GitHub Pages sert une
-        // version périmée pendant sa durée de cache).
         const response = await fetch(request, { cache: 'no-store' });
         if (response && response.ok) {
           cache.put(request, response.clone());
@@ -41,7 +37,9 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(request);
         if (cached) return cached;
         if (request.mode === 'navigate') {
-          const index = await cache.match(new URL('index.html', self.registration.scope).href);
+          const index = await cache.match(
+            new URL('index.html', self.registration.scope).href,
+          );
           if (index) return index;
         }
         throw error;
