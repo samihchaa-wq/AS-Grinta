@@ -31,9 +31,13 @@ class MatchPredictionItem {
   final bool isFilled;
   final bool useX2;
   final int x2Available;
+
+  /// Valeurs destinées à l'affichage, déjà exprimées en base 100.
+  /// Exemple : une cote Supabase de 1,55 devient 155 dans l'interface.
   final double? oddsWin;
   final double? oddsDraw;
   final double? oddsLoss;
+
   final int? actualScoreGrinta;
   final int? actualScoreOpponent;
   final DateTime? predictionsClosedAt;
@@ -53,18 +57,20 @@ class MatchPredictionItem {
   double? get earnedPoints {
     if (!isFilled || !hasResult) return hasResult ? 0 : null;
     final actualResult = _result(actualScoreGrinta!, actualScoreOpponent!);
-    final odds = switch (actualResult) {
+    final displayedOdds = switch (actualResult) {
       1 => oddsWin,
       0 => oddsDraw,
       _ => oddsLoss,
     };
 
+    // Le moteur de points attend la cote décimale réelle, pas son affichage ×100.
+    final decimalOdds = displayedOdds == null ? null : displayedOdds / 100;
     final points = PredictionScoring.points(
       predictedHome: scoreGrinta,
       predictedAway: scoreOpponent,
       actualHome: actualScoreGrinta!,
       actualAway: actualScoreOpponent!,
-      baseOdds: odds,
+      baseOdds: decimalOdds,
     );
     return points == null ? null : points * (useX2 ? 2 : 1);
   }
@@ -164,6 +170,11 @@ class PredictionsRepository {
         ? Map<String, dynamic>.from(oddsRaw)
         : const <String, dynamic>{};
 
+    double? displayOdds(Object? value) {
+      final decimal = (value as num?)?.toDouble();
+      return decimal == null ? null : decimal * 100;
+    }
+
     return [
       MatchPredictionItem(
         matchId: matchId,
@@ -178,9 +189,9 @@ class PredictionsRepository {
         isFilled: prediction?['is_filled'] == true,
         useX2: prediction?['use_x2'] == true,
         x2Available: (wallet?['available_count'] as num?)?.toInt() ?? 0,
-        oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
-        oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
-        oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
+        oddsWin: displayOdds(odds['odds_victoire_as_grinta']),
+        oddsDraw: displayOdds(odds['odds_nul']),
+        oddsLoss: displayOdds(odds['odds_victoire_adverse']),
         actualScoreGrinta: matchMap['score_as_grinta'] == null
             ? null
             : int.tryParse('${matchMap['score_as_grinta']}'),
