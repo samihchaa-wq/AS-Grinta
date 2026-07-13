@@ -1,7 +1,7 @@
 // Inscription publique via le lien partagé dans la conversation du club.
 // Le compte reste en attente de validation par l'administrateur.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.95.0";
 
 const USERNAME_DOMAIN = "pronos.as-grinta.local";
 const MAX_BODY_BYTES = 4_096;
@@ -100,8 +100,10 @@ Deno.serve(async (req: Request) => {
     const password = String(body.password ?? "");
 
     if (
-      firstName.length < 2 || firstName.length > 50 ||
-      lastName.length < 2 || lastName.length > 50 ||
+      firstName.length < 2 ||
+      firstName.length > 50 ||
+      lastName.length < 2 ||
+      lastName.length > 50 ||
       /[\u0000-\u001f\u007f]/.test(firstName + lastName)
     ) {
       return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
