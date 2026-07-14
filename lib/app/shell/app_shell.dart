@@ -12,6 +12,8 @@ class AppShell extends ConsumerWidget {
   final Widget child;
   final String location;
 
+  Uri get _uri => Uri.parse(location);
+
   bool get _isMoreRoute {
     const moreRoutes = {
       '/more',
@@ -22,61 +24,62 @@ class AppShell extends ConsumerWidget {
       '/players',
     };
     return moreRoutes.any(
-      (route) => location == route || location.startsWith('$route/'),
+      (route) => _uri.path == route || _uri.path.startsWith('$route/'),
     );
+  }
+
+  int get _selectedIndex {
+    if (_isMoreRoute) return 3;
+    if (_uri.path == '/pronos') {
+      return switch (_uri.queryParameters['category']) {
+        'scorers' => 1,
+        'general' => 2,
+        _ => 0,
+      };
+    }
+    return 0;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       body: child,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-          child: Align(
-            alignment: Alignment.centerRight,
-            heightFactor: 1,
-            child: FractionallySizedBox(
-              widthFactor: .34,
-              child: Material(
-                color: _isMoreRoute
-                    ? scheme.primaryContainer
-                    : scheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(18),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => context.go(_isMoreRoute ? '/pronos' : '/more'),
-                  child: SizedBox(
-                    height: 54,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _isMoreRoute
-                              ? Icons.home_rounded
-                              : Icons.settings_rounded,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            _isMoreRoute ? 'Pronos' : 'Plus',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+      bottomNavigationBar: NavigationBar(
+        height: 76,
+        selectedIndex: _selectedIndex,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        onDestinationSelected: (index) {
+          final destination = switch (index) {
+            0 => '/pronos?category=matches',
+            1 => '/pronos?category=scorers',
+            2 => '/pronos?category=general',
+            _ => '/more',
+          };
+          if (location != destination) context.go(destination);
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.sports_soccer_outlined),
+            selectedIcon: Icon(Icons.sports_soccer_rounded),
+            label: 'Matchs',
           ),
-        ),
+          NavigationDestination(
+            icon: Icon(Icons.person_search_outlined),
+            selectedIcon: Icon(Icons.person_search_rounded),
+            label: 'Buteurs',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.emoji_events_outlined),
+            selectedIcon: Icon(Icons.emoji_events_rounded),
+            label: 'Général',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings_rounded),
+            label: '',
+            tooltip: 'Plus',
+          ),
+        ],
       ),
     );
   }

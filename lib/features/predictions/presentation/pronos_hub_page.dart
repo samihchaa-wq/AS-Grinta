@@ -27,15 +27,39 @@ enum _MatchSection { upcoming, calendar, ranking }
 enum _CalendarFilter { finished, upcoming }
 
 class PronosHubPage extends ConsumerStatefulWidget {
-  const PronosHubPage({super.key});
+  const PronosHubPage({super.key, this.initialCategory});
+
+  final String? initialCategory;
 
   @override
   ConsumerState<PronosHubPage> createState() => _PronosHubPageState();
 }
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
-  _PronosCategory _category = _PronosCategory.matches;
+  late _PronosCategory _category;
   _MatchSection _matchSection = _MatchSection.upcoming;
+
+  @override
+  void initState() {
+    super.initState();
+    _category = _categoryFrom(widget.initialCategory);
+  }
+
+  @override
+  void didUpdateWidget(covariant PronosHubPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialCategory != widget.initialCategory) {
+      _category = _categoryFrom(widget.initialCategory);
+    }
+  }
+
+  _PronosCategory _categoryFrom(String? value) {
+    return switch (value) {
+      'scorers' => _PronosCategory.scorers,
+      'general' => _PronosCategory.general,
+      _ => _PronosCategory.matches,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,43 +107,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
                 const ColorfulSeasonPredictionsPage(embedded: true),
               _PronosCategory.general => const _GeneralSection(),
             },
-          ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-              child: SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<_PronosCategory>(
-                  style: const ButtonStyle(
-                    minimumSize: WidgetStatePropertyAll(Size.fromHeight(54)),
-                    textStyle: WidgetStatePropertyAll(
-                      TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-                    ),
-                  ),
-                  expandedInsets: EdgeInsets.zero,
-                  segments: const [
-                    ButtonSegment(
-                      value: _PronosCategory.matches,
-                      label: Text('Matchs'),
-                    ),
-                    ButtonSegment(
-                      value: _PronosCategory.scorers,
-                      label: Text('Buteurs'),
-                    ),
-                    ButtonSegment(
-                      value: _PronosCategory.general,
-                      label: Text('Général'),
-                    ),
-                  ],
-                  selected: {_category},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (selection) {
-                    setState(() => _category = selection.first);
-                  },
-                ),
-              ),
-            ),
           ),
         ],
       ),
