@@ -24,8 +24,6 @@ enum _PronosCategory { matches, scorers, general }
 
 enum _MatchSection { upcoming, calendar, ranking }
 
-enum _CalendarFilter { finished, upcoming }
-
 class PronosHubPage extends ConsumerStatefulWidget {
   const PronosHubPage({super.key, this.initialCategory});
 
