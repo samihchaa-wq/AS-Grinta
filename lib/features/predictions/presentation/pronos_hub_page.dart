@@ -14,7 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-part 'pronos_hub_matches_section.dart';
 part 'pronos_hub_history_section.dart';
 part 'pronos_hub_ranking_sections.dart';
 part 'pronos_hub_upcoming_section.dart';
@@ -22,7 +21,7 @@ part 'pronos_hub_components.dart';
 
 enum _PronosCategory { matches, scorers, general }
 
-enum _MatchSection { upcoming, calendar, ranking }
+enum _MatchSection { calendar, ranking }
 
 class PronosHubPage extends ConsumerStatefulWidget {
   const PronosHubPage({super.key, this.initialCategory});
@@ -35,7 +34,7 @@ class PronosHubPage extends ConsumerStatefulWidget {
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
   late _PronosCategory _category;
-  _MatchSection _matchSection = _MatchSection.upcoming;
+  _MatchSection _matchSection = _MatchSection.calendar;
 
   @override
   void initState() {
@@ -74,10 +73,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
                   expandedInsets: EdgeInsets.zero,
                   segments: const [
                     ButtonSegment(
-                      value: _MatchSection.upcoming,
-                      label: Text('Prochain prono'),
-                    ),
-                    ButtonSegment(
                       value: _MatchSection.calendar,
                       label: Text('Calendrier'),
                     ),
@@ -97,7 +92,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
           Expanded(
             child: switch (_category) {
               _PronosCategory.matches => switch (_matchSection) {
-                  _MatchSection.upcoming => const _UpcomingMatchView(),
                   _MatchSection.calendar => const _CalendarSection(),
                   _MatchSection.ranking => const _MatchRankingView(),
                 },
