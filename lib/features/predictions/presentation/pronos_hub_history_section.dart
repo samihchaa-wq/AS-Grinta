@@ -1,5 +1,10 @@
 part of 'pronos_hub_page.dart';
 
+final _calendarPredictionProvider = FutureProvider.autoDispose
+    .family<MatchPredictionItem?, String>((ref, matchId) {
+  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
+});
+
 class _CalendarSection extends ConsumerStatefulWidget {
   const _CalendarSection();
 
@@ -33,6 +38,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
 
     return RefreshIndicator(
       onRefresh: () async {
+        ref.invalidate(_calendarPredictionProvider);
         await Future.wait([
           ref.read(matchesControllerProvider.notifier).load(
                 seasonId: state.selectedSeasonId,
@@ -58,6 +64,21 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                     ? Column(
                         children: [
                           const _UpcomingPredictionCard(),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => context.push(
+                                '/matches/${match.id}/prediction',
+                              ),
+                              icon: const Icon(Icons.edit_outlined),
+                              label: Text(
+                                predictionState.items.first.isFilled
+                                    ? 'Modifier mon prono'
+                                    : 'Rentrer mon prono',
+                              ),
+                            ),
+                          ),
                           if (isAdmin) ...[
                             const SizedBox(height: 10),
                             SizedBox(
@@ -85,14 +106,17 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   }
 }
 
-class _CalendarMatchCard extends StatelessWidget {
+class _CalendarMatchCard extends ConsumerWidget {
   const _CalendarMatchCard({required this.match, required this.isAdmin});
 
   final MatchModel match;
   final bool isAdmin;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prediction = match.isFinished
+        ? const AsyncValue<MatchPredictionItem?>.data(null)
+        : ref.watch(_calendarPredictionProvider(match.id));
     final opponent = match.opponentName ?? 'Adversaire';
     final grintaScore = match.grintaScore ?? 0;
     final opponentScore = match.opponentScore ?? 0;
@@ -100,12 +124,15 @@ class _CalendarMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? grintaScore : opponentScore;
     final awayScore = match.isHome ? opponentScore : grintaScore;
-    final background =
-        match.isFinished ? const Color(0xFF24272E) : const Color(0xFF102A56);
-    final outline =
-        match.isFinished ? const Color(0xFF5F646E) : const Color(0xFF4B8DFF);
-    final statusColor =
-        match.isFinished ? const Color(0xFFB7BBC4) : const Color(0xFF7FB0FF);
+    final background = match.isFinished
+        ? const Color(0xFF24272E)
+        : const Color(0xFF102A56);
+    final outline = match.isFinished
+        ? const Color(0xFF5F646E)
+        : const Color(0xFF4B8DFF);
+    final statusColor = match.isFinished
+        ? const Color(0xFFB7BBC4)
+        : const Color(0xFF7FB0FF);
 
     return Card(
       color: background,
@@ -154,6 +181,25 @@ class _CalendarMatchCard extends StatelessWidget {
                           : const Color(0xFFA9C8FF),
                     ),
               ),
+              if (!match.isFinished) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push('/matches/${match.id}/prediction'),
+                    icon: const Icon(Icons.edit_outlined),
+                    label: Text(
+                      prediction.maybeWhen(
+                        data: (item) => item?.isFilled == true
+                            ? 'Modifier mon prono'
+                            : 'Rentrer mon prono',
+                        orElse: () => 'Rentrer mon prono',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               if (isAdmin) ...[
                 const SizedBox(height: 14),
                 SizedBox(
