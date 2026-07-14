@@ -100,15 +100,12 @@ class _CalendarMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? grintaScore : opponentScore;
     final awayScore = match.isHome ? opponentScore : grintaScore;
-    final background = match.isFinished
-        ? const Color(0xFF24272E)
-        : const Color(0xFF102A56);
-    final outline = match.isFinished
-        ? const Color(0xFF5F646E)
-        : const Color(0xFF4B8DFF);
-    final statusColor = match.isFinished
-        ? const Color(0xFFB7BBC4)
-        : const Color(0xFF7FB0FF);
+    final background =
+        match.isFinished ? const Color(0xFF24272E) : const Color(0xFF102A56);
+    final outline =
+        match.isFinished ? const Color(0xFF5F646E) : const Color(0xFF4B8DFF);
+    final statusColor =
+        match.isFinished ? const Color(0xFFB7BBC4) : const Color(0xFF7FB0FF);
 
     return Card(
       color: background,

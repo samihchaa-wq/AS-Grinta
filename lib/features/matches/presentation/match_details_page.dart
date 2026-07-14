@@ -81,7 +81,7 @@ class MatchDetailsPage extends ConsumerWidget {
                   FilledButton.icon(
                     onPressed: () => context.push('/matches/$matchId/finalize'),
                     icon: const Icon(Icons.history_edu_outlined),
-                    label: const Text('Modifier les statistiques'),
+                    label: const Text('👑 Modifier les statistiques'),
                   ),
                 ],
               ],

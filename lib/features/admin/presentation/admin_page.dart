@@ -52,7 +52,7 @@ class AdminPage extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Card(
                   child: ListTile(
-                    leading: const Icon(Icons.sports_soccer_outlined),
+                    leading: const Text('👑', style: TextStyle(fontSize: 22)),
                     title: const Text('Gérer les matchs'),
                     subtitle: const Text(
                       'Créer, modifier, saisir les statistiques ou supprimer.',
