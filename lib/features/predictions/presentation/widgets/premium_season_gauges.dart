@@ -433,13 +433,6 @@ class _PremiumPlayerDetailsSheetState extends State<PremiumPlayerDetailsSheet> {
             ],
           ),
           const SizedBox(height: 22),
-          Text(
-            'Tous les pronostics (${predictions.length})',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF0B1932),
