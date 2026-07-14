@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/scorer_dashboard_page.dart';
 import 'package:flutter/material.dart';
 
-/// Habillage visuel des pronostics de saison avec lignes multicolores.
+/// Habillage visuel des pronostics joueurs avec lignes multicolores.
 class ColorfulSeasonPredictionsPage extends StatelessWidget {
   const ColorfulSeasonPredictionsPage({
     super.key,
@@ -24,7 +24,8 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           const IgnorePointer(
-              child: CustomPaint(painter: _SeasonLinesPainter())),
+            child: CustomPaint(painter: _SeasonLinesPainter()),
+          ),
           Theme(
             data: baseTheme.copyWith(
               scaffoldBackgroundColor: Colors.transparent,
@@ -34,10 +35,7 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
                 space: 1,
               ),
             ),
-            child: EnhancedSeasonPredictionsPage(
-              embedded: embedded,
-              showRanking: showRanking,
-            ),
+            child: ScorerDashboardPage(embedded: embedded),
           ),
         ],
       ),
