@@ -1,5 +1,58 @@
 part of 'pronos_hub_page.dart';
 
+class _RankingsSection extends StatefulWidget {
+  const _RankingsSection();
+
+  @override
+  State<_RankingsSection> createState() => _RankingsSectionState();
+}
+
+class _RankingsSectionState extends State<_RankingsSection> {
+  _RankingView _view = _RankingView.matches;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<_RankingView>(
+              segments: const [
+                ButtonSegment(
+                  value: _RankingView.matches,
+                  label: Text('Matchs'),
+                ),
+                ButtonSegment(
+                  value: _RankingView.season,
+                  label: Text('Buteur'),
+                ),
+                ButtonSegment(
+                  value: _RankingView.general,
+                  label: Text('Général'),
+                ),
+              ],
+              selected: {_view},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() => _view = selection.first);
+              },
+            ),
+          ),
+        ),
+        Expanded(
+          child: switch (_view) {
+            _RankingView.matches => const _MatchRankingView(),
+            _RankingView.season => const _SeasonRankingView(),
+            _RankingView.general => const _GeneralSection(),
+          },
+        ),
+      ],
+    );
+  }
+}
+
 class _MatchRankingView extends ConsumerWidget {
   const _MatchRankingView();
 
@@ -32,6 +85,19 @@ class _MatchRankingView extends ConsumerWidget {
   }
 }
 
+class _SeasonRankingView extends StatelessWidget {
+  const _SeasonRankingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+      children: const [SeasonRankingPanel()],
+    );
+  }
+}
+
 class _GeneralSection extends ConsumerWidget {
   const _GeneralSection();
 
@@ -47,14 +113,6 @@ class _GeneralSection extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
         children: [
-          Text(
-            'Classement général',
-            style: Theme.of(context)
-                .textTheme
-                .headlineSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
           const Text('2/3 matchs · 1/3 saison.'),
           const SizedBox(height: 14),
           leaderboard.when(
