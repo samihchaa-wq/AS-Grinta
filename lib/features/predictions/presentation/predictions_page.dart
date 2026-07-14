@@ -59,7 +59,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
             Text(
               _selected == _RankingType.match
                   ? 'Points gagnés sur les scores des matchs.'
-                  : 'Score pondéré : 70 % matchs, 30 % saison.',
+                  : 'Score pondéré : 2/3 matchs, 1/3 saison.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 14),
