@@ -7,7 +7,6 @@ import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
-import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
@@ -19,7 +18,6 @@ import 'package:go_router/go_router.dart';
 
 part 'pronos_hub_history_section.dart';
 part 'pronos_hub_ranking_sections.dart';
-part 'pronos_hub_upcoming_section.dart';
 part 'pronos_hub_components.dart';
 
 enum _PronosCategory { matches, scorers, general }
