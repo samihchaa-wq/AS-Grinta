@@ -1,13 +1,9 @@
-import 'dart:math' as math;
-
-import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 const _actualBlue = Color(0xFF4285FF);
 const _personalGold = Color(0xFFFFBE3D);
@@ -51,8 +47,6 @@ class _LockedScorerDashboard extends ConsumerWidget {
       error: (error, _) => Center(child: Text('$error')),
       data: (gauges) {
         final players = [...gauges]..sort(_comparePlayers);
-        final scorers =
-            players.where((player) => !player.isGoalkeeper).toList();
         final matchesCount = completedMatches.valueOrNull ?? 0;
 
         return RefreshIndicator(
@@ -70,16 +64,6 @@ class _LockedScorerDashboard extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
               _ScorerHero(matchesCount: matchesCount),
-              const SizedBox(height: 18),
-              _PodiumStrip(
-                players: scorers.take(3).toList(),
-                onOpen: (gauge) => _openPlayerDetails(
-                  context,
-                  gauge,
-                  currentUserId,
-                ),
-                onOpenRanking: () => context.go('/pronos?category=general'),
-              ),
               const SizedBox(height: 18),
               _PlayersTable(
                 players: players,
@@ -259,143 +243,6 @@ class _LegendChip extends StatelessWidget {
   }
 }
 
-class _PodiumStrip extends StatelessWidget {
-  const _PodiumStrip({
-    required this.players,
-    required this.onOpen,
-    required this.onOpenRanking,
-  });
-
-  final List<PlayerGauge> players;
-  final ValueChanged<PlayerGauge> onOpen;
-  final VoidCallback onOpenRanking;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF071426),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFF425D8C)),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Column(
-            children: [
-              for (var index = 0; index < players.length; index++) ...[
-                _PodiumPlayer(
-                  rank: index + 1,
-                  gauge: players[index],
-                  onTap: () => onOpen(players[index]),
-                ),
-                if (index != players.length - 1)
-                  Divider(
-                    height: 1,
-                    color: Colors.white.withValues(alpha: .08),
-                  ),
-              ],
-              InkWell(
-                onTap: onOpenRanking,
-                borderRadius:
-                    const BorderRadius.vertical(bottom: Radius.circular(26)),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'VOIR LE CLASSEMENT',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.chevron_right, color: Colors.white70),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _PodiumPlayer extends StatelessWidget {
-  const _PodiumPlayer({
-    required this.rank,
-    required this.gauge,
-    required this.onTap,
-  });
-
-  final int rank;
-  final PlayerGauge gauge;
-  final VoidCallback onTap;
-
-  Color get _rankColor => switch (rank) {
-        1 => _actualBlue,
-        2 => _personalGold,
-        _ => _medianPurple,
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 42,
-              child: Text(
-                rank.toString().padLeft(2, '0'),
-                style: TextStyle(
-                  color: _rankColor,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-            _PlayerAvatar(name: gauge.playerName, size: 54),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                gauge.playerName.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-            Text(
-              '${gauge.actual}',
-              style: TextStyle(
-                color: _rankColor,
-                fontSize: 34,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              gauge.actual == 1 ? 'BUT' : 'BUTS',
-              style: const TextStyle(color: Colors.white60, fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _PlayersTable extends StatelessWidget {
   const _PlayersTable({
     required this.players,
@@ -416,24 +263,18 @@ class _PlayersTable extends StatelessWidget {
         border: Border.all(color: const Color(0xFF425D8C)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 760),
-          child: Column(
-            children: [
-              const _PlayersTableHeader(),
-              for (var index = 0; index < players.length; index++)
-                _PlayerTableRow(
-                  rank: index + 1,
-                  gauge: players[index],
-                  personalPrediction:
-                      players[index].predictionFor(currentUserId)?.value,
-                  onTap: () => onOpen(players[index]),
-                ),
-            ],
-          ),
-        ),
+      child: Column(
+        children: [
+          const _PlayersTableHeader(),
+          for (var index = 0; index < players.length; index++)
+            _PlayerTableRow(
+              rank: index + 1,
+              gauge: players[index],
+              personalPrediction:
+                  players[index].predictionFor(currentUserId)?.value,
+              onTap: () => onOpen(players[index]),
+            ),
+        ],
       ),
     );
   }
@@ -446,33 +287,32 @@ class _PlayersTableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     const style = TextStyle(
       color: Colors.white60,
-      fontSize: 11,
+      fontSize: 9,
       fontWeight: FontWeight.w800,
     );
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white12)),
       ),
       child: const Row(
         children: [
-          SizedBox(width: 250, child: Text('JOUEUR', style: style)),
-          SizedBox(
-            width: 100,
+          Expanded(flex: 4, child: Text('JOUEUR', style: style)),
+          Expanded(
+            flex: 2,
             child: Text('ACTUEL', style: style, textAlign: TextAlign.center),
           ),
-          SizedBox(
-            width: 110,
-            child: Text('TON PRONO', style: style, textAlign: TextAlign.center),
+          Expanded(
+            flex: 2,
+            child: Text('PRONO', style: style, textAlign: TextAlign.center),
           ),
-          SizedBox(
-            width: 100,
+          Expanded(
+            flex: 2,
             child: Text('MÉDIANE', style: style, textAlign: TextAlign.center),
           ),
-          SizedBox(
-            width: 150,
-            child:
-                Text('ÉCART PRONO', style: style, textAlign: TextAlign.center),
+          Expanded(
+            flex: 2,
+            child: Text('ÉCART', style: style, textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -496,9 +336,7 @@ class _PlayerTableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final median = gauge.predictions.isEmpty ? null : gauge.median.round();
-    final versusActual =
-        personalPrediction == null ? null : personalPrediction! - gauge.actual;
-    final versusMedian = personalPrediction == null || median == null
+    final difference = personalPrediction == null || median == null
         ? null
         : personalPrediction! - median;
 
@@ -507,98 +345,48 @@ class _PlayerTableRow extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-          decoration: BoxDecoration(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Colors.white10)),
           ),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  SizedBox(
-                    width: 250,
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 38,
-                          child: Text(
-                            rank.toString().padLeft(2, '0'),
-                            style: const TextStyle(
-                              color: _actualBlue,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
+              Expanded(
+                flex: 4,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 26,
+                      child: Text(
+                        rank.toString().padLeft(2, '0'),
+                        style: const TextStyle(
+                          color: _actualBlue,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          fontStyle: FontStyle.italic,
                         ),
-                        _PlayerAvatar(name: gauge.playerName, size: 64),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                gauge.playerName.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w900,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                gauge.isGoalkeeper ? 'GARDIEN' : 'ATTAQUANT',
-                                style: const TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        gauge.playerName.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          fontStyle: FontStyle.italic,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  _MetricCell(
-                    width: 100,
-                    value: gauge.actual,
-                    color: _actualBlue,
-                    label: gauge.isGoalkeeper ? 'CLEAN SHEET' : 'BUTS',
-                  ),
-                  _MetricCell(
-                    width: 110,
-                    value: personalPrediction,
-                    color: _personalGold,
-                    label: gauge.isGoalkeeper ? 'CLEAN SHEETS' : 'BUTS',
-                  ),
-                  _MetricCell(
-                    width: 100,
-                    value: median,
-                    color: _medianPurple,
-                    label: gauge.isGoalkeeper ? 'CLEAN SHEETS' : 'BUTS',
-                  ),
-                  SizedBox(
-                    width: 150,
-                    child: Column(
-                      children: [
-                        _DeltaValue(value: versusActual, label: 'vs actuel'),
-                        const SizedBox(height: 9),
-                        Divider(color: Colors.white.withValues(alpha: .10)),
-                        const SizedBox(height: 5),
-                        _DeltaValue(value: versusMedian, label: 'vs médiane'),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              _InsightStrip(
-                playerName: gauge.playerName,
-                personalPrediction: personalPrediction,
-                median: median,
-              ),
+              _CompactValue(value: gauge.actual, color: _actualBlue),
+              _CompactValue(value: personalPrediction, color: _personalGold),
+              _CompactValue(value: median, color: _medianPurple),
+              _CompactDelta(value: difference),
             ],
           ),
         ),
@@ -607,66 +395,33 @@ class _PlayerTableRow extends StatelessWidget {
   }
 }
 
-class _MetricCell extends StatelessWidget {
-  const _MetricCell({
-    required this.width,
-    required this.value,
-    required this.color,
-    required this.label,
-  });
+class _CompactValue extends StatelessWidget {
+  const _CompactValue({required this.value, required this.color});
 
-  final double width;
   final int? value;
   final Color color;
-  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: .75)),
-          color: color.withValues(alpha: .05),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: .10),
-              blurRadius: 14,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Text(
-              value?.toString() ?? '—',
-              style: TextStyle(
-                color: color,
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white54, fontSize: 9),
-            ),
-          ],
+    return Expanded(
+      flex: 2,
+      child: Text(
+        value?.toString() ?? '—',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: color,
+          fontSize: 20,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
   }
 }
 
-class _DeltaValue extends StatelessWidget {
-  const _DeltaValue({required this.value, required this.label});
+class _CompactDelta extends StatelessWidget {
+  const _CompactDelta({required this.value});
 
   final int? value;
-  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -682,127 +437,15 @@ class _DeltaValue extends StatelessWidget {
         : value! > 0
             ? '+$value'
             : '$value';
-    return Column(
-      children: [
-        Text(
-          display,
-          style: TextStyle(
-            color: color,
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        Text(label,
-            style: const TextStyle(color: Colors.white54, fontSize: 10)),
-      ],
-    );
-  }
-}
 
-class _InsightStrip extends StatelessWidget {
-  const _InsightStrip({
-    required this.playerName,
-    required this.personalPrediction,
-    required this.median,
-  });
-
-  final String playerName;
-  final int? personalPrediction;
-  final int? median;
-
-  @override
-  Widget build(BuildContext context) {
-    final comparison = personalPrediction == null || median == null
-        ? null
-        : personalPrediction! - median!;
-    final color = comparison == null
-        ? Colors.white54
-        : comparison > 0
-            ? _actualBlue
-            : comparison < 0
-                ? _personalGold
-                : _negativeGreen;
-    final title = comparison == null
-        ? 'Pronostic à compléter.'
-        : comparison > 0
-            ? 'Tu vois grand pour $playerName !'
-            : comparison < 0
-                ? 'Prudent sur $playerName.'
-                : 'Aligné avec la médiane.';
-    final subtitle = comparison == null
-        ? 'Renseigne ton estimation pour la comparer.'
-        : comparison > 0
-            ? 'Tu es au-dessus de la médiane.'
-            : comparison < 0
-                ? 'Tu pronostiques moins que la majorité.'
-                : 'Ton pronostic rejoint celui du groupe.';
-
-    return Container(
-      width: 710,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: .35)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.trending_up, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(color: color, fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white60, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerAvatar extends StatelessWidget {
-  const _PlayerAvatar({required this.name, required this.size});
-
-  final String name;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF183C72), Color(0xFF0A1831)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        border: Border.all(color: _actualBlue.withValues(alpha: .55)),
-        boxShadow: [
-          BoxShadow(
-            color: _actualBlue.withValues(alpha: .18),
-            blurRadius: 16,
-          ),
-        ],
-      ),
-      alignment: Alignment.center,
+    return Expanded(
+      flex: 2,
       child: Text(
-        initial,
+        display,
+        textAlign: TextAlign.center,
         style: TextStyle(
-          color: Colors.white,
-          fontSize: math.max(18, size * .34),
+          color: color,
+          fontSize: 18,
           fontWeight: FontWeight.w900,
         ),
       ),
