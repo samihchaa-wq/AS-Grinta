@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
@@ -356,20 +357,9 @@ class _HeadToHead extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: matches.map((match) {
-              final grinta = match.scoreGrinta ?? 0;
-              final opponent = match.scoreOpponent ?? 0;
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .035),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: Text(
-                  '$grinta–$opponent',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
+              return MatchResultScoreChip(
+                scoreGrinta: match.scoreGrinta ?? 0,
+                scoreOpponent: match.scoreOpponent ?? 0,
               );
             }).toList(),
           ),
