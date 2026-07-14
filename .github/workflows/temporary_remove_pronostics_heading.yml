@@ -1,17 +1,14 @@
 name: Temporary pronostics heading cleanup
 
 on:
-  issue_comment:
-    types: [created]
+  push:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   cleanup:
-    if: >-
-      github.event.issue.pull_request &&
-      github.event.comment.body == '/remove-pronostics-heading'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,9 +34,8 @@ jobs:
         ),
         const SizedBox(height: 10),
 """
-          if old not in text:
-              raise SystemExit('Redundant heading not found')
-          file.write_text(text.replace(old, '', 1))
+          if old in text:
+              file.write_text(text.replace(old, '', 1))
       - run: flutter pub get
       - run: dart format lib/features/predictions/presentation/season_predictions_page.dart
       - name: Remove trigger and commit
@@ -47,6 +43,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -f .github/remove-pronostics-heading-trigger.txt
+          if git diff --quiet; then
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
