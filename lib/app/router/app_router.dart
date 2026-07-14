@@ -47,12 +47,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
+          GoRoute(
+            path: '/admin/matches',
+            builder: (_, __) => const MatchesPage(),
+          ),
           GoRoute(path: '/more', builder: (_, __) => const MorePage()),
           GoRoute(
             path: '/players',
             builder: (_, __) => const PlayersRegistryPage(),
           ),
-          GoRoute(path: '/matches', builder: (_, __) => const MatchesPage()),
+          GoRoute(path: '/matches', redirect: (_, __) => '/pronos'),
           GoRoute(
             path: '/matches/:matchId',
             builder: (context, state) => MatchDetailsPage(
