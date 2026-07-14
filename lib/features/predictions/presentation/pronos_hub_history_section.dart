@@ -66,7 +66,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                                 onPressed: () => context.push(
                                   '/matches/${match.id}/finalize',
                                 ),
-                                icon: const Icon(Icons.fact_check_outlined),
+                                icon: const Text('👑'),
                                 label: const Text('Entrer les stats'),
                               ),
                             ),
@@ -100,8 +100,22 @@ class _CalendarMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? grintaScore : opponentScore;
     final awayScore = match.isHome ? opponentScore : grintaScore;
+    final background = match.isFinished
+        ? const Color(0xFF24272E)
+        : const Color(0xFF102A56);
+    final outline = match.isFinished
+        ? const Color(0xFF5F646E)
+        : const Color(0xFF4B8DFF);
+    final statusColor = match.isFinished
+        ? const Color(0xFFB7BBC4)
+        : const Color(0xFF7FB0FF);
 
     return Card(
+      color: background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: outline, width: 1.2),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/matches/${match.id}'),
@@ -128,7 +142,7 @@ class _CalendarMatchCard extends StatelessWidget {
                   Text(
                     match.isFinished ? 'Terminé' : 'À venir',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary,
+                          color: statusColor,
                           fontWeight: FontWeight.w800,
                         ),
                   ),
@@ -138,7 +152,9 @@ class _CalendarMatchCard extends StatelessWidget {
               Text(
                 AppFormats.dateTime(match.kickoffAt),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondary,
+                      color: match.isFinished
+                          ? const Color(0xFFB7BBC4)
+                          : const Color(0xFFA9C8FF),
                     ),
               ),
               if (isAdmin) ...[
@@ -148,7 +164,7 @@ class _CalendarMatchCard extends StatelessWidget {
                   child: FilledButton.tonalIcon(
                     onPressed: () =>
                         context.push('/matches/${match.id}/finalize'),
-                    icon: const Icon(Icons.fact_check_outlined),
+                    icon: const Text('👑'),
                     label: Text(
                       match.isFinished
                           ? 'Changer les stats'
