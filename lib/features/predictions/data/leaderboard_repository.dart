@@ -22,7 +22,7 @@ class LeaderboardEntry {
   final double matchPoints;
   final double seasonPoints;
 
-  /// Score final pondéré 70 % matchs / 30 % saison, normalisé (0 à 100).
+  /// Score final pondéré : 2/3 matchs et 1/3 saison, normalisé de 0 à 100.
   final double totalPoints;
 
   /// Statistiques matchs : bons vainqueurs et scores exacts trouvés.
