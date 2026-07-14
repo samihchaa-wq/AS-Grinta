@@ -130,31 +130,22 @@ class _EnhancedSeasonPredictionsPageState
                 ),
                 const SizedBox(height: 14),
                 if (_view == _SeasonView.players) ...[
-                  Row(
-                    children: [
-                      Text(
-                        '${_predictorCount(gauges)} pronostiqueurs',
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: completedMatches.when(
+                      loading: () => const Text(
+                        'Matchs joués : …',
+                        style: TextStyle(color: Colors.white60),
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (count) => Text(
+                        'Matchs joués : $count',
                         style: const TextStyle(
-                          color: Colors.white60,
+                          color: Colors.white70,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const Spacer(),
-                      completedMatches.when(
-                        loading: () => const Text(
-                          'Matchs joués : …',
-                          style: TextStyle(color: Colors.white60),
-                        ),
-                        error: (_, __) => const SizedBox.shrink(),
-                        data: (count) => Text(
-                          'Matchs joués : $count',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const _GaugeLegend(),
@@ -264,14 +255,6 @@ class _EnhancedSeasonPredictionsPageState
       observed = math.max(observed, gauge.maxValue);
     }
     return ((observed + 4) ~/ 5) * 5;
-  }
-
-  int _predictorCount(List<PlayerGauge> gauges) {
-    final ids = <String>{};
-    for (final gauge in gauges) {
-      ids.addAll(gauge.predictions.map((prediction) => prediction.predictorId));
-    }
-    return ids.length;
   }
 }
 
