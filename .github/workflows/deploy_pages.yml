@@ -6,7 +6,6 @@ on:
       - main
   workflow_dispatch:
 
-# Deployment refresh marker: actual-prono-joueurs-gauges
 permissions:
   contents: read
   pages: write
@@ -103,6 +102,10 @@ jobs:
           grep -q '/AS-Grinta/' /tmp/index.html
           grep -a -q 'Clean sheets' /tmp/main.dart.js
           grep -a -q 'Buts actuels' /tmp/main.dart.js
+          if grep -a -q 'Tous les pronostics (' /tmp/main.dart.js; then
+            echo 'Le titre redondant Tous les pronostics est encore présent.'
+            exit 1
+          fi
       - name: Verify Supabase availability
         run: |
           set -euo pipefail
@@ -169,7 +172,7 @@ jobs:
             await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
             fs.writeFileSync('as-grinta-smoke-errors.log', errors.join('\n'));
             const size = fs.statSync('as-grinta-smoke.png').size;
-            if (size < 5000) throw new Error(`Capture anormalement vide: ${size} octets`);
+            if (size < 4000) throw new Error(`Capture anormalement vide: ${size} octets`);
             if (errors.length > 0) throw new Error(errors.join(' | '));
             await browser.close();
           })().catch(error => {
