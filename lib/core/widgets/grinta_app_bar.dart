@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class GrintaAppBar extends AppBar {
   GrintaAppBar({
-    required String title,
+    required Object title,
     super.key,
     super.actions,
     super.bottom,
@@ -19,10 +19,10 @@ class GrintaAppBar extends AppBar {
               ),
               const SizedBox(width: 10),
               Flexible(
-                child: Text(
-                  title,
+                child: DefaultTextStyle.merge(
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  child: title is Widget ? title : Text(title.toString()),
                 ),
               ),
             ],
