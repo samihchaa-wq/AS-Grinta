@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
-import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/player_predictions_sheet.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/reference_player_gauge_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -122,7 +122,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
         minChildSize: .5,
         maxChildSize: .96,
         expand: false,
-        builder: (_, controller) => PremiumPlayerDetailsSheet(
+        builder: (_, controller) => PlayerPredictionsSheet(
           gauge: gauge,
           currentUserId: currentUserId,
           scrollController: controller,

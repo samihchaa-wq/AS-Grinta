@@ -3,6 +3,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -156,9 +157,9 @@ class _HeadToHeadCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Expanded(child: Text(AppFormats.date(match.date))),
-                      Text(
-                        '${match.scoreGrinta ?? 0} – ${match.scoreOpponent ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      MatchResultScoreChip(
+                        scoreGrinta: match.scoreGrinta ?? 0,
+                        scoreOpponent: match.scoreOpponent ?? 0,
                       ),
                     ],
                   ),
@@ -219,8 +220,10 @@ class _MatchSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Résumé du match',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Résumé du match',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             if (scorers.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Buteurs', style: Theme.of(context).textTheme.titleMedium),
@@ -233,8 +236,10 @@ class _MatchSummary extends StatelessWidget {
             ],
             if (cleanSheets.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Clean sheet',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Clean sheet',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 6),
               ...cleanSheets.map((line) => Text(line.name)),
             ],
