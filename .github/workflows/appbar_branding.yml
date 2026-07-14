@@ -1,0 +1,69 @@
+name: Apply branded app bars
+
+on:
+  push:
+    branches: [feature/compact-navigation-live-odds]
+
+permissions:
+  contents: write
+
+jobs:
+  brand-app-bars:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/compact-navigation-live-odds
+          fetch-depth: 0
+      - name: Replace application bars
+        shell: python
+        run: |
+          from pathlib import Path
+
+          paths = [
+              'lib/features/matches/presentation/matches_page.dart',
+              'lib/features/matches/presentation/match_form_page.dart',
+              'lib/features/admin/presentation/admin_page.dart',
+              'lib/features/more/presentation/faq_page.dart',
+              'lib/features/predictions/presentation/season_predictions_page.dart',
+              'lib/features/predictions/presentation/leaderboard_page.dart',
+              'lib/features/profile/presentation/profile_page.dart',
+              'lib/features/predictions/presentation/predictions_page.dart',
+              'lib/features/players/presentation/players_registry_page.dart',
+              'lib/features/matches/presentation/match_details_page.dart',
+              'lib/features/notifications/presentation/notifications_page.dart',
+              'lib/features/matches/presentation/match_finalization_page.dart',
+              'lib/features/matches/presentation/upcoming_match_prediction_page.dart',
+              'lib/features/predictions/presentation/enhanced_season_predictions_page.dart',
+          ]
+          import_line = "import 'package:as_grinta/core/widgets/grinta_app_bar.dart';\n"
+
+          for value in paths:
+              path = Path(value)
+              if not path.exists():
+                  continue
+              text = path.read_text()
+              if 'appBar: AppBar(' not in text:
+                  continue
+              text = text.replace('appBar: AppBar(', 'appBar: GrintaAppBar(')
+              if import_line.strip() not in text:
+                  lines = text.splitlines(keepends=True)
+                  insert_at = 0
+                  for index, line in enumerate(lines):
+                      if line.startswith("import 'package:as_grinta/"):
+                          insert_at = index + 1
+                  lines.insert(insert_at, import_line)
+                  text = ''.join(lines)
+              path.write_text(text)
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib
+          git commit -m "brand: restore logo across application pages"
+          git push origin HEAD:feature/compact-navigation-live-odds
