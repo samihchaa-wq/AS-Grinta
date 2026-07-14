@@ -39,14 +39,17 @@ jobs:
               text = add_import(file.read_text())
               class_start = text.index(f'class {class_name}')
               map_start = text.index(map_marker, class_start)
-              return_start = text.index('              return ', map_start)
-              map_end = text.index('            }).toList()', return_start)
-              replacement = """              return MatchResultScoreChip(
-                scoreGrinta: grinta,
-                scoreOpponent: opponent,
+              map_end = text.index('            }).toList()', map_start)
+              section = text[map_start:map_end]
+              if 'MatchResultScoreChip(' not in section:
+                  return_start = text.index('              return ', map_start)
+                  replacement = """              return MatchResultScoreChip(
+                scoreGrinta: match.scoreGrinta ?? 0,
+                scoreOpponent: match.scoreOpponent ?? 0,
               );
 """
-              file.write_text(text[:return_start] + replacement + text[map_end:])
+                  text = text[:return_start] + replacement + text[map_end:]
+              file.write_text(text)
 
           replace_mapped_return(
               'lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart',
@@ -61,19 +64,23 @@ jobs:
 
           details = Path('lib/features/matches/presentation/match_details_page.dart')
           text = add_import(details.read_text())
-          old = """                      Text(
+          class_start = text.index('class _HeadToHeadCard')
+          class_end = text.index('class _MatchHeader', class_start)
+          if 'MatchResultScoreChip(' not in text[class_start:class_end]:
+              old = """                      Text(
                          '${match.scoreGrinta ?? 0} – ${match.scoreOpponent ?? 0}',
                          style: const TextStyle(fontWeight: FontWeight.w900),
                        ),
 """
-          new = """                      MatchResultScoreChip(
+              new = """                      MatchResultScoreChip(
                         scoreGrinta: match.scoreGrinta ?? 0,
                         scoreOpponent: match.scoreOpponent ?? 0,
                       ),
 """
-          if old not in text:
-              raise SystemExit('Match details score text not found')
-          details.write_text(text.replace(old, new, 1))
+              if old not in text:
+                  raise SystemExit('Match details score text not found')
+              text = text.replace(old, new, 1)
+          details.write_text(text)
 
           premium = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
           text = premium.read_text()
@@ -100,6 +107,8 @@ jobs:
             git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart'
           )
           dart format "${files[@]}"
+      - name: Remove temporary branch trigger
+        run: rm -f .github/pr170-trigger.txt
       - name: Commit finalized changes
         shell: bash
         run: |
@@ -109,6 +118,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib
+          git add -A
           git commit -m "chore: finalize exact player gauges and result colors"
           git push origin HEAD:fix/exact-player-gauges-h2h-colors
