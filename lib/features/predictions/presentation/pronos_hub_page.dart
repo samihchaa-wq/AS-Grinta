@@ -5,6 +5,7 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
@@ -21,7 +22,7 @@ part 'pronos_hub_components.dart';
 
 enum _PronosCategory { matches, scorers, general }
 
-enum _GeneralRankingView { general, matches, scorers }
+enum _GeneralRankingView { matches, scorers, general }
 
 class PronosHubPage extends ConsumerStatefulWidget {
   const PronosHubPage({super.key, this.initialCategory});
@@ -59,8 +60,30 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin =
+        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+
     return Scaffold(
-      appBar: GrintaAppBar(title: const SizedBox.shrink()),
+      appBar: GrintaAppBar(
+        title: const SizedBox.shrink(),
+        actions: [
+          if (_category == _PronosCategory.matches && isAdmin)
+            IconButton(
+              tooltip: 'Ajouter un match',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MatchFormPage()),
+              ),
+              icon: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('👑', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 3),
+                  Icon(Icons.add_circle_outline, size: 28),
+                ],
+              ),
+            ),
+        ],
+      ),
       body: switch (_category) {
         _PronosCategory.matches => const _CalendarSection(),
         _PronosCategory.scorers => const ColorfulSeasonPredictionsPage(
