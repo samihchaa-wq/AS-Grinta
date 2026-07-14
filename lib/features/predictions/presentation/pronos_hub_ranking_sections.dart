@@ -15,10 +15,17 @@ class _RankingsSectionState extends State<_RankingsSection> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: SizedBox(
             width: double.infinity,
             child: SegmentedButton<_RankingView>(
+              style: const ButtonStyle(
+                minimumSize: WidgetStatePropertyAll(Size.fromHeight(54)),
+                textStyle: WidgetStatePropertyAll(
+                  TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+              ),
+              expandedInsets: EdgeInsets.zero,
               segments: const [
                 ButtonSegment(
                   value: _RankingView.matches,
@@ -30,7 +37,7 @@ class _RankingsSectionState extends State<_RankingsSection> {
                 ),
                 ButtonSegment(
                   value: _RankingView.general,
-                  label: Text('Général'),
+                  label: Text('Cumulé'),
                 ),
               ],
               selected: {_view},
@@ -118,7 +125,7 @@ class _GeneralSection extends ConsumerWidget {
           leaderboard.when(
             loading: () => const _LoadingCard(),
             error: (_, __) => const _MessageCard(
-              message: 'Le classement général est indisponible.',
+              message: 'Le classement cumulé est indisponible.',
             ),
             data: (entries) => _LeaderboardCard(
               entries: entries,
