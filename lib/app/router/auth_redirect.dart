@@ -18,7 +18,7 @@ String? resolveAuthRedirect({
   if (authState.isAuthenticated && mustChangePassword) {
     return isPasswordChangeRoute ? null : '/auth/new-password';
   }
-  if (isPasswordChangeRoute && !mustChangePassword) return '/matches';
+  if (isPasswordChangeRoute && !mustChangePassword) return '/pronos';
 
   final isAuthRoute = location.startsWith('/auth');
   if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
@@ -27,10 +27,12 @@ String? resolveAuthRedirect({
 
   if (authState.isAuthenticated && isAuthRoute) {
     final redirect = _safeLocalRedirect(uri.queryParameters['redirect']);
-    return redirect ?? '/matches';
+    return redirect ?? '/pronos';
   }
 
-  if (location == '/' || location == '/home') return '/matches';
+  if (location == '/' || location == '/home' || location == '/matches') {
+    return '/pronos';
+  }
 
   final role = authState.profile?.role;
   final isAdmin = role == AuthRole.admin;
@@ -38,11 +40,12 @@ String? resolveAuthRedirect({
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin';
+  final isAdminMatchesRoute = location == '/admin/matches';
   final isPlayersRoute = location == '/players';
 
-  if (isFinalizationRoute && !isAdmin) return '/matches';
-  if (isAdminRoute && !isStaff) return '/matches';
-  if (isPlayersRoute && !isStaff) return '/matches';
+  if (isFinalizationRoute && !isAdmin) return '/pronos';
+  if ((isAdminRoute || isAdminMatchesRoute) && !isStaff) return '/pronos';
+  if (isPlayersRoute && !isStaff) return '/pronos';
   return null;
 }
 
@@ -52,6 +55,7 @@ String? _safeLocalRedirect(String? value) {
   final uri = Uri.tryParse(value);
   if (uri == null || uri.hasScheme || uri.hasAuthority) return null;
   if (!uri.path.startsWith('/') || uri.path.startsWith('/auth')) return null;
+  if (uri.path == '/matches') return '/pronos';
 
   return uri.toString();
 }
