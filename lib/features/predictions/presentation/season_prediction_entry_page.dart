@@ -84,8 +84,7 @@ class _SeasonPredictionEntryPageState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed:
-                        _isSavingAll ? null : () => _saveAll(entries),
+                    onPressed: _isSavingAll ? null : () => _saveAll(entries),
                     icon: _isSavingAll
                         ? const SizedBox(
                             width: 18,
