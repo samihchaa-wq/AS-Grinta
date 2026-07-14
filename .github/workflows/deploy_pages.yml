@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -16,58 +16,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  cleanup-heading:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Remove final redundant player heading
-        shell: python
-        run: |
-          from pathlib import Path
-
-          path = Path('lib/features/predictions/presentation/season_predictions_page.dart')
-          text = path.read_text()
-          old = """        Text(
-          'Tous les pronostics (${predictions.length})',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-"""
-          if old in text:
-              path.write_text(text.replace(old, '', 1))
-      - run: flutter pub get
-      - run: dart format lib/features/predictions/presentation/season_predictions_page.dart
-      - name: Commit source cleanup
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/predictions/presentation/season_predictions_page.dart
-          git commit -m "fix: remove final redundant predictions heading"
-          git push origin HEAD:main
-
   build:
-    needs: cleanup-heading
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout latest main
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: main
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -137,8 +91,6 @@ jobs:
     steps:
       - name: Checkout configuration
         uses: actions/checkout@v4
-        with:
-          ref: main
       - name: Verify public application files
         run: |
           set -euo pipefail
