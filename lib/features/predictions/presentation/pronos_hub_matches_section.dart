@@ -1,15 +1,14 @@
 part of 'pronos_hub_page.dart';
 
-class _MatchesSection extends ConsumerStatefulWidget {
-  const _MatchesSection();
+class _UpcomingMatchView extends ConsumerStatefulWidget {
+  const _UpcomingMatchView();
 
   @override
-  ConsumerState<_MatchesSection> createState() => _MatchesSectionState();
+  ConsumerState<_UpcomingMatchView> createState() =>
+      _UpcomingMatchViewState();
 }
 
-class _MatchesSectionState extends ConsumerState<_MatchesSection> {
-  _MatchView _view = _MatchView.upcoming;
-
+class _UpcomingMatchViewState extends ConsumerState<_UpcomingMatchView> {
   @override
   void initState() {
     super.initState();
@@ -20,49 +19,6 @@ class _MatchesSectionState extends ConsumerState<_MatchesSection> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<_MatchView>(
-              segments: const [
-                ButtonSegment(
-                  value: _MatchView.upcoming,
-                  icon: Icon(Icons.bolt_rounded),
-                  label: Text('Ton pari'),
-                ),
-                ButtonSegment(
-                  value: _MatchView.ranking,
-                  icon: Icon(Icons.leaderboard_outlined),
-                  label: Text('Classement'),
-                ),
-              ],
-              selected: {_view},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() => _view = selection.first);
-              },
-            ),
-          ),
-        ),
-        Expanded(
-          child: switch (_view) {
-            _MatchView.upcoming => const _UpcomingMatchView(),
-            _MatchView.ranking => const _MatchRankingView(),
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _UpcomingMatchView extends ConsumerWidget {
-  const _UpcomingMatchView();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
     final dashboard = ref.watch(homeDashboardProvider);
     return RefreshIndicator(
       onRefresh: () async {
@@ -79,7 +35,7 @@ class _UpcomingMatchView extends ConsumerWidget {
           dashboard.when(
             loading: () => const _LoadingCard(),
             error: (_, __) => const _MessageCard(
-              message: 'Ton pari est indisponible.',
+              message: 'Le prochain prono est indisponible.',
             ),
             data: (_) => const _UpcomingPredictionCard(),
           ),
