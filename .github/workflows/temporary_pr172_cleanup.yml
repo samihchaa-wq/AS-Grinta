@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
 
+# Activation marker: remove-final-predictions-heading
 permissions:
   contents: write
 
