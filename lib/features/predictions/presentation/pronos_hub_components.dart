@@ -354,9 +354,9 @@ class _Panel extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: const Color(0xFF102A56),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.outline),
+        border: Border.all(color: const Color(0xFF4B8DFF), width: 1.4),
       ),
       child: child,
     );
