@@ -114,7 +114,7 @@ class _EnhancedSeasonPredictionsPageState
                       ButtonSegment(
                         value: _SeasonView.players,
                         icon: Icon(Icons.sports_soccer),
-                        label: Text('Joueurs'),
+                        label: Text('Par joueur'),
                       ),
                       ButtonSegment(
                         value: _SeasonView.ranking,
