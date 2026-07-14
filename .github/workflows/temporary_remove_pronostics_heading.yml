@@ -1,0 +1,54 @@
+name: Temporary pronostics heading cleanup
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/remove-pronostics-heading'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/remove-redundant-pronostics-heading
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Remove heading from legacy player details
+        shell: python
+        run: |
+          from pathlib import Path
+
+          file = Path('lib/features/predictions/presentation/season_predictions_page.dart')
+          text = file.read_text()
+          old = """        Text(
+          'Tous les pronostics (${predictions.length})',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+"""
+          if old not in text:
+              raise SystemExit('Redundant heading not found')
+          file.write_text(text.replace(old, '', 1))
+      - run: flutter pub get
+      - run: dart format lib/features/predictions/presentation/season_predictions_page.dart
+      - name: Remove trigger and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/remove-pronostics-heading-trigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: remove redundant player prediction heading"
+          git push origin HEAD:fix/remove-redundant-pronostics-heading
