@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
