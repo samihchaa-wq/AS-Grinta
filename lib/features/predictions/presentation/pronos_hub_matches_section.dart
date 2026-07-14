@@ -18,27 +18,12 @@ class _UpcomingMatchViewState extends ConsumerState<_UpcomingMatchView> {
 
   @override
   Widget build(BuildContext context) {
-    final dashboard = ref.watch(homeDashboardProvider);
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(homeDashboardProvider);
-        await Future.wait([
-          ref.read(predictionsControllerProvider.notifier).load(),
-          ref.read(homeDashboardProvider.future),
-        ]);
-      },
+      onRefresh: () => ref.read(predictionsControllerProvider.notifier).load(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-        children: [
-          dashboard.when(
-            loading: () => const _LoadingCard(),
-            error: (_, __) => const _MessageCard(
-              message: 'Le prochain prono est indisponible.',
-            ),
-            data: (_) => const _UpcomingPredictionCard(),
-          ),
-        ],
+        children: const [_UpcomingPredictionCard()],
       ),
     );
   }
