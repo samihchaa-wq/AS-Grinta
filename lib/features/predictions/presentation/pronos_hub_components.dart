@@ -22,49 +22,28 @@ class _LeaderboardCard extends StatelessWidget {
       return const _MessageCard(message: 'Aucun point pour le moment.');
     }
 
-    if (showMatchStats) {
-      return Card(
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            const _MatchLeaderboardHeader(),
-            const Divider(height: 1),
-            for (var index = 0; index < sorted.length; index++) ...[
-              _MatchLeaderboardRow(
-                rank: index + 1,
-                entry: sorted[index],
-                points: points(sorted[index]).round(),
-              ),
-              if (index != sorted.length - 1) const Divider(height: 1),
-            ],
-          ],
-        ),
-      );
-    }
-
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
+          if (showMatchStats)
+            const _MatchLeaderboardHeader()
+          else
+            const _GeneralLeaderboardHeader(),
+          const Divider(height: 1),
           for (var index = 0; index < sorted.length; index++) ...[
-            ListTile(
-              leading: CircleAvatar(child: Text('${index + 1}')),
-              title: Text(
-                sorted[index].name,
-                style: const TextStyle(fontWeight: FontWeight.w800),
+            if (showMatchStats)
+              _MatchLeaderboardRow(
+                rank: index + 1,
+                entry: sorted[index],
+                points: points(sorted[index]).round(),
+              )
+            else
+              _GeneralLeaderboardRow(
+                rank: index + 1,
+                entry: sorted[index],
+                points: points(sorted[index]).round(),
               ),
-              subtitle: Text(
-                'Matchs ${(sorted[index].matchPoints * 100).round()} · '
-                'Saison ${sorted[index].seasonPoints.round()}',
-              ),
-              trailing: Text(
-                '${points(sorted[index]).round()} pts',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-            ),
             if (index != sorted.length - 1) const Divider(height: 1),
           ],
         ],
@@ -106,6 +85,39 @@ class _MatchLeaderboardHeader extends StatelessWidget {
   }
 }
 
+class _GeneralLeaderboardHeader extends StatelessWidget {
+  const _GeneralLeaderboardHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppTheme.textSecondary,
+          fontWeight: FontWeight.w800,
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(flex: 5, child: Text('Joueurs', style: style)),
+          Expanded(
+            flex: 2,
+            child: Text('Matchs', style: style, textAlign: TextAlign.center),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('Saison', style: style, textAlign: TextAlign.center),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('Points', style: style, textAlign: TextAlign.end),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MatchLeaderboardRow extends StatelessWidget {
   const _MatchLeaderboardRow({
     required this.rank,
@@ -116,6 +128,56 @@ class _MatchLeaderboardRow extends StatelessWidget {
   final int rank;
   final LeaderboardEntry entry;
   final int points;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LeaderboardRowLayout(
+      rank: rank,
+      name: entry.name,
+      firstValue: '${entry.matchBons}',
+      secondValue: '${entry.matchExacts}',
+      points: '$points',
+    );
+  }
+}
+
+class _GeneralLeaderboardRow extends StatelessWidget {
+  const _GeneralLeaderboardRow({
+    required this.rank,
+    required this.entry,
+    required this.points,
+  });
+
+  final int rank;
+  final LeaderboardEntry entry;
+  final int points;
+
+  @override
+  Widget build(BuildContext context) {
+    return _LeaderboardRowLayout(
+      rank: rank,
+      name: entry.name,
+      firstValue: '${(entry.matchPoints * 100).round()}',
+      secondValue: '${entry.seasonPoints.round()}',
+      points: '$points',
+    );
+  }
+}
+
+class _LeaderboardRowLayout extends StatelessWidget {
+  const _LeaderboardRowLayout({
+    required this.rank,
+    required this.name,
+    required this.firstValue,
+    required this.secondValue,
+    required this.points,
+  });
+
+  final int rank;
+  final String name;
+  final String firstValue;
+  final String secondValue;
+  final String points;
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +202,7 @@ class _MatchLeaderboardRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    entry.name,
+                    name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -154,7 +216,7 @@ class _MatchLeaderboardRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              '${entry.matchBons}',
+              firstValue,
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -162,7 +224,7 @@ class _MatchLeaderboardRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              '${entry.matchExacts}',
+              secondValue,
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
@@ -170,7 +232,7 @@ class _MatchLeaderboardRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(
-              '$points',
+              points,
               textAlign: TextAlign.end,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
