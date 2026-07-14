@@ -48,22 +48,25 @@ class AppShell extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(18),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  onTap: () {
-                    if (location != '/more') context.go('/more');
-                  },
-                  child: const SizedBox(
+                  onTap: () => context.go(_isMoreRoute ? '/pronos' : '/more'),
+                  child: SizedBox(
                     height: 54,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.settings_rounded, size: 22),
-                        SizedBox(width: 8),
+                        Icon(
+                          _isMoreRoute
+                              ? Icons.home_rounded
+                              : Icons.settings_rounded,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            'Plus',
+                            _isMoreRoute ? 'Pronos' : 'Plus',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontWeight: FontWeight.w800),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ),
                       ],
