@@ -363,7 +363,8 @@ class _VerticalMarker extends StatelessWidget {
                   color: color,
                   borderRadius: BorderRadius.circular(99),
                   boxShadow: [
-                    BoxShadow(color: color.withValues(alpha: .65), blurRadius: 9),
+                    BoxShadow(
+                        color: color.withValues(alpha: .65), blurRadius: 9),
                   ],
                 ),
               ),

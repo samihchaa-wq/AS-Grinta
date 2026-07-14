@@ -66,9 +66,10 @@ class PlayerPredictionsSheet extends StatelessWidget {
                   children: [
                     Text(
                       gauge.playerName,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
                     ),
                     Text(
                       gauge.isGoalkeeper
