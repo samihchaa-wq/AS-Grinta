@@ -42,49 +42,22 @@ class SeasonRankingPanel extends ConsumerWidget {
             ),
           );
         }
+
         return Card(
           clipBehavior: Clip.antiAlias,
           child: Column(
-            children: sorted.indexed.map((indexed) {
-              final rank = indexed.$1 + 1;
-              final entry = indexed.$2;
-              return Column(
-                children: [
-                  ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 6,
-                    ),
-                    leading: CircleAvatar(
-                      child: Text(
-                        rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : '$rank',
-                      ),
-                    ),
-                    title: Text(
-                      entry.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _StatBadge(
-                          label: 'Le plus proche',
-                          value: entry.seasonBons,
-                        ),
-                        const SizedBox(width: 10),
-                        _StatBadge(label: 'Exacts', value: entry.seasonExacts),
-                        const SizedBox(width: 14),
-                        Text(
-                          '${_format(entry.seasonPoints)} pts',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (rank < sorted.length) const Divider(height: 1),
-                ],
-              );
-            }).toList(),
+            children: [
+              const _SeasonRankingHeader(),
+              const Divider(height: 1),
+              for (var index = 0; index < sorted.length; index++) ...[
+                _SeasonRankingRow(
+                  rank: index + 1,
+                  entry: sorted[index],
+                  points: _format(sorted[index].seasonPoints),
+                ),
+                if (index != sorted.length - 1) const Divider(height: 1),
+              ],
+            ],
           ),
         );
       },
@@ -92,31 +65,116 @@ class SeasonRankingPanel extends ConsumerWidget {
   }
 }
 
-class _StatBadge extends StatelessWidget {
-  const _StatBadge({required this.label, required this.value});
-
-  final String label;
-  final int value;
+class _SeasonRankingHeader extends StatelessWidget {
+  const _SeasonRankingHeader();
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '$value',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 15,
-            color: scheme.primary,
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w800,
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(flex: 5, child: Text('Joueurs', style: style)),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'Plus proches',
+              style: style,
+              textAlign: TextAlign.center,
+            ),
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 10, color: scheme.onSurfaceVariant),
-        ),
-      ],
+          Expanded(
+            flex: 2,
+            child: Text('Exacts', style: style, textAlign: TextAlign.center),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('Points', style: style, textAlign: TextAlign.end),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeasonRankingRow extends StatelessWidget {
+  const _SeasonRankingRow({
+    required this.rank,
+    required this.entry,
+    required this.points,
+  });
+
+  final int rank;
+  final LeaderboardEntry entry;
+  final String points;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '$rank',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '${entry.seasonBons}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '${entry.seasonExacts}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              points,
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
