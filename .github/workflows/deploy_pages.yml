@@ -6,6 +6,7 @@ on:
       - main
   workflow_dispatch:
 
+# Deployment refresh marker: exact-gauges-h2h-colors
 permissions:
   contents: read
   pages: write
