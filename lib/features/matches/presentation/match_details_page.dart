@@ -219,7 +219,8 @@ class _MatchSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Résumé du match', style: Theme.of(context).textTheme.titleLarge),
+            Text('Résumé du match',
+                style: Theme.of(context).textTheme.titleLarge),
             if (scorers.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Buteurs', style: Theme.of(context).textTheme.titleMedium),
@@ -232,7 +233,8 @@ class _MatchSummary extends StatelessWidget {
             ],
             if (cleanSheets.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Clean sheet', style: Theme.of(context).textTheme.titleMedium),
+              Text('Clean sheet',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 6),
               ...cleanSheets.map((line) => Text(line.name)),
             ],
@@ -306,10 +308,13 @@ class _PredictionsTable extends StatelessWidget {
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  border: color == null ? null : Border.all(color: color, width: 1.7),
+                  border: color == null
+                      ? null
+                      : Border.all(color: color, width: 1.7),
                   color: color?.withValues(alpha: .08),
                 ),
                 child: Row(

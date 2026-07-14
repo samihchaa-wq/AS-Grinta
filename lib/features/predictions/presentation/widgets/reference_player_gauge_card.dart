@@ -51,7 +51,8 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _PlayerIdentity(name: gauge.playerName, accent: accent),
+                          _PlayerIdentity(
+                              name: gauge.playerName, accent: accent),
                           const SizedBox(height: 16),
                           Row(
                             children: [
@@ -96,7 +97,8 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                         Expanded(
                           flex: 2,
                           child: _Metric(
-                            label: gauge.isGoalkeeper ? 'Actuel' : 'Buts actuels',
+                            label:
+                                gauge.isGoalkeeper ? 'Actuel' : 'Buts actuels',
                             value: gauge.actual.toString(),
                             color: accent,
                           ),
