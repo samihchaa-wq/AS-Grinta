@@ -27,9 +27,9 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
     final matches = [...state.matches]
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final predictionMatchIds = predictionState.items
-        .map((item) => item.matchId)
-        .toSet();
+    final nextPredictionMatchId = predictionState.items.isEmpty
+        ? null
+        : predictionState.items.first.matchId;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -54,10 +54,8 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
             ...matches.map(
               (match) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: !match.isFinished &&
-                        predictionMatchIds.contains(match.id)
+                child: !match.isFinished && match.id == nextPredictionMatchId
                     ? _UpcomingPredictionCard(
-                        matchId: match.id,
                         onEnterStats: isAdmin
                             ? () => context.push(
                                   '/matches/${match.id}/finalize',
