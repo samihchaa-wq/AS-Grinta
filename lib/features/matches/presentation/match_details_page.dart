@@ -3,6 +3,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,7 @@ class MatchDetailsPage extends ConsumerWidget {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Détails du match')),
+      appBar: GrintaAppBar(title: const Text('Détails du match')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(matchDetailsProvider(matchId));

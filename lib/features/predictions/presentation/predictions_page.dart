@@ -1,4 +1,5 @@
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,7 +20,7 @@ class _PredictionsPageState extends ConsumerState<PredictionsPage> {
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Classement')),
+      appBar: GrintaAppBar(title: const Text('Classement')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(leaderboardProvider);
@@ -116,8 +117,7 @@ class _RankingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...entries]
-      ..sort((a, b) {
+    final sorted = [...entries]..sort((a, b) {
         final points = _points(b).compareTo(_points(a));
         return points != 0 ? points : a.name.compareTo(b.name);
       });

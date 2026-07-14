@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
@@ -34,7 +35,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pronos')),
+      appBar: GrintaAppBar(title: 'Pronos'),
       body: Column(
         children: [
           Padding(

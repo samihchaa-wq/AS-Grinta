@@ -4,6 +4,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -92,8 +93,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
+      appBar: GrintaAppBar(
+        title:
+            Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
         actions: [
           if (widget.match != null && canManage)
             IconButton(
@@ -209,11 +211,16 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
+                Expanded(
+                    child:
+                        _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
+                Expanded(
+                    child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
+                Expanded(
+                    child:
+                        _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
               ],
             ),
             const SizedBox(height: 24),

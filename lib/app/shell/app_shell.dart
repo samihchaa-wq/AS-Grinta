@@ -12,20 +12,7 @@ class AppShell extends ConsumerWidget {
   final Widget child;
   final String location;
 
-  static const _destinations = <_ModuleDestination>[
-    _ModuleDestination(
-      route: '/pronos',
-      label: 'Pronos',
-      icon: Icons.bolt_rounded,
-    ),
-    _ModuleDestination(
-      route: '/more',
-      label: 'Plus',
-      icon: Icons.more_horiz_rounded,
-    ),
-  ];
-
-  int _selectedIndex() {
+  bool get _isMoreRoute {
     const moreRoutes = {
       '/more',
       '/profile',
@@ -34,63 +21,60 @@ class AppShell extends ConsumerWidget {
       '/admin',
       '/players',
     };
-    final normalizedLocation = moreRoutes.any(
+    return moreRoutes.any(
       (route) => location == route || location.startsWith('$route/'),
-    )
-        ? '/more'
-        : location.startsWith('/predictions') ||
-                location.startsWith('/matches') ||
-                location == '/home'
-            ? '/pronos'
-            : location;
-
-    final index = _destinations.indexWhere(
-      (destination) =>
-          normalizedLocation == destination.route ||
-          normalizedLocation.startsWith('${destination.route}/'),
     );
-    return index < 0 ? 0 : index;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedIndex = _selectedIndex();
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: child,
       bottomNavigationBar: SafeArea(
         top: false,
-        child: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) {
-            final destination = _destinations[index];
-            if (location != destination.route) {
-              context.go(destination.route);
-            }
-          },
-          destinations: _destinations
-              .map(
-                (destination) => NavigationDestination(
-                  icon: Icon(destination.icon),
-                  selectedIcon: Icon(destination.icon),
-                  label: destination.label,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+          child: Align(
+            alignment: Alignment.centerRight,
+            heightFactor: 1,
+            child: FractionallySizedBox(
+              widthFactor: .34,
+              child: Material(
+                color: _isMoreRoute
+                    ? scheme.primaryContainer
+                    : scheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(18),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () {
+                    if (location != '/more') context.go('/more');
+                  },
+                  child: const SizedBox(
+                    height: 54,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.settings_rounded, size: 22),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Plus',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              )
-              .toList(growable: false),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
-}
-
-class _ModuleDestination {
-  const _ModuleDestination({
-    required this.route,
-    required this.label,
-    required this.icon,
-  });
-
-  final String route;
-  final String label;
-  final IconData icon;
 }

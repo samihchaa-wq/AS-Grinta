@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,7 +35,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
     final leaderboardAsync = ref.watch(leaderboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Classement général')),
+      appBar: GrintaAppBar(title: const Text('Classement général')),
       body: Column(
         children: [
           Padding(

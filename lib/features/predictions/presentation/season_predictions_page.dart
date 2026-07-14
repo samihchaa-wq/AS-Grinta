@@ -3,14 +3,15 @@ import 'dart:math' as math;
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final seasonPredictionsProvider =
     FutureProvider.autoDispose<List<SeasonPredictionItem>>((ref) {
-      return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
-    });
+  return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
+});
 
 final seasonGaugesProvider = FutureProvider.autoDispose<List<PlayerGauge>>((
   ref,
@@ -45,7 +46,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GrintaAppBar(
         title: Text(locked ? 'Pronos de saison' : 'Mes pronos de saison'),
       ),
       body: locked
@@ -199,17 +200,14 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
             );
           }
 
-          final currentUserId = ref
-              .read(seasonPredictionsRepositoryProvider)
-              .currentUserId;
+          final currentUserId =
+              ref.read(seasonPredictionsRepositoryProvider).currentUserId;
           final predictors = _predictorsFrom(gauges);
           if (_selectedPredictorId == null && predictors.isNotEmpty) {
-            final hasCurrentUser =
-                currentUserId != null &&
+            final hasCurrentUser = currentUserId != null &&
                 predictors.any((entry) => entry.id == currentUserId);
-            _selectedPredictorId = hasCurrentUser
-                ? currentUserId
-                : predictors.first.id;
+            _selectedPredictorId =
+                hasCurrentUser ? currentUserId : predictors.first.id;
           }
 
           return ListView(
@@ -218,8 +216,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               Text(
                 '${predictors.length} pronostiqueurs',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
               ),
               const SizedBox(height: 14),
               SegmentedButton<_GaugeView>(
@@ -308,12 +306,10 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
     String? currentUserId,
   ) {
     final selectedId = _selectedPredictorId;
-    final selectedEntries = predictors
-        .where((entry) => entry.id == selectedId)
-        .toList();
-    final selectedName = selectedEntries.isEmpty
-        ? 'Pronostiqueur'
-        : selectedEntries.first.name;
+    final selectedEntries =
+        predictors.where((entry) => entry.id == selectedId).toList();
+    final selectedName =
+        selectedEntries.isEmpty ? 'Pronostiqueur' : selectedEntries.first.name;
     final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList();
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList();
 
@@ -355,8 +351,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         Text(
           'Sa fiche complète de pronostics',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
         ),
         const SizedBox(height: 18),
         if (scorers.isNotEmpty) ...[
@@ -400,8 +396,8 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                 ),
               ],
             ),
@@ -468,9 +464,9 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
               Text(
                 '${marker.value} ${gauge.isGoalkeeper ? 'clean sheets' : 'buts'}',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w900,
-                ),
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -609,7 +605,9 @@ class _NeonGaugeCard extends StatelessWidget {
                       children: [
                         Text(
                           gauge.playerName,
-                          style: Theme.of(context).textTheme.titleLarge
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                         Text(
@@ -656,8 +654,7 @@ class _NeonGaugeCard extends StatelessWidget {
 
   GaugeMarker? _modeMarker(List<GaugeMarker> markers) {
     if (markers.isEmpty) return null;
-    final sorted = [...markers]
-      ..sort((a, b) {
+    final sorted = [...markers]..sort((a, b) {
         final byCount = b.predictions.length.compareTo(a.predictions.length);
         if (byCount != 0) return byCount;
         return b.value.compareTo(a.value);
@@ -991,8 +988,8 @@ class _PredictorRow extends StatelessWidget {
                 Text(
                   'Actuel ${gauge.actual}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
+                        color: scheme.onSurfaceVariant,
+                      ),
                 ),
               ],
             ),
@@ -1062,8 +1059,8 @@ class _PlayerDetailsSheet extends StatelessWidget {
                   Text(
                     gauge.playerName,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   Text(
                     gauge.isGoalkeeper
@@ -1153,9 +1150,8 @@ class _RankingRow extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: isMine
-            ? Colors.green.withValues(alpha: .16)
-            : Colors.transparent,
+        color:
+            isMine ? Colors.green.withValues(alpha: .16) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(

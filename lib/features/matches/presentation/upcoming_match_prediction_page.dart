@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,11 +30,12 @@ class _UpcomingMatchPredictionPageState
 
   @override
   Widget build(BuildContext context) {
-    final prediction = ref.watch(matchPredictionDetailsProvider(widget.matchId));
+    final prediction =
+        ref.watch(matchPredictionDetailsProvider(widget.matchId));
     final details = ref.watch(matchDetailsProvider(widget.matchId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ton pari')),
+      appBar: GrintaAppBar(title: const Text('Ton pari')),
       body: prediction.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('$error')),
