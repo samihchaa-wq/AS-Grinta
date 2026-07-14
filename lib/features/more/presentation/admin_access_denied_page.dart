@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 class AdminAccessDeniedPage extends StatelessWidget {
   const AdminAccessDeniedPage({super.key});
 
+  static const _portraitUrl =
+      'https://cdns.klimg.com/resized/1200x720/p/headline/'
+      'asal-usul-meme-dictator-mbappe-yang-vir-170078.jpg';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -19,10 +23,28 @@ class AdminAccessDeniedPage extends StatelessWidget {
               SizedBox(
                 height: 430,
                 width: double.infinity,
-                child: Image.asset(
-                  'assets/images/admin_access_denied.png',
-                  fit: BoxFit.contain,
-                  alignment: Alignment.bottomCenter,
+                child: ShaderMask(
+                  blendMode: BlendMode.dstIn,
+                  shaderCallback: (bounds) => const RadialGradient(
+                    center: Alignment(0, -.16),
+                    radius: .92,
+                    colors: [
+                      Colors.white,
+                      Colors.white,
+                      Color(0xD9FFFFFF),
+                      Colors.transparent,
+                    ],
+                    stops: [0, .52, .76, 1],
+                  ).createShader(bounds),
+                  child: Image.network(
+                    _portraitUrl,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.shield_outlined, size: 160),
+                    ),
+                  ),
                 ),
               ),
               Transform.translate(
