@@ -20,7 +20,7 @@ class MatchDetailsPage extends ConsumerWidget {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Détails du match')),
+      appBar: GrintaAppBar(title: const SizedBox.shrink()),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(matchDetailsProvider(matchId));
@@ -48,13 +48,19 @@ class MatchDetailsPage extends ConsumerWidget {
             if (!details.isValidated) {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: const [
-                  Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('Le match n’est pas encore terminé.'),
+                children: [
+                  _UpcomingHeader(details: details),
+                  const SizedBox(height: 16),
+                  _HeadToHeadCard(details: details),
+                  if (isAdmin) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.push('/matches/$matchId/finalize'),
+                      icon: const Text('👑'),
+                      label: const Text('Entrer les statistiques'),
                     ),
-                  ),
+                  ],
                 ],
               );
             }
@@ -87,6 +93,78 @@ class MatchDetailsPage extends ConsumerWidget {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _UpcomingHeader extends StatelessWidget {
+  const _UpcomingHeader({required this.details});
+
+  final MatchDetailsData details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          children: [
+            Text(
+              'AS Grinta vs ${details.opponentName}',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(AppFormats.dateTime(details.kickoffAt)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeadToHeadCard extends StatelessWidget {
+  const _HeadToHeadCard({required this.details});
+
+  final MatchDetailsData details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Les 5 dernières rencontres',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            if (details.headToHead.isEmpty)
+              const Text('Aucune confrontation précédente.')
+            else
+              ...details.headToHead.map(
+                (match) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(AppFormats.date(match.date))),
+                      Text(
+                        '${match.scoreGrinta ?? 0} – ${match.scoreOpponent ?? 0}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -141,10 +219,8 @@ class _MatchSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Résumé du match',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Résumé du match',
+                style: Theme.of(context).textTheme.titleLarge),
             if (scorers.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Buteurs', style: Theme.of(context).textTheme.titleMedium),
@@ -157,10 +233,8 @@ class _MatchSummary extends StatelessWidget {
             ],
             if (cleanSheets.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text(
-                'Clean sheet',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Clean sheet',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 6),
               ...cleanSheets.map((line) => Text(line.name)),
             ],
@@ -184,23 +258,28 @@ class _PredictionsTable extends StatelessWidget {
   final int actualOpponent;
   final bool isHome;
 
+  int _result(int home, int away) => home == away ? 0 : (home > away ? 1 : -1);
+
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
-    if (prediction.scoreGrinta == actualGrinta &&
-        prediction.scoreOpponent == actualOpponent) {
-      return const Color(0xFF39E784);
-    }
-    final predictedDifference =
-        prediction.scoreGrinta - prediction.scoreOpponent;
-    final actualDifference = actualGrinta - actualOpponent;
-    if (predictedDifference == actualDifference) {
-      return const Color(0xFF1DCBFF);
-    }
-    if (prediction.scoreGrinta == actualGrinta ||
-        prediction.scoreOpponent == actualOpponent) {
-      return const Color(0xFFFFBE3D);
-    }
-    return const Color(0xFF7C3CFF);
+    final exact = prediction.scoreGrinta == actualGrinta &&
+        prediction.scoreOpponent == actualOpponent;
+    if (exact) return const Color(0xFF9B6CFF);
+
+    final correctWinner = _result(
+          prediction.scoreGrinta,
+          prediction.scoreOpponent,
+        ) ==
+        _result(actualGrinta, actualOpponent);
+    if (!correctWinner) return null;
+
+    final correctDifference =
+        prediction.scoreGrinta - prediction.scoreOpponent ==
+            actualGrinta - actualOpponent;
+    final oneExactTeam = prediction.scoreGrinta == actualGrinta ||
+        prediction.scoreOpponent == actualOpponent;
+    if (correctDifference || oneExactTeam) return const Color(0xFF1DCBFF);
+    return const Color(0xFF39E784);
   }
 
   @override
@@ -229,10 +308,8 @@ class _PredictionsTable extends StatelessWidget {
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 9,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: color == null
@@ -250,9 +327,7 @@ class _PredictionsTable extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Expanded(
-                      child: Text(score, textAlign: TextAlign.center),
-                    ),
+                    Expanded(child: Text(score, textAlign: TextAlign.center)),
                     Expanded(
                       child: Text(
                         prediction.points.round().toString(),
