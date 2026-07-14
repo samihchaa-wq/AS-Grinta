@@ -209,7 +209,8 @@ class _InlineMatchPredictionCardState
               ),
               const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .035),
                   borderRadius: BorderRadius.circular(16),
@@ -320,9 +321,8 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         item.isFilled ? 'Enregistré' : 'À saisir',
         style: TextStyle(
-          color: item.isFilled
-              ? const Color(0xFF69E99B)
-              : AppTheme.textSecondary,
+          color:
+              item.isFilled ? const Color(0xFF69E99B) : AppTheme.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -359,7 +359,8 @@ class _HeadToHead extends StatelessWidget {
               final grinta = match.scoreGrinta ?? 0;
               final opponent = match.scoreOpponent ?? 0;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .035),
                   borderRadius: BorderRadius.circular(12),
