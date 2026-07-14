@@ -1,7 +1,7 @@
 name: Temporary pronostics heading cleanup
 
 on:
-  push:
+  pull_request:
     branches: [main]
 
 permissions:
@@ -9,17 +9,18 @@ permissions:
 
 jobs:
   cleanup:
+    if: github.head_ref == 'fix/remove-last-all-predictions-heading'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/remove-redundant-pronostics-heading
+          ref: fix/remove-last-all-predictions-heading
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Remove heading from legacy player details
+      - name: Remove final heading from player details
         shell: python
         run: |
           from pathlib import Path
@@ -38,16 +39,17 @@ jobs:
               file.write_text(text.replace(old, '', 1))
       - run: flutter pub get
       - run: dart format lib/features/predictions/presentation/season_predictions_page.dart
-      - name: Remove trigger and commit
+      - name: Restore workflow, remove trigger and commit
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .github/remove-pronostics-heading-trigger.txt
+          git checkout origin/main -- .github/workflows/flutter_ci.yml
+          rm -f .github/pr172-trigger.txt
           if git diff --quiet; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "fix: remove redundant player prediction heading"
-          git push origin HEAD:fix/remove-redundant-pronostics-heading
+          git commit -m "fix: remove final redundant predictions heading"
+          git push origin HEAD:fix/remove-last-all-predictions-heading
