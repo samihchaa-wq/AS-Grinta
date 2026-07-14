@@ -59,9 +59,8 @@ class RosterRepository {
       );
     }).toList();
     players.sort(
-      (a, b) => a.displayName
-          .toLowerCase()
-          .compareTo(b.displayName.toLowerCase()),
+      (a, b) =>
+          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
     );
     return players;
   }
