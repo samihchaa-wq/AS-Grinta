@@ -289,25 +289,54 @@ class _ScoreColumn extends StatelessWidget {
   }
 }
 
-class _OddTile extends StatelessWidget {
+class _OddTile extends ConsumerWidget {
   const _OddTile({required this.label, required this.value});
 
   final String label;
   final String value;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(predictionsControllerProvider).items;
+    final item = items.isEmpty ? null : items.first;
+    final selected = item != null &&
+        switch (label) {
+          '1' => item.scoreGrinta > item.scoreOpponent,
+          'N' => item.scoreGrinta == item.scoreOpponent,
+          '2' => item.scoreGrinta < item.scoreOpponent,
+          _ => false,
+        };
+    final scheme = Theme.of(context).colorScheme;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        color: selected ? scheme.primary.withValues(alpha: .10) : null,
+        border: Border.all(
+          color: selected ? scheme.primary : scheme.outlineVariant,
+          width: selected ? 2 : 1,
+        ),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: selected ? scheme.primary : null,
+                  fontWeight: selected ? FontWeight.w800 : null,
+                ),
+          ),
           const SizedBox(height: 2),
-          Text(value, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: selected ? scheme.primary : null,
+                  fontWeight: selected ? FontWeight.w900 : null,
+                ),
+          ),
         ],
       ),
     );
