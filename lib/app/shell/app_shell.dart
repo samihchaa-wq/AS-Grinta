@@ -19,11 +19,6 @@ class AppShell extends ConsumerWidget {
       icon: Icons.bolt_rounded,
     ),
     _ModuleDestination(
-      route: '/matches',
-      label: 'Matchs',
-      icon: Icons.sports_soccer_rounded,
-    ),
-    _ModuleDestination(
       route: '/more',
       label: 'Plus',
       icon: Icons.more_horiz_rounded,
@@ -43,14 +38,15 @@ class AppShell extends ConsumerWidget {
       (route) => location == route || location.startsWith('$route/'),
     )
         ? '/more'
-        : location.startsWith('/predictions')
+        : location.startsWith('/predictions') ||
+                location.startsWith('/matches') ||
+                location == '/home'
             ? '/pronos'
-            : location == '/home'
-                ? '/matches'
-                : location;
+            : location;
 
     final index = _destinations.indexWhere(
-      (destination) => normalizedLocation == destination.route ||
+      (destination) =>
+          normalizedLocation == destination.route ||
           normalizedLocation.startsWith('${destination.route}/'),
     );
     return index < 0 ? 0 : index;
