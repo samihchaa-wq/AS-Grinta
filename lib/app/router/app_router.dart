@@ -1,5 +1,6 @@
 import 'package:as_grinta/app/router/auth_redirect.dart';
 import 'package:as_grinta/app/shell/app_shell.dart';
+import 'package:as_grinta/features/admin/presentation/admin_access_denied_page.dart';
 import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
@@ -48,6 +49,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
+          GoRoute(
+            path: '/admin-access',
+            builder: (_, __) => const AdminAccessDeniedPage(),
+          ),
           GoRoute(
             path: '/admin/matches',
             builder: (_, __) => const MatchesPage(),
