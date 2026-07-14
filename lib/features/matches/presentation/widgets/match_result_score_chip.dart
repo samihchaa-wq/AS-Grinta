@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Affiche un score entouré selon le résultat d’AS Grinta : victoire, nul ou
+/// défaite.
 class MatchResultScoreChip extends StatelessWidget {
   const MatchResultScoreChip({
     super.key,
