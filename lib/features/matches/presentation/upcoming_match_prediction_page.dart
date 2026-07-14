@@ -1,8 +1,9 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
-import 'package:as_grinta/features/matches/data/match_details_repository.dart';
-import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
+import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -418,45 +419,14 @@ class _HistoryStrip extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: matches.map((match) {
-              final grinta = match.scoreGrinta ?? 0;
-              final opponent = match.scoreOpponent ?? 0;
-              final result = grinta > opponent
-                  ? const Color(0xFF39E784)
-                  : grinta == opponent
-                      ? const Color(0xFFFFC84D)
-                      : const Color(0xFFFF6B6B);
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .035),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$grinta–$opponent',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: result,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+            children: matches
+                .map(
+                  (match) => MatchResultScoreChip(
+                    scoreGrinta: match.scoreGrinta ?? 0,
+                    scoreOpponent: match.scoreOpponent ?? 0,
+                  ),
+                )
+                .toList(),
           ),
       ],
     );
