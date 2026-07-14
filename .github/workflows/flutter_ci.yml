@@ -1,11 +1,14 @@
 name: Flutter CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -16,10 +19,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout PR branch
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: fix/exact-player-gauges-h2h-colors
           fetch-depth: 0
 
       - name: Setup Flutter
@@ -31,94 +33,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Apply remaining corrections, format and push
-        shell: python
-        run: |
-          from pathlib import Path
-
-          chip_import = "import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';\n"
-
-          upcoming = Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart')
-          text = upcoming.read_text()
-          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
-          if chip_import not in text:
-              text = text.replace(anchor, anchor + chip_import, 1)
-          old = """              final result = grinta > opponent
-                  ? const Color(0xFF39E784)
-                  : grinta == opponent
-                      ? const Color(0xFFFFC84D)
-                      : const Color(0xFFFF6B6B);
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .035),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$grinta–$opponent',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: result,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-"""
-          new = """              return MatchResultScoreChip(
-                scoreGrinta: grinta,
-                scoreOpponent: opponent,
-              );
-"""
-          if old in text:
-              text = text.replace(old, new, 1)
-          upcoming.write_text(text)
-
-          premium = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
-          text = premium.read_text()
-          old = """          Text(
-            'Tous les pronostics (${predictions.length})',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 12),
-"""
-          if old in text:
-              text = text.replace(old, '', 1)
-          premium.write_text(text)
-      - name: Format changed Dart files
-        shell: bash
-        run: |
-          set -euo pipefail
-          mapfile -t files < <(
-            git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart'
-          )
-          dart format "${files[@]}"
-          git checkout origin/main -- .github/workflows/flutter_ci.yml
-          if git diff --quiet && git diff --cached --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib .github/workflows/flutter_ci.yml
-          git commit -m "chore: finalize remaining score colors and copy cleanup"
-          git push origin HEAD:fix/exact-player-gauges-h2h-colors
-
       - name: Read application version
         shell: bash
         run: |
@@ -126,6 +40,23 @@ jobs:
           version=$(awk '/^version:/{print $2}' pubspec.yaml)
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check formatting of changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            range="$base...HEAD"
+          else
+            range="HEAD^...HEAD"
+          fi
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Dart files to format."
+            exit 0
+          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
