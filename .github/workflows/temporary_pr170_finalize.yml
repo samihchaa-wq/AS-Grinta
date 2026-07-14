@@ -19,50 +19,52 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Apply colored face-to-face score chips
+      - name: Apply exact player cards and colored face-to-face scores
         shell: python
         run: |
           from pathlib import Path
 
           chip_import = "import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';\n"
 
-          inline = Path('lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart')
-          text = inline.read_text()
-          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
-          if chip_import not in text:
-              text = text.replace(anchor, anchor + chip_import)
-          old = """              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .035),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: Text(
-                  '$grinta–$opponent',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              );
-"""
-          new = """              return MatchResultScoreChip(
+          def add_import(text: str) -> str:
+              anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
+              if chip_import not in text:
+                  if anchor not in text:
+                      raise SystemExit('Match details repository import anchor not found')
+                  text = text.replace(anchor, anchor + chip_import, 1)
+              return text
+
+          def replace_mapped_return(path: str, class_name: str, map_marker: str) -> None:
+              file = Path(path)
+              text = add_import(file.read_text())
+              class_start = text.index(f'class {class_name}')
+              map_start = text.index(map_marker, class_start)
+              return_start = text.index('              return ', map_start)
+              map_end = text.index('            }).toList()', return_start)
+              replacement = """              return MatchResultScoreChip(
                 scoreGrinta: grinta,
                 scoreOpponent: opponent,
               );
 """
-          if old not in text:
-              raise SystemExit('Inline head-to-head block not found')
-          inline.write_text(text.replace(old, new))
+              file.write_text(text[:return_start] + replacement + text[map_end:])
+
+          replace_mapped_return(
+              'lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart',
+              '_HeadToHead',
+              'children: matches.map((match) {',
+          )
+          replace_mapped_return(
+              'lib/features/matches/presentation/upcoming_match_prediction_page.dart',
+              '_HistoryStrip',
+              'children: matches.map((match) {',
+          )
 
           details = Path('lib/features/matches/presentation/match_details_page.dart')
-          text = details.read_text()
-          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
-          if chip_import not in text:
-              text = text.replace(anchor, anchor + chip_import)
+          text = add_import(details.read_text())
           old = """                      Text(
-                        '${match.scoreGrinta ?? 0} – ${match.scoreOpponent ?? 0}',
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
+                         '${match.scoreGrinta ?? 0} – ${match.scoreOpponent ?? 0}',
+                         style: const TextStyle(fontWeight: FontWeight.w900),
+                       ),
 """
           new = """                      MatchResultScoreChip(
                         scoreGrinta: match.scoreGrinta ?? 0,
@@ -70,58 +72,18 @@ jobs:
                       ),
 """
           if old not in text:
-              raise SystemExit('Match details head-to-head block not found')
-          details.write_text(text.replace(old, new))
+              raise SystemExit('Match details score text not found')
+          details.write_text(text.replace(old, new, 1))
 
-          upcoming = Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart')
-          text = upcoming.read_text()
-          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
-          if chip_import not in text:
-              text = text.replace(anchor, anchor + chip_import)
-          old = """              final result = grinta > opponent
-                  ? const Color(0xFF39E784)
-                  : grinta == opponent
-                      ? const Color(0xFFFFC84D)
-                      : const Color(0xFFFF6B6B);
-
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .035),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$grinta–$opponent',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: result,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-"""
-          new = """              return MatchResultScoreChip(
-                scoreGrinta: grinta,
-                scoreOpponent: opponent,
-              );
-"""
-          if old not in text:
-              raise SystemExit('Standalone prediction head-to-head block not found')
-          upcoming.write_text(text.replace(old, new))
+          premium = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
+          text = premium.read_text()
+          start_marker = "          Text(\n            'Tous les pronostics (${predictions.length})',"
+          start = text.find(start_marker)
+          if start >= 0:
+              end_marker = '          const SizedBox(height: 12),\n'
+              end = text.index(end_marker, start) + len(end_marker)
+              text = text[:start] + text[end:]
+              premium.write_text(text)
 
           gauge = Path('lib/features/predictions/presentation/widgets/reference_player_gauge_card.dart')
           text = gauge.read_text().replace(
