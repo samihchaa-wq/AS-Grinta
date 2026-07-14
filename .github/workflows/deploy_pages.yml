@@ -6,6 +6,7 @@ on:
       - main
   workflow_dispatch:
 
+# Deployment refresh marker: 2026-07-14-prono-joueurs
 permissions:
   contents: read
   pages: write
