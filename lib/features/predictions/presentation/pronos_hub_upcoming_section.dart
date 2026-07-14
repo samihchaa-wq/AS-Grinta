@@ -137,45 +137,35 @@ class _BetStatusHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Ton pari',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -.3,
-                ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: item.isFilled
+              ? const Color(0xFF39E784).withValues(alpha: .10)
+              : Colors.white.withValues(alpha: .04),
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
             color: item.isFilled
-                ? const Color(0xFF39E784).withValues(alpha: .10)
-                : Colors.white.withValues(alpha: .04),
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(
-              color: item.isFilled
-                  ? const Color(0xFF39E784).withValues(alpha: .34)
-                  : AppTheme.outline,
-            ),
-          ),
-          child: Text(
-            item.isClosed
-                ? 'Fermé'
-                : item.isFilled
-                    ? 'Enregistré'
-                    : 'À saisir',
-            style: TextStyle(
-              color: item.isFilled
-                  ? const Color(0xFF69E99B)
-                  : AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
+                ? const Color(0xFF39E784).withValues(alpha: .34)
+                : AppTheme.outline,
           ),
         ),
-      ],
+        child: Text(
+          item.isClosed
+              ? 'Fermé'
+              : item.isFilled
+                  ? 'Enregistré'
+                  : 'À saisir',
+          style: TextStyle(
+            color: item.isFilled
+                ? const Color(0xFF69E99B)
+                : AppTheme.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
