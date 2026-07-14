@@ -116,7 +116,7 @@ void main() {
             uri: uri,
             matchedLocation: '/auth/sign-in',
           ),
-          '/matches',
+          '/pronos',
         );
       }
     });
@@ -130,6 +130,7 @@ void main() {
 
       for (final route in <String>[
         '/admin',
+        '/admin/matches',
         '/players',
         '/matches/abc/finalize',
       ]) {
@@ -139,7 +140,7 @@ void main() {
             uri: Uri.parse(route),
             matchedLocation: route,
           ),
-          '/matches',
+          '/pronos',
         );
       }
     });
@@ -153,6 +154,7 @@ void main() {
 
       for (final route in <String>[
         '/admin',
+        '/admin/matches',
         '/players',
         '/matches/abc/finalize',
       ]) {
@@ -167,7 +169,7 @@ void main() {
       }
     });
 
-    test('normalizes root aliases to matches', () {
+    test('normalizes root aliases to Pronos', () {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
@@ -180,7 +182,7 @@ void main() {
           uri: Uri.parse('/'),
           matchedLocation: '/',
         ),
-        '/matches',
+        '/pronos',
       );
       expect(
         resolveAuthRedirect(
@@ -188,7 +190,7 @@ void main() {
           uri: Uri.parse('/home'),
           matchedLocation: '/home',
         ),
-        '/matches',
+        '/pronos',
       );
     });
   });
