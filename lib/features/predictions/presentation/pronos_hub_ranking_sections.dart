@@ -9,7 +9,7 @@ class _GeneralRankingsSection extends StatefulWidget {
 }
 
 class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
-  _GeneralRankingView _view = _GeneralRankingView.general;
+  _GeneralRankingView _view = _GeneralRankingView.matches;
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +23,16 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
               expandedInsets: EdgeInsets.zero,
               segments: const [
                 ButtonSegment(
-                  value: _GeneralRankingView.general,
-                  label: Text('Général'),
-                ),
-                ButtonSegment(
                   value: _GeneralRankingView.matches,
                   label: Text('Matchs'),
                 ),
                 ButtonSegment(
                   value: _GeneralRankingView.scorers,
                   label: Text('Buteurs'),
+                ),
+                ButtonSegment(
+                  value: _GeneralRankingView.general,
+                  label: Text('Général'),
                 ),
               ],
               selected: {_view},
@@ -45,9 +45,9 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
         ),
         Expanded(
           child: switch (_view) {
-            _GeneralRankingView.general => const _GeneralRankingViewWidget(),
             _GeneralRankingView.matches => const _MatchRankingView(),
             _GeneralRankingView.scorers => const _ScorerRankingView(),
+            _GeneralRankingView.general => const _GeneralRankingViewWidget(),
           },
         ),
       ],
