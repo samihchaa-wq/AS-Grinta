@@ -124,9 +124,8 @@ class _MatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFinished = match.isFinished;
-    final cardColor = isFinished
-        ? const Color(0xFF1C2433)
-        : const Color(0xFF102A66);
+    final cardColor =
+        isFinished ? const Color(0xFF1C2433) : const Color(0xFF102A66);
     final borderColor = isFinished
         ? Colors.white.withValues(alpha: .10)
         : const Color(0xFF4B6FFF);

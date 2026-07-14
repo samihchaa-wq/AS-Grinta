@@ -111,14 +111,15 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
 
     final cleanSheetId =
         _cleanSheet && _opponentScore == 0 ? sheet.goalkeeperId : null;
-    final success =
-        await ref.read(matchFinalizationControllerProvider.notifier).finalizeMatch(
-              matchId: widget.matchId,
-              grintaScore: _grintaScore,
-              opponentScore: _opponentScore,
-              scorerGoals: scorerGoals,
-              cleanSheetProfileId: cleanSheetId,
-            );
+    final success = await ref
+        .read(matchFinalizationControllerProvider.notifier)
+        .finalizeMatch(
+          matchId: widget.matchId,
+          grintaScore: _grintaScore,
+          opponentScore: _opponentScore,
+          scorerGoals: scorerGoals,
+          cleanSheetProfileId: cleanSheetId,
+        );
     if (success) {
       ref.invalidate(matchDetailsProvider(widget.matchId));
       ref.invalidate(homeDashboardProvider);

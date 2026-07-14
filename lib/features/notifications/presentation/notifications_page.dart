@@ -82,7 +82,8 @@ class NotificationsPage extends ConsumerWidget {
                           ? (value) => _save(
                                 context,
                                 ref,
-                                preferences.copyWith(predictionReminders: value),
+                                preferences.copyWith(
+                                    predictionReminders: value),
                               )
                           : null,
                     ),

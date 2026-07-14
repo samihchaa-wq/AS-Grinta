@@ -37,8 +37,8 @@ class PlayersRegistryPage extends ConsumerWidget {
       floatingActionButton: seasonAsync.valueOrNull == null
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _showPlayerDialog(context, ref,
-                  seasonId: seasonAsync.value!),
+              onPressed: () =>
+                  _showPlayerDialog(context, ref, seasonId: seasonAsync.value!),
               icon: const Icon(Icons.person_add_alt_1),
               label: const Text('Ajouter'),
             ),

@@ -94,7 +94,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
     return Scaffold(
       appBar: GrintaAppBar(
-        title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
+        title:
+            Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
         actions: [
           if (widget.match != null && canManage)
             IconButton(
@@ -210,11 +211,16 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
+                Expanded(
+                    child:
+                        _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
+                Expanded(
+                    child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
                 const SizedBox(width: 8),
-                Expanded(child: _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
+                Expanded(
+                    child:
+                        _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
               ],
             ),
             const SizedBox(height: 24),

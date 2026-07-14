@@ -30,7 +30,8 @@ class _UpcomingMatchPredictionPageState
 
   @override
   Widget build(BuildContext context) {
-    final prediction = ref.watch(matchPredictionDetailsProvider(widget.matchId));
+    final prediction =
+        ref.watch(matchPredictionDetailsProvider(widget.matchId));
     final details = ref.watch(matchDetailsProvider(widget.matchId));
 
     return Scaffold(

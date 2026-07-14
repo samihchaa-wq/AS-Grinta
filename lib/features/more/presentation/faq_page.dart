@@ -16,8 +16,7 @@ class FaqPage extends StatelessWidget {
     ),
     (
       question: 'Comment je me connecte ?',
-      answer:
-          'Avec ton identifiant (prénom + première lettre de ton nom, '
+      answer: 'Avec ton identifiant (prénom + première lettre de ton nom, '
           'ex. samihc) et ton mot de passe. Pas besoin d’email.',
     ),
     (
@@ -37,15 +36,13 @@ class FaqPage extends StatelessWidget {
     ),
     (
       question: 'Qui voit mon pronostic ?',
-      answer:
-          'Personne avant la fin du match — seul le nombre de participants '
+      answer: 'Personne avant la fin du match — seul le nombre de participants '
           'est visible. Une fois le résultat validé, tous les pronostics '
           'deviennent visibles, avec les points gagnés par chacun.',
     ),
     (
       question: 'Comment sont calculés les points d’un match ?',
-      answer:
-          'Chaque issue (victoire, nul, défaite) a une cote. Tes points '
+      answer: 'Chaque issue (victoire, nul, défaite) a une cote. Tes points '
           'dépendent de ta précision :\n'
           '• Score exact : cote × 2\n'
           '• Bon vainqueur + bon écart de buts : cote × 1,5\n'
@@ -57,8 +54,7 @@ class FaqPage extends StatelessWidget {
     ),
     (
       question: 'D’où viennent les cotes ?',
-      answer:
-          'Elles se basent sur les précédentes rencontres face à cet '
+      answer: 'Elles se basent sur les précédentes rencontres face à cet '
           'adversaire : les buts marqués et encaissés lors des derniers '
           'face-à-face, la confrontation la plus récente pesant le plus '
           'lourd, avec un ajustement domicile / extérieur. Sans historique '
