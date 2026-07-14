@@ -122,7 +122,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                             : _CalendarMatchCard(
                                 match: match,
                                 isAdmin: isAdmin,
-                                canPredict: false,
                               ),
                       ),
                     ),
@@ -153,12 +152,10 @@ class _CalendarMatchCard extends ConsumerWidget {
   const _CalendarMatchCard({
     required this.match,
     required this.isAdmin,
-    this.canPredict = false,
   });
 
   final MatchModel match;
   final bool isAdmin;
-  final bool canPredict;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
