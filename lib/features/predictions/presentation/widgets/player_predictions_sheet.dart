@@ -1,0 +1,258 @@
+import 'dart:math' as math;
+
+import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
+import 'package:flutter/material.dart';
+
+class PlayerPredictionsSheet extends StatelessWidget {
+  const PlayerPredictionsSheet({
+    super.key,
+    required this.gauge,
+    required this.currentUserId,
+    required this.scrollController,
+  });
+
+  final PlayerGauge gauge;
+  final String? currentUserId;
+  final ScrollController scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = gaugeAccentFor(gauge.playerId);
+    final predictions = [...gauge.predictions]..sort((a, b) {
+        final aDistance = (a.value - gauge.actual).abs();
+        final bDistance = (b.value - gauge.actual).abs();
+        final byDistance = aDistance.compareTo(bDistance);
+        if (byDistance != 0) return byDistance;
+
+        final byValue = a.value.compareTo(b.value);
+        if (byValue != 0) return byValue;
+        return a.predictorName.toLowerCase().compareTo(
+              b.predictorName.toLowerCase(),
+            );
+      });
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF061226),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: ListView(
+        controller: scrollController,
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 30),
+        children: [
+          Center(
+            child: Container(
+              width: 46,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              IconButton.filledTonal(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      gauge.playerName,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    Text(
+                      gauge.isGoalkeeper
+                          ? AppFormats.counted(
+                              gauge.actual,
+                              'clean sheet actuel',
+                              'clean sheets actuels',
+                            )
+                          : AppFormats.counted(
+                              gauge.actual,
+                              'but actuel',
+                              'buts actuels',
+                            ),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1932),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: accent.withValues(alpha: .22)),
+            ),
+            child: Column(
+              children: [
+                for (var index = 0; index < predictions.length; index++)
+                  _PredictionRow(
+                    prediction: predictions[index],
+                    rank: _rankFor(predictions, index, gauge.actual),
+                    maxValue: math.max(1, gauge.maximum),
+                    isMine: predictions[index].predictorId == currentUserId,
+                    accent: accent,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _rankFor(
+    List<GaugePrediction> predictions,
+    int index,
+    int actual,
+  ) {
+    if (index == 0) return 1;
+    final currentDistance = (predictions[index].value - actual).abs();
+    final previousDistance = (predictions[index - 1].value - actual).abs();
+    if (currentDistance == previousDistance) {
+      return _rankFor(predictions, index - 1, actual);
+    }
+    return index + 1;
+  }
+}
+
+class _PredictionRow extends StatelessWidget {
+  const _PredictionRow({
+    required this.prediction,
+    required this.rank,
+    required this.maxValue,
+    required this.isMine,
+    required this.accent,
+  });
+
+  final GaugePrediction prediction;
+  final int rank;
+  final int maxValue;
+  final bool isMine;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (prediction.value / maxValue).clamp(0.0, 1.0).toDouble();
+    const mine = Color(0xFF39E784);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: isMine ? mine.withValues(alpha: .12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        border: isMine ? Border.all(color: mine.withValues(alpha: .18)) : null,
+      ),
+      child: Row(
+        children: [
+          SizedBox(width: 34, child: _RankBadge(rank: rank)),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: accent.withValues(alpha: .18),
+            child: Text(
+              prediction.predictorName.trim().isEmpty
+                  ? '?'
+                  : prediction.predictorName.trim()[0].toUpperCase(),
+              style: TextStyle(
+                color: isMine ? mine : Colors.white,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 3,
+            child: Text(
+              isMine
+                  ? '${prediction.predictorName} (moi)'
+                  : prediction.predictorName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isMine ? mine : Colors.white,
+                fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: Colors.white.withValues(alpha: .06),
+                color: isMine ? mine : accent,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 30,
+            child: Text(
+              '${prediction.value}',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: isMine ? mine : Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RankBadge extends StatelessWidget {
+  const _RankBadge({required this.rank});
+
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (rank) {
+      1 => const Color(0xFFFFC43D),
+      2 => const Color(0xFFD7E0EE),
+      3 => const Color(0xFFFF925D),
+      _ => Colors.transparent,
+    };
+    if (rank > 3) {
+      return Text(
+        '$rank',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white60),
+      );
+    }
+    return CircleAvatar(
+      radius: 13,
+      backgroundColor: color,
+      child: Text(
+        '$rank',
+        style: const TextStyle(
+          color: Color(0xFF071326),
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
