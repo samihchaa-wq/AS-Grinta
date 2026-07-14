@@ -1,0 +1,126 @@
+name: Finalize calendar cleanup
+
+on:
+  push:
+    branches: [fix/simplify-calendar-remove-labels-large-logo]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/simplify-calendar-remove-labels-large-logo
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply targeted cleanup
+        shell: python
+        run: |
+          from pathlib import Path
+
+          season = Path('lib/features/predictions/presentation/enhanced_season_predictions_page.dart')
+          text = season.read_text()
+          old = """                  Row(
+                    children: [
+                      Text(
+                        '${_predictorCount(gauges)} pronostiqueurs',
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      completedMatches.when(
+                        loading: () => const Text(
+                          'Matchs joués : …',
+                          style: TextStyle(color: Colors.white60),
+                        ),
+                        error: (_, __) => const SizedBox.shrink(),
+                        data: (count) => Text(
+                          'Matchs joués : $count',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+"""
+          new = """                  Align(
+                    alignment: Alignment.centerRight,
+                    child: completedMatches.when(
+                      loading: () => const Text(
+                        'Matchs joués : …',
+                        style: TextStyle(color: Colors.white60),
+                      ),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (count) => Text(
+                        'Matchs joués : $count',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+"""
+          text = text.replace(old, new)
+          start = text.find('  int _predictorCount(List<PlayerGauge> gauges) {')
+          if start != -1:
+            end = text.find('\n  }\n}', start)
+            if end != -1:
+              text = text[:start] + text[end + 5:]
+          season.write_text(text)
+
+          finalization = Path('lib/features/matches/presentation/match_finalization_page.dart')
+          text = finalization.read_text().replace(
+              "appBar: GrintaAppBar(title: const Text('Saisie du match')),
+",
+              "appBar: GrintaAppBar(title: const SizedBox.shrink()),
+",
+          )
+          finalization.write_text(text)
+
+          details = Path('lib/features/matches/presentation/match_details_page.dart')
+          text = details.read_text().replace(
+              "appBar: GrintaAppBar(title: const Text('Détails du match')),
+",
+              "appBar: GrintaAppBar(title: const SizedBox.shrink()),
+",
+          )
+          details.write_text(text)
+
+          appbar = Path('lib/core/widgets/grinta_app_bar.dart')
+          text = appbar.read_text()
+          text = text.replace('toolbarHeight: 78,', 'toolbarHeight: 104,')
+          text = text.replace('height: 58,', 'height: 88,')
+          text = text.replace('maxWidth: 92', 'maxWidth: 72')
+          appbar.write_text(text)
+      - run: flutter pub get
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(
+            git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart'
+          )
+          dart format "${files[@]}"
+      - name: Commit finalized changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib
+          git commit -m "chore: finalize calendar and header cleanup"
+          git push origin HEAD:fix/simplify-calendar-remove-labels-large-logo
