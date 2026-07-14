@@ -21,7 +21,7 @@ part 'pronos_hub_components.dart';
 
 enum _PronosCategory { matches, scorers, general }
 
-enum _MatchSection { calendar, ranking }
+enum _GeneralRankingView { general, matches, scorers }
 
 class PronosHubPage extends ConsumerStatefulWidget {
   const PronosHubPage({super.key, this.initialCategory});
@@ -34,7 +34,6 @@ class PronosHubPage extends ConsumerStatefulWidget {
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
   late _PronosCategory _category;
-  _MatchSection _matchSection = _MatchSection.calendar;
 
   @override
   void initState() {
@@ -62,46 +61,14 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: GrintaAppBar(title: const SizedBox.shrink()),
-      body: Column(
-        children: [
-          if (_category == _PronosCategory.matches)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<_MatchSection>(
-                  expandedInsets: EdgeInsets.zero,
-                  segments: const [
-                    ButtonSegment(
-                      value: _MatchSection.calendar,
-                      label: Text('Calendrier'),
-                    ),
-                    ButtonSegment(
-                      value: _MatchSection.ranking,
-                      label: Text('Classement'),
-                    ),
-                  ],
-                  selected: {_matchSection},
-                  showSelectedIcon: false,
-                  onSelectionChanged: (selection) {
-                    setState(() => _matchSection = selection.first);
-                  },
-                ),
-              ),
-            ),
-          Expanded(
-            child: switch (_category) {
-              _PronosCategory.matches => switch (_matchSection) {
-                  _MatchSection.calendar => const _CalendarSection(),
-                  _MatchSection.ranking => const _MatchRankingView(),
-                },
-              _PronosCategory.scorers =>
-                const ColorfulSeasonPredictionsPage(embedded: true),
-              _PronosCategory.general => const _GeneralSection(),
-            },
+      body: switch (_category) {
+        _PronosCategory.matches => const _CalendarSection(),
+        _PronosCategory.scorers => const ColorfulSeasonPredictionsPage(
+            embedded: true,
+            showRanking: false,
           ),
-        ],
-      ),
+        _PronosCategory.general => const _GeneralRankingsSection(),
+      },
     );
   }
 }

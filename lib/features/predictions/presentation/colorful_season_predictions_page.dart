@@ -5,9 +5,14 @@ import 'package:flutter/material.dart';
 
 /// Habillage visuel des pronostics de saison avec lignes multicolores.
 class ColorfulSeasonPredictionsPage extends StatelessWidget {
-  const ColorfulSeasonPredictionsPage({super.key, this.embedded = false});
+  const ColorfulSeasonPredictionsPage({
+    super.key,
+    this.embedded = false,
+    this.showRanking = true,
+  });
 
   final bool embedded;
+  final bool showRanking;
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +23,8 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const IgnorePointer(child: CustomPaint(painter: _SeasonLinesPainter())),
+          const IgnorePointer(
+              child: CustomPaint(painter: _SeasonLinesPainter())),
           Theme(
             data: baseTheme.copyWith(
               scaffoldBackgroundColor: Colors.transparent,
@@ -28,7 +34,10 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
                 space: 1,
               ),
             ),
-            child: EnhancedSeasonPredictionsPage(embedded: embedded),
+            child: EnhancedSeasonPredictionsPage(
+              embedded: embedded,
+              showRanking: showRanking,
+            ),
           ),
         ],
       ),
