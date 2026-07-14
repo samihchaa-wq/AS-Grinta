@@ -8,8 +8,6 @@ class _CalendarSection extends ConsumerStatefulWidget {
 }
 
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
-  _CalendarFilter _filter = _CalendarFilter.finished;
-
   @override
   void initState() {
     super.initState();
@@ -23,77 +21,35 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
-    final matches = state.matches.where((match) {
-      return _filter == _CalendarFilter.finished
-          ? match.isFinished
-          : !match.isFinished;
-    }).toList()
-      ..sort(
-        (a, b) => _filter == _CalendarFilter.finished
-            ? b.kickoffAt.compareTo(a.kickoffAt)
-            : a.kickoffAt.compareTo(b.kickoffAt),
-      );
+    final matches = [...state.matches]
+      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<_CalendarFilter>(
-              expandedInsets: EdgeInsets.zero,
-              segments: const [
-                ButtonSegment(
-                  value: _CalendarFilter.finished,
-                  label: Text('Terminé'),
-                ),
-                ButtonSegment(
-                  value: _CalendarFilter.upcoming,
-                  label: Text('À venir'),
-                ),
-              ],
-              selected: {_filter},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() => _filter = selection.first);
-              },
-            ),
+    return RefreshIndicator(
+      onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
+            seasonId: state.selectedSeasonId,
           ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
-                  seasonId: state.selectedSeasonId,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+        children: [
+          if (state.isLoading)
+            const _LoadingCard()
+          else if (state.error != null)
+            _MessageCard(message: state.error!)
+          else if (matches.isEmpty)
+            const _MessageCard(message: 'Aucun match pour le moment.')
+          else
+            ...matches.map(
+              (match) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _CalendarMatchCard(
+                  match: match,
+                  isAdmin: isAdmin,
                 ),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              children: [
-                if (state.isLoading)
-                  const _LoadingCard()
-                else if (state.error != null)
-                  _MessageCard(message: state.error!)
-                else if (matches.isEmpty)
-                  _MessageCard(
-                    message: _filter == _CalendarFilter.finished
-                        ? 'Aucun match terminé pour le moment.'
-                        : 'Aucun match à venir pour le moment.',
-                  )
-                else
-                  ...matches.map(
-                    (match) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _CalendarMatchCard(
-                        match: match,
-                        isAdmin: isAdmin,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

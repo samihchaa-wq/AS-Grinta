@@ -7,7 +7,7 @@ class GrintaAppBar extends AppBar {
     super.actions,
     super.bottom,
   }) : super(
-          toolbarHeight: 78,
+          toolbarHeight: 104,
           titleSpacing: 8,
           title: SizedBox(
             width: double.infinity,
@@ -16,26 +16,38 @@ class GrintaAppBar extends AppBar {
                 Expanded(
                   child: Image.asset(
                     'assets/images/mpg_logo.png',
-                    height: 58,
+                    height: 88,
                     fit: BoxFit.contain,
                     alignment: Alignment.centerLeft,
                   ),
                 ),
-                const SizedBox(width: 10),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 92),
-                  child: DefaultTextStyle.merge(
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                if (_showTitle(title)) ...[
+                  const SizedBox(width: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 72),
+                    child: DefaultTextStyle.merge(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      child: title is Widget ? title : Text(title.toString()),
                     ),
-                    child: title is Widget ? title : Text(title.toString()),
                   ),
-                ),
+                ],
               ],
             ),
           ),
         );
+
+  static bool _showTitle(Object title) {
+    if (title is SizedBox && title.child == null) return false;
+    if (title is Text) {
+      return title.data != 'Saisie du match' &&
+          title.data != 'Détails du match' &&
+          (title.data?.isNotEmpty ?? false);
+    }
+    return true;
+  }
 }
