@@ -9,6 +9,7 @@ import 'package:as_grinta/features/auth/presentation/forced_password_change_page
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
+import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/more/presentation/faq_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
@@ -69,6 +70,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/matches/:matchId/finalize',
             builder: (context, state) => MatchFinalizationPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/prediction',
+            builder: (context, state) => UpcomingMatchPredictionPage(
               matchId: state.pathParameters['matchId'] ?? '',
             ),
           ),
