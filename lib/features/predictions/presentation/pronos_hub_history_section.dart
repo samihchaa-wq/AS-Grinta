@@ -55,12 +55,23 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
               (match) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: !match.isFinished && match.id == nextPredictionMatchId
-                    ? _UpcomingPredictionCard(
-                        onEnterStats: isAdmin
-                            ? () => context.push(
+                    ? Column(
+                        children: [
+                          const _UpcomingPredictionCard(),
+                          if (isAdmin) ...[
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.tonalIcon(
+                                onPressed: () => context.push(
                                   '/matches/${match.id}/finalize',
-                                )
-                            : null,
+                                ),
+                                icon: const Icon(Icons.fact_check_outlined),
+                                label: const Text('Entrer les stats'),
+                              ),
+                            ),
+                          ],
+                        ],
                       )
                     : _CalendarMatchCard(
                         match: match,
