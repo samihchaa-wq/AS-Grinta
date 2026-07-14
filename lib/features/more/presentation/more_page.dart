@@ -15,7 +15,7 @@ class MorePage extends ConsumerWidget {
     final isStaff = profile?.role.isStaff == true;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: 'Plus'),
+      appBar: GrintaAppBar(title: const SizedBox.shrink()),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -50,14 +50,14 @@ class MorePage extends ConsumerWidget {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    leading: const Text('👑', style: TextStyle(fontSize: 22)),
                     title: const Text('Administration'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/admin'),
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.group_outlined),
+                    leading: const Text('👑', style: TextStyle(fontSize: 22)),
                     title: const Text('Effectif'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/players'),
