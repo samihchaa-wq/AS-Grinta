@@ -81,9 +81,7 @@ class _UpcomingMatchView extends ConsumerWidget {
             error: (_, __) => const _MessageCard(
               message: 'Ton pari est indisponible.',
             ),
-            data: (data) => _UpcomingPredictionCard(
-              participantCount: data.predictionParticipantCount,
-            ),
+            data: (_) => const _UpcomingPredictionCard(),
           ),
         ],
       ),
