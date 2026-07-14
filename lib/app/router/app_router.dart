@@ -30,7 +30,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ..onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: '/pronos',
+    initialLocation: '/pronos?category=matches',
     refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
       authState: ref.read(authControllerProvider),
@@ -38,11 +38,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       matchedLocation: state.matchedLocation,
     ),
     routes: [
-      GoRoute(path: '/', redirect: (_, __) => '/pronos'),
-      GoRoute(path: '/home', redirect: (_, __) => '/pronos'),
+      GoRoute(path: '/', redirect: (_, __) => '/pronos?category=matches'),
+      GoRoute(path: '/home', redirect: (_, __) => '/pronos?category=matches'),
       ShellRoute(
         builder: (context, state, child) => AppShell(
-          location: state.uri.path,
+          location: state.uri.toString(),
           child: child,
         ),
         routes: [
@@ -56,7 +56,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/players',
             builder: (_, __) => const PlayersRegistryPage(),
           ),
-          GoRoute(path: '/matches', redirect: (_, __) => '/pronos'),
+          GoRoute(
+            path: '/matches',
+            redirect: (_, __) => '/pronos?category=matches',
+          ),
           GoRoute(
             path: '/matches/:matchId',
             builder: (context, state) => MatchDetailsPage(
@@ -71,9 +74,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/pronos',
-            builder: (_, __) => const PronosHubPage(),
+            builder: (context, state) => PronosHubPage(
+              initialCategory: state.uri.queryParameters['category'],
+            ),
           ),
-          GoRoute(path: '/predictions', redirect: (_, __) => '/pronos'),
+          GoRoute(
+            path: '/predictions',
+            redirect: (_, __) => '/pronos?category=matches',
+          ),
           GoRoute(
             path: '/predictions/leaderboard',
             builder: (_, __) => const LeaderboardPage(),
