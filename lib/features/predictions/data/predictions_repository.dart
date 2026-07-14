@@ -51,6 +51,31 @@ class MatchPredictionItem {
   bool get hasResult =>
       actualScoreGrinta != null && actualScoreOpponent != null;
 
+  MatchPredictionItem updated({
+    int? scoreGrinta,
+    int? scoreOpponent,
+    bool? isFilled,
+    bool? useX2,
+  }) {
+    return MatchPredictionItem(
+      matchId: matchId,
+      opponentName: opponentName,
+      kickoffAt: kickoffAt,
+      status: status,
+      scoreGrinta: scoreGrinta ?? this.scoreGrinta,
+      scoreOpponent: scoreOpponent ?? this.scoreOpponent,
+      isFilled: isFilled ?? this.isFilled,
+      useX2: useX2 ?? this.useX2,
+      x2Available: x2Available,
+      oddsWin: oddsWin,
+      oddsDraw: oddsDraw,
+      oddsLoss: oddsLoss,
+      actualScoreGrinta: actualScoreGrinta,
+      actualScoreOpponent: actualScoreOpponent,
+      predictionsClosedAt: predictionsClosedAt,
+    );
+  }
+
   double? get earnedPoints {
     if (!isFilled || !hasResult) return hasResult ? 0 : null;
     final actualResult = _result(actualScoreGrinta!, actualScoreOpponent!);
@@ -106,9 +131,7 @@ class PredictionsRepository {
         .order('match_time', ascending: true);
     final items = <MatchPredictionItem>[];
     for (final match in matches as List) {
-      items.add(
-        await _buildItem(Map<String, dynamic>.from(match as Map)),
-      );
+      items.add(await _buildItem(Map<String, dynamic>.from(match as Map)));
     }
     return items;
   }
@@ -196,24 +219,34 @@ class PredictionsRepository {
       throw ArgumentError('Les scores doivent être compris entre 0 et 99.');
     }
 
-    final match = await _client
+    final upcoming = await _client
         .from('matches')
-        .select('match_date, match_time, status')
-        .eq('id', matchId)
-        .maybeSingle();
-    if (match == null) {
-      throw StateError('Ce match est introuvable ou a été supprimé.');
+        .select('id,match_date,match_time,status,predictions_closed_at')
+        .eq('status', 'a_venir')
+        .order('match_date', ascending: true)
+        .order('match_time', ascending: true);
+    final now = DateTime.now();
+    String? firstOpenMatchId;
+    for (final row in upcoming as List) {
+      final map = Map<String, dynamic>.from(row as Map);
+      final kickoff = DateTime.tryParse(
+        '${map['match_date']}T${map['match_time']}',
+      );
+      final manuallyClosed = DateTime.tryParse(
+        '${map['predictions_closed_at'] ?? ''}',
+      );
+      final closed = kickoff == null ||
+          !now.isBefore(kickoff.subtract(const Duration(minutes: 5))) ||
+          (manuallyClosed != null && !now.isBefore(manuallyClosed));
+      if (!closed) {
+        firstOpenMatchId = map['id'].toString();
+        break;
+      }
     }
-    final kickoffAt = DateTime.tryParse(
-      '${match['match_date']}T${match['match_time']}',
-    );
-    if (kickoffAt == null || match['status'] != 'a_venir') {
-      throw StateError('Ce pronostic est fermé.');
-    }
-    if (!DateTime.now().isBefore(
-      kickoffAt.subtract(const Duration(minutes: 5)),
-    )) {
-      throw StateError('Ce pronostic est fermé.');
+    if (firstOpenMatchId != matchId) {
+      throw StateError(
+        'Ce match n’est pas encore ouvert aux pronostics. Termine d’abord le prochain match disponible.',
+      );
     }
 
     await _client.from('match_predictions').upsert({
