@@ -1,0 +1,44 @@
+name: Temporary admin portrait builder
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build-asset:
+    if: github.head_ref == 'feature/admin-gate-and-match-tabs'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/admin-gate-and-match-tabs
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install background remover
+        run: pip install 'rembg[cpu]' pillow
+      - name: Download source and remove background only
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 \
+            'https://cdns.klimg.com/resized/1200x720/p/headline/asal-usul-meme-dictator-mbappe-yang-vir-170078.jpg' \
+            -o /tmp/admin-source.jpg
+          mkdir -p assets/images
+          rembg i /tmp/admin-source.jpg assets/images/admin_access_denied.png
+      - name: Commit transparent asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- assets/images/admin_access_denied.png; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/images/admin_access_denied.png
+          git commit -m 'assets: add transparent admin denied portrait'
+          git push origin HEAD:feature/admin-gate-and-match-tabs
