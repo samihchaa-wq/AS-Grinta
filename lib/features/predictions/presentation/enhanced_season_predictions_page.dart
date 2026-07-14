@@ -94,7 +94,8 @@ class _EnhancedSeasonPredictionsPageState
         data: (gauges) {
           final currentUserId =
               ref.read(seasonPredictionsRepositoryProvider).currentUserId;
-          final showPlayers = !widget.showRanking || _view == _SeasonView.players;
+          final showPlayers =
+              !widget.showRanking || _view == _SeasonView.players;
 
           return RefreshIndicator(
             onRefresh: () async {

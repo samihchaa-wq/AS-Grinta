@@ -23,7 +23,8 @@ class ColorfulSeasonPredictionsPage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const IgnorePointer(child: CustomPaint(painter: _SeasonLinesPainter())),
+          const IgnorePointer(
+              child: CustomPaint(painter: _SeasonLinesPainter())),
           Theme(
             data: baseTheme.copyWith(
               scaffoldBackgroundColor: Colors.transparent,
