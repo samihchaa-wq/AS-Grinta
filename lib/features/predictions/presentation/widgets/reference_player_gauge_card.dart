@@ -20,6 +20,9 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final median = gauge.predictions.isEmpty ? null : gauge.median.round();
     final accent = gaugeAccentFor(gauge.playerId);
+    final activityIcon = gauge.isGoalkeeper
+        ? Icons.sports_handball_outlined
+        : Icons.sports_soccer;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -52,14 +55,17 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _PlayerIdentity(
-                              name: gauge.playerName, accent: accent),
+                            name: gauge.playerName,
+                            accent: accent,
+                            icon: activityIcon,
+                          ),
                           const SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
                                 child: _Metric(
                                   label: gauge.isGoalkeeper
-                                      ? 'Actuel'
+                                      ? 'Clean sheets'
                                       : 'Buts actuels',
                                   value: gauge.actual.toString(),
                                   color: accent,
@@ -92,13 +98,15 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                           child: _PlayerIdentity(
                             name: gauge.playerName,
                             accent: accent,
+                            icon: activityIcon,
                           ),
                         ),
                         Expanded(
                           flex: 2,
                           child: _Metric(
-                            label:
-                                gauge.isGoalkeeper ? 'Actuel' : 'Buts actuels',
+                            label: gauge.isGoalkeeper
+                                ? 'Clean sheets'
+                                : 'Buts actuels',
                             value: gauge.actual.toString(),
                             color: accent,
                           ),
@@ -123,14 +131,34 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                     );
                   },
                 ),
-                const SizedBox(height: 24),
-                PremiumGaugeLine(
-                  actual: gauge.actual,
-                  fallbackMax: scaleMax,
-                  median: median?.toDouble(),
-                  personalPrediction: personalPrediction,
-                  accent: accent,
-                  onMedianTap: onTap,
+                const SizedBox(height: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent.withValues(alpha: .12),
+                        border: Border.all(
+                          color: accent.withValues(alpha: .42),
+                        ),
+                      ),
+                      child: Icon(activityIcon, color: accent, size: 22),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: PremiumGaugeLine(
+                        actual: gauge.actual,
+                        fallbackMax: scaleMax,
+                        median: median?.toDouble(),
+                        personalPrediction: personalPrediction,
+                        accent: accent,
+                        onMedianTap: onTap,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -142,10 +170,15 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
 }
 
 class _PlayerIdentity extends StatelessWidget {
-  const _PlayerIdentity({required this.name, required this.accent});
+  const _PlayerIdentity({
+    required this.name,
+    required this.accent,
+    required this.icon,
+  });
 
   final String name;
   final Color accent;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +192,7 @@ class _PlayerIdentity extends StatelessWidget {
             color: accent.withValues(alpha: .10),
             border: Border.all(color: accent.withValues(alpha: .35)),
           ),
-          child: Icon(Icons.sports_soccer, color: accent, size: 32),
+          child: Icon(icon, color: accent, size: 32),
         ),
         const SizedBox(width: 14),
         Expanded(
