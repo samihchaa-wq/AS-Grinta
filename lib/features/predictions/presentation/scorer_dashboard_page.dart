@@ -138,7 +138,7 @@ class _ScorerHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 220),
+      height: 230,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
@@ -717,23 +717,23 @@ class _InsightStrip extends StatelessWidget {
         : personalPrediction! - median!;
     final color = comparison == null
         ? Colors.white54
-        : comparison! > 0
+        : comparison > 0
             ? _actualBlue
-            : comparison! < 0
+            : comparison < 0
                 ? _personalGold
                 : _negativeGreen;
     final title = comparison == null
         ? 'Pronostic à compléter.'
-        : comparison! > 0
+        : comparison > 0
             ? 'Tu vois grand pour $playerName !'
-            : comparison! < 0
+            : comparison < 0
                 ? 'Prudent sur $playerName.'
                 : 'Aligné avec la médiane.';
     final subtitle = comparison == null
         ? 'Renseigne ton estimation pour la comparer.'
-        : comparison! > 0
+        : comparison > 0
             ? 'Tu es au-dessus de la médiane.'
-            : comparison! < 0
+            : comparison < 0
                 ? 'Tu pronostiques moins que la majorité.'
                 : 'Ton pronostic rejoint celui du groupe.';
 
