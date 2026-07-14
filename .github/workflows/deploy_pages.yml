@@ -6,6 +6,7 @@ on:
       - main
   workflow_dispatch:
 
+# Deployment refresh marker: actual-prono-joueurs-gauges
 permissions:
   contents: read
   pages: write
@@ -101,7 +102,7 @@ jobs:
           grep -q 'flutter_bootstrap.js' /tmp/index.html
           grep -q '/AS-Grinta/' /tmp/index.html
           grep -a -q 'Clean sheets' /tmp/main.dart.js
-          grep -a -q 'Ton pari' /tmp/main.dart.js
+          grep -a -q 'Buts actuels' /tmp/main.dart.js
       - name: Verify Supabase availability
         run: |
           set -euo pipefail
