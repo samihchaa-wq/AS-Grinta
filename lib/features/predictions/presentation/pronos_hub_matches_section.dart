@@ -4,8 +4,7 @@ class _UpcomingMatchView extends ConsumerStatefulWidget {
   const _UpcomingMatchView();
 
   @override
-  ConsumerState<_UpcomingMatchView> createState() =>
-      _UpcomingMatchViewState();
+  ConsumerState<_UpcomingMatchView> createState() => _UpcomingMatchViewState();
 }
 
 class _UpcomingMatchViewState extends ConsumerState<_UpcomingMatchView> {

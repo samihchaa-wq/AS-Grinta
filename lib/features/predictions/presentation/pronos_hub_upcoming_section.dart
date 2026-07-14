@@ -384,10 +384,9 @@ class _OddsAndX2 extends StatelessWidget {
               ),
               Switch(
                 value: item.useX2,
-                onChanged:
-                    (!item.useX2 && item.x2Available <= 0) || isSaving
-                        ? null
-                        : (_) => onToggleX2(),
+                onChanged: (!item.useX2 && item.x2Available <= 0) || isSaving
+                    ? null
+                    : (_) => onToggleX2(),
               ),
             ],
           ),

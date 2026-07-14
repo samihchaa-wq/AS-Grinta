@@ -45,7 +45,8 @@ class AppShell extends ConsumerWidget {
             : location;
 
     final index = _destinations.indexWhere(
-      (destination) => normalizedLocation == destination.route ||
+      (destination) =>
+          normalizedLocation == destination.route ||
           normalizedLocation.startsWith('${destination.route}/'),
     );
     return index < 0 ? 0 : index;

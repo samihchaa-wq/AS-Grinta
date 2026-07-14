@@ -78,8 +78,7 @@ class MatchDetailsPage extends ConsumerWidget {
                 if (isAdmin) ...[
                   const SizedBox(height: 16),
                   FilledButton.icon(
-                    onPressed: () =>
-                        context.push('/matches/$matchId/finalize'),
+                    onPressed: () => context.push('/matches/$matchId/finalize'),
                     icon: const Icon(Icons.history_edu_outlined),
                     label: const Text('Modifier les statistiques'),
                   ),
@@ -130,7 +129,8 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scorers = details.playerStats.where((line) => line.goals > 0).toList();
+    final scorers =
+        details.playerStats.where((line) => line.goals > 0).toList();
     final cleanSheets =
         details.playerStats.where((line) => line.cleanSheet).toList();
 
