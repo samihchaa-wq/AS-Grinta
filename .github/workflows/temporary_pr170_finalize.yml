@@ -1,15 +1,16 @@
 name: Temporary PR 170 finalizer
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: write
 
 jobs:
   finalize:
-    if: github.head_ref == 'fix/exact-player-gauges-h2h-colors'
+    if: github.event.pull_request.head.ref == 'fix/exact-player-gauges-h2h-colors'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
