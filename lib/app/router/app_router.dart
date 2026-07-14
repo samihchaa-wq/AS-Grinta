@@ -50,10 +50,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/admin', builder: (_, __) => const AdminPage()),
           GoRoute(
-            path: '/admin-access',
-            builder: (_, __) => const AdminAccessDeniedPage(),
-          ),
-          GoRoute(
             path: '/admin/matches',
             builder: (_, __) => const MatchesPage(),
           ),
@@ -105,6 +101,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/faq', builder: (_, __) => const FaqPage()),
         ],
+      ),
+      GoRoute(
+        path: '/admin-access',
+        builder: (_, __) => const AdminAccessDeniedPage(),
       ),
       GoRoute(
         path: '/auth/loading',
