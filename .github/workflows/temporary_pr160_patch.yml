@@ -24,23 +24,25 @@ jobs:
       - name: Patch upcoming prediction data flow
         shell: python
         run: |
+          import re
           from pathlib import Path
 
           repository = Path('lib/features/predictions/data/predictions_repository.dart')
           text = repository.read_text()
-          old = """    final matches = await _client
-              .from('matches')
-              .select(_matchSelect)
-              .eq('status', 'a_venir')
-              .order('match_date', ascending: true)
-              .order('match_time', ascending: true)
-              .limit(1);
-          if ((matches as List).isEmpty) return const [];
-          final item =
-              await _buildItem(Map<String, dynamic>.from(matches.first as Map));
-          return [item];
-          """
-          new = """    final matches = await _client
+          pattern = re.compile(
+              r"    final matches = await _client\n"
+              r"        \.from\('matches'\)\n"
+              r"        \.select\(_matchSelect\)\n"
+              r"        \.eq\('status', 'a_venir'\)\n"
+              r"        \.order\('match_date', ascending: true\)\n"
+              r"        \.order\('match_time', ascending: true\)\n"
+              r"        \.limit\(1\);\n"
+              r"    if \(\(matches as List\)\.isEmpty\) return const \[\];\n"
+              r"    final item =\n"
+              r"        await _buildItem\(Map<String, dynamic>\.from\(matches\.first as Map\)\);\n"
+              r"    return \[item\];"
+          )
+          replacement = """    final matches = await _client
               .from('matches')
               .select(_matchSelect)
               .eq('status', 'a_venir')
@@ -52,39 +54,38 @@ jobs:
               await _buildItem(Map<String, dynamic>.from(match as Map)),
             );
           }
-          return items;
-          """
-          if old not in text:
+          return items;"""
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
               raise SystemExit('predictions repository snippet not found')
-          repository.write_text(text.replace(old, new))
+          repository.write_text(text)
 
           upcoming = Path('lib/features/predictions/presentation/pronos_hub_upcoming_section.dart')
           text = upcoming.read_text()
-          old = """class _UpcomingPredictionCard extends ConsumerWidget {
-            const _UpcomingPredictionCard();
-
-            @override
-            Widget build(BuildContext context, WidgetRef ref) {
-              final state = ref.watch(predictionsControllerProvider);
-              if (state.isLoading) return const _LoadingCard();
-              if (state.items.isEmpty) {
-                return const _MessageCard(message: 'Aucun match à pronostiquer.');
-              }
-
-              final item = state.items.first;
-          """
-          new = """class _UpcomingPredictionCard extends ConsumerWidget {
+          pattern = re.compile(
+              r"class _UpcomingPredictionCard extends ConsumerWidget \{\n"
+              r"  const _UpcomingPredictionCard\(\);\n\n"
+              r"  @override\n"
+              r"  Widget build\(BuildContext context, WidgetRef ref\) \{\n"
+              r"    final state = ref\.watch\(predictionsControllerProvider\);\n"
+              r"    if \(state\.isLoading\) return const _LoadingCard\(\);\n"
+              r"    if \(state\.items\.isEmpty\) \{\n"
+              r"      return const _MessageCard\(message: 'Aucun match à pronostiquer\.'\);\n"
+              r"    \}\n\n"
+              r"    final item = state\.items\.first;"
+          )
+          replacement = """class _UpcomingPredictionCard extends ConsumerWidget {
             const _UpcomingPredictionCard({required this.item});
 
             final MatchPredictionItem item;
 
             @override
             Widget build(BuildContext context, WidgetRef ref) {
-              final state = ref.watch(predictionsControllerProvider);
-          """
-          if old not in text:
+              final state = ref.watch(predictionsControllerProvider);"""
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
               raise SystemExit('upcoming card snippet not found')
-          upcoming.write_text(text.replace(old, new))
+          upcoming.write_text(text)
       - name: Format changed Dart files
         run: dart format lib/core/widgets/grinta_app_bar.dart lib/features/players/data/roster_repository.dart lib/features/predictions/data/predictions_repository.dart lib/features/predictions/presentation/pronos_hub_history_section.dart lib/features/predictions/presentation/pronos_hub_upcoming_section.dart
       - name: Commit patch
