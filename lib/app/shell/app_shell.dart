@@ -76,8 +76,8 @@ class AppShell extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings_rounded),
-            label: '',
-            tooltip: 'Plus',
+            label: 'Paramètres',
+            tooltip: 'Paramètres',
           ),
         ],
       ),

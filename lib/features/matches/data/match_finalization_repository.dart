@@ -71,7 +71,7 @@ class MatchFinalizationRepository {
         .select('id,first_name,last_name,is_goalkeeper,is_active')
         .eq('season_id', seasonId)
         .eq('is_active', true)
-        .order('first_name');
+        .order('first_name', ascending: true);
 
     final squad = <SquadMember>[];
     String? goalkeeperId;
@@ -87,6 +87,9 @@ class MatchFinalizationRepository {
         goalkeeperName = name;
       }
     }
+    squad.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
 
     final scorerGoalLines = <String>[];
     String? cleanSheetProfileId;
