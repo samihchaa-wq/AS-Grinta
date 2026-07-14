@@ -9,36 +9,46 @@ permissions:
 
 jobs:
   build-asset:
-    if: github.head_ref == 'feature/admin-gate-and-match-tabs'
+    if: github.head_ref == 'fix/remove-last-all-predictions-heading'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/admin-gate-and-match-tabs
+          ref: fix/remove-last-all-predictions-heading
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: subosito/flutter-action@v2
         with:
-          python-version: '3.11'
-      - name: Install background remover
-        run: pip install 'rembg[cpu]' pillow
-      - name: Download source and remove background only
+          channel: stable
+          cache: true
+      - name: Remove final redundant player heading
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/presentation/season_predictions_page.dart')
+          text = path.read_text()
+          old = """        Text(
+          'Tous les pronostics (${predictions.length})',
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 10),
+"""
+          if old not in text:
+              raise SystemExit('Final redundant heading not found')
+          path.write_text(text.replace(old, '', 1))
+      - run: flutter pub get
+      - run: dart format lib/features/predictions/presentation/season_predictions_page.dart
+      - name: Restore workflows and push branch
         shell: bash
         run: |
           set -euo pipefail
-          curl -L --fail --retry 3 \
-            'https://cdns.klimg.com/resized/1200x720/p/headline/asal-usul-meme-dictator-mbappe-yang-vir-170078.jpg' \
-            -o /tmp/admin-source.jpg
-          mkdir -p assets/images
-          rembg i /tmp/admin-source.jpg assets/images/admin_access_denied.png
-      - name: Commit transparent asset
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- assets/images/admin_access_denied.png; then
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add assets/images/admin_access_denied.png
-          git commit -m 'assets: add transparent admin denied portrait'
-          git push origin HEAD:feature/admin-gate-and-match-tabs
+          git checkout origin/main -- .github/workflows/runtime_diagnostic.yml
+          git checkout origin/main -- .github/workflows/flutter_ci.yml
+          rm -f .github/pr172-trigger.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: remove final redundant predictions heading"
+          git push origin HEAD:fix/remove-last-all-predictions-heading
