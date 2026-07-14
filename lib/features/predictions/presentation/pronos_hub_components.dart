@@ -11,12 +11,6 @@ class _LeaderboardCard extends StatelessWidget {
   final double Function(LeaderboardEntry) points;
   final bool showMatchStats;
 
-  String _goodPredictionsLabel(int count) =>
-      '$count bon${count > 1 ? 's' : ''} pronostic${count > 1 ? 's' : ''}';
-
-  String _exactScoresLabel(int count) =>
-      '$count score${count > 1 ? 's' : ''} exact${count > 1 ? 's' : ''}';
-
   @override
   Widget build(BuildContext context) {
     final sorted = [...entries]..sort((a, b) {
@@ -28,30 +22,41 @@ class _LeaderboardCard extends StatelessWidget {
       return const _MessageCard(message: 'Aucun point pour le moment.');
     }
 
+    if (showMatchStats) {
+      return Card(
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            const _MatchLeaderboardHeader(),
+            const Divider(height: 1),
+            for (var index = 0; index < sorted.length; index++) ...[
+              _MatchLeaderboardRow(
+                rank: index + 1,
+                entry: sorted[index],
+                points: points(sorted[index]).round(),
+              ),
+              if (index != sorted.length - 1) const Divider(height: 1),
+            ],
+          ],
+        ),
+      );
+    }
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           for (var index = 0; index < sorted.length; index++) ...[
             ListTile(
-              leading: CircleAvatar(
-                child: Text(
-                  index < 3 ? ['🥇', '🥈', '🥉'][index] : '${index + 1}',
-                ),
-              ),
+              leading: CircleAvatar(child: Text('${index + 1}')),
               title: Text(
                 sorted[index].name,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              subtitle: showMatchStats
-                  ? Text(
-                      '${_goodPredictionsLabel(sorted[index].matchBons)} · '
-                      '${_exactScoresLabel(sorted[index].matchExacts)}',
-                    )
-                  : Text(
-                      'Matchs ${(sorted[index].matchPoints * 100).round()} · '
-                      'Saison ${sorted[index].seasonPoints.round()}',
-                    ),
+              subtitle: Text(
+                'Matchs ${(sorted[index].matchPoints * 100).round()} · '
+                'Saison ${sorted[index].seasonPoints.round()}',
+              ),
               trailing: Text(
                 '${points(sorted[index]).round()} pts',
                 style: Theme.of(context)
@@ -62,6 +67,116 @@ class _LeaderboardCard extends StatelessWidget {
             ),
             if (index != sorted.length - 1) const Divider(height: 1),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MatchLeaderboardHeader extends StatelessWidget {
+  const _MatchLeaderboardHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppTheme.textSecondary,
+          fontWeight: FontWeight.w800,
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(flex: 5, child: Text('Joueurs', style: style)),
+          Expanded(
+            flex: 2,
+            child: Text('Bons', style: style, textAlign: TextAlign.center),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('Exacts', style: style, textAlign: TextAlign.center),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('Points', style: style, textAlign: TextAlign.end),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MatchLeaderboardRow extends StatelessWidget {
+  const _MatchLeaderboardRow({
+    required this.rank,
+    required this.entry,
+    required this.points,
+  });
+
+  final int rank;
+  final LeaderboardEntry entry;
+  final int points;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    '$rank',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '${entry.matchBons}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '${entry.matchExacts}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '$points',
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
         ],
       ),
     );
