@@ -102,7 +102,6 @@ class _UpcomingPredictionCard extends ConsumerWidget {
                     ? null
                     : () async {
                         await controller.save(item.matchId);
-                        ref.invalidate(homeDashboardProvider);
                       },
                 icon: isSaving
                     ? const SizedBox(
