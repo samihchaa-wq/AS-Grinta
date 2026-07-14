@@ -1,9 +1,7 @@
 part of 'pronos_hub_page.dart';
 
 class _UpcomingPredictionCard extends ConsumerWidget {
-  const _UpcomingPredictionCard({required this.participantCount});
-
-  final int participantCount;
+  const _UpcomingPredictionCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
