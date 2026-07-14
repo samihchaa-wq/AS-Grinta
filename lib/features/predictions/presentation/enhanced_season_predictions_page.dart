@@ -204,11 +204,11 @@ class _EnhancedSeasonPredictionsPageState
             icon: Icons.sports_soccer,
             children: scorers.map((gauge) => card(gauge, scorers, 20)).toList(),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
         if (keepers.isNotEmpty)
           _SeasonGroupPanel(
-            title: 'Gardien · clean sheets',
+            title: 'Clean sheets',
             icon: Icons.sports_handball_outlined,
             children: keepers.map((gauge) => card(gauge, keepers, 15)).toList(),
           ),
@@ -275,8 +275,19 @@ class _SeasonGroupPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: const Color(0xFF79A4FF)),
-              const SizedBox(width: 10),
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF4B6FFF).withValues(alpha: .12),
+                  border: Border.all(
+                    color: const Color(0xFF4B6FFF).withValues(alpha: .36),
+                  ),
+                ),
+                child: Icon(icon, color: const Color(0xFF79A4FF), size: 24),
+              ),
+              const SizedBox(width: 12),
               Text(
                 title,
                 style: Theme.of(context)
@@ -286,7 +297,7 @@ class _SeasonGroupPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           ...children,
         ],
       ),

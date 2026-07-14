@@ -84,7 +84,9 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(_calendarPredictionProvider);
+              ref
+                ..invalidate(_calendarPredictionProvider)
+                ..invalidate(inlineMatchPredictionProvider);
               await Future.wait([
                 ref.read(matchesControllerProvider.notifier).load(
                       seasonId: state.selectedSeasonId,
@@ -107,11 +109,20 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                     ...upcomingMatches.map(
                       (match) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _CalendarMatchCard(
-                          match: match,
-                          isAdmin: isAdmin,
-                          canPredict: match.id == nextEditableMatchId,
-                        ),
+                        child: match.id == nextEditableMatchId
+                            ? Column(
+                                children: [
+                                  InlineMatchPredictionCard(matchId: match.id),
+                                  if (isAdmin) ...[
+                                    const SizedBox(height: 10),
+                                    _AdminMatchActions(match: match),
+                                  ],
+                                ],
+                              )
+                            : _CalendarMatchCard(
+                                match: match,
+                                isAdmin: isAdmin,
+                              ),
                       ),
                     ),
                 ] else ...[
@@ -141,18 +152,13 @@ class _CalendarMatchCard extends ConsumerWidget {
   const _CalendarMatchCard({
     required this.match,
     required this.isAdmin,
-    this.canPredict = false,
   });
 
   final MatchModel match;
   final bool isAdmin;
-  final bool canPredict;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prediction = match.isFinished
-        ? const AsyncValue<MatchPredictionItem?>.data(null)
-        : ref.watch(_calendarPredictionProvider(match.id));
     final opponent = match.opponentName ?? 'Adversaire';
     final grintaScore = match.grintaScore ?? 0;
     final opponentScore = match.opponentScore ?? 0;
@@ -214,26 +220,7 @@ class _CalendarMatchCard extends ConsumerWidget {
                           : const Color(0xFFA9C8FF),
                     ),
               ),
-              if (!match.isFinished && canPredict) ...[
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () =>
-                        context.push('/matches/${match.id}/prediction'),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: Text(
-                      prediction.maybeWhen(
-                        data: (item) => item?.isFilled == true
-                            ? 'Modifier mon prono'
-                            : 'Remplir mon prono',
-                        orElse: () => 'Remplir mon prono',
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              if (!match.isFinished && !canPredict) ...[
+              if (!match.isFinished) ...[
                 const SizedBox(height: 12),
                 Text(
                   'Le pronostic s’ouvrira lorsque les matchs précédents seront fermés.',
@@ -244,29 +231,37 @@ class _CalendarMatchCard extends ConsumerWidget {
               ],
               if (isAdmin) ...[
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        onPressed: () =>
-                            context.push('/matches/${match.id}/finalize'),
-                        icon: const Text('👑'),
-                        label: Text(
-                          match.isFinished
-                              ? 'Changer les stats'
-                              : 'Entrer les stats',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(child: _DeleteMatchButton(matchId: match.id)),
-                  ],
-                ),
+                _AdminMatchActions(match: match),
               ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AdminMatchActions extends StatelessWidget {
+  const _AdminMatchActions({required this.match});
+
+  final MatchModel match;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.tonalIcon(
+            onPressed: () => context.push('/matches/${match.id}/finalize'),
+            icon: const Text('👑'),
+            label: Text(
+              match.isFinished ? 'Changer les stats' : 'Entrer les stats',
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: _DeleteMatchButton(matchId: match.id)),
+      ],
     );
   }
 }
@@ -306,6 +301,7 @@ class _DeleteMatchButton extends ConsumerWidget {
         await ref.read(matchesControllerProvider.notifier).deleteMatch(matchId);
         ref
           ..invalidate(_calendarPredictionProvider)
+          ..invalidate(inlineMatchPredictionProvider)
           ..invalidate(leaderboardProvider)
           ..invalidate(enhancedSeasonGaugesProvider)
           ..invalidate(enhancedSeasonCompletedMatchesProvider)

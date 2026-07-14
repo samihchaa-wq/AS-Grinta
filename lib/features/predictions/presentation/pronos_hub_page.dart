@@ -12,6 +12,7 @@ import 'package:as_grinta/features/predictions/presentation/colorful_season_pred
 import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
