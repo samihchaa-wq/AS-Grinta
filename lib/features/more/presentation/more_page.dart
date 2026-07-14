@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/config/app_config.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,7 @@ class MorePage extends ConsumerWidget {
     final isStaff = profile?.role.isStaff == true;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Plus')),
+      appBar: GrintaAppBar(title: 'Plus'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
