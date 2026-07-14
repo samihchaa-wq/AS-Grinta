@@ -55,7 +55,7 @@ class _GeneralSection extends ConsumerWidget {
                 ?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
-          const Text('Classement combiné des matchs et de la saison.'),
+          const Text('2/3 matchs · 1/3 saison.'),
           const SizedBox(height: 14),
           leaderboard.when(
             loading: () => const _LoadingCard(),
