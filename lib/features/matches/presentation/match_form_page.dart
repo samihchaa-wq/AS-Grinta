@@ -4,6 +4,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -92,7 +93,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GrintaAppBar(
         title: Text(widget.match == null ? 'Créer un match' : 'Modifier le match'),
         actions: [
           if (widget.match != null && canManage)

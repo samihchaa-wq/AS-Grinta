@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 
 class FaqPage extends StatelessWidget {
@@ -108,7 +109,7 @@ class FaqPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('FAQ')),
+      appBar: GrintaAppBar(title: const Text('FAQ')),
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         itemCount: _entries.length,

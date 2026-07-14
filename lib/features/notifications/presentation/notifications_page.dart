@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/notifications/data/notifications_repository.dart';
 import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,7 @@ class NotificationsPage extends ConsumerWidget {
         ref.watch(pushStatusProvider).valueOrNull?.subscribed ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: GrintaAppBar(title: const Text('Notifications')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(appPreferencesProvider);

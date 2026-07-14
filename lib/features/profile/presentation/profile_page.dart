@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -39,7 +40,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final busy = authState.isLoading;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: GrintaAppBar(title: const Text('Profil')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

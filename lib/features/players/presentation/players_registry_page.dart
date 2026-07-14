@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +14,7 @@ class PlayersRegistryPage extends ConsumerWidget {
     final seasonAsync = ref.watch(openSeasonIdProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Effectif')),
+      appBar: GrintaAppBar(title: const Text('Effectif')),
       body: seasonAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(humanizeError(error))),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,7 +46,7 @@ class _SeasonPredictionsPageState extends ConsumerState<SeasonPredictionsPage> {
         ref.watch(seasonPredictionsLockedProvider).valueOrNull ?? false;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GrintaAppBar(
         title: Text(locked ? 'Pronos de saison' : 'Mes pronos de saison'),
       ),
       body: locked

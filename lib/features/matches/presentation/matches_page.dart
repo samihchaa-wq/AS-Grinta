@@ -4,6 +4,7 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,7 +30,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
     final isAdmin = role == AuthRole.admin;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: GrintaAppBar(
         title: const Text('Matchs'),
         actions: [
           if (isAdmin)

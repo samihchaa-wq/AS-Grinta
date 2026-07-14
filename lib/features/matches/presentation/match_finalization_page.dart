@@ -3,6 +3,7 @@ import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_controller.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -137,7 +138,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
         ref.watch(matchFinalizationContextProvider(widget.matchId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Saisie du match')),
+      appBar: GrintaAppBar(title: const Text('Saisie du match')),
       body: contextAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(
