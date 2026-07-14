@@ -66,7 +66,7 @@ class AppShell extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.person_search_outlined),
             selectedIcon: Icon(Icons.person_search_rounded),
-            label: 'Buteurs',
+            label: 'Prono joueurs',
           ),
           NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
