@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
-import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/season_prediction_entry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/player_predictions_sheet.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/reference_player_gauge_card.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +20,7 @@ class ScorerDashboardPage extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text('$error')),
       data: (isLocked) {
-        if (!isLocked) return const SeasonPredictionsPage();
+        if (!isLocked) return const SeasonPredictionEntryPage();
         return _LockedScorerDashboard(embedded: embedded);
       },
     );
