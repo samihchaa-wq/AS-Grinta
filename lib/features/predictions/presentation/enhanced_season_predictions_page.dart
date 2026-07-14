@@ -90,9 +90,8 @@ class _EnhancedSeasonPredictionsPageState
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('$error')),
         data: (gauges) {
-          final currentUserId = ref
-              .read(seasonPredictionsRepositoryProvider)
-              .currentUserId;
+          final currentUserId =
+              ref.read(seasonPredictionsRepositoryProvider).currentUserId;
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -114,7 +113,7 @@ class _EnhancedSeasonPredictionsPageState
                       ButtonSegment(
                         value: _SeasonView.players,
                         icon: Icon(Icons.sports_soccer),
-                        label: Text('Joueurs'),
+                        label: Text('Par joueur'),
                       ),
                       ButtonSegment(
                         value: _SeasonView.ranking,
@@ -295,7 +294,8 @@ class _SeasonGroupPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0E1D3B),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFF4B6FFF).withValues(alpha: .38)),
+        border:
+            Border.all(color: const Color(0xFF4B6FFF).withValues(alpha: .38)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
