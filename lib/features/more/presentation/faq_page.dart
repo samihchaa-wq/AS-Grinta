@@ -85,8 +85,8 @@ class FaqPage extends StatelessWidget {
     (
       question: 'Comment fonctionne le classement général ?',
       answer:
-          'Il combine tes points de pronostics de matchs (70 %) et de '
-          'pronostics de saison (30 %). Tout est recalculé automatiquement '
+          'Il combine les pronostics de matchs pour 2/3 du classement et les '
+          'pronostics de saison pour 1/3. Tout est recalculé automatiquement '
           'à chaque résultat validé.',
     ),
     (
