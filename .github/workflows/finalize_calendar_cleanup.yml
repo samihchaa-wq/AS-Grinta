@@ -1,14 +1,15 @@
 name: Finalize calendar cleanup
 
 on:
-  push:
-    branches: [fix/simplify-calendar-remove-labels-large-logo]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   finalize:
+    if: github.head_ref == 'fix/simplify-calendar-remove-labels-large-logo'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -81,19 +82,15 @@ jobs:
 
           finalization = Path('lib/features/matches/presentation/match_finalization_page.dart')
           text = finalization.read_text().replace(
-              "appBar: GrintaAppBar(title: const Text('Saisie du match')),
-",
-              "appBar: GrintaAppBar(title: const SizedBox.shrink()),
-",
+              "appBar: GrintaAppBar(title: const Text('Saisie du match')),\n",
+              "appBar: GrintaAppBar(title: const SizedBox.shrink()),\n",
           )
           finalization.write_text(text)
 
           details = Path('lib/features/matches/presentation/match_details_page.dart')
           text = details.read_text().replace(
-              "appBar: GrintaAppBar(title: const Text('Détails du match')),
-",
-              "appBar: GrintaAppBar(title: const SizedBox.shrink()),
-",
+              "appBar: GrintaAppBar(title: const Text('Détails du match')),\n",
+              "appBar: GrintaAppBar(title: const SizedBox.shrink()),\n",
           )
           details.write_text(text)
 
