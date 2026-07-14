@@ -51,7 +51,8 @@ class _LockedScorerDashboard extends ConsumerWidget {
       error: (error, _) => Center(child: Text('$error')),
       data: (gauges) {
         final players = [...gauges]..sort(_comparePlayers);
-        final scorers = players.where((player) => !player.isGoalkeeper).toList();
+        final scorers =
+            players.where((player) => !player.isGoalkeeper).toList();
         final matchesCount = completedMatches.valueOrNull ?? 0;
 
         return RefreshIndicator(
@@ -470,7 +471,8 @@ class _PlayersTableHeader extends StatelessWidget {
           ),
           SizedBox(
             width: 150,
-            child: Text('ÉCART PRONO', style: style, textAlign: TextAlign.center),
+            child:
+                Text('ÉCART PRONO', style: style, textAlign: TextAlign.center),
           ),
         ],
       ),
@@ -494,9 +496,8 @@ class _PlayerTableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final median = gauge.predictions.isEmpty ? null : gauge.median.round();
-    final versusActual = personalPrediction == null
-        ? null
-        : personalPrediction! - gauge.actual;
+    final versusActual =
+        personalPrediction == null ? null : personalPrediction! - gauge.actual;
     final versusMedian = personalPrediction == null || median == null
         ? null
         : personalPrediction! - median;
@@ -691,7 +692,8 @@ class _DeltaValue extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+        Text(label,
+            style: const TextStyle(color: Colors.white54, fontSize: 10)),
       ],
     );
   }
