@@ -11,23 +11,35 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(matchesControllerProvider.notifier).load(),
-    );
+    Future.microtask(() async {
+      await Future.wait([
+        ref.read(matchesControllerProvider.notifier).load(),
+        ref.read(predictionsControllerProvider.notifier).load(),
+      ]);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
+    final predictionState = ref.watch(predictionsControllerProvider);
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
     final matches = [...state.matches]
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final predictionMatchIds = predictionState.items
+        .map((item) => item.matchId)
+        .toSet();
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
-            seasonId: state.selectedSeasonId,
-          ),
+      onRefresh: () async {
+        await Future.wait([
+          ref.read(matchesControllerProvider.notifier).load(
+                seasonId: state.selectedSeasonId,
+              ),
+          ref.read(predictionsControllerProvider.notifier).load(),
+        ]);
+      },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
@@ -42,10 +54,20 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
             ...matches.map(
               (match) => Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                child: _CalendarMatchCard(
-                  match: match,
-                  isAdmin: isAdmin,
-                ),
+                child: !match.isFinished &&
+                        predictionMatchIds.contains(match.id)
+                    ? _UpcomingPredictionCard(
+                        matchId: match.id,
+                        onEnterStats: isAdmin
+                            ? () => context.push(
+                                  '/matches/${match.id}/finalize',
+                                )
+                            : null,
+                      )
+                    : _CalendarMatchCard(
+                        match: match,
+                        isAdmin: isAdmin,
+                      ),
               ),
             ),
         ],
