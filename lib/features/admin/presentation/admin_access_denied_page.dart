@@ -78,18 +78,20 @@ class AdminAccessDeniedPage extends StatelessWidget {
                     Text(
                       'Tu n’as pas les droits',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'pour accéder à cette page.',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w400,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w400,
+                              ),
                     ),
                     const SizedBox(height: 46),
                     Text(
