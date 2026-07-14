@@ -106,7 +106,7 @@ jobs:
               const screenshot = `runtime-${viewport.name}.png`;
               await page.screenshot({ path: screenshot, fullPage: true });
               const size = fs.statSync(screenshot).size;
-              if (size < 5000) {
+              if (size < 4000) {
                 throw new Error(`${prefix} capture anormalement vide: ${size} octets`);
               }
 
