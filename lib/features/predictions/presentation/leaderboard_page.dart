@@ -64,8 +64,8 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Text(
-                'Score pondéré : 70 % pronostics de match, 30 % pronostics '
-                'de saison.',
+                'Score pondéré : 2/3 pronostics de match, 1/3 pronostics de '
+                'saison.',
                 style: TextStyle(fontSize: 12),
               ),
             ),
@@ -101,8 +101,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                         Card(
                           child: Padding(
                             padding: EdgeInsets.all(20),
-                            child:
-                                Text('Aucun point calculable pour le moment.'),
+                            child: Text('Aucun classement disponible.'),
                           ),
                         ),
                       ],
@@ -111,50 +110,19 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
 
                   final sorted = [...entries]
                     ..sort((a, b) => _points(b).compareTo(_points(a)));
-                  final maxPoints = sorted
-                      .map(_points)
-                      .fold<double>(0, (m, p) => p > m ? p : m);
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                     itemCount: sorted.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final item = sorted[index];
-                      final points = _points(item);
-                      final fraction =
-                          maxPoints <= 0 ? 0.0 : points / maxPoints;
-
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(child: Text('${index + 1}')),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      item.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatNumber(points),
-                                    style:
-                                        Theme.of(context).textTheme.titleLarge,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              LinearProgressIndicator(
-                                value: fraction.clamp(0.0, 1.0).toDouble(),
-                              ),
-                            ],
+                        child: ListTile(
+                          leading: CircleAvatar(child: Text('${index + 1}')),
+                          title: Text(item.name),
+                          trailing: Text(
+                            _formatNumber(_points(item)),
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
                         ),
                       );
