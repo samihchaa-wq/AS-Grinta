@@ -31,7 +31,7 @@ class _MatchesSectionState extends ConsumerState<_MatchesSection> {
                 ButtonSegment(
                   value: _MatchView.upcoming,
                   icon: Icon(Icons.bolt_rounded),
-                  label: Text('Prochain prono'),
+                  label: Text('Ton pari'),
                 ),
                 ButtonSegment(
                   value: _MatchView.ranking,
@@ -79,11 +79,9 @@ class _UpcomingMatchView extends ConsumerWidget {
           dashboard.when(
             loading: () => const _LoadingCard(),
             error: (_, __) => const _MessageCard(
-              message: 'Le prochain prono est indisponible.',
+              message: 'Ton pari est indisponible.',
             ),
-            data: (data) => _UpcomingPredictionCard(
-              participantCount: data.predictionParticipantCount,
-            ),
+            data: (_) => const _UpcomingPredictionCard(),
           ),
         ],
       ),
