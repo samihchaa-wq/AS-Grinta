@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,6 +50,22 @@ class AdminPage extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 _SeasonCard(dashboard: dashboard),
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Text('👑', style: TextStyle(fontSize: 22)),
+                    title: const Text('Ajouter un match'),
+                    subtitle: const Text(
+                      'Créer un nouveau match dans le calendrier.',
+                    ),
+                    trailing: const Icon(Icons.add_circle_outline),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const MatchFormPage(),
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Card(
                   child: ListTile(
