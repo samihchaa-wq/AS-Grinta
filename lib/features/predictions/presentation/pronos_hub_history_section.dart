@@ -46,6 +46,12 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final predictionsByMatchId = {
       for (final item in predictionState.items) item.matchId: item,
     };
+    final nextEditableMatchId = upcomingMatches
+        .map((match) => predictionsByMatchId[match.id])
+        .whereType<MatchPredictionItem>()
+        .where((item) => !item.isClosed)
+        .map((item) => item.matchId)
+        .firstOrNull;
 
     return Column(
       children: [
@@ -97,49 +103,17 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 else if (_tab == _CalendarTab.upcoming) ...[
                   if (upcomingMatches.isEmpty)
                     const _MessageCard(message: 'Aucun match à venir.')
-                  else if (predictionState.isLoading)
-                    const _LoadingCard()
                   else
-                    ...upcomingMatches.map((match) {
-                      final item = predictionsByMatchId[match.id];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: item == null
-                            ? _CalendarMatchCard(
-                                match: match,
-                                isAdmin: isAdmin,
-                              )
-                            : Column(
-                                children: [
-                                  _UpcomingPredictionCard(item: item),
-                                  if (isAdmin) ...[
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: FilledButton.tonalIcon(
-                                            onPressed: () => context.push(
-                                              '/matches/${match.id}/finalize',
-                                            ),
-                                            icon: const Text('👑'),
-                                            label: const Text(
-                                              'Entrer les stats',
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: _DeleteMatchButton(
-                                            matchId: match.id,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                      );
-                    }),
+                    ...upcomingMatches.map(
+                      (match) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _CalendarMatchCard(
+                          match: match,
+                          isAdmin: isAdmin,
+                          canPredict: match.id == nextEditableMatchId,
+                        ),
+                      ),
+                    ),
                 ] else ...[
                   if (finishedMatches.isEmpty)
                     const _MessageCard(message: 'Aucun match terminé.')
@@ -164,10 +138,15 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
 }
 
 class _CalendarMatchCard extends ConsumerWidget {
-  const _CalendarMatchCard({required this.match, required this.isAdmin});
+  const _CalendarMatchCard({
+    required this.match,
+    required this.isAdmin,
+    this.canPredict = false,
+  });
 
   final MatchModel match;
   final bool isAdmin;
+  final bool canPredict;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -208,7 +187,7 @@ class _CalendarMatchCard extends ConsumerWidget {
                     child: Text(
                       match.isFinished
                           ? '$homeName $homeScore–$awayScore $awayName'
-                          : '$homeName – $awayName',
+                          : '$homeName vs $awayName',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -235,11 +214,11 @@ class _CalendarMatchCard extends ConsumerWidget {
                           : const Color(0xFFA9C8FF),
                     ),
               ),
-              if (!match.isFinished) ...[
+              if (!match.isFinished && canPredict) ...[
                 const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
-                  child: OutlinedButton.icon(
+                  child: FilledButton.icon(
                     onPressed: () =>
                         context.push('/matches/${match.id}/prediction'),
                     icon: const Icon(Icons.edit_outlined),
@@ -247,11 +226,20 @@ class _CalendarMatchCard extends ConsumerWidget {
                       prediction.maybeWhen(
                         data: (item) => item?.isFilled == true
                             ? 'Modifier mon prono'
-                            : 'Rentrer mon prono',
-                        orElse: () => 'Rentrer mon prono',
+                            : 'Remplir mon prono',
+                        orElse: () => 'Remplir mon prono',
                       ),
                     ),
                   ),
+                ),
+              ],
+              if (!match.isFinished && !canPredict) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Le pronostic s’ouvrira lorsque les matchs précédents seront fermés.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                 ),
               ],
               if (isAdmin) ...[
@@ -298,7 +286,7 @@ class _DeleteMatchButton extends ConsumerWidget {
                 title: const Text('Supprimer ce match ?'),
                 content: const Text(
                   'Le match, ses pronostics, ses buteurs et ses statistiques '
-                  'seront définitivement supprimés.',
+                  'seront définitivement supprimés. Les classements seront recalculés.',
                 ),
                 actions: [
                   TextButton(
@@ -316,7 +304,12 @@ class _DeleteMatchButton extends ConsumerWidget {
         if (!confirmed || !context.mounted) return;
 
         await ref.read(matchesControllerProvider.notifier).deleteMatch(matchId);
-        ref.invalidate(_calendarPredictionProvider);
+        ref
+          ..invalidate(_calendarPredictionProvider)
+          ..invalidate(leaderboardProvider)
+          ..invalidate(enhancedSeasonGaugesProvider)
+          ..invalidate(enhancedSeasonCompletedMatchesProvider)
+          ..invalidate(matchDetailsProvider(matchId));
         await ref.read(predictionsControllerProvider.notifier).load();
       },
       icon: const Icon(Icons.delete_outline),
