@@ -1,0 +1,50 @@
+name: Finalize Calendar Navigation
+
+on:
+  push:
+    branches: [feature/bottom-categories-calendar-stats]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/bottom-categories-calendar-stats
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Remove obsolete dashboard invalidation
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('lib/features/predictions/presentation/pronos_hub_upcoming_section.dart')
+          text = path.read_text()
+          text = text.replace("\n                        ref.invalidate(homeDashboardProvider);", "")
+          path.write_text(text)
+      - run: flutter pub get
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(
+            git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart'
+          )
+          dart format "${files[@]}"
+      - name: Commit finalized changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib
+          git commit -m "chore: finalize calendar navigation changes"
+          git push origin HEAD:feature/bottom-categories-calendar-stats
