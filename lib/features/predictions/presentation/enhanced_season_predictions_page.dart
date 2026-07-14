@@ -5,6 +5,7 @@ import 'package:as_grinta/features/predictions/data/season_predictions_repositor
 import 'package:as_grinta/features/predictions/presentation/season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/reference_player_gauge_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -185,6 +186,15 @@ class _EnhancedSeasonPredictionsPageState
     final keepers = gauges.where((gauge) => gauge.isGoalkeeper).toList()
       ..sort(compareByActualThenMedian);
 
+    Widget card(PlayerGauge gauge, List<PlayerGauge> group, int fallback) {
+      return ReferencePlayerGaugeCard(
+        gauge: gauge,
+        scaleMax: _scale(group, fallback),
+        personalPrediction: gauge.predictionFor(currentUserId)?.value,
+        onTap: () => _openPlayerDetails(context, gauge, currentUserId),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -192,20 +202,7 @@ class _EnhancedSeasonPredictionsPageState
           _SeasonGroupPanel(
             title: 'Buteurs',
             icon: Icons.sports_soccer,
-            children: scorers
-                .map(
-                  (gauge) => PremiumSeasonGaugeCard(
-                    gauge: gauge,
-                    scaleMax: _scale(scorers, 20),
-                    personalPrediction:
-                        gauge.predictionFor(currentUserId)?.value,
-                    onOpenAll: () =>
-                        _openPlayerDetails(context, gauge, currentUserId),
-                    onOpenMedian: () =>
-                        _openPlayerDetails(context, gauge, currentUserId),
-                  ),
-                )
-                .toList(),
+            children: scorers.map((gauge) => card(gauge, scorers, 20)).toList(),
           ),
           const SizedBox(height: 16),
         ],
@@ -213,20 +210,7 @@ class _EnhancedSeasonPredictionsPageState
           _SeasonGroupPanel(
             title: 'Gardien · clean sheets',
             icon: Icons.sports_handball_outlined,
-            children: keepers
-                .map(
-                  (gauge) => PremiumSeasonGaugeCard(
-                    gauge: gauge,
-                    scaleMax: _scale(keepers, 15),
-                    personalPrediction:
-                        gauge.predictionFor(currentUserId)?.value,
-                    onOpenAll: () =>
-                        _openPlayerDetails(context, gauge, currentUserId),
-                    onOpenMedian: () =>
-                        _openPlayerDetails(context, gauge, currentUserId),
-                  ),
-                )
-                .toList(),
+            children: keepers.map((gauge) => card(gauge, keepers, 15)).toList(),
           ),
       ],
     );
