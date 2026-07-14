@@ -1,8 +1,8 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,6 +49,18 @@ class AdminPage extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 _SeasonCard(dashboard: dashboard),
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.sports_soccer_outlined),
+                    title: const Text('Gérer les matchs'),
+                    subtitle: const Text(
+                      'Créer, modifier, saisir les statistiques ou supprimer.',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/admin/matches'),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 Text(
                   'Pronostiqueurs',
