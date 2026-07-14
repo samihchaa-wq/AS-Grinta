@@ -42,30 +42,43 @@ class MorePage extends ConsumerWidget {
               onTap: () => context.push('/notifications'),
             ),
           ),
-          if (isStaff) ...[
-            const SizedBox(height: 24),
-            Text('👑  Admin', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Card(
-              child: Column(
-                children: [
-                  ListTile(
+          const SizedBox(height: 10),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: isStaff
+                ? ExpansionTile(
                     leading: const Text('👑', style: TextStyle(fontSize: 22)),
-                    title: const Text('Administration'),
+                    title: const Text(
+                      'Admin',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    children: [
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.shield_outlined),
+                        title: const Text('Administration'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('/admin'),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.groups_outlined),
+                        title: const Text('Effectif'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push('/players'),
+                      ),
+                    ],
+                  )
+                : ListTile(
+                    leading: const Icon(Icons.admin_panel_settings_outlined),
+                    title: const Text(
+                      'Admin',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/admin'),
+                    onTap: () => context.push('/admin-access'),
                   ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Text('👑', style: TextStyle(fontSize: 22)),
-                    title: const Text('Effectif'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/players'),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
           const SizedBox(height: 10),
           Card(
             child: ListTile(
