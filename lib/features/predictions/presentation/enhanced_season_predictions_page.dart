@@ -42,9 +42,11 @@ class EnhancedSeasonPredictionsPage extends ConsumerStatefulWidget {
   const EnhancedSeasonPredictionsPage({
     super.key,
     this.embedded = false,
+    this.showRanking = true,
   });
 
   final bool embedded;
+  final bool showRanking;
 
   @override
   ConsumerState<EnhancedSeasonPredictionsPage> createState() =>
@@ -92,6 +94,7 @@ class _EnhancedSeasonPredictionsPageState
         data: (gauges) {
           final currentUserId =
               ref.read(seasonPredictionsRepositoryProvider).currentUserId;
+          final showPlayers = !widget.showRanking || _view == _SeasonView.players;
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -106,30 +109,32 @@ class _EnhancedSeasonPredictionsPageState
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<_SeasonView>(
-                    segments: const [
-                      ButtonSegment(
-                        value: _SeasonView.players,
-                        icon: Icon(Icons.sports_soccer),
-                        label: Text('Par joueur'),
-                      ),
-                      ButtonSegment(
-                        value: _SeasonView.ranking,
-                        icon: Icon(Icons.emoji_events_outlined),
-                        label: Text('Classement'),
-                      ),
-                    ],
-                    selected: {_view},
-                    showSelectedIcon: false,
-                    onSelectionChanged: (selection) {
-                      setState(() => _view = selection.first);
-                    },
+                if (widget.showRanking) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<_SeasonView>(
+                      segments: const [
+                        ButtonSegment(
+                          value: _SeasonView.players,
+                          icon: Icon(Icons.sports_soccer),
+                          label: Text('Par joueur'),
+                        ),
+                        ButtonSegment(
+                          value: _SeasonView.ranking,
+                          icon: Icon(Icons.emoji_events_outlined),
+                          label: Text('Classement'),
+                        ),
+                      ],
+                      selected: {_view},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (selection) {
+                        setState(() => _view = selection.first);
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                if (_view == _SeasonView.players) ...[
+                  const SizedBox(height: 14),
+                ],
+                if (showPlayers) ...[
                   Align(
                     alignment: Alignment.centerRight,
                     child: completedMatches.when(
