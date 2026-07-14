@@ -30,7 +30,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ..onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: '/matches',
+    initialLocation: '/pronos',
     refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
       authState: ref.read(authControllerProvider),
@@ -38,8 +38,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       matchedLocation: state.matchedLocation,
     ),
     routes: [
-      GoRoute(path: '/', redirect: (_, __) => '/matches'),
-      GoRoute(path: '/home', redirect: (_, __) => '/matches'),
+      GoRoute(path: '/', redirect: (_, __) => '/pronos'),
+      GoRoute(path: '/home', redirect: (_, __) => '/pronos'),
       ShellRoute(
         builder: (context, state, child) => AppShell(
           location: state.uri.path,
