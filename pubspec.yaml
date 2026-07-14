@@ -24,6 +24,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
-    - assets/branding/
-    - assets/images/
+    - assets/images/mpg_logo.png
+    - assets/images/scorer_logo.png
+    - assets/images/keeper_logo.png
