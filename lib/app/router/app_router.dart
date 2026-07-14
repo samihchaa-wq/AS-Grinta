@@ -10,6 +10,7 @@ import 'package:as_grinta/features/matches/presentation/match_details_page.dart'
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
+import 'package:as_grinta/features/more/presentation/admin_access_denied_page.dart';
 import 'package:as_grinta/features/more/presentation/faq_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
@@ -51,6 +52,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/matches',
             builder: (_, __) => const MatchesPage(),
+          ),
+          GoRoute(
+            path: '/admin-access-denied',
+            builder: (_, __) => const AdminAccessDeniedPage(),
           ),
           GoRoute(path: '/more', builder: (_, __) => const MorePage()),
           GoRoute(
