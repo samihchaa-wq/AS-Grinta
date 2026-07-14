@@ -80,15 +80,24 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                             _UpcomingPredictionCard(item: item),
                             if (isAdmin) ...[
                               const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: FilledButton.tonalIcon(
-                                  onPressed: () => context.push(
-                                    '/matches/${match.id}/finalize',
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: FilledButton.tonalIcon(
+                                      onPressed: () => context.push(
+                                        '/matches/${match.id}/finalize',
+                                      ),
+                                      icon: const Text('👑'),
+                                      label: const Text('Entrer les stats'),
+                                    ),
                                   ),
-                                  icon: const Text('👑'),
-                                  label: const Text('Entrer les stats'),
-                                ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _DeleteMatchButton(
+                                      matchId: match.id,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ],
@@ -226,24 +235,71 @@ class _CalendarMatchCard extends ConsumerWidget {
               ],
               if (isAdmin) ...[
                 const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.tonalIcon(
-                    onPressed: () =>
-                        context.push('/matches/${match.id}/finalize'),
-                    icon: const Text('👑'),
-                    label: Text(
-                      match.isFinished
-                          ? 'Changer les stats'
-                          : 'Entrer les stats',
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () =>
+                            context.push('/matches/${match.id}/finalize'),
+                        icon: const Text('👑'),
+                        label: Text(
+                          match.isFinished
+                              ? 'Changer les stats'
+                              : 'Entrer les stats',
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(child: _DeleteMatchButton(matchId: match.id)),
+                  ],
                 ),
               ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DeleteMatchButton extends ConsumerWidget {
+  const _DeleteMatchButton({required this.matchId});
+
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('Supprimer ce match ?'),
+                content: const Text(
+                  'Le match, ses pronostics, ses buteurs et ses statistiques '
+                  'seront définitivement supprimés.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext, false),
+                    child: const Text('Annuler'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(dialogContext, true),
+                    child: const Text('Supprimer'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+        if (!confirmed || !context.mounted) return;
+
+        await ref.read(matchesControllerProvider.notifier).deleteMatch(matchId);
+        ref.invalidate(_calendarPredictionProvider);
+        await ref.read(predictionsControllerProvider.notifier).load();
+      },
+      icon: const Icon(Icons.delete_outline),
+      label: const Text('👑 Supprimer'),
     );
   }
 }
