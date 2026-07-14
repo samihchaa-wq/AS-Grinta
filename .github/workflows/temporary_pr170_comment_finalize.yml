@@ -1,18 +1,15 @@
-name: Temporary PR 170 comment finalizer
+name: Temporary PR 170 copy cleanup
 
 on:
-  issue_comment:
-    types: [created]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
-  finalize:
-    if: >-
-      github.event.issue.pull_request &&
-      github.event.issue.number == 170 &&
-      github.event.comment.body == '/finalize-pr170'
+  cleanup:
+    if: github.head_ref == 'fix/exact-player-gauges-h2h-colors'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,60 +20,10 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Apply remaining corrections
+      - name: Remove redundant player prediction heading
         shell: python
         run: |
           from pathlib import Path
-
-          chip_import = "import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';\n"
-
-          def add_import(text: str) -> str:
-              anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
-              if chip_import not in text:
-                  if anchor not in text:
-                      raise SystemExit('import anchor not found')
-                  text = text.replace(anchor, anchor + chip_import, 1)
-              return text
-
-          def replace_history(path: str, class_name: str) -> None:
-              file = Path(path)
-              text = add_import(file.read_text())
-              class_start = text.index(f'class {class_name}')
-              map_start = text.index('children: matches.map((match) {', class_start)
-              map_end = text.index('            }).toList()', map_start)
-              if 'MatchResultScoreChip(' not in text[map_start:map_end]:
-                  return_start = text.index('              return ', map_start)
-                  replacement = """              return MatchResultScoreChip(
-                scoreGrinta: match.scoreGrinta ?? 0,
-                scoreOpponent: match.scoreOpponent ?? 0,
-              );
-"""
-                  text = text[:return_start] + replacement + text[map_end:]
-              file.write_text(text)
-
-          replace_history(
-              'lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart',
-              '_HeadToHead',
-          )
-          replace_history(
-              'lib/features/matches/presentation/upcoming_match_prediction_page.dart',
-              '_HistoryStrip',
-          )
-
-          details = Path('lib/features/matches/presentation/match_details_page.dart')
-          text = add_import(details.read_text())
-          section_start = text.index('class _HeadToHeadCard')
-          section_end = text.index('class _MatchHeader', section_start)
-          if 'MatchResultScoreChip(' not in text[section_start:section_end]:
-              score_start = text.index('                      Text(', section_start)
-              score_end = text.index('                      ),', score_start) + len('                      ),\n')
-              replacement = """                      MatchResultScoreChip(
-                        scoreGrinta: match.scoreGrinta ?? 0,
-                        scoreOpponent: match.scoreOpponent ?? 0,
-                      ),
-"""
-              text = text[:score_start] + replacement + text[score_end:]
-          details.write_text(text)
 
           premium = Path('lib/features/predictions/presentation/widgets/premium_season_gauges.dart')
           text = premium.read_text()
@@ -85,17 +32,9 @@ jobs:
               start = text.rfind('          Text(', 0, text.index(marker))
               end_marker = '          const SizedBox(height: 12),\n'
               end = text.index(end_marker, text.index(marker)) + len(end_marker)
-              text = text[:start] + text[end:]
-              premium.write_text(text)
-
-          gauge = Path('lib/features/predictions/presentation/widgets/reference_player_gauge_card.dart')
-          text = gauge.read_text().replace(
-              'width: math.max(8, actualX - edge),',
-              'width: math.max(8.0, actualX - edge),',
-          )
-          gauge.write_text(text)
+              premium.write_text(text[:start] + text[end:])
       - run: flutter pub get
-      - name: Format branch Dart files
+      - name: Format changed Dart files
         shell: bash
         run: |
           set -euo pipefail
@@ -103,17 +42,16 @@ jobs:
             git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart'
           )
           dart format "${files[@]}"
-      - name: Remove temporary branch trigger
-        run: rm -f .github/pr170-trigger.txt
-      - name: Commit and push
+      - name: Remove trigger and commit
         shell: bash
         run: |
           set -euo pipefail
+          rm -f .github/pr170-copy-trigger.txt
           if git diff --quiet; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "chore: finalize exact player gauges and result colors"
+          git commit -m "chore: remove redundant player prediction heading"
           git push origin HEAD:fix/exact-player-gauges-h2h-colors
