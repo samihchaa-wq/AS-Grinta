@@ -5,6 +5,8 @@ final _calendarPredictionProvider = FutureProvider.autoDispose
   return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
 });
 
+enum _CalendarTab { upcoming, finished }
+
 class _CalendarSection extends ConsumerStatefulWidget {
   const _CalendarSection();
 
@@ -13,6 +15,8 @@ class _CalendarSection extends ConsumerStatefulWidget {
 }
 
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
+  _CalendarTab _tab = _CalendarTab.upcoming;
+
   @override
   void initState() {
     super.initState();
@@ -43,101 +47,118 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
       for (final item in predictionState.items) item.matchId: item,
     };
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(_calendarPredictionProvider);
-        await Future.wait([
-          ref.read(matchesControllerProvider.notifier).load(
-                seasonId: state.selectedSeasonId,
-              ),
-          ref.read(predictionsControllerProvider.notifier).load(),
-        ]);
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        children: [
-          if (state.isLoading)
-            const _LoadingCard()
-          else if (state.error != null)
-            _MessageCard(message: state.error!)
-          else ...[
-            const _CalendarGroupTitle(title: 'À venir'),
-            const SizedBox(height: 10),
-            if (upcomingMatches.isEmpty)
-              const _MessageCard(message: 'Aucun match à venir.')
-            else if (predictionState.isLoading)
-              const _LoadingCard()
-            else
-              ...upcomingMatches.map((match) {
-                final item = predictionsByMatchId[match.id];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: item == null
-                      ? _CalendarMatchCard(match: match, isAdmin: isAdmin)
-                      : Column(
-                          children: [
-                            _UpcomingPredictionCard(item: item),
-                            if (isAdmin) ...[
-                              const SizedBox(height: 10),
-                              Row(
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<_CalendarTab>(
+              expandedInsets: EdgeInsets.zero,
+              segments: const [
+                ButtonSegment(
+                  value: _CalendarTab.upcoming,
+                  icon: Icon(Icons.calendar_month_outlined),
+                  label: Text('À venir'),
+                ),
+                ButtonSegment(
+                  value: _CalendarTab.finished,
+                  icon: Icon(Icons.history_rounded),
+                  label: Text('Terminés'),
+                ),
+              ],
+              selected: {_tab},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() => _tab = selection.first);
+              },
+            ),
+          ),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(_calendarPredictionProvider);
+              await Future.wait([
+                ref.read(matchesControllerProvider.notifier).load(
+                      seasonId: state.selectedSeasonId,
+                    ),
+                ref.read(predictionsControllerProvider.notifier).load(),
+              ]);
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              children: [
+                if (state.isLoading)
+                  const _LoadingCard()
+                else if (state.error != null)
+                  _MessageCard(message: state.error!)
+                else if (_tab == _CalendarTab.upcoming) ...[
+                  if (upcomingMatches.isEmpty)
+                    const _MessageCard(message: 'Aucun match à venir.')
+                  else if (predictionState.isLoading)
+                    const _LoadingCard()
+                  else
+                    ...upcomingMatches.map((match) {
+                      final item = predictionsByMatchId[match.id];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: item == null
+                            ? _CalendarMatchCard(
+                                match: match,
+                                isAdmin: isAdmin,
+                              )
+                            : Column(
                                 children: [
-                                  Expanded(
-                                    child: FilledButton.tonalIcon(
-                                      onPressed: () => context.push(
-                                        '/matches/${match.id}/finalize',
-                                      ),
-                                      icon: const Text('👑'),
-                                      label: const Text('Entrer les stats'),
+                                  _UpcomingPredictionCard(item: item),
+                                  if (isAdmin) ...[
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: FilledButton.tonalIcon(
+                                            onPressed: () => context.push(
+                                              '/matches/${match.id}/finalize',
+                                            ),
+                                            icon: const Text('👑'),
+                                            label: const Text(
+                                              'Entrer les stats',
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: _DeleteMatchButton(
+                                            matchId: match.id,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: _DeleteMatchButton(
-                                      matchId: match.id,
-                                    ),
-                                  ),
+                                  ],
                                 ],
                               ),
-                            ],
-                          ],
+                      );
+                    }),
+                ] else ...[
+                  if (finishedMatches.isEmpty)
+                    const _MessageCard(message: 'Aucun match terminé.')
+                  else
+                    ...finishedMatches.map(
+                      (match) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _CalendarMatchCard(
+                          match: match,
+                          isAdmin: isAdmin,
                         ),
-                );
-              }),
-            const SizedBox(height: 12),
-            const _CalendarGroupTitle(title: 'Terminés'),
-            const SizedBox(height: 10),
-            if (finishedMatches.isEmpty)
-              const _MessageCard(message: 'Aucun match terminé.')
-            else
-              ...finishedMatches.map(
-                (match) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _CalendarMatchCard(
-                    match: match,
-                    isAdmin: isAdmin,
-                  ),
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CalendarGroupTitle extends StatelessWidget {
-  const _CalendarGroupTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                ],
+              ],
+            ),
           ),
+        ),
+      ],
     );
   }
 }
