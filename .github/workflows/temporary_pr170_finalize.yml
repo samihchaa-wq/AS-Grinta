@@ -1,0 +1,153 @@
+name: Temporary PR 170 finalizer
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.head_ref == 'fix/exact-player-gauges-h2h-colors'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/exact-player-gauges-h2h-colors
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply colored face-to-face score chips
+        shell: python
+        run: |
+          from pathlib import Path
+
+          chip_import = "import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';\n"
+
+          inline = Path('lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart')
+          text = inline.read_text()
+          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
+          if chip_import not in text:
+              text = text.replace(anchor, anchor + chip_import)
+          old = """              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .035),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.outline),
+                ),
+                child: Text(
+                  '$grinta–$opponent',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              );
+"""
+          new = """              return MatchResultScoreChip(
+                scoreGrinta: grinta,
+                scoreOpponent: opponent,
+              );
+"""
+          if old not in text:
+              raise SystemExit('Inline head-to-head block not found')
+          inline.write_text(text.replace(old, new))
+
+          details = Path('lib/features/matches/presentation/match_details_page.dart')
+          text = details.read_text()
+          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
+          if chip_import not in text:
+              text = text.replace(anchor, anchor + chip_import)
+          old = """                      Text(
+                        '${match.scoreGrinta ?? 0} – ${match.scoreOpponent ?? 0}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+"""
+          new = """                      MatchResultScoreChip(
+                        scoreGrinta: match.scoreGrinta ?? 0,
+                        scoreOpponent: match.scoreOpponent ?? 0,
+                      ),
+"""
+          if old not in text:
+              raise SystemExit('Match details head-to-head block not found')
+          details.write_text(text.replace(old, new))
+
+          upcoming = Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart')
+          text = upcoming.read_text()
+          anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
+          if chip_import not in text:
+              text = text.replace(anchor, anchor + chip_import)
+          old = """              final result = grinta > opponent
+                  ? const Color(0xFF39E784)
+                  : grinta == opponent
+                      ? const Color(0xFFFFC84D)
+                      : const Color(0xFFFF6B6B);
+
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .035),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.outline),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$grinta–$opponent',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: result,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+"""
+          new = """              return MatchResultScoreChip(
+                scoreGrinta: grinta,
+                scoreOpponent: opponent,
+              );
+"""
+          if old not in text:
+              raise SystemExit('Standalone prediction head-to-head block not found')
+          upcoming.write_text(text.replace(old, new))
+
+          gauge = Path('lib/features/predictions/presentation/widgets/reference_player_gauge_card.dart')
+          text = gauge.read_text().replace(
+              'width: math.max(8, actualX - edge),',
+              'width: math.max(8.0, actualX - edge),',
+          )
+          gauge.write_text(text)
+      - run: flutter pub get
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(
+            git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart'
+          )
+          dart format "${files[@]}"
+      - name: Commit finalized changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib
+          git commit -m "chore: finalize exact player gauges and result colors"
+          git push origin HEAD:fix/exact-player-gauges-h2h-colors
