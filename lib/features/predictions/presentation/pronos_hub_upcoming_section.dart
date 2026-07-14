@@ -1,17 +1,13 @@
 part of 'pronos_hub_page.dart';
 
 class _UpcomingPredictionCard extends ConsumerWidget {
-  const _UpcomingPredictionCard();
+  const _UpcomingPredictionCard({required this.item});
+
+  final MatchPredictionItem item;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(predictionsControllerProvider);
-    if (state.isLoading) return const _LoadingCard();
-    if (state.items.isEmpty) {
-      return const _MessageCard(message: 'Aucun match à pronostiquer.');
-    }
-
-    final item = state.items.first;
     final details = ref.watch(matchDetailsProvider(item.matchId));
     final isSaving = state.savingMatchId == item.matchId;
     final controller = ref.read(predictionsControllerProvider.notifier);

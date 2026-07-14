@@ -47,10 +47,8 @@ class RosterRepository {
     final rows = await _client
         .from('season_players')
         .select('id,first_name,last_name,is_goalkeeper,is_active')
-        .eq('season_id', seasonId)
-        .order('is_active', ascending: false)
-        .order('first_name');
-    return (rows as List).map((row) {
+        .eq('season_id', seasonId);
+    final players = (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       return RosterPlayer(
         id: map['id'].toString(),
@@ -60,6 +58,11 @@ class RosterRepository {
         isActive: map['is_active'] != false,
       );
     }).toList();
+    players.sort(
+      (a, b) =>
+          a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+    );
+    return players;
   }
 
   Future<void> addPlayer({

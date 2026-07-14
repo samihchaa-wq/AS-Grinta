@@ -103,12 +103,14 @@ class PredictionsRepository {
         .select(_matchSelect)
         .eq('status', 'a_venir')
         .order('match_date', ascending: true)
-        .order('match_time', ascending: true)
-        .limit(1);
-    if ((matches as List).isEmpty) return const [];
-    final item =
-        await _buildItem(Map<String, dynamic>.from(matches.first as Map));
-    return [item];
+        .order('match_time', ascending: true);
+    final items = <MatchPredictionItem>[];
+    for (final match in matches as List) {
+      items.add(
+        await _buildItem(Map<String, dynamic>.from(match as Map)),
+      );
+    }
+    return items;
   }
 
   Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async {

@@ -30,11 +30,18 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final predictionState = ref.watch(predictionsControllerProvider);
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
-    final matches = [...state.matches]
+
+    final upcomingMatches = state.matches
+        .where((match) => !match.isFinished)
+        .toList()
+      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    final finishedMatches = state.matches
+        .where((match) => match.isFinished)
+        .toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final nextPredictionMatchId = predictionState.items.isEmpty
-        ? null
-        : predictionState.items.first.matchId;
+    final predictionsByMatchId = {
+      for (final item in predictionState.items) item.matchId: item,
+    };
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -54,54 +61,74 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
             const _LoadingCard()
           else if (state.error != null)
             _MessageCard(message: state.error!)
-          else if (matches.isEmpty)
-            const _MessageCard(message: 'Aucun match pour le moment.')
-          else
-            ...matches.map(
-              (match) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: !match.isFinished && match.id == nextPredictionMatchId
-                    ? Column(
-                        children: [
-                          const _UpcomingPredictionCard(),
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () => context.push(
-                                '/matches/${match.id}/prediction',
-                              ),
-                              icon: const Icon(Icons.edit_outlined),
-                              label: Text(
-                                predictionState.items.first.isFilled
-                                    ? 'Modifier mon prono'
-                                    : 'Rentrer mon prono',
-                              ),
-                            ),
-                          ),
-                          if (isAdmin) ...[
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.tonalIcon(
-                                onPressed: () => context.push(
-                                  '/matches/${match.id}/finalize',
+          else ...[
+            const _CalendarGroupTitle(title: 'À venir'),
+            const SizedBox(height: 10),
+            if (upcomingMatches.isEmpty)
+              const _MessageCard(message: 'Aucun match à venir.')
+            else if (predictionState.isLoading)
+              const _LoadingCard()
+            else
+              ...upcomingMatches.map((match) {
+                final item = predictionsByMatchId[match.id];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: item == null
+                      ? _CalendarMatchCard(match: match, isAdmin: isAdmin)
+                      : Column(
+                          children: [
+                            _UpcomingPredictionCard(item: item),
+                            if (isAdmin) ...[
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.tonalIcon(
+                                  onPressed: () => context.push(
+                                    '/matches/${match.id}/finalize',
+                                  ),
+                                  icon: const Text('👑'),
+                                  label: const Text('Entrer les stats'),
                                 ),
-                                icon: const Text('👑'),
-                                label: const Text('Entrer les stats'),
                               ),
-                            ),
+                            ],
                           ],
-                        ],
-                      )
-                    : _CalendarMatchCard(
-                        match: match,
-                        isAdmin: isAdmin,
-                      ),
+                        ),
+                );
+              }),
+            const SizedBox(height: 12),
+            const _CalendarGroupTitle(title: 'Terminés'),
+            const SizedBox(height: 10),
+            if (finishedMatches.isEmpty)
+              const _MessageCard(message: 'Aucun match terminé.')
+            else
+              ...finishedMatches.map(
+                (match) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _CalendarMatchCard(
+                    match: match,
+                    isAdmin: isAdmin,
+                  ),
+                ),
               ),
-            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _CalendarGroupTitle extends StatelessWidget {
+  const _CalendarGroupTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
     );
   }
 }
