@@ -16,24 +16,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  cleanup-pr171:
+  cleanup-heading:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: fix/remove-redundant-pronostics-heading
+          ref: main
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Remove redundant heading from every player detail panel
+      - name: Remove final redundant player heading
         shell: python
         run: |
           from pathlib import Path
 
-          file = Path('lib/features/predictions/presentation/season_predictions_page.dart')
-          text = file.read_text()
+          path = Path('lib/features/predictions/presentation/season_predictions_page.dart')
+          text = path.read_text()
           old = """        Text(
           'Tous les pronostics (${predictions.length})',
           style: Theme.of(
@@ -43,29 +43,31 @@ jobs:
         const SizedBox(height: 10),
 """
           if old in text:
-              file.write_text(text.replace(old, '', 1))
+              path.write_text(text.replace(old, '', 1))
       - run: flutter pub get
       - run: dart format lib/features/predictions/presentation/season_predictions_page.dart
-      - name: Commit branch cleanup
+      - name: Commit source cleanup
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .github/remove-pronostics-heading-trigger.txt
           if git diff --quiet; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "fix: remove redundant player prediction heading"
-          git push origin HEAD:fix/remove-redundant-pronostics-heading
+          git add lib/features/predictions/presentation/season_predictions_page.dart
+          git commit -m "fix: remove final redundant predictions heading"
+          git push origin HEAD:main
 
   build:
+    needs: cleanup-heading
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: Checkout latest main
         uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -100,6 +102,12 @@ jobs:
           test -s build/web/main.dart.js
           test -s build/web/favicon.svg
           grep -q '/AS-Grinta/' build/web/index.html
+          grep -a -q 'Clean sheets' build/web/main.dart.js
+          grep -a -q 'Buts actuels' build/web/main.dart.js
+          if grep -a -q 'Tous les pronostics (' build/web/main.dart.js; then
+            echo 'Le titre redondant est encore présent dans le build.'
+            exit 1
+          fi
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -129,6 +137,8 @@ jobs:
     steps:
       - name: Checkout configuration
         uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Verify public application files
         run: |
           set -euo pipefail
@@ -146,6 +156,10 @@ jobs:
           grep -q '/AS-Grinta/' /tmp/index.html
           grep -a -q 'Clean sheets' /tmp/main.dart.js
           grep -a -q 'Buts actuels' /tmp/main.dart.js
+          if grep -a -q 'Tous les pronostics (' /tmp/main.dart.js; then
+            echo 'Le titre redondant est encore présent dans le site public.'
+            exit 1
+          fi
       - name: Verify Supabase availability
         run: |
           set -euo pipefail
@@ -186,17 +200,13 @@ jobs:
             const errors = [];
             page.on('pageerror', error => errors.push(`pageerror: ${error.stack || error.message}`));
             page.on('console', message => {
-              if (message.type() === 'error') {
-                errors.push(`console.error: ${message.text()}`);
-              }
+              if (message.type() === 'error') errors.push(`console.error: ${message.text()}`);
             });
             page.on('requestfailed', request => {
               errors.push(`requestfailed: ${request.url()} ${request.failure()?.errorText ?? ''}`);
             });
             page.on('response', response => {
-              if (response.status() >= 400) {
-                errors.push(`http ${response.status()}: ${response.url()}`);
-              }
+              if (response.status() >= 400) errors.push(`http ${response.status()}: ${response.url()}`);
             });
             const response = await page.goto(
               `${process.env.APP_URL}?smoke=${Date.now()}`,
