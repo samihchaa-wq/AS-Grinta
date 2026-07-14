@@ -7,25 +7,35 @@ class GrintaAppBar extends AppBar {
     super.actions,
     super.bottom,
   }) : super(
-          titleSpacing: 12,
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/mpg_logo.png',
-                width: 34,
-                height: 34,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: DefaultTextStyle.merge(
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  child: title is Widget ? title : Text(title.toString()),
+          toolbarHeight: 78,
+          titleSpacing: 8,
+          title: SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Image.asset(
+                    'assets/images/mpg_logo.png',
+                    height: 58,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.centerLeft,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 92),
+                  child: DefaultTextStyle.merge(
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    child: title is Widget ? title : Text(title.toString()),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
 }
