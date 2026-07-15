@@ -4,7 +4,35 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
 
-type SubscriptionRow = { endpoint: string; p256dh: string; auth: string };
+type SubscriptionRow = {
+  profile_id?: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+
+type DeliveryLogRow = {
+  match_id: string;
+  kind: string;
+  profile_id: string | null;
+  endpoint_host: string | null;
+  success: boolean;
+  status_code: number | null;
+  error_message: string | null;
+};
+
+function endpointHost(endpoint: string): string | null {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return null;
+  }
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message.slice(0, 500);
+  return String(error).slice(0, 500);
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
@@ -55,7 +83,7 @@ Deno.serve(async (req: Request) => {
 
   const subscriptions: SubscriptionRow[] = dispatch.subscriptions ?? [];
   if (subscriptions.length === 0) {
-    return Response.json({ sent: 0, pruned: 0 });
+    return Response.json({ attempted: 0, sent: 0, failed: 0, pruned: 0 });
   }
 
   webpush.setVapidDetails(
@@ -66,27 +94,61 @@ Deno.serve(async (req: Request) => {
 
   const payload = JSON.stringify(dispatch.payload);
   const dead: string[] = [];
+  const deliveries: DeliveryLogRow[] = [];
   let sent = 0;
 
   await Promise.all(
     subscriptions.map(async (sub) => {
       try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        const response = await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: { p256dh: sub.p256dh, auth: sub.auth },
+          },
           payload,
           { TTL: 3600, urgency: "high" },
-        );
+        ) as { statusCode?: number };
+
         sent += 1;
+        deliveries.push({
+          match_id: body.match_id!,
+          kind: body.kind!,
+          profile_id: sub.profile_id ?? null,
+          endpoint_host: endpointHost(sub.endpoint),
+          success: true,
+          status_code: response?.statusCode ?? 201,
+          error_message: null,
+        });
       } catch (error) {
-        const statusCode = (error as { statusCode?: number }).statusCode;
+        const statusCode = (error as { statusCode?: number }).statusCode ?? null;
         if (statusCode === 404 || statusCode === 410) {
           dead.push(sub.endpoint);
-        } else {
-          console.error("send-push delivery failure", { statusCode });
         }
+
+        const message = errorMessage(error);
+        deliveries.push({
+          match_id: body.match_id!,
+          kind: body.kind!,
+          profile_id: sub.profile_id ?? null,
+          endpoint_host: endpointHost(sub.endpoint),
+          success: false,
+          status_code: statusCode,
+          error_message: message,
+        });
+        console.error("send-push delivery failure", {
+          profileId: sub.profile_id ?? null,
+          endpointHost: endpointHost(sub.endpoint),
+          statusCode,
+          message,
+        });
       }
     }),
   );
+
+  if (deliveries.length > 0) {
+    const { error } = await supabase.from("push_delivery_log").insert(deliveries);
+    if (error) console.error("send-push log failure", error);
+  }
 
   let pruned = 0;
   if (dead.length > 0) {
@@ -100,5 +162,10 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  return Response.json({ sent, pruned });
+  return Response.json({
+    attempted: subscriptions.length,
+    sent,
+    failed: subscriptions.length - sent,
+    pruned,
+  });
 });
