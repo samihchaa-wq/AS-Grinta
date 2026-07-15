@@ -17,21 +17,23 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Format changed Dart files
+      - name: Capture exact formatting check
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           base="origin/${{ github.base_ref }}"
           range="$base...HEAD"
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
           printf '%s\n' "${files[@]}" > formatted-files.txt
-          dart format "${files[@]}"
+          set +e
+          dart format --output=none --set-exit-if-changed "${files[@]}" > format-check.log 2>&1
+          status=$?
+          set -e
+          printf '\nexit_status=%s\n' "$status" >> format-check.log
+          cat format-check.log
       - uses: actions/upload-artifact@v4
         with:
-          name: exact-ci-formatted-statistics
+          name: exact-ci-format-check
           path: |
             formatted-files.txt
-            lib/app/router/app_router.dart
-            lib/app/shell/app_shell.dart
-            lib/features/statistics/data/statistics_repository.dart
-            lib/features/statistics/presentation/statistics_page.dart
+            format-check.log
