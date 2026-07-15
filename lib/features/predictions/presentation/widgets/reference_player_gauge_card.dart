@@ -300,6 +300,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
         const edge = 22.0;
         const trackTop = 70.0;
         const trackHeight = 28.0;
+        assert(scaleMax > 0);
         final largest = math.max(
           actual.toDouble(),
           math.max(
@@ -307,15 +308,12 @@ class _ReferenceGaugeLine extends StatelessWidget {
             personalPrediction?.toDouble() ?? 0,
           ),
         );
-        final visualMax = math.max(
-          1.0,
-          math.max(scaleMax.toDouble(), largest * 1.10),
-        );
+        final visualMax = math.max(1.0, largest);
         final usable = math.max(1.0, constraints.maxWidth - edge * 2);
 
         double xFor(num value) {
           final ratio = (value.toDouble() / visualMax).clamp(0.0, 1.0);
-          return edge + usable * ratio;
+          return edge + usable * ratio * .90;
         }
 
         final actualX = xFor(actual);
