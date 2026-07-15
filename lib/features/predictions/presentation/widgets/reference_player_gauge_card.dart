@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
-import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
 import 'package:flutter/material.dart';
 
 const _actualBlue = Color(0xFF397CFF);
@@ -25,9 +24,6 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final median = gauge.predictions.isEmpty ? null : gauge.median.round();
-    final activityIcon = gauge.isGoalkeeper
-        ? Icons.sports_handball_outlined
-        : Icons.sports_soccer;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -49,66 +45,60 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(28),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 620;
-                final identity = _PlayerIdentity(
-                  name: gauge.playerName,
-                  icon: activityIcon,
-                );
-                final metrics = Row(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 22),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
-                      child: _Metric(
-                        label: gauge.isGoalkeeper
-                            ? 'Clean sheets actuels'
-                            : 'Buts actuels',
-                        value: gauge.actual.toString(),
-                        color: _actualBlue,
+                      flex: 5,
+                      child: _PlayerIdentity(
+                        name: gauge.playerName,
+                        isGoalkeeper: gauge.isGoalkeeper,
                       ),
                     ),
                     Expanded(
-                      child: _Metric(
-                        label: 'Ton prono',
-                        value: personalPrediction?.toString() ?? '—',
-                        color: _personalOrange,
-                      ),
-                    ),
-                    Expanded(
-                      child: _Metric(
-                        label: 'Médiane',
-                        value: median?.toString() ?? '—',
-                        color: _medianPurple,
-                      ),
-                    ),
-                  ],
-                );
-
-                return Column(
-                  children: [
-                    if (compact) ...[
-                      identity,
-                      const SizedBox(height: 20),
-                      metrics,
-                    ] else
-                      Row(
+                      flex: 7,
+                      child: Row(
                         children: [
-                          Expanded(flex: 4, child: identity),
-                          Expanded(flex: 6, child: metrics),
+                          Expanded(
+                            child: _Metric(
+                              label: gauge.isGoalkeeper
+                                  ? 'Clean sheets :'
+                                  : 'Buts actuel :',
+                              value: gauge.actual.toString(),
+                              color: _actualBlue,
+                            ),
+                          ),
+                          Expanded(
+                            child: _Metric(
+                              label: 'Ton prono :',
+                              value: personalPrediction?.toString() ?? '—',
+                              color: _personalOrange,
+                            ),
+                          ),
+                          Expanded(
+                            child: _Metric(
+                              label: 'Médiane :',
+                              value: median?.toString() ?? '—',
+                              color: _medianPurple,
+                            ),
+                          ),
                         ],
                       ),
-                    const SizedBox(height: 30),
-                    _ReferenceGaugeLine(
-                      actual: gauge.actual,
-                      median: median,
-                      personalPrediction: personalPrediction,
-                      scaleMax: scaleMax,
-                      activityIcon: activityIcon,
                     ),
                   ],
-                );
-              },
+                ),
+                const SizedBox(height: 28),
+                _ReferenceGaugeLine(
+                  actual: gauge.actual,
+                  median: median,
+                  personalPrediction: personalPrediction,
+                  scaleMax: scaleMax,
+                  isGoalkeeper: gauge.isGoalkeeper,
+                ),
+              ],
             ),
           ),
         ),
@@ -118,40 +108,47 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
 }
 
 class _PlayerIdentity extends StatelessWidget {
-  const _PlayerIdentity({required this.name, required this.icon});
+  const _PlayerIdentity({
+    required this.name,
+    required this.isGoalkeeper,
+  });
 
   final String name;
-  final IconData icon;
+  final bool isGoalkeeper;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
-          width: 66,
-          height: 66,
+          width: 52,
+          height: 52,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xFF11172D),
-            border: Border.all(color: _medianPurple.withValues(alpha: .38)),
+            border: Border.all(color: _medianPurple.withValues(alpha: .42)),
             boxShadow: [
               BoxShadow(
-                color: _medianPurple.withValues(alpha: .12),
+                color: _medianPurple.withValues(alpha: .15),
                 blurRadius: 18,
               ),
             ],
           ),
-          child: Icon(icon, color: _medianPurple, size: 36),
+          child: Icon(
+            isGoalkeeper ? Icons.sports_handball_outlined : Icons.sports_soccer,
+            color: _medianPurple,
+            size: 30,
+          ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 10),
         Expanded(
           child: Text(
             name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
-                  letterSpacing: -.5,
+                  letterSpacing: -.4,
                 ),
           ),
         ),
@@ -174,11 +171,13 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      constraints: const BoxConstraints(minHeight: 62),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: const BoxDecoration(
         border: Border(left: BorderSide(color: Color(0xFF252947))),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             label,
@@ -187,16 +186,16 @@ class _Metric extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white70,
-              fontSize: 12,
-              height: 1.2,
+              fontSize: 9.5,
+              height: 1.15,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Text(
             value,
             style: TextStyle(
               color: color,
-              fontSize: 34,
+              fontSize: 28,
               height: 1,
               fontWeight: FontWeight.w900,
             ),
@@ -213,20 +212,20 @@ class _ReferenceGaugeLine extends StatelessWidget {
     required this.median,
     required this.personalPrediction,
     required this.scaleMax,
-    required this.activityIcon,
+    required this.isGoalkeeper,
   });
 
   final int actual;
   final int? median;
   final int? personalPrediction;
   final int scaleMax;
-  final IconData activityIcon;
+  final bool isGoalkeeper;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const edge = 24.0;
+        const edge = 22.0;
         final largest = math.max(
           actual.toDouble(),
           math.max(
@@ -236,7 +235,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
         );
         final visualMax = math.max(
           1.0,
-          math.max(scaleMax.toDouble(), largest * 1.12),
+          math.max(scaleMax.toDouble(), largest * 1.10),
         );
         final usable = math.max(1.0, constraints.maxWidth - edge * 2);
 
@@ -248,14 +247,14 @@ class _ReferenceGaugeLine extends StatelessWidget {
         final actualX = xFor(actual);
 
         return SizedBox(
-          height: 76,
+          height: 78,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Positioned(
                 left: edge,
                 right: edge,
-                top: 31,
+                top: 32,
                 child: Container(
                   height: 10,
                   decoration: BoxDecoration(
@@ -267,7 +266,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
               ),
               Positioned(
                 left: edge,
-                top: 31,
+                top: 32,
                 width: math.max(8, actualX - edge),
                 child: Container(
                   height: 10,
@@ -288,7 +287,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
               for (var index = 1; index < 12; index++)
                 Positioned(
                   left: edge + usable * index / 12,
-                  top: 35,
+                  top: 36,
                   child: Container(
                     width: 1.5,
                     height: 7,
@@ -306,26 +305,26 @@ class _ReferenceGaugeLine extends StatelessWidget {
                   color: _medianPurple,
                 ),
               Positioned(
-                left: actualX - 25,
-                top: 11,
+                left: actualX - 24,
+                top: 10,
                 child: Container(
-                  width: 50,
-                  height: 50,
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFF5F5FA),
+                    color: const Color(0xFFF7F7FB),
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: _medianPurple.withValues(alpha: .75),
+                        color: _medianPurple.withValues(alpha: .78),
                         blurRadius: 18,
                       ),
                     ],
                   ),
-                  child: Icon(
-                    activityIcon,
-                    color: const Color(0xFF15172B),
-                    size: 31,
+                  child: Text(
+                    isGoalkeeper ? '🧤' : '⚽',
+                    style: const TextStyle(fontSize: 29, height: 1),
                   ),
                 ),
               ),
@@ -364,7 +363,9 @@ class _VerticalMarker extends StatelessWidget {
                   borderRadius: BorderRadius.circular(99),
                   boxShadow: [
                     BoxShadow(
-                        color: color.withValues(alpha: .65), blurRadius: 9),
+                      color: color.withValues(alpha: .65),
+                      blurRadius: 9,
+                    ),
                   ],
                 ),
               ),
@@ -377,7 +378,10 @@ class _VerticalMarker extends StatelessWidget {
                 color: Colors.white,
                 border: Border.all(color: color, width: 2),
                 boxShadow: [
-                  BoxShadow(color: color.withValues(alpha: .65), blurRadius: 9),
+                  BoxShadow(
+                    color: color.withValues(alpha: .65),
+                    blurRadius: 9,
+                  ),
                 ],
               ),
             ),
