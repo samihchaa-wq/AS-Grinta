@@ -295,7 +295,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
                   child: DropdownButtonFormField<String>(
-                    value: _manOfMatchPlayerId,
+                    initialValue: _manOfMatchPlayerId,
                     isExpanded: true,
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.star_outline),
