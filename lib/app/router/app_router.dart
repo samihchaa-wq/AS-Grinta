@@ -9,6 +9,7 @@ import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/forced_password_change_page.dart';
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
+import 'package:as_grinta/features/home/presentation/accueil_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
@@ -34,7 +35,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ..onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: '/pronos?category=matches',
+    initialLocation: '/accueil',
     refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
       authState: ref.read(authControllerProvider),
@@ -42,12 +43,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       matchedLocation: state.matchedLocation,
     ),
     routes: [
-      GoRoute(path: '/', redirect: (_, __) => '/pronos?category=matches'),
-      GoRoute(path: '/home', redirect: (_, __) => '/pronos?category=matches'),
+      GoRoute(path: '/', redirect: (_, __) => '/accueil'),
+      GoRoute(path: '/home', redirect: (_, __) => '/accueil'),
       ShellRoute(
         builder: (context, state, child) =>
             AppShell(location: state.uri.toString(), child: child),
         routes: [
+          GoRoute(path: '/accueil', builder: (_, __) => const AccueilPage()),
           GoRoute(path: '/admin', builder: (_, __) => const AdminMenuPage()),
           GoRoute(
             path: '/admin/administration',
