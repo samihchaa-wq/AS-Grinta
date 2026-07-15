@@ -181,9 +181,7 @@ class MatchesRepository {
       params: {'p_match_id': id},
     );
     if (result != true) {
-      throw StateError(
-        'Le match n’existe plus ou n’a pas pu être supprimé.',
-      );
+      throw StateError('Le match n’existe plus ou n’a pas pu être supprimé.');
     }
   }
 
@@ -193,15 +191,19 @@ class MatchesRepository {
     required int opponentScore,
     required List<Map<String, dynamic>> scorers,
     required String? cleanSheetProfileId,
+    required List<String> presentPlayerIds,
+    required String? manOfMatchPlayerId,
   }) async {
     final result = await _client.rpc(
-      'finalize_match_postgame',
+      'finalize_match_postgame_with_lineup',
       params: {
         'p_match_id': id,
         'p_score_adverse': opponentScore,
         'p_scorers': scorers,
         'p_clean_sheet_player_id': cleanSheetProfileId,
         'p_score_as_grinta': grintaScore,
+        'p_present': presentPlayerIds,
+        'p_man_of_match_player_id': manOfMatchPlayerId,
       },
     );
     if (result != true) {
@@ -222,9 +224,7 @@ class MatchesRepository {
   Future<Map<String, double>?> fetchMatchOdds(String matchId) async {
     final response = await _client
         .from('match_odds')
-        .select(
-          'odds_victoire_as_grinta, odds_nul, odds_victoire_adverse',
-        )
+        .select('odds_victoire_as_grinta, odds_nul, odds_victoire_adverse')
         .eq('match_id', matchId)
         .maybeSingle();
     if (response == null) return null;

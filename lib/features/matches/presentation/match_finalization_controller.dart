@@ -30,15 +30,16 @@ class MatchFinalizationController
   final MatchesRepository _repository;
   final Ref _ref;
 
-  /// [grintaScore] est choisi par l'admin. [scorerGoals] attribue des buts à
-  /// des joueurs (facultatif) : la somme des buts attribués ne peut pas
-  /// dépasser le score, mais peut être inférieure (buts sans buteur).
+  /// Enregistre le résultat, les buteurs, le clean sheet, la feuille de match
+  /// et l'homme du match dans une seule transaction côté Supabase.
   Future<bool> finalizeMatch({
     required String matchId,
     required int grintaScore,
     required int opponentScore,
     required Map<String, int> scorerGoals,
     required String? cleanSheetProfileId,
+    required Set<String> presentPlayerIds,
+    required String? manOfMatchPlayerId,
   }) async {
     if (_ref.read(authControllerProvider).profile?.role != AuthRole.admin) {
       state = state.copyWith(
@@ -50,9 +51,37 @@ class MatchFinalizationController
       state = state.copyWith(error: 'Score invalide.');
       return false;
     }
+    if (presentPlayerIds.isEmpty) {
+      state = state.copyWith(error: 'Sélectionne au moins un joueur présent.');
+      return false;
+    }
     if (opponentScore > 0 && cleanSheetProfileId != null) {
       state = state.copyWith(
         error: 'Un clean sheet est impossible si l’adversaire a marqué.',
+      );
+      return false;
+    }
+
+    final absentScorers = scorerGoals.keys
+        .where((playerId) => !presentPlayerIds.contains(playerId))
+        .toList();
+    if (absentScorers.isNotEmpty) {
+      state = state.copyWith(
+        error: 'Tous les buteurs doivent être cochés comme présents.',
+      );
+      return false;
+    }
+    if (cleanSheetProfileId != null &&
+        !presentPlayerIds.contains(cleanSheetProfileId)) {
+      state = state.copyWith(
+        error: 'Le gardien crédité du clean sheet doit être présent.',
+      );
+      return false;
+    }
+    if (manOfMatchPlayerId != null &&
+        !presentPlayerIds.contains(manOfMatchPlayerId)) {
+      state = state.copyWith(
+        error: 'L’homme du match doit faire partie des joueurs présents.',
       );
       return false;
     }
@@ -61,8 +90,10 @@ class MatchFinalizationController
         .where((entry) => entry.value > 0)
         .map((entry) => {'season_player_id': entry.key, 'goals': entry.value})
         .toList();
-    final attributed =
-        scorers.fold<int>(0, (sum, s) => sum + (s['goals'] as int));
+    final attributed = scorers.fold<int>(
+      0,
+      (sum, s) => sum + (s['goals'] as int),
+    );
     if (attributed > grintaScore) {
       state = state.copyWith(
         error: 'Tu as attribué plus de buts ($attributed) que le score '
@@ -79,6 +110,8 @@ class MatchFinalizationController
         opponentScore: opponentScore,
         scorers: scorers,
         cleanSheetProfileId: cleanSheetProfileId,
+        presentPlayerIds: presentPlayerIds.toList(growable: false),
+        manOfMatchPlayerId: manOfMatchPlayerId,
       );
       state = state.copyWith(isLoading: false, clearError: true);
       return true;
@@ -90,7 +123,11 @@ class MatchFinalizationController
 }
 
 final matchFinalizationControllerProvider =
-    StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>(
-        (ref) {
-  return MatchFinalizationController(ref.watch(matchesRepositoryProvider), ref);
+    StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>((
+  ref,
+) {
+  return MatchFinalizationController(
+    ref.watch(matchesRepositoryProvider),
+    ref,
+  );
 });

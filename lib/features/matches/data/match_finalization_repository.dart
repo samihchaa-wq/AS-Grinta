@@ -25,6 +25,8 @@ class MatchFinalizationContext {
     required this.cleanSheetProfileId,
     required this.goalkeeperId,
     required this.goalkeeperName,
+    required this.presentPlayerIds,
+    required this.manOfMatchPlayerId,
   });
 
   final List<SquadMember> squad;
@@ -43,9 +45,15 @@ class MatchFinalizationContext {
   final List<String> scorerGoalLines;
   final String? cleanSheetProfileId;
 
-  /// Le gardien de l'effectif (l’admin) pour l'interrupteur clean sheet.
+  /// Le gardien de l'effectif pour l'interrupteur clean sheet.
   final String? goalkeeperId;
   final String? goalkeeperName;
+
+  /// Joueurs inscrits sur la feuille de match.
+  final Set<String> presentPlayerIds;
+
+  /// Homme du match sélectionné. L'interface limite la saisie à un seul joueur.
+  final String? manOfMatchPlayerId;
 }
 
 class MatchFinalizationRepository {
@@ -87,12 +95,11 @@ class MatchFinalizationRepository {
         goalkeeperName = name;
       }
     }
-    squad.sort(
-      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-    );
+    squad.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     final scorerGoalLines = <String>[];
     String? cleanSheetProfileId;
+    final inferredPresentPlayerIds = <String>{};
     if (isValidated) {
       final statRows = await _client
           .from('match_player_stats')
@@ -101,12 +108,36 @@ class MatchFinalizationRepository {
       for (final row in statRows as List) {
         final map = Map<String, dynamic>.from(row);
         final id = map['season_player_id'].toString();
+        inferredPresentPlayerIds.add(id);
         final goals = (map['goals'] as num?)?.toInt() ?? 0;
         for (var i = 0; i < goals; i++) {
           scorerGoalLines.add(id);
         }
         if (map['clean_sheet'] == true) cleanSheetProfileId = id;
       }
+    }
+
+    final attendanceRows = await _client
+        .from('match_attendance')
+        .select('season_player_id')
+        .eq('match_id', matchId);
+    final savedPresentPlayerIds = <String>{
+      for (final row in attendanceRows as List)
+        Map<String, dynamic>.from(row)['season_player_id'].toString(),
+    };
+
+    final mvpRows = await _client
+        .from('match_man_of_match')
+        .select('season_player_id')
+        .eq('match_id', matchId)
+        .limit(1);
+    String? manOfMatchPlayerId;
+    if ((mvpRows as List).isNotEmpty) {
+      manOfMatchPlayerId = Map<String, dynamic>.from(
+        mvpRows.first,
+      )['season_player_id']
+          .toString();
+      inferredPresentPlayerIds.add(manOfMatchPlayerId);
     }
 
     return MatchFinalizationContext(
@@ -118,6 +149,10 @@ class MatchFinalizationRepository {
       cleanSheetProfileId: cleanSheetProfileId,
       goalkeeperId: goalkeeperId,
       goalkeeperName: goalkeeperName,
+      presentPlayerIds: savedPresentPlayerIds.isNotEmpty
+          ? savedPresentPlayerIds
+          : inferredPresentPlayerIds,
+      manOfMatchPlayerId: manOfMatchPlayerId,
     );
   }
 
