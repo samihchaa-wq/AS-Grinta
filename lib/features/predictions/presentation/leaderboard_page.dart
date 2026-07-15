@@ -65,8 +65,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: Text(
-                'Score pondéré : 2/3 pronostics de match, 1/3 pronostics de '
-                'saison.',
+                'Total = points matchs + points saison.',
                 style: TextStyle(fontSize: 12),
               ),
             ),
