@@ -64,6 +64,7 @@ class HomeDashboardData {
     required this.pendingPredictions,
     required this.predictionParticipantCount,
     required this.recentMeetings,
+    required this.nextMatchPredicted,
   });
 
   /// Le prochain match à venir (avant ou après le coup d'envoi), ou null.
@@ -79,6 +80,9 @@ class HomeDashboardData {
 
   /// Les 5 dernières confrontations face à l'adversaire du prochain match.
   final List<RecentMeeting> recentMeetings;
+
+  /// La personne a-t-elle déjà rempli son prono pour le prochain match ?
+  final bool nextMatchPredicted;
 }
 
 class HomeRepository {
@@ -217,12 +221,129 @@ class HomeRepository {
       pendingPredictions: pendingPredictions,
       predictionParticipantCount: predictionParticipantCount,
       recentMeetings: recentMeetings,
+      nextMatchPredicted:
+          nextMatch != null && filledByMatch[nextMatch.id] == true,
     );
   }
 }
 
+/// Le dernier pronostic de match rempli par la personne connectée, sur un match
+/// désormais terminé (pour le bloc « Ton dernier prono » de l'accueil).
+class LastProno {
+  const LastProno({
+    required this.matchId,
+    required this.opponent,
+    required this.isHome,
+    required this.grintaScore,
+    required this.opponentScore,
+    required this.predGrinta,
+    required this.predAdverse,
+    required this.useX2,
+    required this.points,
+    required this.kickoffAt,
+  });
+
+  final String matchId;
+  final String opponent;
+  final bool isHome;
+
+  /// Score réel du match.
+  final int grintaScore;
+  final int opponentScore;
+
+  /// Score pronostiqué.
+  final int predGrinta;
+  final int predAdverse;
+  final bool useX2;
+  final double points;
+  final DateTime? kickoffAt;
+
+  bool get isWin => grintaScore > opponentScore;
+  bool get isDraw => grintaScore == opponentScore;
+
+  /// Bon vainqueur : le sens du résultat pronostiqué correspond au sens réel.
+  bool get goodWinner =>
+      predGrinta.compareTo(predAdverse).sign ==
+      grintaScore.compareTo(opponentScore).sign;
+
+  /// Score exact trouvé.
+  bool get exact => predGrinta == grintaScore && predAdverse == opponentScore;
+}
+
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
   return HomeRepository(ref.watch(supabaseClientProvider));
+});
+
+/// Dernier prono de match de la personne connectée (sur un match terminé).
+final myLastPronoProvider = FutureProvider<LastProno?>((ref) async {
+  final client = ref.watch(supabaseClientProvider);
+  final uid = client.auth.currentUser?.id;
+  if (uid == null) return null;
+
+  final rows = await client
+      .from('match_predictions')
+      .select(
+        'predicted_score_as_grinta, predicted_score_adverse, use_x2, match_id, '
+        'matches!inner(id, score_as_grinta, score_adverse, location, '
+        'match_date, match_time, status, opponents(name))',
+      )
+      .eq('profile_id', uid)
+      .eq('is_filled', true)
+      .inFilter('matches.status', const ['termine', 'archive']);
+
+  // On sélectionne côté client le match terminé le plus récent (PostgREST ne
+  // trie pas la racine par une colonne d'une table liée).
+  Map<String, dynamic>? best;
+  DateTime bestKickoff = DateTime(0);
+  for (final row in rows as List) {
+    final map = Map<String, dynamic>.from(row as Map);
+    final match = map['matches'] is Map
+        ? Map<String, dynamic>.from(map['matches'] as Map)
+        : const <String, dynamic>{};
+    final grinta = (match['score_as_grinta'] as num?)?.toInt();
+    final opponent = (match['score_adverse'] as num?)?.toInt();
+    if (grinta == null || opponent == null) continue;
+    final date = match['match_date']?.toString() ?? '';
+    final time = match['match_time']?.toString() ?? '00:00:00';
+    final kickoff = DateTime.tryParse('${date}T$time') ?? DateTime(0);
+    if (best == null || kickoff.isAfter(bestKickoff)) {
+      best = map;
+      bestKickoff = kickoff;
+    }
+  }
+  if (best == null) return null;
+
+  final match = Map<String, dynamic>.from(best['matches'] as Map);
+  final matchId = match['id'].toString();
+
+  final pointsRows = await client
+      .from('v_match_prediction_points')
+      .select('points')
+      .eq('profile_id', uid)
+      .eq('match_id', matchId)
+      .limit(1);
+  final points = (pointsRows as List).isNotEmpty
+      ? ((Map<String, dynamic>.from(pointsRows.first as Map)['points'] as num?)
+              ?.toDouble() ??
+          0)
+      : 0.0;
+
+  final opp = match['opponents'] is Map
+      ? Map<String, dynamic>.from(match['opponents'] as Map)
+      : const <String, dynamic>{};
+
+  return LastProno(
+    matchId: matchId,
+    opponent: opp['name']?.toString() ?? 'Adversaire',
+    isHome: (match['location']?.toString() ?? 'domicile') == 'domicile',
+    grintaScore: (match['score_as_grinta'] as num).toInt(),
+    opponentScore: (match['score_adverse'] as num).toInt(),
+    predGrinta: (best['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
+    predAdverse: (best['predicted_score_adverse'] as num?)?.toInt() ?? 0,
+    useX2: best['use_x2'] == true,
+    points: points,
+    kickoffAt: bestKickoff.year > 1 ? bestKickoff : null,
+  );
 });
 
 // Mis en cache (pas d'autoDispose) : l'accueil s'affiche instantanément sans

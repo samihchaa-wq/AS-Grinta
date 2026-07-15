@@ -17,6 +17,7 @@ class AppShell extends ConsumerWidget {
       '/notifications',
       '/admin',
       '/players',
+      '/armoire',
     };
     return moreRoutes.any(
       (route) => _uri.path == route || _uri.path.startsWith('$route/'),
@@ -24,13 +25,13 @@ class AppShell extends ConsumerWidget {
   }
 
   int get _selectedIndex {
-    if (_isMoreRoute) return 4;
-    if (_uri.path == '/statistics') return 3;
+    if (_isMoreRoute) return 5;
+    if (_uri.path == '/statistics') return 4;
     if (_uri.path == '/pronos') {
       return switch (_uri.queryParameters['category']) {
-        'scorers' => 1,
-        'general' => 2,
-        _ => 0,
+        'scorers' => 2,
+        'general' => 3,
+        _ => 1,
       };
     }
     return 0;
@@ -46,15 +47,21 @@ class AppShell extends ConsumerWidget {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
           final destination = switch (index) {
-            0 => '/pronos?category=matches',
-            1 => '/pronos?category=scorers',
-            2 => '/pronos?category=general',
-            3 => '/statistics',
+            0 => '/accueil',
+            1 => '/pronos?category=matches',
+            2 => '/pronos?category=scorers',
+            3 => '/pronos?category=general',
+            4 => '/statistics',
             _ => '/more',
           };
           if (location != destination) context.go(destination);
         },
         destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home_rounded),
+            label: 'Accueil',
+          ),
           NavigationDestination(
             icon: Icon(Icons.sports_soccer_outlined),
             selectedIcon: Icon(Icons.sports_soccer_rounded),
