@@ -71,7 +71,7 @@ class AppShell extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events_rounded),
-            label: 'Général',
+            label: 'Classements',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
