@@ -266,18 +266,23 @@ class _PlayerStatisticsCard extends StatelessWidget {
           ),
           if (player.hasHistoricalBreakdown) ...[
             const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 7,
-                runSpacing: 7,
-                children: _historicalMetrics(),
-              ),
-            ),
+            _historicalMetricsRow(),
           ],
         ],
       ),
     );
+  }
+
+  Widget _historicalMetricsRow() {
+    final metrics = _historicalMetrics();
+    final children = <Widget>[];
+
+    for (var index = 0; index < metrics.length; index++) {
+      if (index > 0) children.add(const SizedBox(width: 5));
+      children.add(Expanded(child: metrics[index]));
+    }
+
+    return Row(children: children);
   }
 
   List<Widget> _historicalMetrics() {
@@ -370,21 +375,33 @@ class _MetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 50,
-      padding: const EdgeInsets.symmetric(vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .055),
         borderRadius: BorderRadius.circular(11),
       ),
       child: Column(
         children: [
-          Text('$value', style: const TextStyle(fontWeight: FontWeight.w900)),
+          SizedBox(
+            height: 18,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '$value',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: Colors.white60),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: Colors.white60),
+            ),
           ),
         ],
       ),
