@@ -68,6 +68,10 @@ String _fromMessage(String raw) {
     'only upcoming or finished matches':
         'Ce match ne peut plus être modifié.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',
+    'valeur de pronostic hors limites':
+        'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
+    'prediction value out of range':
+        'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
     'only a goalkeeper': 'Seul un gardien peut avoir un clean sheet.',
     'clean sheet is impossible':
         'Un clean sheet est impossible si l’adversaire a marqué.',
