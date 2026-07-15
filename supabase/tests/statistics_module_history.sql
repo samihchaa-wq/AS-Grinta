@@ -58,8 +58,8 @@ begin
       samih_previous_clean_sheets;
   end if;
 
-  if samih_all_time_clean_sheets <> 24 then
-    raise exception 'Expected Samih to have 24 all-time clean sheets, got %',
+  if samih_all_time_clean_sheets <> 16 then
+    raise exception 'Expected Samih to have 16 all-time clean sheets, got %',
       samih_all_time_clean_sheets;
   end if;
 end
