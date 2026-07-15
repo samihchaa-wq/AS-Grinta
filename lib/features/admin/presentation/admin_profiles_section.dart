@@ -194,14 +194,30 @@ class _ProfileCard extends ConsumerWidget {
                         final confirmed = await _confirm(
                           context,
                           'Réinitialiser le mot de passe ?',
-                          '${profile.displayName} devra refaire une '
-                              '« première connexion ».',
+                          'Un code temporaire sera généré. Donne-le à '
+                              '${profile.displayName} : à sa prochaine '
+                              'connexion, il devra créer un nouveau mot de '
+                              'passe.',
                         );
                         if (!confirmed) return;
-                        await run(
-                          () => repository.resetAccountPassword(profile.id),
-                          success: 'Mot de passe réinitialisé.',
-                        );
+                        try {
+                          final code =
+                              await repository.resetAccountPassword(profile.id);
+                          ref.invalidate(adminDashboardProvider);
+                          if (context.mounted) {
+                            await _showResetCodeDialog(
+                              context,
+                              profile.displayName,
+                              code,
+                            );
+                          }
+                        } catch (error) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(humanizeError(error))),
+                            );
+                          }
+                        }
                       },
                       icon: const Icon(Icons.lock_reset, size: 18),
                       label: const Text('Réinitialiser le mot de passe'),
@@ -287,8 +303,7 @@ class _ProfileCard extends ConsumerWidget {
         final roster = await rosterRepository.fetchRoster(seasonId);
         availablePlayers = roster
             .where(
-              (player) =>
-                  player.isActive && player.linkedProfileId == null,
+              (player) => player.isActive && player.linkedProfileId == null,
             )
             .toList();
       }
@@ -396,5 +411,71 @@ class _ProfileCard extends ConsumerWidget {
           ),
         ) ??
         false;
+  }
+
+  Future<void> _showResetCodeDialog(
+    BuildContext context,
+    String displayName,
+    String code,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Code temporaire'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Donne ce code à $displayName. À sa prochaine connexion, il '
+                'devra choisir un nouveau mot de passe.'),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              child: SelectableText(
+                code,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Le code est déjà copié dans ton presse-papiers.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: code));
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Code copié.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy, size: 18),
+            label: const Text('Copier'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
   }
 }
