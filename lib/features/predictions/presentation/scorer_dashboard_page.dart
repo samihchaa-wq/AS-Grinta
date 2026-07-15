@@ -20,7 +20,9 @@ class ScorerDashboardPage extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text('$error')),
       data: (isLocked) {
-        if (!isLocked) return const SeasonPredictionEntryPage();
+        if (!isLocked) {
+          return SeasonPredictionEntryPage(embedded: embedded);
+        }
         return _LockedScorerDashboard(embedded: embedded);
       },
     );
