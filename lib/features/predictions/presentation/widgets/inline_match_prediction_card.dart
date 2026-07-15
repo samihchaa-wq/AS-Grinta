@@ -9,14 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
-});
+      return ref
+          .watch(predictionsRepositoryProvider)
+          .fetchMatchPrediction(matchId);
+    });
 
 class InlineMatchPredictionCard extends ConsumerStatefulWidget {
-  const InlineMatchPredictionCard({
-    super.key,
-    required this.matchId,
-  });
+  const InlineMatchPredictionCard({super.key, required this.matchId});
 
   final String matchId;
 
@@ -86,8 +85,8 @@ class _InlineMatchPredictionCardState
                     child: Text(
                       'Ton pari',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   _StatusChip(item: item),
@@ -138,9 +137,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: 18),
               Text(
                 'Score à modifier',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 12),
               Row(
@@ -176,9 +175,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: 18),
               Text(
                 'Les cotes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               Row(
@@ -210,8 +209,10 @@ class _InlineMatchPredictionCardState
               ),
               const SizedBox(height: 14),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .035),
                   borderRadius: BorderRadius.circular(16),
@@ -278,7 +279,9 @@ class _InlineMatchPredictionCardState
   Future<void> _save(MatchPredictionItem item) async {
     setState(() => _saving = true);
     try {
-      await ref.read(predictionsRepositoryProvider).savePrediction(
+      await ref
+          .read(predictionsRepositoryProvider)
+          .savePrediction(
             matchId: item.matchId,
             scoreGrinta: _scoreGrinta ?? item.scoreGrinta,
             scoreOpponent: _scoreOpponent ?? item.scoreOpponent,
@@ -289,9 +292,9 @@ class _InlineMatchPredictionCardState
         ..invalidate(matchDetailsProvider(widget.matchId));
       await ref.read(predictionsControllerProvider.notifier).load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pronostic enregistré.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -322,8 +325,9 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         item.isFilled ? 'Enregistré' : 'À saisir',
         style: TextStyle(
-          color:
-              item.isFilled ? const Color(0xFF69E99B) : AppTheme.textSecondary,
+          color: item.isFilled
+              ? const Color(0xFF69E99B)
+              : AppTheme.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -400,10 +404,7 @@ class _ScorePicker extends StatelessWidget {
               onPressed: enabled && value > 0 ? onMinus : null,
               icon: const Icon(Icons.remove_circle_outline),
             ),
-            Text(
-              '$value',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Text('$value', style: Theme.of(context).textTheme.headlineMedium),
             IconButton(
               onPressed: enabled ? onPlus : null,
               icon: const Icon(Icons.add_circle_outline),

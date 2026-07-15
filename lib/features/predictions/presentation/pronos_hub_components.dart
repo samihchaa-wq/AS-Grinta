@@ -13,7 +13,8 @@ class _LeaderboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...entries]..sort((a, b) {
+    final sorted = [...entries]
+      ..sort((a, b) {
         final byPoints = points(b).compareTo(points(a));
         return byPoints != 0 ? byPoints : a.name.compareTo(b.name);
       });
@@ -58,9 +59,9 @@ class _MatchLeaderboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppTheme.textSecondary,
-          fontWeight: FontWeight.w800,
-        );
+      color: AppTheme.textSecondary,
+      fontWeight: FontWeight.w800,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -91,9 +92,9 @@ class _GeneralLeaderboardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppTheme.textSecondary,
-          fontWeight: FontWeight.w800,
-        );
+      color: AppTheme.textSecondary,
+      fontWeight: FontWeight.w800,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -194,9 +195,9 @@ class _LeaderboardRowLayout extends StatelessWidget {
                   child: Text(
                     '$rank',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -206,8 +207,8 @@ class _LeaderboardRowLayout extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -234,9 +235,9 @@ class _LeaderboardRowLayout extends StatelessWidget {
             child: Text(
               points,
               textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -267,10 +268,7 @@ class _MessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(message),
-      ),
+      child: Padding(padding: const EdgeInsets.all(20), child: Text(message)),
     );
   }
 }

@@ -7,8 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final seasonPredictionsProvider =
     FutureProvider.autoDispose<List<SeasonPredictionItem>>((ref) {
-  return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
-});
+      return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
+    });
 
 final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();

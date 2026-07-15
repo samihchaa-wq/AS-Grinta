@@ -180,10 +180,7 @@ class AdminRepository {
   }) async {
     final result = await _client.rpc(
       'staff_validate_profile',
-      params: {
-        'p_profile_id': profileId,
-        'p_season_player_id': seasonPlayerId,
-      },
+      params: {'p_profile_id': profileId, 'p_season_player_id': seasonPlayerId},
     );
     if (result != true) {
       throw StateError('Le compte n’a pas pu être validé.');

@@ -21,8 +21,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     final profile = ref.read(authControllerProvider).profile;
-    _firstNameController =
-        TextEditingController(text: profile?.firstName ?? '');
+    _firstNameController = TextEditingController(
+      text: profile?.firstName ?? '',
+    );
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
   }
 
@@ -124,15 +125,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return;
     }
     setState(() => _localError = null);
-    await ref.read(authControllerProvider.notifier).updateProfile(
-          firstName: firstName,
-          lastName: lastName,
-        );
+    await ref
+        .read(authControllerProvider.notifier)
+        .updateProfile(firstName: firstName, lastName: lastName);
     if (!mounted) return;
     if (ref.read(authControllerProvider).error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil enregistré.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profil enregistré.')));
     }
   }
 
@@ -149,8 +149,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             TextField(
               controller: passwordController,
               obscureText: true,
-              decoration:
-                  const InputDecoration(labelText: 'Nouveau mot de passe'),
+              decoration: const InputDecoration(
+                labelText: 'Nouveau mot de passe',
+              ),
             ),
             const SizedBox(height: 12),
             TextField(

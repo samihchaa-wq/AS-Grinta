@@ -9,9 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 void main() {
   group('AuthController', () {
     test('loads an active profile on startup', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_activeProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -59,9 +57,7 @@ void main() {
     });
 
     test('inactive profiles are signed out and rejected', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_inactiveProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_inactiveProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -86,10 +82,7 @@ void main() {
       addTearDown(controller.dispose);
       await _flushAsync();
 
-      await controller.signIn(
-        username: 'samih',
-        password: 'wrong-password',
-      );
+      await controller.signIn(username: 'samih', password: 'wrong-password');
 
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
@@ -101,9 +94,7 @@ void main() {
     });
 
     test('signOut clears the authenticated state', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_activeProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
       await _flushAsync();
@@ -117,23 +108,25 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('ignores a refresh result that became stale after signedOut',
-        () async {
-      final pendingRefresh = Completer<AuthProfile?>();
-      final repository = _FakeAuthRepository(
-        fetchResults: [pendingRefresh.future],
-      );
-      final controller = AuthController(repository);
-      addTearDown(controller.dispose);
+    test(
+      'ignores a refresh result that became stale after signedOut',
+      () async {
+        final pendingRefresh = Completer<AuthProfile?>();
+        final repository = _FakeAuthRepository(
+          fetchResults: [pendingRefresh.future],
+        );
+        final controller = AuthController(repository);
+        addTearDown(controller.dispose);
 
-      repository.emit(supabase.AuthChangeEvent.signedOut);
-      pendingRefresh.complete(_activeProfile);
-      await _flushAsync();
+        repository.emit(supabase.AuthChangeEvent.signedOut);
+        pendingRefresh.complete(_activeProfile);
+        await _flushAsync();
 
-      expect(controller.state.isLoading, isFalse);
-      expect(controller.state.isAuthenticated, isFalse);
-      expect(controller.state.profile, isNull);
-    });
+        expect(controller.state.isLoading, isFalse);
+        expect(controller.state.isAuthenticated, isFalse);
+        expect(controller.state.profile, isNull);
+      },
+    );
   });
 }
 
@@ -165,10 +158,8 @@ Future<void> _flushAsync() async {
 }
 
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({
-    required List<Object?> fetchResults,
-    this.signInError,
-  }) : _fetchResults = List<Object?>.from(fetchResults);
+  _FakeAuthRepository({required List<Object?> fetchResults, this.signInError})
+    : _fetchResults = List<Object?>.from(fetchResults);
 
   final List<Object?> _fetchResults;
   final Object? signInError;

@@ -71,6 +71,8 @@ final preferencesRepositoryProvider = Provider<PreferencesRepository>((ref) {
   return PreferencesRepository(ref.watch(supabaseClientProvider));
 });
 
-final appPreferencesProvider = FutureProvider.autoDispose<AppPreferences>((ref) {
+final appPreferencesProvider = FutureProvider.autoDispose<AppPreferences>((
+  ref,
+) {
   return ref.watch(preferencesRepositoryProvider).fetch();
 });

@@ -32,8 +32,9 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _submit() async {
@@ -56,7 +57,9 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
 
     setState(() => _submitting = true);
     try {
-      final username = await ref.read(authRepositoryProvider).registerAccount(
+      final username = await ref
+          .read(authRepositoryProvider)
+          .registerAccount(
             firstName: firstName,
             lastName: lastName,
             password: password,
@@ -66,8 +69,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       if (mounted) context.go('/auth/sign-in');
     } on FunctionException catch (error) {
       final details = error.details;
-      final message =
-          details is Map ? details['error']?.toString() : null;
+      final message = details is Map ? details['error']?.toString() : null;
       _showError(message ?? 'La création du compte a échoué.');
     } on StateError catch (error) {
       _showError(error.message);
@@ -93,9 +95,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
             Center(
               child: SelectableText(
                 username,
-                style: Theme.of(dialogContext)
-                    .textTheme
-                    .headlineMedium
+                style: Theme.of(dialogContext).textTheme.headlineMedium
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
@@ -209,8 +209,9 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.sports_soccer),
                         label: const Text('Créer mon compte'),

@@ -115,9 +115,9 @@ class _UpcomingHeader extends StatelessWidget {
             Text(
               'AS Grinta vs ${details.opponentName}',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
@@ -143,9 +143,9 @@ class _HeadToHeadCard extends StatelessWidget {
           children: [
             Text(
               'Les 5 dernières rencontres',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             if (details.headToHead.isEmpty)
@@ -209,10 +209,12 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scorers =
-        details.playerStats.where((line) => line.goals > 0).toList();
-    final cleanSheets =
-        details.playerStats.where((line) => line.cleanSheet).toList();
+    final scorers = details.playerStats
+        .where((line) => line.goals > 0)
+        .toList();
+    final cleanSheets = details.playerStats
+        .where((line) => line.cleanSheet)
+        .toList();
 
     return Card(
       child: Padding(
@@ -270,21 +272,21 @@ class _PredictionsTable extends StatelessWidget {
 
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
-    final exact = prediction.scoreGrinta == actualGrinta &&
+    final exact =
+        prediction.scoreGrinta == actualGrinta &&
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
 
-    final correctWinner = _result(
-          prediction.scoreGrinta,
-          prediction.scoreOpponent,
-        ) ==
+    final correctWinner =
+        _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
         _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
 
     final correctDifference =
         prediction.scoreGrinta - prediction.scoreOpponent ==
-            actualGrinta - actualOpponent;
-    final oneExactTeam = prediction.scoreGrinta == actualGrinta ||
+        actualGrinta - actualOpponent;
+    final oneExactTeam =
+        prediction.scoreGrinta == actualGrinta ||
         prediction.scoreOpponent == actualOpponent;
     if (correctDifference || oneExactTeam) return const Color(0xFF1DCBFF);
     return const Color(0xFF39E784);
@@ -316,8 +318,10 @@ class _PredictionsTable extends StatelessWidget {
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: color == null

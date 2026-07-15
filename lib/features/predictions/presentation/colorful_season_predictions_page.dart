@@ -57,8 +57,9 @@ class _SeasonLinesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final diagonalLength =
-        math.sqrt(size.width * size.width + size.height * size.height);
+    final diagonalLength = math.sqrt(
+      size.width * size.width + size.height * size.height,
+    );
 
     for (var index = 0; index < 18; index++) {
       final color = _colors[index % _colors.length];

@@ -39,8 +39,7 @@ String? resolveAuthRedirect({
   final isStaff = role?.isStaff == true;
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
-  final isAdminRoute =
-      location == '/admin' || location.startsWith('/admin/');
+  final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
   final isPlayersRoute = location == '/players';
 
   if (isFinalizationRoute && !isAdmin) return '/pronos';

@@ -139,8 +139,10 @@ class _RosterList extends ConsumerWidget {
                             return;
                           }
                           if (action == 'delete') {
-                            final confirmed =
-                                await _confirmDelete(context, player);
+                            final confirmed = await _confirmDelete(
+                              context,
+                              player,
+                            );
                             if (!confirmed) return;
                             await repo.deletePlayer(player.id);
                           } else if (action == 'archive') {
@@ -177,8 +179,9 @@ class _RosterList extends ConsumerWidget {
                           ),
                         PopupMenuItem(
                           value: player.isActive ? 'archive' : 'restore',
-                          child:
-                              Text(player.isActive ? 'Archiver' : 'Réactiver'),
+                          child: Text(
+                            player.isActive ? 'Archiver' : 'Réactiver',
+                          ),
                         ),
                         const PopupMenuItem(
                           value: 'delete',
@@ -209,9 +212,9 @@ Future<void> _showProfileLinkDialog(
     profiles = await repo.fetchLinkableProfiles();
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
     return;
   }
@@ -253,9 +256,7 @@ Future<void> _showProfileLinkDialog(
                 DropdownButtonFormField<String>(
                   initialValue: selectedProfileId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Pronostiqueur',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Pronostiqueur'),
                   items: [
                     const DropdownMenuItem(
                       value: '',
@@ -263,7 +264,8 @@ Future<void> _showProfileLinkDialog(
                     ),
                     ...profiles.map((profile) {
                       final linkedPlayer = linkedPlayerByProfileId[profile.id];
-                      final suffix = linkedPlayer == null ||
+                      final suffix =
+                          linkedPlayer == null ||
                               linkedPlayer == player.displayName
                           ? ''
                           : ' · actuellement lié à $linkedPlayer';
@@ -286,9 +288,7 @@ Future<void> _showProfileLinkDialog(
                 const SizedBox(height: 12),
                 Text(
                   error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
             ],
@@ -350,10 +350,7 @@ Future<void> _showProfileLinkDialog(
   );
 }
 
-Future<bool> _confirmUnlink(
-  BuildContext context,
-  RosterPlayer player,
-) async {
+Future<bool> _confirmUnlink(BuildContext context, RosterPlayer player) async {
   return await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -443,9 +440,7 @@ Future<void> _showPlayerDialog(
               if (error != null)
                 Text(
                   error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
             ],
           ),

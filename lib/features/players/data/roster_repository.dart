@@ -77,7 +77,9 @@ class RosterRepository {
   }
 
   Future<List<RosterPlayer>> fetchRoster(String seasonId) async {
-    final rows = await _client.from('season_players').select('''
+    final rows = await _client
+        .from('season_players')
+        .select('''
       id,
       first_name,
       last_name,
@@ -89,7 +91,8 @@ class RosterRepository {
         first_name,
         status
       )
-    ''').eq('season_id', seasonId);
+    ''')
+        .eq('season_id', seasonId);
     final players = (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       final profileRaw = map['profiles'];
@@ -140,10 +143,7 @@ class RosterRepository {
   }) async {
     final result = await _client.rpc(
       'staff_set_season_player_profile',
-      params: {
-        'p_season_player_id': seasonPlayerId,
-        'p_profile_id': profileId,
-      },
+      params: {'p_season_player_id': seasonPlayerId, 'p_profile_id': profileId},
     );
     if (result != true) {
       throw StateError('La liaison n’a pas pu être enregistrée.');
@@ -187,16 +187,17 @@ class RosterRepository {
     if (f.isEmpty) {
       throw ArgumentError('Le prénom est obligatoire.');
     }
-    await _client.from('season_players').update({
-      'first_name': f,
-      'is_goalkeeper': isGoalkeeper,
-    }).eq('id', id);
+    await _client
+        .from('season_players')
+        .update({'first_name': f, 'is_goalkeeper': isGoalkeeper})
+        .eq('id', id);
   }
 
   Future<void> setActive({required String id, required bool active}) async {
     await _client
         .from('season_players')
-        .update({'is_active': active}).eq('id', id);
+        .update({'is_active': active})
+        .eq('id', id);
   }
 
   Future<void> deletePlayer(String id) async {
@@ -212,7 +213,9 @@ final openSeasonIdProvider = FutureProvider<String?>((ref) {
   return ref.watch(rosterRepositoryProvider).openSeasonId();
 });
 
-final rosterProvider =
-    FutureProvider.family<List<RosterPlayer>, String>((ref, seasonId) {
+final rosterProvider = FutureProvider.family<List<RosterPlayer>, String>((
+  ref,
+  seasonId,
+) {
   return ref.watch(rosterRepositoryProvider).fetchRoster(seasonId);
 });

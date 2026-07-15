@@ -70,8 +70,8 @@ class MatchModel {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
 
     return MatchModel(
       id: json['id']?.toString() ?? '',
@@ -88,8 +88,9 @@ class MatchModel {
       opponentScore: json['score_adverse'] == null
           ? null
           : int.tryParse('${json['score_adverse']}'),
-      predictionsClosedAt:
-          DateTime.tryParse('${json['predictions_closed_at'] ?? ''}'),
+      predictionsClosedAt: DateTime.tryParse(
+        '${json['predictions_closed_at'] ?? ''}',
+      ),
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
@@ -99,8 +100,9 @@ class MatchModel {
       opponentName: json['opponents'] is Map
           ? json['opponents']['name']?.toString()
           : null,
-      seasonName:
-          json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
+      seasonName: json['seasons'] is Map
+          ? json['seasons']['name']?.toString()
+          : null,
     );
   }
 }

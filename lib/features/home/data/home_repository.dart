@@ -164,9 +164,7 @@ class HomeRepository {
       if (match.status == 'a_venir' &&
           match.kickoffAt != null &&
           !match.predictionsClosed &&
-          now.isBefore(
-            match.kickoffAt!.subtract(const Duration(minutes: 5)),
-          ) &&
+          now.isBefore(match.kickoffAt!.subtract(const Duration(minutes: 5))) &&
           filledByMatch[match.id] != true) {
         pendingPredictions++;
       }

@@ -2,8 +2,10 @@ part of 'pronos_hub_page.dart';
 
 final _calendarPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
-});
+      return ref
+          .watch(predictionsRepositoryProvider)
+          .fetchMatchPrediction(matchId);
+    });
 
 class _CalendarSection extends ConsumerStatefulWidget {
   const _CalendarSection();
@@ -86,10 +88,9 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
           ..invalidate(_calendarPredictionProvider)
           ..invalidate(inlineMatchPredictionProvider);
         await Future.wait([
-          ref.read(matchesControllerProvider.notifier).load(
-                seasonId: state.selectedSeasonId,
-                allSeasons: true,
-              ),
+          ref
+              .read(matchesControllerProvider.notifier)
+              .load(seasonId: state.selectedSeasonId, allSeasons: true),
           ref.read(predictionsControllerProvider.notifier).load(),
         ]);
       },
@@ -121,22 +122,19 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final match = finishedMatches[index];
-                    final isPreviousMatch = index == 0;
-                    return Padding(
-                      key: isPreviousMatch ? _previousMatchKey : null,
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _CalendarMatchCard(
-                        match: match,
-                        isAdmin: isAdmin,
-                        isNextMatch: false,
-                      ),
-                    );
-                  },
-                  childCount: finishedMatches.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final match = finishedMatches[index];
+                  final isPreviousMatch = index == 0;
+                  return Padding(
+                    key: isPreviousMatch ? _previousMatchKey : null,
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _CalendarMatchCard(
+                      match: match,
+                      isAdmin: isAdmin,
+                      isNextMatch: false,
+                    ),
+                  );
+                }, childCount: finishedMatches.length),
               ),
             ),
             SliverPadding(
@@ -148,22 +146,18 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 32,
               ),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final match = upcomingMatches[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _CalendarMatchCard(
-                        match: match,
-                        isAdmin: isAdmin,
-                        isNextMatch: match.id == nextMatchId,
-                        predictionAvailable:
-                            match.id == nextEditableMatchId,
-                      ),
-                    );
-                  },
-                  childCount: upcomingMatches.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final match = upcomingMatches[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _CalendarMatchCard(
+                      match: match,
+                      isAdmin: isAdmin,
+                      isNextMatch: match.id == nextMatchId,
+                      predictionAvailable: match.id == nextEditableMatchId,
+                    ),
+                  );
+                }, childCount: upcomingMatches.length),
               ),
             ),
           ],
@@ -250,26 +244,26 @@ class _CalendarMatchCard extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Text(
                     statusLabel,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 AppFormats.dateTime(match.kickoffAt),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: dateColor,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: dateColor),
               ),
               if (!match.isFinished) ...[
                 const SizedBox(height: 12),
@@ -278,8 +272,8 @@ class _CalendarMatchCard extends ConsumerWidget {
                       ? 'Ton pari est disponible.'
                       : 'Le pronostic s’ouvrira lorsque les matchs précédents seront fermés.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ],
               if (isAdmin) ...[
@@ -318,9 +312,7 @@ class _AdminMatchActions extends ConsumerWidget {
                     ..invalidate(_calendarPredictionProvider)
                     ..invalidate(inlineMatchPredictionProvider)
                     ..invalidate(matchDetailsProvider(match.id));
-                  await ref
-                      .read(predictionsControllerProvider.notifier)
-                      .load();
+                  await ref.read(predictionsControllerProvider.notifier).load();
                 },
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Modifier'),
@@ -357,7 +349,8 @@ class _DeleteMatchButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return OutlinedButton.icon(
       onPressed: () async {
-        final confirmed = await showDialog<bool>(
+        final confirmed =
+            await showDialog<bool>(
               context: context,
               builder: (dialogContext) => AlertDialog(
                 title: const Text('Supprimer ce match ?'),

@@ -61,9 +61,7 @@ class AdminPage extends ConsumerWidget {
                     ),
                     trailing: const Icon(Icons.add_circle_outline),
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const MatchFormPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const MatchFormPage()),
                     ),
                   ),
                 ),

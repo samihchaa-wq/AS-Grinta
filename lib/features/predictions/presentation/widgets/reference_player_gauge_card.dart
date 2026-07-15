@@ -162,20 +162,13 @@ class _TopDivider extends StatelessWidget {
     return Positioned(
       left: left,
       top: 72,
-      child: Container(
-        width: 2,
-        height: 126,
-        color: const Color(0xFF252947),
-      ),
+      child: Container(width: 2, height: 126, color: const Color(0xFF252947)),
     );
   }
 }
 
 class _PlayerIdentity extends StatelessWidget {
-  const _PlayerIdentity({
-    required this.name,
-    required this.isGoalkeeper,
-  });
+  const _PlayerIdentity({required this.name, required this.isGoalkeeper});
 
   final String name;
   final bool isGoalkeeper;
@@ -266,10 +259,7 @@ class _Metric extends StatelessWidget {
             height: .9,
             fontWeight: FontWeight.w900,
             shadows: [
-              Shadow(
-                color: color.withValues(alpha: .20),
-                blurRadius: 12,
-              ),
+              Shadow(color: color.withValues(alpha: .20), blurRadius: 12),
             ],
           ),
         ),
@@ -330,10 +320,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF20253F),
                   borderRadius: BorderRadius.circular(99),
-                  border: Border.all(
-                    color: const Color(0xFF3B4060),
-                    width: 2,
-                  ),
+                  border: Border.all(color: const Color(0xFF3B4060), width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF4B43FF).withValues(alpha: .08),
@@ -383,10 +370,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
                 color: _personalOrange,
               ),
             if (median != null)
-              _VerticalMarker(
-                x: xFor(median!),
-                color: _medianPurple,
-              ),
+              _VerticalMarker(x: xFor(median!), color: _medianPurple),
             Positioned(
               left: actualX - 39,
               top: trackTop - 25,
@@ -519,17 +503,13 @@ class _FootballPainter extends CustomPainter {
 
     for (var index = 0; index < 5; index++) {
       final angle = -math.pi / 2 + index * math.pi * 2 / 5;
-      final patchCenter = center +
+      final patchCenter =
+          center +
           Offset(
             math.cos(angle) * radius * .77,
             math.sin(angle) * radius * .77,
           );
-      final patch = _polygon(
-        patchCenter,
-        radius * .27,
-        5,
-        angle + math.pi,
-      );
+      final patch = _polygon(patchCenter, radius * .27, 5, angle + math.pi);
       canvas.drawPath(patch, black);
       canvas.drawLine(
         center +
@@ -548,12 +528,14 @@ class _FootballPainter extends CustomPainter {
 
     for (var index = 0; index < 5; index++) {
       final angle = -math.pi / 2 + (index + .5) * math.pi * 2 / 5;
-      final start = center +
+      final start =
+          center +
           Offset(
             math.cos(angle) * radius * .42,
             math.sin(angle) * radius * .42,
           );
-      final end = center +
+      final end =
+          center +
           Offset(
             math.cos(angle) * radius * .95,
             math.sin(angle) * radius * .95,
@@ -572,20 +554,12 @@ class _FootballPainter extends CustomPainter {
     );
   }
 
-  Path _polygon(
-    Offset center,
-    double radius,
-    int sides,
-    double rotation,
-  ) {
+  Path _polygon(Offset center, double radius, int sides, double rotation) {
     final path = Path();
     for (var index = 0; index < sides; index++) {
       final angle = rotation + index * math.pi * 2 / sides;
-      final point = center +
-          Offset(
-            math.cos(angle) * radius,
-            math.sin(angle) * radius,
-          );
+      final point =
+          center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
       if (index == 0) {
         path.moveTo(point.dx, point.dy);
       } else {

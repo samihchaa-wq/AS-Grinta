@@ -117,7 +117,8 @@ class _RankingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...entries]..sort((a, b) {
+    final sorted = [...entries]
+      ..sort((a, b) {
         final points = _points(b).compareTo(_points(a));
         return points != 0 ? points : a.name.compareTo(b.name);
       });

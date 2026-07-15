@@ -287,8 +287,7 @@ class _ProfileCard extends ConsumerWidget {
         final roster = await rosterRepository.fetchRoster(seasonId);
         availablePlayers = roster
             .where(
-              (player) =>
-                  player.isActive && player.linkedProfileId == null,
+              (player) => player.isActive && player.linkedProfileId == null,
             )
             .toList();
       }
@@ -360,8 +359,9 @@ class _ProfileCard extends ConsumerWidget {
               onPressed: () => Navigator.pop(
                 dialogContext,
                 _ProfileValidationChoice(
-                  seasonPlayerId:
-                      selectedPlayerId.isEmpty ? null : selectedPlayerId,
+                  seasonPlayerId: selectedPlayerId.isEmpty
+                      ? null
+                      : selectedPlayerId,
                   seasonId: seasonId,
                 ),
               ),

@@ -81,9 +81,9 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       body: switch (_category) {
         _PronosCategory.matches => const _CalendarSection(),
         _PronosCategory.scorers => const ColorfulSeasonPredictionsPage(
-            embedded: true,
-            showRanking: false,
-          ),
+          embedded: true,
+          showRanking: false,
+        ),
         _PronosCategory.general => const _GeneralRankingsSection(),
       },
     );

@@ -87,9 +87,7 @@ class MatchFinalizationRepository {
         goalkeeperName = name;
       }
     }
-    squad.sort(
-      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-    );
+    squad.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     final scorerGoalLines = <String>[];
     String? cleanSheetProfileId;
@@ -129,10 +127,10 @@ class MatchFinalizationRepository {
 
 final matchFinalizationRepositoryProvider =
     Provider<MatchFinalizationRepository>((ref) {
-  return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
-});
+      return MatchFinalizationRepository(ref.watch(supabaseClientProvider));
+    });
 
 final matchFinalizationContextProvider = FutureProvider.autoDispose
     .family<MatchFinalizationContext, String>((ref, matchId) {
-  return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
-});
+      return ref.watch(matchFinalizationRepositoryProvider).fetch(matchId);
+    });

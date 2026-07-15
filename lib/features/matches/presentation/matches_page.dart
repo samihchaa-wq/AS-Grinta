@@ -42,17 +42,17 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   MaterialPageRoute(builder: (_) => const MatchFormPage()),
                 );
                 if (!mounted) return;
-                await ref.read(matchesControllerProvider.notifier).load(
-                      seasonId: state.selectedSeasonId,
-                    );
+                await ref
+                    .read(matchesControllerProvider.notifier)
+                    .load(seasonId: state.selectedSeasonId);
               },
             ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
-              seasonId: state.selectedSeasonId,
-            ),
+        onRefresh: () => ref
+            .read(matchesControllerProvider.notifier)
+            .load(seasonId: state.selectedSeasonId),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -124,8 +124,9 @@ class _MatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFinished = match.isFinished;
-    final cardColor =
-        isFinished ? const Color(0xFF1C2433) : const Color(0xFF102A66);
+    final cardColor = isFinished
+        ? const Color(0xFF1C2433)
+        : const Color(0xFF102A66);
     final borderColor = isFinished
         ? Colors.white.withValues(alpha: .10)
         : const Color(0xFF4B6FFF);
@@ -160,10 +161,9 @@ class _MatchCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       _scoreLine(),
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   Container(
@@ -215,7 +215,8 @@ class _MatchCard extends StatelessWidget {
                   if (canDelete)
                     OutlinedButton.icon(
                       onPressed: () async {
-                        final confirmed = await showDialog<bool>(
+                        final confirmed =
+                            await showDialog<bool>(
                               context: context,
                               builder: (dialogContext) => AlertDialog(
                                 title: const Text('Supprimer ce match ?'),

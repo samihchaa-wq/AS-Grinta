@@ -10,23 +10,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
-  runZonedGuarded(
-    () {
-      WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
 
-      FlutterError.onError = (details) {
-        FlutterError.presentError(details);
-        AppLogger.error('flutter.framework', details.exception, details.stack);
-      };
-      PlatformDispatcher.instance.onError = (error, stackTrace) {
-        AppLogger.error('flutter.platform', error, stackTrace);
-        return true;
-      };
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      AppLogger.error('flutter.framework', details.exception, details.stack);
+    };
+    PlatformDispatcher.instance.onError = (error, stackTrace) {
+      AppLogger.error('flutter.platform', error, stackTrace);
+      return true;
+    };
 
-      runApp(const _BootstrapApp());
-    },
-    (error, stackTrace) => AppLogger.error('flutter.zone', error, stackTrace),
-  );
+    runApp(const _BootstrapApp());
+  }, (error, stackTrace) => AppLogger.error('flutter.zone', error, stackTrace));
 }
 
 class _BootstrapApp extends StatefulWidget {

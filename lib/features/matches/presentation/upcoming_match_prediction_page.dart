@@ -9,8 +9,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final matchPredictionDetailsProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
-});
+      return ref
+          .watch(predictionsRepositoryProvider)
+          .fetchMatchPrediction(matchId);
+    });
 
 class UpcomingMatchPredictionPage extends ConsumerStatefulWidget {
   const UpcomingMatchPredictionPage({super.key, required this.matchId});
@@ -31,8 +33,9 @@ class _UpcomingMatchPredictionPageState
 
   @override
   Widget build(BuildContext context) {
-    final prediction =
-        ref.watch(matchPredictionDetailsProvider(widget.matchId));
+    final prediction = ref.watch(
+      matchPredictionDetailsProvider(widget.matchId),
+    );
     final details = ref.watch(matchDetailsProvider(widget.matchId));
 
     return Scaffold(
@@ -103,7 +106,9 @@ class _UpcomingMatchPredictionPageState
   Future<void> _save(MatchPredictionItem item) async {
     setState(() => _saving = true);
     try {
-      await ref.read(predictionsRepositoryProvider).savePrediction(
+      await ref
+          .read(predictionsRepositoryProvider)
+          .savePrediction(
             matchId: item.matchId,
             scoreGrinta: _grinta ?? item.scoreGrinta,
             scoreOpponent: _opponent ?? item.scoreOpponent,
@@ -111,9 +116,9 @@ class _UpcomingMatchPredictionPageState
           );
       ref.invalidate(matchPredictionDetailsProvider(widget.matchId));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pronostic enregistré.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -147,8 +152,8 @@ class _BetHeader extends StatelessWidget {
           item.isClosed
               ? 'Fermé'
               : item.isFilled
-                  ? 'Enregistré'
-                  : 'À saisir',
+              ? 'Enregistré'
+              : 'À saisir',
           style: TextStyle(
             color: item.isFilled
                 ? const Color(0xFF69E99B)
@@ -223,9 +228,9 @@ class _BetCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Score à modifier',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Row(
@@ -278,11 +283,7 @@ class _BetCard extends StatelessWidget {
               if (compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    odds,
-                    const SizedBox(height: 10),
-                    x2,
-                  ],
+                  children: [odds, const SizedBox(height: 10), x2],
                 );
               }
 
@@ -322,9 +323,9 @@ class _BetCard extends StatelessWidget {
             item.isClosed
                 ? 'Pronostics fermés'
                 : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
           ),
         ],
       ),
@@ -349,8 +350,8 @@ class _TeamsRow extends StatelessWidget {
               child: Text(
                 '–',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ),
             Expanded(child: _TeamName(label: item.opponentName)),
@@ -359,9 +360,9 @@ class _TeamsRow extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           AppFormats.dateTime(item.kickoffAt),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
         ),
       ],
     );
@@ -381,10 +382,10 @@ class _TeamName extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontSize: 22,
-            height: 1.05,
-            fontWeight: FontWeight.w800,
-          ),
+        fontSize: 22,
+        height: 1.05,
+        fontWeight: FontWeight.w800,
+      ),
     );
   }
 }
@@ -403,17 +404,17 @@ class _HistoryStrip extends StatelessWidget {
       children: [
         Text(
           'Les 5 dernières rencontres',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         if (matches.isEmpty)
           Text(
             'Aucune confrontation précédente.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
           )
         else
           Wrap(
@@ -455,9 +456,9 @@ class _OddsSection extends StatelessWidget {
       children: [
         Text(
           'Les cotes',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         Row(
@@ -527,15 +528,15 @@ class _X2Section extends StatelessWidget {
               children: [
                 Text(
                   'Activer le ×2',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 Text(
                   '$available en réserve',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -573,9 +574,7 @@ class _Odd extends StatelessWidget {
       curve: Curves.easeOut,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: active
-            ? activeColor.withValues(alpha: .13)
-            : Colors.transparent,
+        color: active ? activeColor.withValues(alpha: .13) : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: active ? activeColor : inactiveBorder,
@@ -596,17 +595,17 @@ class _Odd extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: active ? activeColor : AppTheme.textSecondary,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w400,
-                ),
+              color: active ? activeColor : AppTheme.textSecondary,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w400,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: active ? activeColor : null,
-                  fontWeight: FontWeight.w800,
-                ),
+              color: active ? activeColor : null,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
@@ -638,9 +637,9 @@ class _ScorePicker extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 4),
         Row(
@@ -658,8 +657,8 @@ class _ScorePicker extends StatelessWidget {
                 '$value',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             IconButton(

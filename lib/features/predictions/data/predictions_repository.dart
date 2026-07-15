@@ -174,8 +174,8 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
 
     return MatchPredictionItem(
       matchId: matchId,
@@ -235,7 +235,8 @@ class PredictionsRepository {
       final manuallyClosed = DateTime.tryParse(
         '${map['predictions_closed_at'] ?? ''}',
       );
-      final closed = kickoff == null ||
+      final closed =
+          kickoff == null ||
           !now.isBefore(kickoff.subtract(const Duration(minutes: 5))) ||
           (manuallyClosed != null && !now.isBefore(manuallyClosed));
       if (!closed) {

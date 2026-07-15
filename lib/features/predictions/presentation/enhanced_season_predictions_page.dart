@@ -15,11 +15,12 @@ final enhancedSeasonLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 
 final enhancedSeasonGaugesProvider =
     FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
-  return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
-});
+      return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
+    });
 
-final enhancedSeasonCompletedMatchesProvider =
-    FutureProvider.autoDispose<int>((ref) async {
+final enhancedSeasonCompletedMatchesProvider = FutureProvider.autoDispose<int>((
+  ref,
+) async {
   final client = ref.watch(supabaseClientProvider);
   final season = await client
       .from('seasons')
@@ -93,8 +94,9 @@ class _EnhancedSeasonPredictionsPageState
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('$error')),
         data: (gauges) {
-          final currentUserId =
-              ref.read(seasonPredictionsRepositoryProvider).currentUserId;
+          final currentUserId = ref
+              .read(seasonPredictionsRepositoryProvider)
+              .currentUserId;
           final showPlayers =
               !widget.showRanking || _view == _SeasonView.players;
 
@@ -267,8 +269,9 @@ class _SeasonGroupPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0E1D3B),
         borderRadius: BorderRadius.circular(24),
-        border:
-            Border.all(color: const Color(0xFF4B6FFF).withValues(alpha: .38)),
+        border: Border.all(
+          color: const Color(0xFF4B6FFF).withValues(alpha: .38),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,10 +293,9 @@ class _SeasonGroupPanel extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
             ],
           ),
