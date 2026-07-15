@@ -294,26 +294,55 @@ class _CalendarMatchCard extends ConsumerWidget {
   }
 }
 
-class _AdminMatchActions extends StatelessWidget {
+class _AdminMatchActions extends ConsumerWidget {
   const _AdminMatchActions({required this.match});
 
   final MatchModel match;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
       children: [
-        Expanded(
-          child: FilledButton.tonalIcon(
-            onPressed: () => context.push('/matches/${match.id}/finalize'),
-            icon: const Text('👑'),
-            label: Text(
-              match.isFinished ? 'Changer les stats' : 'Entrer les stats',
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MatchFormPage(match: match),
+                    ),
+                  );
+                  if (!context.mounted) return;
+                  ref
+                    ..invalidate(_calendarPredictionProvider)
+                    ..invalidate(inlineMatchPredictionProvider)
+                    ..invalidate(matchDetailsProvider(match.id));
+                  await ref
+                      .read(predictionsControllerProvider.notifier)
+                      .load();
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Modifier'),
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: () => context.push('/matches/${match.id}/finalize'),
+                icon: const Text('👑'),
+                label: Text(
+                  match.isFinished ? 'Changer les stats' : 'Entrer les stats',
+                ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(child: _DeleteMatchButton(matchId: match.id)),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: _DeleteMatchButton(matchId: match.id),
+        ),
       ],
     );
   }
