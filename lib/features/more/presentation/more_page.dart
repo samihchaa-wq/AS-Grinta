@@ -44,40 +44,17 @@ class MorePage extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           Card(
-            clipBehavior: Clip.antiAlias,
-            child: isStaff
-                ? ExpansionTile(
-                    leading: const Text('👑', style: TextStyle(fontSize: 22)),
-                    title: const Text(
-                      'Admin',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    children: [
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.shield_outlined),
-                        title: const Text('Administration'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/admin'),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.groups_outlined),
-                        title: const Text('Effectif'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.push('/players'),
-                      ),
-                    ],
-                  )
-                : ListTile(
-                    leading: const Icon(Icons.admin_panel_settings_outlined),
-                    title: const Text(
-                      'Admin',
-                      style: TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/admin-access'),
-                  ),
+            child: ListTile(
+              leading: isStaff
+                  ? const Text('👑', style: TextStyle(fontSize: 22))
+                  : const Icon(Icons.admin_panel_settings_outlined),
+              title: const Text(
+                'Admin',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push(isStaff ? '/admin' : '/admin-access'),
+            ),
           ),
           const SizedBox(height: 10),
           Card(
