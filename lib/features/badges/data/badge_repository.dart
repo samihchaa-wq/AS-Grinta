@@ -90,9 +90,8 @@ class Armoire {
 
   /// Aperçu pour l'accueil : les badges validés les plus récents.
   List<ArmoireBadge> get recent {
-    final sorted = [...validated]
-      ..sort((a, b) => (b.awardedAt ?? DateTime(0))
-          .compareTo(a.awardedAt ?? DateTime(0)));
+    final sorted = [...validated]..sort((a, b) =>
+        (b.awardedAt ?? DateTime(0)).compareTo(a.awardedAt ?? DateTime(0)));
     return sorted;
   }
 }
@@ -150,7 +149,8 @@ class BadgeRepository {
     // Paliers : par métrique, on montre le palier validé le plus haut + le
     // suivant « en cours » avec sa progression.
     final byMetric = <String, List<BadgeDef>>{};
-    for (final b in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
+    for (final b
+        in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
       byMetric.putIfAbsent(b.metric!, () => []).add(b);
     }
     byMetric.forEach((metric, tiers) {
@@ -213,6 +213,7 @@ final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
 final myArmoireProvider = FutureProvider.autoDispose<Armoire>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   final uid = client.auth.currentUser?.id;
-  if (uid == null) return const Armoire(validated: [], inProgress: [], locked: []);
+  if (uid == null)
+    return const Armoire(validated: [], inProgress: [], locked: []);
   return ref.watch(badgeRepositoryProvider).fetchArmoire(uid);
 });

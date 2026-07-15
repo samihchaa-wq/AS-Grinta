@@ -95,7 +95,8 @@ class _Header extends StatelessWidget {
                 Text('Ma collection',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Colors.white, fontWeight: FontWeight.w800)),
-                Text('$validated badge${validated > 1 ? 's' : ''} obtenu${validated > 1 ? 's' : ''} sur $total',
+                Text(
+                    '$validated badge${validated > 1 ? 's' : ''} obtenu${validated > 1 ? 's' : ''} sur $total',
                     style: const TextStyle(color: Colors.white70)),
               ],
             ),
@@ -124,8 +125,10 @@ class _SectionTitle extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text('$count',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w800)),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(fontWeight: FontWeight.w800)),
         ),
       ],
     );
@@ -201,14 +204,17 @@ class _BadgeTile extends StatelessWidget {
                 ],
               ),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: scheme.secondary.withValues(alpha: 0.5)),
+              border:
+                  Border.all(color: scheme.secondary.withValues(alpha: 0.5)),
             ),
             alignment: Alignment.center,
             child: badge.def.imageUrl != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: Image.network(badge.def.imageUrl!,
-                        width: width * 0.6, height: width * 0.6, fit: BoxFit.cover),
+                        width: width * 0.6,
+                        height: width * 0.6,
+                        fit: BoxFit.cover),
                   )
                 : Text(badge.def.emoji, style: const TextStyle(fontSize: 34)),
           ),

@@ -47,7 +47,8 @@ class MorePage extends ConsumerWidget {
             child: ListTile(
               leading: const Text('🏆', style: TextStyle(fontSize: 22)),
               title: const Text('Armoire à badges'),
-              subtitle: const Text('Tes badges obtenus, en cours et à débloquer'),
+              subtitle:
+                  const Text('Tes badges obtenus, en cours et à débloquer'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/armoire'),
             ),

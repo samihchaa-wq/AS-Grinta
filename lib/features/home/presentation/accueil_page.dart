@@ -280,9 +280,8 @@ class _NextMatchCard extends StatelessWidget {
                               : 'Pronostics fermés',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        color: predicted
-                            ? const Color(0xFF52D08A)
-                            : Colors.white,
+                        color:
+                            predicted ? const Color(0xFF52D08A) : Colors.white,
                       ),
                     ),
                   ),
@@ -406,7 +405,8 @@ class _LastPronoBlock extends ConsumerWidget {
         const _BlockHeader('🎯', 'Ton dernier prono'),
         async.when(
           loading: () => const _MiniLoader(),
-          error: (_, __) => const _EmptyCard('Impossible de charger ton prono.'),
+          error: (_, __) =>
+              const _EmptyCard('Impossible de charger ton prono.'),
           data: (prono) {
             if (prono == null) {
               return const _EmptyCard(
@@ -558,7 +558,8 @@ class _MyRankingsBlock extends ConsumerWidget {
             final seasonRank = _rankOf(entries, uid, (e) => e.seasonPoints);
             final generalRank = _rankOf(entries, uid, (e) => e.totalPoints);
             if (matchRank == null) {
-              return const _EmptyCard('Tu n\'apparais pas encore au classement.');
+              return const _EmptyCard(
+                  'Tu n\'apparais pas encore au classement.');
             }
             return Card(
               child: Padding(
@@ -668,7 +669,8 @@ class _RecentBadgesBlock extends ConsumerWidget {
         ),
         async.when(
           loading: () => const _MiniLoader(),
-          error: (_, __) => const _EmptyCard('Impossible de charger tes badges.'),
+          error: (_, __) =>
+              const _EmptyCard('Impossible de charger tes badges.'),
           data: (armoire) {
             final recent = armoire.recent.take(4).toList();
             if (recent.isEmpty) {
