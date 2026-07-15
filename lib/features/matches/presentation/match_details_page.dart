@@ -226,11 +226,14 @@ class _MatchSummary extends StatelessWidget {
             ),
             if (scorers.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Buteurs', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                scorers.length == 1 ? 'Buteur' : 'Buteurs',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 6),
               ...scorers.map(
                 (line) => Text(
-                  '${line.name} — ${line.goals} but${line.goals > 1 ? 's' : ''}',
+                  line.goals == 1 ? line.name : '${line.name} x${line.goals}',
                 ),
               ),
             ],
