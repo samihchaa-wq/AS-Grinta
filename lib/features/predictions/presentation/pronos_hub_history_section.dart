@@ -42,10 +42,11 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
-    final matches = state.matches.toList()
+    final matches = state.matches.toList();
+    final finishedMatches = matches.where((match) => match.isFinished).toList()
+      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final upcomingMatches = matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
-    final finishedMatches = matches.where((match) => match.isFinished).toList();
-    final upcomingMatches = matches.where((match) => !match.isFinished).toList();
     final nextMatchId = upcomingMatches.firstOrNull?.id;
 
     final predictionsByMatchId = {
@@ -123,8 +124,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final match = finishedMatches[index];
-                    final isPreviousMatch =
-                        index == finishedMatches.length - 1;
+                    final isPreviousMatch = index == 0;
                     return Padding(
                       key: isPreviousMatch ? _previousMatchKey : null,
                       padding: const EdgeInsets.only(bottom: 10),
