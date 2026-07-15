@@ -6,7 +6,8 @@ declare
   all_time_count integer;
   current_count integer;
   milan_goals integer;
-  samih_clean_sheets integer;
+  samih_previous_clean_sheets integer;
+  samih_all_time_clean_sheets integer;
 begin
   select count(*) into previous_count
   from public.v_statistics_players
@@ -25,7 +26,12 @@ begin
   where period_key = 'previous'
     and player_name = 'Milan Couzin';
 
-  select clean_sheets into samih_clean_sheets
+  select clean_sheets into samih_previous_clean_sheets
+  from public.v_statistics_players
+  where period_key = 'previous'
+    and player_name = 'Samih Châa';
+
+  select clean_sheets into samih_all_time_clean_sheets
   from public.v_statistics_players
   where period_key = 'all_time'
     and player_name = 'Samih Châa';
@@ -47,9 +53,14 @@ begin
       milan_goals;
   end if;
 
-  if samih_clean_sheets <> 21 then
-    raise exception 'Expected Samih to have 21 all-time clean sheets, got %',
-      samih_clean_sheets;
+  if samih_previous_clean_sheets <> 6 then
+    raise exception 'Expected Samih to have 6 clean sheets in 2025-2026, got %',
+      samih_previous_clean_sheets;
+  end if;
+
+  if samih_all_time_clean_sheets <> 24 then
+    raise exception 'Expected Samih to have 24 all-time clean sheets, got %',
+      samih_all_time_clean_sheets;
   end if;
 end
 $$;
