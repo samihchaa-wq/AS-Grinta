@@ -14,6 +14,7 @@ class _CalendarSection extends ConsumerStatefulWidget {
 
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   final _upcomingSliverKey = GlobalKey();
+  final _scrollController = ScrollController(keepScrollOffset: false);
 
   @override
   void initState() {
@@ -24,6 +25,12 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         ref.read(predictionsControllerProvider.notifier).load(),
       ]);
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -65,6 +72,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         ]);
       },
       child: CustomScrollView(
+        controller: _scrollController,
         center: hasUpcomingMatches ? _upcomingSliverKey : null,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
