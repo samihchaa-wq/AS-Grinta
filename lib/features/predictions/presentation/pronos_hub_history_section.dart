@@ -5,8 +5,6 @@ final _calendarPredictionProvider = FutureProvider.autoDispose
   return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
 });
 
-enum _CalendarTab { upcoming, finished }
-
 class _CalendarSection extends ConsumerStatefulWidget {
   const _CalendarSection();
 
@@ -15,7 +13,7 @@ class _CalendarSection extends ConsumerStatefulWidget {
 }
 
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
-  _CalendarTab _tab = _CalendarTab.upcoming;
+  final _upcomingSliverKey = GlobalKey();
 
   @override
   void initState() {
@@ -35,14 +33,12 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
-    final upcomingMatches = state.matches
-        .where((match) => !match.isFinished)
-        .toList()
+    final matches = state.matches.toList()
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
-    final finishedMatches = state.matches
-        .where((match) => match.isFinished)
-        .toList()
-      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final finishedMatches = matches.where((match) => match.isFinished).toList();
+    final upcomingMatches = matches.where((match) => !match.isFinished).toList();
+    final nextMatchId = upcomingMatches.firstOrNull?.id;
+
     final predictionsByMatchId = {
       for (final item in predictionState.items) item.matchId: item,
     };
@@ -53,88 +49,94 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         .map((item) => item.matchId)
         .firstOrNull;
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<_CalendarTab>(
-              expandedInsets: EdgeInsets.zero,
-              segments: const [
-                ButtonSegment(
-                  value: _CalendarTab.upcoming,
-                  icon: Icon(Icons.calendar_month_outlined),
-                  label: Text('À venir'),
-                ),
-                ButtonSegment(
-                  value: _CalendarTab.finished,
-                  icon: Icon(Icons.history_rounded),
-                  label: Text('Terminés'),
-                ),
-              ],
-              selected: {_tab},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() => _tab = selection.first);
-              },
-            ),
-          ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              ref
-                ..invalidate(_calendarPredictionProvider)
-                ..invalidate(inlineMatchPredictionProvider);
-              await Future.wait([
-                ref.read(matchesControllerProvider.notifier).load(
-                      seasonId: state.selectedSeasonId,
-                    ),
-                ref.read(predictionsControllerProvider.notifier).load(),
-              ]);
-            },
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              children: [
-                if (state.isLoading)
-                  const _LoadingCard()
-                else if (state.error != null)
-                  _MessageCard(message: state.error!)
-                else if (_tab == _CalendarTab.upcoming) ...[
-                  if (upcomingMatches.isEmpty)
-                    const _MessageCard(message: 'Aucun match à venir.')
-                  else
-                    ...upcomingMatches.map(
-                      (match) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _CalendarMatchCard(
-                          match: match,
-                          isAdmin: isAdmin,
-                          predictionAvailable: match.id == nextEditableMatchId,
-                        ),
+    final hasUpcomingMatches =
+        !state.isLoading && state.error == null && upcomingMatches.isNotEmpty;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref
+          ..invalidate(_calendarPredictionProvider)
+          ..invalidate(inlineMatchPredictionProvider);
+        await Future.wait([
+          ref.read(matchesControllerProvider.notifier).load(
+                seasonId: state.selectedSeasonId,
+              ),
+          ref.read(predictionsControllerProvider.notifier).load(),
+        ]);
+      },
+      child: CustomScrollView(
+        center: hasUpcomingMatches ? _upcomingSliverKey : null,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (state.isLoading)
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverToBoxAdapter(child: _LoadingCard()),
+            )
+          else if (state.error != null)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverToBoxAdapter(
+                child: _MessageCard(message: state.error!),
+              ),
+            )
+          else if (matches.isEmpty)
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 32),
+              sliver: SliverToBoxAdapter(
+                child: _MessageCard(message: 'Aucun match.'),
+              ),
+            )
+          else ...[
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final match = finishedMatches[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _CalendarMatchCard(
+                        match: match,
+                        isAdmin: isAdmin,
+                        isNextMatch: false,
                       ),
-                    ),
-                ] else ...[
-                  if (finishedMatches.isEmpty)
-                    const _MessageCard(message: 'Aucun match terminé.')
-                  else
-                    ...finishedMatches.map(
-                      (match) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _CalendarMatchCard(
-                          match: match,
-                          isAdmin: isAdmin,
-                        ),
-                      ),
-                    ),
-                ],
-              ],
+                    );
+                  },
+                  childCount: finishedMatches.length,
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+            SliverPadding(
+              key: _upcomingSliverKey,
+              padding: EdgeInsets.fromLTRB(
+                16,
+                finishedMatches.isEmpty ? 16 : 2,
+                16,
+                32,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final match = upcomingMatches[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _CalendarMatchCard(
+                        match: match,
+                        isAdmin: isAdmin,
+                        isNextMatch: match.id == nextMatchId,
+                        predictionAvailable:
+                            match.id == nextEditableMatchId,
+                      ),
+                    );
+                  },
+                  childCount: upcomingMatches.length,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -143,11 +145,13 @@ class _CalendarMatchCard extends ConsumerWidget {
   const _CalendarMatchCard({
     required this.match,
     required this.isAdmin,
+    required this.isNextMatch,
     this.predictionAvailable = false,
   });
 
   final MatchModel match;
   final bool isAdmin;
+  final bool isNextMatch;
   final bool predictionAvailable;
 
   @override
@@ -159,18 +163,38 @@ class _CalendarMatchCard extends ConsumerWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? grintaScore : opponentScore;
     final awayScore = match.isHome ? opponentScore : grintaScore;
-    final background =
-        match.isFinished ? const Color(0xFF24272E) : const Color(0xFF102A56);
-    final outline =
-        match.isFinished ? const Color(0xFF5F646E) : const Color(0xFF4B8DFF);
-    final statusColor =
-        match.isFinished ? const Color(0xFFB7BBC4) : const Color(0xFF7FB0FF);
+
+    final Color background;
+    final Color outline;
+    final Color statusColor;
+    final Color dateColor;
+    final String statusLabel;
+
+    if (match.isFinished) {
+      background = const Color(0xFF24272E);
+      outline = const Color(0xFF5F646E);
+      statusColor = const Color(0xFFB7BBC4);
+      dateColor = const Color(0xFFB7BBC4);
+      statusLabel = 'Terminé';
+    } else if (isNextMatch) {
+      background = const Color(0xFF25164F);
+      outline = const Color(0xFF9B6CFF);
+      statusColor = const Color(0xFFCAB5FF);
+      dateColor = const Color(0xFFD7C8FF);
+      statusLabel = 'Prochain';
+    } else {
+      background = const Color(0xFF102A56);
+      outline = const Color(0xFF4B8DFF);
+      statusColor = const Color(0xFF7FB0FF);
+      dateColor = const Color(0xFFA9C8FF);
+      statusLabel = 'À venir';
+    }
 
     return Card(
       color: background,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: outline, width: 1.2),
+        side: BorderSide(color: outline, width: isNextMatch ? 1.8 : 1.2),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -200,7 +224,7 @@ class _CalendarMatchCard extends ConsumerWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    match.isFinished ? 'Terminé' : 'À venir',
+                    statusLabel,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: statusColor,
                           fontWeight: FontWeight.w800,
@@ -212,9 +236,7 @@ class _CalendarMatchCard extends ConsumerWidget {
               Text(
                 AppFormats.dateTime(match.kickoffAt),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: match.isFinished
-                          ? const Color(0xFFB7BBC4)
-                          : const Color(0xFFA9C8FF),
+                      color: dateColor,
                     ),
               ),
               if (!match.isFinished) ...[
