@@ -58,7 +58,6 @@ class ArmoireBadge {
     required this.state,
     this.current,
     this.target,
-    this.seasonsWon = 0,
     this.awardedAt,
   });
 
@@ -68,9 +67,6 @@ class ArmoireBadge {
   /// Pour « en cours » : valeur actuelle et seuil visé.
   final int? current;
   final int? target;
-
-  /// Pour les titres : nombre de saisons remportées.
-  final int seasonsWon;
   final DateTime? awardedAt;
 
   double? get progress => (current != null && target != null && target! > 0)
@@ -136,25 +132,6 @@ class BadgeRepository {
       }
     }
 
-    // Titres remportés (par saison, cumulables).
-    final titleRows = await _client
-        .from('profile_titles')
-        .select('awarded_at, badges(code)')
-        .eq('profile_id', profileId);
-    final titleCount = <String, int>{};
-    final titleAt = <String, DateTime>{};
-    for (final r in titleRows as List) {
-      final m = Map<String, dynamic>.from(r as Map);
-      final b = m['badges'];
-      final code = b is Map ? b['code']?.toString() : null;
-      if (code != null) {
-        titleCount[code] = (titleCount[code] ?? 0) + 1;
-        final at =
-            DateTime.tryParse(m['awarded_at']?.toString() ?? '') ?? DateTime(0);
-        if (at.isAfter(titleAt[code] ?? DateTime(0))) titleAt[code] = at;
-      }
-    }
-
     // Valeurs de stats courantes (pour la progression).
     final metricsRes = await _client
         .rpc('profile_badge_metrics', params: {'p_profile_id': profileId});
@@ -206,17 +183,13 @@ class BadgeRepository {
       }
     });
 
-    // Titres et badges custom.
+    // Titres et badges custom : acquis une seule fois, à vie.
     for (final b in catalog.where((b) => b.kind != 'tier')) {
-      final isTitle = b.kind == 'title';
-      final won = isTitle ? (titleCount[b.code] ?? 0) : 0;
-      final owned = isTitle ? won > 0 : earnedAt.containsKey(b.code);
-      if (owned) {
+      if (earnedAt.containsKey(b.code)) {
         validated.add(ArmoireBadge(
           def: b,
           state: BadgeState.validated,
-          seasonsWon: won,
-          awardedAt: isTitle ? titleAt[b.code] : earnedAt[b.code],
+          awardedAt: earnedAt[b.code],
         ));
       } else {
         locked.add(ArmoireBadge(def: b, state: BadgeState.locked));

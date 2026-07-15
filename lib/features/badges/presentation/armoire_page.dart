@@ -214,9 +214,7 @@ class _BadgeTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            badge.seasonsWon > 1
-                ? '${badge.def.name} ×${badge.seasonsWon}'
-                : badge.def.name,
+            badge.def.name,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
