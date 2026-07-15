@@ -135,9 +135,7 @@ class _PlayerIdentity extends StatelessWidget {
             ],
           ),
           child: Icon(
-            isGoalkeeper
-                ? Icons.sports_handball_outlined
-                : Icons.sports_soccer,
+            isGoalkeeper ? Icons.sports_handball_outlined : Icons.sports_soccer,
             color: _medianPurple,
             size: 30,
           ),
