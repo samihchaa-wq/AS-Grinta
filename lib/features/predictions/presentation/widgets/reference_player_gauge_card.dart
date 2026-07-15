@@ -252,12 +252,12 @@ class _Metric extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Color(0xFFC7C8D7),
-            fontSize: 25,
+            fontSize: 38,
             height: 1,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 21),
+        const SizedBox(height: 14),
         Text(
           value,
           style: TextStyle(
