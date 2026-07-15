@@ -62,10 +62,10 @@ class _UpcomingMatchPredictionPageState
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
                   children: [
                     _BetHeader(item: item),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     _BetCard(
                       item: item,
                       details: details,
@@ -128,45 +128,35 @@ class _BetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Ton pari',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -.4,
-                ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: item.isFilled
+              ? const Color(0xFF39E784).withValues(alpha: .10)
+              : Colors.white.withValues(alpha: .04),
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(
             color: item.isFilled
-                ? const Color(0xFF39E784).withValues(alpha: .10)
-                : Colors.white.withValues(alpha: .04),
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(
-              color: item.isFilled
-                  ? const Color(0xFF39E784).withValues(alpha: .34)
-                  : AppTheme.outline,
-            ),
-          ),
-          child: Text(
-            item.isClosed
-                ? 'Fermé'
-                : item.isFilled
-                    ? 'Enregistré'
-                    : 'À saisir',
-            style: TextStyle(
-              color: item.isFilled
-                  ? const Color(0xFF69E99B)
-                  : AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
+                ? const Color(0xFF39E784).withValues(alpha: .34)
+                : AppTheme.outline,
           ),
         ),
-      ],
+        child: Text(
+          item.isClosed
+              ? 'Fermé'
+              : item.isFilled
+                  ? 'Enregistré'
+                  : 'À saisir',
+          style: TextStyle(
+            color: item.isFilled
+                ? const Color(0xFF69E99B)
+                : AppTheme.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -205,39 +195,39 @@ class _BetCard extends StatelessWidget {
     final canEdit = item.canEdit && !saving;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppTheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _TeamsRow(item: item),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           const Divider(height: 1),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           details.when(
             loading: () => const Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 8),
                 child: CircularProgressIndicator(),
               ),
             ),
             error: (_, __) => const SizedBox.shrink(),
             data: (data) => _HistoryStrip(details: data),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           const Divider(height: 1),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Text(
             'Score à modifier',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -250,7 +240,7 @@ class _BetCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text(
                   '–',
                   style: Theme.of(context).textTheme.headlineMedium,
@@ -267,9 +257,9 @@ class _BetCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           const Divider(height: 1),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 560;
@@ -286,7 +276,7 @@ class _BetCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     odds,
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
                     x2,
                   ],
                 );
@@ -303,10 +293,14 @@ class _BetCard extends StatelessWidget {
             },
           ),
           if (!item.isClosed) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
                 onPressed: saving ? null : onSave,
                 icon: saving
                     ? const SizedBox(
@@ -319,7 +313,7 @@ class _BetCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(
             item.isClosed
                 ? 'Pronostics fermés'
@@ -347,7 +341,7 @@ class _TeamsRow extends StatelessWidget {
           children: [
             Expanded(child: _TeamName(label: 'AS Grinta')),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
                 '–',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -358,7 +352,7 @@ class _TeamsRow extends StatelessWidget {
             Expanded(child: _TeamName(label: item.opponentName)),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Text(
           AppFormats.dateTime(item.kickoffAt),
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -407,7 +401,7 @@ class _HistoryStrip extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         if (matches.isEmpty)
           Text(
             'Aucune confrontation précédente.',
@@ -417,8 +411,8 @@ class _HistoryStrip extends StatelessWidget {
           )
         else
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: matches
                 .map(
                   (match) => MatchResultScoreChip(
@@ -449,17 +443,17 @@ class _OddsSection extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: _Odd(label: '1', value: AppFormats.odds(item.oddsWin)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: _Odd(label: 'N', value: AppFormats.odds(item.oddsDraw)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: _Odd(label: '2', value: AppFormats.odds(item.oddsLoss)),
             ),
@@ -486,16 +480,16 @@ class _X2Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .035),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.outline),
       ),
       child: Row(
         children: [
           const Icon(Icons.bolt_rounded, size: 20),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,6 +511,7 @@ class _X2Section extends StatelessWidget {
           ),
           Switch(
             value: useX2,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             onChanged: enabled && (useX2 || available > 0) ? onChanged : null,
           ),
         ],
@@ -534,7 +529,7 @@ class _Odd extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
@@ -547,7 +542,7 @@ class _Odd extends StatelessWidget {
                   color: AppTheme.textSecondary,
                 ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -588,16 +583,18 @@ class _ScorePicker extends StatelessWidget {
                 color: AppTheme.textSecondary,
               ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               onPressed: enabled && value > 0 ? onMinus : null,
-              icon: const Icon(Icons.remove_circle_outline),
+              icon: const Icon(Icons.remove_circle_outline, size: 22),
             ),
             SizedBox(
-              width: 42,
+              width: 38,
               child: Text(
                 '$value',
                 textAlign: TextAlign.center,
@@ -607,8 +604,10 @@ class _ScorePicker extends StatelessWidget {
               ),
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               onPressed: enabled ? onPlus : null,
-              icon: const Icon(Icons.add_circle_outline),
+              icon: const Icon(Icons.add_circle_outline, size: 22),
             ),
           ],
         ),
