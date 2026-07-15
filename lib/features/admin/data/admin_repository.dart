@@ -106,7 +106,9 @@ class AdminRepository {
   /// Génère côté serveur un mot de passe temporaire à usage unique, force son
   /// remplacement à la prochaine connexion et le copie dans le presse-papiers
   /// de l'administrateur.
-  Future<void> resetAccountPassword(String userId) async {
+  /// Retourne le code temporaire généré (à transmettre à l'utilisateur) et le
+  /// copie dans le presse-papiers de l'administrateur.
+  Future<String> resetAccountPassword(String userId) async {
     final resetResponse = await _client.functions.invoke(
       'manage-user',
       body: {'action': 'reset-password', 'userId': userId},
@@ -128,6 +130,7 @@ class AdminRepository {
     }
 
     await Clipboard.setData(ClipboardData(text: temporaryPassword));
+    return temporaryPassword;
   }
 
   Future<void> deleteAccount(String userId) async {
