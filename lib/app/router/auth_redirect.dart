@@ -39,12 +39,12 @@ String? resolveAuthRedirect({
   final isStaff = role?.isStaff == true;
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
-  final isAdminRoute = location == '/admin';
-  final isAdminMatchesRoute = location == '/admin/matches';
+  final isAdminRoute =
+      location == '/admin' || location.startsWith('/admin/');
   final isPlayersRoute = location == '/players';
 
   if (isFinalizationRoute && !isAdmin) return '/pronos';
-  if ((isAdminRoute || isAdminMatchesRoute) && !isStaff) return '/pronos';
+  if (isAdminRoute && !isStaff) return '/pronos';
   if (isPlayersRoute && !isStaff) return '/pronos';
   return null;
 }
