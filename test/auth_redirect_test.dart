@@ -116,7 +116,7 @@ void main() {
             uri: uri,
             matchedLocation: '/auth/sign-in',
           ),
-          '/pronos',
+          '/accueil',
         );
       }
     });
@@ -169,7 +169,7 @@ void main() {
       }
     });
 
-    test('normalizes root aliases to Pronos', () {
+    test('normalizes root aliases to Accueil', () {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
@@ -182,7 +182,7 @@ void main() {
           uri: Uri.parse('/'),
           matchedLocation: '/',
         ),
-        '/pronos',
+        '/accueil',
       );
       expect(
         resolveAuthRedirect(
@@ -190,7 +190,7 @@ void main() {
           uri: Uri.parse('/home'),
           matchedLocation: '/home',
         ),
-        '/pronos',
+        '/accueil',
       );
     });
   });

@@ -1,7 +1,9 @@
 part of 'pronos_hub_page.dart';
 
 class _GeneralRankingsSection extends StatefulWidget {
-  const _GeneralRankingsSection();
+  const _GeneralRankingsSection({this.initialView});
+
+  final String? initialView;
 
   @override
   State<_GeneralRankingsSection> createState() =>
@@ -9,7 +11,11 @@ class _GeneralRankingsSection extends StatefulWidget {
 }
 
 class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
-  _GeneralRankingView _view = _GeneralRankingView.matches;
+  late _GeneralRankingView _view = switch (widget.initialView) {
+    'scorers' => _GeneralRankingView.scorers,
+    'general' => _GeneralRankingView.general,
+    _ => _GeneralRankingView.matches,
+  };
 
   @override
   Widget build(BuildContext context) {

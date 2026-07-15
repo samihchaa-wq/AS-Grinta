@@ -483,7 +483,7 @@ class _LastPronoCard extends StatelessWidget {
                     const _ResultTag('Raté', Color(0xFF9299A5)),
                   const Spacer(),
                   Text(
-                    AppFormats.counted(prono.points.ceil(), 'point'),
+                    AppFormats.counted((prono.points * 100).round(), 'point'),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w900,
                           color: accent == const Color(0xFF8A6D2F)
@@ -539,12 +539,7 @@ class _MyRankingsBlock extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BlockHeader(
-          '🏅',
-          'Tes classements',
-          seeAllLabel: 'Détails',
-          onSeeAll: () => context.go('/pronos?category=general'),
-        ),
+        const _BlockHeader('🏅', 'Tes classements'),
         async.when(
           loading: () => const _MiniLoader(),
           error: (_, __) =>
@@ -570,12 +565,16 @@ class _MyRankingsBlock extends ConsumerWidget {
                       label: 'Matchs',
                       rank: matchRank,
                       total: total,
+                      onTap: () =>
+                          context.go('/pronos?category=general&view=matches'),
                     ),
                     const Divider(height: 1),
                     _RankRow(
                       label: 'Saison',
                       rank: seasonRank!,
                       total: total,
+                      onTap: () =>
+                          context.go('/pronos?category=general&view=scorers'),
                     ),
                     const Divider(height: 1),
                     _RankRow(
@@ -583,6 +582,8 @@ class _MyRankingsBlock extends ConsumerWidget {
                       rank: generalRank!,
                       total: total,
                       highlight: true,
+                      onTap: () =>
+                          context.go('/pronos?category=general&view=general'),
                     ),
                   ],
                 ),
@@ -610,41 +611,48 @@ class _RankRow extends StatelessWidget {
     required this.label,
     required this.rank,
     required this.total,
+    this.onTap,
     this.highlight = false,
   });
   final String label;
   final int rank;
   final int total;
+  final VoidCallback? onTap;
   final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
-                ),
-          ),
-          const Spacer(),
-          Text(
-            '$rank',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: highlight ? AppTheme.accent : AppTheme.primaryBright,
-                ),
-          ),
-          Text(
-            ' / $total',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppTheme.textSecondary),
-          ),
-        ],
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
+                  ),
+            ),
+            const Spacer(),
+            Text(
+              '$rank',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: highlight ? AppTheme.accent : AppTheme.primaryBright,
+                  ),
+            ),
+            Text(
+              ' / $total',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
+          ],
+        ),
       ),
     );
   }

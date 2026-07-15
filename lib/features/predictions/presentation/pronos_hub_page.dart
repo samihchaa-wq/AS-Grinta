@@ -26,9 +26,13 @@ enum _PronosCategory { matches, scorers, general }
 enum _GeneralRankingView { matches, scorers, general }
 
 class PronosHubPage extends ConsumerStatefulWidget {
-  const PronosHubPage({super.key, this.initialCategory});
+  const PronosHubPage({super.key, this.initialCategory, this.initialView});
 
   final String? initialCategory;
+
+  /// Sous-onglet préselectionné du classement général : 'matches', 'scorers'
+  /// ou 'general'. Utilisé pour les raccourcis depuis l'accueil.
+  final String? initialView;
 
   @override
   ConsumerState<PronosHubPage> createState() => _PronosHubPageState();
@@ -84,7 +88,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
             embedded: true,
             showRanking: false,
           ),
-        _PronosCategory.general => const _GeneralRankingsSection(),
+        _PronosCategory.general =>
+          _GeneralRankingsSection(initialView: widget.initialView),
       },
     );
   }
