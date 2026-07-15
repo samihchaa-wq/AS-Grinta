@@ -6,16 +6,16 @@ enum StatisticsPeriod { current, previous, allTime }
 
 extension StatisticsPeriodKey on StatisticsPeriod {
   String get databaseKey => switch (this) {
-        StatisticsPeriod.current => 'current',
-        StatisticsPeriod.previous => 'previous',
-        StatisticsPeriod.allTime => 'all_time',
-      };
+    StatisticsPeriod.current => 'current',
+    StatisticsPeriod.previous => 'previous',
+    StatisticsPeriod.allTime => 'all_time',
+  };
 
   String get fallbackLabel => switch (this) {
-        StatisticsPeriod.current => 'Saison actuelle',
-        StatisticsPeriod.previous => 'Saison précédente',
-        StatisticsPeriod.allTime => 'Toutes saisons',
-      };
+    StatisticsPeriod.current => 'Saison actuelle',
+    StatisticsPeriod.previous => 'Saison précédente',
+    StatisticsPeriod.allTime => 'Toutes saisons',
+  };
 }
 
 class PlayerStatistics {
@@ -89,36 +89,38 @@ class StatisticsRepository {
         ''')
         .eq('period_key', period.databaseKey);
 
-    final players = (response as List).map((row) {
-      final map = Map<String, dynamic>.from(row as Map);
-      return PlayerStatistics(
-        period: period,
-        periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
-        rank: (map['display_rank'] as num?)?.toInt() ?? 0,
-        displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
-        playerName: (map['player_name'] ?? 'Joueur').toString(),
-        isGoalkeeper: map['is_goalkeeper'] == true,
-        matchesPlayed: (map['matches_played'] as num?)?.toInt(),
-        wins: (map['wins'] as num?)?.toInt(),
-        draws: (map['draws'] as num?)?.toInt(),
-        losses: (map['losses'] as num?)?.toInt(),
-        goals: (map['goals'] as num?)?.toInt() ?? 0,
-        hdm: (map['hdm'] as num?)?.toInt(),
-        cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
-      );
-    }).toList()
-      ..sort((a, b) {
-        final byGoalkeeper =
-            (a.isGoalkeeper ? 1 : 0).compareTo(b.isGoalkeeper ? 1 : 0);
-        if (byGoalkeeper != 0) return byGoalkeeper;
-        final byRank = a.rank.compareTo(b.rank);
-        if (byRank != 0) return byRank;
-        final byOrder = a.displayOrder.compareTo(b.displayOrder);
-        if (byOrder != 0) return byOrder;
-        return a.playerName
-            .toLowerCase()
-            .compareTo(b.playerName.toLowerCase());
-      });
+    final players =
+        (response as List).map((row) {
+          final map = Map<String, dynamic>.from(row as Map);
+          return PlayerStatistics(
+            period: period,
+            periodLabel: (map['period_label'] ?? period.fallbackLabel)
+                .toString(),
+            rank: (map['display_rank'] as num?)?.toInt() ?? 0,
+            displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
+            playerName: (map['player_name'] ?? 'Joueur').toString(),
+            isGoalkeeper: map['is_goalkeeper'] == true,
+            matchesPlayed: (map['matches_played'] as num?)?.toInt(),
+            wins: (map['wins'] as num?)?.toInt(),
+            draws: (map['draws'] as num?)?.toInt(),
+            losses: (map['losses'] as num?)?.toInt(),
+            goals: (map['goals'] as num?)?.toInt() ?? 0,
+            hdm: (map['hdm'] as num?)?.toInt(),
+            cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
+          );
+        }).toList()..sort((a, b) {
+          final byGoalkeeper = (a.isGoalkeeper ? 1 : 0).compareTo(
+            b.isGoalkeeper ? 1 : 0,
+          );
+          if (byGoalkeeper != 0) return byGoalkeeper;
+          final byRank = a.rank.compareTo(b.rank);
+          if (byRank != 0) return byRank;
+          final byOrder = a.displayOrder.compareTo(b.displayOrder);
+          if (byOrder != 0) return byOrder;
+          return a.playerName.toLowerCase().compareTo(
+            b.playerName.toLowerCase(),
+          );
+        });
 
     return StatisticsPeriodData(
       period: period,
@@ -134,5 +136,5 @@ final statisticsRepositoryProvider = Provider<StatisticsRepository>((ref) {
 
 final statisticsPeriodProvider = FutureProvider.autoDispose
     .family<StatisticsPeriodData, StatisticsPeriod>((ref, period) {
-  return ref.watch(statisticsRepositoryProvider).fetch(period);
-});
+      return ref.watch(statisticsRepositoryProvider).fetch(period);
+    });

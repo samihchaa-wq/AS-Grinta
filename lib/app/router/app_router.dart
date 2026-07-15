@@ -44,15 +44,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', redirect: (_, __) => '/pronos?category=matches'),
       GoRoute(path: '/home', redirect: (_, __) => '/pronos?category=matches'),
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.uri.toString(),
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            AppShell(location: state.uri.toString(), child: child),
         routes: [
-          GoRoute(
-            path: '/admin',
-            builder: (_, __) => const AdminMenuPage(),
-          ),
+          GoRoute(path: '/admin', builder: (_, __) => const AdminMenuPage()),
           GoRoute(
             path: '/admin/administration',
             builder: (_, __) => const AdminPage(),

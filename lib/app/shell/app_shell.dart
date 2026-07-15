@@ -3,11 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends ConsumerWidget {
-  const AppShell({
-    required this.child,
-    required this.location,
-    super.key,
-  });
+  const AppShell({required this.child, required this.location, super.key});
 
   final Widget child;
   final String location;

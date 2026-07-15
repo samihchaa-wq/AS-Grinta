@@ -118,13 +118,13 @@ class _PeriodHeader extends StatelessWidget {
   final String label;
 
   String get _description => switch (period) {
-        StatisticsPeriod.current =>
-          'Buts et clean sheets mis à jour après chaque match validé.',
-        StatisticsPeriod.previous =>
-          'Classements corrigés de la saison terminée 2025-2026.',
-        StatisticsPeriod.allTime =>
-          'Cumul des saisons terminées, hors saison actuelle.',
-      };
+    StatisticsPeriod.current =>
+      'Buts et clean sheets mis à jour après chaque match validé.',
+    StatisticsPeriod.previous =>
+      'Classements corrigés de la saison terminée 2025-2026.',
+    StatisticsPeriod.allTime =>
+      'Cumul des saisons terminées, hors saison actuelle.',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -158,16 +158,16 @@ class _PeriodHeader extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   _description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
                 ),
               ],
             ),
@@ -212,9 +212,9 @@ class _StatisticsSection extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
               ],
             ),
@@ -252,8 +252,8 @@ class _PlayerStatisticsCard extends StatelessWidget {
                 child: Text(
                   player.playerName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               if (!player.hasHistoricalBreakdown)
@@ -322,10 +322,7 @@ class _RankBadge extends StatelessWidget {
           color: const Color(0xFF79A4FF).withValues(alpha: .55),
         ),
       ),
-      child: Text(
-        '$rank',
-        style: const TextStyle(fontWeight: FontWeight.w900),
-      ),
+      child: Text('$rank', style: const TextStyle(fontWeight: FontWeight.w900)),
     );
   }
 }
@@ -349,15 +346,15 @@ class _CurrentMetric extends StatelessWidget {
           Text(
             '$value',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF79A4FF),
-                ),
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF79A4FF),
+            ),
           ),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white70,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: Colors.white70),
           ),
         ],
       ),
@@ -382,16 +379,13 @@ class _MetricTile extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(
-            '$value',
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
+          Text('$value', style: const TextStyle(fontWeight: FontWeight.w900)),
           const SizedBox(height: 2),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Colors.white60,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: Colors.white60),
           ),
         ],
       ),
