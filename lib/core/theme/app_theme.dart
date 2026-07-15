@@ -200,6 +200,8 @@ abstract final class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
+            fontSize: 10,
+            height: 1.1,
             color: selected ? Colors.white : textSecondary,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
           );
