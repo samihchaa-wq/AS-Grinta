@@ -193,15 +193,19 @@ class MatchesRepository {
     required int opponentScore,
     required List<Map<String, dynamic>> scorers,
     required String? cleanSheetProfileId,
+    required List<String> presentPlayerIds,
+    required String? manOfMatchPlayerId,
   }) async {
     final result = await _client.rpc(
-      'finalize_match_postgame',
+      'finalize_match_postgame_with_lineup',
       params: {
         'p_match_id': id,
         'p_score_adverse': opponentScore,
         'p_scorers': scorers,
         'p_clean_sheet_player_id': cleanSheetProfileId,
         'p_score_as_grinta': grintaScore,
+        'p_present': presentPlayerIds,
+        'p_man_of_match_player_id': manOfMatchPlayerId,
       },
     );
     if (result != true) {
