@@ -213,7 +213,8 @@ final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
 final myArmoireProvider = FutureProvider.autoDispose<Armoire>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   final uid = client.auth.currentUser?.id;
-  if (uid == null)
+  if (uid == null) {
     return const Armoire(validated: [], inProgress: [], locked: []);
+  }
   return ref.watch(badgeRepositoryProvider).fetchArmoire(uid);
 });
