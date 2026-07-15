@@ -483,7 +483,7 @@ class _LastPronoCard extends StatelessWidget {
                     const _ResultTag('Raté', Color(0xFF9299A5)),
                   const Spacer(),
                   Text(
-                    AppFormats.counted(prono.points.ceil(), 'point'),
+                    AppFormats.counted((prono.points * 100).round(), 'point'),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w900,
                           color: accent == const Color(0xFF8A6D2F)
