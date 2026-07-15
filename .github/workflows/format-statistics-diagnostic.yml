@@ -1,10 +1,10 @@
-name: Format statistics diagnostic
+name: Format statistics with project context
 
 on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -12,28 +12,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: feat/statistiques-module-v2
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Capture exact formatting check
-        shell: bash
+      - name: Resolve project dependencies
+        run: flutter pub get
+      - name: Format statistics Dart files
         run: |
-          set -uo pipefail
-          base="origin/${{ github.base_ref }}"
-          range="$base...HEAD"
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          printf '%s\n' "${files[@]}" > formatted-files.txt
-          set +e
-          dart format --output=none --set-exit-if-changed "${files[@]}" > format-check.log 2>&1
-          status=$?
-          set -e
-          printf '\nexit_status=%s\n' "$status" >> format-check.log
-          cat format-check.log
-      - uses: actions/upload-artifact@v4
-        with:
-          name: exact-ci-format-check
-          path: |
-            formatted-files.txt
-            format-check.log
+          dart format \
+            lib/app/router/app_router.dart \
+            lib/app/shell/app_shell.dart \
+            lib/features/statistics/data/statistics_repository.dart \
+            lib/features/statistics/presentation/statistics_page.dart
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/app/router/app_router.dart \
+            lib/app/shell/app_shell.dart \
+            lib/features/statistics/data/statistics_repository.dart \
+            lib/features/statistics/presentation/statistics_page.dart
+          git commit -m "style: formater avec le contexte Flutter"
+          git push origin HEAD:feat/statistiques-module-v2
