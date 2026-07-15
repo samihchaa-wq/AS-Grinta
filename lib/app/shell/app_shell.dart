@@ -17,6 +17,7 @@ class AppShell extends ConsumerWidget {
       '/notifications',
       '/admin',
       '/players',
+      '/armoire',
     };
     return moreRoutes.any(
       (route) => _uri.path == route || _uri.path.startsWith('$route/'),

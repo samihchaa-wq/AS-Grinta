@@ -45,6 +45,16 @@ class MorePage extends ConsumerWidget {
           const SizedBox(height: 10),
           Card(
             child: ListTile(
+              leading: const Text('🏆', style: TextStyle(fontSize: 22)),
+              title: const Text('Armoire à badges'),
+              subtitle: const Text('Tes badges obtenus, en cours et à débloquer'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/armoire'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
               leading: isStaff
                   ? const Text('👑', style: TextStyle(fontSize: 22))
                   : const Icon(Icons.admin_panel_settings_outlined),
