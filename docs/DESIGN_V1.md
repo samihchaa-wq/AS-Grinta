@@ -45,9 +45,17 @@ Il n’existe aucun statut ni aucune fonctionnalité de match en direct.
 
 ## Pronostics de saison
 
-- Joueur de champ : buts, passes décisives, hommes du match et fautes provoquant un penalty.
-- Gardien : clean sheets et fautes provoquant un penalty.
-- Les pronostics de saison remplis sont visibles par les membres authentifiés.
+- Joueur de champ : nombre de buts sur la saison.
+- Gardien : nombre de clean sheets sur la saison.
+- Un pronostiqueur doit remplir tout l’effectif pour participer au classement saison.
+- Les pronostics deviennent comparables après le verrouillage de la saison.
+- Pour chaque joueur, les pronostiqueurs sont classés selon leur écart à la valeur réelle ou projetée.
+- Avec `N` pronostiqueurs complets : 1er = `N × 3`, 2e = `(N − 1) × 3`, puis ainsi de suite.
+- Un nombre exact double les points obtenus sur le joueur concerné.
+- Les ex æquo obtiennent tous les points du meilleur rang commun ; le rang suivant saute les places occupées (`1, 1, 3`).
+- L’ordre global des buteurs est évalué sur toutes les paires de joueurs de champ.
+- Le bonus d’ordre est nul jusqu’à 50 % de duels correctement classés, puis augmente jusqu’à `N × 30` pour un ordre parfait.
+- Le classement général est une addition directe : `points matchs + points saison`.
 
 ## Feuille de match post-match
 
