@@ -1,16 +1,15 @@
 name: Temporary PR 175 formatter
 
 on:
-  pull_request_target:
+  pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: write
 
 jobs:
   format:
-    if: github.event.pull_request.head.ref == 'fix/exact-reference-player-card-v2'
+    if: github.head_ref == 'fix/exact-reference-player-card-v2'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
