@@ -87,8 +87,6 @@ class RosterRepository {
       profiles!season_players_profile_id_fkey(
         id,
         first_name,
-        last_name,
-        username,
         status
       )
     ''').eq('season_id', seasonId);
@@ -98,10 +96,6 @@ class RosterRepository {
       final profile = profileRaw is Map
           ? Map<String, dynamic>.from(profileRaw)
           : null;
-      final profileName = profile == null
-          ? null
-          : '${profile['first_name'] ?? ''} ${profile['last_name'] ?? ''}'
-              .trim();
       return RosterPlayer(
         id: map['id'].toString(),
         firstName: (map['first_name'] ?? '').toString(),
@@ -109,8 +103,8 @@ class RosterRepository {
         isGoalkeeper: map['is_goalkeeper'] == true,
         isActive: map['is_active'] != false,
         linkedProfileId: map['profile_id']?.toString(),
-        linkedProfileName: profileName,
-        linkedProfileUsername: profile?['username']?.toString(),
+        linkedProfileName: profile?['first_name']?.toString(),
+        linkedProfileUsername: null,
       );
     }).toList();
     players.sort(
@@ -123,7 +117,7 @@ class RosterRepository {
   Future<List<LinkableProfile>> fetchLinkableProfiles() async {
     final rows = await _client
         .from('profiles')
-        .select('id,first_name,last_name,username,status')
+        .select('id,first_name,status')
         .eq('status', 'active')
         .neq('id', '00000000-0000-0000-0000-000000000001')
         .order('first_name');
@@ -133,8 +127,8 @@ class RosterRepository {
           (row) => LinkableProfile(
             id: row['id'].toString(),
             firstName: (row['first_name'] ?? '').toString(),
-            lastName: (row['last_name'] ?? '').toString(),
-            username: (row['username'] ?? '').toString(),
+            lastName: '',
+            username: '',
           ),
         )
         .toList();
