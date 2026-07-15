@@ -14,9 +14,11 @@ final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
 });
 
-/// Formulaire existant de saisie des pronostics joueurs avant verrouillage.
+/// Formulaire de saisie des pronostics joueurs avant verrouillage.
 class SeasonPredictionEntryPage extends ConsumerStatefulWidget {
-  const SeasonPredictionEntryPage({super.key});
+  const SeasonPredictionEntryPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<SeasonPredictionEntryPage> createState() =>
@@ -25,6 +27,7 @@ class SeasonPredictionEntryPage extends ConsumerStatefulWidget {
 
 class _SeasonPredictionEntryPageState
     extends ConsumerState<SeasonPredictionEntryPage> {
+  final _formKey = GlobalKey<FormState>();
   final Map<String, int> _draftValues = {};
   String? _error;
   bool _isSavingAll = false;
@@ -32,46 +35,45 @@ class _SeasonPredictionEntryPageState
   @override
   Widget build(BuildContext context) {
     final items = ref.watch(seasonPredictionsProvider);
-
-    return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Mes pronos de saison')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          _draftValues.clear();
-          ref.invalidate(seasonPredictionsLockedProvider);
-          ref.invalidate(seasonPredictionsProvider);
-          await ref.read(seasonPredictionsProvider.future);
-        },
-        child: items.when(
-          loading: () => ListView(
-            children: const [
-              SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
-            ],
-          ),
-          error: (error, _) => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [Text(humanizeError(error))],
-          ),
-          data: (entries) {
-            if (entries.isEmpty) {
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: const [
-                  Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        'Aucune saison ouverte ou aucun joueur actif dans '
-                        'l’effectif.',
-                      ),
+    final content = RefreshIndicator(
+      onRefresh: () async {
+        _draftValues.clear();
+        ref.invalidate(seasonPredictionsLockedProvider);
+        ref.invalidate(seasonPredictionsProvider);
+        await ref.read(seasonPredictionsProvider.future);
+      },
+      child: items.when(
+        loading: () => ListView(
+          children: const [
+            SizedBox(height: 220),
+            Center(child: CircularProgressIndicator()),
+          ],
+        ),
+        error: (error, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [Text(humanizeError(error))],
+        ),
+        data: (entries) {
+          if (entries.isEmpty) {
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: const [
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'Aucune saison ouverte ou aucun joueur actif dans '
+                      'l’effectif.',
                     ),
                   ),
-                ],
-              );
-            }
+                ),
+              ],
+            );
+          }
 
-            return ListView(
+          return Form(
+            key: _formKey,
+            child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
@@ -101,43 +103,67 @@ class _SeasonPredictionEntryPageState
                 ),
                 const SizedBox(height: 24),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
+    );
+
+    if (widget.embedded) return content;
+
+    return Scaffold(
+      appBar: GrintaAppBar(title: const Text('Mes pronos de saison')),
+      body: content,
     );
   }
 
   Widget _buildPlayerRow(SeasonPredictionItem item) {
     final key = '${item.playerId}:${item.category}';
     final value = _draftValues[key] ?? item.value;
-    final label = item.category == 'clean_sheets' ? 'clean sheets' : 'buts';
+    final isGoalkeeper = item.category == 'clean_sheets';
+    final maxValue = isGoalkeeper ? 30 : 99;
+    final label = isGoalkeeper ? 'clean sheets' : 'buts';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                item.playerName,
-                style: Theme.of(context).textTheme.titleMedium,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  item.playerName,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
             ),
             SizedBox(
-              width: 72,
+              width: 82,
               child: TextFormField(
                 key: ValueKey('$key:$value'),
                 initialValue: value.toString(),
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(2),
+                ],
                 decoration: const InputDecoration(
                   isDense: true,
                   hintText: '0',
                   border: OutlineInputBorder(),
+                  errorMaxLines: 1,
                 ),
+                validator: (raw) {
+                  final parsed = int.tryParse(raw?.trim() ?? '');
+                  if (parsed == null) return 'Requis';
+                  if (parsed > maxValue) return 'Max $maxValue';
+                  return null;
+                },
                 onChanged: (raw) {
                   _draftValues[key] = int.tryParse(raw) ?? 0;
                 },
@@ -146,7 +172,13 @@ class _SeasonPredictionEntryPageState
             const SizedBox(width: 10),
             SizedBox(
               width: 76,
-              child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
             ),
           ],
         ),
@@ -155,6 +187,14 @@ class _SeasonPredictionEntryPageState
   }
 
   Future<void> _saveAll(List<SeasonPredictionItem> items) async {
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      setState(() {
+        _error = 'Corrige les valeurs indiquées avant de valider.';
+      });
+      return;
+    }
+
     setState(() {
       _isSavingAll = true;
       _error = null;
