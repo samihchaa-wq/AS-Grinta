@@ -143,7 +143,7 @@ class _SeasonPredictionEntryPageState
             SizedBox(
               width: 82,
               child: TextFormField(
-                key: ValueKey('$key:$value'),
+                key: ValueKey(key),
                 initialValue: value.toString(),
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
