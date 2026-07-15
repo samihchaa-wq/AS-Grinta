@@ -18,6 +18,7 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
+import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -100,6 +101,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/predictions/leaderboard',
             builder: (_, __) => const LeaderboardPage(),
+          ),
+          GoRoute(
+            path: '/statistics',
+            builder: (_, __) => const StatisticsPage(),
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           GoRoute(
