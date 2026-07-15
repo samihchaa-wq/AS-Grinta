@@ -22,9 +22,10 @@ Application mobile et web pour une équipe de football amateur.
 ## Navigation
 
 - Matchs
-- Pronostics
-- Profil
-- Notifications
+- Prono joueurs
+- Classements
+- Statistiques : saison actuelle, saison précédente et toutes saisons terminées
+- Paramètres
 - Administration pour les administrateurs
 
 ## Configuration

@@ -3,11 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends ConsumerWidget {
-  const AppShell({
-    required this.child,
-    required this.location,
-    super.key,
-  });
+  const AppShell({required this.child, required this.location, super.key});
 
   final Widget child;
   final String location;
@@ -28,7 +24,8 @@ class AppShell extends ConsumerWidget {
   }
 
   int get _selectedIndex {
-    if (_isMoreRoute) return 3;
+    if (_isMoreRoute) return 4;
+    if (_uri.path == '/statistics') return 3;
     if (_uri.path == '/pronos') {
       return switch (_uri.queryParameters['category']) {
         'scorers' => 1,
@@ -52,6 +49,7 @@ class AppShell extends ConsumerWidget {
             0 => '/pronos?category=matches',
             1 => '/pronos?category=scorers',
             2 => '/pronos?category=general',
+            3 => '/statistics',
             _ => '/more',
           };
           if (location != destination) context.go(destination);
@@ -71,6 +69,11 @@ class AppShell extends ConsumerWidget {
             icon: Icon(Icons.emoji_events_outlined),
             selectedIcon: Icon(Icons.emoji_events_rounded),
             label: 'Classements',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.query_stats_outlined),
+            selectedIcon: Icon(Icons.query_stats_rounded),
+            label: 'Statistiques',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),
