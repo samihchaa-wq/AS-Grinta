@@ -174,6 +174,22 @@ class AdminRepository {
     await _updatePrivilegedProfileFields(profileId: profileId, status: status);
   }
 
+  Future<void> validateProfile(
+    String profileId, {
+    String? seasonPlayerId,
+  }) async {
+    final result = await _client.rpc(
+      'staff_validate_profile',
+      params: {
+        'p_profile_id': profileId,
+        'p_season_player_id': seasonPlayerId,
+      },
+    );
+    if (result != true) {
+      throw StateError('Le compte n’a pas pu être validé.');
+    }
+  }
+
   Future<String> createSeason(String name) async {
     final trimmed = name.trim();
     if (!RegExp(r'^\d{4}-\d{4}$').hasMatch(trimmed)) {
