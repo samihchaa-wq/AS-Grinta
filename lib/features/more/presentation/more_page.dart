@@ -56,16 +56,6 @@ class MorePage extends ConsumerWidget {
               onTap: () => context.push(isStaff ? '/admin' : '/admin-access'),
             ),
           ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: const Text('FAQ'),
-              subtitle: const Text('Les réponses aux questions fréquentes'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/faq'),
-            ),
-          ),
           const SizedBox(height: 24),
           Center(
             child: Text(
