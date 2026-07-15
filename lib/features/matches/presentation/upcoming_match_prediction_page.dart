@@ -263,7 +263,11 @@ class _BetCard extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 560;
-              final odds = _OddsSection(item: item);
+              final odds = _OddsSection(
+                item: item,
+                scoreGrinta: scoreGrinta,
+                scoreOpponent: scoreOpponent,
+              );
               final x2 = _X2Section(
                 useX2: useX2,
                 available: item.x2Available,
@@ -376,7 +380,9 @@ class _TeamName extends StatelessWidget {
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
       textAlign: TextAlign.center,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontSize: 22,
+            height: 1.05,
             fontWeight: FontWeight.w800,
           ),
     );
@@ -428,12 +434,22 @@ class _HistoryStrip extends StatelessWidget {
 }
 
 class _OddsSection extends StatelessWidget {
-  const _OddsSection({required this.item});
+  const _OddsSection({
+    required this.item,
+    required this.scoreGrinta,
+    required this.scoreOpponent,
+  });
 
   final MatchPredictionItem item;
+  final int scoreGrinta;
+  final int scoreOpponent;
 
   @override
   Widget build(BuildContext context) {
+    final grintaWins = scoreGrinta > scoreOpponent;
+    final draw = scoreGrinta == scoreOpponent;
+    final opponentWins = scoreGrinta < scoreOpponent;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -447,15 +463,30 @@ class _OddsSection extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _Odd(label: '1', value: AppFormats.odds(item.oddsWin)),
+              child: _Odd(
+                label: '1',
+                value: AppFormats.odds(item.oddsWin),
+                active: grintaWins,
+                activeColor: const Color(0xFF39E784),
+              ),
             ),
             const SizedBox(width: 6),
             Expanded(
-              child: _Odd(label: 'N', value: AppFormats.odds(item.oddsDraw)),
+              child: _Odd(
+                label: 'N',
+                value: AppFormats.odds(item.oddsDraw),
+                active: draw,
+                activeColor: const Color(0xFFFFA726),
+              ),
             ),
             const SizedBox(width: 6),
             Expanded(
-              child: _Odd(label: '2', value: AppFormats.odds(item.oddsLoss)),
+              child: _Odd(
+                label: '2',
+                value: AppFormats.odds(item.oddsLoss),
+                active: opponentWins,
+                activeColor: const Color(0xFFFF5F74),
+              ),
             ),
           ],
         ),
@@ -521,31 +552,59 @@ class _X2Section extends StatelessWidget {
 }
 
 class _Odd extends StatelessWidget {
-  const _Odd({required this.label, required this.value});
+  const _Odd({
+    required this.label,
+    required this.value,
+    required this.active,
+    required this.activeColor,
+  });
 
   final String label;
   final String value;
+  final bool active;
+  final Color activeColor;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final inactiveBorder = Theme.of(context).colorScheme.outlineVariant;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
+        color: active
+            ? activeColor.withValues(alpha: .13)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        border: Border.all(
+          color: active ? activeColor : inactiveBorder,
+          width: active ? 1.8 : 1,
+        ),
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: activeColor.withValues(alpha: .28),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
+              ]
+            : const [],
       ),
       child: Column(
         children: [
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
+                  color: active ? activeColor : AppTheme.textSecondary,
+                  fontWeight: active ? FontWeight.w800 : FontWeight.w400,
                 ),
           ),
           const SizedBox(height: 2),
           Text(
             value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: active ? activeColor : null,
                   fontWeight: FontWeight.w800,
                 ),
           ),
