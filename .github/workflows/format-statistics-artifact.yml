@@ -1,0 +1,32 @@
+name: Format statistics artifact
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/app/router/app_router.dart \
+            lib/app/shell/app_shell.dart \
+            lib/features/statistics/data/statistics_repository.dart \
+            lib/features/statistics/presentation/statistics_page.dart
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatted-statistics
+          path: |
+            lib/app/router/app_router.dart
+            lib/app/shell/app_shell.dart
+            lib/features/statistics/data/statistics_repository.dart
+            lib/features/statistics/presentation/statistics_page.dart
