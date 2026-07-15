@@ -90,6 +90,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/pronos',
             builder: (context, state) => PronosHubPage(
               initialCategory: state.uri.queryParameters['category'],
+              initialView: state.uri.queryParameters['view'],
             ),
           ),
           GoRoute(
