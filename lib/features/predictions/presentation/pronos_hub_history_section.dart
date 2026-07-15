@@ -23,7 +23,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     super.initState();
     Future.microtask(() async {
       await Future.wait([
-        ref.read(matchesControllerProvider.notifier).load(),
+        ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
         ref.read(predictionsControllerProvider.notifier).load(),
       ]);
     });
@@ -87,6 +87,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         await Future.wait([
           ref.read(matchesControllerProvider.notifier).load(
                 seasonId: state.selectedSeasonId,
+                allSeasons: true,
               ),
           ref.read(predictionsControllerProvider.notifier).load(),
         ]);
