@@ -1,0 +1,52 @@
+name: Fix all-time statistics copy
+
+on:
+  push:
+    branches:
+      - fix/all-time-live-current-season
+
+permissions:
+  contents: write
+
+jobs:
+  update-copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/all-time-live-current-season
+
+      - name: Update statistics descriptions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/statistics/presentation/statistics_page.dart')
+          text = path.read_text()
+          replacements = {
+              "'Buts et clean sheets mis à jour après chaque match validé.'":
+                  "'J/G/N/P, buts, HDM et clean sheets mis à jour après chaque match validé.'",
+              "'Cumul des saisons terminées, hors saison actuelle.'":
+                  "'Cumul de toutes les saisons, saison actuelle incluse en temps réel.'",
+          }
+          changed = False
+          for old, new in replacements.items():
+              if old in text:
+                  text = text.replace(old, new, 1)
+                  changed = True
+          if changed:
+              path.write_text(text)
+          PY
+
+      - name: Commit copy update
+        run: |
+          if git diff --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/statistics/presentation/statistics_page.dart
+          git commit -m "fix(statistiques): préciser le cumul temps réel"
+          git push
