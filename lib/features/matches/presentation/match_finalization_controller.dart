@@ -25,7 +25,7 @@ class MatchFinalizationState {
 class MatchFinalizationController
     extends StateNotifier<MatchFinalizationState> {
   MatchFinalizationController(this._repository, this._ref)
-      : super(const MatchFinalizationState());
+    : super(const MatchFinalizationState());
 
   final MatchesRepository _repository;
   final Ref _ref;
@@ -52,9 +52,7 @@ class MatchFinalizationController
       return false;
     }
     if (presentPlayerIds.isEmpty) {
-      state = state.copyWith(
-        error: 'Sélectionne au moins un joueur présent.',
-      );
+      state = state.copyWith(error: 'Sélectionne au moins un joueur présent.');
       return false;
     }
     if (opponentScore > 0 && cleanSheetProfileId != null) {
@@ -92,11 +90,14 @@ class MatchFinalizationController
         .where((entry) => entry.value > 0)
         .map((entry) => {'season_player_id': entry.key, 'goals': entry.value})
         .toList();
-    final attributed =
-        scorers.fold<int>(0, (sum, s) => sum + (s['goals'] as int));
+    final attributed = scorers.fold<int>(
+      0,
+      (sum, s) => sum + (s['goals'] as int),
+    );
     if (attributed > grintaScore) {
       state = state.copyWith(
-        error: 'Tu as attribué plus de buts ($attributed) que le score '
+        error:
+            'Tu as attribué plus de buts ($attributed) que le score '
             'd’AS Grinta ($grintaScore).',
       );
       return false;
@@ -123,7 +124,11 @@ class MatchFinalizationController
 }
 
 final matchFinalizationControllerProvider =
-    StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>(
-        (ref) {
-  return MatchFinalizationController(ref.watch(matchesRepositoryProvider), ref);
-});
+    StateNotifierProvider<MatchFinalizationController, MatchFinalizationState>((
+      ref,
+    ) {
+      return MatchFinalizationController(
+        ref.watch(matchesRepositoryProvider),
+        ref,
+      );
+    });
