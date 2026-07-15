@@ -109,20 +109,11 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                     ...upcomingMatches.map(
                       (match) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: match.id == nextEditableMatchId
-                            ? Column(
-                                children: [
-                                  InlineMatchPredictionCard(matchId: match.id),
-                                  if (isAdmin) ...[
-                                    const SizedBox(height: 10),
-                                    _AdminMatchActions(match: match),
-                                  ],
-                                ],
-                              )
-                            : _CalendarMatchCard(
-                                match: match,
-                                isAdmin: isAdmin,
-                              ),
+                        child: _CalendarMatchCard(
+                          match: match,
+                          isAdmin: isAdmin,
+                          predictionAvailable: match.id == nextEditableMatchId,
+                        ),
                       ),
                     ),
                 ] else ...[
@@ -152,10 +143,12 @@ class _CalendarMatchCard extends ConsumerWidget {
   const _CalendarMatchCard({
     required this.match,
     required this.isAdmin,
+    this.predictionAvailable = false,
   });
 
   final MatchModel match;
   final bool isAdmin;
+  final bool predictionAvailable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -181,7 +174,11 @@ class _CalendarMatchCard extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/matches/${match.id}'),
+        onTap: () => context.push(
+          predictionAvailable
+              ? '/matches/${match.id}/prediction'
+              : '/matches/${match.id}',
+        ),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -223,7 +220,9 @@ class _CalendarMatchCard extends ConsumerWidget {
               if (!match.isFinished) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'Le pronostic s’ouvrira lorsque les matchs précédents seront fermés.',
+                  predictionAvailable
+                      ? 'Ton pari est disponible.'
+                      : 'Le pronostic s’ouvrira lorsque les matchs précédents seront fermés.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppTheme.textSecondary,
                       ),
