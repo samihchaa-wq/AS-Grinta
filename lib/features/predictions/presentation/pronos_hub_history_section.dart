@@ -14,7 +14,9 @@ class _CalendarSection extends ConsumerStatefulWidget {
 
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   final _upcomingSliverKey = GlobalKey();
+  final _previousMatchKey = GlobalKey();
   final _scrollController = ScrollController(keepScrollOffset: false);
+  bool _didPositionInitialList = false;
 
   @override
   void initState() {
@@ -59,6 +61,24 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final hasUpcomingMatches =
         !state.isLoading && state.error == null && upcomingMatches.isNotEmpty;
 
+    if (!_didPositionInitialList && hasUpcomingMatches) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _didPositionInitialList) return;
+
+        if (finishedMatches.isNotEmpty) {
+          final previousMatchContext = _previousMatchKey.currentContext;
+          if (previousMatchContext == null) return;
+          Scrollable.ensureVisible(
+            previousMatchContext,
+            alignment: 0,
+            duration: Duration.zero,
+          );
+        }
+
+        _didPositionInitialList = true;
+      });
+    }
+
     return RefreshIndicator(
       onRefresh: () async {
         ref
@@ -102,7 +122,10 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final match = finishedMatches[index];
+                    final isPreviousMatch =
+                        index == finishedMatches.length - 1;
                     return Padding(
+                      key: isPreviousMatch ? _previousMatchKey : null,
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _CalendarMatchCard(
                         match: match,
