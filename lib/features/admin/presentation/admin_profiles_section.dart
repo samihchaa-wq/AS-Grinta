@@ -52,6 +52,16 @@ class _ProfilesSection extends StatelessWidget {
   }
 }
 
+class _ProfileValidationChoice {
+  const _ProfileValidationChoice({
+    required this.seasonPlayerId,
+    required this.seasonId,
+  });
+
+  final String? seasonPlayerId;
+  final String? seasonId;
+}
+
 class _ProfileCard extends ConsumerWidget {
   const _ProfileCard({required this.profile});
 
@@ -114,28 +124,39 @@ class _ProfileCard extends ConsumerWidget {
             if (profile.username.trim().isNotEmpty)
               Text('Identifiant : ${profile.username}'),
             if (!profile.passwordSet && !policy.isPending)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
                 child: Chip(
                   visualDensity: VisualDensity.compact,
-                  avatar: const Icon(Icons.hourglass_top, size: 16),
-                  label: const Text('En attente de 1re connexion'),
+                  avatar: Icon(Icons.hourglass_top, size: 16),
+                  label: Text('En attente de 1re connexion'),
                 ),
               ),
-            // Actions réservées aux autres comptes : l'admin ne se gère pas
-            // lui-même.
             if (!policy.isSelf) ...[
               if (policy.isPending) ...[
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: () => run(
-                      () =>
-                          repository.updateProfileStatus(profile.id, 'active'),
-                      success:
-                          '${profile.displayName} peut maintenant se connecter.',
-                    ),
+                    onPressed: () async {
+                      final choice = await _askPlayerLink(context, ref);
+                      if (choice == null) return;
+                      await run(
+                        () async {
+                          await repository.validateProfile(
+                            profile.id,
+                            seasonPlayerId: choice.seasonPlayerId,
+                          );
+                          final seasonId = choice.seasonId;
+                          if (seasonId != null) {
+                            ref.invalidate(rosterProvider(seasonId));
+                          }
+                        },
+                        success: choice.seasonPlayerId == null
+                            ? '${profile.displayName} peut maintenant se connecter.'
+                            : '${profile.displayName} est validé et relié au joueur.',
+                      );
+                    },
                     icon: const Icon(Icons.check_circle_outline, size: 18),
                     label: const Text('Valider ce compte'),
                   ),
@@ -245,6 +266,107 @@ class _ProfileCard extends ConsumerWidget {
                 ),
               ],
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<_ProfileValidationChoice?> _askPlayerLink(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final rosterRepository = ref.read(rosterRepositoryProvider);
+    String? seasonId;
+    List<RosterPlayer> availablePlayers = const [];
+    String? loadingError;
+
+    try {
+      seasonId = await rosterRepository.openSeasonId();
+      if (seasonId != null) {
+        final roster = await rosterRepository.fetchRoster(seasonId);
+        availablePlayers = roster
+            .where(
+              (player) =>
+                  player.isActive && player.linkedProfileId == null,
+            )
+            .toList();
+      }
+    } catch (error) {
+      loadingError = humanizeError(error);
+    }
+
+    if (!context.mounted) return null;
+    var selectedPlayerId = '';
+
+    return showDialog<_ProfileValidationChoice>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Relier à un joueur ?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tu peux associer ce pronostiqueur à sa fiche joueur. '
+                'Tu pourras aussi le faire ou modifier la liaison plus tard '
+                'dans Effectif.',
+              ),
+              const SizedBox(height: 16),
+              if (loadingError != null)
+                Text(
+                  'Effectif indisponible : $loadingError\n'
+                  'Le compte peut quand même être validé sans liaison.',
+                )
+              else if (seasonId == null)
+                const Text(
+                  'Aucune saison ouverte. Le compte sera validé sans liaison.',
+                )
+              else if (availablePlayers.isEmpty)
+                const Text(
+                  'Aucun joueur libre dans l’effectif. Le compte sera validé '
+                  'sans liaison.',
+                )
+              else
+                DropdownButtonFormField<String>(
+                  initialValue: selectedPlayerId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Joueur'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: '',
+                      child: Text('Ne pas relier maintenant'),
+                    ),
+                    ...availablePlayers.map(
+                      (player) => DropdownMenuItem(
+                        value: player.id,
+                        child: Text(player.displayName),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => selectedPlayerId = value ?? '');
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                _ProfileValidationChoice(
+                  seasonPlayerId:
+                      selectedPlayerId.isEmpty ? null : selectedPlayerId,
+                  seasonId: seasonId,
+                ),
+              ),
+              child: const Text('Valider'),
+            ),
           ],
         ),
       ),
