@@ -119,11 +119,11 @@ class _PeriodHeader extends StatelessWidget {
 
   String get _description => switch (period) {
         StatisticsPeriod.current =>
-          'Buts et clean sheets mis à jour après chaque match validé.',
+          'J/G/N/P, buts, HDM et clean sheets mis à jour après chaque match validé.',
         StatisticsPeriod.previous =>
           'Classements corrigés de la saison terminée 2025-2026.',
         StatisticsPeriod.allTime =>
-          'Cumul des saisons terminées, hors saison actuelle.',
+          'Cumul de toutes les saisons, saison actuelle incluse en temps réel.',
       };
 
   @override
