@@ -1,17 +1,14 @@
-import 'package:as_grinta/features/notifications/data/notifications_repository.dart';
 import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(notificationsProvider);
     final preferencesAsync = ref.watch(appPreferencesProvider);
     // Les « Me prévenir… » sont gouvernés par l'interrupteur principal :
     // tant qu'on ne reçoit pas les notifications sur cet appareil, ils sont
@@ -24,8 +21,11 @@ class NotificationsPage extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(appPreferencesProvider);
-          ref.invalidate(notificationsProvider);
-          await ref.read(notificationsProvider.future);
+          ref.invalidate(pushStatusProvider);
+          await Future.wait([
+            ref.read(appPreferencesProvider.future),
+            ref.read(pushStatusProvider.future),
+          ]);
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -83,7 +83,8 @@ class NotificationsPage extends ConsumerWidget {
                                 context,
                                 ref,
                                 preferences.copyWith(
-                                    predictionReminders: value),
+                                  predictionReminders: value,
+                                ),
                               )
                           : null,
                     ),
@@ -106,57 +107,6 @@ class NotificationsPage extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              'À venir',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            notificationsAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, __) => const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Rappels temporairement indisponibles.'),
-                ),
-              ),
-              data: (items) {
-                if (items.isEmpty) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text(
-                        'Aucun rappel : les prochains matchs apparaîtront ici.',
-                      ),
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    for (final item in items) ...[
-                      Card(
-                        child: ListTile(
-                          leading:
-                              CircleAvatar(child: Icon(_iconFor(item.kind))),
-                          title: Text(item.title),
-                          subtitle: Text(
-                            '${item.message}\n${_formatDate(item.date)}',
-                          ),
-                          isThreeLine: true,
-                          onTap: item.kind == 'prediction'
-                              ? () => context.push('/predictions')
-                              : () => context.push('/matches'),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                  ],
-                );
-              },
-            ),
           ],
         ),
       ),
@@ -171,7 +121,6 @@ class NotificationsPage extends ConsumerWidget {
     try {
       await ref.read(preferencesRepositoryProvider).update(preferences);
       ref.invalidate(appPreferencesProvider);
-      ref.invalidate(notificationsProvider);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -181,18 +130,6 @@ class NotificationsPage extends ConsumerWidget {
         );
       }
     }
-  }
-
-  IconData _iconFor(String kind) {
-    return kind == 'prediction'
-        ? Icons.auto_awesome_outlined
-        : Icons.sports_soccer_outlined;
-  }
-
-  String _formatDate(DateTime date) {
-    String two(int value) => value.toString().padLeft(2, '0');
-    return '${two(date.day)}/${two(date.month)}/${date.year} à '
-        '${two(date.hour)}:${two(date.minute)}';
   }
 }
 
