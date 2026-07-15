@@ -12,7 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// joueur sur cette ligne (case vide = 1).
 class _GoalRow {
   _GoalRow({this.playerId, String count = ''})
-    : countController = TextEditingController(text: count);
+      : countController = TextEditingController(text: count);
 
   String? playerId;
   final TextEditingController countController;
@@ -66,8 +66,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
     if (!sheet.isValidated) return;
     _opponentScore = sheet.opponentScore;
     _grintaScore = sheet.grintaScore;
-    _cleanSheet =
-        sheet.cleanSheetProfileId != null &&
+    _cleanSheet = sheet.cleanSheetProfileId != null &&
         sheet.cleanSheetProfileId == sheet.goalkeeperId;
 
     // Reconstitue les lignes à partir des buts déjà enregistrés (un buteur
@@ -157,9 +156,8 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
       scorerGoals.update(id, (v) => v + goals, ifAbsent: () => goals);
     }
 
-    final cleanSheetId = _cleanSheet && _opponentScore == 0
-        ? sheet.goalkeeperId
-        : null;
+    final cleanSheetId =
+        _cleanSheet && _opponentScore == 0 ? sheet.goalkeeperId : null;
     final success = await ref
         .read(matchFinalizationControllerProvider.notifier)
         .finalizeMatch(
@@ -248,9 +246,9 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
               Text(
                 _grintaScore == 0
                     ? 'Choisis le score d’AS Grinta pour ouvrir les lignes de '
-                          'buteurs.'
+                        'buteurs.'
                     : 'Un buteur par but (facultatif). Un buteur sélectionné '
-                          'est automatiquement ajouté aux présents.',
+                        'est automatiquement ajouté aux présents.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -285,11 +283,11 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                     onChanged: _opponentScore > 0
                         ? null
                         : (value) => setState(() {
-                            _cleanSheet = value;
-                            if (value) {
-                              _presentPlayerIds.add(sheet.goalkeeperId!);
-                            }
-                          }),
+                              _cleanSheet = value;
+                              if (value) {
+                                _presentPlayerIds.add(sheet.goalkeeperId!);
+                              }
+                            }),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -335,7 +333,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                     onChanged: presentMembers.isEmpty
                         ? null
                         : (value) =>
-                              setState(() => _manOfMatchPlayerId = value),
+                            setState(() => _manOfMatchPlayerId = value),
                   ),
                 ),
               ),
@@ -579,8 +577,8 @@ class _PlayerPickerSheetState extends State<_PlayerPickerSheet> {
     final results = query.isEmpty
         ? widget.squad
         : widget.squad
-              .where((m) => m.name.toLowerCase().contains(query))
-              .toList();
+            .where((m) => m.name.toLowerCase().contains(query))
+            .toList();
 
     return Padding(
       padding: EdgeInsets.only(

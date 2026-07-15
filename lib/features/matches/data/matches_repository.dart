@@ -46,20 +46,16 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response = await _client
-        .from('seasons')
-        .select('id, name, status')
-        .order('name');
+    final response =
+        await _client.from('seasons').select('id, name, status').order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
   }
 
   Future<List<Map<String, dynamic>>> fetchOpponents() async {
-    final response = await _client
-        .from('opponents')
-        .select('id, name')
-        .order('name');
+    final response =
+        await _client.from('opponents').select('id, name').order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
@@ -140,17 +136,14 @@ class MatchesRepository {
     required double oddsDraw,
     required double oddsLoss,
   }) async {
-    await _client
-        .from('matches')
-        .update({
-          'season_id': seasonId,
-          'opponent_id': opponentId,
-          'match_date': kickoffAt.toIso8601String().split('T').first,
-          'match_time': _formatTime(kickoffAt),
-          'location': isHome ? 'domicile' : 'exterieur',
-          'status': status,
-        })
-        .eq('id', id);
+    await _client.from('matches').update({
+      'season_id': seasonId,
+      'opponent_id': opponentId,
+      'match_date': kickoffAt.toIso8601String().split('T').first,
+      'match_time': _formatTime(kickoffAt),
+      'location': isHome ? 'domicile' : 'exterieur',
+      'status': status,
+    }).eq('id', id);
 
     if (status == 'a_venir') {
       await _setOdds(
