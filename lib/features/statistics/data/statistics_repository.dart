@@ -4,6 +4,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum StatisticsPeriod { current, previous, allTime }
 
+String _firstName(String fullName) {
+  final normalizedName = fullName.trim();
+  if (normalizedName.isEmpty) return fullName;
+  return normalizedName.split(RegExp(r'\s+')).first;
+}
+
 extension StatisticsPeriodKey on StatisticsPeriod {
   String get databaseKey => switch (this) {
         StatisticsPeriod.current => 'current',
@@ -93,7 +99,9 @@ class StatisticsRepository {
         periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
         rank: (map['display_rank'] as num?)?.toInt() ?? 0,
         displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
-        playerName: (map['player_name'] ?? 'Joueur').toString(),
+        playerName: _firstName(
+          (map['player_name'] ?? 'Joueur').toString(),
+        ),
         isGoalkeeper: map['is_goalkeeper'] == true,
         matchesPlayed: (map['matches_played'] as num?)?.toInt(),
         wins: (map['wins'] as num?)?.toInt(),
