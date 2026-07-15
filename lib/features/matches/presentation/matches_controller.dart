@@ -12,6 +12,7 @@ class MatchesState {
     this.seasons = const [],
     this.opponents = const [],
     this.selectedSeasonId,
+    this.includesAllSeasons = false,
     this.isLoading = false,
     this.error,
   });
@@ -20,6 +21,7 @@ class MatchesState {
   final List<Map<String, dynamic>> seasons;
   final List<Map<String, dynamic>> opponents;
   final String? selectedSeasonId;
+  final bool includesAllSeasons;
   final bool isLoading;
   final String? error;
 
@@ -28,6 +30,7 @@ class MatchesState {
     List<Map<String, dynamic>>? seasons,
     List<Map<String, dynamic>>? opponents,
     String? selectedSeasonId,
+    bool? includesAllSeasons,
     bool? isLoading,
     String? error,
     bool clearError = false,
@@ -37,6 +40,7 @@ class MatchesState {
       seasons: seasons ?? this.seasons,
       opponents: opponents ?? this.opponents,
       selectedSeasonId: selectedSeasonId ?? this.selectedSeasonId,
+      includesAllSeasons: includesAllSeasons ?? this.includesAllSeasons,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
     );
@@ -53,7 +57,7 @@ class MatchesController extends StateNotifier<MatchesState> {
   bool get _isAdmin => _role == AuthRole.admin;
   bool get _canManageMatches => _isAdmin;
 
-  Future<void> load({String? seasonId}) async {
+  Future<void> load({String? seasonId, bool allSeasons = false}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       if (!_ref.read(authControllerProvider).isAuthenticated) {
@@ -70,7 +74,9 @@ class MatchesController extends StateNotifier<MatchesState> {
           _currentSeasonId(seasons) ??
           (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
       final results = await Future.wait([
-        _repository.fetchMatches(seasonId: resolvedSeasonId),
+        _repository.fetchMatches(
+          seasonId: allSeasons ? null : resolvedSeasonId,
+        ),
         _repository.fetchOpponents(),
       ]);
       state = state.copyWith(
@@ -78,6 +84,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         seasons: seasons,
         opponents: results[1] as List<Map<String, dynamic>>,
         selectedSeasonId: resolvedSeasonId,
+        includesAllSeasons: allSeasons,
         isLoading: false,
         clearError: true,
       );
@@ -107,7 +114,10 @@ class MatchesController extends StateNotifier<MatchesState> {
     }
     try {
       final id = await _repository.createOpponent(trimmed);
-      await load();
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
       return id;
     } catch (error) {
       state = state.copyWith(error: humanizeError(error));
@@ -153,7 +163,10 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
       );
-      await load(seasonId: state.selectedSeasonId);
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
       _ref.invalidate(homeDashboardProvider);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -202,7 +215,10 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
       );
-      await load(seasonId: state.selectedSeasonId);
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
       _ref.invalidate(homeDashboardProvider);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -221,7 +237,10 @@ class MatchesController extends StateNotifier<MatchesState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.deleteMatch(id);
-      await load(seasonId: state.selectedSeasonId);
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
       _ref.invalidate(homeDashboardProvider);
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
