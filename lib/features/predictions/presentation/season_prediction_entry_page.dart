@@ -77,6 +77,19 @@ class _SeasonPredictionEntryPageState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'Barème : pour chaque joueur, le plus proche gagne '
+                      'N × 3 points, le suivant (N − 1) × 3, etc. Un nombre '
+                      'exact double les points. Les ex æquo prennent tous le '
+                      'meilleur rang commun. Le bon ordre des buteurs rapporte '
+                      'jusqu’à N × 30 points.',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 if (_error != null) ...[
                   Text(_error!, style: const TextStyle(color: Colors.white70)),
                   const SizedBox(height: 12),
