@@ -344,9 +344,19 @@ class _InProgressTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Opacity(
-            opacity: 0.55,
-            child: Text(badge.def.emoji, style: const TextStyle(fontSize: 28)),
+          // Objectif visible mais logo masqué tant que le badge n'est pas
+          // débloqué.
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A1428),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF1B2A48)),
+            ),
+            child: const Icon(Icons.lock_outline,
+                color: Color(0xFF3B4A6B), size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
