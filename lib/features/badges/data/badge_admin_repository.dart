@@ -110,6 +110,7 @@ class BadgeAdminRepository {
     required String name,
     String description = '',
     String? imageUrl,
+    String? color,
   }) async {
     final slug = name
         .toLowerCase()
@@ -123,6 +124,7 @@ class BadgeAdminRepository {
       'p_emoji': '🏅',
       'p_description': description,
       'p_image_url': imageUrl,
+      'p_color': color ?? '#C0455B',
     });
   }
 

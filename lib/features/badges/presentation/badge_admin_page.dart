@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,8 +22,24 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   final _searchController = TextEditingController();
   Uint8List? _imageBytes;
   String _imageExt = 'png';
+  String _colorHex = '#C0455B';
   bool _creating = false;
   String _query = '';
+
+  static const List<String> _colorChoices = [
+    '#C0455B',
+    '#2E6BE6',
+    '#2E9E63',
+    '#D9A400',
+    '#17A6A0',
+    '#7C3CFF',
+    '#FF9D2E',
+    '#FF4FCB',
+    '#1DCBFF',
+    '#E8B923',
+    '#B8860B',
+    '#55617F',
+  ];
 
   @override
   void dispose() {
@@ -67,6 +84,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
         name: name,
         description: _descController.text.trim(),
         imageUrl: imageUrl,
+        color: _colorHex,
       );
       ref.invalidate(adminBadgesProvider);
       if (mounted) {
@@ -102,6 +120,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             descController: _descController,
             imageBytes: _imageBytes,
             creating: _creating,
+            colorChoices: _colorChoices,
+            selectedColor: _colorHex,
+            onColorSelected: (c) => setState(() => _colorHex = c),
             onPickImage: _pickImage,
             onRemoveImage: () => setState(() => _imageBytes = null),
             onCreate: _createBadge,
@@ -199,6 +220,9 @@ class _CreateBadgeCard extends StatelessWidget {
     required this.descController,
     required this.imageBytes,
     required this.creating,
+    required this.colorChoices,
+    required this.selectedColor,
+    required this.onColorSelected,
     required this.onPickImage,
     required this.onRemoveImage,
     required this.onCreate,
@@ -208,6 +232,9 @@ class _CreateBadgeCard extends StatelessWidget {
   final TextEditingController descController;
   final Uint8List? imageBytes;
   final bool creating;
+  final List<String> colorChoices;
+  final String selectedColor;
+  final ValueChanged<String> onColorSelected;
   final VoidCallback onPickImage;
   final VoidCallback onRemoveImage;
   final VoidCallback onCreate;
@@ -220,8 +247,42 @@ class _CreateBadgeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Créer un badge',
-                style: Theme.of(context).textTheme.titleLarge),
+            Row(
+              children: [
+                Text('Créer un badge',
+                    style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                BadgeEmblem(emoji: '🏅', color: selectedColor, size: 40),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Couleur de l\'emblème',
+                style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final hex in colorChoices)
+                  GestureDetector(
+                    onTap: () => onColorSelected(hex),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: parseBadgeColor(hex),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: hex == selectedColor
+                              ? Colors.white
+                              : Colors.transparent,
+                          width: 2.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: nameController,

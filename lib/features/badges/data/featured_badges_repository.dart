@@ -1,12 +1,22 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Un badge arboré (emoji ou image) affiché à côté d'un prénom.
+/// Un badge arboré (emblème) affiché à côté d'un prénom.
 class FeaturedBadge {
-  const FeaturedBadge({required this.emoji, required this.imageUrl});
+  const FeaturedBadge({
+    required this.emoji,
+    required this.imageUrl,
+    this.color,
+    this.baremeLabel,
+  });
   final String emoji;
   final String? imageUrl;
+
+  /// Couleur du carré de l'emblème (hex) et seuil du barème, si applicable.
+  final String? color;
+  final String? baremeLabel;
 }
 
 class FeaturedBadgesRepository {
@@ -23,6 +33,11 @@ class FeaturedBadgesRepository {
       (map[pid] ??= []).add(FeaturedBadge(
         emoji: (m['emoji'] ?? '🏅').toString(),
         imageUrl: m['image_url']?.toString(),
+        color: m['color']?.toString(),
+        baremeLabel: baremeLabelFor(
+          m['metric']?.toString(),
+          (m['threshold'] as num?)?.toInt(),
+        ),
       ));
     }
     return map;

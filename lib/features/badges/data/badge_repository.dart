@@ -12,6 +12,7 @@ class BadgeDef {
     required this.description,
     required this.emoji,
     required this.imageUrl,
+    required this.color,
     required this.family,
     required this.kind,
     required this.category,
@@ -25,6 +26,9 @@ class BadgeDef {
   final String description;
   final String emoji;
   final String? imageUrl;
+
+  /// Couleur du carré de l'emblème (hex `#RRGGBB`).
+  final String? color;
   final String family;
 
   /// 'tier' | 'title' | 'custom'
@@ -42,6 +46,7 @@ class BadgeDef {
         description: (m['description'] ?? '').toString(),
         emoji: (m['emoji'] ?? '🏅').toString(),
         imageUrl: m['image_url']?.toString(),
+        color: m['color']?.toString(),
         family: (m['family'] ?? 'joueur').toString(),
         kind: (m['kind'] ?? 'tier').toString(),
         category: (m['category'] ?? 'all_time').toString(),
@@ -105,7 +110,7 @@ class BadgeRepository {
     final rows = await _client
         .from('badges')
         .select(
-            'code,name,description,emoji,image_url,family,kind,category,metric,threshold,sort_order')
+            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order')
         .order('sort_order');
     return (rows as List)
         .map((r) => BadgeDef.fromMap(Map<String, dynamic>.from(r as Map)))
