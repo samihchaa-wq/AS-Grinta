@@ -196,9 +196,7 @@ class _PredictionRow extends StatelessWidget {
           Expanded(
             child: NameWithBadges(
               profileId: prediction.predictorId,
-              name: isMine
-                  ? '${prediction.predictorName} (moi)'
-                  : prediction.predictorName,
+              name: prediction.predictorName,
               style: TextStyle(
                 color: isMine ? mine : Colors.white,
                 fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,
