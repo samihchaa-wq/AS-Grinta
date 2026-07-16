@@ -30,6 +30,7 @@ class MatchStatLine {
 
 class MatchPredictionResult {
   const MatchPredictionResult({
+    required this.profileId,
     required this.name,
     required this.scoreGrinta,
     required this.scoreOpponent,
@@ -37,6 +38,7 @@ class MatchPredictionResult {
     required this.usedX2,
   });
 
+  final String profileId;
   final String name;
   final int scoreGrinta;
   final int scoreOpponent;
@@ -91,15 +93,11 @@ class MatchDetailsRepository {
   final SupabaseClient _client;
 
   Future<MatchDetailsData> fetch(String matchId) async {
-    final match = await _client
-        .from('matches')
-        .select('''
+    final match = await _client.from('matches').select('''
       id, opponent_id, match_date, match_time, status, location,
       score_as_grinta, score_adverse, opponents(name),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
-    ''')
-        .eq('id', matchId)
-        .maybeSingle();
+    ''').eq('id', matchId).maybeSingle();
     if (match == null) {
       throw StateError('Ce match est introuvable ou a été supprimé.');
     }
@@ -107,13 +105,13 @@ class MatchDetailsRepository {
     final opponent = Map<String, dynamic>.from(match['opponents'] as Map);
     final kickoffAt =
         DateTime.tryParse('${match['match_date']}T${match['match_time']}') ??
-        DateTime(1970);
+            DateTime(1970);
     final oddsRaw = match['match_odds'];
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-        ? Map<String, dynamic>.from(oddsRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
     final status = match['status']?.toString() ?? 'a_venir';
     final isValidated = status == 'termine' || status == 'archive';
 
@@ -134,8 +132,7 @@ class MatchDetailsRepository {
         .map((row) => Map<String, dynamic>.from(row))
         .map(
           (row) => HeadToHeadMatch(
-            date:
-                DateTime.tryParse(row['match_date'].toString()) ??
+            date: DateTime.tryParse(row['match_date'].toString()) ??
                 DateTime(1970),
             location: row['location'].toString(),
             scoreGrinta: row['score_as_grinta'] == null
@@ -152,13 +149,10 @@ class MatchDetailsRepository {
     var predictions = const <MatchPredictionResult>[];
 
     if (isValidated) {
-      final statRows = await _client
-          .from('match_player_stats')
-          .select('''
+      final statRows = await _client.from('match_player_stats').select('''
         goals,clean_sheet,
         season_players(first_name,last_name)
-      ''')
-          .eq('match_id', matchId);
+      ''').eq('match_id', matchId);
       playerStats = (statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final player = map['season_players'] is Map
@@ -169,7 +163,8 @@ class MatchDetailsRepository {
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           cleanSheet: map['clean_sheet'] == true,
         );
-      }).toList()..sort((a, b) => b.goals.compareTo(a.goals));
+      }).toList()
+        ..sort((a, b) => b.goals.compareTo(a.goals));
 
       final pointRows = await _client
           .from('v_match_prediction_points')
@@ -182,14 +177,10 @@ class MatchDetailsRepository {
         pointsByProfile[map['profile_id'].toString()] = decimalPoints * 100;
       }
 
-      final predictionRows = await _client
-          .from('match_predictions')
-          .select('''
+      final predictionRows = await _client.from('match_predictions').select('''
         profile_id,predicted_score_as_grinta,predicted_score_adverse,use_x2,
         profiles(first_name,surnom)
-      ''')
-          .eq('match_id', matchId)
-          .eq('is_filled', true);
+      ''').eq('match_id', matchId).eq('is_filled', true);
       predictions = (predictionRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final profileId = map['profile_id'].toString();
@@ -197,13 +188,15 @@ class MatchDetailsRepository {
             ? Map<String, dynamic>.from(map['profiles'] as Map)
             : const <String, dynamic>{};
         return MatchPredictionResult(
+          profileId: profileId,
           name: _displayName(profile),
           scoreGrinta: (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
           scoreOpponent: (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
           points: pointsByProfile[profileId] ?? 0,
           usedX2: map['use_x2'] == true,
         );
-      }).toList()..sort((a, b) => b.points.compareTo(a.points));
+      }).toList()
+        ..sort((a, b) => b.points.compareTo(a.points));
     }
 
     return MatchDetailsData(
@@ -238,14 +231,11 @@ class MatchDetailsRepository {
     required String matchId,
     required DateTime kickoffAt,
   }) async {
-    await _client
-        .from('matches')
-        .update({
-          'match_date': kickoffAt.toIso8601String().split('T').first,
-          'match_time': _formatTime(kickoffAt),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        })
-        .eq('id', matchId);
+    await _client.from('matches').update({
+      'match_date': kickoffAt.toIso8601String().split('T').first,
+      'match_time': _formatTime(kickoffAt),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', matchId);
   }
 
   String _formatTime(DateTime value) {

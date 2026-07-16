@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/premium_season_gauges.dart';
 import 'package:flutter/material.dart';
@@ -180,12 +181,11 @@ class _PredictionRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             flex: 3,
-            child: Text(
-              isMine
+            child: NameWithBadges(
+              profileId: prediction.predictorId,
+              name: isMine
                   ? '${prediction.predictorName} (moi)'
                   : prediction.predictorName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isMine ? mine : Colors.white,
                 fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,
