@@ -201,22 +201,9 @@ class _PredictionRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: 34, child: _RankBadge(rank: rank)),
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: accent.withValues(alpha: .18),
-            child: Text(
-              prediction.predictorName.trim().isEmpty
-                  ? '?'
-                  : prediction.predictorName.trim()[0].toUpperCase(),
-              style: TextStyle(
-                color: isMine ? mine : Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 6),
           Expanded(
-            flex: 3,
+            flex: 5,
             child: NameWithBadges(
               profileId: prediction.predictorId,
               name: isMine
@@ -228,6 +215,7 @@ class _PredictionRow extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 10),
           Expanded(
             flex: 3,
             child: ClipRRect(
@@ -242,7 +230,7 @@ class _PredictionRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           SizedBox(
-            width: 30,
+            width: 34,
             child: Text(
               '${prediction.value}',
               textAlign: TextAlign.right,

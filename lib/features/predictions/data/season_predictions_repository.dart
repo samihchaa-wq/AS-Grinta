@@ -63,6 +63,7 @@ class PlayerGauge {
   const PlayerGauge({
     required this.playerId,
     required this.playerName,
+    required this.profileId,
     required this.isGoalkeeper,
     required this.actual,
     required this.predictions,
@@ -72,6 +73,9 @@ class PlayerGauge {
 
   final String playerId;
   final String playerName;
+
+  /// Le compte lié à ce joueur (pour ses badges), `null` s'il n'en a pas.
+  final String? profileId;
   final bool isGoalkeeper;
   final int actual;
   final List<GaugePrediction> predictions;
@@ -96,13 +100,11 @@ class PlayerGauge {
     return raw.roundToDouble();
   }
 
-  int get minimum => predictions.isEmpty
-      ? 0
-      : values.reduce((a, b) => a < b ? a : b);
+  int get minimum =>
+      predictions.isEmpty ? 0 : values.reduce((a, b) => a < b ? a : b);
 
-  int get maximum => predictions.isEmpty
-      ? 0
-      : values.reduce((a, b) => a > b ? a : b);
+  int get maximum =>
+      predictions.isEmpty ? 0 : values.reduce((a, b) => a > b ? a : b);
 
   GaugePrediction? predictionFor(String? profileId) {
     if (profileId == null) return null;
@@ -216,6 +218,20 @@ class SeasonPredictionsRepository {
         .select('season_player_id,first_name,is_goalkeeper,goals,clean_sheets')
         .eq('season_id', seasonId);
 
+    // Compte lié à chaque joueur d'effectif (pour afficher ses badges).
+    final roster = await _client
+        .from('season_players')
+        .select('id,profile_id')
+        .eq('season_id', seasonId);
+    final profileByPlayer = <String, String>{};
+    for (final row in roster as List) {
+      final map = Map<String, dynamic>.from(row);
+      final pid = map['profile_id']?.toString();
+      if (pid != null && pid.isNotEmpty) {
+        profileByPlayer[map['id'].toString()] = pid;
+      }
+    }
+
     final predictions = await _client.from('season_predictions').select('''
       season_player_id, predictor_profile_id, category,
       predicted_value_30, is_filled,
@@ -266,9 +282,7 @@ class SeasonPredictionsRepository {
 
       final markersByValue = <int, List<GaugePrediction>>{};
       for (final prediction in playerPredictions) {
-        markersByValue
-            .putIfAbsent(prediction.value, () => [])
-            .add(prediction);
+        markersByValue.putIfAbsent(prediction.value, () => []).add(prediction);
       }
       final markers = markersByValue.entries
           .map(
@@ -289,6 +303,7 @@ class SeasonPredictionsRepository {
         PlayerGauge(
           playerId: playerId,
           playerName: _displayName(map, 'Joueur sans nom'),
+          profileId: profileByPlayer[playerId],
           isGoalkeeper: isGoalkeeper,
           actual: actual,
           predictions: playerPredictions,

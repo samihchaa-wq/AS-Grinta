@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 const _actualBlue = Color(0xFF397CFF);
 const _personalOrange = Color(0xFFFF9D2E);
@@ -89,6 +91,7 @@ class _ReferenceCardCanvas extends StatelessWidget {
             height: 140,
             child: _PlayerIdentity(
               name: gauge.playerName,
+              profileId: gauge.profileId,
               isGoalkeeper: gauge.isGoalkeeper,
             ),
           ),
@@ -110,17 +113,26 @@ class _ReferenceCardCanvas extends StatelessWidget {
   }
 }
 
-class _PlayerIdentity extends StatelessWidget {
+class _PlayerIdentity extends ConsumerWidget {
   const _PlayerIdentity({
     required this.name,
+    required this.profileId,
     required this.isGoalkeeper,
   });
 
   final String name;
+  final String? profileId;
   final bool isGoalkeeper;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final badges = profileId == null
+        ? const <FeaturedBadge>[]
+        : ref.watch(featuredBadgesProvider).maybeWhen(
+              data: (map) => map[profileId] ?? const <FeaturedBadge>[],
+              orElse: () => const <FeaturedBadge>[],
+            );
+
     return Row(
       children: [
         Container(
@@ -147,7 +159,7 @@ class _PlayerIdentity extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 32),
-        Expanded(
+        Flexible(
           child: FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -164,8 +176,38 @@ class _PlayerIdentity extends StatelessWidget {
             ),
           ),
         ),
+        for (final badge in badges.take(3)) ...[
+          const SizedBox(width: 18),
+          _GaugeBadgeChip(badge: badge, size: 58),
+        ],
       ],
     );
+  }
+}
+
+/// Un badge arboré, rendu à la taille de la carte de référence.
+class _GaugeBadgeChip extends StatelessWidget {
+  const _GaugeBadgeChip({required this.badge, required this.size});
+
+  final FeaturedBadge badge;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (badge.imageUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          badge.imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              Text(badge.emoji, style: TextStyle(fontSize: size)),
+        ),
+      );
+    }
+    return Text(badge.emoji, style: TextStyle(fontSize: size));
   }
 }
 
