@@ -9,6 +9,7 @@ import 'package:as_grinta/features/auth/presentation/auth_sign_in_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/forced_password_change_page.dart';
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
+import 'package:as_grinta/features/badges/presentation/badge_admin_page.dart';
 import 'package:as_grinta/features/home/presentation/accueil_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
@@ -58,6 +59,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/matches',
             builder: (_, __) => const MatchesPage(),
+          ),
+          GoRoute(
+            path: '/admin/badges',
+            builder: (_, __) => const BadgeAdminPage(),
           ),
           GoRoute(path: '/more', builder: (_, __) => const MorePage()),
           GoRoute(
