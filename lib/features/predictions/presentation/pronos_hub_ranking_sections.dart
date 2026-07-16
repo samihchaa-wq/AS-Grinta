@@ -130,7 +130,7 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
               border: Border.all(color: AppTheme.outline),
             ),
             child: const Text(
-              'Classement général · 2/3 matchs · 1/3 buteur',
+              'Classement général',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
