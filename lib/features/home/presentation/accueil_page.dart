@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -174,7 +176,11 @@ class _NextMatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final homeName = match.isHome ? 'AS Grinta' : match.opponent;
     final awayName = match.isHome ? match.opponent : 'AS Grinta';
-    final open = !match.predictionsClosed && !match.isAwaitingResult;
+    // Les pronos ferment 5 minutes avant le coup d'envoi (ou manuellement).
+    final closeAt = match.kickoffAt?.subtract(const Duration(minutes: 5));
+    final open = !match.predictionsClosed &&
+        closeAt != null &&
+        DateTime.now().isBefore(closeAt);
 
     return Card(
       color: const Color(0xFF25164F),
@@ -230,6 +236,10 @@ class _NextMatchCard extends StatelessWidget {
                       .bodyMedium
                       ?.copyWith(color: const Color(0xFFD7C8FF)),
                 ),
+              ],
+              if (closeAt != null && !match.predictionsClosed) ...[
+                const SizedBox(height: 10),
+                _PronoCountdown(closeAt: closeAt),
               ],
               if (match.hasOdds) ...[
                 const SizedBox(height: 14),
@@ -307,6 +317,78 @@ class _NextMatchCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Compte à rebours jusqu'à la clôture des pronos (coup d'envoi − 5 min).
+class _PronoCountdown extends StatefulWidget {
+  const _PronoCountdown({required this.closeAt});
+  final DateTime closeAt;
+
+  @override
+  State<_PronoCountdown> createState() => _PronoCountdownState();
+}
+
+class _PronoCountdownState extends State<_PronoCountdown> {
+  Timer? _timer;
+  late Duration _remaining;
+
+  @override
+  void initState() {
+    super.initState();
+    _remaining = widget.closeAt.difference(DateTime.now());
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _remaining = widget.closeAt.difference(DateTime.now()));
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _format(Duration d) {
+    if (d.inDays >= 1) return '${d.inDays}j ${d.inHours % 24}h';
+    if (d.inHours >= 1) return '${d.inHours}h ${d.inMinutes % 60}min';
+    if (d.inMinutes >= 1) return '${d.inMinutes}min ${d.inSeconds % 60}s';
+    return '${d.inSeconds}s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final closed = _remaining.isNegative || _remaining == Duration.zero;
+    final soon = !closed && _remaining.inHours < 1;
+    final color = closed
+        ? const Color(0xFF9299A5)
+        : (soon ? AppTheme.accent : const Color(0xFFCAB5FF));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(closed ? Icons.lock_outline : Icons.timer_outlined,
+              size: 15, color: color),
+          const SizedBox(width: 6),
+          Text(
+            closed
+                ? 'Pronos fermés'
+                : 'Clôture des pronos dans ${_format(_remaining)}',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 12.5,
+            ),
+          ),
+        ],
       ),
     );
   }
