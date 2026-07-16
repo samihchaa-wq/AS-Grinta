@@ -10,7 +10,7 @@ class NameWithBadges extends ConsumerWidget {
     required this.profileId,
     required this.name,
     this.style,
-    this.badgeSize = 15,
+    this.badgeSize = 22,
   });
 
   final String? profileId;

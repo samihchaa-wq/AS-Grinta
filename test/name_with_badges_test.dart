@@ -62,4 +62,19 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Karim'), findsOneWidget);
   });
+
+  testWidgets(
+      'un prénom court reste entier avec 3 grands badges (colonne de classement)',
+      (tester) async {
+    // Largeur représentative de la colonne « Joueurs » d'un classement sur
+    // un téléphone : le prénom doit rester lisible en entier.
+    await tester.pumpWidget(harness(width: 150, name: 'Samih'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Samih'), findsOneWidget);
+    expect(find.text('🔥'), findsOneWidget);
+    expect(find.text('⚽'), findsOneWidget);
+    expect(find.text('🏆'), findsOneWidget);
+  });
 }
