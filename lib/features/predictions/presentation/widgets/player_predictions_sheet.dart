@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
@@ -143,9 +141,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                   _PredictionRow(
                     prediction: predictions[index],
                     rank: _rankFor(predictions, index, gauge.actual),
-                    maxValue: math.max(1, gauge.maximum),
                     isMine: predictions[index].predictorId == currentUserId,
-                    accent: accent,
                   ),
               ],
             ),
@@ -174,20 +170,15 @@ class _PredictionRow extends StatelessWidget {
   const _PredictionRow({
     required this.prediction,
     required this.rank,
-    required this.maxValue,
     required this.isMine,
-    required this.accent,
   });
 
   final GaugePrediction prediction;
   final int rank;
-  final int maxValue;
   final bool isMine;
-  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    final progress = (prediction.value / maxValue).clamp(0.0, 1.0).toDouble();
     const mine = Color(0xFF39E784);
 
     return Container(
@@ -203,42 +194,23 @@ class _PredictionRow extends StatelessWidget {
           SizedBox(width: 34, child: _RankBadge(rank: rank)),
           const SizedBox(width: 6),
           Expanded(
-            flex: 5,
             child: NameWithBadges(
               profileId: prediction.predictorId,
-              name: isMine
-                  ? '${prediction.predictorName} (moi)'
-                  : prediction.predictorName,
+              name: prediction.predictorName,
               style: TextStyle(
                 color: isMine ? mine : Colors.white,
                 fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 6,
-                backgroundColor: Colors.white.withValues(alpha: .06),
-                color: isMine ? mine : accent,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 34,
-            child: Text(
-              '${prediction.value}',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: isMine ? mine : Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-              ),
+          const SizedBox(width: 12),
+          Text(
+            '${prediction.value}',
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: isMine ? mine : Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
