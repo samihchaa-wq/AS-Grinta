@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
@@ -119,7 +120,10 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                       return Card(
                         child: ListTile(
                           leading: CircleAvatar(child: Text('${index + 1}')),
-                          title: Text(item.name),
+                          title: NameWithBadges(
+                            profileId: item.profileId,
+                            name: item.name,
+                          ),
                           trailing: Text(
                             _formatNumber(_points(item)),
                             style: Theme.of(context).textTheme.titleMedium,

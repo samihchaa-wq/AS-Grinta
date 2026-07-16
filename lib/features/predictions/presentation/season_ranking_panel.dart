@@ -1,6 +1,7 @@
 export 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,8 +29,7 @@ class SeasonRankingPanel extends ConsumerWidget {
         ),
       ),
       data: (entries) {
-        final sorted = [...entries]
-          ..sort((a, b) {
+        final sorted = [...entries]..sort((a, b) {
             final points = b.seasonPoints.compareTo(a.seasonPoints);
             return points != 0 ? points : a.name.compareTo(b.name);
           });
@@ -135,10 +135,9 @@ class _SeasonRankingRow extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    entry.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: NameWithBadges(
+                    profileId: entry.profileId,
+                    name: entry.name,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
