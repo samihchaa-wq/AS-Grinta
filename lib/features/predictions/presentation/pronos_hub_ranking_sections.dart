@@ -121,20 +121,6 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppTheme.outline),
-            ),
-            child: const Text(
-              'Classement général',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-          const SizedBox(height: 14),
           leaderboard.when(
             loading: () => const _LoadingCard(),
             error: (_, __) => const _MessageCard(
