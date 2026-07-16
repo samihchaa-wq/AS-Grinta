@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -204,19 +205,9 @@ class _BadgeGrid extends StatelessWidget {
   }
 }
 
-/// Le seuil à écrire en petit sur l'emoji d'un badge de barème (paliers de
-/// stats). `null` pour les titres, triplé, etc. qui ont un emoji unique.
-String? baremeThreshold(BadgeDef def) {
-  final metric = def.metric;
-  final threshold = def.threshold;
-  if (metric == null || threshold == null) return null;
-  if (metric == 'max_match_goals' ||
-      metric == 'seasons_complete' ||
-      metric.startsWith('title_')) {
-    return null;
-  }
-  return '$threshold';
-}
+/// Le seuil à écrire en petit sur l'emblème d'un badge de barème.
+String? baremeThreshold(BadgeDef def) =>
+    baremeLabelFor(def.metric, def.threshold);
 
 class _BadgeTile extends StatelessWidget {
   const _BadgeTile({
@@ -275,38 +266,22 @@ class _BadgeTile extends StatelessWidget {
                 : null,
             child: Stack(
               children: [
-                Container(
-                  height: width,
-                  width: width,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        scheme.secondary.withValues(alpha: 0.22),
-                        scheme.surfaceContainerHighest,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: featured
-                          ? scheme.secondary
-                          : scheme.secondary.withValues(alpha: 0.5),
-                      width: featured ? 2.5 : 1,
+                BadgeEmblem(
+                  emoji: badge.def.emoji,
+                  imageUrl: badge.def.imageUrl,
+                  color: badge.def.color,
+                  baremeLabel: bareme,
+                  size: width,
+                ),
+                if (featured)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(width * 0.26),
+                        border: Border.all(color: scheme.secondary, width: 3),
+                      ),
                     ),
                   ),
-                  alignment: Alignment.center,
-                  child: badge.def.imageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Image.network(badge.def.imageUrl!,
-                              width: width * 0.6,
-                              height: width * 0.6,
-                              fit: BoxFit.cover),
-                        )
-                      : Text(badge.def.emoji,
-                          style: const TextStyle(fontSize: 34)),
-                ),
                 if (featured)
                   Positioned(
                     top: 6,
@@ -319,31 +294,6 @@ class _BadgeTile extends StatelessWidget {
                       ),
                       child: const Icon(Icons.star_rounded,
                           size: 15, color: Colors.white),
-                    ),
-                  ),
-                if (bareme != null)
-                  Positioned(
-                    bottom: 5,
-                    right: 5,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0B1D40),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: scheme.secondary.withValues(alpha: 0.7),
-                        ),
-                      ),
-                      child: Text(
-                        bareme,
-                        style: TextStyle(
-                          fontSize: 11,
-                          height: 1,
-                          fontWeight: FontWeight.w900,
-                          color: scheme.secondary,
-                        ),
-                      ),
                     ),
                   ),
               ],
@@ -386,47 +336,12 @@ class _InProgressTile extends StatelessWidget {
         children: [
           // Badge automatique : logo visible + progression (les joueurs
           // voient ce qu'ils peuvent débloquer).
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (badge.def.imageUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(badge.def.imageUrl!,
-                        width: 40, height: 40, fit: BoxFit.cover),
-                  )
-                else
-                  Text(badge.def.emoji, style: const TextStyle(fontSize: 30)),
-                if (baremeThreshold(badge.def) case final b?)
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0B1D40),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: scheme.secondary.withValues(alpha: 0.7),
-                        ),
-                      ),
-                      child: Text(
-                        b,
-                        style: TextStyle(
-                          fontSize: 9,
-                          height: 1,
-                          fontWeight: FontWeight.w900,
-                          color: scheme.secondary,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+          BadgeEmblem(
+            emoji: badge.def.emoji,
+            imageUrl: badge.def.imageUrl,
+            color: badge.def.color,
+            baremeLabel: baremeThreshold(badge.def),
+            size: 46,
           ),
           const SizedBox(width: 14),
           Expanded(

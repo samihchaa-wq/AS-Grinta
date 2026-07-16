@@ -4,6 +4,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
@@ -796,33 +797,12 @@ class _BadgeChip extends StatelessWidget {
       width: 68,
       child: Column(
         children: [
-          Container(
-            width: 54,
-            height: 54,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppTheme.accent.withValues(alpha: 0.22),
-                  AppTheme.surfaceHigh,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.accent.withValues(alpha: 0.5)),
-            ),
-            child: badge.def.imageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      badge.def.imageUrl!,
-                      width: 34,
-                      height: 34,
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                : Text(badge.def.emoji, style: const TextStyle(fontSize: 26)),
+          BadgeEmblem(
+            emoji: badge.def.emoji,
+            imageUrl: badge.def.imageUrl,
+            color: badge.def.color,
+            baremeLabel: baremeLabelFor(badge.def.metric, badge.def.threshold),
+            size: 54,
           ),
           const SizedBox(height: 6),
           Text(

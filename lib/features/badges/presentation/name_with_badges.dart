@@ -1,4 +1,5 @@
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -54,19 +55,12 @@ class _BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (badge.imageUrl != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Image.network(
-          badge.imageUrl!,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              Text(badge.emoji, style: TextStyle(fontSize: size)),
-        ),
-      );
-    }
-    return Text(badge.emoji, style: TextStyle(fontSize: size));
+    return BadgeEmblem(
+      emoji: badge.emoji,
+      imageUrl: badge.imageUrl,
+      color: badge.color,
+      baremeLabel: badge.baremeLabel,
+      size: size,
+    );
   }
 }
