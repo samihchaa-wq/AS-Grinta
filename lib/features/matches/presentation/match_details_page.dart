@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -329,10 +330,9 @@ class _PredictionsTable extends StatelessWidget {
                   children: [
                     Expanded(
                       flex: 2,
-                      child: Text(
-                        prediction.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      child: NameWithBadges(
+                        profileId: prediction.profileId,
+                        name: prediction.name,
                       ),
                     ),
                     Expanded(child: Text(score, textAlign: TextAlign.center)),
