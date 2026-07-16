@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -121,6 +122,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final lastName = _lastNameController.text.trim();
     if (firstName.isEmpty || lastName.isEmpty) {
       setState(() => _localError = 'Le prénom et le nom sont obligatoires.');
+      return;
+    }
+    if (!isValidPersonName(firstName) || !isValidPersonName(lastName)) {
+      setState(() => _localError =
+          'Le prénom et le nom ne doivent contenir que des lettres '
+              '(ni emoji, ni chiffre, ni symbole).');
       return;
     }
     setState(() => _localError = null);

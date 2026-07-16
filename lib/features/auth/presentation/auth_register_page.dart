@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,6 +46,13 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       _showError('Renseigne ton prénom et ton nom.');
       return;
     }
+    if (!isValidPersonName(firstName) || !isValidPersonName(lastName)) {
+      _showError(
+        'Le prénom et le nom ne doivent contenir que des lettres '
+        '(ni emoji, ni chiffre, ni symbole).',
+      );
+      return;
+    }
     if (password.length < 8) {
       _showError('Le mot de passe doit contenir au moins 8 caractères.');
       return;
@@ -66,8 +74,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       if (mounted) context.go('/auth/sign-in');
     } on FunctionException catch (error) {
       final details = error.details;
-      final message =
-          details is Map ? details['error']?.toString() : null;
+      final message = details is Map ? details['error']?.toString() : null;
       _showError(message ?? 'La création du compte a échoué.');
     } on StateError catch (error) {
       _showError(error.message);
