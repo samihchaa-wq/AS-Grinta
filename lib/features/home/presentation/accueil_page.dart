@@ -802,6 +802,7 @@ class _BadgeChip extends StatelessWidget {
             imageUrl: badge.def.imageUrl,
             color: badge.def.color,
             baremeLabel: baremeLabelFor(badge.def.metric, badge.def.threshold),
+            showStar: badge.def.hasStar,
             size: 54,
           ),
           const SizedBox(height: 6),
