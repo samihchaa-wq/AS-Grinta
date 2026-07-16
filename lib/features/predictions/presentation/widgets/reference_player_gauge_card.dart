@@ -7,7 +7,7 @@ const _actualBlue = Color(0xFF397CFF);
 const _personalOrange = Color(0xFFFF9D2E);
 const _medianPurple = Color(0xFFA33CFF);
 const _referenceWidth = 1180.0;
-const _referenceHeight = 500.0;
+const _referenceHeight = 430.0;
 
 class ReferencePlayerGaugeCard extends StatelessWidget {
   const ReferencePlayerGaugeCard({
@@ -25,8 +25,6 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final median = gauge.predictions.isEmpty ? null : gauge.median.round();
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: AspectRatio(
@@ -46,7 +44,6 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                   gauge: gauge,
                   scaleMax: scaleMax,
                   personalPrediction: personalPrediction,
-                  median: median,
                 ),
               ),
             ),
@@ -62,13 +59,11 @@ class _ReferenceCardCanvas extends StatelessWidget {
     required this.gauge,
     required this.scaleMax,
     required this.personalPrediction,
-    required this.median,
   });
 
   final PlayerGauge gauge;
   final int scaleMax;
   final int? personalPrediction;
-  final int? median;
 
   @override
   Widget build(BuildContext context) {
@@ -89,83 +84,27 @@ class _ReferenceCardCanvas extends StatelessWidget {
         children: [
           Positioned(
             left: 52,
-            top: 48,
-            width: 290,
-            height: 150,
+            top: 46,
+            width: 1076,
+            height: 140,
             child: _PlayerIdentity(
               name: gauge.playerName,
               isGoalkeeper: gauge.isGoalkeeper,
             ),
           ),
-          const _TopDivider(left: 362),
-          const _TopDivider(left: 620),
-          const _TopDivider(left: 882),
-          Positioned(
-            left: 372,
-            top: 63,
-            width: 238,
-            height: 135,
-            child: _Metric(
-              label: gauge.isGoalkeeper ? 'Clean sheets :' : 'Buts actuel :',
-              value: gauge.actual.toString(),
-              color: _actualBlue,
-            ),
-          ),
-          Positioned(
-            left: 630,
-            top: 63,
-            width: 242,
-            height: 135,
-            child: _Metric(
-              label: 'Ton prono :',
-              value: personalPrediction?.toString() ?? '—',
-              color: _personalOrange,
-            ),
-          ),
-          Positioned(
-            left: 892,
-            top: 63,
-            width: 238,
-            height: 135,
-            child: _Metric(
-              label: 'Médiane :',
-              value: median?.toString() ?? '—',
-              color: _medianPurple,
-            ),
-          ),
           Positioned(
             left: 42,
             right: 42,
-            top: 236,
-            height: 172,
+            top: 210,
+            height: 208,
             child: _ReferenceGaugeLine(
               actual: gauge.actual,
-              median: median,
               personalPrediction: personalPrediction,
               scaleMax: scaleMax,
               isGoalkeeper: gauge.isGoalkeeper,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TopDivider extends StatelessWidget {
-  const _TopDivider({required this.left});
-
-  final double left;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: left,
-      top: 72,
-      child: Container(
-        width: 2,
-        height: 126,
-        color: const Color(0xFF252947),
       ),
     );
   }
@@ -230,65 +169,15 @@ class _PlayerIdentity extends StatelessWidget {
   }
 }
 
-class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFFC7C8D7),
-            fontSize: 38,
-            height: 1,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 58,
-            height: .9,
-            fontWeight: FontWeight.w900,
-            shadows: [
-              Shadow(
-                color: color.withValues(alpha: .20),
-                blurRadius: 12,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _ReferenceGaugeLine extends StatelessWidget {
   const _ReferenceGaugeLine({
     required this.actual,
-    required this.median,
     required this.personalPrediction,
     required this.scaleMax,
     required this.isGoalkeeper,
   });
 
   final int actual;
-  final int? median;
   final int? personalPrediction;
   final int scaleMax;
   final bool isGoalkeeper;
@@ -298,15 +187,13 @@ class _ReferenceGaugeLine extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const edge = 22.0;
-        const trackTop = 70.0;
+        const trackTop = 74.0;
         const trackHeight = 28.0;
+        const labelTop = 150.0;
         assert(scaleMax > 0);
         final largest = math.max(
           actual.toDouble(),
-          math.max(
-            median?.toDouble() ?? 0,
-            personalPrediction?.toDouble() ?? 0,
-          ),
+          personalPrediction?.toDouble() ?? 0,
         );
         final visualMax = math.max(1.0, largest);
         final usable = math.max(1.0, constraints.maxWidth - edge * 2);
@@ -382,19 +269,66 @@ class _ReferenceGaugeLine extends StatelessWidget {
                 x: xFor(personalPrediction!),
                 color: _personalOrange,
               ),
-            if (median != null)
-              _VerticalMarker(
-                x: xFor(median!),
-                color: _medianPurple,
+            // Ton prono : le chiffre sous le trait orange.
+            if (personalPrediction != null)
+              _GaugeValueLabel(
+                x: xFor(personalPrediction!),
+                top: labelTop,
+                value: personalPrediction!.toString(),
+                color: _personalOrange,
               ),
             Positioned(
               left: actualX - 39,
               top: trackTop - 25,
               child: _CurrentValueToken(isGoalkeeper: isGoalkeeper),
             ),
+            // Buts / clean sheets actuels : le chiffre sous le ballon.
+            _GaugeValueLabel(
+              x: actualX,
+              top: labelTop,
+              value: actual.toString(),
+              color: _actualBlue,
+            ),
           ],
         );
       },
+    );
+  }
+}
+
+/// Un chiffre centré sous un repère de la jauge (ballon ou trait orange).
+class _GaugeValueLabel extends StatelessWidget {
+  const _GaugeValueLabel({
+    required this.x,
+    required this.top,
+    required this.value,
+    required this.color,
+  });
+
+  final double x;
+  final double top;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: x - 100,
+      top: top,
+      width: 200,
+      child: Text(
+        value,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: color,
+          fontSize: 54,
+          height: 1,
+          fontWeight: FontWeight.w900,
+          shadows: [
+            Shadow(color: color.withValues(alpha: .28), blurRadius: 12),
+          ],
+        ),
+      ),
     );
   }
 }
