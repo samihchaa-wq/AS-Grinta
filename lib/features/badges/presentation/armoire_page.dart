@@ -344,19 +344,20 @@ class _InProgressTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Objectif visible mais logo masqué tant que le badge n'est pas
-          // débloqué.
-          Container(
+          // Badge automatique : logo visible + progression (les joueurs
+          // voient ce qu'ils peuvent débloquer).
+          SizedBox(
             width: 44,
             height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0A1428),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF1B2A48)),
+            child: Center(
+              child: badge.def.imageUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(badge.def.imageUrl!,
+                          width: 40, height: 40, fit: BoxFit.cover),
+                    )
+                  : Text(badge.def.emoji, style: const TextStyle(fontSize: 30)),
             ),
-            child: const Icon(Icons.lock_outline,
-                color: Color(0xFF3B4A6B), size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
