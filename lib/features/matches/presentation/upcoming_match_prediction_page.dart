@@ -49,48 +49,35 @@ class _UpcomingMatchPredictionPageState
           _opponent ??= item.scoreOpponent;
           _useX2 ??= item.useX2;
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(matchPredictionDetailsProvider(widget.matchId));
-              ref.invalidate(matchDetailsProvider(widget.matchId));
-              await Future.wait([
-                ref.read(matchPredictionDetailsProvider(widget.matchId).future),
-                ref.read(matchDetailsProvider(widget.matchId).future),
-              ]);
-            },
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
-                  children: [
-                    _BetHeader(item: item),
-                    const SizedBox(height: 8),
-                    _BetCard(
-                      item: item,
-                      details: details,
-                      scoreGrinta: _grinta ?? item.scoreGrinta,
-                      scoreOpponent: _opponent ?? item.scoreOpponent,
-                      useX2: _useX2 ?? item.useX2,
-                      saving: _saving,
-                      onGrintaMinus: () => setState(() {
-                        final current = _grinta ?? item.scoreGrinta;
-                        if (current > 0) _grinta = current - 1;
-                      }),
-                      onGrintaPlus: () => setState(() {
-                        _grinta = (_grinta ?? item.scoreGrinta) + 1;
-                      }),
-                      onOpponentMinus: () => setState(() {
-                        final current = _opponent ?? item.scoreOpponent;
-                        if (current > 0) _opponent = current - 1;
-                      }),
-                      onOpponentPlus: () => setState(() {
-                        _opponent = (_opponent ?? item.scoreOpponent) + 1;
-                      }),
-                      onX2Changed: (value) => setState(() => _useX2 = value),
-                      onSave: () => _save(item),
-                    ),
-                  ],
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                child: _BetCard(
+                  item: item,
+                  details: details,
+                  scoreGrinta: _grinta ?? item.scoreGrinta,
+                  scoreOpponent: _opponent ?? item.scoreOpponent,
+                  useX2: _useX2 ?? item.useX2,
+                  saving: _saving,
+                  onGrintaMinus: () => setState(() {
+                    final current = _grinta ?? item.scoreGrinta;
+                    if (current > 0) _grinta = current - 1;
+                  }),
+                  onGrintaPlus: () => setState(() {
+                    _grinta = (_grinta ?? item.scoreGrinta) + 1;
+                  }),
+                  onOpponentMinus: () => setState(() {
+                    final current = _opponent ?? item.scoreOpponent;
+                    if (current > 0) _opponent = current - 1;
+                  }),
+                  onOpponentPlus: () => setState(() {
+                    _opponent = (_opponent ?? item.scoreOpponent) + 1;
+                  }),
+                  onX2Changed: (value) => setState(() => _useX2 = value),
+                  onSave: () => _save(item),
                 ),
               ),
             ),
@@ -118,46 +105,6 @@ class _UpcomingMatchPredictionPageState
     } finally {
       if (mounted) setState(() => _saving = false);
     }
-  }
-}
-
-class _BetHeader extends StatelessWidget {
-  const _BetHeader({required this.item});
-
-  final MatchPredictionItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: item.isFilled
-              ? const Color(0xFF39E784).withValues(alpha: .10)
-              : Colors.white.withValues(alpha: .04),
-          borderRadius: BorderRadius.circular(99),
-          border: Border.all(
-            color: item.isFilled
-                ? const Color(0xFF39E784).withValues(alpha: .34)
-                : AppTheme.outline,
-          ),
-        ),
-        child: Text(
-          item.isClosed
-              ? 'Fermé'
-              : item.isFilled
-                  ? 'Enregistré'
-                  : 'À saisir',
-          style: TextStyle(
-            color: item.isFilled
-                ? const Color(0xFF69E99B)
-                : AppTheme.textSecondary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -573,9 +520,7 @@ class _Odd extends StatelessWidget {
       curve: Curves.easeOut,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: active
-            ? activeColor.withValues(alpha: .13)
-            : Colors.transparent,
+        color: active ? activeColor.withValues(alpha: .13) : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: active ? activeColor : inactiveBorder,
