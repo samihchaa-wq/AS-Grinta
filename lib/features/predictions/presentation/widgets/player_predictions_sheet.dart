@@ -21,6 +21,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = gaugeAccentFor(gauge.playerId);
+    final median = gauge.predictions.isEmpty ? null : gauge.median.round();
     final predictions = [...gauge.predictions]..sort((a, b) {
         final aDistance = (a.value - gauge.actual).abs();
         final bDistance = (b.value - gauge.actual).abs();
@@ -94,7 +95,42 @@ class PlayerPredictionsSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
+          if (median != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFA33CFF).withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFFA33CFF).withValues(alpha: .5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timeline,
+                      color: Color(0xFFC58BFF), size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Médiane des pronos',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$median',
+                    style: const TextStyle(
+                      color: Color(0xFFC58BFF),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (median != null) const SizedBox(height: 16),
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFF0B1932),
