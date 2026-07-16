@@ -5,18 +5,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final threeBadges = <String, List<FeaturedBadge>>{
+  final twoBadges = <String, List<FeaturedBadge>>{
     'p1': const [
       FeaturedBadge(emoji: '🔥', imageUrl: null),
       FeaturedBadge(emoji: '⚽', imageUrl: null),
-      FeaturedBadge(emoji: '🏆', imageUrl: null),
     ],
   };
 
   Widget harness({required double width, required String name}) {
     return ProviderScope(
       overrides: [
-        featuredBadgesProvider.overrideWith((ref) async => threeBadges),
+        featuredBadgesProvider.overrideWith((ref) async => twoBadges),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -37,7 +36,7 @@ void main() {
     );
   }
 
-  testWidgets('un nom très long + 3 badges ne débordent pas (colonne étroite)',
+  testWidgets('un nom très long + 2 badges ne débordent pas (colonne étroite)',
       (tester) async {
     await tester.pumpWidget(
       harness(
@@ -48,10 +47,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    // Les 3 badges restent visibles à droite du nom tronqué.
+    // Les 2 badges restent visibles à droite du nom tronqué.
     expect(find.text('🔥'), findsOneWidget);
     expect(find.text('⚽'), findsOneWidget);
-    expect(find.text('🏆'), findsOneWidget);
   });
 
   testWidgets('un nom court + 3 badges ne débordent pas (largeur normale)',
@@ -64,7 +62,7 @@ void main() {
   });
 
   testWidgets(
-      'un prénom court reste entier avec 3 grands badges (colonne de classement)',
+      'un prénom court reste entier avec 2 grands badges (colonne de classement)',
       (tester) async {
     // Largeur représentative de la colonne « Joueurs » d'un classement sur
     // un téléphone : le prénom doit rester lisible en entier.
@@ -75,6 +73,5 @@ void main() {
     expect(find.text('Samih'), findsOneWidget);
     expect(find.text('🔥'), findsOneWidget);
     expect(find.text('⚽'), findsOneWidget);
-    expect(find.text('🏆'), findsOneWidget);
   });
 }

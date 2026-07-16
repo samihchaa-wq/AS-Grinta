@@ -176,9 +176,9 @@ class _PlayerIdentity extends ConsumerWidget {
             ),
           ),
         ),
-        for (final badge in badges.take(3)) ...[
+        for (final badge in badges.take(2)) ...[
           const SizedBox(width: 18),
-          _GaugeBadgeChip(badge: badge, size: 58),
+          _GaugeBadgeChip(badge: badge, size: 72),
         ],
       ],
     );
