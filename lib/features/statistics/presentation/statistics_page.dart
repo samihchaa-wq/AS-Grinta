@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -249,8 +250,9 @@ class _PlayerStatisticsCard extends StatelessWidget {
               _RankBadge(rank: player.rank),
               const SizedBox(width: 11),
               Expanded(
-                child: Text(
-                  player.playerName,
+                child: NameWithBadges(
+                  profileId: player.profileId,
+                  name: player.playerName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),

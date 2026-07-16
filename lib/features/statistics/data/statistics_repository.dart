@@ -31,6 +31,7 @@ class PlayerStatistics {
     required this.rank,
     required this.displayOrder,
     required this.playerName,
+    required this.profileId,
     required this.isGoalkeeper,
     required this.matchesPlayed,
     required this.wins,
@@ -46,6 +47,10 @@ class PlayerStatistics {
   final int rank;
   final int displayOrder;
   final String playerName;
+
+  /// L'identifiant du compte lié à ce joueur (pour afficher ses badges).
+  /// `null` si le joueur d'effectif n'a pas de compte.
+  final String? profileId;
   final bool isGoalkeeper;
   final int? matchesPlayed;
   final int? wins;
@@ -92,16 +97,32 @@ class StatisticsRepository {
           clean_sheets
         ''').eq('period_key', period.databaseKey);
 
+    // Association prénom → compte, pour afficher les badges des joueurs qui
+    // ont un compte (les autres joueurs d'effectif n'en ont pas).
+    final rosterRows = await _client
+        .from('season_players')
+        .select('first_name, profile_id')
+        .not('profile_id', 'is', null);
+    final profileByFirstName = <String, String>{};
+    for (final row in rosterRows as List) {
+      final m = Map<String, dynamic>.from(row as Map);
+      final first = (m['first_name'] ?? '').toString().trim().toLowerCase();
+      final pid = m['profile_id']?.toString();
+      if (first.isNotEmpty && pid != null) {
+        profileByFirstName.putIfAbsent(first, () => pid);
+      }
+    }
+
     final players = (response as List).map((row) {
       final map = Map<String, dynamic>.from(row as Map);
+      final name = _firstName((map['player_name'] ?? 'Joueur').toString());
       return PlayerStatistics(
         period: period,
         periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
         rank: (map['display_rank'] as num?)?.toInt() ?? 0,
         displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
-        playerName: _firstName(
-          (map['player_name'] ?? 'Joueur').toString(),
-        ),
+        playerName: name,
+        profileId: profileByFirstName[name.toLowerCase()],
         isGoalkeeper: map['is_goalkeeper'] == true,
         matchesPlayed: (map['matches_played'] as num?)?.toInt(),
         wins: (map['wins'] as num?)?.toInt(),
