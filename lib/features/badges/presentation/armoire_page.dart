@@ -204,6 +204,20 @@ class _BadgeGrid extends StatelessWidget {
   }
 }
 
+/// Le seuil à écrire en petit sur l'emoji d'un badge de barème (paliers de
+/// stats). `null` pour les titres, triplé, etc. qui ont un emoji unique.
+String? baremeThreshold(BadgeDef def) {
+  final metric = def.metric;
+  final threshold = def.threshold;
+  if (metric == null || threshold == null) return null;
+  if (metric == 'max_match_goals' ||
+      metric == 'seasons_complete' ||
+      metric.startsWith('title_')) {
+    return null;
+  }
+  return '$threshold';
+}
+
 class _BadgeTile extends StatelessWidget {
   const _BadgeTile({
     required this.badge,
@@ -250,6 +264,7 @@ class _BadgeTile extends StatelessWidget {
     }
 
     final canFeature = onToggleFeatured != null;
+    final bareme = baremeThreshold(badge.def);
     return SizedBox(
       width: width,
       child: Column(
@@ -306,6 +321,31 @@ class _BadgeTile extends StatelessWidget {
                           size: 15, color: Colors.white),
                     ),
                   ),
+                if (bareme != null)
+                  Positioned(
+                    bottom: 5,
+                    right: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B1D40),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: scheme.secondary.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      child: Text(
+                        bareme,
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: scheme.secondary,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -349,14 +389,43 @@ class _InProgressTile extends StatelessWidget {
           SizedBox(
             width: 44,
             height: 44,
-            child: Center(
-              child: badge.def.imageUrl != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(badge.def.imageUrl!,
-                          width: 40, height: 40, fit: BoxFit.cover),
-                    )
-                  : Text(badge.def.emoji, style: const TextStyle(fontSize: 30)),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (badge.def.imageUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(badge.def.imageUrl!,
+                        width: 40, height: 40, fit: BoxFit.cover),
+                  )
+                else
+                  Text(badge.def.emoji, style: const TextStyle(fontSize: 30)),
+                if (baremeThreshold(badge.def) case final b?)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B1D40),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: scheme.secondary.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      child: Text(
+                        b,
+                        style: TextStyle(
+                          fontSize: 9,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: scheme.secondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 14),
