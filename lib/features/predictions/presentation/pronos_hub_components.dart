@@ -66,7 +66,7 @@ class _MatchLeaderboardHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Expanded(flex: 5, child: Text('Joueurs', style: style)),
+          Expanded(flex: 6, child: Text('Joueurs', style: style)),
           Expanded(
             flex: 2,
             child: Text('Bons', style: style, textAlign: TextAlign.center),
@@ -99,7 +99,7 @@ class _GeneralLeaderboardHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Expanded(flex: 5, child: Text('Joueurs', style: style)),
+          Expanded(flex: 6, child: Text('Joueurs', style: style)),
           Expanded(
             flex: 2,
             child: Text('Matchs', style: style, textAlign: TextAlign.center),
@@ -190,11 +190,11 @@ class _LeaderboardRowLayout extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 5,
+            flex: 6,
             child: Row(
               children: [
                 SizedBox(
-                  width: 28,
+                  width: 24,
                   child: Text(
                     '$rank',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -203,11 +203,12 @@ class _LeaderboardRowLayout extends StatelessWidget {
                         ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: NameWithBadges(
                     profileId: profileId,
                     name: name,
+                    badgeSize: 13,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
