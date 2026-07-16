@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,15 +8,40 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class ArmoirePage extends ConsumerWidget {
   const ArmoirePage({super.key});
 
+  Future<void> _toggleFeatured(
+    BuildContext context,
+    WidgetRef ref,
+    String code,
+    bool nowFeatured,
+  ) async {
+    try {
+      await ref
+          .read(featuredBadgesRepositoryProvider)
+          .setFeatured(code, nowFeatured);
+      ref.invalidate(myFeaturedCodesProvider);
+      ref.invalidate(featuredBadgesProvider);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(e))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final armoireAsync = ref.watch(myArmoireProvider);
+    final featured = ref.watch(myFeaturedCodesProvider).maybeWhen(
+          data: (codes) => codes,
+          orElse: () => const <String>{},
+        );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Armoire à badges')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myArmoireProvider);
+          ref.invalidate(myFeaturedCodesProvider);
           await ref.read(myArmoireProvider.future);
         },
         child: armoireAsync.when(
@@ -36,8 +62,19 @@ class ArmoirePage extends ConsumerWidget {
               const SizedBox(height: 20),
               if (armoire.validated.isNotEmpty) ...[
                 _SectionTitle('Validés', armoire.validated.length),
+                const SizedBox(height: 4),
+                Text(
+                  'Touche un badge pour l\'arborer à côté de ton prénom '
+                  '(3 maximum).',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 10),
-                _BadgeGrid(badges: armoire.validated),
+                _BadgeGrid(
+                  badges: armoire.validated,
+                  featuredCodes: featured,
+                  onToggleFeatured: (code, nowFeatured) =>
+                      _toggleFeatured(context, ref, code, nowFeatured),
+                ),
                 const SizedBox(height: 24),
               ],
               if (armoire.inProgress.isNotEmpty) ...[
@@ -136,24 +173,48 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _BadgeGrid extends StatelessWidget {
-  const _BadgeGrid({required this.badges, this.locked = false});
+  const _BadgeGrid({
+    required this.badges,
+    this.locked = false,
+    this.featuredCodes,
+    this.onToggleFeatured,
+  });
   final List<ArmoireBadge> badges;
   final bool locked;
+
+  /// Codes des badges actuellement arborés (section « Validés » uniquement).
+  final Set<String>? featuredCodes;
+  final void Function(String code, bool nowFeatured)? onToggleFeatured;
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: [for (final b in badges) _BadgeTile(badge: b, locked: locked)],
+      children: [
+        for (final b in badges)
+          _BadgeTile(
+            badge: b,
+            locked: locked,
+            featured: featuredCodes?.contains(b.def.code) ?? false,
+            onToggleFeatured: onToggleFeatured,
+          ),
+      ],
     );
   }
 }
 
 class _BadgeTile extends StatelessWidget {
-  const _BadgeTile({required this.badge, this.locked = false});
+  const _BadgeTile({
+    required this.badge,
+    this.locked = false,
+    this.featured = false,
+    this.onToggleFeatured,
+  });
   final ArmoireBadge badge;
   final bool locked;
+  final bool featured;
+  final void Function(String code, bool nowFeatured)? onToggleFeatured;
 
   @override
   Widget build(BuildContext context) {
@@ -188,35 +249,65 @@ class _BadgeTile extends StatelessWidget {
       );
     }
 
+    final canFeature = onToggleFeatured != null;
     return SizedBox(
       width: width,
       child: Column(
         children: [
-          Container(
-            height: width,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  scheme.secondary.withValues(alpha: 0.22),
-                  scheme.surfaceContainerHighest,
-                ],
-              ),
-              borderRadius: BorderRadius.circular(18),
-              border:
-                  Border.all(color: scheme.secondary.withValues(alpha: 0.5)),
+          GestureDetector(
+            onTap: canFeature
+                ? () => onToggleFeatured!(badge.def.code, !featured)
+                : null,
+            child: Stack(
+              children: [
+                Container(
+                  height: width,
+                  width: width,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        scheme.secondary.withValues(alpha: 0.22),
+                        scheme.surfaceContainerHighest,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: featured
+                          ? scheme.secondary
+                          : scheme.secondary.withValues(alpha: 0.5),
+                      width: featured ? 2.5 : 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: badge.def.imageUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.network(badge.def.imageUrl!,
+                              width: width * 0.6,
+                              height: width * 0.6,
+                              fit: BoxFit.cover),
+                        )
+                      : Text(badge.def.emoji,
+                          style: const TextStyle(fontSize: 34)),
+                ),
+                if (featured)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: scheme.secondary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.star_rounded,
+                          size: 15, color: Colors.white),
+                    ),
+                  ),
+              ],
             ),
-            alignment: Alignment.center,
-            child: badge.def.imageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(14),
-                    child: Image.network(badge.def.imageUrl!,
-                        width: width * 0.6,
-                        height: width * 0.6,
-                        fit: BoxFit.cover),
-                  )
-                : Text(badge.def.emoji, style: const TextStyle(fontSize: 34)),
           ),
           const SizedBox(height: 6),
           Text(
@@ -224,10 +315,10 @@ class _BadgeTile extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: featured ? scheme.secondary : null,
+                ),
           ),
         ],
       ),

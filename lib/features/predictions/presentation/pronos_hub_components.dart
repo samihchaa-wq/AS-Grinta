@@ -133,6 +133,7 @@ class _MatchLeaderboardRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return _LeaderboardRowLayout(
       rank: rank,
+      profileId: entry.profileId,
       name: entry.name,
       firstValue: '${entry.matchBons}',
       secondValue: '${entry.matchExacts}',
@@ -156,6 +157,7 @@ class _GeneralLeaderboardRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return _LeaderboardRowLayout(
       rank: rank,
+      profileId: entry.profileId,
       name: entry.name,
       firstValue: '${(entry.matchPoints * 100).round()}',
       secondValue: '${entry.seasonPoints.round()}',
@@ -171,10 +173,12 @@ class _LeaderboardRowLayout extends StatelessWidget {
     required this.firstValue,
     required this.secondValue,
     required this.points,
+    this.profileId,
   });
 
   final int rank;
   final String name;
+  final String? profileId;
   final String firstValue;
   final String secondValue;
   final String points;
@@ -201,10 +205,9 @@ class _LeaderboardRowLayout extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: NameWithBadges(
+                    profileId: profileId,
+                    name: name,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),

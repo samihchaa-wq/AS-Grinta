@@ -1,0 +1,72 @@
+import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Affiche un prénom suivi des badges qu'il a choisi d'arborer (max 3),
+/// à droite du nom. À utiliser partout où un nom de personne apparaît.
+class NameWithBadges extends ConsumerWidget {
+  const NameWithBadges({
+    super.key,
+    required this.profileId,
+    required this.name,
+    this.style,
+    this.badgeSize = 15,
+  });
+
+  final String? profileId;
+  final String name;
+  final TextStyle? style;
+  final double badgeSize;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nameText = Text(
+      name,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+    if (profileId == null) return nameText;
+
+    final badges = ref.watch(featuredBadgesProvider).maybeWhen(
+          data: (map) => map[profileId] ?? const <FeaturedBadge>[],
+          orElse: () => const <FeaturedBadge>[],
+        );
+    if (badges.isEmpty) return nameText;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: nameText),
+        for (final b in badges.take(3)) ...[
+          const SizedBox(width: 4),
+          _BadgeChip(badge: b, size: badgeSize),
+        ],
+      ],
+    );
+  }
+}
+
+class _BadgeChip extends StatelessWidget {
+  const _BadgeChip({required this.badge, required this.size});
+  final FeaturedBadge badge;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (badge.imageUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Image.network(
+          badge.imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              Text(badge.emoji, style: TextStyle(fontSize: size)),
+        ),
+      );
+    }
+    return Text(badge.emoji, style: TextStyle(fontSize: size));
+  }
+}
