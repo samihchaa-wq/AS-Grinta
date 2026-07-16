@@ -30,6 +30,22 @@ class AdminProfileItem {
   }
 }
 
+class AdminHistoricalPlayer {
+  const AdminHistoricalPlayer({
+    required this.id,
+    required this.name,
+    required this.matchesPlayed,
+    required this.goals,
+    required this.linkedProfileId,
+  });
+
+  final int id;
+  final String name;
+  final int matchesPlayed;
+  final int goals;
+  final String? linkedProfileId;
+}
+
 class AdminSeasonItem {
   const AdminSeasonItem({
     required this.id,
@@ -190,6 +206,41 @@ class AdminRepository {
     );
     if (result != true) {
       throw StateError('Le compte n’a pas pu être validé.');
+    }
+  }
+
+  /// Liste des joueurs de l'historique importé (pour le rattachement).
+  Future<List<AdminHistoricalPlayer>> fetchHistoricalPlayers() async {
+    final rows = await _client.rpc('staff_list_historical_players');
+    return (rows as List? ?? const [])
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .map(
+          (row) => AdminHistoricalPlayer(
+            id: (row['id'] as num).toInt(),
+            name: (row['player_name'] ?? '').toString(),
+            matchesPlayed: (row['matches_played'] as num?)?.toInt() ?? 0,
+            goals: (row['goals'] as num?)?.toInt() ?? 0,
+            linkedProfileId: row['profile_id']?.toString(),
+          ),
+        )
+        .toList();
+  }
+
+  /// Rattache (ou détache si [historicalId] est null) l'historique d'un joueur
+  /// à un compte, par identifiant. Les badges sont recalculés côté serveur.
+  Future<void> setHistoricalProfile({
+    required String profileId,
+    required int? historicalId,
+  }) async {
+    final result = await _client.rpc(
+      'staff_set_historical_profile',
+      params: {
+        'p_profile_id': profileId,
+        'p_historical_id': historicalId,
+      },
+    );
+    if (result != true) {
+      throw StateError("L'historique n'a pas pu être rattaché.");
     }
   }
 

@@ -62,6 +62,13 @@ class _ProfileValidationChoice {
   final String? seasonId;
 }
 
+class _HistoricalChoice {
+  const _HistoricalChoice(this.historicalId);
+
+  /// `null` = détacher l'historique de ce compte.
+  final int? historicalId;
+}
+
 class _ProfileCard extends ConsumerWidget {
   const _ProfileCard({required this.profile});
 
@@ -222,6 +229,23 @@ class _ProfileCard extends ConsumerWidget {
                       icon: const Icon(Icons.lock_reset, size: 18),
                       label: const Text('Réinitialiser le mot de passe'),
                     ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        final choice = await _pickHistorical(context, ref);
+                        if (choice == null) return;
+                        await run(
+                          () => repository.setHistoricalProfile(
+                            profileId: profile.id,
+                            historicalId: choice.historicalId,
+                          ),
+                          success: choice.historicalId == null
+                              ? 'Historique détaché de ${profile.displayName}.'
+                              : 'Historique rattaché à ${profile.displayName}.',
+                        );
+                      },
+                      icon: const Icon(Icons.history, size: 18),
+                      label: const Text('Historique du club'),
+                    ),
                     if (policy.isArchived)
                       TextButton.icon(
                         onPressed: () => run(
@@ -381,6 +405,91 @@ class _ProfileCard extends ConsumerWidget {
                 ),
               ),
               child: const Text('Valider'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<_HistoricalChoice?> _pickHistorical(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final repository = ref.read(adminRepositoryProvider);
+    List<AdminHistoricalPlayer> players = const [];
+    String? loadingError;
+
+    try {
+      players = await repository.fetchHistoricalPlayers();
+    } catch (error) {
+      loadingError = humanizeError(error);
+    }
+
+    if (!context.mounted) return null;
+
+    // Présélection : la ligne d'historique déjà rattachée à ce compte (0 = aucune).
+    var selectedId = players
+        .where((player) => player.linkedProfileId == profile.id)
+        .map((player) => player.id)
+        .fold<int>(0, (previous, id) => id);
+
+    return showDialog<_HistoricalChoice>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Historique du club'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Choisis la fiche d’historique de ${profile.displayName}. '
+                'Une fois rattachée, elle suit le compte quel que soit le nom.',
+              ),
+              const SizedBox(height: 16),
+              if (loadingError != null)
+                Text('Historique indisponible : $loadingError')
+              else if (players.isEmpty)
+                const Text('Aucune fiche d’historique importée.')
+              else
+                DropdownButtonFormField<int>(
+                  initialValue: selectedId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Fiche joueur'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: 0,
+                      child: Text('Aucune (ne pas rattacher)'),
+                    ),
+                    ...players.map(
+                      (player) => DropdownMenuItem(
+                        value: player.id,
+                        child: Text(
+                          '${player.name} · ${player.matchesPlayed} matchs'
+                          '${player.linkedProfileId != null && player.linkedProfileId != profile.id ? ' (déjà relié ailleurs)' : ''}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() => selectedId = value ?? 0);
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                _HistoricalChoice(selectedId == 0 ? null : selectedId),
+              ),
+              child: const Text('Enregistrer'),
             ),
           ],
         ),
