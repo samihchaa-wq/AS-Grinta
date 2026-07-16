@@ -19,6 +19,7 @@ class BadgeDef {
     required this.metric,
     required this.threshold,
     required this.sortOrder,
+    this.hasStar = false,
   });
 
   final String code;
@@ -40,6 +41,9 @@ class BadgeDef {
   final int? threshold;
   final int sortOrder;
 
+  /// Étoile posée au-dessus du carré (paliers finaux + titres).
+  final bool hasStar;
+
   factory BadgeDef.fromMap(Map<String, dynamic> m) => BadgeDef(
         code: m['code'].toString(),
         name: (m['name'] ?? '').toString(),
@@ -53,6 +57,7 @@ class BadgeDef {
         metric: m['metric']?.toString(),
         threshold: (m['threshold'] as num?)?.toInt(),
         sortOrder: (m['sort_order'] as num?)?.toInt() ?? 0,
+        hasStar: m['has_star'] == true,
       );
 }
 
@@ -110,7 +115,7 @@ class BadgeRepository {
     final rows = await _client
         .from('badges')
         .select(
-            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order')
+            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star')
         .order('sort_order');
     return (rows as List)
         .map((r) => BadgeDef.fromMap(Map<String, dynamic>.from(r as Map)))

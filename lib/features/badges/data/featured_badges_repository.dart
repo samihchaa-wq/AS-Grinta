@@ -10,6 +10,7 @@ class FeaturedBadge {
     required this.imageUrl,
     this.color,
     this.baremeLabel,
+    this.hasStar = false,
   });
   final String emoji;
   final String? imageUrl;
@@ -17,6 +18,9 @@ class FeaturedBadge {
   /// Couleur du carré de l'emblème (hex) et seuil du barème, si applicable.
   final String? color;
   final String? baremeLabel;
+
+  /// Étoile posée au-dessus du carré (paliers finaux + titres).
+  final bool hasStar;
 }
 
 class FeaturedBadgesRepository {
@@ -38,6 +42,7 @@ class FeaturedBadgesRepository {
           m['metric']?.toString(),
           (m['threshold'] as num?)?.toInt(),
         ),
+        hasStar: m['has_star'] == true,
       ));
     }
     return map;

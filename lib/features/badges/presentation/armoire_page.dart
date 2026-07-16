@@ -271,6 +271,7 @@ class _BadgeTile extends StatelessWidget {
                   imageUrl: badge.def.imageUrl,
                   color: badge.def.color,
                   baremeLabel: bareme,
+                  showStar: badge.def.hasStar,
                   size: width,
                 ),
                 if (featured)
@@ -341,6 +342,7 @@ class _InProgressTile extends StatelessWidget {
             imageUrl: badge.def.imageUrl,
             color: badge.def.color,
             baremeLabel: baremeThreshold(badge.def),
+            showStar: badge.def.hasStar,
             size: 46,
           ),
           const SizedBox(width: 14),
