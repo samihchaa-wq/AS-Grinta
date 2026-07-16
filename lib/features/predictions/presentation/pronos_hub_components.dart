@@ -208,7 +208,6 @@ class _LeaderboardRowLayout extends StatelessWidget {
                   child: NameWithBadges(
                     profileId: profileId,
                     name: name,
-                    badgeSize: 13,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),

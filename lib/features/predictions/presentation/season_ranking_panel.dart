@@ -138,7 +138,6 @@ class _SeasonRankingRow extends StatelessWidget {
                   child: NameWithBadges(
                     profileId: entry.profileId,
                     name: entry.name,
-                    badgeSize: 13,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
