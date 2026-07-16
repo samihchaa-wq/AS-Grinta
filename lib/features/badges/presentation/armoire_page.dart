@@ -65,7 +65,7 @@ class ArmoirePage extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Touche un badge pour l\'arborer à côté de ton prénom '
-                  '(3 maximum).',
+                  '(2 maximum).',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 10),

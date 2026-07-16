@@ -10,7 +10,7 @@ class NameWithBadges extends ConsumerWidget {
     required this.profileId,
     required this.name,
     this.style,
-    this.badgeSize = 22,
+    this.badgeSize = 30,
   });
 
   final String? profileId;
@@ -38,7 +38,7 @@ class NameWithBadges extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(child: nameText),
-        for (final b in badges.take(3)) ...[
+        for (final b in badges.take(2)) ...[
           const SizedBox(width: 4),
           _BadgeChip(badge: b, size: badgeSize),
         ],
