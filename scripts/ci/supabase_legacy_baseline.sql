@@ -154,6 +154,18 @@ create table if not exists public.match_predictions (
   unique (match_id, profile_id)
 );
 
+create table if not exists public.match_guest_stats (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matches(id) on delete cascade,
+  display_name text not null,
+  position text not null default 'Joueur',
+  present boolean not null default true,
+  goals integer not null default 0,
+  assists integer not null default 0,
+  penalty_faults integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.season_predictions (
   id uuid primary key default gen_random_uuid(),
   season_id uuid not null references public.seasons(id) on delete cascade,
