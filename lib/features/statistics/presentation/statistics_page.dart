@@ -79,8 +79,7 @@ class _StatisticsPeriodView extends ConsumerWidget {
                   ),
                 )
               else
-                for (final player in data.players)
-                  _PlayerStatisticsCard(player: player),
+                _StatisticsTable(players: data.players),
             ],
           ),
         );
@@ -139,185 +138,122 @@ class _PeriodHeader extends StatelessWidget {
   }
 }
 
-class _PlayerStatisticsCard extends StatelessWidget {
-  const _PlayerStatisticsCard({required this.player});
+/// Tableau des statistiques, même présentation que les « Classements » : un
+/// cartouche unique, une ligne d'en-tête, des lignes séparées par des filets.
+class _StatisticsTable extends StatelessWidget {
+  const _StatisticsTable({required this.players});
 
-  final PlayerStatistics player;
+  final List<PlayerStatistics> players;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF14264D),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
+    return Card(
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          Row(
-            children: [
-              _RankBadge(rank: player.rank),
-              const SizedBox(width: 11),
-              Expanded(
-                child: NameWithBadges(
-                  profileId: player.profileId,
-                  name: player.playerName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-              ),
-              if (!player.hasHistoricalBreakdown)
-                _CurrentMetric(
-                  label: player.isGoalkeeper ? 'Clean sheets' : 'Buts',
-                  value:
-                      player.isGoalkeeper ? player.cleanSheets : player.goals,
-                ),
-            ],
-          ),
-          if (player.hasHistoricalBreakdown) ...[
-            const SizedBox(height: 12),
-            _historicalMetricsRow(),
+          const _StatisticsHeaderRow(),
+          const Divider(height: 1),
+          for (var index = 0; index < players.length; index++) ...[
+            _StatisticsDataRow(player: players[index]),
+            if (index != players.length - 1) const Divider(height: 1),
           ],
         ],
       ),
     );
   }
-
-  Widget _historicalMetricsRow() {
-    final metrics = _historicalMetrics();
-    final children = <Widget>[];
-
-    for (var index = 0; index < metrics.length; index++) {
-      if (index > 0) children.add(const SizedBox(width: 5));
-      children.add(Expanded(child: metrics[index]));
-    }
-
-    return Row(children: children);
-  }
-
-  List<Widget> _historicalMetrics() {
-    final metrics = <Widget>[
-      _MetricTile(label: 'J', value: player.matchesPlayed ?? 0),
-      _MetricTile(label: 'G', value: player.wins ?? 0),
-      _MetricTile(label: 'N', value: player.draws ?? 0),
-      _MetricTile(label: 'P', value: player.losses ?? 0),
-    ];
-
-    if (player.isGoalkeeper) {
-      // Même disposition que les autres : la stat principale (CS) en avant-
-      // dernière colonne, HDM en dernière.
-      metrics.addAll([
-        _MetricTile(label: 'CS', value: player.cleanSheets),
-        _MetricTile(label: 'HDM', value: player.hdm ?? 0),
-      ]);
-    } else {
-      metrics.addAll([
-        _MetricTile(label: 'Buts', value: player.goals),
-        _MetricTile(label: 'HDM', value: player.hdm ?? 0),
-      ]);
-    }
-    return metrics;
-  }
 }
 
-class _RankBadge extends StatelessWidget {
-  const _RankBadge({required this.rank});
+const _statNameFlex = 7;
+const _statValueFlex = 2;
 
-  final int rank;
+class _StatisticsHeaderRow extends StatelessWidget {
+  const _StatisticsHeaderRow();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF4B6FFF).withValues(alpha: .18),
-        border: Border.all(
-          color: const Color(0xFF79A4FF).withValues(alpha: .55),
-        ),
-      ),
-      child: Text('$rank', style: const TextStyle(fontWeight: FontWeight.w900)),
-    );
-  }
-}
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w800,
+        );
 
-class _CurrentMetric extends StatelessWidget {
-  const _CurrentMetric({required this.label, required this.value});
+    Widget cell(String label) => Expanded(
+          flex: _statValueFlex,
+          child: Text(label, style: style, textAlign: TextAlign.center),
+        );
 
-  final String label;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4B6FFF).withValues(alpha: .16),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      child: Row(
         children: [
-          Text(
-            '$value',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF79A4FF),
-                ),
-          ),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: Colors.white70),
-          ),
+          Expanded(flex: _statNameFlex, child: Text('Joueur', style: style)),
+          cell('J'),
+          cell('G'),
+          cell('N'),
+          cell('P'),
+          cell('B/CS'),
+          cell('HDM'),
         ],
       ),
     );
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({required this.label, required this.value});
+class _StatisticsDataRow extends StatelessWidget {
+  const _StatisticsDataRow({required this.player});
 
-  final String label;
-  final int value;
+  final PlayerStatistics player;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .055),
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Column(
+    final mainStat = player.isGoalkeeper ? player.cleanSheets : player.goals;
+
+    Widget value(int v) => Expanded(
+          flex: _statValueFlex,
+          child: Text(
+            '$v',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
         children: [
-          SizedBox(
-            height: 18,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                '$value',
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
+          Expanded(
+            flex: _statNameFlex,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 22,
+                  child: Text(
+                    '${player.rank}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white54,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: NameWithBadges(
+                    profileId: player.profileId,
+                    name: player.playerName,
+                    badgeSize: 20,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              maxLines: 1,
-              style: Theme.of(
-                context,
-              ).textTheme.labelSmall?.copyWith(color: Colors.white60),
-            ),
-          ),
+          value(player.matchesPlayed ?? 0),
+          value(player.wins ?? 0),
+          value(player.draws ?? 0),
+          value(player.losses ?? 0),
+          value(mainStat),
+          value(player.hdm ?? 0),
         ],
       ),
     );
