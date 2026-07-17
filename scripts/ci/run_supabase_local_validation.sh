@@ -29,11 +29,84 @@ sanitize_log() {
   python3 - "$1" "$2" <<'PY'
 import re
 import sys
+
 src, dst = sys.argv[1], sys.argv[2]
 text = open(src, encoding='utf-8', errors='replace').read()
-text = re.sub(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', '[REDACTED_LOCAL_JWT]', text)
-text = re.sub(r'sb_(?:publishable|secret)_[A-Za-z0-9_-]+', '[REDACTED_LOCAL_KEY]', text)
+text = re.sub(
+    r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+',
+    '[REDACTED_LOCAL_JWT]',
+    text,
+)
+text = re.sub(
+    r'sb_(?:publishable|secret)_[A-Za-z0-9_-]+',
+    '[REDACTED_LOCAL_KEY]',
+    text,
+)
+text = re.sub(
+    r'postgresql://[^:\s/]+:[^@\s]+@',
+    'postgresql://[REDACTED_LOCAL_CREDENTIALS]@',
+    text,
+)
+text = re.sub(
+    r'(?im)^(\s*Access Key\s*│\s*).+$',
+    r'\1[REDACTED_LOCAL_S3_ACCESS_KEY]',
+    text,
+)
+text = re.sub(
+    r'(?im)^(\s*Secret Key\s*│\s*).+$',
+    r'\1[REDACTED_LOCAL_S3_SECRET_KEY]',
+    text,
+)
+text = re.sub(
+    r'(?im)^((?:ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY_BASE|S3_PROTOCOL_ACCESS_KEY_ID|S3_PROTOCOL_ACCESS_KEY_SECRET)=).+$',
+    r'\1[REDACTED_LOCAL_SECRET]',
+    text,
+)
 open(dst, 'w', encoding='utf-8').write(text)
+PY
+}
+
+sanitize_all_artifacts() {
+  while IFS= read -r -d '' file; do
+    sanitize_log "$file" "$file.sanitized"
+    mv "$file.sanitized" "$file"
+  done < <(find "$LOG_DIR" -type f -print0)
+}
+
+assert_no_artifact_secrets() {
+  python3 - "$LOG_DIR" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+patterns = {
+    'JWT': re.compile(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'),
+    'Supabase key': re.compile(r'sb_(?:publishable|secret)_[A-Za-z0-9_-]+'),
+    'PostgreSQL credential URL': re.compile(r'postgresql://[^:\s/]+:[^@\s]+@'),
+    'S3 access key': re.compile(r'(?im)^\s*Access Key\s*│\s*[A-Fa-f0-9]{16,}\s*$'),
+    'S3 secret key': re.compile(r'(?im)^\s*Secret Key\s*│\s*[A-Fa-f0-9]{32,}\s*$'),
+    'secret environment assignment': re.compile(
+        r'(?im)^(?:ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY_BASE|S3_PROTOCOL_ACCESS_KEY_ID|S3_PROTOCOL_ACCESS_KEY_SECRET)=(?!\[REDACTED)[^\s]+$'
+    ),
+}
+failures = []
+for path in sorted(root.rglob('*')):
+    if not path.is_file():
+        continue
+    text = path.read_text(encoding='utf-8', errors='replace')
+    for label, pattern in patterns.items():
+        if pattern.search(text):
+            failures.append(f'{path.relative_to(root)}: {label}')
+if failures:
+    print('FAIL: secret-like material remains in the artifact:', file=sys.stderr)
+    for failure in failures:
+        print(f'- {failure}', file=sys.stderr)
+    raise SystemExit(1)
+(root / 'artifact-secret-scan.log').write_text(
+    'PASS: no JWT, Supabase key, credential-bearing PostgreSQL URL, local S3 key, or secret environment assignment remains in the artifact.\n',
+    encoding='utf-8',
+)
 PY
 }
 
@@ -110,6 +183,31 @@ echo "::add-mask::$ADMIN_TOKEN"
 psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/phase1_ci_seed.sql \
   2>&1 | tee "$LOG_DIR/seed.log"
 
+psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL' 2>&1 | tee "$LOG_DIR/fixture-coverage.log"
+do $$
+declare
+  statistics_count integer;
+  ranking_count integer;
+begin
+  select count(*) into statistics_count
+  from public.v_statistics_players
+  where player_name like 'CI %';
+
+  select count(*) into ranking_count
+  from public.v_classement_general cg
+  join public.profiles p on p.id = cg.profile_id
+  where p.email in ('ci-normal@example.invalid', 'ci-admin@example.invalid');
+
+  if statistics_count < 2 then
+    raise exception 'Expected at least two synthetic statistics rows, got %', statistics_count;
+  end if;
+  if ranking_count <> 2 then
+    raise exception 'Expected two synthetic ranking rows, got %', ranking_count;
+  end if;
+end
+$$;
+SQL
+
 # Confirm the vulnerable baseline before applying the three prepared migrations.
 psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL' 2>&1 | tee "$LOG_DIR/baseline-security.log"
 do $$
@@ -177,6 +275,7 @@ for actor in normal admin; do
     "$API_URL/rest/v1/v_statistics_players?select=period_key,period_label,display_rank,display_order,player_name,is_goalkeeper,matches_played,wins,draws,losses,goals,hdm,clean_sheets&player_name=like.CI%25&order=period_key,display_order,player_name" \
     -H "apikey: $ANON_KEY" -H "Authorization: Bearer $token")
   test "$stats_code" = 200
+  jq -e 'length >= 2' "$LOG_DIR/${actor}-statistics.json" >/dev/null
   jq -S . "$LOG_DIR/${actor}-statistics.json" > "$LOG_DIR/${actor}-statistics.sorted.json"
 done
 
@@ -237,5 +336,8 @@ diff -u "$LOG_DIR/snapshot-before.json" "$LOG_DIR/snapshot-after-reapply.json" \
   | tee "$LOG_DIR/reapply-snapshot-diff.log"
 
 cat > "$LOG_DIR/verdict.txt" <<'TXT'
-PASS: all repository migrations rebuilt locally; phase 1 migrations hardened anonymous access; authenticated/admin/service_role access remained valid; profiles, badges, awards, statistics and ranking snapshots were unchanged; all three indexes were selected; rollback and reapplication succeeded. No remote Supabase project was linked or contacted.
+PASS: all repository migrations rebuilt locally from synthetic data; phase 1 migrations hardened anonymous access; authenticated, administrator and service_role access remained valid; SECURITY DEFINER contracts and v_statistics_players security_invoker were verified; non-empty profile, badge, award, statistics and ranking snapshots were unchanged; all three indexes were selected; all three rollbacks and final reapplication succeeded. No remote Supabase project was linked or contacted.
 TXT
+
+sanitize_all_artifacts
+assert_no_artifact_secrets
