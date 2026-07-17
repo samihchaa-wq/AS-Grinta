@@ -81,11 +81,11 @@ class _SeasonPredictionEntryPageState
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
-                      'Barème : pour chaque joueur, le plus proche gagne '
-                      'N × 3 points, le suivant (N − 1) × 3, etc. Un nombre '
-                      'exact double les points. Les ex æquo prennent tous le '
-                      'meilleur rang commun. Le bon ordre des buteurs rapporte '
-                      'jusqu’à N × 30 points.',
+                      'Pour chaque joueur, indique ton pronostic de buts sur la '
+                      'saison (ou de clean sheets pour les gardiens), sur une '
+                      'base de 30 matchs. Si la saison compte un nombre de '
+                      'matchs différent, ton pronostic sera ajusté '
+                      'proportionnellement.',
                     ),
                   ),
                 ),

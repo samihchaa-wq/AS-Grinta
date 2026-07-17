@@ -353,6 +353,8 @@ class _InProgressTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final remaining = badge.remaining ?? 0;
+    // Barème à un seul palier (titres, exploits) : pas de progression.
+    final showProgress = badge.target != null;
     return GestureDetector(
       onTap: () => showBadgeDetailSheet(context, badge.def),
       child: Container(
@@ -391,21 +393,23 @@ class _InProgressTile extends StatelessWidget {
                     Text(badge.def.description,
                         style: Theme.of(context).textTheme.bodySmall),
                   ],
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: badge.progress ?? 0,
-                      minHeight: 7,
-                      backgroundColor: scheme.surfaceContainerHighest,
-                      valueColor: AlwaysStoppedAnimation(scheme.secondary),
+                  if (showProgress) ...[
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: badge.progress ?? 0,
+                        minHeight: 7,
+                        backgroundColor: scheme.surfaceContainerHighest,
+                        valueColor: AlwaysStoppedAnimation(scheme.secondary),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${badge.current}/${badge.target} · plus que $remaining',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${badge.current}/${badge.target} · plus que $remaining',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ],
               ),
             ),

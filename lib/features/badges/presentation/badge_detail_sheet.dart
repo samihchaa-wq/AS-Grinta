@@ -53,10 +53,14 @@ class BadgeDetailSheet extends ConsumerWidget {
         );
 
     // Tous les paliers de la même sous-famille, du plus petit au plus grand.
-    final tiers = badge.metric == null
+    // Un badge « standalone » (exploit autonome) reste seul, sans barème gradué.
+    final tiers = (badge.metric == null || badge.standalone)
         ? <BadgeDef>[badge]
         : (catalog
-            .where((b) => b.metric == badge.metric && b.kind == badge.kind)
+            .where((b) =>
+                b.metric == badge.metric &&
+                b.kind == badge.kind &&
+                !b.standalone)
             .toList()
           ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
     final ladder = tiers.isEmpty ? <BadgeDef>[badge] : tiers;
