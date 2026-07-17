@@ -13,10 +13,7 @@ class _CalendarSection extends ConsumerStatefulWidget {
 }
 
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
-  final _upcomingSliverKey = GlobalKey();
-  final _previousMatchKey = GlobalKey();
-  final _scrollController = ScrollController(keepScrollOffset: false);
-  bool _didPositionInitialList = false;
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -43,8 +40,11 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     final matches = state.matches.toList();
+    // Match à venir en haut (le prochain match tout en haut), matchs terminés
+    // en dessous du plus récent au plus ancien. À l'ouverture, la liste
+    // démarre en haut, donc le curseur est directement sur le prochain match.
     final finishedMatches = matches.where((match) => match.isFinished).toList()
-      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
     final upcomingMatches = matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     final nextMatchId = upcomingMatches.firstOrNull?.id;
@@ -58,26 +58,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         .where((item) => !item.isClosed)
         .map((item) => item.matchId)
         .firstOrNull;
-
-    final hasUpcomingMatches =
-        !state.isLoading && state.error == null && upcomingMatches.isNotEmpty;
-
-    // Ouverture : le bloc « à venir » est le centre du CustomScrollView, donc
-    // le prochain match est en haut de la fenêtre à l'ouverture. Les matchs
-    // précédents sont au-dessus (les plus anciens tout en haut). S'il n'y a
-    // aucun match à venir, on descend sur le match le plus récent (en bas).
-    if (!_didPositionInitialList &&
-        !state.isLoading &&
-        state.error == null &&
-        matches.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _didPositionInitialList) return;
-        if (!hasUpcomingMatches && _scrollController.hasClients) {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        }
-        _didPositionInitialList = true;
-      });
-    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -94,7 +74,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
       },
       child: CustomScrollView(
         controller: _scrollController,
-        center: hasUpcomingMatches ? _upcomingSliverKey : null,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           if (state.isLoading)
@@ -117,34 +96,13 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
               ),
             )
           else ...[
+            // Matchs à venir en haut (le prochain match tout en haut).
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final match = finishedMatches[index];
-                    final isPreviousMatch = index == 0;
-                    return Padding(
-                      key: isPreviousMatch ? _previousMatchKey : null,
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _CalendarMatchCard(
-                        match: match,
-                        isAdmin: isAdmin,
-                        isNextMatch: false,
-                      ),
-                    );
-                  },
-                  childCount: finishedMatches.length,
-                ),
-              ),
-            ),
-            SliverPadding(
-              key: _upcomingSliverKey,
               padding: EdgeInsets.fromLTRB(
                 16,
-                finishedMatches.isEmpty ? 16 : 2,
                 16,
-                32,
+                16,
+                upcomingMatches.isEmpty ? 0 : 4,
               ),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
@@ -161,6 +119,26 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                     );
                   },
                   childCount: upcomingMatches.length,
+                ),
+              ),
+            ),
+            // Matchs terminés en dessous, du plus récent au plus ancien.
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final match = finishedMatches[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _CalendarMatchCard(
+                        match: match,
+                        isAdmin: isAdmin,
+                        isNextMatch: false,
+                      ),
+                    );
+                  },
+                  childCount: finishedMatches.length,
                 ),
               ),
             ),
