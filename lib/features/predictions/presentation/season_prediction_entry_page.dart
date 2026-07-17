@@ -81,11 +81,8 @@ class _SeasonPredictionEntryPageState
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
-                      'Pour chaque joueur, indique ton pronostic de buts sur la '
-                      'saison (ou de clean sheets pour les gardiens), sur une '
-                      'base de 30 matchs. Si la saison compte un nombre de '
-                      'matchs différent, ton pronostic sera ajusté '
-                      'proportionnellement.',
+                      'Pronostique combien de buts (ou de clean sheets pour les '
+                      'gardiens) chaque joueur marquera sur toute la saison.',
                     ),
                   ),
                 ),
