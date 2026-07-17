@@ -128,9 +128,10 @@ class BadgeRepository {
     // Badges directement attribués (paliers + custom).
     final earnedRows = await _client
         .from('profile_badges')
-        .select('badge_id, awarded_at, badges(code)')
+        .select('badge_id, awarded_at, featured, badges(code)')
         .eq('profile_id', profileId);
     final earnedAt = <String, DateTime>{};
+    final featuredCodes = <String>{};
     for (final r in earnedRows as List) {
       final m = Map<String, dynamic>.from(r as Map);
       final b = m['badges'];
@@ -138,8 +139,10 @@ class BadgeRepository {
       if (code != null) {
         earnedAt[code] =
             DateTime.tryParse(m['awarded_at']?.toString() ?? '') ?? DateTime(0);
+        if (m['featured'] == true) featuredCodes.add(code);
       }
     }
+    final byCode = {for (final b in catalog) b.code: b};
 
     // Valeurs de stats courantes (pour la progression).
     final metricsRes = await _client
@@ -204,6 +207,21 @@ class BadgeRepository {
       } else {
         locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
       }
+    }
+
+    // Badges arborés qui ne sont plus dans le palier courant (ex. un badge
+    // saisonnier après un changement de saison) : on les garde visibles dans
+    // « Validés » pour que la personne puisse toujours les voir et les retirer.
+    final shownCodes = {for (final v in validated) v.def.code};
+    for (final code in featuredCodes) {
+      if (shownCodes.contains(code)) continue;
+      final def = byCode[code];
+      if (def == null) continue;
+      validated.add(ArmoireBadge(
+        def: def,
+        state: BadgeState.validated,
+        awardedAt: earnedAt[code],
+      ));
     }
 
     validated.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));

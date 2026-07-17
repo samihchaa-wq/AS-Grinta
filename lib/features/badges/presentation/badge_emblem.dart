@@ -28,25 +28,16 @@ String? baremeLabelFor(String? metric, int? threshold) {
 /// Contour blanc épais + fin liseré sombre pour détacher l'emoji de la couleur
 /// du carré (quelle que soit cette couleur), avec une légère ombre portée.
 List<Shadow> _emojiOutline(double fontSize) {
-  final d = fontSize * 0.06;
-  final blur = fontSize * 0.03;
+  // Halo blanc DIFFUS (sans décalage directionnel) : détache l'emoji du fond
+  // sans donner l'impression d'un emoji dédoublé. Plus une légère ombre portée.
   const white = Colors.white;
   return [
-    for (final o in const [
-      Offset(-1, -1),
-      Offset(1, -1),
-      Offset(-1, 1),
-      Offset(1, 1),
-      Offset(0, -1.4),
-      Offset(0, 1.4),
-      Offset(-1.4, 0),
-      Offset(1.4, 0),
-    ])
-      Shadow(color: white, blurRadius: blur, offset: o * d),
+    Shadow(color: white, blurRadius: fontSize * 0.10),
+    Shadow(color: white, blurRadius: fontSize * 0.05),
     Shadow(
-      color: const Color(0xE6000000),
+      color: const Color(0x99000000),
       blurRadius: fontSize * 0.05,
-      offset: Offset(0, fontSize * 0.03),
+      offset: Offset(0, fontSize * 0.025),
     ),
   ];
 }
