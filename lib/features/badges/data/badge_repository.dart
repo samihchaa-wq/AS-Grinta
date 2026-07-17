@@ -127,8 +127,33 @@ class BadgeRepository {
         .toList();
   }
 
+  /// Métriques de buts (réservées aux joueurs de champ) et de clean sheets
+  /// (réservées aux gardiens).
+  static const _goalMetrics = {
+    'goals',
+    'goals_season',
+    'doubles',
+    'max_match_goals',
+  };
+  static const _cleanSheetMetrics = {'clean_sheets', 'clean_sheets_season'};
+
   Future<Armoire> fetchArmoire(String profileId) async {
     final catalog = await fetchCatalog();
+
+    // Rôle de la personne : un gardien n'a pas les badges de buts, un joueur de
+    // champ n'a pas les badges clean sheets.
+    final profileRow = await _client
+        .from('profiles')
+        .select('is_goalkeeper')
+        .eq('id', profileId)
+        .maybeSingle();
+    final isKeeper = profileRow?['is_goalkeeper'] == true;
+    bool metricAllowed(String? metric) {
+      if (metric == null) return true;
+      if (isKeeper && _goalMetrics.contains(metric)) return false;
+      if (!isKeeper && _cleanSheetMetrics.contains(metric)) return false;
+      return true;
+    }
 
     // Badges directement attribués (paliers + custom).
     final earnedRows = await _client
@@ -181,8 +206,8 @@ class BadgeRepository {
     // Paliers : par métrique, on montre le palier validé le plus haut + le
     // suivant « en cours » avec sa progression.
     final byMetric = <String, List<BadgeDef>>{};
-    for (final b
-        in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
+    for (final b in catalog.where((b) =>
+        b.kind == 'tier' && b.metric != null && metricAllowed(b.metric))) {
       byMetric.putIfAbsent(b.metric!, () => []).add(b);
     }
     byMetric.forEach((metric, tiers) {
@@ -241,6 +266,7 @@ class BadgeRepository {
       if (shownCodes.contains(code)) continue;
       final def = byCode[code];
       if (def == null) continue;
+      if (!metricAllowed(def.metric)) continue;
       validated.add(ArmoireBadge(
         def: def,
         state: BadgeState.validated,
