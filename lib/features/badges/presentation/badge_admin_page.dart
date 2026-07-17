@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
@@ -8,9 +6,8 @@ import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
-/// Écran admin : créer un badge (nom + image) et le décerner manuellement.
+/// Écran admin : créer un badge (nom + emoji) et le décerner manuellement.
 class BadgeAdminPage extends ConsumerStatefulWidget {
   const BadgeAdminPage({super.key});
 
@@ -21,9 +18,8 @@ class BadgeAdminPage extends ConsumerStatefulWidget {
 class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
+  final _emojiController = TextEditingController(text: '🏅');
   final _searchController = TextEditingController();
-  Uint8List? _imageBytes;
-  String _imageExt = 'png';
   String _colorHex = '#C0455B';
   bool _creating = false;
   String _query = '';
@@ -47,24 +43,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
+    _emojiController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
-    );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    final name = file.name;
-    final ext = name.contains('.') ? name.split('.').last : 'png';
-    setState(() {
-      _imageBytes = bytes;
-      _imageExt = ext;
-    });
   }
 
   Future<void> _createBadge() async {
@@ -78,21 +59,17 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     setState(() => _creating = true);
     try {
       final repo = ref.read(badgeAdminRepositoryProvider);
-      String? imageUrl;
-      if (_imageBytes != null) {
-        imageUrl = await repo.uploadBadgeImage(_imageBytes!, _imageExt);
-      }
       await repo.createCustomBadge(
         name: name,
         description: _descController.text.trim(),
-        imageUrl: imageUrl,
+        emoji: _emojiController.text.trim(),
         color: _colorHex,
       );
       ref.invalidate(badgeCatalogProvider);
       if (mounted) {
         _nameController.clear();
         _descController.clear();
-        setState(() => _imageBytes = null);
+        setState(() => _emojiController.text = '🏅');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Badge « $name » créé.')),
         );
@@ -120,13 +97,12 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           _CreateBadgeCard(
             nameController: _nameController,
             descController: _descController,
-            imageBytes: _imageBytes,
+            emojiController: _emojiController,
             creating: _creating,
             colorChoices: _colorChoices,
             selectedColor: _colorHex,
             onColorSelected: (c) => setState(() => _colorHex = c),
-            onPickImage: _pickImage,
-            onRemoveImage: () => setState(() => _imageBytes = null),
+            onEmojiChanged: () => setState(() {}),
             onCreate: _createBadge,
           ),
           const SizedBox(height: 24),
@@ -221,25 +197,23 @@ class _CreateBadgeCard extends StatelessWidget {
   const _CreateBadgeCard({
     required this.nameController,
     required this.descController,
-    required this.imageBytes,
+    required this.emojiController,
     required this.creating,
     required this.colorChoices,
     required this.selectedColor,
     required this.onColorSelected,
-    required this.onPickImage,
-    required this.onRemoveImage,
+    required this.onEmojiChanged,
     required this.onCreate,
   });
 
   final TextEditingController nameController;
   final TextEditingController descController;
-  final Uint8List? imageBytes;
+  final TextEditingController emojiController;
   final bool creating;
   final List<String> colorChoices;
   final String selectedColor;
   final ValueChanged<String> onColorSelected;
-  final VoidCallback onPickImage;
-  final VoidCallback onRemoveImage;
+  final VoidCallback onEmojiChanged;
   final VoidCallback onCreate;
 
   @override
@@ -255,7 +229,13 @@ class _CreateBadgeCard extends StatelessWidget {
                 Text('Créer un badge',
                     style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
-                BadgeEmblem(emoji: '🏅', color: selectedColor, size: 48),
+                BadgeEmblem(
+                  emoji: emojiController.text.trim().isEmpty
+                      ? '🏅'
+                      : emojiController.text.trim(),
+                  color: selectedColor,
+                  size: 48,
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -304,60 +284,22 @@ class _CreateBadgeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
-                  child: imageBytes == null
-                      ? const Icon(Icons.image_outlined)
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.memory(
-                            imageBytes!,
-                            width: 64,
-                            height: 64,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: onPickImage,
-                        icon: const Icon(Icons.upload_outlined, size: 18),
-                        label: Text(
-                          imageBytes == null
-                              ? 'Choisir une image'
-                              : 'Changer l’image',
-                        ),
-                      ),
-                      if (imageBytes != null)
-                        TextButton.icon(
-                          onPressed: onRemoveImage,
-                          icon: const Icon(Icons.close, size: 16),
-                          label: const Text('Retirer l’image'),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+            TextField(
+              controller: emojiController,
+              onChanged: (_) => onEmojiChanged(),
+              textAlign: TextAlign.center,
+              maxLength: 4,
+              style: const TextStyle(fontSize: 26),
+              decoration: const InputDecoration(
+                labelText: 'Emoji du badge',
+                hintText: '🏅',
+                counterText: '',
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
-              'Sans image, le badge utilisera une médaille 🏅 par défaut.',
+              'Choisis un emoji au clavier (comme les autres badges). '
+              'Sans emoji, une médaille 🏅 est utilisée par défaut.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
