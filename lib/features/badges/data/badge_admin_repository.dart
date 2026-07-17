@@ -68,7 +68,7 @@ class BadgeAdminRepository {
   Future<void> createCustomBadge({
     required String name,
     String description = '',
-    String? imageUrl,
+    String emoji = '🏅',
     String? color,
   }) async {
     final slug = name
@@ -77,12 +77,13 @@ class BadgeAdminRepository {
         .replaceAll(RegExp(r'^_+|_+$'), '');
     final code =
         'custom_${slug.isEmpty ? 'badge' : slug}_${DateTime.now().millisecondsSinceEpoch}';
+    final trimmedEmoji = emoji.trim();
     await _client.rpc('staff_create_badge', params: {
       'p_code': code,
       'p_name': name,
-      'p_emoji': '🏅',
+      'p_emoji': trimmedEmoji.isEmpty ? '🏅' : trimmedEmoji,
       'p_description': description,
-      'p_image_url': imageUrl,
+      'p_image_url': null,
       'p_color': color ?? '#C0455B',
     });
   }
