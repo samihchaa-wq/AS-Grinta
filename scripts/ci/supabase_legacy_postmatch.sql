@@ -2,14 +2,6 @@
 -- Copied into the disposable local migration chain immediately before the
 -- first tracked migration that expects these objects to exist.
 
--- Later tracked migrations replace the status constraint using text values.
--- The hosted pre-migration schema had already moved away from app_role-style
--- enums, so reproduce that state only in this disposable local database.
-alter table public.matches
-  alter column status drop default,
-  alter column status type text using status::text,
-  alter column status set default 'a_venir';
-
 create table if not exists public.match_player_stats (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references public.matches(id) on delete cascade,
