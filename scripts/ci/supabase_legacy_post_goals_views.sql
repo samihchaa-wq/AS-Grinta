@@ -14,7 +14,8 @@ select
   coalesce(sum(mps.goals) filter (where m.status in ('termine','archive')),0)::integer as goals,
   coalesce(sum(mps.assists) filter (where m.status in ('termine','archive')),0)::integer as assists,
   coalesce((select count(*) from public.match_motm mm join public.matches mx on mx.id=mm.match_id where mx.season_id=sp.season_id and mm.profile_id=sp.profile_id),0)::integer as motm,
-  coalesce(count(*) filter (where m.status in ('termine','archive') and mps.clean_sheet),0)::integer as clean_sheets
+  coalesce(count(*) filter (where m.status in ('termine','archive') and mps.clean_sheet),0)::integer as clean_sheets,
+  coalesce(sum(mps.penalty_faults) filter (where m.status in ('termine','archive')),0)::integer as penalty_faults
 from public.season_players sp
 left join public.match_player_stats mps on mps.profile_id=sp.profile_id
 left join public.matches m on m.id=mps.match_id and m.season_id=sp.season_id
@@ -27,7 +28,8 @@ select profile_id,
        sum(goals)::integer as goals,
        sum(assists)::integer as assists,
        sum(motm)::integer as motm,
-       sum(clean_sheets)::integer as clean_sheets
+       sum(clean_sheets)::integer as clean_sheets,
+       sum(penalty_faults)::integer as penalty_faults
 from public.v_player_season_stats group by profile_id;
 
 create or replace view public.v_season_prediction_points
@@ -44,6 +46,7 @@ select sp.id, sp.season_id, sp.predictor_profile_id, sp.player_profile_id,
              when 'passes' then stats.assists
              when 'hommes_du_match' then stats.motm
              when 'clean_sheets' then stats.clean_sheets
+             when 'penalty_faults' then stats.penalty_faults
              else 0 end
            - (sp.predicted_value_20 * stats.matches_played / 20.0)
          ) / greatest(sp.predicted_value_20 * stats.matches_played / 20.0, 1)) * 20)::integer
