@@ -7,6 +7,7 @@ on:
       - 'supabase/**'
       - 'scripts/ci/assert_supabase_local_only.sh'
       - 'scripts/ci/run_supabase_local_validation.sh'
+      - 'scripts/ci/normalize_local_migration_versions.py'
       - 'scripts/ci/supabase_legacy_baseline.sql'
       - '.github/workflows/supabase_local_validation.yml'
   workflow_dispatch:
@@ -53,12 +54,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client jq rsync
 
-      - name: Prepare CI-only legacy baseline
+      - name: Prepare CI-only migration compatibility
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p ci-artifacts/supabase-local
           cp scripts/ci/supabase_legacy_baseline.sql \
             supabase/migrations/202607080004_ci_legacy_baseline.sql
+          python3 scripts/ci/normalize_local_migration_versions.py \
+            supabase/migrations \
+            | tee ci-artifacts/supabase-local/migration-version-normalization.log
 
       - name: Run isolated Supabase validation
         run: bash scripts/ci/run_supabase_local_validation.sh
