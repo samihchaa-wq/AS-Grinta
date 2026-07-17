@@ -59,9 +59,9 @@ insert into public.season_players (
   season_id, player_id, first_name, last_name, is_goalkeeper, is_active,
   profile_id, "position"
 )
-select season_id, normal_id, 'Normal', 'Player', false, true, normal_id, 1 from ids
+select season_id, normal_id, 'CI Normal', 'Player', false, true, normal_id, 1 from ids
 union all
-select season_id, admin_id, 'Admin', 'Keeper', true, true, admin_id, 2 from ids
+select season_id, admin_id, 'CI Admin', 'Keeper', true, true, admin_id, 2 from ids
 on conflict do nothing;
 
 insert into public.profile_badges (
