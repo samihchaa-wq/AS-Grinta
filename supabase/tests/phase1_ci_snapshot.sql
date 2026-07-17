@@ -42,6 +42,18 @@ statistics_snapshot as (
     where player_name like 'CI %'
   ) x
 ),
+ranking_snapshot as (
+  select count(*)::int as row_count,
+         md5(coalesce(string_agg(row_to_json(x)::text, ',' order by x.profile_id), '')) as digest
+  from (
+    select cg.profile_id, cg.first_name, cg.surnom, cg.match_points,
+           cg.season_points, cg.total_points, cg.match_bons, cg.match_exacts,
+           cg.season_bons, cg.season_exacts
+    from public.v_classement_general cg
+    join public.profiles p on p.id = cg.profile_id
+    where p.email in ('ci-normal@example.invalid', 'ci-admin@example.invalid')
+  ) x
+),
 featured_snapshot as (
   select count(*)::int as row_count,
          md5(coalesce(string_agg(row_to_json(x)::text, ',' order by x.profile_id, x.sort_order, x.code), '')) as digest
@@ -51,6 +63,7 @@ select jsonb_build_object(
   'profiles', (select jsonb_build_object('count', row_count, 'md5', digest) from profiles_snapshot),
   'profile_badges', (select jsonb_build_object('count', row_count, 'md5', digest) from profile_badges_snapshot),
   'season_awards', (select jsonb_build_object('count', row_count, 'md5', digest) from season_awards_snapshot),
-  'statistics_and_ranking', (select jsonb_build_object('count', row_count, 'md5', digest) from statistics_snapshot),
+  'statistics', (select jsonb_build_object('count', row_count, 'md5', digest) from statistics_snapshot),
+  'ranking', (select jsonb_build_object('count', row_count, 'md5', digest) from ranking_snapshot),
   'featured_badges', (select jsonb_build_object('count', row_count, 'md5', digest) from featured_snapshot)
 )::text;
