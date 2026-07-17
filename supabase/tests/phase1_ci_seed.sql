@@ -34,7 +34,11 @@ select
   format('ci-bulk-%s@example.invalid', n),
   jsonb_build_object('first_name', 'Bulk', 'last_name', 'Synthetic')
 from generate_series(1, 118) as g(n)
-on conflict (email) do nothing;
+where not exists (
+  select 1
+  from auth.users u
+  where u.email = format('ci-bulk-%s@example.invalid', n)
+);
 
 alter table public.profiles
   enable trigger trg_seed_predictions_for_new_active_profile;
