@@ -133,8 +133,20 @@ class BadgeEmblem extends StatelessWidget {
     );
   }
 
+  /// Libellé de barème affiché : pour les paliers (pastille numérique), on
+  /// multiplie le seuil par le nombre d'étoiles obtenues (2 étoiles = seuil ×2,
+  /// etc.). Les titres n'ont pas de pastille, donc ne sont pas concernés.
+  String? get _displayBareme {
+    final label = baremeLabel;
+    if (label == null || starCount <= 1) return label;
+    final n = int.tryParse(label);
+    if (n == null) return label;
+    return (n * starCount).toString();
+  }
+
   Widget _square(Color base, double sq) {
     final radius = sq * 0.26;
+    final bareme = _displayBareme;
     return SizedBox(
       width: sq,
       height: sq,
@@ -181,7 +193,7 @@ class BadgeEmblem extends StatelessWidget {
               ],
             ),
           ),
-          if (baremeLabel != null)
+          if (bareme != null)
             Positioned(
               right: size * 0.02,
               bottom: size * 0.02,
@@ -206,7 +218,7 @@ class BadgeEmblem extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: size * 0.045),
                     child: Text(
-                      baremeLabel!,
+                      bareme,
                       style: TextStyle(
                         fontSize: size * 0.24,
                         height: 1,
