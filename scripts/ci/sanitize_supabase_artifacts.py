@@ -30,11 +30,11 @@ SUBSTITUTIONS: tuple[tuple[re.Pattern[str], str], ...] = (
         "[REDACTED_LOCAL_PASSWORD]",
     ),
     (
-        re.compile(r"(?im)^(\s*Access Key\s*│\s*).+$"),
+        re.compile(r"(?im)(Access Key\s*│\s*)[A-Fa-f0-9]{16,}"),
         r"\1[REDACTED_LOCAL_S3_ACCESS_KEY]",
     ),
     (
-        re.compile(r"(?im)^(\s*Secret Key\s*│\s*).+$"),
+        re.compile(r"(?im)(Secret Key\s*│\s*)[A-Fa-f0-9]{32,}"),
         r"\1[REDACTED_LOCAL_S3_SECRET_KEY]",
     ),
     (
@@ -65,11 +65,11 @@ FORBIDDEN: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
     (
         "S3 access key",
-        re.compile(r"(?im)^\s*Access Key\s*│\s*[A-Fa-f0-9]{16,}\s*$"),
+        re.compile(r"(?im)Access Key\s*│\s*[A-Fa-f0-9]{16,}"),
     ),
     (
         "S3 secret key",
-        re.compile(r"(?im)^\s*Secret Key\s*│\s*[A-Fa-f0-9]{32,}\s*$"),
+        re.compile(r"(?im)Secret Key\s*│\s*[A-Fa-f0-9]{32,}"),
     ),
     (
         "secret environment assignment",
