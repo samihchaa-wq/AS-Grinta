@@ -45,9 +45,23 @@ alter table public.matches
   add column if not exists created_by uuid references public.profiles(id),
   add column if not exists result_validated_at timestamptz;
 
-alter table public.matches
-  add constraint matches_created_by_required
-  check (created_by is not null) not valid;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint c
+    join pg_class r on r.oid = c.conrelid
+    join pg_namespace n on n.oid = r.relnamespace
+    where n.nspname = 'public'
+      and r.relname = 'matches'
+      and c.conname = 'matches_created_by_required'
+  ) then
+    alter table public.matches
+      add constraint matches_created_by_required
+      check (created_by is not null) not valid;
+  end if;
+end
+$$;
 
 alter table public.match_participants
   add column if not exists profile_id uuid references public.profiles(id) on delete restrict;
