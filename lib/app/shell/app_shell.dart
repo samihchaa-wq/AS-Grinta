@@ -42,9 +42,11 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
-        height: 76,
+        height: 72,
         selectedIndex: _selectedIndex,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        // Icônes seules : les libellés restent définis (accessibilité) mais ne
+        // sont pas affichés.
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
         onDestinationSelected: (index) {
           final destination = switch (index) {
             0 => '/accueil',
