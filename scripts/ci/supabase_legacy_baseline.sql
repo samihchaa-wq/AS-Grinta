@@ -66,6 +66,32 @@ $$;
 alter table public.match_participants
   add column if not exists profile_id uuid references public.profiles(id) on delete restrict;
 
+-- The pre-migration project already had this registry. Creating it here avoids
+-- the historical generated expression based on concat_ws(), which PostgreSQL
+-- rejects because generated expressions must be immutable.
+create table if not exists public.players (
+  id uuid primary key default gen_random_uuid(),
+  first_name text not null,
+  last_name text not null,
+  surnom text,
+  display_name text generated always as (
+    btrim(first_name) || ' ' || btrim(last_name)
+  ) stored,
+  is_goalkeeper boolean not null default false,
+  linked_profile_id uuid unique references public.profiles(id) on delete set null,
+  claim_token uuid unique,
+  claim_expires_at timestamptz,
+  claimed_at timestamptz,
+  is_active boolean not null default true,
+  archived_at timestamptz,
+  created_by uuid references auth.users(id) on delete set null default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint players_name_not_empty check (
+    length(btrim(first_name)) > 0 and length(btrim(last_name)) > 0
+  )
+);
+
 create table if not exists public.live_sessions (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null unique references public.matches(id) on delete cascade,
