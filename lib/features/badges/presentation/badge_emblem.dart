@@ -211,41 +211,35 @@ class BadgeEmblem extends StatelessWidget {
     );
   }
 
-  /// Petits 💎 parsemés sur le pourtour du carré (badges Diamant), autour de
-  /// l'emoji central. Positions en fraction de la taille du carré.
+  /// Petits 💎 parsemés en anneau symétrique sur le pourtour du carré (badges
+  /// Diamant), autour de l'emoji central. Chaque diamant est CENTRÉ sur son
+  /// point via [Align] (indépendant de la taille du glyphe).
   Widget _diamondPattern(double sq) {
-    final d = sq * 0.16;
-    const spots = <Offset>[
-      Offset(0.07, 0.07),
-      Offset(0.77, 0.07),
-      Offset(0.07, 0.77),
-      Offset(0.77, 0.77),
-      Offset(0.42, 0.00),
-      Offset(0.42, 0.84),
-      Offset(0.00, 0.42),
-      Offset(0.84, 0.42),
+    final d = sq * 0.15;
+    const spots = <Alignment>[
+      Alignment(-0.80, -0.80),
+      Alignment(0.80, -0.80),
+      Alignment(-0.80, 0.80),
+      Alignment(0.80, 0.80),
+      Alignment(0.0, -0.92),
+      Alignment(0.0, 0.92),
+      Alignment(-0.92, 0.0),
+      Alignment(0.92, 0.0),
     ];
+    final diamond = Text(
+      '💎',
+      style: TextStyle(
+        fontSize: d,
+        height: 1,
+        shadows: const [Shadow(color: Color(0x66000000), blurRadius: 1.5)],
+      ),
+    );
     return SizedBox(
       width: sq,
       height: sq,
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
-          for (final s in spots)
-            Positioned(
-              left: s.dx * sq,
-              top: s.dy * sq,
-              child: Text(
-                '💎',
-                style: TextStyle(
-                  fontSize: d,
-                  height: 1,
-                  shadows: const [
-                    Shadow(color: Color(0x66000000), blurRadius: 1.5),
-                  ],
-                ),
-              ),
-            ),
+          for (final a in spots) Align(alignment: a, child: diamond),
         ],
       ),
     );
