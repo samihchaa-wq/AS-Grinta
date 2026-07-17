@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 /// Couleur par défaut d'un emblème quand aucune n'est définie.
 const Color kDefaultBadgeColor = Color(0xFF3A4568);
 
-/// Couleur des badges « Diamant » : leur carré est parsemé de petits 💎.
-const Color kDiamondBadgeColor = Color(0xFF5FC9D9);
-
 /// Convertit une couleur hex (`#RRGGBB` ou `RRGGBB`) en [Color].
 Color? parseBadgeColor(String? hex) {
   if (hex == null) return null;
@@ -140,13 +137,8 @@ class BadgeEmblem extends StatelessWidget {
                 width: sq * 0.045,
               ),
             ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (base.toARGB32() == kDiamondBadgeColor.toARGB32())
-                  _diamondPattern(sq),
-                if (imageUrl != null)
-                  ClipRRect(
+            child: imageUrl != null
+                ? ClipRRect(
                     borderRadius: BorderRadius.circular(radius * 0.7),
                     child: Image.network(
                       imageUrl!,
@@ -156,10 +148,7 @@ class BadgeEmblem extends StatelessWidget {
                       errorBuilder: (_, __, ___) => _emoji(sq),
                     ),
                   )
-                else
-                  _emoji(sq),
-              ],
-            ),
+                : _emoji(sq),
           ),
           if (baremeLabel != null)
             Positioned(
@@ -208,40 +197,6 @@ class BadgeEmblem extends StatelessWidget {
     return Text(
       emoji,
       style: TextStyle(fontSize: fontSize, shadows: _emojiOutline(fontSize)),
-    );
-  }
-
-  /// Petits 💎 parsemés en anneau symétrique sur le pourtour du carré (badges
-  /// Diamant), autour de l'emoji central. Chaque diamant est CENTRÉ sur son
-  /// point via [Align] (indépendant de la taille du glyphe).
-  Widget _diamondPattern(double sq) {
-    final d = sq * 0.15;
-    const spots = <Alignment>[
-      Alignment(-0.80, -0.80),
-      Alignment(0.80, -0.80),
-      Alignment(-0.80, 0.80),
-      Alignment(0.80, 0.80),
-      Alignment(0.0, -0.92),
-      Alignment(0.0, 0.92),
-      Alignment(-0.92, 0.0),
-      Alignment(0.92, 0.0),
-    ];
-    final diamond = Text(
-      '💎',
-      style: TextStyle(
-        fontSize: d,
-        height: 1,
-        shadows: const [Shadow(color: Color(0x66000000), blurRadius: 1.5)],
-      ),
-    );
-    return SizedBox(
-      width: sq,
-      height: sq,
-      child: Stack(
-        children: [
-          for (final a in spots) Align(alignment: a, child: diamond),
-        ],
-      ),
     );
   }
 }
