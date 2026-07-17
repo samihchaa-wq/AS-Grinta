@@ -59,8 +59,13 @@ for file in \
 done
 
 supabase --version > "$LOG_DIR/supabase-version.log"
-supabase start > "${RUNNER_TEMP:-/tmp}/supabase-start.raw.log" 2>&1
-sanitize_log "${RUNNER_TEMP:-/tmp}/supabase-start.raw.log" "$LOG_DIR/supabase-start.log"
+START_RAW="${RUNNER_TEMP:-/tmp}/supabase-start.raw.log"
+if ! supabase start > "$START_RAW" 2>&1; then
+  sanitize_log "$START_RAW" "$LOG_DIR/supabase-start.log"
+  cat "$LOG_DIR/supabase-start.log" >&2
+  exit 1
+fi
+sanitize_log "$START_RAW" "$LOG_DIR/supabase-start.log"
 
 supabase db reset --local 2>&1 | tee "$LOG_DIR/supabase-db-reset.log"
 supabase status -o env > "$STATUS_ENV"
