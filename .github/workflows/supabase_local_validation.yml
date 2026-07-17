@@ -18,6 +18,7 @@ on:
       - 'scripts/ci/supabase_legacy_post_goals_views.sql'
       - 'scripts/ci/supabase_legacy_named_roster_transition.sql'
       - 'scripts/ci/supabase_legacy_match_location.sql'
+      - 'scripts/ci/supabase_legacy_season_rpcs.sql'
       - '.github/workflows/supabase_local_validation.yml'
   workflow_dispatch:
 
@@ -91,12 +92,14 @@ jobs:
             supabase/migrations/20260712135000_ci_legacy_named_roster_transition.sql
           cp scripts/ci/supabase_legacy_match_location.sql \
             supabase/migrations/20260713165000_ci_legacy_match_location.sql
+          cp scripts/ci/supabase_legacy_season_rpcs.sql \
+            supabase/migrations/20260713192500_ci_legacy_season_rpcs.sql
           python3 scripts/ci/normalize_local_migration_versions.py \
             supabase/migrations \
             | tee ci-artifacts/supabase-local/migration-version-normalization.log
           count=$(find supabase/migrations -maxdepth 1 -type f \
             -name '*_ci_legacy_*.sql' | wc -l)
-          test "$count" -eq 10
+          test "$count" -eq 11
 
       - name: Run isolated Supabase validation
         run: bash scripts/ci/run_supabase_local_validation.sh
