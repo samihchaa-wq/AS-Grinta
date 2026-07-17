@@ -45,6 +45,10 @@ alter table public.matches
   add column if not exists created_by uuid references public.profiles(id),
   add column if not exists result_validated_at timestamptz;
 
+alter table public.matches
+  add constraint matches_created_by_required
+  check (created_by is not null) not valid;
+
 alter table public.match_participants
   add column if not exists profile_id uuid references public.profiles(id) on delete restrict;
 
