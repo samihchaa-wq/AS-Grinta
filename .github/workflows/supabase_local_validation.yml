@@ -8,6 +8,7 @@ on:
       - 'scripts/ci/assert_supabase_local_only.sh'
       - 'scripts/ci/run_supabase_local_validation.sh'
       - 'scripts/ci/normalize_local_migration_versions.py'
+      - 'scripts/ci/generate_historical_match_fixtures.py'
       - 'scripts/ci/supabase_legacy_baseline.sql'
       - 'scripts/ci/supabase_legacy_match_status_text.sql'
       - 'scripts/ci/supabase_legacy_postmatch.sql'
@@ -74,12 +75,16 @@ jobs:
             supabase/migrations/20260710115000_ci_legacy_coach_tables.sql
           cp scripts/ci/supabase_legacy_analytics_views.sql \
             supabase/migrations/20260710135000_ci_legacy_analytics_views.sql
+          python3 scripts/ci/generate_historical_match_fixtures.py \
+            supabase/migrations/20260710152000_restore_historical_match_scores.sql \
+            supabase/migrations/20260710151000_ci_legacy_historical_matches.sql \
+            | tee ci-artifacts/supabase-local/historical-fixture-generation.log
           python3 scripts/ci/normalize_local_migration_versions.py \
             supabase/migrations \
             | tee ci-artifacts/supabase-local/migration-version-normalization.log
           count=$(find supabase/migrations -maxdepth 1 -type f \
             -name '*_ci_legacy_*.sql' | wc -l)
-          test "$count" -eq 5
+          test "$count" -eq 6
 
       - name: Run isolated Supabase validation
         run: bash scripts/ci/run_supabase_local_validation.sh
