@@ -64,6 +64,7 @@ class BadgeEmblem extends StatelessWidget {
     this.color,
     this.baremeLabel,
     this.showStar = false,
+    this.starCount = 1,
   });
 
   final String emoji;
@@ -73,6 +74,10 @@ class BadgeEmblem extends StatelessWidget {
   final String? baremeLabel;
   final bool showStar;
 
+  /// Nombre d'étoiles posées au-dessus du carré (paliers rejouables : une
+  /// étoile par saison / titre gagné). Affichées côte à côte.
+  final int starCount;
+
   @override
   Widget build(BuildContext context) {
     final base = parseBadgeColor(color) ?? kDefaultBadgeColor;
@@ -81,8 +86,10 @@ class BadgeEmblem extends StatelessWidget {
       return _square(base, size);
     }
 
-    // Le carré garde sa taille PLEINE ; une petite étoile se pose au-dessus.
-    // La boîte est juste un peu plus haute (l'étoile chevauche le haut).
+    // Le carré garde sa taille PLEINE ; une (ou plusieurs) petite(s) étoile(s)
+    // se pose(nt) au-dessus, côte à côte. La boîte est juste un peu plus haute
+    // (les étoiles chevauchent le haut).
+    final stars = starCount < 1 ? 1 : starCount;
     final starSize = size * 0.20;
     final overhang = size * 0.14;
     return SizedBox(
@@ -95,14 +102,29 @@ class BadgeEmblem extends StatelessWidget {
             alignment: Alignment.bottomCenter,
             child: _square(base, size),
           ),
+          // Rangée d'étoiles centrée, réduite pour tenir dans la largeur du
+          // carré quand il y en a plusieurs.
           Align(
             alignment: Alignment.topCenter,
-            child: Text(
-              '⭐',
-              style: TextStyle(
-                fontSize: starSize,
-                height: 1,
-                shadows: _emojiOutline(starSize),
+            child: SizedBox(
+              width: size,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topCenter,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < stars; i++)
+                      Text(
+                        '⭐',
+                        style: TextStyle(
+                          fontSize: starSize,
+                          height: 1,
+                          shadows: _emojiOutline(starSize),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
