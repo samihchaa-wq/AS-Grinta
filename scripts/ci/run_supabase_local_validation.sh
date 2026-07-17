@@ -49,6 +49,14 @@ lines = ['project_id = "as-grinta-ci-local"' if line.startswith('project_id = ')
 path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 PY
 
+# The oldest committed migrations assume a few objects created historically in
+# the Dashboard before migration tracking began. Inject that compatibility
+# baseline only into this disposable checkout, before replaying the repository.
+cp scripts/ci/supabase_legacy_baseline.sql \
+  "$MIGRATION_DIR/20260708000400_ci_legacy_baseline.sql"
+python3 scripts/ci/normalize_local_migration_versions.py "$MIGRATION_DIR" \
+  > "$LOG_DIR/migration-version-normalization.log"
+
 mkdir -p "$PHASE1_DIR"
 for file in \
   20260719010000_harden_public_rpc_execute_privileges.sql \
