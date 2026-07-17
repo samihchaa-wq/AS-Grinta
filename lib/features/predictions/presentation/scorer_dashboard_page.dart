@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
-import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/season_prediction_entry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/player_predictions_sheet.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/reference_player_gauge_card.dart';
