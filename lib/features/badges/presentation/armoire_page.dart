@@ -268,10 +268,14 @@ class _BadgeTile extends StatelessWidget {
       child: Column(
         children: [
           GestureDetector(
-            onTap: canFeature
-                ? () => onToggleFeatured!(badge.def.code, !featured)
-                : null,
-            onLongPress: () => showBadgeDetailSheet(context, badge.def),
+            onTap: () => showBadgeDetailSheet(
+              context,
+              badge.def,
+              isFeatured: featured,
+              onToggleFeatured: canFeature
+                  ? () => onToggleFeatured!(badge.def.code, !featured)
+                  : null,
+            ),
             child: Stack(
               children: [
                 BadgeEmblem(

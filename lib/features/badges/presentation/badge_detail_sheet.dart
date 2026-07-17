@@ -9,22 +9,41 @@ void showBadgeDetailSheet(
   BuildContext context,
   BadgeDef badge, {
   VoidCallback? onAward,
+  bool isFeatured = false,
+  VoidCallback? onToggleFeatured,
 }) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => BadgeDetailSheet(badge: badge, onAward: onAward),
+    builder: (_) => BadgeDetailSheet(
+      badge: badge,
+      onAward: onAward,
+      isFeatured: isFeatured,
+      onToggleFeatured: onToggleFeatured,
+    ),
   );
 }
 
 class BadgeDetailSheet extends ConsumerWidget {
-  const BadgeDetailSheet({super.key, required this.badge, this.onAward});
+  const BadgeDetailSheet({
+    super.key,
+    required this.badge,
+    this.onAward,
+    this.isFeatured = false,
+    this.onToggleFeatured,
+  });
 
   final BadgeDef badge;
 
   /// Si non nul, affiche un bouton « Attribuer / Retirer » (admin).
   final VoidCallback? onAward;
+
+  /// Le badge est-il actuellement arboré ?
+  final bool isFeatured;
+
+  /// Si non nul, affiche un bouton pour arborer / ne plus arborer ce badge.
+  final VoidCallback? onToggleFeatured;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -110,6 +129,29 @@ class BadgeDetailSheet extends ConsumerWidget {
                     tier: tier,
                     highlighted: tier.code == badge.code,
                   ),
+              ],
+              if (onToggleFeatured != null) ...[
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: isFeatured
+                      ? OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            onToggleFeatured!();
+                          },
+                          icon: const Icon(Icons.star_border_rounded, size: 18),
+                          label: const Text('Ne plus arborer'),
+                        )
+                      : FilledButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            onToggleFeatured!();
+                          },
+                          icon: const Icon(Icons.star_rounded, size: 18),
+                          label: const Text('Arborer ce badge'),
+                        ),
+                ),
               ],
               if (onAward != null) ...[
                 const SizedBox(height: 20),
