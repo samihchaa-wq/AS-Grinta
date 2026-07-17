@@ -81,6 +81,7 @@ class _FakeAuthRepository implements AuthRepository {
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
+    String? surnom,
   }) {
     throw UnimplementedError();
   }

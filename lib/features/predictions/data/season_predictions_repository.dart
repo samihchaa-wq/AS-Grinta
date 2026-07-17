@@ -141,15 +141,24 @@ class SeasonPredictionsRepository {
     return season['season_predictions_locked_at'] != null;
   }
 
+  /// Surnom s'il est renseigné, sinon prénom.
   String _displayName(Map<String, dynamic> profile, String fallback) {
     final nickname = (profile['surnom'] ?? '').toString().trim();
-    final firstName = (profile['first_name'] ?? '').toString().trim();
-    if (nickname.toLowerCase() == 'samsam' && firstName.isNotEmpty) {
-      return firstName;
-    }
     if (nickname.isNotEmpty) return nickname;
+    final firstName = (profile['first_name'] ?? '').toString().trim();
     if (firstName.isNotEmpty) return firstName;
     return fallback;
+  }
+
+  /// Nom d'un joueur d'effectif : surnom du compte lié en priorité, sinon
+  /// prénom de la fiche.
+  String _playerDisplayName(Map<String, dynamic> playerRow) {
+    final linked = playerRow['profiles'];
+    if (linked is Map) {
+      final surnom = (linked['surnom'] ?? '').toString().trim();
+      if (surnom.isNotEmpty) return surnom;
+    }
+    return _displayName(playerRow, 'Joueur');
   }
 
   Future<List<SeasonPredictionItem>> fetchMine() async {
@@ -170,7 +179,8 @@ class SeasonPredictionsRepository {
 
     final players = await _client
         .from('season_players')
-        .select('id,first_name,last_name,is_goalkeeper')
+        .select(
+            'id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)')
         .eq('season_id', seasonId)
         .eq('is_active', true);
     final predictions = await _client
@@ -212,15 +222,15 @@ class SeasonPredictionsRepository {
     ]..sort((a, b) {
         final byGoals = prevGoalsFor(b).compareTo(prevGoalsFor(a));
         if (byGoals != 0) return byGoals;
-        return _displayName(a, 'Joueur')
+        return _playerDisplayName(a)
             .toLowerCase()
-            .compareTo(_displayName(b, 'Joueur').toLowerCase());
+            .compareTo(_playerDisplayName(b).toLowerCase());
       });
 
     final result = <SeasonPredictionItem>[];
     for (final map in rows) {
       final playerId = map['id'].toString();
-      final playerName = _displayName(map, 'Joueur');
+      final playerName = _playerDisplayName(map);
       final category = map['is_goalkeeper'] == true ? 'clean_sheets' : 'buts';
       final existing = byKey['$playerId:$category'];
       result.add(
@@ -248,17 +258,23 @@ class SeasonPredictionsRepository {
         .select('season_player_id,first_name,is_goalkeeper,goals,clean_sheets')
         .eq('season_id', seasonId);
 
-    // Compte lié à chaque joueur d'effectif (pour afficher ses badges).
+    // Compte lié à chaque joueur d'effectif (pour ses badges + son surnom).
     final roster = await _client
         .from('season_players')
-        .select('id,profile_id')
+        .select('id,profile_id,profiles!season_players_profile_id_fkey(surnom)')
         .eq('season_id', seasonId);
     final profileByPlayer = <String, String>{};
+    final surnomByPlayer = <String, String>{};
     for (final row in roster as List) {
       final map = Map<String, dynamic>.from(row);
       final pid = map['profile_id']?.toString();
       if (pid != null && pid.isNotEmpty) {
         profileByPlayer[map['id'].toString()] = pid;
+      }
+      final linked = map['profiles'];
+      if (linked is Map) {
+        final surnom = (linked['surnom'] ?? '').toString().trim();
+        if (surnom.isNotEmpty) surnomByPlayer[map['id'].toString()] = surnom;
       }
     }
 
@@ -332,7 +348,8 @@ class SeasonPredictionsRepository {
       gauges.add(
         PlayerGauge(
           playerId: playerId,
-          playerName: _displayName(map, 'Joueur sans nom'),
+          playerName:
+              surnomByPlayer[playerId] ?? _displayName(map, 'Joueur sans nom'),
           profileId: profileByPlayer[playerId],
           isGoalkeeper: isGoalkeeper,
           actual: actual,

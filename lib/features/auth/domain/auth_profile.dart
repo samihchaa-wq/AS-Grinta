@@ -23,6 +23,7 @@ class AuthProfile {
     this.username,
     required this.firstName,
     required this.lastName,
+    this.surnom = '',
     required this.role,
     required this.isGoalkeeper,
     required this.isActive,
@@ -35,6 +36,10 @@ class AuthProfile {
   final String? username;
   final String firstName;
   final String lastName;
+
+  /// Surnom optionnel : s'il est renseigné, il s'affiche partout à la place du
+  /// prénom.
+  final String surnom;
   final AuthRole role;
   final bool isGoalkeeper;
   final bool isActive;
@@ -44,7 +49,10 @@ class AuthProfile {
 
   String get fullName => '$firstName $lastName'.trim();
 
+  /// Nom affiché partout : surnom s'il est renseigné, sinon prénom.
   String get displayName {
+    final nick = surnom.trim();
+    if (nick.isNotEmpty) return nick;
     final first = firstName.trim();
     if (first.isNotEmpty) return first;
     return fullName.isEmpty ? 'Utilisateur' : fullName;
@@ -65,6 +73,7 @@ class AuthProfile {
       username: json['username']?.toString(),
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
+      surnom: (json['surnom'] ?? '').toString(),
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
       isActive: statusValue == 'active',
