@@ -7,6 +7,7 @@ on:
       - 'supabase/**'
       - 'scripts/ci/assert_supabase_local_only.sh'
       - 'scripts/ci/run_supabase_local_validation.sh'
+      - 'scripts/ci/supabase_legacy_baseline.sql'
       - '.github/workflows/supabase_local_validation.yml'
   workflow_dispatch:
 
@@ -52,6 +53,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes postgresql-client jq rsync
 
+      - name: Prepare CI-only legacy baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/ci/supabase_legacy_baseline.sql \
+            supabase/migrations/202607080004_ci_legacy_baseline.sql
+
       - name: Run isolated Supabase validation
         run: bash scripts/ci/run_supabase_local_validation.sh
 
@@ -66,7 +74,8 @@ jobs:
             supabase stop --no-backup >/dev/null 2>&1 || true
           fi
           rm -rf "$work"
-          rm -f "${RUNNER_TEMP}/supabase-local-status.env" \
+          rm -f "${GITHUB_WORKSPACE}/supabase/migrations/202607080004_ci_legacy_baseline.sql" \
+            "${RUNNER_TEMP}/supabase-local-status.env" \
             "${RUNNER_TEMP}/ci-normal-signup.json" \
             "${RUNNER_TEMP}/ci-admin-signup.json" \
             "${RUNNER_TEMP}/supabase-start.raw.log"
