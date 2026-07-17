@@ -5,32 +5,52 @@ import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StatisticsPage extends StatelessWidget {
+class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
 
   @override
+  State<StatisticsPage> createState() => _StatisticsPageState();
+}
+
+class _StatisticsPageState extends State<StatisticsPage> {
+  StatisticsPeriod _period = StatisticsPeriod.current;
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: GrintaAppBar(
-          title: const Text('Statistiques'),
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: 'Saison actuelle'),
-              Tab(text: 'Saison précédente'),
-              Tab(text: 'Toutes saisons'),
-            ],
+    return Scaffold(
+      appBar: GrintaAppBar(title: const Text('Statistiques')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<StatisticsPeriod>(
+                expandedInsets: EdgeInsets.zero,
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: StatisticsPeriod.current,
+                    label: Text('Actuelle'),
+                  ),
+                  ButtonSegment(
+                    value: StatisticsPeriod.previous,
+                    label: Text('Précédente'),
+                  ),
+                  ButtonSegment(
+                    value: StatisticsPeriod.allTime,
+                    label: Text('Toutes'),
+                  ),
+                ],
+                selected: {_period},
+                onSelectionChanged: (selection) {
+                  setState(() => _period = selection.first);
+                },
+              ),
+            ),
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            _StatisticsPeriodView(period: StatisticsPeriod.current),
-            _StatisticsPeriodView(period: StatisticsPeriod.previous),
-            _StatisticsPeriodView(period: StatisticsPeriod.allTime),
-          ],
-        ),
+          Expanded(child: _StatisticsPeriodView(period: _period)),
+        ],
       ),
     );
   }
