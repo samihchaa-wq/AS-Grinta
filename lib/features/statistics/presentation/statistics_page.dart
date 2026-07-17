@@ -63,42 +63,24 @@ class _StatisticsPeriodView extends ConsumerWidget {
         ),
       ),
       data: (data) {
-        final outfieldPlayers = data.players
-            .where((player) => !player.isGoalkeeper)
-            .toList(growable: false);
-        final goalkeepers = data.players
-            .where((player) => player.isGoalkeeper)
-            .toList(growable: false);
-
         return RefreshIndicator(
           onRefresh: () => _refresh(ref),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
-              _PeriodHeader(period: period, label: data.label),
+              _PeriodHeader(label: data.label),
               const SizedBox(height: 16),
-              if (outfieldPlayers.isNotEmpty)
-                _StatisticsSection(
-                  title: 'Joueurs de champ',
-                  icon: Icons.sports_soccer,
-                  players: outfieldPlayers,
-                ),
-              if (outfieldPlayers.isNotEmpty && goalkeepers.isNotEmpty)
-                const SizedBox(height: 18),
-              if (goalkeepers.isNotEmpty)
-                _StatisticsSection(
-                  title: 'Gardien',
-                  icon: Icons.sports_handball_outlined,
-                  players: goalkeepers,
-                ),
               if (data.players.isEmpty)
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(20),
                     child: Text('Aucune statistique disponible.'),
                   ),
-                ),
+                )
+              else
+                for (final player in data.players)
+                  _PlayerStatisticsCard(player: player),
             ],
           ),
         );
@@ -113,19 +95,9 @@ class _StatisticsPeriodView extends ConsumerWidget {
 }
 
 class _PeriodHeader extends StatelessWidget {
-  const _PeriodHeader({required this.period, required this.label});
+  const _PeriodHeader({required this.label});
 
-  final StatisticsPeriod period;
   final String label;
-
-  String get _description => switch (period) {
-        StatisticsPeriod.current =>
-          'J/G/N/P, buts, HDM et clean sheets mis à jour après chaque match validé.',
-        StatisticsPeriod.previous =>
-          'Classements corrigés de la saison terminée 2025-2026.',
-        StatisticsPeriod.allTime =>
-          'Cumul de toutes les saisons, saison actuelle incluse en temps réel.',
-      };
 
   @override
   Widget build(BuildContext context) {
@@ -154,74 +126,13 @@ class _PeriodHeader extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _description,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-                ),
-              ],
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatisticsSection extends StatelessWidget {
-  const _StatisticsSection({
-    required this.title,
-    required this.icon,
-    required this.players,
-  });
-
-  final String title;
-  final IconData icon;
-  final List<PlayerStatistics> players;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E1D3B),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFF4B6FFF).withValues(alpha: .30),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                Icon(icon, color: const Color(0xFF79A4FF)),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final player in players) _PlayerStatisticsCard(player: player),
         ],
       ),
     );

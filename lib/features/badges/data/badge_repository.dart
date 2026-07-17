@@ -20,6 +20,7 @@ class BadgeDef {
     required this.threshold,
     required this.sortOrder,
     this.hasStar = false,
+    this.standalone = false,
   });
 
   final String code;
@@ -44,6 +45,10 @@ class BadgeDef {
   /// Étoile posée au-dessus du carré (paliers finaux + titres).
   final bool hasStar;
 
+  /// Badge « exploit » autonome (ex. Triplé/Quadruplé/Quintuplé) : affiché seul,
+  /// sans barème gradué ni barre de progression.
+  final bool standalone;
+
   factory BadgeDef.fromMap(Map<String, dynamic> m) => BadgeDef(
         code: m['code'].toString(),
         name: (m['name'] ?? '').toString(),
@@ -58,6 +63,7 @@ class BadgeDef {
         threshold: (m['threshold'] as num?)?.toInt(),
         sortOrder: (m['sort_order'] as num?)?.toInt() ?? 0,
         hasStar: m['has_star'] == true,
+        standalone: m['standalone'] == true,
       );
 }
 
@@ -120,7 +126,7 @@ class BadgeRepository {
     final rows = await _client
         .from('badges')
         .select(
-            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star')
+            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone')
         .order('sort_order');
     return (rows as List)
         .map((r) => BadgeDef.fromMap(Map<String, dynamic>.from(r as Map)))
@@ -180,14 +186,21 @@ class BadgeRepository {
 
     // Paliers : par métrique, on montre le palier validé le plus haut + le
     // suivant « en cours » avec sa progression.
+    // Les badges « standalone » (exploits autonomes) forment chacun leur propre
+    // groupe (clé = code), donc ils s'affichent séparément, sans barème gradué.
     final byMetric = <String, List<BadgeDef>>{};
     for (final b
         in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
-      byMetric.putIfAbsent(b.metric!, () => []).add(b);
+      final key = b.standalone ? 'code:${b.code}' : b.metric!;
+      byMetric.putIfAbsent(key, () => []).add(b);
     }
-    byMetric.forEach((metric, tiers) {
+    byMetric.forEach((groupKey, tiers) {
       tiers.sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0));
+      final metric = tiers.first.metric!;
       final value = metrics[metric] ?? 0;
+      // Barème à un seul palier (titres, exploits autonomes) : pas de barre de
+      // progression ni de compteur « 0/1 · plus que 1 ».
+      final singleTier = tiers.length == 1;
       // Un palier est « validé » dès qu'il a été GAGNÉ (ligne profile_badges),
       // et le reste à vie — même si la stat de la saison est retombée. On
       // affiche le plus haut palier gagné + le premier palier pas encore gagné
@@ -213,8 +226,8 @@ class BadgeRepository {
         inProgress.add(ArmoireBadge(
           def: nextUnowned,
           state: BadgeState.inProgress,
-          current: value,
-          target: nextUnowned.threshold,
+          current: singleTier ? null : value,
+          target: singleTier ? null : nextUnowned.threshold,
         ));
       }
     });

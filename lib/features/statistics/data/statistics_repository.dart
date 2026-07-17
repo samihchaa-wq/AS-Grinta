@@ -113,39 +113,53 @@ class StatisticsRepository {
       }
     }
 
-    final players = (response as List).map((row) {
-      final map = Map<String, dynamic>.from(row as Map);
+    // Un seul classement, gardiens et joueurs de champ confondus, trié par
+    // matchs joués (puis buts, puis nom). Le rang est recalculé ici (ex æquo
+    // en matchs joués = même rang).
+    final rows = (response as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList()
+      ..sort((a, b) {
+        final ma = (a['matches_played'] as num?)?.toInt() ?? 0;
+        final mb = (b['matches_played'] as num?)?.toInt() ?? 0;
+        if (mb != ma) return mb.compareTo(ma);
+        final ga = (a['goals'] as num?)?.toInt() ?? 0;
+        final gb = (b['goals'] as num?)?.toInt() ?? 0;
+        if (gb != ga) return gb.compareTo(ga);
+        return _firstName((a['player_name'] ?? '').toString())
+            .toLowerCase()
+            .compareTo(
+                _firstName((b['player_name'] ?? '').toString()).toLowerCase());
+      });
+
+    final players = <PlayerStatistics>[];
+    var rank = 0;
+    int? prevMatches;
+    for (var i = 0; i < rows.length; i++) {
+      final map = rows[i];
+      final matches = (map['matches_played'] as num?)?.toInt();
+      if (prevMatches == null || (matches ?? 0) != prevMatches) {
+        rank = i + 1;
+        prevMatches = matches ?? 0;
+      }
       final name = _firstName((map['player_name'] ?? 'Joueur').toString());
-      return PlayerStatistics(
+      players.add(PlayerStatistics(
         period: period,
         periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
-        rank: (map['display_rank'] as num?)?.toInt() ?? 0,
+        rank: rank,
         displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
         playerName: name,
         profileId: profileByFirstName[name.toLowerCase()],
         isGoalkeeper: map['is_goalkeeper'] == true,
-        matchesPlayed: (map['matches_played'] as num?)?.toInt(),
+        matchesPlayed: matches,
         wins: (map['wins'] as num?)?.toInt(),
         draws: (map['draws'] as num?)?.toInt(),
         losses: (map['losses'] as num?)?.toInt(),
         goals: (map['goals'] as num?)?.toInt() ?? 0,
         hdm: (map['hdm'] as num?)?.toInt(),
         cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
-      );
-    }).toList()
-      ..sort((a, b) {
-        final byGoalkeeper = (a.isGoalkeeper ? 1 : 0).compareTo(
-          b.isGoalkeeper ? 1 : 0,
-        );
-        if (byGoalkeeper != 0) return byGoalkeeper;
-        final byRank = a.rank.compareTo(b.rank);
-        if (byRank != 0) return byRank;
-        final byOrder = a.displayOrder.compareTo(b.displayOrder);
-        if (byOrder != 0) return byOrder;
-        return a.playerName.toLowerCase().compareTo(
-              b.playerName.toLowerCase(),
-            );
-      });
+      ));
+    }
 
     return StatisticsPeriodData(
       period: period,
