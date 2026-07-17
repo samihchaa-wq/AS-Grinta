@@ -80,10 +80,10 @@ class BadgeEmblem extends StatelessWidget {
       return _square(base, size);
     }
 
-    // Le carré garde sa taille PLEINE ; l'étoile s'ajoute au-dessus. La boîte
-    // est donc un peu plus haute (l'étoile chevauche le haut de l'écusson).
-    final starSize = size * 0.42;
-    final overhang = size * 0.24;
+    // Le carré garde sa taille PLEINE ; une petite étoile se pose au-dessus.
+    // La boîte est juste un peu plus haute (l'étoile chevauche le haut).
+    final starSize = size * 0.20;
+    final overhang = size * 0.14;
     return SizedBox(
       width: size,
       height: size + overhang,
