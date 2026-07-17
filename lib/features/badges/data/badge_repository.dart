@@ -69,6 +69,7 @@ class ArmoireBadge {
     this.current,
     this.target,
     this.awardedAt,
+    this.stars = 1,
   });
 
   final BadgeDef def;
@@ -78,6 +79,10 @@ class ArmoireBadge {
   final int? current;
   final int? target;
   final DateTime? awardedAt;
+
+  /// Nombre d'étoiles à afficher au-dessus de l'emblème (paliers étoilés
+  /// rejouables : une étoile par saison / titre gagné). 1 par défaut.
+  final int stars;
 
   double? get progress => (current != null && target != null && target! > 0)
       ? (current! / target!).clamp(0.0, 1.0)
@@ -155,6 +160,20 @@ class BadgeRepository {
       }
     }
 
+    // Nombre d'étoiles par badge : un palier étoilé ré-atteint (nouvelle saison,
+    // titre regagné) ajoute une étoile. 1 par défaut pour les paliers carrière.
+    final starsRes = await _client
+        .rpc('profile_badge_stars', params: {'p_profile_id': profileId});
+    final starCounts = <String, int>{};
+    if (starsRes is List) {
+      for (final r in starsRes) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final code = m['badge_code']?.toString();
+        final n = (m['stars'] as num?)?.toInt() ?? 1;
+        if (code != null && n > 0) starCounts[code] = n;
+      }
+    }
+
     final validated = <ArmoireBadge>[];
     final inProgress = <ArmoireBadge>[];
     final locked = <ArmoireBadge>[];
@@ -187,6 +206,7 @@ class BadgeRepository {
           def: highestOwned,
           state: BadgeState.validated,
           awardedAt: earnedAt[highestOwned.code],
+          stars: starCounts[highestOwned.code] ?? 1,
         ));
       }
       if (nextUnowned != null) {
@@ -206,6 +226,7 @@ class BadgeRepository {
           def: b,
           state: BadgeState.validated,
           awardedAt: earnedAt[b.code],
+          stars: starCounts[b.code] ?? 1,
         ));
       } else {
         locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
@@ -224,6 +245,7 @@ class BadgeRepository {
         def: def,
         state: BadgeState.validated,
         awardedAt: earnedAt[code],
+        stars: starCounts[code] ?? 1,
       ));
     }
 
