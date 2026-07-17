@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -264,6 +265,7 @@ class _BadgeTile extends StatelessWidget {
             onTap: canFeature
                 ? () => onToggleFeatured!(badge.def.code, !featured)
                 : null,
+            onLongPress: () => showBadgeDetailSheet(context, badge.def),
             child: Stack(
               children: [
                 BadgeEmblem(
@@ -325,55 +327,63 @@ class _InProgressTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final remaining = badge.remaining ?? 0;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: scheme.outline),
-      ),
-      child: Row(
-        children: [
-          // Badge automatique : logo visible + progression (les joueurs
-          // voient ce qu'ils peuvent débloquer).
-          BadgeEmblem(
-            emoji: badge.def.emoji,
-            imageUrl: badge.def.imageUrl,
-            color: badge.def.color,
-            baremeLabel: baremeThreshold(badge.def),
-            showStar: badge.def.hasStar,
-            size: 46,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(badge.def.name,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: badge.progress ?? 0,
-                    minHeight: 7,
-                    backgroundColor: scheme.surfaceContainerHighest,
-                    valueColor: AlwaysStoppedAnimation(scheme.secondary),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${badge.current}/${badge.target} · plus que $remaining',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+    return GestureDetector(
+      onTap: () => showBadgeDetailSheet(context, badge.def),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: scheme.outline),
+        ),
+        child: Row(
+          children: [
+            // Badge automatique : logo visible + progression (les joueurs
+            // voient ce qu'ils peuvent débloquer).
+            BadgeEmblem(
+              emoji: badge.def.emoji,
+              imageUrl: badge.def.imageUrl,
+              color: badge.def.color,
+              baremeLabel: baremeThreshold(badge.def),
+              showStar: badge.def.hasStar,
+              size: 46,
             ),
-          ),
-        ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(badge.def.name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  if (badge.def.description.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(badge.def.description,
+                        style: Theme.of(context).textTheme.bodySmall),
+                  ],
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: badge.progress ?? 0,
+                      minHeight: 7,
+                      backgroundColor: scheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation(scheme.secondary),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${badge.current}/${badge.target} · plus que $remaining',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

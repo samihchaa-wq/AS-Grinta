@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
+import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,7 +88,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
         imageUrl: imageUrl,
         color: _colorHex,
       );
-      ref.invalidate(adminBadgesProvider);
+      ref.invalidate(badgeCatalogProvider);
       if (mounted) {
         _nameController.clear();
         _descController.clear();
@@ -108,7 +110,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    final badgesAsync = ref.watch(adminBadgesProvider);
+    final badgesAsync = ref.watch(badgeCatalogProvider);
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Badges')),
@@ -128,11 +130,12 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             onCreate: _createBadge,
           ),
           const SizedBox(height: 24),
-          Text('Décerner un badge',
+          Text('Tous les badges',
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            'Clique sur un badge, puis choisis à qui l’attribuer ou le retirer.',
+            'Touche un badge pour voir son barème complet et sa description, '
+            'puis l’attribuer ou le retirer.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -169,15 +172,38 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                     Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        leading: _BadgeAvatar(badge: b),
+                        leading: BadgeEmblem(
+                          emoji: b.emoji,
+                          imageUrl: b.imageUrl,
+                          color: b.color,
+                          baremeLabel: baremeLabelFor(b.metric, b.threshold),
+                          showStar: b.hasStar,
+                          size: 44,
+                        ),
                         title: Text(b.name),
-                        subtitle: b.isCustom ? const Text('Custom') : null,
+                        subtitle: b.description.isNotEmpty
+                            ? Text(
+                                b.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            : (b.kind == 'custom'
+                                ? const Text('Custom')
+                                : null),
+                        isThreeLine: b.description.isNotEmpty,
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          showDragHandle: true,
-                          builder: (_) => _AwardSheet(badge: b),
+                        onTap: () => showBadgeDetailSheet(
+                          context,
+                          b,
+                          onAward: () {
+                            Navigator.of(context).pop();
+                            showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              showDragHandle: true,
+                              builder: (_) => _AwardSheet(badge: b),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -188,29 +214,6 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
         ],
       ),
     );
-  }
-}
-
-class _BadgeAvatar extends StatelessWidget {
-  const _BadgeAvatar({required this.badge});
-  final AdminBadge badge;
-
-  @override
-  Widget build(BuildContext context) {
-    if (badge.imageUrl != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          badge.imageUrl!,
-          width: 40,
-          height: 40,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              Text(badge.emoji, style: const TextStyle(fontSize: 26)),
-        ),
-      );
-    }
-    return Text(badge.emoji, style: const TextStyle(fontSize: 26));
   }
 }
 
@@ -382,7 +385,7 @@ class _CreateBadgeCard extends StatelessWidget {
 /// Feuille pour décerner / retirer un badge à des personnes.
 class _AwardSheet extends ConsumerStatefulWidget {
   const _AwardSheet({required this.badge});
-  final AdminBadge badge;
+  final BadgeDef badge;
 
   @override
   ConsumerState<_AwardSheet> createState() => _AwardSheetState();
@@ -460,7 +463,17 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
         children: [
           Row(
             children: [
-              _BadgeAvatar(badge: widget.badge),
+              BadgeEmblem(
+                emoji: widget.badge.emoji,
+                imageUrl: widget.badge.imageUrl,
+                color: widget.badge.color,
+                baremeLabel: baremeLabelFor(
+                  widget.badge.metric,
+                  widget.badge.threshold,
+                ),
+                showStar: widget.badge.hasStar,
+                size: 44,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

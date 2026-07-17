@@ -4,29 +4,6 @@ import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Un badge tel que vu par l'admin (pour la liste et l'attribution).
-class AdminBadge {
-  const AdminBadge({
-    required this.code,
-    required this.name,
-    required this.emoji,
-    required this.imageUrl,
-    required this.kind,
-    required this.family,
-  });
-
-  final String code;
-  final String name;
-  final String emoji;
-  final String? imageUrl;
-
-  /// 'tier' | 'title' | 'custom'
-  final String kind;
-  final String family;
-
-  bool get isCustom => kind == 'custom';
-}
-
 /// Une personne à qui décerner un badge.
 class AdminPerson {
   const AdminPerson({required this.id, required this.name});
@@ -37,24 +14,6 @@ class AdminPerson {
 class BadgeAdminRepository {
   BadgeAdminRepository(this._client);
   final SupabaseClient _client;
-
-  Future<List<AdminBadge>> fetchBadges() async {
-    final rows = await _client
-        .from('badges')
-        .select('code,name,emoji,image_url,kind,family')
-        .order('sort_order');
-    return (rows as List).map((r) {
-      final m = Map<String, dynamic>.from(r as Map);
-      return AdminBadge(
-        code: m['code'].toString(),
-        name: (m['name'] ?? '').toString(),
-        emoji: (m['emoji'] ?? '🏅').toString(),
-        imageUrl: m['image_url']?.toString(),
-        kind: (m['kind'] ?? 'tier').toString(),
-        family: (m['family'] ?? 'joueur').toString(),
-      );
-    }).toList();
-  }
 
   Future<List<AdminPerson>> fetchActiveProfiles() async {
     final res = await _client.rpc('staff_list_profiles');
@@ -145,11 +104,6 @@ class BadgeAdminRepository {
 
 final badgeAdminRepositoryProvider = Provider<BadgeAdminRepository>((ref) {
   return BadgeAdminRepository(ref.watch(supabaseClientProvider));
-});
-
-final adminBadgesProvider =
-    FutureProvider.autoDispose<List<AdminBadge>>((ref) async {
-  return ref.watch(badgeAdminRepositoryProvider).fetchBadges();
 });
 
 final adminPeopleProvider =

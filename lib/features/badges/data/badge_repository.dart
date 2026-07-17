@@ -219,6 +219,12 @@ final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
   return BadgeRepository(ref.watch(supabaseClientProvider));
 });
 
+/// Catalogue complet des badges (tous les paliers, titres, exploits).
+final badgeCatalogProvider =
+    FutureProvider.autoDispose<List<BadgeDef>>((ref) async {
+  return ref.watch(badgeRepositoryProvider).fetchCatalog();
+});
+
 /// Armoire de la personne connectée.
 final myArmoireProvider = FutureProvider.autoDispose<Armoire>((ref) async {
   final client = ref.watch(supabaseClientProvider);
