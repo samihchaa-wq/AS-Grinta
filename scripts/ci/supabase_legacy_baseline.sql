@@ -10,6 +10,15 @@ alter table public.profiles
   add column if not exists photo_url text,
   add column if not exists status text not null default 'active';
 
+-- Historical Dashboard state used a text role column, while the first tracked
+-- migration recreated it with the temporary app_role enum. Later migrations
+-- consistently treat role as text, so reproduce that pre-migration state only
+-- in the disposable CI database.
+alter table public.profiles
+  alter column role drop default,
+  alter column role type text using role::text,
+  alter column role set default 'pronostiqueur';
+
 create unique index if not exists profiles_email_ci_legacy_uidx
   on public.profiles (email)
   where email is not null and email <> '';
