@@ -94,24 +94,9 @@ class StatisticsRepository {
           losses,
           goals,
           hdm,
-          clean_sheets
+          clean_sheets,
+          profile_id
         ''').eq('period_key', period.databaseKey);
-
-    // Association prénom → compte, pour afficher les badges des joueurs qui
-    // ont un compte (les autres joueurs d'effectif n'en ont pas).
-    final rosterRows = await _client
-        .from('season_players')
-        .select('first_name, profile_id')
-        .not('profile_id', 'is', null);
-    final profileByFirstName = <String, String>{};
-    for (final row in rosterRows as List) {
-      final m = Map<String, dynamic>.from(row as Map);
-      final first = (m['first_name'] ?? '').toString().trim().toLowerCase();
-      final pid = m['profile_id']?.toString();
-      if (first.isNotEmpty && pid != null) {
-        profileByFirstName.putIfAbsent(first, () => pid);
-      }
-    }
 
     // Un seul classement, gardiens et joueurs de champ confondus, trié par
     // matchs joués (puis buts, puis nom). Le rang est recalculé ici (ex æquo
@@ -149,7 +134,7 @@ class StatisticsRepository {
         rank: rank,
         displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
         playerName: name,
-        profileId: profileByFirstName[name.toLowerCase()],
+        profileId: map['profile_id']?.toString(),
         isGoalkeeper: map['is_goalkeeper'] == true,
         matchesPlayed: matches,
         wins: (map['wins'] as num?)?.toInt(),
