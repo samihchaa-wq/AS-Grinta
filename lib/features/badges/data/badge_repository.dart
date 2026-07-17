@@ -169,29 +169,32 @@ class BadgeRepository {
     byMetric.forEach((metric, tiers) {
       tiers.sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0));
       final value = metrics[metric] ?? 0;
-      BadgeDef? highest;
-      BadgeDef? next;
+      // Un palier est « validé » dès qu'il a été GAGNÉ (ligne profile_badges),
+      // et le reste à vie — même si la stat de la saison est retombée. On
+      // affiche le plus haut palier gagné + le premier palier pas encore gagné
+      // « en cours ».
+      BadgeDef? highestOwned;
+      BadgeDef? nextUnowned;
       for (final t in tiers) {
-        if ((t.threshold ?? 0) <= value) {
-          highest = t;
+        if (earnedAt.containsKey(t.code)) {
+          highestOwned = t;
         } else {
-          next = t;
-          break;
+          nextUnowned ??= t;
         }
       }
-      if (highest != null) {
+      if (highestOwned != null) {
         validated.add(ArmoireBadge(
-          def: highest,
+          def: highestOwned,
           state: BadgeState.validated,
-          awardedAt: earnedAt[highest.code],
+          awardedAt: earnedAt[highestOwned.code],
         ));
       }
-      if (next != null) {
+      if (nextUnowned != null) {
         inProgress.add(ArmoireBadge(
-          def: next,
+          def: nextUnowned,
           state: BadgeState.inProgress,
           current: value,
-          target: next.threshold,
+          target: nextUnowned.threshold,
         ));
       }
     });
