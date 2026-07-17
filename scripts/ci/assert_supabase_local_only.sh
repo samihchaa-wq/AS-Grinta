@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-workflow="${1:-.github/workflows/supabase_local_validation.yml}"
-runner="${2:-scripts/ci/run_supabase_local_validation.sh}"
+if [ "$#" -eq 0 ]; then
+  files=(
+    .github/workflows/supabase_local_validation.yml
+    scripts/ci/run_supabase_local_validation.sh
+    scripts/ci/normalize_local_migration_versions.py
+    scripts/ci/supabase_legacy_baseline.sql
+  )
+else
+  files=("$@")
+fi
 
-for file in "$workflow" "$runner"; do
+for file in "${files[@]}"; do
   test -f "$file"
 done
 
@@ -22,13 +30,13 @@ patterns=(
 
 failed=0
 for pattern in "${patterns[@]}"; do
-  if grep -nEi -- "$pattern" "$workflow" "$runner"; then
+  if grep -nEi -- "$pattern" "${files[@]}"; then
     echo "Forbidden remote-capable Supabase command or credential reference detected: $pattern" >&2
     failed=1
   fi
 done
 
-if grep -nE -- 'https://[a-z]{20}\.supabase\.co|db\.[a-z]{20}\.supabase\.co' "$workflow" "$runner"; then
+if grep -nE -- 'https://[a-z]{20}\.supabase\.co|db\.[a-z]{20}\.supabase\.co' "${files[@]}"; then
   echo "Remote Supabase project endpoint detected." >&2
   failed=1
 fi
