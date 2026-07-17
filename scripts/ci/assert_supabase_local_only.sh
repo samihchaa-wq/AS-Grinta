@@ -17,6 +17,12 @@ if [ "$#" -eq 0 ]; then
     scripts/ci/supabase_legacy_named_roster_transition.sql
     scripts/ci/supabase_legacy_match_location.sql
     scripts/ci/supabase_legacy_season_rpcs.sql
+    scripts/ci/supabase_legacy_odds_v3.sql
+    supabase/tests/phase1_ci_seed.sql
+    supabase/tests/phase1_ci_snapshot.sql
+    supabase/tests/phase1_ci_permissions.sql
+    supabase/tests/phase1_ci_rollback_assertions.sql
+    supabase/tests/phase1_security_hardening.sql
   )
 else
   files=("$@")
