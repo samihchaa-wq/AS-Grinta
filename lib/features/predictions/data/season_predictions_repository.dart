@@ -170,15 +170,36 @@ class SeasonPredictionsRepository {
 
     final players = await _client
         .from('season_players')
-        .select('id,first_name,is_goalkeeper')
+        .select('id,first_name,last_name,is_goalkeeper')
         .eq('season_id', seasonId)
-        .eq('is_active', true)
-        .order('first_name');
+        .eq('is_active', true);
     final predictions = await _client
         .from('season_predictions')
         .select('season_player_id,category,predicted_value_30,is_filled')
         .eq('season_id', seasonId)
         .eq('predictor_profile_id', userId);
+
+    // Buts de la saison précédente, pour classer l'effectif du meilleur buteur
+    // au pire (égalité : ordre alphabétique).
+    final prevRows = await _client
+        .from('v_statistics_players')
+        .select('player_name,goals')
+        .eq('period_key', 'previous');
+    final prevGoalsByName = <String, int>{};
+    for (final row in prevRows as List) {
+      final map = Map<String, dynamic>.from(row);
+      final name = (map['player_name'] ?? '').toString().trim().toLowerCase();
+      if (name.isNotEmpty) {
+        prevGoalsByName[name] = int.tryParse('${map['goals'] ?? 0}') ?? 0;
+      }
+    }
+    int prevGoalsFor(Map<String, dynamic> p) {
+      final full = [
+        (p['first_name'] ?? '').toString().trim(),
+        (p['last_name'] ?? '').toString().trim(),
+      ].where((s) => s.isNotEmpty).join(' ').toLowerCase();
+      return prevGoalsByName[full] ?? 0;
+    }
 
     final byKey = <String, Map<String, dynamic>>{};
     for (final row in predictions as List) {
@@ -186,9 +207,18 @@ class SeasonPredictionsRepository {
       byKey['${map['season_player_id']}:${map['category']}'] = map;
     }
 
+    final rows = [
+      for (final row in players as List) Map<String, dynamic>.from(row),
+    ]..sort((a, b) {
+        final byGoals = prevGoalsFor(b).compareTo(prevGoalsFor(a));
+        if (byGoals != 0) return byGoals;
+        return _displayName(a, 'Joueur')
+            .toLowerCase()
+            .compareTo(_displayName(b, 'Joueur').toLowerCase());
+      });
+
     final result = <SeasonPredictionItem>[];
-    for (final row in players as List) {
-      final map = Map<String, dynamic>.from(row);
+    for (final map in rows) {
       final playerId = map['id'].toString();
       final playerName = _displayName(map, 'Joueur');
       final category = map['is_goalkeeper'] == true ? 'clean_sheets' : 'buts';
