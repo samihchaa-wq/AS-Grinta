@@ -7,6 +7,7 @@ on:
       - 'supabase/**'
       - 'scripts/ci/assert_supabase_local_only.sh'
       - 'scripts/ci/run_supabase_local_validation.sh'
+      - 'scripts/ci/sanitize_supabase_artifacts.py'
       - 'scripts/ci/normalize_local_migration_versions.py'
       - 'scripts/ci/generate_historical_match_fixtures.py'
       - 'scripts/ci/supabase_legacy_baseline.sql'
@@ -107,22 +108,48 @@ jobs:
       - name: Run isolated Supabase validation
         run: bash scripts/ci/run_supabase_local_validation.sh
 
-      - name: Stop and erase local Supabase
+      - name: Stop, erase and verify local Supabase removal
         if: always()
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
+          log_dir="${GITHUB_WORKSPACE}/ci-artifacts/supabase-local"
           work="${RUNNER_TEMP}/as-grinta-supabase-local-${GITHUB_RUN_ID}"
+          mkdir -p "$log_dir"
+
+          set +e
           if [ -d "$work" ]; then
-            cd "$work"
-            supabase stop --no-backup >/dev/null 2>&1 || true
+            (cd "$work" && supabase stop --no-backup >/dev/null 2>&1)
           fi
+          set -e
+
           rm -rf "$work"
           rm -f "${GITHUB_WORKSPACE}"/supabase/migrations/*_ci_legacy_*.sql \
             "${RUNNER_TEMP}/supabase-local-status.env" \
             "${RUNNER_TEMP}/ci-normal-signup.json" \
             "${RUNNER_TEMP}/ci-admin-signup.json" \
             "${RUNNER_TEMP}/supabase-start.raw.log"
+
+          residual=$(docker ps -a --format '{{.Names}}' | grep -F 'as-grinta-ci-local' || true)
+          if [ -n "$residual" ]; then
+            while IFS= read -r container_name; do
+              [ -n "$container_name" ] && docker rm -f "$container_name" >/dev/null
+            done <<< "$residual"
+          fi
+
+          residual=$(docker ps -a --format '{{.Names}}' | grep -F 'as-grinta-ci-local' || true)
+          test -z "$residual"
+          test ! -e "$work"
+          test ! -e "${RUNNER_TEMP}/supabase-local-status.env"
+          test ! -e "${RUNNER_TEMP}/ci-normal-signup.json"
+          test ! -e "${RUNNER_TEMP}/ci-admin-signup.json"
+          test ! -e "${RUNNER_TEMP}/supabase-start.raw.log"
+          echo 'PASS: temporary workspace, local credentials and all as-grinta-ci-local containers were removed.' \
+            > "$log_dir/local-environment-cleanup.log"
+
+      - name: Sanitize and reject secrets in Supabase artifact
+        if: always()
+        run: python3 scripts/ci/sanitize_supabase_artifacts.py ci-artifacts/supabase-local
 
       - name: Upload sanitized Supabase logs
         if: always()
