@@ -225,24 +225,29 @@ class _BadgeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // 2 colonnes : des badges bien plus grands.
-    final width = (MediaQuery.of(context).size.width - 32 - 12) / 2;
+    // Emblème à la même taille que les badges « En cours » ; grille sur
+    // 4 colonnes pour bien répartir les badges validés.
+    const columns = 4;
+    final tile =
+        (MediaQuery.of(context).size.width - 32 - (columns - 1) * 12) / columns;
+    final emblem = tile < 58 ? tile : 58.0;
 
     if (locked) {
       return SizedBox(
-        width: width,
+        width: tile,
         child: Column(
           children: [
             Container(
-              height: width,
+              height: emblem,
+              width: emblem,
               decoration: BoxDecoration(
                 color: const Color(0xFF0A1428),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(emblem * 0.26),
                 border: Border.all(color: const Color(0xFF1B2A48)),
               ),
               alignment: Alignment.center,
               child: const Icon(Icons.lock_outline,
-                  color: Color(0xFF3B4A6B), size: 48),
+                  color: Color(0xFF3B4A6B), size: 24),
             ),
             const SizedBox(height: 6),
             Text('???',
@@ -259,7 +264,7 @@ class _BadgeTile extends StatelessWidget {
     final canFeature = onToggleFeatured != null;
     final bareme = baremeThreshold(badge.def);
     return SizedBox(
-      width: width,
+      width: tile,
       child: Column(
         children: [
           GestureDetector(
@@ -275,13 +280,13 @@ class _BadgeTile extends StatelessWidget {
                   color: badge.def.color,
                   baremeLabel: bareme,
                   showStar: badge.def.hasStar,
-                  size: width,
+                  size: emblem,
                 ),
                 if (featured)
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(width * 0.26),
+                        borderRadius: BorderRadius.circular(emblem * 0.26),
                         border: Border.all(color: scheme.secondary, width: 3),
                       ),
                     ),
