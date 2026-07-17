@@ -9,6 +9,7 @@ if [ "$#" -eq 0 ]; then
     scripts/ci/supabase_legacy_baseline.sql
     scripts/ci/supabase_legacy_match_status_text.sql
     scripts/ci/supabase_legacy_postmatch.sql
+    scripts/ci/supabase_legacy_coach_tables.sql
   )
 else
   files=("$@")
