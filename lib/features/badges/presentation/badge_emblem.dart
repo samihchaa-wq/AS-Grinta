@@ -151,26 +151,33 @@ class BadgeEmblem extends StatelessWidget {
             Positioned(
               right: sq * 0.02,
               bottom: sq * 0.02,
+              // Pastille de taille fixe : le nombre rétrécit pour tenir, donc
+              // toutes les pastilles ont la même taille (1, 2 ou 3 chiffres).
               child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: sq * 0.11,
-                  vertical: sq * 0.02,
-                ),
+                width: sq * 0.46,
+                height: sq * 0.32,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: const Color(0xFF0B1D40),
-                  borderRadius: BorderRadius.circular(sq * 0.16),
+                  borderRadius: BorderRadius.circular(sq * 0.12),
                   border: Border.all(
                     color: Color.lerp(base, Colors.white, 0.35)!,
                     width: sq * 0.02,
                   ),
                 ),
-                child: Text(
-                  baremeLabel!,
-                  style: TextStyle(
-                    fontSize: sq * 0.3,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: sq * 0.05),
+                    child: Text(
+                      baremeLabel!,
+                      style: TextStyle(
+                        fontSize: sq * 0.26,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),

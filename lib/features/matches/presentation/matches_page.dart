@@ -17,6 +17,13 @@ class MatchesPage extends ConsumerStatefulWidget {
 }
 
 class _MatchesPageState extends ConsumerState<MatchesPage> {
+  final _scrollController = ScrollController();
+  final _nextMatchKey = GlobalKey();
+
+  /// Dernier match sur lequel la page s'est positionnée (évite de re-scroller
+  /// à chaque rafraîchissement).
+  String? _anchoredMatchId;
+
   @override
   void initState() {
     super.initState();
@@ -24,10 +31,47 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
     final isAdmin = role == AuthRole.admin;
+
+    // Ordre chronologique : précédents en haut, prochains en bas.
+    final matches = [...state.matches]
+      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+
+    // Cible d'ouverture : le prochain match à venir (le plus proche), sinon le
+    // dernier match (le plus récent) en bas.
+    MatchModel? target;
+    for (final match in matches) {
+      if (!match.isFinished) {
+        target = match;
+        break;
+      }
+    }
+    target ??= matches.isNotEmpty ? matches.last : null;
+
+    if (!state.isLoading && target != null && target.id != _anchoredMatchId) {
+      final targetId = target.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final targetContext = _nextMatchKey.currentContext;
+        if (targetContext != null) {
+          Scrollable.ensureVisible(
+            targetContext,
+            alignment: 0.02,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOut,
+          );
+          _anchoredMatchId = targetId;
+        }
+      });
+    }
 
     return Scaffold(
       appBar: GrintaAppBar(
@@ -53,55 +97,62 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
         onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
               seasonId: state.selectedSeasonId,
             ),
-        child: ListView(
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
-          children: [
-            if (state.seasons.isNotEmpty && state.selectedSeasonId != null)
-              DropdownButtonFormField<String>(
-                initialValue: state.selectedSeasonId,
-                decoration: const InputDecoration(labelText: 'Saison'),
-                items: state.seasons
-                    .map(
-                      (season) => DropdownMenuItem(
-                        value: season['id'].toString(),
-                        child: Text(season['name'].toString()),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) async {
-                  if (value == null || value == state.selectedSeasonId) return;
-                  await ref
-                      .read(matchesControllerProvider.notifier)
-                      .load(seasonId: value);
-                },
-              ),
-            const SizedBox(height: 16),
-            if (state.isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (state.error != null)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(state.error!),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (state.seasons.isNotEmpty && state.selectedSeasonId != null)
+                DropdownButtonFormField<String>(
+                  initialValue: state.selectedSeasonId,
+                  decoration: const InputDecoration(labelText: 'Saison'),
+                  items: state.seasons
+                      .map(
+                        (season) => DropdownMenuItem(
+                          value: season['id'].toString(),
+                          child: Text(season['name'].toString()),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) async {
+                    if (value == null || value == state.selectedSeasonId) {
+                      return;
+                    }
+                    await ref
+                        .read(matchesControllerProvider.notifier)
+                        .load(seasonId: value);
+                  },
                 ),
-              )
-            else if (state.matches.isEmpty)
-              const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('Aucun match pour cette saison.'),
-                ),
-              )
-            else
-              ...state.matches.map(
-                (match) => _MatchCard(
-                  match: match,
-                  canEdit: isAdmin && !match.isFinished,
-                  canFinalize: isAdmin,
-                  canDelete: isAdmin,
-                ),
-              ),
-          ],
+              const SizedBox(height: 16),
+              if (state.isLoading)
+                const Center(child: CircularProgressIndicator())
+              else if (state.error != null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(state.error!),
+                  ),
+                )
+              else if (matches.isEmpty)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Aucun match pour cette saison.'),
+                  ),
+                )
+              else
+                for (final match in matches)
+                  _MatchCard(
+                    key: match.id == target?.id ? _nextMatchKey : null,
+                    match: match,
+                    canEdit: isAdmin && !match.isFinished,
+                    canFinalize: isAdmin,
+                    canDelete: isAdmin,
+                  ),
+            ],
+          ),
         ),
       ),
     );
@@ -110,6 +161,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
 
 class _MatchCard extends StatelessWidget {
   const _MatchCard({
+    super.key,
     required this.match,
     required this.canDelete,
     required this.canEdit,
