@@ -44,7 +44,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
 
     final matches = state.matches.toList();
     final finishedMatches = matches.where((match) => match.isFinished).toList()
-      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     final upcomingMatches = matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     final nextMatchId = upcomingMatches.firstOrNull?.id;
@@ -62,20 +62,19 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     final hasUpcomingMatches =
         !state.isLoading && state.error == null && upcomingMatches.isNotEmpty;
 
-    if (!_didPositionInitialList && hasUpcomingMatches) {
+    // Ouverture : le bloc « à venir » est le centre du CustomScrollView, donc
+    // le prochain match est en haut de la fenêtre à l'ouverture. Les matchs
+    // précédents sont au-dessus (les plus anciens tout en haut). S'il n'y a
+    // aucun match à venir, on descend sur le match le plus récent (en bas).
+    if (!_didPositionInitialList &&
+        !state.isLoading &&
+        state.error == null &&
+        matches.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || _didPositionInitialList) return;
-
-        if (finishedMatches.isNotEmpty) {
-          final previousMatchContext = _previousMatchKey.currentContext;
-          if (previousMatchContext == null) return;
-          Scrollable.ensureVisible(
-            previousMatchContext,
-            alignment: 0,
-            duration: Duration.zero,
-          );
+        if (!hasUpcomingMatches && _scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
         }
-
         _didPositionInitialList = true;
       });
     }
@@ -157,8 +156,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                         match: match,
                         isAdmin: isAdmin,
                         isNextMatch: match.id == nextMatchId,
-                        predictionAvailable:
-                            match.id == nextEditableMatchId,
+                        predictionAvailable: match.id == nextEditableMatchId,
                       ),
                     );
                   },
@@ -318,9 +316,7 @@ class _AdminMatchActions extends ConsumerWidget {
                     ..invalidate(_calendarPredictionProvider)
                     ..invalidate(inlineMatchPredictionProvider)
                     ..invalidate(matchDetailsProvider(match.id));
-                  await ref
-                      .read(predictionsControllerProvider.notifier)
-                      .load();
+                  await ref.read(predictionsControllerProvider.notifier).load();
                 },
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Modifier'),
