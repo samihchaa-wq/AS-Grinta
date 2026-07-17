@@ -80,17 +80,20 @@ class BadgeEmblem extends StatelessWidget {
       return _square(base, size);
     }
 
-    // Réserve le haut de la boîte pour l'étoile, le carré occupe le bas :
-    // l'encombrement reste `size` × `size` partout (pas de débordement).
-    final squareSize = size * 0.76;
-    final starSize = size * 0.34;
+    // Le carré garde sa taille PLEINE ; l'étoile s'ajoute au-dessus. La boîte
+    // est donc un peu plus haute (l'étoile chevauche le haut de l'écusson).
+    final starSize = size * 0.42;
+    final overhang = size * 0.24;
     return SizedBox(
       width: size,
-      height: size,
+      height: size + overhang,
       child: Stack(
-        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
         children: [
-          _square(base, squareSize),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _square(base, size),
+          ),
           Align(
             alignment: Alignment.topCenter,
             child: Text(
@@ -149,30 +152,32 @@ class BadgeEmblem extends StatelessWidget {
           ),
           if (baremeLabel != null)
             Positioned(
-              right: sq * 0.02,
-              bottom: sq * 0.02,
-              // Pastille de taille fixe : le nombre rétrécit pour tenir, donc
-              // toutes les pastilles ont la même taille (1, 2 ou 3 chiffres).
+              right: size * 0.02,
+              bottom: size * 0.02,
+              // Pastille de taille fixe, basée sur la taille NOMINALE du badge
+              // (pas sur le carré, qui rétrécit quand il y a une étoile) : ainsi
+              // toutes les pastilles sont identiques, avec ou sans étoile, quel
+              // que soit le nombre de chiffres (le nombre rétrécit pour tenir).
               child: Container(
-                width: sq * 0.46,
-                height: sq * 0.32,
+                width: size * 0.42,
+                height: size * 0.30,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: const Color(0xFF0B1D40),
-                  borderRadius: BorderRadius.circular(sq * 0.12),
+                  borderRadius: BorderRadius.circular(size * 0.11),
                   border: Border.all(
                     color: Color.lerp(base, Colors.white, 0.35)!,
-                    width: sq * 0.02,
+                    width: size * 0.018,
                   ),
                 ),
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: sq * 0.05),
+                    padding: EdgeInsets.symmetric(horizontal: size * 0.045),
                     child: Text(
                       baremeLabel!,
                       style: TextStyle(
-                        fontSize: sq * 0.26,
+                        fontSize: size * 0.24,
                         height: 1,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
