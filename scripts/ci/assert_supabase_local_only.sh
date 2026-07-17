@@ -6,6 +6,7 @@ if [ "$#" -eq 0 ]; then
     .github/workflows/supabase_local_validation.yml
     scripts/ci/run_supabase_local_validation.sh
     scripts/ci/normalize_local_migration_versions.py
+    scripts/ci/generate_historical_match_fixtures.py
     scripts/ci/supabase_legacy_baseline.sql
     scripts/ci/supabase_legacy_match_status_text.sql
     scripts/ci/supabase_legacy_postmatch.sql
