@@ -16,6 +16,7 @@ if [ "$#" -eq 0 ]; then
     scripts/ci/supabase_legacy_post_goals_views.sql
     scripts/ci/supabase_legacy_named_roster_transition.sql
     scripts/ci/supabase_legacy_match_location.sql
+    scripts/ci/supabase_legacy_season_rpcs.sql
   )
 else
   files=("$@")
