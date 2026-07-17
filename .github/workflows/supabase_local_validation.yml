@@ -12,7 +12,7 @@ on:
       - 'scripts/ci/supabase_legacy_match_status_text.sql'
       - 'scripts/ci/supabase_legacy_postmatch.sql'
       - 'scripts/ci/supabase_legacy_coach_tables.sql'
-      - 'scripts/ci/supabase_legacy_prediction_views.sql'
+      - 'scripts/ci/supabase_legacy_analytics_views.sql'
       - '.github/workflows/supabase_local_validation.yml'
   workflow_dispatch:
 
@@ -72,8 +72,8 @@ jobs:
             supabase/migrations/20260710105000_ci_legacy_postmatch.sql
           cp scripts/ci/supabase_legacy_coach_tables.sql \
             supabase/migrations/20260710115000_ci_legacy_coach_tables.sql
-          cp scripts/ci/supabase_legacy_prediction_views.sql \
-            supabase/migrations/20260710135000_ci_legacy_prediction_views.sql
+          cp scripts/ci/supabase_legacy_analytics_views.sql \
+            supabase/migrations/20260710135000_ci_legacy_analytics_views.sql
           python3 scripts/ci/normalize_local_migration_versions.py \
             supabase/migrations \
             | tee ci-artifacts/supabase-local/migration-version-normalization.log
