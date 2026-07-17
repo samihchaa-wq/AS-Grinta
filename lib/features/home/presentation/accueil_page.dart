@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
@@ -19,13 +20,8 @@ class AccueilPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(authControllerProvider).profile;
-    final firstName = (profile?.displayName ?? '').trim().split(' ').first;
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(firstName.isNotEmpty ? 'Salut $firstName 👋' : 'Accueil'),
-      ),
+      appBar: GrintaAppBar(title: const Text('Accueil')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref
