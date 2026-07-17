@@ -16,6 +16,7 @@ import sys
 
 DATE_LINE = re.compile(r"^\s*(20\d{2}-\d{2}-\d{2})\|\d+\|\d+\s*$", re.MULTILINE)
 EXPECTED = 156
+SYNTHETIC_SEASON_NAME = "2099-2100"
 
 
 def main() -> int:
@@ -32,6 +33,7 @@ def main() -> int:
     values = ",\n".join(f"  ('{date}'::date)" for date in dates)
     sql = f"""-- Generated CI-only synthetic fixtures. Never apply to a hosted project.
 -- Source dates: {source.name}; rows: {EXPECTED}.
+-- The reserved synthetic season follows the later YYYY-YYYY integrity rule.
 
 create temporary table ci_historical_match_dates(
   match_date date primary key
@@ -50,7 +52,7 @@ declare
   v_unknown_required text;
 begin
   insert into public.seasons(name)
-  values ('CI Synthetic Historical Season')
+  values ('{SYNTHETIC_SEASON_NAME}')
   on conflict(name) do update set name = excluded.name
   returning id into v_season_id;
 
