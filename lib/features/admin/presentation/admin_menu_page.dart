@@ -39,19 +39,6 @@ class AdminMenuPage extends StatelessWidget {
               onTap: () => context.push('/players'),
             ),
           ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Text('🏆', style: TextStyle(fontSize: 22)),
-              title: const Text(
-                'Badges',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: const Text('Créer un badge et le décerner.'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/admin/badges'),
-            ),
-          ),
         ],
       ),
     );

@@ -1,10 +1,13 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 /// Armoire à badges : Validés · En cours · À débloquer.
 class ArmoirePage extends ConsumerWidget {
@@ -37,9 +40,21 @@ class ArmoirePage extends ConsumerWidget {
           data: (codes) => codes,
           orElse: () => const <String>{},
         );
+    final isAdmin =
+        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Armoire à badges')),
+      appBar: AppBar(
+        title: const Text('Armoire à badges'),
+        actions: [
+          if (isAdmin)
+            IconButton(
+              tooltip: 'Gérer les badges',
+              icon: const Text('🏆', style: TextStyle(fontSize: 20)),
+              onPressed: () => context.push('/admin/badges'),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myArmoireProvider);
