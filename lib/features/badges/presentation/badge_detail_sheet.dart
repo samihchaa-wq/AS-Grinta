@@ -63,7 +63,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                     color: badge.color,
                     baremeLabel: baremeLabelFor(badge.metric, badge.threshold),
                     showStar: badge.hasStar,
-                    size: 64,
+                    size: 78,
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -163,7 +163,7 @@ class _TierRow extends StatelessWidget {
             color: tier.color,
             baremeLabel: baremeLabelFor(tier.metric, tier.threshold),
             showStar: tier.hasStar,
-            size: 46,
+            size: 58,
           ),
           const SizedBox(width: 12),
           Expanded(

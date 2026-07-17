@@ -178,7 +178,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                           color: b.color,
                           baremeLabel: baremeLabelFor(b.metric, b.threshold),
                           showStar: b.hasStar,
-                          size: 44,
+                          size: 54,
                         ),
                         title: Text(b.name),
                         subtitle: b.description.isNotEmpty
@@ -255,7 +255,7 @@ class _CreateBadgeCard extends StatelessWidget {
                 Text('Créer un badge',
                     style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
-                BadgeEmblem(emoji: '🏅', color: selectedColor, size: 40),
+                BadgeEmblem(emoji: '🏅', color: selectedColor, size: 48),
               ],
             ),
             const SizedBox(height: 12),
@@ -472,7 +472,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   widget.badge.threshold,
                 ),
                 showStar: widget.badge.hasStar,
-                size: 44,
+                size: 54,
               ),
               const SizedBox(width: 10),
               Expanded(

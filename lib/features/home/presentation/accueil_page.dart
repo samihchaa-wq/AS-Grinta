@@ -803,7 +803,7 @@ class _BadgeChip extends StatelessWidget {
             color: badge.def.color,
             baremeLabel: baremeLabelFor(badge.def.metric, badge.def.threshold),
             showStar: badge.def.hasStar,
-            size: 54,
+            size: 66,
           ),
           const SizedBox(height: 6),
           Text(
