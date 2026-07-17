@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
   }
 
   webpush.setVapidDetails(
-    "mailto:contact@as-grinta.example",
+    "https://samihchaa-wq.github.io/AS-Grinta",
     config.vapid_public,
     config.vapid_private,
   );
