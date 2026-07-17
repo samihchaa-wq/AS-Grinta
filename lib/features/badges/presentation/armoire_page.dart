@@ -225,7 +225,8 @@ class _BadgeTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final width = (MediaQuery.of(context).size.width - 32 - 24) / 3;
+    // 2 colonnes : des badges bien plus grands.
+    final width = (MediaQuery.of(context).size.width - 32 - 12) / 2;
 
     if (locked) {
       return SizedBox(
@@ -241,7 +242,7 @@ class _BadgeTile extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: const Icon(Icons.lock_outline,
-                  color: Color(0xFF3B4A6B), size: 30),
+                  color: Color(0xFF3B4A6B), size: 48),
             ),
             const SizedBox(height: 6),
             Text('???',
@@ -347,7 +348,7 @@ class _InProgressTile extends StatelessWidget {
               color: badge.def.color,
               baremeLabel: baremeThreshold(badge.def),
               showStar: badge.def.hasStar,
-              size: 46,
+              size: 58,
             ),
             const SizedBox(width: 14),
             Expanded(
