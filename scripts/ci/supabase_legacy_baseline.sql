@@ -25,6 +25,9 @@ alter table public.season_players
 create unique index if not exists season_players_id_ci_legacy_uidx
   on public.season_players(id);
 
+create unique index if not exists season_players_season_profile_ci_legacy_uidx
+  on public.season_players(season_id, profile_id);
+
 alter table public.matches
   add column if not exists match_date date,
   add column if not exists match_time time without time zone,
