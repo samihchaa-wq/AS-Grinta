@@ -10,7 +10,7 @@ import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
-import 'package:as_grinta/features/predictions/presentation/enhanced_season_predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
