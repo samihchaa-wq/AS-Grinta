@@ -207,9 +207,11 @@ class _PlayerStatisticsCard extends StatelessWidget {
     ];
 
     if (player.isGoalkeeper) {
+      // Même disposition que les autres : la stat principale (CS) en avant-
+      // dernière colonne, HDM en dernière.
       metrics.addAll([
-        _MetricTile(label: 'HDM', value: player.hdm ?? 0),
         _MetricTile(label: 'CS', value: player.cleanSheets),
+        _MetricTile(label: 'HDM', value: player.hdm ?? 0),
       ]);
     } else {
       metrics.addAll([
