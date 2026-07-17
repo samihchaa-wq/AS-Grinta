@@ -16,6 +16,7 @@ class ProfilePage extends ConsumerStatefulWidget {
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
+  late final TextEditingController _surnomController;
   String? _localError;
 
   @override
@@ -25,12 +26,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     _firstNameController =
         TextEditingController(text: profile?.firstName ?? '');
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
+    _surnomController = TextEditingController(text: profile?.surnom ?? '');
   }
 
   @override
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _surnomController.dispose();
     super.dispose();
   }
 
@@ -75,9 +78,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           const SizedBox(height: 16),
           TextField(
             controller: _lastNameController,
-            textInputAction: TextInputAction.done,
+            textInputAction: TextInputAction.next,
             textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(labelText: 'Nom'),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _surnomController,
+            textInputAction: TextInputAction.done,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Surnom (optionnel)',
+              helperText: 'S’il est renseigné, il s’affiche partout à la place '
+                  'du prénom.',
+              helperMaxLines: 2,
+            ),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -120,6 +135,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Future<void> _saveProfile() async {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
+    final surnom = _surnomController.text.trim();
     if (firstName.isEmpty || lastName.isEmpty) {
       setState(() => _localError = 'Le prénom et le nom sont obligatoires.');
       return;
@@ -130,10 +146,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               '(ni emoji, ni chiffre, ni symbole).');
       return;
     }
+    if (surnom.isNotEmpty && !isValidPersonName(surnom)) {
+      setState(() => _localError =
+          'Le surnom ne doit contenir que des lettres (ni emoji, ni chiffre, '
+              'ni symbole).');
+      return;
+    }
     setState(() => _localError = null);
     await ref.read(authControllerProvider.notifier).updateProfile(
           firstName: firstName,
           lastName: lastName,
+          surnom: surnom,
         );
     if (!mounted) return;
     if (ref.read(authControllerProvider).error == null) {

@@ -217,6 +217,7 @@ class _FakeAuthRepository implements AuthRepository {
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
+    String? surnom,
   }) async {
     return _activeProfile;
   }

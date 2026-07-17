@@ -94,6 +94,7 @@ class AuthRepository {
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
+    String? surnom,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
@@ -101,6 +102,7 @@ class AuthRepository {
     await _client.from('profiles').update({
       'first_name': firstName.trim(),
       'last_name': lastName.trim(),
+      'surnom': (surnom ?? '').trim(),
     }).eq('id', userId);
 
     await _client.auth.updateUser(
