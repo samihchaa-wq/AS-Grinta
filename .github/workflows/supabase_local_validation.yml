@@ -59,11 +59,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ci-artifacts/supabase-local
+          rm -f supabase/migrations/*_ci_legacy_baseline.sql
           cp scripts/ci/supabase_legacy_baseline.sql \
             supabase/migrations/202607080004_ci_legacy_baseline.sql
           python3 scripts/ci/normalize_local_migration_versions.py \
             supabase/migrations \
             | tee ci-artifacts/supabase-local/migration-version-normalization.log
+          count=$(find supabase/migrations -maxdepth 1 -type f \
+            -name '*_ci_legacy_baseline.sql' | wc -l)
+          test "$count" -eq 1
 
       - name: Run isolated Supabase validation
         run: bash scripts/ci/run_supabase_local_validation.sh
@@ -79,7 +83,7 @@ jobs:
             supabase stop --no-backup >/dev/null 2>&1 || true
           fi
           rm -rf "$work"
-          rm -f "${GITHUB_WORKSPACE}/supabase/migrations/202607080004_ci_legacy_baseline.sql" \
+          rm -f "${GITHUB_WORKSPACE}"/supabase/migrations/*_ci_legacy_baseline.sql \
             "${RUNNER_TEMP}/supabase-local-status.env" \
             "${RUNNER_TEMP}/ci-normal-signup.json" \
             "${RUNNER_TEMP}/ci-admin-signup.json" \
