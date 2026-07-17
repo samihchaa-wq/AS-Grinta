@@ -1,0 +1,142 @@
+name: Supabase local full-stack validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - 'scripts/ci/assert_supabase_local_only.sh'
+      - 'scripts/ci/run_supabase_local_validation.sh'
+      - '.github/workflows/supabase_local_validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-local-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SUPABASE_TELEMETRY_DISABLED: '1'
+  DO_NOT_TRACK: '1'
+
+jobs:
+  local-only-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reject remote-capable commands and credentials
+        run: bash scripts/ci/assert_supabase_local_only.sh
+
+  supabase-local:
+    needs: local-only-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.81.3
+
+      - name: Install SQL and JSON clients
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client jq rsync
+
+      - name: Run isolated Supabase validation
+        run: bash scripts/ci/run_supabase_local_validation.sh
+
+      - name: Stop and erase local Supabase
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          work="${RUNNER_TEMP}/as-grinta-supabase-local-${GITHUB_RUN_ID}"
+          if [ -d "$work" ]; then
+            cd "$work"
+            supabase stop --no-backup >/dev/null 2>&1 || true
+          fi
+          rm -rf "$work"
+          rm -f "${RUNNER_TEMP}/supabase-local-status.env" \
+            "${RUNNER_TEMP}/ci-normal-signup.json" \
+            "${RUNNER_TEMP}/ci-admin-signup.json" \
+            "${RUNNER_TEMP}/supabase-start.raw.log"
+
+      - name: Upload sanitized Supabase logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-local-validation-${{ github.run_id }}
+          path: ci-artifacts/supabase-local
+          if-no-files-found: warn
+          retention-days: 7
+
+  flutter-validation:
+    needs: local-only-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Read application version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          test -n "$version"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Analyze
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --fatal-infos 2>&1 | tee analyze.log
+
+      - name: Test
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test 2>&1 | tee test.log
+
+      - name: Build Web release
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --dart-define-from-file=config/production.json \
+            --dart-define=APP_VERSION="$APP_VERSION" \
+            2>&1 | tee build-web.log
+
+      - name: Upload Flutter logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-local-flutter-${{ github.run_id }}
+          path: |
+            analyze.log
+            test.log
+            build-web.log
+          if-no-files-found: warn
+          retention-days: 7
