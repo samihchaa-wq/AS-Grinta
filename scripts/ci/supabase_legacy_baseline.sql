@@ -125,3 +125,16 @@ create table if not exists public.formations (
   slots jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
+
+-- An early hardening migration revokes this legacy trigger helper before a
+-- later migration recreates it. The pre-migration project contained it.
+create or replace function public.seed_predictions_for_active_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  return new;
+end;
+$$;
