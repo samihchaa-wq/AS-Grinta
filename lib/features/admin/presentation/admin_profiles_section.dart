@@ -561,7 +561,8 @@ class _ProfileCard extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Le code est déjà copié dans ton presse-papiers.',
+              'Note-le maintenant : appuie sur « Copier », ou sélectionne le '
+              'code à la main. Il ne sera plus affiché ensuite.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -569,10 +570,19 @@ class _ProfileCard extends ConsumerWidget {
         actions: [
           TextButton.icon(
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: code));
+              // La copie se fait sur ce geste explicite (indispensable sur iOS
+              // Safari/PWA). Si le navigateur la refuse, on invite à copier à
+              // la main plutôt que de laisser l'erreur remonter.
+              String message = 'Code copié.';
+              try {
+                await Clipboard.setData(ClipboardData(text: code));
+              } catch (_) {
+                message = 'Copie automatique impossible : sélectionne le code '
+                    'à la main.';
+              }
               if (dialogContext.mounted) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Code copié.')),
+                  SnackBar(content: Text(message)),
                 );
               }
             },

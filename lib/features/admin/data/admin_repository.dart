@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -119,11 +118,15 @@ class AdminRepository {
     );
   }
 
-  /// Génère côté serveur un mot de passe temporaire à usage unique, force son
-  /// remplacement à la prochaine connexion et le copie dans le presse-papiers
-  /// de l'administrateur.
-  /// Retourne le code temporaire généré (à transmettre à l'utilisateur) et le
-  /// copie dans le presse-papiers de l'administrateur.
+  /// Génère côté serveur un mot de passe temporaire à usage unique et force son
+  /// remplacement à la prochaine connexion. Retourne le code temporaire généré
+  /// (à afficher puis transmettre à l'utilisateur).
+  ///
+  /// La copie dans le presse-papiers est volontairement laissée à l'appelant,
+  /// déclenchée par un geste explicite : sur le web (iOS Safari/PWA notamment),
+  /// une écriture presse-papiers après un `await` est bloquée par le navigateur
+  /// et ferait échouer toute l'opération alors que le mot de passe a déjà été
+  /// réinitialisé côté serveur.
   Future<String> resetAccountPassword(String userId) async {
     final resetResponse = await _client.functions.invoke(
       'manage-user',
@@ -145,7 +148,6 @@ class AdminRepository {
       throw StateError('Le mot de passe temporaire n’a pas été retourné.');
     }
 
-    await Clipboard.setData(ClipboardData(text: temporaryPassword));
     return temporaryPassword;
   }
 
