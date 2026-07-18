@@ -26,6 +26,22 @@ void main() {
       );
     });
 
+    test('leaves the loading route once loading finishes without a session',
+        () {
+      // Régression : quand le chargement se termine sans session, on ne doit
+      // PAS rester bloqué sur /auth/loading — on part sur la connexion.
+      const state = AuthState(isLoading: false);
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/auth/loading'),
+          matchedLocation: '/auth/loading',
+        ),
+        '/auth/sign-in',
+      );
+    });
+
     test('preserves the requested local path for signed-out users', () {
       const state = AuthState(isLoading: false);
 

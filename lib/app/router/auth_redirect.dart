@@ -12,6 +12,13 @@ String? resolveAuthRedirect({
     return location == '/auth/loading' ? null : '/auth/loading';
   }
 
+  // /auth/loading est purement transitoire : dès que le chargement est terminé,
+  // on doit le quitter, sinon on reste bloqué dessus. Sans session on part sur
+  // la connexion ; avec session, on laisse la suite router vers l'accueil.
+  if (location == '/auth/loading' && !authState.isAuthenticated) {
+    return '/auth/sign-in';
+  }
+
   final isPasswordChangeRoute = location == '/auth/new-password';
   final mustChangePassword = authState.profile?.mustChangePassword == true;
 
