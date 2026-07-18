@@ -47,10 +47,20 @@ class AuthController extends StateNotifier<AuthState> {
       unawaited(_refreshProfile(retryAfterSignIn: true));
     });
     unawaited(_refreshProfile());
+    // Filet de sécurité : l'écran de chargement ne doit JAMAIS rester bloqué.
+    // Si le profil n'est pas résolu au bout de 15 s (réponse jamais reçue en
+    // mode PWA standalone, boucle de retry…), on bascule sur l'écran de
+    // connexion pour que l'utilisateur puisse repartir.
+    _loadingFallback = Timer(const Duration(seconds: 15), () {
+      if (state.isLoading) {
+        state = const AuthState(isLoading: false);
+      }
+    });
   }
 
   final AuthRepository _repository;
   StreamSubscription<supabase.AuthState>? _authSubscription;
+  Timer? _loadingFallback;
   Future<void>? _refreshInFlight;
   bool _retryRefreshQueued = false;
   int _authGeneration = 0;
@@ -94,6 +104,7 @@ class AuthController extends StateNotifier<AuthState> {
         retryAfterSignIn: retryAfterSignIn,
       );
       if (refreshGeneration != _authGeneration) return;
+      _loadingFallback?.cancel();
 
       state = state.copyWith(
         isLoading: false,
@@ -115,6 +126,7 @@ class AuthController extends StateNotifier<AuthState> {
       }
     } catch (_) {
       if (refreshGeneration != _authGeneration) return;
+      _loadingFallback?.cancel();
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: false,
@@ -201,6 +213,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   @override
   void dispose() {
+    _loadingFallback?.cancel();
     _authSubscription?.cancel();
     super.dispose();
   }
