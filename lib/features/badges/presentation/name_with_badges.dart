@@ -76,6 +76,7 @@ class _BadgeChip extends StatelessWidget {
           baremeLabel: badge.baremeLabel,
           showStar: badge.hasStar,
           starCount: badge.stars,
+          starsMultiplyBareme: isCareerBadgeCategory(badge.category),
           size: render,
         ),
       ),

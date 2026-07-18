@@ -804,6 +804,7 @@ class _BadgeChip extends StatelessWidget {
             baremeLabel: baremeLabelFor(badge.def.metric, badge.def.threshold),
             showStar: badge.def.hasStar,
             starCount: badge.stars,
+            starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
             size: 66,
           ),
           const SizedBox(height: 6),
