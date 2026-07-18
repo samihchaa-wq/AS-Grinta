@@ -15,6 +15,12 @@ class _CalendarSection extends ConsumerStatefulWidget {
 class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   final _scrollController = ScrollController();
 
+  /// Repère la carte du prochain match pour l'amener en haut à l'ouverture.
+  final _nextMatchKey = GlobalKey();
+
+  /// L'auto-centrage sur le prochain match ne se fait qu'une fois par ouverture.
+  bool _autoScrolledToNext = false;
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +36,27 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Amène le prochain match tout en haut de la liste, même s'il y a des matchs
+  /// plus lointains au-dessus dans la frise. On réessaie quelques frames tant
+  /// que la carte n'est pas encore montée (liste paresseuse).
+  void _scrollToNextMatch(int attempt) {
+    if (!mounted) return;
+    final targetContext = _nextMatchKey.currentContext;
+    if (targetContext == null) {
+      if (attempt < 10) {
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _scrollToNextMatch(attempt + 1));
+      }
+      return;
+    }
+    Scrollable.ensureVisible(
+      targetContext,
+      alignment: 0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -60,6 +87,17 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         .where((item) => !item.isClosed)
         .map((item) => item.matchId)
         .firstOrNull;
+
+    // À l'ouverture, une fois les matchs chargés, on se positionne directement
+    // sur le prochain match (programmé une seule fois).
+    if (!_autoScrolledToNext &&
+        !state.isLoading &&
+        matches.isNotEmpty &&
+        nextMatchId != null) {
+      _autoScrolledToNext = true;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _scrollToNextMatch(0));
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -141,12 +179,14 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final match = orderedMatches[index];
+                    final isNext = match.id == nextMatchId;
                     return Padding(
+                      key: isNext ? _nextMatchKey : null,
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _CalendarMatchCard(
                         match: match,
                         isAdmin: isAdmin,
-                        isNextMatch: match.id == nextMatchId,
+                        isNextMatch: isNext,
                         predictionAvailable: match.id == nextEditableMatchId,
                       ),
                     );
