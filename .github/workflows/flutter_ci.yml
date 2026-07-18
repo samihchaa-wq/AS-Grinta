@@ -78,6 +78,7 @@ jobs:
             --release \
             --base-href "/AS-Grinta/" \
             --pwa-strategy=none \
+            --no-web-resources-cdn \
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee build-web.log
