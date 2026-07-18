@@ -70,12 +70,7 @@ class ArmoirePage extends ConsumerWidget {
           data: (armoire) => ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
             children: [
-              _Header(
-                validated: armoire.validated.length,
-                total: armoire.validated.length +
-                    armoire.inProgress.length +
-                    armoire.locked.length,
-              ),
+              const _Header(),
               const SizedBox(height: 20),
               if (armoire.validated.isNotEmpty) ...[
                 _SectionTitle('Validés', armoire.validated.length),
@@ -119,9 +114,7 @@ class ArmoirePage extends ConsumerWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.validated, required this.total});
-  final int validated;
-  final int total;
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
@@ -143,17 +136,9 @@ class _Header extends StatelessWidget {
           const Text('🏆', style: TextStyle(fontSize: 34)),
           const SizedBox(width: 14),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Ma collection',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white, fontWeight: FontWeight.w800)),
-                Text(
-                    '$validated badge${validated > 1 ? 's' : ''} obtenu${validated > 1 ? 's' : ''} sur $total',
-                    style: const TextStyle(color: Colors.white70)),
-              ],
-            ),
+            child: Text('Ma collection',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white, fontWeight: FontWeight.w800)),
           ),
         ],
       ),
