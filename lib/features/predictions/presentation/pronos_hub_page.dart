@@ -67,9 +67,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
-    final showAddMatch = _category == _PronosCategory.matches && isAdmin;
     return Scaffold(
       appBar: GrintaAppBar(
         title: Text(switch (_category) {
@@ -78,26 +75,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
           _PronosCategory.general => 'Classements',
         }),
         actions: grintaHomeActions(context),
-        bottom: showAddMatch
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(56),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Center(
-                    child: IconButton(
-                      tooltip: 'Ajouter un match',
-                      iconSize: 44,
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const MatchFormPage(),
-                        ),
-                      ),
-                      icon: const Icon(Icons.add_circle),
-                    ),
-                  ),
-                ),
-              )
-            : null,
       ),
       body: switch (_category) {
         _PronosCategory.matches => const _CalendarSection(),
