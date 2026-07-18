@@ -59,7 +59,7 @@ class _MatchLeaderboardHeader extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
       child: Row(
         children: [
           Expanded(flex: 6, child: Text('Joueurs', style: style)),
@@ -92,7 +92,7 @@ class _GeneralLeaderboardHeader extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
       child: Row(
         children: [
           Expanded(flex: 6, child: Text('Joueurs', style: style)),
@@ -182,7 +182,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      padding: const EdgeInsets.fromLTRB(8, 15, 12, 15),
       child: Row(
         children: [
           Expanded(
@@ -190,7 +190,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 24,
+                  width: 18,
                   child: Text(
                     '$rank',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -199,12 +199,12 @@ class _LeaderboardRowLayout extends StatelessWidget {
                         ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 3),
                 Expanded(
                   child: NameWithBadges(
                     profileId: profileId,
                     name: name,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                   ),

@@ -149,7 +149,7 @@ class _StatisticsHeaderRow extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      padding: const EdgeInsets.fromLTRB(8, 11, 12, 11),
       child: Row(
         children: [
           Expanded(flex: _statNameFlex, child: Text('Joueur', style: style)),
@@ -184,7 +184,7 @@ class _StatisticsDataRow extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
       child: Row(
         children: [
           Expanded(
@@ -192,22 +192,22 @@ class _StatisticsDataRow extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 22,
+                  width: 18,
                   child: Text(
                     '${player.rank}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white54,
                           fontWeight: FontWeight.w700,
                         ),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 3),
                 Expanded(
                   child: NameWithBadges(
                     profileId: player.profileId,
                     name: player.playerName,
-                    badgeSize: 20,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    badgeSize: 18,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                   ),

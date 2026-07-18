@@ -71,7 +71,7 @@ class _SeasonRankingHeader extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
       child: Row(
         children: [
           Expanded(flex: 6, child: Text('Joueurs', style: style)),
@@ -111,7 +111,7 @@ class _SeasonRankingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      padding: const EdgeInsets.fromLTRB(8, 15, 12, 15),
       child: Row(
         children: [
           Expanded(
@@ -119,7 +119,7 @@ class _SeasonRankingRow extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 24,
+                  width: 18,
                   child: Text(
                     '$rank',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -128,12 +128,12 @@ class _SeasonRankingRow extends StatelessWidget {
                         ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 3),
                 Expanded(
                   child: NameWithBadges(
                     profileId: entry.profileId,
                     name: entry.name,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                   ),
