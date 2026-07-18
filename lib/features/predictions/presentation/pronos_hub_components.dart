@@ -1,6 +1,8 @@
 part of 'pronos_hub_page.dart';
 
-class _LeaderboardCard extends StatelessWidget {
+enum _LbCol { name, first, second, points }
+
+class _LeaderboardCard extends StatefulWidget {
   const _LeaderboardCard({
     required this.entries,
     required this.points,
@@ -14,150 +16,114 @@ class _LeaderboardCard extends StatelessWidget {
   final bool showMatchStats;
 
   @override
-  Widget build(BuildContext context) {
-    final sorted = [...entries]..sort((a, b) {
-        final byPoints = points(b).compareTo(points(a));
-        return byPoints != 0 ? byPoints : a.name.compareTo(b.name);
-      });
+  State<_LeaderboardCard> createState() => _LeaderboardCardState();
+}
 
-    if (sorted.isEmpty) {
+class _LeaderboardCardState extends State<_LeaderboardCard> {
+  _LbCol _sort = _LbCol.points;
+  bool _desc = true;
+
+  double _first(LeaderboardEntry e) =>
+      widget.showMatchStats ? e.matchBons.toDouble() : e.matchPoints * 100;
+  double _second(LeaderboardEntry e) =>
+      widget.showMatchStats ? e.matchExacts.toDouble() : e.seasonPoints;
+
+  void _onSort(_LbCol col) {
+    setState(() {
+      if (_sort == col) {
+        _desc = !_desc;
+      } else {
+        _sort = col;
+        _desc = col != _LbCol.name;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.entries.isEmpty) {
       return const _MessageCard(message: 'Aucun point pour le moment.');
     }
 
+    final sorted = [...widget.entries]..sort((a, b) {
+        int cmp;
+        switch (_sort) {
+          case _LbCol.name:
+            cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          case _LbCol.first:
+            cmp = _first(a).compareTo(_first(b));
+          case _LbCol.second:
+            cmp = _second(a).compareTo(_second(b));
+          case _LbCol.points:
+            cmp = widget.points(a).compareTo(widget.points(b));
+        }
+        // Départage : plus de points d'abord, puis nom.
+        if (cmp == 0) cmp = widget.points(a).compareTo(widget.points(b));
+        if (cmp == 0) {
+          cmp = b.name.toLowerCase().compareTo(a.name.toLowerCase());
+        }
+        return _desc ? -cmp : cmp;
+      });
+
+    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppTheme.textSecondary,
+          fontWeight: FontWeight.w800,
+        );
+
     return StickyHeaderTableCard(
-      onRefresh: onRefresh,
-      header: showMatchStats
-          ? const _MatchLeaderboardHeader()
-          : const _GeneralLeaderboardHeader(),
+      onRefresh: widget.onRefresh,
+      header: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
+        child: Row(
+          children: [
+            SortableHeaderCell(
+              label: 'Joueurs',
+              flex: 6,
+              align: TextAlign.start,
+              active: _sort == _LbCol.name,
+              descending: _desc,
+              onTap: () => _onSort(_LbCol.name),
+              style: style,
+            ),
+            SortableHeaderCell(
+              label: widget.showMatchStats ? 'Bons' : 'Matchs',
+              flex: 2,
+              active: _sort == _LbCol.first,
+              descending: _desc,
+              onTap: () => _onSort(_LbCol.first),
+              style: style,
+            ),
+            SortableHeaderCell(
+              label: widget.showMatchStats ? 'Exacts' : 'Saison',
+              flex: 2,
+              active: _sort == _LbCol.second,
+              descending: _desc,
+              onTap: () => _onSort(_LbCol.second),
+              style: style,
+            ),
+            SortableHeaderCell(
+              label: 'Points',
+              flex: 2,
+              align: TextAlign.end,
+              active: _sort == _LbCol.points,
+              descending: _desc,
+              onTap: () => _onSort(_LbCol.points),
+              style: style,
+            ),
+          ],
+        ),
+      ),
       rows: [
         for (var index = 0; index < sorted.length; index++)
-          if (showMatchStats)
-            _MatchLeaderboardRow(
-              rank: index + 1,
-              entry: sorted[index],
-              points: points(sorted[index]).round(),
-            )
-          else
-            _GeneralLeaderboardRow(
-              rank: index + 1,
-              entry: sorted[index],
-              points: points(sorted[index]).round(),
-            ),
+          _LeaderboardRowLayout(
+            rank: index + 1,
+            profileId: sorted[index].profileId,
+            name: sorted[index].name,
+            firstValue: '${_first(sorted[index]).round()}',
+            secondValue: '${_second(sorted[index]).round()}',
+            points: '${widget.points(sorted[index]).round()}',
+          ),
       ],
-    );
-  }
-}
-
-class _MatchLeaderboardHeader extends StatelessWidget {
-  const _MatchLeaderboardHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppTheme.textSecondary,
-          fontWeight: FontWeight.w800,
-        );
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
-      child: Row(
-        children: [
-          Expanded(flex: 6, child: Text('Joueurs', style: style)),
-          Expanded(
-            flex: 2,
-            child: Text('Bons', style: style, textAlign: TextAlign.center),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text('Exacts', style: style, textAlign: TextAlign.center),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text('Points', style: style, textAlign: TextAlign.end),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GeneralLeaderboardHeader extends StatelessWidget {
-  const _GeneralLeaderboardHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppTheme.textSecondary,
-          fontWeight: FontWeight.w800,
-        );
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
-      child: Row(
-        children: [
-          Expanded(flex: 6, child: Text('Joueurs', style: style)),
-          Expanded(
-            flex: 2,
-            child: Text('Matchs', style: style, textAlign: TextAlign.center),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text('Saison', style: style, textAlign: TextAlign.center),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text('Points', style: style, textAlign: TextAlign.end),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MatchLeaderboardRow extends StatelessWidget {
-  const _MatchLeaderboardRow({
-    required this.rank,
-    required this.entry,
-    required this.points,
-  });
-
-  final int rank;
-  final LeaderboardEntry entry;
-  final int points;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LeaderboardRowLayout(
-      rank: rank,
-      profileId: entry.profileId,
-      name: entry.name,
-      firstValue: '${entry.matchBons}',
-      secondValue: '${entry.matchExacts}',
-      points: '$points',
-    );
-  }
-}
-
-class _GeneralLeaderboardRow extends StatelessWidget {
-  const _GeneralLeaderboardRow({
-    required this.rank,
-    required this.entry,
-    required this.points,
-  });
-
-  final int rank;
-  final LeaderboardEntry entry;
-  final int points;
-
-  @override
-  Widget build(BuildContext context) {
-    return _LeaderboardRowLayout(
-      rank: rank,
-      profileId: entry.profileId,
-      name: entry.name,
-      firstValue: '${(entry.matchPoints * 100).round()}',
-      secondValue: '${entry.seasonPoints.round()}',
-      points: '$points',
     );
   }
 }

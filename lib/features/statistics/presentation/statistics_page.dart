@@ -60,36 +60,84 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 }
 
-class _StatisticsPeriodView extends ConsumerWidget {
+class _StatisticsPeriodView extends ConsumerStatefulWidget {
   const _StatisticsPeriodView({required this.period});
 
   final StatisticsPeriod period;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dataAsync = ref.watch(statisticsPeriodProvider(period));
+  ConsumerState<_StatisticsPeriodView> createState() =>
+      _StatisticsPeriodViewState();
+}
+
+class _StatisticsPeriodViewState extends ConsumerState<_StatisticsPeriodView> {
+  // Colonne de tri active (null = ordre du classement fourni par le serveur).
+  _StatCol? _sort;
+  bool _desc = true;
+
+  void _onSort(_StatCol col) {
+    setState(() {
+      if (_sort == col) {
+        _desc = !_desc;
+      } else {
+        _sort = col;
+        _desc =
+            col != _StatCol.name; // noms A→Z, chiffres du + grand au + petit
+      }
+    });
+  }
+
+  num _value(_StatCol col, PlayerStatistics p) => switch (col) {
+        _StatCol.played => p.matchesPlayed ?? 0,
+        _StatCol.wins => p.wins ?? 0,
+        _StatCol.draws => p.draws ?? 0,
+        _StatCol.losses => p.losses ?? 0,
+        _StatCol.main => p.isGoalkeeper ? p.cleanSheets : p.goals,
+        _StatCol.hdm => p.hdm ?? 0,
+        _StatCol.name => 0,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final dataAsync = ref.watch(statisticsPeriodProvider(widget.period));
 
     return dataAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => _ScrollableMessage(
         message: humanizeError(error),
-        onRefresh: () => _refresh(ref),
+        onRefresh: _refresh,
       ),
       data: (data) {
         if (data.players.isEmpty) {
           return _ScrollableMessage(
             message: 'Aucune statistique disponible.',
-            onRefresh: () => _refresh(ref),
+            onRefresh: _refresh,
           );
+        }
+        final players = [...data.players];
+        final sort = _sort;
+        if (sort != null) {
+          players.sort((a, b) {
+            final cmp = sort == _StatCol.name
+                ? a.playerName
+                    .toLowerCase()
+                    .compareTo(b.playerName.toLowerCase())
+                : _value(sort, a).compareTo(_value(sort, b));
+            return _desc ? -cmp : cmp;
+          });
         }
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           child: StickyHeaderTableCard(
-            onRefresh: () => _refresh(ref),
-            header: const _StatisticsHeaderRow(),
+            onRefresh: _refresh,
+            header: _StatisticsHeaderRow(
+              sort: _sort,
+              descending: _desc,
+              onSort: _onSort,
+            ),
             rows: [
-              for (final player in data.players)
-                _StatisticsDataRow(player: player),
+              for (var i = 0; i < players.length; i++)
+                _StatisticsDataRow(rank: i + 1, player: players[i]),
             ],
           ),
         );
@@ -97,9 +145,9 @@ class _StatisticsPeriodView extends ConsumerWidget {
     );
   }
 
-  Future<void> _refresh(WidgetRef ref) async {
-    ref.invalidate(statisticsPeriodProvider(period));
-    await ref.read(statisticsPeriodProvider(period).future);
+  Future<void> _refresh() async {
+    ref.invalidate(statisticsPeriodProvider(widget.period));
+    await ref.read(statisticsPeriodProvider(widget.period).future);
   }
 }
 
@@ -133,8 +181,18 @@ class _ScrollableMessage extends StatelessWidget {
 const _statNameFlex = 7;
 const _statValueFlex = 2;
 
+enum _StatCol { name, played, wins, draws, losses, main, hdm }
+
 class _StatisticsHeaderRow extends StatelessWidget {
-  const _StatisticsHeaderRow();
+  const _StatisticsHeaderRow({
+    required this.sort,
+    required this.descending,
+    required this.onSort,
+  });
+
+  final _StatCol? sort;
+  final bool descending;
+  final void Function(_StatCol) onSort;
 
   @override
   Widget build(BuildContext context) {
@@ -143,22 +201,34 @@ class _StatisticsHeaderRow extends StatelessWidget {
           fontWeight: FontWeight.w800,
         );
 
-    Widget cell(String label) => Expanded(
+    Widget cell(String label, _StatCol col) => SortableHeaderCell(
+          label: label,
           flex: _statValueFlex,
-          child: Text(label, style: style, textAlign: TextAlign.center),
+          active: sort == col,
+          descending: descending,
+          onTap: () => onSort(col),
+          style: style,
         );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 11, 12, 11),
       child: Row(
         children: [
-          Expanded(flex: _statNameFlex, child: Text('Joueur', style: style)),
-          cell('J'),
-          cell('G'),
-          cell('N'),
-          cell('P'),
-          cell('B/CS'),
-          cell('HDM'),
+          SortableHeaderCell(
+            label: 'Joueur',
+            flex: _statNameFlex,
+            align: TextAlign.start,
+            active: sort == _StatCol.name,
+            descending: descending,
+            onTap: () => onSort(_StatCol.name),
+            style: style,
+          ),
+          cell('J', _StatCol.played),
+          cell('G', _StatCol.wins),
+          cell('N', _StatCol.draws),
+          cell('P', _StatCol.losses),
+          cell('B/CS', _StatCol.main),
+          cell('HDM', _StatCol.hdm),
         ],
       ),
     );
@@ -166,8 +236,9 @@ class _StatisticsHeaderRow extends StatelessWidget {
 }
 
 class _StatisticsDataRow extends StatelessWidget {
-  const _StatisticsDataRow({required this.player});
+  const _StatisticsDataRow({required this.rank, required this.player});
 
+  final int rank;
   final PlayerStatistics player;
 
   @override
@@ -194,7 +265,7 @@ class _StatisticsDataRow extends StatelessWidget {
                 SizedBox(
                   width: 18,
                   child: Text(
-                    '${player.rank}',
+                    '$rank',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.white54,
                           fontWeight: FontWeight.w700,
