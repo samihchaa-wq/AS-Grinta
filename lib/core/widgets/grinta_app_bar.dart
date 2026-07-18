@@ -30,21 +30,25 @@ class _GrintaTitleBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
-          // 1er quart : logo MPG, aligné à gauche.
+          // Logo MPG, aligné à gauche.
           Expanded(
+            flex: 2,
             child: Align(
               alignment: Alignment.centerLeft,
+              // Variante « barre » : le mot-symbole MPG est centré
+              // verticalement (padding bas) pour tomber pile au niveau du
+              // milieu du titre de la page, quelle que soit l'échelle.
               child: Image.asset(
-                'assets/images/mpg_logo.png',
-                height: 72,
+                'assets/images/mpg_logo_bar.png',
+                height: 96,
                 fit: BoxFit.contain,
               ),
             ),
           ),
-          // 2e et 3e quarts : nom de la page, centré. On réduit la taille si le
-          // titre est long plutôt que de le tronquer.
+          // Nom de la page, centré. On réduit la taille si le titre est long
+          // plutôt que de le tronquer.
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Center(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
@@ -60,8 +64,9 @@ class _GrintaTitleBar extends StatelessWidget {
               ),
             ),
           ),
-          // 4e quart : actions (armoire, paramètres), alignées à droite.
+          // Actions (armoire, paramètres), alignées à droite.
           Expanded(
+            flex: 2,
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerRight,
@@ -82,11 +87,19 @@ class _GrintaTitleBar extends StatelessWidget {
 List<Widget> grintaHomeActions(BuildContext context) => [
       IconButton(
         tooltip: 'Armoire à badges',
-        icon: const Text('🏆', style: TextStyle(fontSize: 20)),
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        constraints: const BoxConstraints(),
+        icon: const Text('🏆', style: TextStyle(fontSize: 28)),
         onPressed: () => context.push('/armoire'),
       ),
+      const SizedBox(width: 6),
       IconButton(
         tooltip: 'Paramètres',
+        iconSize: 30,
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        constraints: const BoxConstraints(),
         icon: const Icon(Icons.settings_outlined),
         onPressed: () => context.push('/more'),
       ),
