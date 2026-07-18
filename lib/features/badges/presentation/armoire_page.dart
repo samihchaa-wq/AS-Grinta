@@ -337,7 +337,6 @@ class _InProgressTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final remaining = badge.remaining ?? 0;
     // Barème à un seul palier (titres, exploits) : pas de progression.
     final showProgress = badge.target != null;
     return GestureDetector(
@@ -391,7 +390,7 @@ class _InProgressTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${badge.current}/${badge.target} · plus que $remaining',
+                      '${badge.current}/${badge.target}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
