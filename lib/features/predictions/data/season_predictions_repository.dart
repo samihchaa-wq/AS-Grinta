@@ -12,6 +12,7 @@ class SeasonPredictionItem {
     required this.category,
     required this.value,
     required this.isFilled,
+    this.profileId,
   });
 
   final String seasonId;
@@ -19,6 +20,7 @@ class SeasonPredictionItem {
   final String predictorName;
   final String playerId;
   final String playerName;
+  final String? profileId;
   final String category;
   final int value;
   final bool isFilled;
@@ -30,6 +32,7 @@ class SeasonPredictionItem {
       predictorName: predictorName,
       playerId: playerId,
       playerName: playerName,
+      profileId: profileId,
       category: category,
       value: value ?? this.value,
       isFilled: isFilled ?? this.isFilled,
@@ -180,7 +183,7 @@ class SeasonPredictionsRepository {
     final players = await _client
         .from('season_players')
         .select(
-            'id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)')
+            'id,profile_id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)')
         .eq('season_id', seasonId)
         .eq('is_active', true);
     final predictions = await _client
@@ -240,6 +243,7 @@ class SeasonPredictionsRepository {
           predictorName: predictorName,
           playerId: playerId,
           playerName: playerName,
+          profileId: map['profile_id']?.toString(),
           category: category,
           value: int.tryParse('${existing?['predicted_value_30'] ?? 0}') ?? 0,
           isFilled: existing?['is_filled'] == true,
