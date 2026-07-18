@@ -73,6 +73,7 @@ class BadgeEmblem extends StatelessWidget {
     this.showStar = false,
     this.starCount = 1,
     this.starsMultiplyBareme = false,
+    this.starOverflow = false,
   });
 
   final String emoji;
@@ -86,6 +87,11 @@ class BadgeEmblem extends StatelessWidget {
   /// carrière). Sinon le chiffre reste le seuil (paliers saisonniers).
   final bool starsMultiplyBareme;
 
+  /// Si vrai, l'étoile déborde AU-DESSUS du carré sans compter dans la hauteur
+  /// (empreinte = carré size×size). Sert à aligner le carré avec le texte voisin
+  /// (badges à côté des noms). Sinon la boîte est un peu plus haute (armoire).
+  final bool starOverflow;
+
   /// Nombre d'étoiles posées au-dessus du carré (paliers rejouables : une
   /// étoile par saison / titre gagné). Affichées côte à côte.
   final int starCount;
@@ -98,59 +104,70 @@ class BadgeEmblem extends StatelessWidget {
       return _square(base, size);
     }
 
-    // Le carré garde sa taille PLEINE ; une (ou plusieurs) petite(s) étoile(s)
-    // se pose(nt) au-dessus, côte à côte. La boîte est juste un peu plus haute
-    // (les étoiles chevauchent le haut).
     final stars = starCount < 1 ? 1 : starCount;
-    final starSize = size * 0.20;
     final overhang = size * 0.14;
+    // Rangée d'étoiles, réduite pour tenir dans la largeur du carré.
+    final starRow = SizedBox(
+      width: size,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topCenter,
+        child: _starRow(stars),
+      ),
+    );
+
+    if (starOverflow) {
+      // Empreinte = carré (size×size) ; l'étoile déborde au-dessus, sans
+      // décaler le carré (qui reste aligné avec le texte voisin).
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            _square(base, size),
+            Positioned(left: 0, right: 0, top: -overhang, child: starRow),
+          ],
+        ),
+      );
+    }
+
+    // Comportement historique (armoire) : boîte un peu plus haute, carré en bas,
+    // les étoiles chevauchent le haut.
     return SizedBox(
       width: size,
       height: size + overhang,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: _square(base, size),
-          ),
-          // Rangée d'étoiles centrée, réduite pour tenir dans la largeur du
-          // carré quand il y en a plusieurs.
-          Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: size,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.topCenter,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (var i = 0; i < stars; i++)
-                      Text(
-                        '⭐',
-                        style: TextStyle(
-                          fontSize: starSize,
-                          height: 1,
-                          // Ombre douce (pas de contour noir épais) : l'étoile
-                          // reste dorée et pleine même en tout petit à côté des
-                          // noms, comme dans l'armoire.
-                          shadows: [
-                            Shadow(
-                              color: const Color(0x8C000000),
-                              blurRadius: starSize * 0.22,
-                              offset: Offset(0, starSize * 0.08),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          Align(alignment: Alignment.bottomCenter, child: _square(base, size)),
+          Align(alignment: Alignment.topCenter, child: starRow),
         ],
       ),
+    );
+  }
+
+  /// Rangée d'étoiles dorées (icônes vectorielles : toujours nettes et jaunes,
+  /// même en tout petit — l'emoji ⭐ perd sa couleur sur le web à petite taille).
+  Widget _starRow(int stars) {
+    final starSize = size * 0.22;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < stars; i++)
+          Icon(
+            Icons.star_rounded,
+            size: starSize,
+            color: const Color(0xFFFCC21B),
+            shadows: [
+              Shadow(
+                color: const Color(0x73000000),
+                blurRadius: starSize * 0.18,
+                offset: Offset(0, starSize * 0.06),
+              ),
+            ],
+          ),
+      ],
     );
   }
 
