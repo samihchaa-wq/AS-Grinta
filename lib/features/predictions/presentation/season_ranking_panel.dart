@@ -1,13 +1,16 @@
 export 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SeasonRankingPanel extends ConsumerWidget {
-  const SeasonRankingPanel({super.key});
+  const SeasonRankingPanel({super.key, this.onRefresh});
+
+  final Future<void> Function()? onRefresh;
 
   String _format(double value) {
     if ((value - value.round()).abs() < 0.000001) return '${value.round()}';
@@ -18,10 +21,7 @@ class SeasonRankingPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final leaderboardAsync = ref.watch(leaderboardProvider);
     return leaderboardAsync.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 48),
-        child: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Card(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -43,22 +43,17 @@ class SeasonRankingPanel extends ConsumerWidget {
           );
         }
 
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              const _SeasonRankingHeader(),
-              const Divider(height: 1),
-              for (var index = 0; index < sorted.length; index++) ...[
-                _SeasonRankingRow(
-                  rank: index + 1,
-                  entry: sorted[index],
-                  points: _format(sorted[index].seasonPoints),
-                ),
-                if (index != sorted.length - 1) const Divider(height: 1),
-              ],
-            ],
-          ),
+        return StickyHeaderTableCard(
+          onRefresh: onRefresh,
+          header: const _SeasonRankingHeader(),
+          rows: [
+            for (var index = 0; index < sorted.length; index++)
+              _SeasonRankingRow(
+                rank: index + 1,
+                entry: sorted[index],
+                points: _format(sorted[index].seasonPoints),
+              ),
+          ],
         );
       },
     );

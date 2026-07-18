@@ -10,22 +10,15 @@ class AppShell extends ConsumerWidget {
 
   Uri get _uri => Uri.parse(location);
 
-  bool get _isMoreRoute {
-    const moreRoutes = {
-      '/more',
-      '/profile',
-      '/notifications',
-      '/admin',
-      '/players',
-      '/armoire',
-    };
-    return moreRoutes.any(
-      (route) => _uri.path == route || _uri.path.startsWith('$route/'),
-    );
+  /// Seuls les 5 onglets principaux affichent la barre du bas. Les autres écrans
+  /// (Paramètres, Armoire, Profil, Admin, détail de match…) sont des pages
+  /// poussées, en plein écran avec un bouton retour.
+  bool get _isMainTab {
+    final p = _uri.path;
+    return p == '/accueil' || p == '/pronos' || p == '/statistics';
   }
 
   int get _selectedIndex {
-    if (_isMoreRoute) return 5;
     if (_uri.path == '/statistics') return 4;
     if (_uri.path == '/pronos') {
       return switch (_uri.queryParameters['category']) {
@@ -39,22 +32,21 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!_isMainTab) return child;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
-        height: 72,
+        height: 76,
         selectedIndex: _selectedIndex,
-        // Icônes seules : les libellés restent définis (accessibilité) mais ne
-        // sont pas affichés.
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
           final destination = switch (index) {
             0 => '/accueil',
             1 => '/pronos?category=matches',
             2 => '/pronos?category=scorers',
             3 => '/pronos?category=general',
-            4 => '/statistics',
-            _ => '/more',
+            _ => '/statistics',
           };
           if (location != destination) context.go(destination);
         },
@@ -83,12 +75,6 @@ class AppShell extends ConsumerWidget {
             icon: Icon(Icons.query_stats_outlined),
             selectedIcon: Icon(Icons.query_stats_rounded),
             label: 'Statistiques',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: 'Paramètres',
-            tooltip: 'Paramètres',
           ),
         ],
       ),

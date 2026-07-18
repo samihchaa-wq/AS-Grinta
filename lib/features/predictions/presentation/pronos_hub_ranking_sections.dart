@@ -67,41 +67,42 @@ class _MatchRankingView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final leaderboard = ref.watch(leaderboardProvider);
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(leaderboardProvider);
-        await ref.read(leaderboardProvider.future);
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
+    Future<void> refresh() async {
+      ref.invalidate(leaderboardProvider);
+      await ref.read(leaderboardProvider.future);
+    }
+
+    return leaderboard.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const _MessageCard(
+        message: 'Le classement des matchs est indisponible.',
+      ),
+      data: (entries) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-        children: [
-          leaderboard.when(
-            loading: () => const _LoadingCard(),
-            error: (_, __) => const _MessageCard(
-              message: 'Le classement des matchs est indisponible.',
-            ),
-            data: (entries) => _LeaderboardCard(
-              entries: entries,
-              points: (entry) => entry.matchPoints * 100,
-              showMatchStats: true,
-            ),
-          ),
-        ],
+        child: _LeaderboardCard(
+          entries: entries,
+          points: (entry) => entry.matchPoints * 100,
+          showMatchStats: true,
+          onRefresh: refresh,
+        ),
       ),
     );
   }
 }
 
-class _ScorerRankingView extends StatelessWidget {
+class _ScorerRankingView extends ConsumerWidget {
   const _ScorerRankingView();
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> refresh() async {
+      ref.invalidate(leaderboardProvider);
+      await ref.read(leaderboardProvider.future);
+    }
+
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-      children: const [SeasonRankingPanel()],
+      child: SeasonRankingPanel(onRefresh: refresh),
     );
   }
 }
@@ -112,26 +113,23 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final leaderboard = ref.watch(leaderboardProvider);
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(leaderboardProvider);
-        await ref.read(leaderboardProvider.future);
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
+    Future<void> refresh() async {
+      ref.invalidate(leaderboardProvider);
+      await ref.read(leaderboardProvider.future);
+    }
+
+    return leaderboard.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const _MessageCard(
+        message: 'Le classement général est indisponible.',
+      ),
+      data: (entries) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
-        children: [
-          leaderboard.when(
-            loading: () => const _LoadingCard(),
-            error: (_, __) => const _MessageCard(
-              message: 'Le classement général est indisponible.',
-            ),
-            data: (entries) => _LeaderboardCard(
-              entries: entries,
-              points: (entry) => entry.totalPoints.roundToDouble(),
-            ),
-          ),
-        ],
+        child: _LeaderboardCard(
+          entries: entries,
+          points: (entry) => entry.totalPoints.roundToDouble(),
+          onRefresh: refresh,
+        ),
       ),
     );
   }

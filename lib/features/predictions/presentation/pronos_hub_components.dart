@@ -4,11 +4,13 @@ class _LeaderboardCard extends StatelessWidget {
   const _LeaderboardCard({
     required this.entries,
     required this.points,
+    this.onRefresh,
     this.showMatchStats = false,
   });
 
   final List<LeaderboardEntry> entries;
   final double Function(LeaderboardEntry) points;
+  final Future<void> Function()? onRefresh;
   final bool showMatchStats;
 
   @override
@@ -22,32 +24,26 @@ class _LeaderboardCard extends StatelessWidget {
       return const _MessageCard(message: 'Aucun point pour le moment.');
     }
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
+    return StickyHeaderTableCard(
+      onRefresh: onRefresh,
+      header: showMatchStats
+          ? const _MatchLeaderboardHeader()
+          : const _GeneralLeaderboardHeader(),
+      rows: [
+        for (var index = 0; index < sorted.length; index++)
           if (showMatchStats)
-            const _MatchLeaderboardHeader()
+            _MatchLeaderboardRow(
+              rank: index + 1,
+              entry: sorted[index],
+              points: points(sorted[index]).round(),
+            )
           else
-            const _GeneralLeaderboardHeader(),
-          const Divider(height: 1),
-          for (var index = 0; index < sorted.length; index++) ...[
-            if (showMatchStats)
-              _MatchLeaderboardRow(
-                rank: index + 1,
-                entry: sorted[index],
-                points: points(sorted[index]).round(),
-              )
-            else
-              _GeneralLeaderboardRow(
-                rank: index + 1,
-                entry: sorted[index],
-                points: points(sorted[index]).round(),
-              ),
-            if (index != sorted.length - 1) const Divider(height: 1),
-          ],
-        ],
-      ),
+            _GeneralLeaderboardRow(
+              rank: index + 1,
+              entry: sorted[index],
+              points: points(sorted[index]).round(),
+            ),
+      ],
     );
   }
 }

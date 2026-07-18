@@ -21,7 +21,10 @@ class AccueilPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Accueil')),
+      appBar: GrintaAppBar(
+        title: const Text('Accueil'),
+        actions: grintaHomeActions(context),
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref
