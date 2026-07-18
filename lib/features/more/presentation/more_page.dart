@@ -15,7 +15,7 @@ class MorePage extends ConsumerWidget {
     final isStaff = profile?.role.isStaff == true;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const SizedBox.shrink()),
+      appBar: GrintaAppBar(title: const Text('Paramètres')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -40,17 +40,6 @@ class MorePage extends ConsumerWidget {
               subtitle: const Text('Choisis quand tu veux être prévenu'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/notifications'),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Text('🏆', style: TextStyle(fontSize: 22)),
-              title: const Text('Armoire à badges'),
-              subtitle:
-                  const Text('Tes badges obtenus, en cours et à débloquer'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/armoire'),
             ),
           ),
           const SizedBox(height: 10),

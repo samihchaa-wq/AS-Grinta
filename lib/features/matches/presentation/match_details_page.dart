@@ -22,7 +22,7 @@ class MatchDetailsPage extends ConsumerWidget {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const SizedBox.shrink()),
+      appBar: GrintaAppBar(title: const Text('Match')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(matchDetailsProvider(matchId));

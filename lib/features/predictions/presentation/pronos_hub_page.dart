@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
@@ -70,18 +71,22 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
     return Scaffold(
       appBar: GrintaAppBar(
-        title: const SizedBox.shrink(),
-        actions: _category == _PronosCategory.matches && isAdmin
-            ? [
-                IconButton(
-                  tooltip: 'Ajouter un match',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MatchFormPage()),
-                  ),
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-              ]
-            : null,
+        title: Text(switch (_category) {
+          _PronosCategory.matches => 'Matchs',
+          _PronosCategory.scorers => 'Prono joueurs',
+          _PronosCategory.general => 'Classements',
+        }),
+        actions: [
+          if (_category == _PronosCategory.matches && isAdmin)
+            IconButton(
+              tooltip: 'Ajouter un match',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MatchFormPage()),
+              ),
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+          ...grintaHomeActions(context),
+        ],
       ),
       body: switch (_category) {
         _PronosCategory.matches => const _CalendarSection(),

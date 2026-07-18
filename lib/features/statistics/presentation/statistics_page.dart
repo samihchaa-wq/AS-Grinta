@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,10 @@ class _StatisticsPageState extends State<StatisticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Statistiques')),
+      appBar: GrintaAppBar(
+        title: const Text('Statistiques'),
+        actions: grintaHomeActions(context),
+      ),
       body: Column(
         children: [
           Padding(
@@ -67,39 +71,25 @@ class _StatisticsPeriodView extends ConsumerWidget {
 
     return dataAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => RefreshIndicator(
+      error: (error, _) => _ScrollableMessage(
+        message: humanizeError(error),
         onRefresh: () => _refresh(ref),
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(humanizeError(error)),
-              ),
-            ),
-          ],
-        ),
       ),
       data: (data) {
-        return RefreshIndicator(
-          onRefresh: () => _refresh(ref),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              _PeriodHeader(label: data.label),
-              const SizedBox(height: 16),
-              if (data.players.isEmpty)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text('Aucune statistique disponible.'),
-                  ),
-                )
-              else
-                _StatisticsTable(players: data.players),
+        if (data.players.isEmpty) {
+          return _ScrollableMessage(
+            message: 'Aucune statistique disponible.',
+            onRefresh: () => _refresh(ref),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: StickyHeaderTableCard(
+            onRefresh: () => _refresh(ref),
+            header: const _StatisticsHeaderRow(),
+            rows: [
+              for (final player in data.players)
+                _StatisticsDataRow(player: player),
             ],
           ),
         );
@@ -113,70 +103,27 @@ class _StatisticsPeriodView extends ConsumerWidget {
   }
 }
 
-class _PeriodHeader extends StatelessWidget {
-  const _PeriodHeader({required this.label});
+/// Message plein écran (vide / erreur) rafraîchissable par tirer-lâcher.
+class _ScrollableMessage extends StatelessWidget {
+  const _ScrollableMessage({required this.message, required this.onRefresh});
 
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E1D3B),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: const Color(0xFF4B6FFF).withValues(alpha: .38),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF4B6FFF).withValues(alpha: .14),
-            ),
-            child: const Icon(
-              Icons.query_stats_rounded,
-              color: Color(0xFF79A4FF),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Tableau des statistiques, même présentation que les « Classements » : un
-/// cartouche unique, une ligne d'en-tête, des lignes séparées par des filets.
-class _StatisticsTable extends StatelessWidget {
-  const _StatisticsTable({required this.players});
-
-  final List<PlayerStatistics> players;
+  final String message;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         children: [
-          const _StatisticsHeaderRow(),
-          const Divider(height: 1),
-          for (var index = 0; index < players.length; index++) ...[
-            _StatisticsDataRow(player: players[index]),
-            if (index != players.length - 1) const Divider(height: 1),
-          ],
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(message),
+            ),
+          ),
         ],
       ),
     );

@@ -23,7 +23,7 @@ class AdminPage extends ConsumerWidget {
     final dashboardAsync = ref.watch(adminDashboardProvider);
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const SizedBox.shrink()),
+      appBar: GrintaAppBar(title: const Text('Admin')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(adminDashboardProvider);
