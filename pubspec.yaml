@@ -28,5 +28,6 @@ flutter:
 
   assets:
     - assets/images/mpg_logo.png
+    - assets/images/mpg_logo_bar.png
     - assets/images/scorer_logo.png
     - assets/images/keeper_logo.png
