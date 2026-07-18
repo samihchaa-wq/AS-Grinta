@@ -132,7 +132,9 @@ class _SeasonPredictionEntryPageState
     final key = '${item.playerId}:${item.category}';
     final value = _draftValues[key] ?? item.value;
     final isGoalkeeper = item.category == 'clean_sheets';
-    final maxValue = isGoalkeeper ? 30 : 99;
+    // On pronostique le TOTAL de la saison (plus de base sur 30 matchs) : le
+    // plafond des clean sheets ne doit donc plus être bloqué à 30.
+    const maxValue = 99;
     final label = isGoalkeeper ? 'clean sheets' : 'buts';
 
     return Card(
