@@ -21,6 +21,7 @@ class BadgeDef {
     required this.sortOrder,
     this.hasStar = false,
     this.standalone = false,
+    this.secret = false,
   });
 
   final String code;
@@ -49,6 +50,10 @@ class BadgeDef {
   /// sans barème gradué ni barre de progression.
   final bool standalone;
 
+  /// Badge secret : masqué (« ??? » dans « À débloquer ») tant qu'il n'est pas
+  /// gagné. Une fois obtenu, il apparaît normalement dans « Validés ».
+  final bool secret;
+
   factory BadgeDef.fromMap(Map<String, dynamic> m) => BadgeDef(
         code: m['code'].toString(),
         name: (m['name'] ?? '').toString(),
@@ -64,6 +69,7 @@ class BadgeDef {
         sortOrder: (m['sort_order'] as num?)?.toInt() ?? 0,
         hasStar: m['has_star'] == true,
         standalone: m['standalone'] == true,
+        secret: m['secret'] == true,
       );
 }
 
@@ -126,7 +132,7 @@ class BadgeRepository {
     final rows = await _client
         .from('badges')
         .select(
-            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone')
+            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone,secret')
         .order('sort_order');
     return (rows as List)
         .map((r) => BadgeDef.fromMap(Map<String, dynamic>.from(r as Map)))
@@ -223,12 +229,18 @@ class BadgeRepository {
         ));
       }
       if (nextUnowned != null) {
-        inProgress.add(ArmoireBadge(
-          def: nextUnowned,
-          state: BadgeState.inProgress,
-          current: singleTier ? null : value,
-          target: singleTier ? null : nextUnowned.threshold,
-        ));
+        if (nextUnowned.secret) {
+          // Badge secret pas encore gagné : reste masqué (« ??? ») dans la
+          // section « À débloquer », sans dévoiler son nom ni sa condition.
+          locked.add(ArmoireBadge(def: nextUnowned, state: BadgeState.locked));
+        } else {
+          inProgress.add(ArmoireBadge(
+            def: nextUnowned,
+            state: BadgeState.inProgress,
+            current: singleTier ? null : value,
+            target: singleTier ? null : nextUnowned.threshold,
+          ));
+        }
       }
     });
 
