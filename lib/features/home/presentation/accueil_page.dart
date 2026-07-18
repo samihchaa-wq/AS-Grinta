@@ -773,6 +773,7 @@ class _RecentBadgesBlock extends ConsumerWidget {
                 padding: const EdgeInsets.all(14),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final b in recent) _BadgeChip(badge: b),
                   ],
@@ -806,12 +807,17 @@ class _BadgeChip extends StatelessWidget {
             size: 66,
           ),
           const SizedBox(height: 6),
-          Text(
-            badge.def.name,
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall,
+          // Hauteur fixe de 2 lignes : les noms courts comme longs occupent
+          // la même place, donc tous les emblèmes restent alignés.
+          SizedBox(
+            height: 30,
+            child: Text(
+              badge.def.name,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
           ),
         ],
       ),
