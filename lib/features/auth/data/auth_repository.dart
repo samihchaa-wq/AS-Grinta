@@ -74,7 +74,12 @@ class AuthRepository {
     Object? lastError;
     for (var attempt = 0; attempt < attempts; attempt++) {
       try {
-        final response = await _client.rpc('get_my_profile');
+        // Timeout de sécurité : si l'appel réseau reste en attente (blip
+        // réseau…), on échoue proprement au lieu de bloquer l'écran de
+        // chargement indéfiniment.
+        final response = await _client
+            .rpc('get_my_profile')
+            .timeout(const Duration(seconds: 12));
         if (response == null) return null;
         return AuthProfile.fromJson(
           Map<String, dynamic>.from(response as Map),
