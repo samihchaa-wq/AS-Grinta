@@ -74,7 +74,7 @@ class AppShell extends ConsumerWidget {
           NavigationDestination(
             icon: Icon(Icons.query_stats_outlined),
             selectedIcon: Icon(Icons.query_stats_rounded),
-            label: 'Statistiques',
+            label: 'Stats',
           ),
         ],
       ),

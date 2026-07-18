@@ -41,18 +41,23 @@ class _GrintaTitleBar extends StatelessWidget {
               ),
             ),
           ),
-          // 2e et 3e quarts : nom de la page, centré.
+          // 2e et 3e quarts : nom de la page, centré. On réduit la taille si le
+          // titre est long plutôt que de le tronquer.
           Expanded(
             flex: 2,
-            child: DefaultTextStyle.merge(
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
-              child: Center(child: pageName),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: DefaultTextStyle.merge(
+                  textAlign: TextAlign.center,
+                  softWrap: false,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
+                  child: pageName,
+                ),
+              ),
             ),
           ),
           // 4e quart : actions (armoire, paramètres), alignées à droite.

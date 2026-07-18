@@ -34,7 +34,7 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
                 ),
                 ButtonSegment(
                   value: _GeneralRankingView.scorers,
-                  label: Text('Buteurs'),
+                  label: Text('Prono joueurs'),
                 ),
                 ButtonSegment(
                   value: _GeneralRankingView.general,

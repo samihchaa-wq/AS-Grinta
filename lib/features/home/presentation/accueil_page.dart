@@ -652,7 +652,7 @@ class _MyRankingsBlock extends ConsumerWidget {
                     ),
                     const Divider(height: 1),
                     _RankRow(
-                      label: 'Saison',
+                      label: 'Prono joueurs',
                       rank: seasonRank!,
                       total: total,
                       onTap: () =>
