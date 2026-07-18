@@ -40,11 +40,13 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     final matches = state.matches.toList();
-    // Match à venir en haut (le prochain match tout en haut), matchs terminés
-    // en dessous du plus récent au plus ancien. À l'ouverture, la liste
-    // démarre en haut, donc le curseur est directement sur le prochain match.
-    final finishedMatches = matches.where((match) => match.isFinished).toList()
+    // Frise chronologique unique : du match le plus loin dans le futur (tout en
+    // haut) au plus ancien (tout en bas). Les dates se suivent donc dans un
+    // seul sens, sans rupture entre « à venir » et « terminés ».
+    final orderedMatches = matches.toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    // Le « prochain » match reste mis en avant par sa couleur : c'est le match
+    // à venir le plus proche dans le temps.
     final upcomingMatches = matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     final nextMatchId = upcomingMatches.firstOrNull?.id;
@@ -131,19 +133,14 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 child: _MessageCard(message: 'Aucun match.'),
               ),
             )
-          else ...[
-            // Matchs à venir en haut (le prochain match tout en haut).
+          else
+            // Frise unique : futur en haut → passé en bas (ordre décroissant).
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                16,
-                16,
-                upcomingMatches.isEmpty ? 0 : 4,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final match = upcomingMatches[index];
+                    final match = orderedMatches[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _CalendarMatchCard(
@@ -154,31 +151,10 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                       ),
                     );
                   },
-                  childCount: upcomingMatches.length,
+                  childCount: orderedMatches.length,
                 ),
               ),
             ),
-            // Matchs terminés en dessous, du plus récent au plus ancien.
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final match = finishedMatches[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _CalendarMatchCard(
-                        match: match,
-                        isAdmin: isAdmin,
-                        isNextMatch: false,
-                      ),
-                    );
-                  },
-                  childCount: finishedMatches.length,
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
