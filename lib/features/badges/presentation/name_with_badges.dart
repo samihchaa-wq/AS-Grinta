@@ -55,13 +55,25 @@ class _BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BadgeEmblem(
-      emoji: badge.emoji,
-      imageUrl: badge.imageUrl,
-      color: badge.color,
-      baremeLabel: badge.baremeLabel,
-      showStar: badge.hasStar,
-      size: size,
+    // On dessine l'emblème à haute résolution puis on le réduit : sur le web,
+    // un emoji rendu directement à petite taille sort délavé et sans détail.
+    // Le supersampling garantit le même dessin net que dans l'armoire.
+    const render = 96.0;
+    final overhang = badge.hasStar ? size * 0.14 : 0.0;
+    return SizedBox(
+      width: size,
+      height: size + overhang,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: BadgeEmblem(
+          emoji: badge.emoji,
+          imageUrl: badge.imageUrl,
+          color: badge.color,
+          baremeLabel: badge.baremeLabel,
+          showStar: badge.hasStar,
+          size: render,
+        ),
+      ),
     );
   }
 }
