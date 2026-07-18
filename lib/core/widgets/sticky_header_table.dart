@@ -48,3 +48,61 @@ class StickyHeaderTableCard extends StatelessWidget {
     );
   }
 }
+
+/// Cellule d'en-tête cliquable : un appui trie le tableau selon cette colonne
+/// (et inverse le sens si la colonne est déjà active). Une flèche ↑/↓ indique
+/// la colonne et le sens de tri courants.
+class SortableHeaderCell extends StatelessWidget {
+  const SortableHeaderCell({
+    required this.label,
+    required this.flex,
+    required this.active,
+    required this.descending,
+    required this.onTap,
+    this.align = TextAlign.center,
+    this.style,
+    super.key,
+  });
+
+  final String label;
+  final int flex;
+  final bool active;
+  final bool descending;
+  final VoidCallback onTap;
+  final TextAlign align;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final mainAxis = switch (align) {
+      TextAlign.start || TextAlign.left => MainAxisAlignment.start,
+      TextAlign.end || TextAlign.right => MainAxisAlignment.end,
+      _ => MainAxisAlignment.center,
+    };
+    return Expanded(
+      flex: flex,
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          mainAxisAlignment: mainAxis,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                style: style,
+                overflow: TextOverflow.ellipsis,
+                textAlign: align,
+              ),
+            ),
+            if (active)
+              Icon(
+                descending ? Icons.arrow_drop_down : Icons.arrow_drop_up,
+                size: 16,
+                color: style?.color,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
