@@ -28,6 +28,13 @@ String? baremeLabelFor(String? metric, int? threshold) {
   return '$threshold';
 }
 
+/// Vrai pour les paliers de CARRIÈRE (cumul total). C'est le seul cas où le
+/// chiffre du badge est multiplié par le nombre d'étoiles (ex. 200 buts →
+/// « 200 » + 2 étoiles). Les paliers saisonniers gardent leur chiffre fixe (le
+/// nombre d'étoiles compte alors les saisons).
+bool isCareerBadgeCategory(String? category) =>
+    category == 'joueur_all_time' || category == 'pronos_all_time';
+
 /// Contour blanc épais + fin liseré sombre pour détacher l'emoji de la couleur
 /// du carré (quelle que soit cette couleur), avec une légère ombre portée.
 List<Shadow> _emojiOutline(double fontSize) {
@@ -65,6 +72,7 @@ class BadgeEmblem extends StatelessWidget {
     this.baremeLabel,
     this.showStar = false,
     this.starCount = 1,
+    this.starsMultiplyBareme = false,
   });
 
   final String emoji;
@@ -73,6 +81,10 @@ class BadgeEmblem extends StatelessWidget {
   final String? color;
   final String? baremeLabel;
   final bool showStar;
+
+  /// Si vrai, le chiffre affiché = seuil × nombre d'étoiles (paliers de
+  /// carrière). Sinon le chiffre reste le seuil (paliers saisonniers).
+  final bool starsMultiplyBareme;
 
   /// Nombre d'étoiles posées au-dessus du carré (paliers rejouables : une
   /// étoile par saison / titre gagné). Affichées côte à côte.
@@ -120,7 +132,16 @@ class BadgeEmblem extends StatelessWidget {
                         style: TextStyle(
                           fontSize: starSize,
                           height: 1,
-                          shadows: _emojiOutline(starSize),
+                          // Ombre douce (pas de contour noir épais) : l'étoile
+                          // reste dorée et pleine même en tout petit à côté des
+                          // noms, comme dans l'armoire.
+                          shadows: [
+                            Shadow(
+                              color: const Color(0x8C000000),
+                              blurRadius: starSize * 0.22,
+                              offset: Offset(0, starSize * 0.08),
+                            ),
+                          ],
                         ),
                       ),
                   ],
@@ -138,7 +159,7 @@ class BadgeEmblem extends StatelessWidget {
   /// etc.). Les titres n'ont pas de pastille, donc ne sont pas concernés.
   String? get _displayBareme {
     final label = baremeLabel;
-    if (label == null || starCount <= 1) return label;
+    if (!starsMultiplyBareme || label == null || starCount <= 1) return label;
     final n = int.tryParse(label);
     if (n == null) return label;
     return (n * starCount).toString();

@@ -12,6 +12,7 @@ class FeaturedBadge {
     this.baremeLabel,
     this.hasStar = false,
     this.stars = 1,
+    this.category,
   });
   final String emoji;
   final String? imageUrl;
@@ -25,6 +26,10 @@ class FeaturedBadge {
 
   /// Nombre d'étoiles (multiples du dernier palier atteint) : 200 buts → 2, etc.
   final int stars;
+
+  /// Catégorie du badge (pour distinguer carrière / saison lors de l'affichage
+  /// du chiffre multiplié par les étoiles).
+  final String? category;
 }
 
 class FeaturedBadgesRepository {
@@ -48,6 +53,7 @@ class FeaturedBadgesRepository {
         ),
         hasStar: m['has_star'] == true,
         stars: (m['stars'] as num?)?.toInt() ?? 1,
+        category: m['category']?.toString(),
       ));
     }
     return map;

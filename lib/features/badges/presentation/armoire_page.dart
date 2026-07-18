@@ -285,6 +285,8 @@ class _BadgeTile extends StatelessWidget {
                   baremeLabel: bareme,
                   showStar: badge.def.hasStar,
                   starCount: badge.stars,
+                  starsMultiplyBareme:
+                      isCareerBadgeCategory(badge.def.category),
                   size: emblem,
                 ),
                 // Badge arboré : marqué uniquement par l'étoile (pas de contour).
@@ -351,6 +353,7 @@ class _InProgressTile extends StatelessWidget {
               baremeLabel: baremeThreshold(badge.def),
               showStar: badge.def.hasStar,
               starCount: badge.stars,
+              starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
               size: 58,
             ),
             const SizedBox(width: 14),
