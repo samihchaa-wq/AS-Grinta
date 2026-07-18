@@ -49,8 +49,8 @@ class ArmoirePage extends ConsumerWidget {
         actions: [
           if (isAdmin)
             IconButton(
-              tooltip: 'Gérer les badges',
-              icon: const Text('🏆', style: TextStyle(fontSize: 20)),
+              tooltip: '👑 Gérer les badges',
+              icon: const Text('👑', style: TextStyle(fontSize: 20)),
               onPressed: () => context.push('/admin/badges'),
             ),
         ],
