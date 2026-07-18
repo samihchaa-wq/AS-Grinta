@@ -59,18 +59,23 @@ class _BadgeChip extends StatelessWidget {
     // un emoji rendu directement à petite taille sort délavé et sans détail.
     // Le supersampling garantit le même dessin net que dans l'armoire.
     const render = 96.0;
-    final overhang = badge.hasStar ? size * 0.14 : 0.0;
+    // On réserve TOUJOURS la place de l'étoile au-dessus (même sans étoile) et
+    // on aligne l'emblème par le bas : deux badges côte à côte ont ainsi leurs
+    // carrés parfaitement alignés, que l'un ait une étoile ou non.
+    final overhang = size * 0.14;
     return SizedBox(
       width: size,
       height: size + overhang,
       child: FittedBox(
         fit: BoxFit.contain,
+        alignment: Alignment.bottomCenter,
         child: BadgeEmblem(
           emoji: badge.emoji,
           imageUrl: badge.imageUrl,
           color: badge.color,
           baremeLabel: badge.baremeLabel,
           showStar: badge.hasStar,
+          starCount: badge.stars,
           size: render,
         ),
       ),

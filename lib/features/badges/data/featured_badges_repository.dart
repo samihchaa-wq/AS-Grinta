@@ -11,6 +11,7 @@ class FeaturedBadge {
     this.color,
     this.baremeLabel,
     this.hasStar = false,
+    this.stars = 1,
   });
   final String emoji;
   final String? imageUrl;
@@ -21,6 +22,9 @@ class FeaturedBadge {
 
   /// Étoile posée au-dessus du carré (paliers finaux + titres).
   final bool hasStar;
+
+  /// Nombre d'étoiles (multiples du dernier palier atteint) : 200 buts → 2, etc.
+  final int stars;
 }
 
 class FeaturedBadgesRepository {
@@ -43,6 +47,7 @@ class FeaturedBadgesRepository {
           (m['threshold'] as num?)?.toInt(),
         ),
         hasStar: m['has_star'] == true,
+        stars: (m['stars'] as num?)?.toInt() ?? 1,
       ));
     }
     return map;
