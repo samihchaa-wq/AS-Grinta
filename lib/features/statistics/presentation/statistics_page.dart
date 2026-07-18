@@ -20,7 +20,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: GrintaAppBar(
-        title: const Text('Statistiques'),
+        title: const Text('Statistiques saisons'),
         actions: grintaHomeActions(context),
       ),
       body: Column(
