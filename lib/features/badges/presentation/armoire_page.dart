@@ -287,15 +287,7 @@ class _BadgeTile extends StatelessWidget {
                   starCount: badge.stars,
                   size: emblem,
                 ),
-                if (featured)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(emblem * 0.26),
-                        border: Border.all(color: scheme.secondary, width: 3),
-                      ),
-                    ),
-                  ),
+                // Badge arboré : marqué uniquement par l'étoile (pas de contour).
                 if (featured)
                   Positioned(
                     top: 6,
@@ -321,7 +313,6 @@ class _BadgeTile extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: featured ? scheme.secondary : null,
                 ),
           ),
         ],
