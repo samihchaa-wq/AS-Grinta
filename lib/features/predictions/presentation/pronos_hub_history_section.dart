@@ -76,6 +76,32 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          // Ajout d'un match (admin) : gros bouton centré en haut de la liste,
+          // pour ne pas modifier la hauteur de la barre du haut.
+          if (isAdmin)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Center(
+                  child: IconButton(
+                    tooltip: 'Ajouter un match',
+                    iconSize: 48,
+                    onPressed: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MatchFormPage(),
+                        ),
+                      );
+                      if (!context.mounted) return;
+                      await ref
+                          .read(matchesControllerProvider.notifier)
+                          .load(allSeasons: true);
+                    },
+                    icon: const Icon(Icons.add_circle),
+                  ),
+                ),
+              ),
+            ),
           if (state.isLoading)
             const SliverPadding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 32),

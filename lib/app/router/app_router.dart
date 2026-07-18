@@ -50,7 +50,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) =>
             AppShell(location: state.uri.toString(), child: child),
         routes: [
-          GoRoute(path: '/accueil', builder: (_, __) => const AccueilPage()),
+          // Onglets principaux : changement instantané (des pairs, pas une
+          // hiérarchie) pour une transition identique à chaque fois.
+          GoRoute(
+            path: '/accueil',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: AccueilPage()),
+          ),
           GoRoute(path: '/admin', builder: (_, __) => const AdminMenuPage()),
           GoRoute(
             path: '/admin/administration',
@@ -93,9 +99,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/pronos',
-            builder: (context, state) => PronosHubPage(
-              initialCategory: state.uri.queryParameters['category'],
-              initialView: state.uri.queryParameters['view'],
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: PronosHubPage(
+                initialCategory: state.uri.queryParameters['category'],
+                initialView: state.uri.queryParameters['view'],
+              ),
             ),
           ),
           GoRoute(
@@ -108,7 +116,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/statistics',
-            builder: (_, __) => const StatisticsPage(),
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: StatisticsPage()),
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           GoRoute(path: '/armoire', builder: (_, __) => const ArmoirePage()),

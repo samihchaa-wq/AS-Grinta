@@ -67,8 +67,8 @@ class AppShell extends ConsumerWidget {
             label: 'Prono joueurs',
           ),
           NavigationDestination(
-            icon: Icon(Icons.emoji_events_outlined),
-            selectedIcon: Icon(Icons.emoji_events_rounded),
+            icon: Icon(Icons.leaderboard_outlined),
+            selectedIcon: Icon(Icons.leaderboard_rounded),
             label: 'Classements',
           ),
           NavigationDestination(
