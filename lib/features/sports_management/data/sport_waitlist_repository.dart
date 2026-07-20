@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,6 +16,14 @@ abstract interface class SportWaitlistRepository {
   Future<List<AdminSportMatch>> fetchUpcomingMatches();
 
   Future<MatchConvocations> fetchMatchConvocations(String matchId);
+
+  Future<AvailabilityReminderSummary> fetchReminderSummary(String matchId);
+
+  Future<AvailabilityReminderResult> sendAvailabilityReminder({
+    required String matchId,
+    String? seasonPlayerId,
+    String? reason,
+  });
 
   Future<MatchConvocations> configureMatch({
     required String matchId,
@@ -99,6 +108,34 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       params: {'p_match_id': matchId},
     );
     return MatchConvocations.fromRpc(response);
+  }
+
+  @override
+  Future<AvailabilityReminderSummary> fetchReminderSummary(
+    String matchId,
+  ) async {
+    final response = await _client.rpc(
+      'admin_get_match_availability_reminders',
+      params: {'p_match_id': matchId},
+    );
+    return AvailabilityReminderSummary.fromRpc(response);
+  }
+
+  @override
+  Future<AvailabilityReminderResult> sendAvailabilityReminder({
+    required String matchId,
+    String? seasonPlayerId,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_send_match_availability_reminder',
+      params: {
+        'p_match_id': matchId,
+        'p_season_player_id': seasonPlayerId,
+        'p_reason': _clean(reason),
+      },
+    );
+    return AvailabilityReminderResult.fromRpc(response);
   }
 
   @override
@@ -201,4 +238,11 @@ final matchConvocationsProvider = FutureProvider.autoDispose
   return ref
       .watch(sportWaitlistRepositoryProvider)
       .fetchMatchConvocations(matchId);
+});
+
+final availabilityReminderSummaryProvider = FutureProvider.autoDispose
+    .family<AvailabilityReminderSummary, String>((ref, matchId) {
+  return ref
+      .watch(sportWaitlistRepositoryProvider)
+      .fetchReminderSummary(matchId);
 });

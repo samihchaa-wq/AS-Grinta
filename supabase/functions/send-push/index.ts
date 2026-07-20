@@ -1,6 +1,5 @@
 // Envoi des notifications Web Push (VAPID).
-// Appelée par la base via pg_net avec le jeton interne x-push-token :
-// { kind: 'new_match' | 'closing_soon' | 'result_validated', match_id: uuid }
+// Appelée par la base via pg_net avec le jeton interne x-push-token.
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
 
@@ -20,6 +19,20 @@ type DeliveryLogRow = {
   status_code: number | null;
   error_message: string | null;
 };
+
+type PushRequestBody = {
+  kind?: string;
+  match_id?: string;
+  profile_ids?: string[];
+  notification_event_id?: number;
+};
+
+const sportsAvailabilityKinds = new Set([
+  "availability_open",
+  "availability_j3",
+  "availability_j1",
+  "availability_manual",
+]);
 
 function endpointHost(endpoint: string): string | null {
   try {
@@ -62,7 +75,7 @@ Deno.serve(async (req: Request) => {
     return new Response("non autorisé", { status: 401 });
   }
 
-  let body: { kind?: string; match_id?: string };
+  let body: PushRequestBody;
   try {
     body = await req.json();
   } catch {
@@ -72,17 +85,54 @@ Deno.serve(async (req: Request) => {
     return new Response("kind et match_id requis", { status: 400 });
   }
 
-  const { data: dispatch, error: dispatchError } = await supabase.rpc(
-    "internal_push_dispatch",
-    { p_kind: body.kind, p_match_id: body.match_id },
-  );
+  const isSportsAvailability = sportsAvailabilityKinds.has(body.kind);
+  if (
+    isSportsAvailability &&
+    (!Array.isArray(body.profile_ids) || body.profile_ids.length === 0)
+  ) {
+    return new Response("profile_ids requis pour ce type d’envoi", {
+      status: 400,
+    });
+  }
+
+  const dispatchResult = isSportsAvailability
+    ? await supabase.rpc("internal_sport_push_dispatch", {
+      p_kind: body.kind,
+      p_match_id: body.match_id,
+      p_profile_ids: body.profile_ids,
+    })
+    : await supabase.rpc("internal_push_dispatch", {
+      p_kind: body.kind,
+      p_match_id: body.match_id,
+    });
+
+  const { data: dispatch, error: dispatchError } = dispatchResult;
   if (dispatchError || !dispatch) {
     console.error("send-push dispatch failure", dispatchError);
     return new Response("préparation impossible", { status: 500 });
   }
 
+  const markSportsDelivery = async (
+    attempted: number,
+    sent: number,
+    failed: number,
+  ) => {
+    if (!isSportsAvailability || !body.notification_event_id) return;
+    const { error } = await supabase.rpc(
+      "internal_mark_sport_notification_delivery",
+      {
+        p_event_id: body.notification_event_id,
+        p_attempted: attempted,
+        p_sent: sent,
+        p_failed: failed,
+      },
+    );
+    if (error) console.error("send-push sports event mark failure", error);
+  };
+
   const subscriptions: SubscriptionRow[] = dispatch.subscriptions ?? [];
   if (subscriptions.length === 0) {
+    await markSportsDelivery(0, 0, 0);
     return Response.json({ attempted: 0, sent: 0, failed: 0, pruned: 0 });
   }
 
@@ -161,6 +211,12 @@ Deno.serve(async (req: Request) => {
       pruned = data ?? 0;
     }
   }
+
+  await markSportsDelivery(
+    subscriptions.length,
+    sent,
+    subscriptions.length - sent,
+  );
 
   return Response.json({
     attempted: subscriptions.length,

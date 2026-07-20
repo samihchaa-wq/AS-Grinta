@@ -66,6 +66,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/current_business_schema.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/sports_notifications_push_schema.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720033749_integrity_backfill_and_staff_audit.sql
@@ -81,6 +83,12 @@ jobs:
               -f supabase/migrations/20260720150000_sports_management_waitlist_rotation.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720151000_sports_management_waitlist_rotation_fixes.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720162500_sports_management_notification_scheduler_extensions.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720163000_sports_management_availability_notifications.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720163500_sports_management_availability_notification_rpc_grants.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
@@ -106,6 +114,9 @@ jobs:
             2>&1 | tee -a supabase-tests.log
           supabase test db \
             supabase/tests/database/sports_management_waitlist_rotation_fixes.test.sql \
+            2>&1 | tee -a supabase-tests.log
+          supabase test db \
+            supabase/tests/database/sports_management_availability_notifications.test.sql \
             2>&1 | tee -a supabase-tests.log
 
       - name: Lint database functions

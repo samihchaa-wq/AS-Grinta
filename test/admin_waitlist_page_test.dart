@@ -1,4 +1,5 @@
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:flutter/material.dart';
@@ -98,6 +99,20 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
 
   @override
   Future<MatchConvocations> fetchMatchConvocations(String matchId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AvailabilityReminderSummary> fetchReminderSummary(String matchId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AvailabilityReminderResult> sendAvailabilityReminder({
+    required String matchId,
+    String? seasonPlayerId,
+    String? reason,
+  }) {
     throw UnimplementedError();
   }
 

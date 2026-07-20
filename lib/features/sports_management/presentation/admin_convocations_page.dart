@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
   List<AdminSportMatch> _matches = const [];
   String? _selectedMatchId;
   MatchConvocations? _snapshot;
+  AvailabilityReminderSummary? _reminders;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -62,11 +64,16 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
       _error = null;
     });
     try {
-      final snapshot = await ref
-          .read(sportWaitlistRepositoryProvider)
-          .fetchMatchConvocations(matchId);
+      final repository = ref.read(sportWaitlistRepositoryProvider);
+      final results = await Future.wait<Object>([
+        repository.fetchMatchConvocations(matchId),
+        repository.fetchReminderSummary(matchId),
+      ]);
       if (!mounted || _selectedMatchId != matchId) return;
-      setState(() => _snapshot = snapshot);
+      setState(() {
+        _snapshot = results[0] as MatchConvocations;
+        _reminders = results[1] as AvailabilityReminderSummary;
+      });
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = humanizeError(error));
@@ -254,17 +261,86 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
     );
   }
 
+  Future<void> _sendReminder({ConvocationPlayer? player}) async {
+    final snapshot = _snapshot;
+    final reminders = _reminders;
+    if (snapshot == null || reminders == null || !reminders.canRemind) return;
+
+    final isCollective = player == null;
+    if (isCollective && reminders.noResponseCount == 0) {
+      _showMessage('Tous les joueurs ont déjà répondu.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(
+              isCollective
+                  ? 'Relancer les sans réponse ?'
+                  : 'Relancer ${player.displayName} ?',
+            ),
+            content: Text(
+              isCollective
+                  ? '${reminders.noResponseCount} joueur${reminders.noResponseCount > 1 ? 's' : ''} '
+                      'sans réponse recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
+                  : 'Une notification de disponibilité sera envoyée. Un second '
+                      'envoi est bloqué pendant dix minutes.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Relancer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    setState(() => _busy = true);
+    try {
+      final repository = ref.read(sportWaitlistRepositoryProvider);
+      final result = await repository.sendAvailabilityReminder(
+        matchId: snapshot.matchId,
+        seasonPlayerId: player?.seasonPlayerId,
+        reason: isCollective
+            ? 'Relance collective depuis l’écran Convocations'
+            : 'Relance individuelle depuis l’écran Convocations',
+      );
+      final updated = await repository.fetchReminderSummary(snapshot.matchId);
+      if (!mounted) return;
+      setState(() => _reminders = updated);
+
+      if (result.createdCount > 0) {
+        _showMessage(
+          '${result.createdCount} notification${result.createdCount > 1 ? 's' : ''} envoyée${result.createdCount > 1 ? 's' : ''}.',
+        );
+      } else if (result.skippedRecentCount > 0) {
+        _showMessage('Relance déjà effectuée il y a moins de dix minutes.');
+      } else {
+        _showMessage('Aucun joueur à relancer.');
+      }
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(humanizeError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _publish() async {
     final snapshot = _snapshot;
     if (snapshot == null) return;
     if (snapshot.isOverLimit) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Il y a ${snapshot.convokedCount} convoqués pour une limite de '
-            '${snapshot.squadSizeLimit}.',
-          ),
-        ),
+      _showMessage(
+        'Il y a ${snapshot.convokedCount} convoqués pour une limite de '
+        '${snapshot.squadSizeLimit}.',
       );
       return;
     }
@@ -318,39 +394,44 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
       if (!mounted) return;
       await _loadSnapshot(snapshot.matchId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            count == 0
-                ? 'Aucun tour à finaliser pour le moment.'
-                : '$count tour${count > 1 ? 's' : ''} finalisé${count > 1 ? 's' : ''}.',
-          ),
-        ),
+      _showMessage(
+        count == 0
+            ? 'Aucun tour à finaliser pour le moment.'
+            : '$count tour${count > 1 ? 's' : ''} finalisé${count > 1 ? 's' : ''}.',
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      _showMessage(humanizeError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _run(Future<MatchConvocations> Function() action) async {
+    final matchId = _snapshot?.matchId;
+    if (matchId == null) return;
     setState(() => _busy = true);
     try {
+      final repository = ref.read(sportWaitlistRepositoryProvider);
       final snapshot = await action();
+      final reminders = await repository.fetchReminderSummary(matchId);
       if (!mounted) return;
-      setState(() => _snapshot = snapshot);
+      setState(() {
+        _snapshot = snapshot;
+        _reminders = reminders;
+      });
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      _showMessage(humanizeError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
@@ -417,6 +498,7 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
                     setState(() {
                       _selectedMatchId = value;
                       _snapshot = null;
+                      _reminders = null;
                     });
                     _loadSnapshot(value);
                   },
@@ -429,19 +511,31 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
           else if (_snapshot != null) ...[
             _SummaryCard(
               snapshot: _snapshot!,
+              reminders: _reminders,
               busy: _busy,
               onConfigureLimit: _configureLimit,
               onRecompute: () => _recompute(resetOverrides: false),
               onReset: () => _recompute(resetOverrides: true),
               onPublish: _publish,
               onFinalizeTurns: _finalizeTurns,
+              onRemindAll: () => _sendReminder(),
             ),
             const SizedBox(height: 14),
             for (final player in _snapshot!.players)
               _ConvocationPlayerCard(
                 player: player,
+                reminder: _reminders?.playerFor(player.seasonPlayerId),
                 onTap: player.isAvailable && !_busy
                     ? () => _editPlayer(player)
+                    : null,
+                onRemind: player.availabilityStatus == 'no_response' &&
+                        _reminders?.canRemind == true &&
+                        !(_reminders
+                                ?.playerFor(player.seasonPlayerId)
+                                ?.isInCooldownAt(DateTime.now()) ??
+                            false) &&
+                        !_busy
+                    ? () => _sendReminder(player: player)
                     : null,
               ),
           ],
@@ -454,21 +548,25 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.snapshot,
+    required this.reminders,
     required this.busy,
     required this.onConfigureLimit,
     required this.onRecompute,
     required this.onReset,
     required this.onPublish,
     required this.onFinalizeTurns,
+    required this.onRemindAll,
   });
 
   final MatchConvocations snapshot;
+  final AvailabilityReminderSummary? reminders;
   final bool busy;
   final VoidCallback onConfigureLimit;
   final VoidCallback onRecompute;
   final VoidCallback onReset;
   final VoidCallback onPublish;
   final VoidCallback onFinalizeTurns;
+  final VoidCallback onRemindAll;
 
   @override
   Widget build(BuildContext context) {
@@ -514,8 +612,21 @@ class _SummaryCard extends StatelessWidget {
                   label:
                       '${snapshot.notConvokedCount} non convoqué${snapshot.notConvokedCount > 1 ? 's' : ''}',
                 ),
+                if (reminders != null)
+                  _CountChip(
+                    icon: Icons.mark_email_unread_outlined,
+                    label: '${reminders!.noResponseCount} sans réponse',
+                  ),
               ],
             ),
+            if (reminders != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Notifications : ${reminders!.openSentCount} ouverture · '
+                '${reminders!.j3SentCount} J−3 · ${reminders!.j1SentCount} J−1',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             if (snapshot.lateWithdrawalCutoffAt != null) ...[
               const SizedBox(height: 10),
               Text(
@@ -540,6 +651,15 @@ class _SummaryCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
+                FilledButton.tonalIcon(
+                  onPressed: busy ||
+                          reminders?.canRemind != true ||
+                          reminders!.noResponseCount == 0
+                      ? null
+                      : onRemindAll,
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: const Text('Relancer les sans réponse'),
+                ),
                 OutlinedButton.icon(
                   onPressed: busy ? null : onConfigureLimit,
                   icon: const Icon(Icons.tune),
@@ -598,10 +718,17 @@ class _CountChip extends StatelessWidget {
 }
 
 class _ConvocationPlayerCard extends StatelessWidget {
-  const _ConvocationPlayerCard({required this.player, this.onTap});
+  const _ConvocationPlayerCard({
+    required this.player,
+    this.reminder,
+    this.onTap,
+    this.onRemind,
+  });
 
   final ConvocationPlayer player;
+  final AvailabilityReminderPlayer? reminder;
   final VoidCallback? onTap;
+  final VoidCallback? onRemind;
 
   @override
   Widget build(BuildContext context) {
@@ -618,72 +745,40 @@ class _ConvocationPlayerCard extends StatelessWidget {
       'available' when player.isNotConvoked => Icons.person_off,
       'available' => Icons.help_outline,
       'absent' => Icons.cancel_outlined,
-      _ => Icons.hourglass_empty,
+      'no_response' => Icons.schedule,
+      _ => Icons.block,
     };
 
+    final details = <String>[
+      status,
+      if (player.waitlistPosition != null) 'Liste n°${player.waitlistPosition}',
+      if (player.recommendedNotConvoked) 'Proposition automatique',
+      if (player.manualOverride) 'Choix manuel',
+      if (player.turnShouldConsume) 'Tour à consommer',
+      if (player.promotedAfterWithdrawalAt != null) 'Rappelé après désistement',
+      if (reminder?.lastReminderAt != null)
+        'Dernière relance ${_formatDateTime(reminder!.lastReminderAt!)}',
+    ];
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                child: Text(player.waitlistPosition?.toString() ?? '—'),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      player.displayName,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(icon, size: 17),
-                        const SizedBox(width: 6),
-                        Expanded(child: Text(status)),
-                      ],
-                    ),
-                    if (player.recommendedNotConvoked) ...[
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Proposition automatique de la liste d’attente',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                    if (player.manualOverride) ...[
-                      const SizedBox(height: 5),
-                      const Text('Choix modifié par un administrateur'),
-                    ],
-                    if (player.turnShouldConsume) ...[
-                      const SizedBox(height: 5),
-                      Text(
-                        player.turnState == WaitlistTurnState.consumed
-                            ? 'Tour consommé'
-                            : 'Tour à consommer après la coupure',
-                      ),
-                    ],
-                    if (player.promotedAfterWithdrawalAt != null) ...[
-                      const SizedBox(height: 5),
-                      Text(
-                        'Rappelé après un désistement le '
-                        '${_formatDateTime(player.promotedAfterWithdrawalAt!)}',
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (onTap != null) const Icon(Icons.edit_outlined),
-            ],
-          ),
+        leading: CircleAvatar(child: Icon(icon)),
+        title: Text(
+          player.displayName,
+          style: const TextStyle(fontWeight: FontWeight.w800),
         ),
+        subtitle: Text(details.join(' · ')),
+        trailing: onRemind != null
+            ? IconButton.filledTonal(
+                tooltip: 'Relancer ce joueur',
+                onPressed: onRemind,
+                icon: const Icon(Icons.notifications_active_outlined),
+              )
+            : onTap != null
+                ? const Icon(Icons.chevron_right)
+                : null,
       ),
     );
   }
@@ -702,13 +797,11 @@ class _ConvocationDecision {
 }
 
 String _formatDate(DateTime value) {
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${two(value.day)}/${two(value.month)}/${value.year} · '
-      '${two(value.hour)}:${two(value.minute)}';
+  final local = value.toLocal();
+  return '${local.day.toString().padLeft(2, '0')}/'
+      '${local.month.toString().padLeft(2, '0')}/${local.year} '
+      '${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
 }
 
-String _formatDateTime(DateTime value) {
-  String two(int number) => number.toString().padLeft(2, '0');
-  return '${two(value.day)}/${two(value.month)}/${value.year} à '
-      '${two(value.hour)}:${two(value.minute)}';
-}
+String _formatDateTime(DateTime value) => _formatDate(value);
