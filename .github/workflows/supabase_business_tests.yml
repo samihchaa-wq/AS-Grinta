@@ -72,7 +72,7 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/security_hardening_pass_2_schema.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720120000_security_hardening_pass_2.sql
+              -f supabase/migrations/20260720110119_security_hardening_pass_2.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
