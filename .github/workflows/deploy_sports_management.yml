@@ -81,3 +81,5 @@ jobs:
             migration-before.txt
             migration-after.txt
           if-no-files-found: warn
+
+# Production deployment authorized on 2026-07-21.
