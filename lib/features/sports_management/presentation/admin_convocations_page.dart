@@ -121,10 +121,9 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
     controller.dispose();
     if (value == null) return;
     await _run(
-      () => ref.read(sportWaitlistRepositoryProvider).configureMatch(
-            matchId: snapshot.matchId,
-            squadSizeLimit: value,
-          ),
+      () => ref
+          .read(sportWaitlistRepositoryProvider)
+          .configureMatch(matchId: snapshot.matchId, squadSizeLimit: value),
     );
   }
 
@@ -429,9 +428,9 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

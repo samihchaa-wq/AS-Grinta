@@ -20,8 +20,9 @@ void main() {
     expect(find.text('Activé'), findsOneWidget);
   });
 
-  testWidgets('disabling requires confirmation and preserves the reason',
-      (tester) async {
+  testWidgets('disabling requires confirmation and preserves the reason', (
+    tester,
+  ) async {
     final repository = _WidgetFeatureFlagsRepository(initialEnabled: true);
     await tester.pumpWidget(_harness(repository));
     await tester.pumpAndSettle();
@@ -47,9 +48,7 @@ Widget _harness(FeatureFlagsRepository repository) {
       featureFlagsSessionReadyProvider.overrideWithValue(true),
     ],
     child: const MaterialApp(
-      home: Scaffold(
-        body: AdminSportsManagementSection(),
-      ),
+      home: Scaffold(body: AdminSportsManagementSection()),
     ),
   );
 }

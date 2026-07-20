@@ -92,6 +92,21 @@ class AdminMenuPage extends ConsumerWidget {
             const SizedBox(height: 10),
             Card(
               child: ListTile(
+                leading: const Icon(Icons.how_to_vote_outlined),
+                title: const Text(
+                  'Suivi des votes HDM',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: const Text(
+                  'Participation, notifications, intégrité statistique et audit.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/admin/motm'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
                 leading: const Icon(Icons.format_list_numbered),
                 title: const Text(
                   'Liste d’attente',

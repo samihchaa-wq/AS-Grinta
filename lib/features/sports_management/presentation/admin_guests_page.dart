@@ -276,9 +276,9 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -354,10 +354,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
             const SizedBox(height: 10),
             const LinearProgressIndicator(),
           ],
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!),
-          ],
+          if (_error != null) ...[const SizedBox(height: 12), Text(_error!)],
           const SizedBox(height: 14),
           Card(
             child: Padding(

@@ -78,9 +78,9 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
       var composition = await repository.fetchAdminComposition(matchId);
       var isInitialDraft = false;
       if (composition == null) {
-        final goalkeeperIds = await repository.fetchGoalkeeperSeasonPlayerIds(
-          [for (final player in convocations.players) player.seasonPlayerId],
-        );
+        final goalkeeperIds = await repository.fetchGoalkeeperSeasonPlayerIds([
+          for (final player in convocations.players) player.seasonPlayerId,
+        ]);
         composition = MatchComposition.initial(
           convocations: convocations,
           goalkeeperSeasonPlayerIds: goalkeeperIds,
@@ -109,9 +109,7 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
     final composition = _composition;
     if (composition == null || _busy) return;
     if (!entry.canBeSelected) {
-      _showMessage(
-        'Ce joueur doit d’abord être disponible et convoqué.',
-      );
+      _showMessage('Ce joueur doit d’abord être disponible et convoqué.');
       return;
     }
     if (zone == MatchCompositionZone.notSelected) {
@@ -171,10 +169,7 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
       if (isFree) return position;
     }
     final index = occupied.length;
-    return Offset(
-      0.18 + (index % 4) * 0.21,
-      0.18 + ((index ~/ 4) % 3) * 0.28,
-    );
+    return Offset(0.18 + (index % 4) * 0.21, 0.18 + ((index ~/ 4) % 3) * 0.28);
   }
 
   void _applyFormation(String code) {
@@ -329,26 +324,20 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
               ListTile(
                 leading: const Icon(Icons.sports_soccer),
                 title: const Text('Placer titulaire'),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  MatchCompositionZone.field,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, MatchCompositionZone.field),
               ),
               ListTile(
                 leading: const Icon(Icons.event_seat_outlined),
                 title: const Text('Mettre sur le banc'),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  MatchCompositionZone.bench,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, MatchCompositionZone.bench),
               ),
               ListTile(
                 leading: const Icon(Icons.hourglass_empty),
                 title: const Text('Laisser à placer'),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  MatchCompositionZone.available,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, MatchCompositionZone.available),
               ),
             ],
           ),
@@ -518,9 +507,9 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -693,13 +682,7 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
                 ],
               );
             }
-            return Column(
-              children: [
-                pitch,
-                const SizedBox(height: 16),
-                zones,
-              ],
-            );
+            return Column(children: [pitch, const SizedBox(height: 16), zones]);
           },
         ),
         const SizedBox(height: 18),
@@ -712,8 +695,9 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
                 FilledButton.tonalIcon(
                   onPressed: _busy ? null : () => _saveDraft(),
                   icon: const Icon(Icons.save_outlined),
-                  label:
-                      Text(_dirty ? 'Enregistrer le brouillon' : 'Enregistré'),
+                  label: Text(
+                    _dirty ? 'Enregistrer le brouillon' : 'Enregistré',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 FilledButton.icon(
@@ -778,7 +762,8 @@ class _CompositionSummaryCard extends StatelessWidget {
                     size: 18,
                   ),
                   label: Text(
-                      dirty ? 'Non enregistré' : composition.publicationLabel),
+                    dirty ? 'Non enregistré' : composition.publicationLabel,
+                  ),
                 ),
               ],
             ),
@@ -816,11 +801,10 @@ class _CompositionSummaryCard extends StatelessWidget {
               builder: (context, constraints) {
                 final formation = DropdownButtonFormField<String>(
                   key: ValueKey(composition.formationCode),
-                  initialValue: _formationPositions.containsKey(
-                    composition.formationCode,
-                  )
-                      ? composition.formationCode
-                      : 'Libre',
+                  initialValue:
+                      _formationPositions.containsKey(composition.formationCode)
+                          ? composition.formationCode
+                          : 'Libre',
                   decoration: const InputDecoration(
                     labelText: 'Formation',
                     border: OutlineInputBorder(),

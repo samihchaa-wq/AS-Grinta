@@ -7,8 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('an administrator can reorder and save the complete waitlist',
-      (tester) async {
+  testWidgets('an administrator can reorder and save the complete waitlist', (
+    tester,
+  ) async {
     final repository = _FakeSportWaitlistRepository();
     await tester.pumpWidget(
       ProviderScope(

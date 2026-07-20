@@ -49,8 +49,9 @@ class SportFinalParticipant {
       isGoalkeeper: json['is_goalkeeper'] == true,
       plannedZone: (json['planned_zone'] ?? 'available').toString(),
       present: json['present'] == true,
-      selectionStatus:
-          SportFinalSelectionStatus.fromWire(json['final_selection_status']),
+      selectionStatus: SportFinalSelectionStatus.fromWire(
+        json['final_selection_status'],
+      ),
       goals: (json['goals'] as num?)?.toInt() ?? 0,
       cleanSheet: json['clean_sheet'] == true,
     );
@@ -163,13 +164,17 @@ class SportMatchFinalization {
 
   int get presentCount => participants.where((p) => p.present).length;
   int get starterCount => participants
-      .where((p) =>
-          p.present && p.selectionStatus == SportFinalSelectionStatus.starter)
+      .where(
+        (p) =>
+            p.present && p.selectionStatus == SportFinalSelectionStatus.starter,
+      )
       .length;
   int get substituteCount => participants
-      .where((p) =>
-          p.present &&
-          p.selectionStatus == SportFinalSelectionStatus.substitute)
+      .where(
+        (p) =>
+            p.present &&
+            p.selectionStatus == SportFinalSelectionStatus.substitute,
+      )
       .length;
   int get guestPresentCount =>
       participants.where((p) => p.present && p.isGuest).length;

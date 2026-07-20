@@ -30,10 +30,7 @@ void main() {
   });
 }
 
-Widget _harness(
-  MatchCompositionRepository repository, {
-  bool enabled = true,
-}) {
+Widget _harness(MatchCompositionRepository repository, {bool enabled = true}) {
   return ProviderScope(
     overrides: [
       sportsManagementEnabledProvider.overrideWithValue(enabled),

@@ -153,8 +153,9 @@ class ConvocationPlayer {
       recommendedNotConvoked: json['recommended_not_convoked'] == true,
       turnShouldConsume: json['turn_should_consume'] == true,
       turnState: WaitlistTurnState.fromWire(json['turn_state']),
-      promotedAfterWithdrawalAt:
-          _dateOrNull(json['promoted_after_withdrawal_at']),
+      promotedAfterWithdrawalAt: _dateOrNull(
+        json['promoted_after_withdrawal_at'],
+      ),
     );
   }
 

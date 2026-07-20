@@ -39,18 +39,12 @@ class SportsManagementFeature {
         config['reminder_hours_before'],
         fallback: const [72, 24],
       ),
-      usualSquadSize: _positiveInt(
-        config['usual_squad_size'],
-        fallback: 14,
-      ),
+      usualSquadSize: _positiveInt(config['usual_squad_size'], fallback: 14),
       voteDurationHours: _positiveInt(
         config['vote_duration_hours'],
         fallback: 24,
       ),
-      timezone: _nonEmptyText(
-        config['timezone'],
-        fallback: 'Europe/Paris',
-      ),
+      timezone: _nonEmptyText(config['timezone'], fallback: 'Europe/Paris'),
       updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
     );
   }
@@ -80,9 +74,7 @@ class FeatureFlagsSnapshot {
 
     final sportsManagement = _asStringMap(root['sports_management']);
     if (sportsManagement.isEmpty) {
-      throw const FormatException(
-        'Sports-management feature flag is missing.',
-      );
+      throw const FormatException('Sports-management feature flag is missing.');
     }
 
     return FeatureFlagsSnapshot(
@@ -102,10 +94,7 @@ int _positiveInt(Object? value, {required int fallback}) {
   return parsed != null && parsed > 0 ? parsed : fallback;
 }
 
-List<int> _positiveIntList(
-  Object? value, {
-  required List<int> fallback,
-}) {
+List<int> _positiveIntList(Object? value, {required List<int> fallback}) {
   if (value is! List) return List<int>.unmodifiable(fallback);
 
   final result = value

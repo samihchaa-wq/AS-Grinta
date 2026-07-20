@@ -422,9 +422,9 @@ class _VoteHeader extends StatelessWidget {
               'AS Grinta ${vote.scoreAsGrinta} – ${vote.scoreAdverse} '
               '${vote.opponentName}',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(status),
@@ -466,9 +466,9 @@ class _Results extends StatelessWidget {
                               .map((winner) => winner.displayName)
                               .join(' · '),
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 6),
                 Text('${vote.totalVotes ?? 0} vote(s) exprimé(s)'),
