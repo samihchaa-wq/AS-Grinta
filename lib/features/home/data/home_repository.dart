@@ -143,8 +143,9 @@ class HomeRepository {
           'opponents(name), '
           'match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)',
         )
-        .inFilter('status', const ['a_venir', 'termine', 'archive'])
-        .order('kickoff_at', ascending: true);
+        .inFilter('status', const ['a_venir', 'termine', 'archive']).order(
+            'kickoff_at',
+            ascending: true);
 
     final predictions = await _client
         .from('match_predictions')
@@ -338,8 +339,8 @@ final myLastPronoProvider = FutureProvider<LastProno?>((ref) async {
       .limit(1);
   final points = (pointsRows as List).isNotEmpty
       ? ((Map<String, dynamic>.from(pointsRows.first as Map)['points'] as num?)
-                ?.toDouble() ??
-            0)
+              ?.toDouble() ??
+          0)
       : 0.0;
 
   final opp = match['opponents'] is Map

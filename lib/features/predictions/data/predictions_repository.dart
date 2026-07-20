@@ -237,8 +237,8 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-        ? Map<String, dynamic>.from(oddsRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
 
     return MatchPredictionItem(
       matchId: matchId,
