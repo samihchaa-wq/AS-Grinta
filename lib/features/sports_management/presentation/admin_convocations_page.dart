@@ -165,7 +165,7 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
 
   Future<void> _editPlayer(ConvocationPlayer player) async {
     final snapshot = _snapshot;
-    if (snapshot == null || !player.isAvailable) return;
+    if (snapshot == null || !player.isAvailable || player.isGuest) return;
 
     var status = player.isNotConvoked
         ? ConvocationStatus.notConvoked
@@ -525,7 +525,7 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
               _ConvocationPlayerCard(
                 player: player,
                 reminder: _reminders?.playerFor(player.seasonPlayerId),
-                onTap: player.isAvailable && !_busy
+                onTap: player.isAvailable && !player.isGuest && !_busy
                     ? () => _editPlayer(player)
                     : null,
                 onRemind: player.availabilityStatus == 'no_response' &&
@@ -733,6 +733,7 @@ class _ConvocationPlayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = switch (player.availabilityStatus) {
+      _ when player.isGuest => 'Invité · Convoqué',
       'available' when player.isConvoked => 'Disponible · Convoqué',
       'available' when player.isNotConvoked => 'Disponible · Non convoqué',
       'available' => 'Disponible · À décider',
@@ -741,6 +742,7 @@ class _ConvocationPlayerCard extends StatelessWidget {
       _ => 'Non éligible',
     };
     final icon = switch (player.availabilityStatus) {
+      _ when player.isGuest => Icons.person_add_alt_1_outlined,
       'available' when player.isConvoked => Icons.check_circle,
       'available' when player.isNotConvoked => Icons.person_off,
       'available' => Icons.help_outline,
@@ -751,6 +753,7 @@ class _ConvocationPlayerCard extends StatelessWidget {
 
     final details = <String>[
       status,
+      if (player.isGuest) 'Géré depuis Invités',
       if (player.waitlistPosition != null) 'Liste n°${player.waitlistPosition}',
       if (player.recommendedNotConvoked) 'Proposition automatique',
       if (player.manualOverride) 'Choix manuel',

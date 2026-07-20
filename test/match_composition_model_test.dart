@@ -136,4 +136,59 @@ void main() {
     expect(moved.selectionStatus, 'substitute');
     expect(moved.toRpcJson()['zone'], 'bench');
   });
+
+  test('treats a convoked guest as selectable without availability', () {
+    final convocations = MatchConvocations(
+      matchId: 'match-guest',
+      opponentName: 'Invités FC',
+      kickoffAt: DateTime.utc(2026, 7, 26, 18),
+      seasonId: 'season-1',
+      squadSizeLimit: 14,
+      convocationState: 'draft',
+      convocationVersion: 0,
+      lateWithdrawalCutoffAt: null,
+      availableCount: 1,
+      convokedCount: 1,
+      notConvokedCount: 0,
+      players: const [
+        ConvocationPlayer(
+          participantId: 'participant-guest',
+          seasonPlayerId: '',
+          guestPlayerId: 'guest-1',
+          firstName: 'Alex',
+          lastName: 'Gardien',
+          isGuest: true,
+          isGoalkeeper: true,
+          availabilityStatus: 'not_applicable',
+          convocationStatus: ConvocationStatus.convoked,
+          manualOverride: true,
+          waitlistPosition: null,
+          recommendedNotConvoked: false,
+          turnShouldConsume: false,
+          turnState: WaitlistTurnState.notApplicable,
+          promotedAfterWithdrawalAt: null,
+        ),
+      ],
+    );
+
+    final composition = MatchComposition.initial(
+      convocations: convocations,
+      goalkeeperSeasonPlayerIds: const {},
+    );
+    final guest = composition.entriesFor(MatchCompositionZone.available).single;
+
+    expect(guest.isGuest, isTrue);
+    expect(guest.guestPlayerId, 'guest-1');
+    expect(guest.displayName, 'Alex Gardien (Invité)');
+    expect(guest.canBeSelected, isTrue);
+    expect(guest.isGoalkeeper, isTrue);
+
+    final starter = guest.moveTo(
+      MatchCompositionZone.field,
+      x: 0.5,
+      y: 0.1,
+    );
+    final withGuestKeeper = composition.copyWith(entries: [starter]);
+    expect(withGuestKeeper.hasGoalkeeperWarning, isFalse);
+  });
 }

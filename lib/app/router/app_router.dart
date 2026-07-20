@@ -24,6 +24,7 @@ import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_composition_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
@@ -82,6 +83,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/composition',
             builder: (_, __) => const AdminCompositionPage(),
+          ),
+          GoRoute(
+            path: '/admin/guests',
+            builder: (_, __) => const AdminGuestsPage(),
           ),
           GoRoute(
             path: '/admin/waitlist',

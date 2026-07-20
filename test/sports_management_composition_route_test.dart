@@ -4,9 +4,10 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('blocks composition routes while the module is disabled', () {
+  test('blocks sports routes while the module is disabled', () {
     for (final route in <String>[
       '/admin/composition',
+      '/admin/guests',
       '/matches/match-1/lineup',
     ]) {
       expect(
@@ -21,9 +22,10 @@ void main() {
     }
   });
 
-  test('allows composition routes for an administrator when enabled', () {
+  test('allows sports routes for an administrator when enabled', () {
     for (final route in <String>[
       '/admin/composition',
+      '/admin/guests',
       '/matches/match-1/lineup',
     ]) {
       expect(
@@ -38,16 +40,21 @@ void main() {
     }
   });
 
-  test('still blocks the admin composition route for a regular player', () {
-    expect(
-      resolveAuthRedirect(
-        authState: _playerState,
-        uri: Uri.parse('/admin/composition'),
-        matchedLocation: '/admin/composition',
-        sportsManagementEnabled: true,
-      ),
-      '/pronos',
-    );
+  test('still blocks sports admin routes for a regular player', () {
+    for (final route in <String>[
+      '/admin/composition',
+      '/admin/guests',
+    ]) {
+      expect(
+        resolveAuthRedirect(
+          authState: _playerState,
+          uri: Uri.parse(route),
+          matchedLocation: route,
+          sportsManagementEnabled: true,
+        ),
+        '/pronos',
+      );
+    }
   });
 }
 
