@@ -83,4 +83,4 @@ jobs:
             migration-after.txt
           if-no-files-found: warn
 
-# Production deployment authorized on 2026-07-21.
+# Deployment execution 2026-07-21, module initially disabled.
