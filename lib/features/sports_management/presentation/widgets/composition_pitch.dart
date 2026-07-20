@@ -156,11 +156,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
       (local.dx / renderObject.size.width).clamp(0.08, 0.92).toDouble(),
       (local.dy / renderObject.size.height).clamp(0.06, 0.94).toDouble(),
     );
-    widget.onMoved?.call(
-      details.data,
-      MatchCompositionZone.field,
-      normalized,
-    );
+    widget.onMoved?.call(details.data, MatchCompositionZone.field, normalized);
   }
 }
 
@@ -189,10 +185,7 @@ class CompositionPlayerChip extends StatelessWidget {
     if (!editable || !entry.canBeSelected) return chip;
     return LongPressDraggable<MatchCompositionEntry>(
       data: entry,
-      feedback: Material(
-        type: MaterialType.transparency,
-        child: chip,
-      ),
+      feedback: Material(type: MaterialType.transparency, child: chip),
       childWhenDragging: Opacity(opacity: 0.3, child: chip),
       child: chip,
     );

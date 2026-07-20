@@ -15,8 +15,9 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    final snapshot =
-        await container.read(featureFlagsControllerProvider.future);
+    final snapshot = await container.read(
+      featureFlagsControllerProvider.future,
+    );
 
     expect(repository.fetchCount, 0);
     expect(snapshot.sourceAvailable, isFalse);
@@ -34,8 +35,9 @@ void main() {
     );
     addTearDown(container.dispose);
 
-    final snapshot =
-        await container.read(featureFlagsControllerProvider.future);
+    final snapshot = await container.read(
+      featureFlagsControllerProvider.future,
+    );
 
     expect(snapshot.sourceAvailable, isFalse);
     expect(snapshot.sportsManagement.enabled, isFalse);
@@ -55,10 +57,7 @@ void main() {
     await container.read(featureFlagsControllerProvider.future);
     final snapshot = await container
         .read(featureFlagsControllerProvider.notifier)
-        .setSportsManagementEnabled(
-          enabled: true,
-          justification: 'Test',
-        );
+        .setSportsManagementEnabled(enabled: true, justification: 'Test');
 
     expect(repository.lastEnabled, isTrue);
     expect(repository.lastJustification, 'Test');

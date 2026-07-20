@@ -31,11 +31,7 @@ class AdminSportsManagementSection extends ConsumerWidget {
               subtitle: Text(feature.enabled ? 'Activé' : 'Désactivé'),
               value: feature.enabled,
               onChanged: snapshot.sourceAvailable && !busy
-                  ? (enabled) => _changeValue(
-                        context,
-                        ref,
-                        enabled: enabled,
-                      )
+                  ? (enabled) => _changeValue(context, ref, enabled: enabled)
                   : null,
             ),
             if (busy) ...[
@@ -131,9 +127,9 @@ class AdminSportsManagementSection extends ConsumerWidget {
       );
     } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
   }
 
@@ -170,9 +166,9 @@ class AdminSportsManagementSection extends ConsumerWidget {
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(
-              _DisableDecision(justification.trim()),
-            ),
+            onPressed: () => Navigator.of(
+              dialogContext,
+            ).pop(_DisableDecision(justification.trim())),
             child: const Text('Désactiver'),
           ),
         ],

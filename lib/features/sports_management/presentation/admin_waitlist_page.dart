@@ -85,9 +85,9 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -215,9 +215,7 @@ class _WaitlistTile extends StatelessWidget {
       key: ValueKey(entry.seasonPlayerId),
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: CircleAvatar(
-          child: Text('${index + 1}'),
-        ),
+        leading: CircleAvatar(child: Text('${index + 1}')),
         title: Text(
           entry.displayName,
           style: const TextStyle(fontWeight: FontWeight.w800),

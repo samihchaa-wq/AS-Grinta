@@ -145,10 +145,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   }) async {
     await _client.rpc(
       'admin_configure_match_sport_workflow',
-      params: {
-        'p_match_id': matchId,
-        'p_squad_size_limit': squadSizeLimit,
-      },
+      params: {'p_match_id': matchId, 'p_squad_size_limit': squadSizeLimit},
     );
     return fetchMatchConvocations(matchId);
   }
@@ -160,10 +157,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   }) async {
     await _client.rpc(
       'admin_recompute_match_convocations',
-      params: {
-        'p_match_id': matchId,
-        'p_reset_overrides': resetOverrides,
-      },
+      params: {'p_match_id': matchId, 'p_reset_overrides': resetOverrides},
     );
     return fetchMatchConvocations(matchId);
   }
@@ -216,8 +210,9 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   }
 }
 
-final sportWaitlistRepositoryProvider =
-    Provider<SportWaitlistRepository>((ref) {
+final sportWaitlistRepositoryProvider = Provider<SportWaitlistRepository>((
+  ref,
+) {
   return SupabaseSportWaitlistRepository(ref.watch(supabaseClientProvider));
 });
 

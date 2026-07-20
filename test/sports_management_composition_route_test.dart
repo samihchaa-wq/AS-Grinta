@@ -8,6 +8,7 @@ void main() {
     for (final route in <String>[
       '/admin/composition',
       '/admin/guests',
+      '/admin/motm',
       '/matches/match-1/lineup',
     ]) {
       expect(
@@ -26,6 +27,7 @@ void main() {
     for (final route in <String>[
       '/admin/composition',
       '/admin/guests',
+      '/admin/motm',
       '/matches/match-1/lineup',
     ]) {
       expect(
@@ -44,6 +46,7 @@ void main() {
     for (final route in <String>[
       '/admin/composition',
       '/admin/guests',
+      '/admin/motm',
     ]) {
       expect(
         resolveAuthRedirect(

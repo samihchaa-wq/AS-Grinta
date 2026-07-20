@@ -45,9 +45,11 @@ class AvailabilityReminderSummary {
     final players = rawPlayers is List
         ? rawPlayers
             .whereType<Map>()
-            .map((row) => AvailabilityReminderPlayer.fromJson(
-                  Map<String, dynamic>.from(row),
-                ))
+            .map(
+              (row) => AvailabilityReminderPlayer.fromJson(
+                Map<String, dynamic>.from(row),
+              ),
+            )
             .toList(growable: false)
         : const <AvailabilityReminderPlayer>[];
 

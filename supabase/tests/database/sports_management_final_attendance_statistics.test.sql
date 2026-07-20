@@ -10,19 +10,22 @@ select ok(
 );
 
 select ok(
-  exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'match_sport_participants'
-      and column_name = 'final_goals'
-  )
-  and exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'match_sport_participants'
-      and column_name = 'final_selection_status'
+  (
+    select bool_and(relrowsecurity)
+    from pg_class
+    where oid in (
+      'public.match_sport_finalizations'::regclass,
+      'public.match_sport_finalization_versions'::regclass
+    )
   ),
-  'les participants portent leur présence, rôle et statistiques réels'
+  'RLS est activée sur les tables de validation finale'
+);
+
+select ok(
+  not has_table_privilege('authenticated', 'public.match_sport_finalizations', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.match_sport_finalizations', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.match_sport_finalization_versions', 'SELECT'),
+  'aucune lecture ou écriture directe cliente n’est accordée'
 );
 
 select is(
@@ -30,8 +33,7 @@ select is(
     select count(*)
     from unnest(array[
       'public.admin_get_match_sport_finalization(uuid)',
-      'public.admin_finalize_match_sport_postgame(uuid,integer,integer,jsonb,text)',
-      'public.get_match_sport_result(uuid)'
+      'public.admin_finalize_match_sport_postgame(uuid,integer,integer,jsonb,text)'
     ]::text[]) expected(signature)
     join pg_proc procedure on procedure.oid = to_regprocedure(expected.signature)
     where procedure.prosecdef
@@ -42,14 +44,12 @@ select is(
 
 select ok(
   not has_function_privilege(
-    'anon',
-    'public.admin_finalize_match_sport_postgame(uuid,integer,integer,jsonb,text)',
-    'EXECUTE'
+    'anon', 'public.admin_get_match_sport_finalization(uuid)', 'EXECUTE'
   )
-  and not has_table_privilege(
-    'authenticated', 'public.match_sport_finalizations', 'SELECT'
+  and not has_function_privilege(
+    'anon', 'public.admin_finalize_match_sport_postgame(uuid,integer,integer,jsonb,text)', 'EXECUTE'
   ),
-  'aucun accès anonyme ou écriture directe n’est exposé'
+  'les RPC finales ne sont pas exposées au rôle anonyme'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)
@@ -62,12 +62,12 @@ values
   (
     'b1000000-0000-0000-0000-000000000002',
     'final-player@example.invalid',
-    '{"first_name":"Joueur","last_name":"Final"}'::jsonb
+    '{"first_name":"Buteur","last_name":"Permanent"}'::jsonb
   ),
   (
     'b1000000-0000-0000-0000-000000000003',
-    'final-keeper@example.invalid',
-    '{"first_name":"Gardien","last_name":"Final"}'::jsonb
+    'final-goalkeeper@example.invalid',
+    '{"first_name":"Gardien","last_name":"Permanent"}'::jsonb
   );
 
 update public.profiles
@@ -84,16 +84,15 @@ where id in (
 );
 
 insert into public.seasons(id, name, status)
-values ('b2000000-0000-0000-0000-000000000001', '2096-2097', 'open');
+values ('b2000000-0000-0000-0000-000000000001', '2097-2098', 'open');
 
 insert into public.opponents(id, name)
-values ('b3000000-0000-0000-0000-000000000001', 'Statistiques FC');
+values ('b3000000-0000-0000-0000-000000000001', 'Finalisation FC');
 
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper,
   is_active, position, profile_id
-)
-values
+) values
   (
     'b4000000-0000-0000-0000-000000000001',
     'b2000000-0000-0000-0000-000000000001',
@@ -155,7 +154,7 @@ reset role;
 
 update public.matches
 set kickoff_at = now() - interval '2 hours',
-    match_date = (now() at time zone 'Europe/Paris')::date,
+    match_date = ((now() - interval '2 hours') at time zone 'Europe/Paris')::date,
     match_time = ((now() - interval '2 hours') at time zone 'Europe/Paris')::time
 where id = current_setting('test.final_match')::uuid;
 
@@ -288,7 +287,7 @@ select is(
     where match_id = current_setting('test.final_match')::uuid
   ),
   2::bigint,
-  'seuls les permanents présents alimentent la table historique de présence'
+  'seuls les deux permanents réellement présents alimentent les présences historiques'
 );
 
 select is(
@@ -298,7 +297,7 @@ select is(
       and season_player_id = 'b4000000-0000-0000-0000-000000000001'
   ),
   1,
-  'le but permanent alimente immédiatement les statistiques existantes'
+  'le but permanent alimente les statistiques existantes'
 );
 
 select ok(
@@ -308,27 +307,26 @@ select ok(
       and season_player_id = 'b4000000-0000-0000-0000-000000000003'
       and clean_sheet
   ),
-  'le clean sheet permanent alimente les statistiques existantes'
+  'le clean sheet validé alimente les statistiques existantes'
 );
 
 select is(
   (
-    select final_goals
-    from public.match_sport_participants
+    select final_goals from public.match_sport_participants
     where match_id = current_setting('test.final_match')::uuid
       and guest_player_id is not null
   ),
   1::smallint,
-  'le but invité reste lié au même résultat validé'
+  'le but invité reste lié au participant du match'
 );
 
 select is(
   public.admin_finalize_match_sport_postgame(
     current_setting('test.final_match')::uuid,
     2,
-    1,
+    0,
     pg_temp.final_payload(true),
-    'Correction du rapport de match'
+    'Correction statistique complète'
   ) #>> '{version}',
   '2',
   'une correction crée la version 2'
@@ -340,7 +338,7 @@ select is(
     where match_id = current_setting('test.final_match')::uuid
   ),
   3::bigint,
-  'la correction remplace proprement les présences sans doublon'
+  'la correction remplace entièrement les présences permanentes'
 );
 
 select is(
@@ -350,38 +348,37 @@ select is(
       and season_player_id = 'b4000000-0000-0000-0000-000000000001'
   ),
   2,
-  'les statistiques du buteur sont recalculées par la correction'
+  'la correction remplace les buts sans doublon'
 );
 
-select is(
-  (
-    select count(*) from public.match_player_stats
+select ok(
+  not exists (
+    select 1 from public.match_player_stats
     where match_id = current_setting('test.final_match')::uuid
       and clean_sheet
   ),
-  0::bigint,
-  'l’ancien clean sheet est supprimé par la correction'
+  'la correction retire l’ancien clean sheet'
 );
 
 select is(
   (
-    select final_goals
-    from public.match_sport_participants
+    select final_goals from public.match_sport_participants
     where match_id = current_setting('test.final_match')::uuid
       and guest_player_id is not null
   ),
   0::smallint,
-  'l’ancienne statistique invité est également remplacée'
+  'la correction remplace aussi la statistique invité'
 );
 
 reset role;
 select is(
   (
-    select count(*) from public.match_sport_finalization_versions
+    select count(*)
+    from public.match_sport_finalization_versions
     where match_id = current_setting('test.final_match')::uuid
   ),
   2::bigint,
-  'les deux versions restent immuables dans l’historique'
+  'les deux validations restent historisées de manière immuable'
 );
 
 select ok(
@@ -389,31 +386,31 @@ select ok(
     select 1 from private.sport_admin_audit_log
     where match_id = current_setting('test.final_match')::uuid
       and action = 'correct_final_attendance'
-      and reason = 'Correction du rapport de match'
+      and reason = 'Correction statistique complète'
   ),
   'la correction est auditée avec son motif'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+reset role;
 update private.app_feature_flags
 set enabled = false,
     updated_at = now(),
     updated_by = 'b1000000-0000-0000-0000-000000000001'
 where key = 'sports_management';
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"b1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
 set local role authenticated;
 
 select throws_ok(
-  $$select public.get_match_sport_result(
+  $$select public.admin_get_match_sport_finalization(
     current_setting('test.final_match')::uuid
   )$$,
   '42501',
   'Sports-management module is disabled',
-  'le résultat sportif disparaît derrière le feature flag'
+  'le flag désactivé bloque le parcours final côté serveur'
 );
 
 reset role;

@@ -183,11 +183,7 @@ void main() {
     expect(guest.canBeSelected, isTrue);
     expect(guest.isGoalkeeper, isTrue);
 
-    final starter = guest.moveTo(
-      MatchCompositionZone.field,
-      x: 0.5,
-      y: 0.1,
-    );
+    final starter = guest.moveTo(MatchCompositionZone.field, x: 0.5, y: 0.1);
     final withGuestKeeper = composition.copyWith(entries: [starter]);
     expect(withGuestKeeper.hasGoalkeeperWarning, isFalse);
   });

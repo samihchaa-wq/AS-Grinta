@@ -117,10 +117,13 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
   }
 }
 
-final matchCompositionRepositoryProvider =
-    Provider<MatchCompositionRepository>((ref) {
-  return SupabaseMatchCompositionRepository(ref.watch(supabaseClientProvider));
-});
+final matchCompositionRepositoryProvider = Provider<MatchCompositionRepository>(
+  (ref) {
+    return SupabaseMatchCompositionRepository(
+      ref.watch(supabaseClientProvider),
+    );
+  },
+);
 
 final publishedMatchCompositionProvider = FutureProvider.autoDispose
     .family<MatchComposition?, String>((ref, matchId) {

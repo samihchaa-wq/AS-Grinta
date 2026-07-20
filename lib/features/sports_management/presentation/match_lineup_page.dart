@@ -33,9 +33,7 @@ class MatchLineupPage extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(publishedMatchCompositionProvider(matchId));
-              await ref.read(
-                publishedMatchCompositionProvider(matchId).future,
-              );
+              await ref.read(publishedMatchCompositionProvider(matchId).future);
             },
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -45,9 +43,7 @@ class MatchLineupPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Center(
                   child: CompositionPitch(
-                    entries: composition.entriesFor(
-                      MatchCompositionZone.field,
-                    ),
+                    entries: composition.entriesFor(MatchCompositionZone.field),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -151,8 +147,10 @@ class _PublicationHeader extends StatelessWidget {
               ),
             ),
             Chip(
-                label: Text(
-                    '${composition.fieldCount} + ${composition.benchCount}')),
+              label: Text(
+                '${composition.fieldCount} + ${composition.benchCount}',
+              ),
+            ),
           ],
         ),
       ),

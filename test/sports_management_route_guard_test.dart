@@ -51,41 +51,43 @@ void main() {
       }
     });
 
-    test('keeps all sports administration routes restricted to administrators',
-        () {
-      for (final route in <String>[
-        '/admin/matches/m1/sport-management',
-        '/admin/convocations',
-        '/admin/waitlist',
-      ]) {
-        expect(
-          resolveAuthRedirect(
-            authState: const AuthState(
-              isLoading: false,
-              isAuthenticated: true,
-              profile: _playerProfile,
+    test(
+      'keeps all sports administration routes restricted to administrators',
+      () {
+        for (final route in <String>[
+          '/admin/matches/m1/sport-management',
+          '/admin/convocations',
+          '/admin/waitlist',
+        ]) {
+          expect(
+            resolveAuthRedirect(
+              authState: const AuthState(
+                isLoading: false,
+                isAuthenticated: true,
+                profile: _playerProfile,
+              ),
+              uri: Uri.parse(route),
+              matchedLocation: route,
+              sportsManagementEnabled: true,
             ),
-            uri: Uri.parse(route),
-            matchedLocation: route,
-            sportsManagementEnabled: true,
-          ),
-          '/pronos',
-        );
-        expect(
-          resolveAuthRedirect(
-            authState: const AuthState(
-              isLoading: false,
-              isAuthenticated: true,
-              profile: _adminProfile,
+            '/pronos',
+          );
+          expect(
+            resolveAuthRedirect(
+              authState: const AuthState(
+                isLoading: false,
+                isAuthenticated: true,
+                profile: _adminProfile,
+              ),
+              uri: Uri.parse(route),
+              matchedLocation: route,
+              sportsManagementEnabled: true,
             ),
-            uri: Uri.parse(route),
-            matchedLocation: route,
-            sportsManagementEnabled: true,
-          ),
-          isNull,
-        );
-      }
-    });
+            isNull,
+          );
+        }
+      },
+    );
   });
 }
 

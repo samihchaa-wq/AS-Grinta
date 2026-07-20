@@ -36,10 +36,7 @@ class SportMotmVoteRepository {
     }
   }
 
-  Future<void> cancel({
-    required String matchId,
-    required String reason,
-  }) async {
+  Future<void> cancel({required String matchId, required String reason}) async {
     final response = await _client.rpc(
       'admin_cancel_match_motm_vote',
       params: {'p_match_id': matchId, 'p_reason': reason.trim()},
@@ -63,8 +60,9 @@ class SportMotmVoteRepository {
   }
 }
 
-final sportMotmVoteRepositoryProvider =
-    Provider<SportMotmVoteRepository>((ref) {
+final sportMotmVoteRepositoryProvider = Provider<SportMotmVoteRepository>((
+  ref,
+) {
   return SportMotmVoteRepository(ref.watch(supabaseClientProvider));
 });
 

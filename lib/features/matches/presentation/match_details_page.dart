@@ -61,10 +61,7 @@ class MatchDetailsPage extends ConsumerWidget {
                 children: [
                   _UpcomingHeader(details: details),
                   const SizedBox(height: 16),
-                  PublishedLineupCard(
-                    matchId: matchId,
-                    bottomSpacing: 16,
-                  ),
+                  PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
                   _HeadToHeadCard(details: details),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
@@ -132,9 +129,9 @@ class _UpcomingHeader extends StatelessWidget {
             Text(
               'AS Grinta vs ${details.opponentName}',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
@@ -160,9 +157,9 @@ class _HeadToHeadCard extends StatelessWidget {
           children: [
             Text(
               'Les 5 dernières rencontres',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             if (details.headToHead.isEmpty)
@@ -291,11 +288,9 @@ class _PredictionsTable extends StatelessWidget {
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
 
-    final correctWinner = _result(
-          prediction.scoreGrinta,
-          prediction.scoreOpponent,
-        ) ==
-        _result(actualGrinta, actualOpponent);
+    final correctWinner =
+        _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
+            _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
 
     final correctDifference =
@@ -333,8 +328,10 @@ class _PredictionsTable extends StatelessWidget {
 
               return Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: color == null
