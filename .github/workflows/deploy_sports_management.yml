@@ -1,7 +1,7 @@
 name: Deploy sports management disabled
 
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
     paths:
       - '.github/workflows/deploy_sports_management.yml'
@@ -17,12 +17,17 @@ env:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'release/run-sports-deployment'
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.head.ref == 'release/run-sports-deployment')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - name: Checkout deployment candidate
+      - name: Checkout authorized deployment candidate
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Check deployment secrets
         shell: bash
@@ -83,4 +88,4 @@ jobs:
             migration-after.txt
           if-no-files-found: warn
 
-# Deployment execution 2026-07-21, module initially disabled.
+# Deployment execution 2026-07-21 with pull_request_target safeguards.
