@@ -66,6 +66,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/current_business_schema.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/pgtap_like_compat.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/sports_notifications_push_schema.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
@@ -101,6 +103,8 @@ jobs:
               -f supabase/migrations/20260720190500_sports_management_motm_vote_finalization_response.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720191000_sports_management_motm_vote_rpc_grants.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720213000_sports_management_motm_notifications.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
@@ -141,6 +145,9 @@ jobs:
             2>&1 | tee -a supabase-tests.log
           supabase test db \
             supabase/tests/database/sports_management_motm_vote.test.sql \
+            2>&1 | tee -a supabase-tests.log
+          supabase test db \
+            supabase/tests/database/sports_management_motm_notifications.test.sql \
             2>&1 | tee -a supabase-tests.log
 
       - name: Lint database functions
