@@ -45,18 +45,18 @@ class MatchPredictionItem {
 
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
 
-  bool isClosedAt(DateTime now) =>
+  bool isTimeClosedAt(DateTime now) =>
       status != 'a_venir' ||
       !now.isBefore(closesAt) ||
       (predictionsClosedAt != null && !now.isBefore(predictionsClosedAt!));
 
-  bool isWaitingForPreviousMatchAt(DateTime now) =>
-      !isFirstOpenMatch &&
-      status == 'a_venir' &&
-      now.isBefore(closesAt) &&
-      (predictionsClosedAt == null || now.isBefore(predictionsClosedAt!));
+  bool isClosedAt(DateTime now) =>
+      !isFirstOpenMatch || isTimeClosedAt(now);
 
-  bool canEditAt(DateTime now) => isFirstOpenMatch && !isClosedAt(now);
+  bool isWaitingForPreviousMatchAt(DateTime now) =>
+      !isFirstOpenMatch && !isTimeClosedAt(now);
+
+  bool canEditAt(DateTime now) => !isClosedAt(now);
   bool get isClosed => isClosedAt(DateTime.now());
   bool get isWaitingForPreviousMatch =>
       isWaitingForPreviousMatchAt(DateTime.now());
