@@ -1,0 +1,83 @@
+name: Deploy sports management disabled
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy_sports_management.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Check deployment secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test -n "${SUPABASE_DB_PASSWORD:-}"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link \
+            --project-ref "$SUPABASE_PROJECT_ID" \
+            --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Record migration state before deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list | tee migration-before.txt
+
+      - name: Apply pending migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push \
+            --password "$SUPABASE_DB_PASSWORD" \
+            --yes
+
+      - name: Record migration state after deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list | tee migration-after.txt
+
+      - name: Deploy send-push
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase functions deploy send-push \
+            --project-ref "$SUPABASE_PROJECT_ID" \
+            --no-verify-jwt \
+            --use-api
+
+      - name: Upload deployment diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sports-management-production-deployment
+          path: |
+            migration-before.txt
+            migration-after.txt
+          if-no-files-found: warn
