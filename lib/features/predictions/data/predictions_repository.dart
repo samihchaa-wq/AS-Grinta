@@ -20,6 +20,7 @@ class MatchPredictionItem {
     required this.actualScoreGrinta,
     required this.actualScoreOpponent,
     this.predictionsClosedAt,
+    this.isFirstOpenMatch = true,
   });
 
   final String matchId;
@@ -38,15 +39,26 @@ class MatchPredictionItem {
   final int? actualScoreOpponent;
   final DateTime? predictionsClosedAt;
 
+  /// Le serveur n’autorise qu’un seul match à la fois : le premier match dont
+  /// la fenêtre temporelle est encore ouverte.
+  final bool isFirstOpenMatch;
+
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
 
-  bool isClosedAt(DateTime now) =>
+  bool isTimeClosedAt(DateTime now) =>
       status != 'a_venir' ||
       !now.isBefore(closesAt) ||
       (predictionsClosedAt != null && !now.isBefore(predictionsClosedAt!));
 
+  bool isClosedAt(DateTime now) => !isFirstOpenMatch || isTimeClosedAt(now);
+
+  bool isWaitingForPreviousMatchAt(DateTime now) =>
+      !isFirstOpenMatch && !isTimeClosedAt(now);
+
   bool canEditAt(DateTime now) => !isClosedAt(now);
   bool get isClosed => isClosedAt(DateTime.now());
+  bool get isWaitingForPreviousMatch =>
+      isWaitingForPreviousMatchAt(DateTime.now());
   bool get canEdit => canEditAt(DateTime.now());
   bool get hasResult =>
       actualScoreGrinta != null && actualScoreOpponent != null;
@@ -73,6 +85,7 @@ class MatchPredictionItem {
       actualScoreGrinta: actualScoreGrinta,
       actualScoreOpponent: actualScoreOpponent,
       predictionsClosedAt: predictionsClosedAt,
+      isFirstOpenMatch: isFirstOpenMatch,
     );
   }
 
@@ -124,14 +137,24 @@ class PredictionsRepository {
   ''';
 
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
-    final matches = await _client
+    final response = await _client
         .from('matches')
         .select(_matchSelect)
         .eq('status', 'a_venir')
         .order('kickoff_at', ascending: true);
+    final matches = (response as List)
+        .map((match) => Map<String, dynamic>.from(match as Map))
+        .toList();
+    final firstOpenMatchId = _firstOpenMatchId(matches, DateTime.now());
+
     final items = <MatchPredictionItem>[];
-    for (final match in matches as List) {
-      items.add(await _buildItem(Map<String, dynamic>.from(match as Map)));
+    for (final match in matches) {
+      items.add(
+        await _buildItem(
+          match,
+          isFirstOpenMatch: match['id']?.toString() == firstOpenMatchId,
+        ),
+      );
     }
     return items;
   }
@@ -143,10 +166,46 @@ class PredictionsRepository {
         .eq('id', matchId)
         .maybeSingle();
     if (match == null) return null;
-    return _buildItem(Map<String, dynamic>.from(match));
+
+    final openResponse = await _client
+        .from('matches')
+        .select('id, kickoff_at, status, predictions_closed_at')
+        .eq('status', 'a_venir')
+        .order('kickoff_at', ascending: true);
+    final openMatches = (openResponse as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList();
+    final firstOpenMatchId = _firstOpenMatchId(openMatches, DateTime.now());
+
+    return _buildItem(
+      Map<String, dynamic>.from(match),
+      isFirstOpenMatch: matchId == firstOpenMatchId,
+    );
   }
 
-  Future<MatchPredictionItem> _buildItem(Map<String, dynamic> matchMap) async {
+  String? _firstOpenMatchId(List<Map<String, dynamic>> matches, DateTime now) {
+    for (final match in matches) {
+      if (match['status']?.toString() != 'a_venir') continue;
+      final kickoffAt = DateTime.tryParse(
+        '${match['kickoff_at'] ?? ''}',
+      )?.toLocal();
+      if (kickoffAt == null ||
+          !now.isBefore(kickoffAt.subtract(const Duration(minutes: 5)))) {
+        continue;
+      }
+      final closedAt = DateTime.tryParse(
+        '${match['predictions_closed_at'] ?? ''}',
+      )?.toLocal();
+      if (closedAt != null && !now.isBefore(closedAt)) continue;
+      return match['id']?.toString();
+    }
+    return null;
+  }
+
+  Future<MatchPredictionItem> _buildItem(
+    Map<String, dynamic> matchMap, {
+    required bool isFirstOpenMatch,
+  }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
     final matchId = matchMap['id'].toString();
@@ -205,6 +264,7 @@ class PredictionsRepository {
       predictionsClosedAt: DateTime.tryParse(
         '${matchMap['predictions_closed_at'] ?? ''}',
       )?.toLocal(),
+      isFirstOpenMatch: isFirstOpenMatch,
     );
   }
 

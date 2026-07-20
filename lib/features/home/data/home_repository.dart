@@ -54,6 +54,12 @@ class HomeMatch {
       kickoffAt != null &&
       DateTime.now().isAfter(kickoffAt!);
 
+  bool isPredictionTimeOpenAt(DateTime now) =>
+      status == 'a_venir' &&
+      kickoffAt != null &&
+      !predictionsClosed &&
+      now.isBefore(kickoffAt!.subtract(const Duration(minutes: 5)));
+
   bool get hasOdds => oddsWin != null && oddsDraw != null && oddsLoss != null;
 }
 
@@ -151,15 +157,23 @@ class HomeRepository {
       filledByMatch[map['match_id'].toString()] = map['is_filled'] == true;
     }
 
+    final matches = (rows as List)
+        .map((row) => _toMatch(Map<String, dynamic>.from(row as Map)))
+        .toList();
+    final now = DateTime.now();
+    String? firstOpenMatchId;
+    for (final match in matches) {
+      if (match.isPredictionTimeOpenAt(now)) {
+        firstOpenMatchId = match.id;
+        break;
+      }
+    }
+
     HomeMatch? nextMatch;
     HomeMatch? lastMatch;
     var pendingPredictions = 0;
-    final now = DateTime.now();
 
-    for (final row in rows as List) {
-      final map = Map<String, dynamic>.from(row);
-      final match = _toMatch(map);
-
+    for (final match in matches) {
       // Prochain match : le premier « à venir » (liste triée par date
       // croissante). Dernier joué : le plus récent terminé/archivé.
       if (match.status == 'a_venir') {
@@ -168,12 +182,8 @@ class HomeRepository {
         lastMatch = match; // écrasé jusqu'au plus récent (tri croissant)
       }
 
-      if (match.status == 'a_venir' &&
-          match.kickoffAt != null &&
-          !match.predictionsClosed &&
-          now.isBefore(match.kickoffAt!.subtract(const Duration(minutes: 5))) &&
-          filledByMatch[match.id] != true) {
-        pendingPredictions++;
+      if (match.id == firstOpenMatchId && filledByMatch[match.id] != true) {
+        pendingPredictions = 1;
       }
     }
 
