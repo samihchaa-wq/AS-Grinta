@@ -41,16 +41,21 @@ class MatchCompositionEntry {
     required this.availabilityStatus,
     required this.convocationStatus,
     required this.selectionStatus,
+    this.guestPlayerId,
+    this.isGuest = false,
     this.x,
     this.y,
     this.slotLabel,
   });
 
   factory MatchCompositionEntry.fromJson(Map<String, dynamic> json) {
+    final guestPlayerId = _nullableText(json['guest_player_id']);
     return MatchCompositionEntry(
       participantId: json['participant_id'].toString(),
-      seasonPlayerId: json['season_player_id'].toString(),
+      seasonPlayerId: json['season_player_id']?.toString() ?? '',
+      guestPlayerId: guestPlayerId,
       displayName: (json['display_name'] ?? 'Joueur').toString(),
+      isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
       zone: MatchCompositionZone.fromWire(json['zone']),
       x: (json['x'] as num?)?.toDouble(),
@@ -67,7 +72,9 @@ class MatchCompositionEntry {
 
   final String participantId;
   final String seasonPlayerId;
+  final String? guestPlayerId;
   final String displayName;
+  final bool isGuest;
   final bool isGoalkeeper;
   final MatchCompositionZone zone;
   final double? x;
@@ -79,7 +86,8 @@ class MatchCompositionEntry {
   final String selectionStatus;
 
   bool get canBeSelected =>
-      availabilityStatus == 'available' && convocationStatus == 'convoked';
+      convocationStatus == 'convoked' &&
+      (isGuest || availabilityStatus == 'available');
 
   MatchCompositionEntry moveTo(
     MatchCompositionZone nextZone, {
@@ -91,7 +99,9 @@ class MatchCompositionEntry {
     return MatchCompositionEntry(
       participantId: participantId,
       seasonPlayerId: seasonPlayerId,
+      guestPlayerId: guestPlayerId,
       displayName: displayName,
+      isGuest: isGuest,
       isGoalkeeper: isGoalkeeper,
       zone: nextZone,
       x: isField ? x : null,
@@ -247,12 +257,15 @@ MatchCompositionEntry _initialEntry(
   int index,
   Set<String> goalkeeperSeasonPlayerIds,
 ) {
-  final selectable = player.isAvailable && player.isConvoked;
+  final selectable = player.canBeSelected;
   return MatchCompositionEntry(
     participantId: player.participantId,
     seasonPlayerId: player.seasonPlayerId,
+    guestPlayerId: player.guestPlayerId,
     displayName: player.displayName,
-    isGoalkeeper: goalkeeperSeasonPlayerIds.contains(player.seasonPlayerId),
+    isGuest: player.isGuest,
+    isGoalkeeper: player.isGoalkeeper ||
+        goalkeeperSeasonPlayerIds.contains(player.seasonPlayerId),
     zone: selectable
         ? MatchCompositionZone.available
         : MatchCompositionZone.notSelected,
@@ -271,7 +284,7 @@ Map<String, dynamic> _map(Object? raw) {
 
 String? _nullableText(Object? value) {
   final text = value?.toString().trim();
-  return text == null || text.isEmpty ? null : text;
+  return text == null || text.isEmpty || text == 'null' ? null : text;
 }
 
 DateTime? _dateOrNull(Object? value) {

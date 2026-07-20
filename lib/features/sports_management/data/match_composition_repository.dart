@@ -48,11 +48,16 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
   ) async {
-    if (seasonPlayerIds.isEmpty) return const {};
+    final permanentIds = seasonPlayerIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (permanentIds.isEmpty) return const {};
     final rows = await _client
         .from('season_players')
         .select('id')
-        .inFilter('id', seasonPlayerIds)
+        .inFilter('id', permanentIds)
         .eq('is_goalkeeper', true);
     return (rows as List)
         .map((row) => Map<String, dynamic>.from(row as Map))

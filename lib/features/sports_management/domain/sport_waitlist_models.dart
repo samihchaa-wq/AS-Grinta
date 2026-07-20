@@ -130,14 +130,21 @@ class ConvocationPlayer {
     required this.turnShouldConsume,
     required this.turnState,
     required this.promotedAfterWithdrawalAt,
+    this.guestPlayerId,
+    this.isGuest = false,
+    this.isGoalkeeper = false,
   });
 
   factory ConvocationPlayer.fromJson(Map<String, dynamic> json) {
+    final guestPlayerId = _nullableText(json['guest_player_id']);
     return ConvocationPlayer(
       participantId: json['participant_id'].toString(),
-      seasonPlayerId: json['season_player_id'].toString(),
+      seasonPlayerId: json['season_player_id']?.toString() ?? '',
+      guestPlayerId: guestPlayerId,
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
+      isGuest: json['is_guest'] == true || guestPlayerId != null,
+      isGoalkeeper: json['is_goalkeeper'] == true,
       availabilityStatus:
           (json['availability_status'] ?? 'no_response').toString(),
       convocationStatus: ConvocationStatus.fromWire(json['convocation_status']),
@@ -153,8 +160,11 @@ class ConvocationPlayer {
 
   final String participantId;
   final String seasonPlayerId;
+  final String? guestPlayerId;
   final String firstName;
   final String lastName;
+  final bool isGuest;
+  final bool isGoalkeeper;
   final String availabilityStatus;
   final ConvocationStatus convocationStatus;
   final bool manualOverride;
@@ -164,11 +174,16 @@ class ConvocationPlayer {
   final WaitlistTurnState turnState;
   final DateTime? promotedAfterWithdrawalAt;
 
-  String get displayName => '$firstName $lastName'.trim();
+  String get displayName {
+    final name = '$firstName $lastName'.trim();
+    return isGuest ? '$name (Invité)' : name;
+  }
+
   bool get isAvailable => availabilityStatus == 'available';
   bool get isAbsent => availabilityStatus == 'absent';
   bool get isConvoked => convocationStatus == ConvocationStatus.convoked;
   bool get isNotConvoked => convocationStatus == ConvocationStatus.notConvoked;
+  bool get canBeSelected => isConvoked && (isGuest || isAvailable);
 }
 
 class MatchConvocations {
@@ -231,6 +246,11 @@ Map<String, dynamic> _map(Object? raw) {
   if (raw is Map<String, dynamic>) return raw;
   if (raw is Map) return Map<String, dynamic>.from(raw);
   throw const FormatException('Réponse sportive invalide.');
+}
+
+String? _nullableText(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty || text == 'null' ? null : text;
 }
 
 DateTime? _dateOrNull(Object? raw) {
