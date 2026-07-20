@@ -20,7 +20,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
-       github.event.pull_request.head.ref == 'release/run-sports-deployment')
+       startsWith(github.event.pull_request.head.ref, 'release/run-sports-deployment'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
@@ -88,4 +88,4 @@ jobs:
             migration-after.txt
           if-no-files-found: warn
 
-# Production deployment authorized on 2026-07-21.
+# Authorized deployment run 2, feature flag remains disabled.
