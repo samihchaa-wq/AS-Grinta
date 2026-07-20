@@ -74,8 +74,11 @@ bool _isSportsManagementRoute(Uri uri) {
       segments[0] == 'admin' &&
       segments[1] == 'matches' &&
       segments[3] == 'sport-management';
+  final isAdminRotationRoute = segments.length == 2 &&
+      segments.first == 'admin' &&
+      const {'convocations', 'waitlist'}.contains(segments.last);
 
-  return isPlayerMatchRoute || isAdminMatchRoute;
+  return isPlayerMatchRoute || isAdminMatchRoute || isAdminRotationRoute;
 }
 
 String? _safeLocalRedirect(String? value) {

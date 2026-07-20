@@ -1,10 +1,11 @@
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,8 +21,8 @@ class MatchFormPage extends ConsumerStatefulWidget {
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _timeController = TextEditingController();
+  final _squadSizeController = TextEditingController(text: '14');
 
-  // Cotes réelles (ex. 2.10). Affichées ×100 mais enregistrées telles quelles.
   double? _oddsWin;
   double? _oddsDraw;
   double? _oddsLoss;
@@ -32,9 +33,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   late bool _isHome;
 
   bool _suggestingOdds = false;
+  bool _squadDefaultApplied = false;
+  bool _squadLimitLoading = false;
+  bool _squadLimitLoaded = false;
 
-  /// Recalcule les cotes automatiquement à partir de la forme récente, dès que
-  /// l'adversaire ou le lieu change (création comme modification).
   Future<void> _suggestOdds() async {
     if (_opponentId.isEmpty) return;
 
@@ -72,7 +74,24 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   @override
   void dispose() {
     _timeController.dispose();
+    _squadSizeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSquadLimit() async {
+    final match = widget.match;
+    if (match == null || _squadLimitLoading || _squadLimitLoaded) return;
+    setState(() => _squadLimitLoading = true);
+    try {
+      final limit = await ref
+          .read(matchesRepositoryProvider)
+          .fetchSportSquadLimit(match.id);
+      if (!mounted) return;
+      _squadSizeController.text = limit.toString();
+      _squadLimitLoaded = true;
+    } finally {
+      if (mounted) setState(() => _squadLimitLoading = false);
+    }
   }
 
   @override
@@ -80,6 +99,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role == AuthRole.admin;
+    final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
+    final feature =
+        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
     final seasons = widget.match == null
         ? state.seasons
             .where((season) => season['status']?.toString() == 'open')
@@ -90,6 +112,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
     if (_seasonId.isEmpty && seasons.isNotEmpty) {
       _seasonId = seasons.first['id'].toString();
+    }
+    if (sportsEnabled && !_squadDefaultApplied) {
+      _squadDefaultApplied = true;
+      if (widget.match == null) {
+        _squadSizeController.text = (feature?.usualSquadSize ?? 14).toString();
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _loadSquadLimit());
+      }
     }
 
     return Scaffold(
@@ -189,6 +219,33 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 _suggestOdds();
               },
             ),
+            if (sportsEnabled) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _squadSizeController,
+                enabled: !_squadLimitLoading,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Nombre de joueurs convoqués',
+                  helperText:
+                      '14 est proposé habituellement, mais la limite est libre pour ce match.',
+                  suffixIcon: _squadLimitLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : null,
+                ),
+                validator: (raw) {
+                  if (!sportsEnabled) return null;
+                  final value = int.tryParse(raw?.trim() ?? '');
+                  if (value == null || value < 1 || value > 30) {
+                    return 'Choisissez un nombre entre 1 et 30';
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: 20),
             Row(
               children: [
@@ -212,20 +269,29 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             Row(
               children: [
                 Expanded(
-                    child:
-                        _OddsDisplay(label: 'Victoire (1)', value: _oddsWin)),
+                  child: _OddsDisplay(
+                    label: 'Victoire (1)',
+                    value: _oddsWin,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                    child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw)),
+                  child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                    child:
-                        _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss)),
+                  child: _OddsDisplay(
+                    label: 'Défaite (2)',
+                    value: _oddsLoss,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
-              onPressed: canManage && !state.isLoading ? _submit : null,
+              onPressed: canManage && !state.isLoading && !_squadLimitLoading
+                  ? _submit
+                  : null,
               icon: const Icon(Icons.save_outlined),
               label: const Text('Enregistrer'),
             ),
@@ -283,10 +349,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         .createOpponent(name.trim());
     if (!mounted || id == null) return;
     setState(() => _opponentId = id);
-
-    // L'équipe vient d'être ajoutée durablement à Supabase et sélectionnée dans
-    // le formulaire. Le moteur doit calculer immédiatement ses cotes prudentes,
-    // même lorsqu'aucune confrontation directe n'existe encore.
     await _suggestOdds();
   }
 
@@ -353,6 +415,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       );
       return;
     }
+    final sportsEnabled = ref.read(sportsManagementEnabledProvider);
+    final squadSizeLimit =
+        sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
     final parts = _timeController.text.trim().split(':');
     _kickoffAt = DateTime(
       _kickoffAt.year,
@@ -371,6 +436,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        squadSizeLimit: squadSizeLimit,
       );
     } else {
       await notifier.updateMatch(
@@ -383,6 +449,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        squadSizeLimit: squadSizeLimit,
       );
     }
     if (!mounted) return;

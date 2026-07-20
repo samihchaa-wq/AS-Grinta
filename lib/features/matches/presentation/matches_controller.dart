@@ -133,6 +133,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
+    int? squadSizeLimit,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -152,6 +153,13 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       return;
     }
+    if (squadSizeLimit != null && (squadSizeLimit < 1 || squadSizeLimit > 30)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le nombre de convoqués doit être compris entre 1 et 30.',
+      );
+      return;
+    }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.createMatch(
@@ -162,6 +170,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        squadSizeLimit: squadSizeLimit,
       );
       await load(
         seasonId: state.selectedSeasonId,
@@ -183,6 +192,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
+    int? squadSizeLimit,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -202,6 +212,13 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       return;
     }
+    if (squadSizeLimit != null && (squadSizeLimit < 1 || squadSizeLimit > 30)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le nombre de convoqués doit être compris entre 1 et 30.',
+      );
+      return;
+    }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updateMatch(
@@ -214,6 +231,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        squadSizeLimit: squadSizeLimit,
       );
       await load(
         seasonId: state.selectedSeasonId,
