@@ -74,6 +74,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720110119_security_hardening_pass_2.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720123000_sports_management_feature_flag.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
 
@@ -86,6 +88,9 @@ jobs:
             2>&1 | tee supabase-tests.log
           supabase test db \
             supabase/tests/database/security_hardening_pass_2.test.sql \
+            2>&1 | tee -a supabase-tests.log
+          supabase test db \
+            supabase/tests/database/sports_management_feature_flag.test.sql \
             2>&1 | tee -a supabase-tests.log
 
       - name: Lint database functions
