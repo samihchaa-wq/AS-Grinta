@@ -63,9 +63,13 @@ class MatchModel {
   }
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
+    final serverKickoff = DateTime.tryParse(
+      '${json['kickoff_at'] ?? ''}',
+    )?.toLocal();
     final date = (json['match_date'] ?? '').toString();
     final time = (json['match_time'] ?? '00:00:00').toString();
-    final kickoffAt = DateTime.tryParse('${date}T$time') ?? DateTime(1970);
+    final kickoffAt =
+        serverKickoff ?? DateTime.tryParse('${date}T$time') ?? DateTime(1970);
     final oddsRaw = json['match_odds'];
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
@@ -88,14 +92,15 @@ class MatchModel {
       opponentScore: json['score_adverse'] == null
           ? null
           : int.tryParse('${json['score_adverse']}'),
-      predictionsClosedAt:
-          DateTime.tryParse('${json['predictions_closed_at'] ?? ''}'),
+      predictionsClosedAt: DateTime.tryParse(
+        '${json['predictions_closed_at'] ?? ''}',
+      )?.toLocal(),
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
       createdBy: json['created_by']?.toString(),
-      createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
-      updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
+      createdAt: DateTime.tryParse('${json['created_at'] ?? ''}')?.toLocal(),
+      updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}')?.toLocal(),
       opponentName: json['opponents'] is Map
           ? json['opponents']['name']?.toString()
           : null,

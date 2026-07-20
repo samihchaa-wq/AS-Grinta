@@ -94,7 +94,7 @@ class MatchDetailsRepository {
 
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client.from('matches').select('''
-      id, opponent_id, match_date, match_time, status, location,
+      id, opponent_id, match_date, match_time, kickoff_at, status, location,
       score_as_grinta, score_adverse, opponents(name),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
     ''').eq('id', matchId).maybeSingle();
@@ -103,9 +103,12 @@ class MatchDetailsRepository {
     }
     final opponentId = match['opponent_id'].toString();
     final opponent = Map<String, dynamic>.from(match['opponents'] as Map);
-    final kickoffAt =
+    final serverKickoff = DateTime.tryParse(
+      '${match['kickoff_at'] ?? ''}',
+    )?.toLocal();
+    final kickoffAt = serverKickoff ??
         DateTime.tryParse('${match['match_date']}T${match['match_time']}') ??
-            DateTime(1970);
+        DateTime(1970);
     final oddsRaw = match['match_odds'];
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)

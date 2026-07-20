@@ -110,6 +110,7 @@ class PredictionsRepository {
     id,
     match_date,
     match_time,
+    kickoff_at,
     status,
     score_as_grinta,
     score_adverse,
@@ -127,8 +128,7 @@ class PredictionsRepository {
         .from('matches')
         .select(_matchSelect)
         .eq('status', 'a_venir')
-        .order('match_date', ascending: true)
-        .order('match_time', ascending: true);
+        .order('kickoff_at', ascending: true);
     final items = <MatchPredictionItem>[];
     for (final match in matches as List) {
       items.add(await _buildItem(Map<String, dynamic>.from(match as Map)));
@@ -164,9 +164,13 @@ class PredictionsRepository {
         .eq('profile_id', userId)
         .maybeSingle();
 
+    final serverKickoff = DateTime.tryParse(
+      '${matchMap['kickoff_at'] ?? ''}',
+    )?.toLocal();
     final date = matchMap['match_date']?.toString() ?? '';
     final time = matchMap['match_time']?.toString() ?? '00:00:00';
-    final kickoffAt = DateTime.tryParse('${date}T$time') ?? DateTime(1970);
+    final kickoffAt =
+        serverKickoff ?? DateTime.tryParse('${date}T$time') ?? DateTime(1970);
     final opponent = matchMap['opponents'] is Map
         ? Map<String, dynamic>.from(matchMap['opponents'] as Map)
         : const <String, dynamic>{};
@@ -200,7 +204,7 @@ class PredictionsRepository {
           : int.tryParse('${matchMap['score_adverse']}'),
       predictionsClosedAt: DateTime.tryParse(
         '${matchMap['predictions_closed_at'] ?? ''}',
-      ),
+      )?.toLocal(),
     );
   }
 
@@ -210,8 +214,9 @@ class PredictionsRepository {
     required int scoreOpponent,
     required bool useX2,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (_client.auth.currentUser == null) {
+      throw StateError('Utilisateur non authentifié.');
+    }
     if (scoreGrinta < 0 ||
         scoreGrinta > 99 ||
         scoreOpponent < 0 ||
@@ -219,45 +224,18 @@ class PredictionsRepository {
       throw ArgumentError('Les scores doivent être compris entre 0 et 99.');
     }
 
-    final upcoming = await _client
-        .from('matches')
-        .select('id,match_date,match_time,status,predictions_closed_at')
-        .eq('status', 'a_venir')
-        .order('match_date', ascending: true)
-        .order('match_time', ascending: true);
-    final now = DateTime.now();
-    String? firstOpenMatchId;
-    for (final row in upcoming as List) {
-      final map = Map<String, dynamic>.from(row as Map);
-      final kickoff = DateTime.tryParse(
-        '${map['match_date']}T${map['match_time']}',
-      );
-      final manuallyClosed = DateTime.tryParse(
-        '${map['predictions_closed_at'] ?? ''}',
-      );
-      final closed = kickoff == null ||
-          !now.isBefore(kickoff.subtract(const Duration(minutes: 5))) ||
-          (manuallyClosed != null && !now.isBefore(manuallyClosed));
-      if (!closed) {
-        firstOpenMatchId = map['id'].toString();
-        break;
-      }
+    final result = await _client.rpc(
+      'save_match_prediction',
+      params: {
+        'p_match_id': matchId,
+        'p_score_as_grinta': scoreGrinta,
+        'p_score_adverse': scoreOpponent,
+        'p_use_x2': useX2,
+      },
+    );
+    if (result != true) {
+      throw StateError('Le pronostic n’a pas pu être enregistré.');
     }
-    if (firstOpenMatchId != matchId) {
-      throw StateError(
-        'Ce match n’est pas encore ouvert aux pronostics. Termine d’abord le prochain match disponible.',
-      );
-    }
-
-    await _client.from('match_predictions').upsert({
-      'match_id': matchId,
-      'profile_id': userId,
-      'predicted_score_as_grinta': scoreGrinta,
-      'predicted_score_adverse': scoreOpponent,
-      'is_filled': true,
-      'use_x2': useX2,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }, onConflict: 'match_id,profile_id');
   }
 }
 

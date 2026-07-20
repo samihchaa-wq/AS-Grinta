@@ -15,6 +15,7 @@ class MatchesRepository {
       opponent_id,
       match_date,
       match_time,
+      kickoff_at,
       location,
       planned_duration_minutes,
       status,
@@ -136,42 +137,23 @@ class MatchesRepository {
     required double oddsDraw,
     required double oddsLoss,
   }) async {
-    await _client.from('matches').update({
-      'season_id': seasonId,
-      'opponent_id': opponentId,
-      'match_date': kickoffAt.toIso8601String().split('T').first,
-      'match_time': _formatTime(kickoffAt),
-      'location': isHome ? 'domicile' : 'exterieur',
-      'status': status,
-    }).eq('id', id);
-
-    if (status == 'a_venir') {
-      await _setOdds(
-        matchId: id,
-        oddsWin: oddsWin,
-        oddsDraw: oddsDraw,
-        oddsLoss: oddsLoss,
-      );
-    }
-  }
-
-  Future<void> _setOdds({
-    required String matchId,
-    required double oddsWin,
-    required double oddsDraw,
-    required double oddsLoss,
-  }) async {
     final result = await _client.rpc(
-      'set_match_odds',
+      'update_match_with_odds',
       params: {
-        'p_match_id': matchId,
+        'p_match_id': id,
+        'p_season_id': seasonId,
+        'p_opponent_id': opponentId,
+        'p_match_date': kickoffAt.toIso8601String().split('T').first,
+        'p_match_time': _formatTime(kickoffAt),
+        'p_location': isHome ? 'domicile' : 'exterieur',
+        'p_status': status,
         'p_win': oddsWin,
         'p_draw': oddsDraw,
         'p_loss': oddsLoss,
       },
     );
     if (result != true) {
-      throw StateError('Les cotes n’ont pas pu être enregistrées.');
+      throw StateError('Le match et ses cotes n’ont pas pu être enregistrés.');
     }
   }
 
