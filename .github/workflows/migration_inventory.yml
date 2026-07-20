@@ -41,11 +41,18 @@ jobs:
         run: |
           set -euo pipefail
           base="origin/${{ github.base_ref }}"
-          mapfile -t added < <(git diff --name-only --diff-filter=A "$base...HEAD" -- 'supabase/migrations/*.sql')
+          mapfile -t added < <(git diff --name-only --diff-filter=A "$base...HEAD" -- 'supabase/migrations/*.sql' | sort)
           if [ "${#added[@]}" -eq 0 ]; then
             echo "No new migration file."
             exit 0
           fi
+
+          base_latest=$(git ls-tree -r --name-only "$base" -- supabase/migrations \
+            | sed -nE 's#^.*/([0-9]{14})_[a-z0-9_]+\.sql$#\1#p' \
+            | sort \
+            | tail -n 1)
+          test -n "$base_latest"
+          previous="$base_latest"
 
           for file in "${added[@]}"; do
             name=$(basename "$file")
@@ -53,13 +60,30 @@ jobs:
               echo "Invalid migration filename: $name" >&2
               exit 1
             fi
+
             version=${name%%_*}
             duplicates=$(find supabase/migrations -maxdepth 1 -type f -name "${version}_*.sql" | wc -l)
             if [ "$duplicates" -ne 1 ]; then
               echo "Migration timestamp $version is not unique." >&2
               exit 1
             fi
+
+            if [[ "$version" < "$previous" || "$version" == "$previous" ]]; then
+              echo "Migration $name is not newer than $previous." >&2
+              echo "New migrations must be strictly ordered after the base branch history." >&2
+              exit 1
+            fi
+            previous="$version"
           done
+
+      - name: Validate production lock syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          source supabase/production_migrations.lock
+          [[ "${MIGRATION_COUNT:-}" =~ ^[0-9]+$ ]]
+          [[ "${LATEST_VERSION:-}" =~ ^[0-9]{14}$ ]]
+          [[ "${VERSION_MD5:-}" =~ ^[0-9a-f]{32}$ ]]
 
       - name: Ensure production lock is not changed from a feature PR
         if: >-
