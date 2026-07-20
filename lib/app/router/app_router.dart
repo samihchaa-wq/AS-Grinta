@@ -10,6 +10,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/auth/presentation/forced_password_change_page.dart';
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
 import 'package:as_grinta/features/badges/presentation/badge_admin_page.dart';
+import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/home/presentation/accueil_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
@@ -28,12 +29,15 @@ import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier();
-  ref
-    ..listen<AuthState>(
-      authControllerProvider,
-      (_, __) => refreshNotifier.refresh(),
-    )
-    ..onDispose(refreshNotifier.dispose);
+  ref.listen<AuthState>(
+    authControllerProvider,
+    (_, __) => refreshNotifier.refresh(),
+  );
+  ref.listen(
+    featureFlagsControllerProvider,
+    (_, __) => refreshNotifier.refresh(),
+  );
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/accueil',
@@ -42,6 +46,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       authState: ref.read(authControllerProvider),
       uri: state.uri,
       matchedLocation: state.matchedLocation,
+      sportsManagementEnabled: ref.read(sportsManagementEnabledProvider),
     ),
     routes: [
       GoRoute(path: '/', redirect: (_, __) => '/accueil'),

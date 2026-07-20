@@ -5,6 +5,7 @@ String? resolveAuthRedirect({
   required AuthState authState,
   required Uri uri,
   required String matchedLocation,
+  bool sportsManagementEnabled = false,
 }) {
   final location = matchedLocation;
 
@@ -44,6 +45,10 @@ String? resolveAuthRedirect({
     return '/pronos?category=matches';
   }
 
+  if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
+    return '/pronos';
+  }
+
   final role = authState.profile?.role;
   final isAdmin = role == AuthRole.admin;
   final isStaff = role?.isStaff == true;
@@ -56,6 +61,21 @@ String? resolveAuthRedirect({
   if (isAdminRoute && !isStaff) return '/pronos';
   if (isPlayersRoute && !isStaff) return '/pronos';
   return null;
+}
+
+bool _isSportsManagementRoute(Uri uri) {
+  final segments =
+      uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+
+  final isPlayerMatchRoute = segments.length == 3 &&
+      segments.first == 'matches' &&
+      const {'availability', 'lineup', 'vote'}.contains(segments.last);
+  final isAdminMatchRoute = segments.length == 4 &&
+      segments[0] == 'admin' &&
+      segments[1] == 'matches' &&
+      segments[3] == 'sport-management';
+
+  return isPlayerMatchRoute || isAdminMatchRoute;
 }
 
 String? _safeLocalRedirect(String? value) {
