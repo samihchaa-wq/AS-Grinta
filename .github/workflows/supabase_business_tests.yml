@@ -1,0 +1,105 @@
+name: Supabase business and RLS tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase_business_tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/supabase_business_tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-business-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  database-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify local database tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase start --help > /dev/null
+          supabase test db --help > /dev/null
+          supabase db lint --help > /dev/null
+          psql --version
+
+      - name: Start isolated Supabase database
+        shell: bash
+        run: |
+          set -o pipefail
+          mv supabase/migrations supabase/migrations.full
+          mkdir supabase/migrations
+          restore_migrations() {
+            rm -rf supabase/migrations
+            mv supabase/migrations.full supabase/migrations
+          }
+          trap restore_migrations EXIT
+          supabase start 2>&1 | tee supabase-start.log
+
+      - name: Install current business schema
+        shell: bash
+        run: |
+          set -o pipefail
+          DB_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          {
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/current_business_schema.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720033749_integrity_backfill_and_staff_audit.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/enable_prediction_guard.sql
+          } 2>&1 | tee supabase-schema.log
+
+      - name: Run pgTAP business and RLS tests
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase test db \
+            supabase/tests/database/business_rls.test.sql \
+            2>&1 | tee supabase-tests.log
+
+      - name: Lint database functions
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db lint --level error 2>&1 | tee supabase-lint.log
+
+      - name: Upload database diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-business-test-logs
+          path: |
+            supabase-start.log
+            supabase-schema.log
+            supabase-tests.log
+            supabase-lint.log
+          if-no-files-found: warn
+
+      - name: Stop isolated Supabase stack
+        if: always()
+        shell: bash
+        run: supabase stop || true
