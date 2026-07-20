@@ -1,12 +1,15 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
+import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
+import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,12 +24,16 @@ class MatchDetailsPage extends ConsumerWidget {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+    final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Match')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(matchDetailsProvider(matchId));
+          if (sportsEnabled) {
+            ref.invalidate(sportMotmVoteProvider(matchId));
+          }
           await ref.read(matchDetailsProvider(matchId).future);
         },
         child: detailsAsync.when(
@@ -76,6 +83,10 @@ class MatchDetailsPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
                 _MatchHeader(details: details),
+                if (sportsEnabled) ...[
+                  const SizedBox(height: 16),
+                  MatchMotmVoteCard(matchId: matchId),
+                ],
                 if (details.playerStats.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _MatchSummary(details: details),

@@ -28,6 +28,7 @@ import 'package:as_grinta/features/sports_management/presentation/admin_guests_p
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_match_finalization_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,8 +62,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) =>
             AppShell(location: state.uri.toString(), child: child),
         routes: [
-          // Onglets principaux : changement instantané (des pairs, pas une
-          // hiérarchie) pour une transition identique à chaque fois.
           GoRoute(
             path: '/accueil',
             pageBuilder: (_, __) =>
@@ -115,6 +114,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/matches/:matchId/lineup',
             builder: (context, state) => MatchLineupPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/vote',
+            builder: (context, state) => SportMotmVotePage(
               matchId: state.pathParameters['matchId'] ?? '',
             ),
           ),
