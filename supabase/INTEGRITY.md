@@ -1,6 +1,6 @@
 # Contrôle d’intégrité Supabase
 
-La migration `20260720160000_integrity_backfill_and_staff_audit.sql` ajoute la RPC `staff_app_integrity_report()`.
+La migration `20260720033749_integrity_backfill_and_staff_audit.sql` ajoute la RPC `staff_app_integrity_report()`.
 
 Cette RPC est réservée aux profils actifs ayant un rôle de staff. Elle ne retourne que des compteurs agrégés et aucune donnée personnelle.
 
