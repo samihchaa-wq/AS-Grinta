@@ -22,8 +22,10 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_composition_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,6 +80,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const AdminConvocationsPage(),
           ),
           GoRoute(
+            path: '/admin/composition',
+            builder: (_, __) => const AdminCompositionPage(),
+          ),
+          GoRoute(
             path: '/admin/waitlist',
             builder: (_, __) => const AdminWaitlistPage(),
           ),
@@ -97,6 +103,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/matches/:matchId',
             builder: (context, state) => MatchDetailsPage(
+              matchId: state.pathParameters['matchId'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/lineup',
+            builder: (context, state) => MatchLineupPage(
               matchId: state.pathParameters['matchId'] ?? '',
             ),
           ),

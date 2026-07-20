@@ -5,6 +5,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
+import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +54,10 @@ class MatchDetailsPage extends ConsumerWidget {
                 children: [
                   _UpcomingHeader(details: details),
                   const SizedBox(height: 16),
+                  PublishedLineupCard(
+                    matchId: matchId,
+                    bottomSpacing: 16,
+                  ),
                   _HeadToHeadCard(details: details),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),

@@ -62,6 +62,21 @@ class AdminMenuPage extends ConsumerWidget {
             const SizedBox(height: 10),
             Card(
               child: ListTile(
+                leading: const Icon(Icons.sports_soccer_outlined),
+                title: const Text(
+                  'Composition',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: const Text(
+                  'Placer les titulaires, organiser le banc et publier l’équipe.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/admin/composition'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
                 leading: const Icon(Icons.format_list_numbered),
                 title: const Text(
                   'Liste d’attente',
