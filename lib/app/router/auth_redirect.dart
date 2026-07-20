@@ -76,7 +76,7 @@ bool _isSportsManagementRoute(Uri uri) {
       segments[3] == 'sport-management';
   final isAdminRotationRoute = segments.length == 2 &&
       segments.first == 'admin' &&
-      const {'convocations', 'waitlist'}.contains(segments.last);
+      const {'convocations', 'composition', 'waitlist'}.contains(segments.last);
 
   return isPlayerMatchRoute || isAdminMatchRoute || isAdminRotationRoute;
 }
