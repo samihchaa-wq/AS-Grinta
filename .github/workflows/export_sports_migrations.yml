@@ -1,0 +1,44 @@
+name: Export sports migrations
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/export_sports_migrations.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+      - name: Collect sports migrations and function
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p export/supabase/migrations export/supabase/functions/send-push
+          cp supabase/migrations/20260720123000_sports_management_feature_flag.sql export/supabase/migrations/
+          cp supabase/migrations/20260720131500_sports_management_availability_workflow.sql export/supabase/migrations/
+          cp supabase/migrations/20260720150000_sports_management_waitlist_rotation.sql export/supabase/migrations/
+          cp supabase/migrations/20260720151000_sports_management_waitlist_rotation_fixes.sql export/supabase/migrations/
+          cp supabase/migrations/20260720162500_sports_management_notification_scheduler_extensions.sql export/supabase/migrations/
+          cp supabase/migrations/20260720163000_sports_management_availability_notifications.sql export/supabase/migrations/
+          cp supabase/migrations/20260720163500_sports_management_availability_notification_rpc_grants.sql export/supabase/migrations/
+          cp supabase/migrations/20260720170000_sports_management_composition_server.sql export/supabase/migrations/
+          cp supabase/migrations/20260720174500_sports_management_guests.sql export/supabase/migrations/
+          cp supabase/migrations/20260720180000_sports_management_final_attendance_statistics.sql export/supabase/migrations/
+          cp supabase/migrations/20260720190000_sports_management_motm_vote.sql export/supabase/migrations/
+          cp supabase/migrations/20260720190500_sports_management_motm_vote_finalization_response.sql export/supabase/migrations/
+          cp supabase/migrations/20260720191000_sports_management_motm_vote_rpc_grants.sql export/supabase/migrations/
+          cp supabase/migrations/20260720213000_sports_management_motm_notifications.sql export/supabase/migrations/
+          cp supabase/migrations/20260720220000_sports_management_release_readiness.sql export/supabase/migrations/
+          cp supabase/functions/send-push/index.ts export/supabase/functions/send-push/
+      - name: Upload verified sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: sports-management-verified-sources
+          path: export
+          if-no-files-found: error
