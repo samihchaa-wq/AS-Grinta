@@ -3,6 +3,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,8 +32,9 @@ class _UpcomingMatchPredictionPageState
 
   @override
   Widget build(BuildContext context) {
-    final prediction =
-        ref.watch(matchPredictionDetailsProvider(widget.matchId));
+    final prediction = ref.watch(
+      matchPredictionDetailsProvider(widget.matchId),
+    );
     final details = ref.watch(matchDetailsProvider(widget.matchId));
 
     return Scaffold(
@@ -98,9 +100,9 @@ class _UpcomingMatchPredictionPageState
           );
       ref.invalidate(matchPredictionDetailsProvider(widget.matchId));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pronostic enregistré.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -155,6 +157,7 @@ class _BetCard extends StatelessWidget {
           const SizedBox(height: 12),
           const Divider(height: 1),
           const SizedBox(height: 12),
+          MatchAvailabilitySelector(matchId: item.matchId, bottomSpacing: 12),
           details.when(
             loading: () => const Center(
               child: Padding(
@@ -170,9 +173,9 @@ class _BetCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Score à modifier',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 8),
           Row(
@@ -225,11 +228,7 @@ class _BetCard extends StatelessWidget {
               if (compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    odds,
-                    const SizedBox(height: 10),
-                    x2,
-                  ],
+                  children: [odds, const SizedBox(height: 10), x2],
                 );
               }
 
@@ -269,9 +268,9 @@ class _BetCard extends StatelessWidget {
             item.isClosed
                 ? 'Pronostics fermés'
                 : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
           ),
         ],
       ),
@@ -306,9 +305,9 @@ class _TeamsRow extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           AppFormats.dateTime(item.kickoffAt),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
         ),
       ],
     );
@@ -350,17 +349,17 @@ class _HistoryStrip extends StatelessWidget {
       children: [
         Text(
           'Les 5 dernières rencontres',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         if (matches.isEmpty)
           Text(
             'Aucune confrontation précédente.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
           )
         else
           Wrap(
@@ -402,9 +401,9 @@ class _OddsSection extends StatelessWidget {
       children: [
         Text(
           'Les cotes',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         Row(
@@ -474,9 +473,9 @@ class _X2Section extends StatelessWidget {
               children: [
                 Text(
                   'Activer le ×2',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 Text(
                   '$available en réserve',
@@ -583,9 +582,9 @@ class _ScorePicker extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 4),
         Row(
