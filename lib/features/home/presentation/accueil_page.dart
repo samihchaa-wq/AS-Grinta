@@ -7,6 +7,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,10 +75,9 @@ class _BlockHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
           if (onSeeAll != null)
@@ -117,10 +117,9 @@ class _EmptyCard extends StatelessWidget {
           padding: const EdgeInsets.all(18),
           child: Text(
             message,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: AppTheme.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
           ),
         ),
       );
@@ -203,15 +202,16 @@ class _NextMatchCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '$homeName  vs  $awayName',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: (match.isHome ? AppTheme.primary : AppTheme.accent)
                           .withValues(alpha: 0.25),
@@ -231,16 +231,20 @@ class _NextMatchCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   AppFormats.dateTime(match.kickoffAt!),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: const Color(0xFFD7C8FF)),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFFD7C8FF),
+                      ),
                 ),
               ],
               if (closeAt != null && !match.predictionsClosed) ...[
                 const SizedBox(height: 10),
                 _PronoCountdown(closeAt: closeAt),
               ],
+              MatchAvailabilitySelector(
+                matchId: match.id,
+                embeddedOnDark: true,
+                topSpacing: 14,
+              ),
               if (match.hasOdds) ...[
                 const SizedBox(height: 14),
                 Row(
@@ -308,10 +312,9 @@ class _NextMatchCard extends StatelessWidget {
                 Text(
                   AppFormats.counted(participants, 'pronostiqueur') +
                       (participants > 1 ? ' ont parié' : ' a parié'),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: const Color(0xFFB6A9E0)),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFFB6A9E0),
+                      ),
                 ),
               ],
             ],
@@ -375,8 +378,11 @@ class _PronoCountdownState extends State<_PronoCountdown> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(closed ? Icons.lock_outline : Icons.timer_outlined,
-              size: 15, color: color),
+          Icon(
+            closed ? Icons.lock_outline : Icons.timer_outlined,
+            size: 15,
+            color: color,
+          ),
           const SizedBox(width: 6),
           Text(
             closed
@@ -540,19 +546,17 @@ class _LastPronoCard extends StatelessWidget {
             children: [
               Text(
                 '$homeName  $homeReal – $awayReal  $awayName',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 4),
               Text(
                 'Ton pari : $homePred – $awayPred'
                 '${prono.useX2 ? '  ·  ×2' : ''}',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppTheme.textSecondary),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 14),
               Row(
@@ -636,7 +640,8 @@ class _MyRankingsBlock extends ConsumerWidget {
             final generalRank = _rankOf(entries, uid, (e) => e.totalPoints);
             if (matchRank == null) {
               return const _EmptyCard(
-                  'Tu n\'apparais pas encore au classement.');
+                'Tu n\'apparais pas encore au classement.',
+              );
             }
             return Card(
               child: Padding(
@@ -726,10 +731,9 @@ class _RankRow extends StatelessWidget {
             ),
             Text(
               ' / $total',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppTheme.textSecondary),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
             ),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
@@ -774,9 +778,7 @@ class _RecentBadgesBlock extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final b in recent) _BadgeChip(badge: b),
-                  ],
+                  children: [for (final b in recent) _BadgeChip(badge: b)],
                 ),
               ),
             );
