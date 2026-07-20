@@ -81,9 +81,13 @@ class MatchesRepository {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
+    int? squadSizeLimit,
   }) async {
+    final sportsEnabled = squadSizeLimit != null;
     final result = await _client.rpc(
-      'create_match_with_odds',
+      sportsEnabled
+          ? 'create_match_with_odds_and_sport_limit'
+          : 'create_match_with_odds',
       params: {
         'p_season_id': seasonId,
         'p_opponent_id': opponentId,
@@ -93,6 +97,7 @@ class MatchesRepository {
         'p_win': oddsWin,
         'p_draw': oddsDraw,
         'p_loss': oddsLoss,
+        if (sportsEnabled) 'p_squad_size_limit': squadSizeLimit,
       },
     );
     if (result == null || result.toString().isEmpty) {
@@ -136,9 +141,13 @@ class MatchesRepository {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
+    int? squadSizeLimit,
   }) async {
+    final sportsEnabled = squadSizeLimit != null;
     final result = await _client.rpc(
-      'update_match_with_odds',
+      sportsEnabled
+          ? 'update_match_with_odds_and_sport_limit'
+          : 'update_match_with_odds',
       params: {
         'p_match_id': id,
         'p_season_id': seasonId,
@@ -150,11 +159,23 @@ class MatchesRepository {
         'p_win': oddsWin,
         'p_draw': oddsDraw,
         'p_loss': oddsLoss,
+        if (sportsEnabled) 'p_squad_size_limit': squadSizeLimit,
       },
     );
     if (result != true) {
       throw StateError('Le match et ses cotes n’ont pas pu être enregistrés.');
     }
+  }
+
+  Future<int> fetchSportSquadLimit(String matchId) async {
+    final response = await _client.rpc(
+      'admin_get_match_convocations',
+      params: {'p_match_id': matchId},
+    );
+    if (response is! Map) {
+      throw const FormatException('Configuration sportive invalide.');
+    }
+    return (response['squad_size_limit'] as num?)?.toInt() ?? 14;
   }
 
   Future<void> deleteMatch(String id) async {

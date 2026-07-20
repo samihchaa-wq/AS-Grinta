@@ -83,8 +83,8 @@ class AdminSportsManagementSection extends ConsumerWidget {
             Text(
               'Paramètres serveur : ouverture J−${feature.availabilityOpenHoursBefore ~/ 24}, '
               'relances ${_reminderLabel(feature.reminderHoursBefore)}, '
-              '${feature.usualSquadSize} convoqués habituellement, vote '
-              '${feature.voteDurationHours} h.',
+              'limite proposée ${feature.usualSquadSize} et modifiable par '
+              'match, vote ${feature.voteDurationHours} h.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (feature.updatedAt != null) ...[

@@ -78,6 +78,10 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720131500_sports_management_availability_workflow.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720150000_sports_management_waitlist_rotation.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720151000_sports_management_waitlist_rotation_fixes.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
 
@@ -96,6 +100,12 @@ jobs:
             2>&1 | tee -a supabase-tests.log
           supabase test db \
             supabase/tests/database/sports_management_availability_workflow.test.sql \
+            2>&1 | tee -a supabase-tests.log
+          supabase test db \
+            supabase/tests/database/sports_management_waitlist_rotation.test.sql \
+            2>&1 | tee -a supabase-tests.log
+          supabase test db \
+            supabase/tests/database/sports_management_waitlist_rotation_fixes.test.sql \
             2>&1 | tee -a supabase-tests.log
 
       - name: Lint database functions

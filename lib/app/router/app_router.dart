@@ -22,6 +22,8 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -70,6 +72,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/matches',
             builder: (_, __) => const MatchesPage(),
+          ),
+          GoRoute(
+            path: '/admin/convocations',
+            builder: (_, __) => const AdminConvocationsPage(),
+          ),
+          GoRoute(
+            path: '/admin/waitlist',
+            builder: (_, __) => const AdminWaitlistPage(),
           ),
           GoRoute(
             path: '/admin/badges',
