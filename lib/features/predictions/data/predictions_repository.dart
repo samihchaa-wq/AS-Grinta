@@ -50,8 +50,7 @@ class MatchPredictionItem {
       !now.isBefore(closesAt) ||
       (predictionsClosedAt != null && !now.isBefore(predictionsClosedAt!));
 
-  bool isClosedAt(DateTime now) =>
-      !isFirstOpenMatch || isTimeClosedAt(now);
+  bool isClosedAt(DateTime now) => !isFirstOpenMatch || isTimeClosedAt(now);
 
   bool isWaitingForPreviousMatchAt(DateTime now) =>
       !isFirstOpenMatch && !isTimeClosedAt(now);
@@ -184,10 +183,7 @@ class PredictionsRepository {
     );
   }
 
-  String? _firstOpenMatchId(
-    List<Map<String, dynamic>> matches,
-    DateTime now,
-  ) {
+  String? _firstOpenMatchId(List<Map<String, dynamic>> matches, DateTime now) {
     for (final match in matches) {
       if (match['status']?.toString() != 'a_venir') continue;
       final kickoffAt = DateTime.tryParse(
@@ -241,8 +237,8 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
 
     return MatchPredictionItem(
       matchId: matchId,

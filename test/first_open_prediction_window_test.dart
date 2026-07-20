@@ -8,10 +8,7 @@ void main() {
     final kickoff = now.add(const Duration(days: 1));
 
     test('the first open match remains editable', () {
-      final item = _item(
-        kickoffAt: kickoff,
-        isFirstOpenMatch: true,
-      );
+      final item = _item(kickoffAt: kickoff, isFirstOpenMatch: true);
 
       expect(item.isWaitingForPreviousMatchAt(now), isFalse);
       expect(item.isClosedAt(now), isFalse);
@@ -19,10 +16,7 @@ void main() {
     });
 
     test('a later time-open match waits for the previous match', () {
-      final item = _item(
-        kickoffAt: kickoff,
-        isFirstOpenMatch: false,
-      );
+      final item = _item(kickoffAt: kickoff, isFirstOpenMatch: false);
 
       expect(item.isWaitingForPreviousMatchAt(now), isTrue);
       expect(item.isClosedAt(now), isTrue);
