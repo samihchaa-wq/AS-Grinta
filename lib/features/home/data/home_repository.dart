@@ -94,6 +94,9 @@ class HomeRepository {
     final opponent = map['opponents'] is Map
         ? Map<String, dynamic>.from(map['opponents'] as Map)
         : const <String, dynamic>{};
+    final serverKickoff = DateTime.tryParse(
+      '${map['kickoff_at'] ?? ''}',
+    )?.toLocal();
     final date = map['match_date']?.toString() ?? '';
     final time = map['match_time']?.toString() ?? '00:00:00';
 
@@ -111,7 +114,7 @@ class HomeRepository {
       opponentId: map['opponent_id']?.toString(),
       opponent: opponent['name']?.toString() ?? 'Adversaire',
       isHome: (map['location']?.toString() ?? 'domicile') == 'domicile',
-      kickoffAt: DateTime.tryParse('${date}T$time'),
+      kickoffAt: serverKickoff ?? DateTime.tryParse('${date}T$time'),
       status: (map['status'] ?? 'a_venir').toString(),
       grintaScore: (map['score_as_grinta'] as num?)?.toInt(),
       opponentScore: (map['score_adverse'] as num?)?.toInt(),
@@ -129,14 +132,14 @@ class HomeRepository {
     final rows = await _client
         .from('matches')
         .select(
-          'id, opponent_id, match_date, match_time, location, status, '
+          'id, opponent_id, match_date, match_time, kickoff_at, location, status, '
           'score_as_grinta, score_adverse, predictions_closed_at, '
           'opponents(name), '
           'match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)',
         )
-        .inFilter('status', const ['a_venir', 'termine', 'archive'])
-        .order('match_date', ascending: true)
-        .order('match_time', ascending: true);
+        .inFilter('status', const ['a_venir', 'termine', 'archive']).order(
+            'kickoff_at',
+            ascending: true);
 
     final predictions = await _client
         .from('match_predictions')
@@ -168,9 +171,7 @@ class HomeRepository {
       if (match.status == 'a_venir' &&
           match.kickoffAt != null &&
           !match.predictionsClosed &&
-          now.isBefore(
-            match.kickoffAt!.subtract(const Duration(minutes: 5)),
-          ) &&
+          now.isBefore(match.kickoffAt!.subtract(const Duration(minutes: 5))) &&
           filledByMatch[match.id] != true) {
         pendingPredictions++;
       }
@@ -285,7 +286,7 @@ final myLastPronoProvider = FutureProvider<LastProno?>((ref) async {
       .select(
         'predicted_score_as_grinta, predicted_score_adverse, use_x2, match_id, '
         'matches!inner(id, score_as_grinta, score_adverse, location, '
-        'match_date, match_time, status, opponents(name))',
+        'match_date, match_time, kickoff_at, status, opponents(name))',
       )
       .eq('profile_id', uid)
       .eq('is_filled', true)
@@ -303,9 +304,13 @@ final myLastPronoProvider = FutureProvider<LastProno?>((ref) async {
     final grinta = (match['score_as_grinta'] as num?)?.toInt();
     final opponent = (match['score_adverse'] as num?)?.toInt();
     if (grinta == null || opponent == null) continue;
+    final serverKickoff = DateTime.tryParse(
+      '${match['kickoff_at'] ?? ''}',
+    )?.toLocal();
     final date = match['match_date']?.toString() ?? '';
     final time = match['match_time']?.toString() ?? '00:00:00';
-    final kickoff = DateTime.tryParse('${date}T$time') ?? DateTime(0);
+    final kickoff =
+        serverKickoff ?? DateTime.tryParse('${date}T$time') ?? DateTime(0);
     if (best == null || kickoff.isAfter(bestKickoff)) {
       best = map;
       bestKickoff = kickoff;
