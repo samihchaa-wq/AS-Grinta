@@ -90,6 +90,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720163500_sports_management_availability_notification_rpc_grants.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260720170000_sports_management_composition_server.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
 
@@ -117,6 +119,9 @@ jobs:
             2>&1 | tee -a supabase-tests.log
           supabase test db \
             supabase/tests/database/sports_management_availability_notifications.test.sql \
+            2>&1 | tee -a supabase-tests.log
+          supabase test db \
+            supabase/tests/database/sports_management_composition_server.test.sql \
             2>&1 | tee -a supabase-tests.log
 
       - name: Lint database functions
