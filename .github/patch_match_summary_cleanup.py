@@ -5,7 +5,13 @@ import re
 def sub(path: str, pattern: str, replacement: str, label: str) -> None:
     file = Path(path)
     text = file.read_text()
-    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+    updated, count = re.subn(
+        pattern,
+        lambda _: replacement,
+        text,
+        count=1,
+        flags=re.S,
+    )
     if count != 1:
         Path('.patch_error.txt').write_text(
             f'Pattern not found: {label} in {path} ({count})\n'
