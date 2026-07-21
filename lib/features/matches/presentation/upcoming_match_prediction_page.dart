@@ -38,7 +38,7 @@ class _UpcomingMatchPredictionPageState
     final details = ref.watch(matchDetailsProvider(widget.matchId));
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Ton pari')),
+      appBar: GrintaAppBar(title: const SizedBox.shrink()),
       body: prediction.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('$error')),
