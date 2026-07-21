@@ -109,9 +109,8 @@ class _FakeAvailabilityRepository implements MatchAvailabilityRepository {
     String? privateComment,
   }) async {
     lastStatus = status;
-    lastComment = privateComment?.trim().isEmpty == true
-        ? null
-        : privateComment?.trim();
+    lastComment =
+        privateComment?.trim().isEmpty == true ? null : privateComment?.trim();
     return _value(status: status, privateComment: lastComment);
   }
 }

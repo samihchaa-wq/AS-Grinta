@@ -97,7 +97,8 @@ class MatchAvailabilityBoard {
 
   List<MatchAvailabilityBoardPlayer> playersWith(
     MatchAvailabilityBoardStatus status,
-  ) => players
-      .where((player) => player.status == status)
-      .toList(growable: false);
+  ) =>
+      players
+          .where((player) => player.status == status)
+          .toList(growable: false);
 }

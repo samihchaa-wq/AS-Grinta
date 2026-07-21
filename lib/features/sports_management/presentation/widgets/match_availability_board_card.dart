@@ -50,7 +50,9 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           'Réponses des joueurs',
-                          style: Theme.of(context).textTheme.titleMedium
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
@@ -117,9 +119,9 @@ class _AvailabilityGroup extends StatelessWidget {
             Text(
               '$title (${players.length})',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w900,
-              ),
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                  ),
             ),
           ],
         ),
