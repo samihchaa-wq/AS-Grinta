@@ -25,7 +25,9 @@ jobs:
       - name: Apply implementation payload
         shell: bash
         run: |
-          python3 - <<'PY'
+          set +e
+          {
+            python3 - <<'PY'
           import re
           from pathlib import Path
           text = Path('.github/workflows/apply-live-squad-redesign.yml').read_text()
@@ -33,10 +35,23 @@ jobs:
           if not match:
               raise SystemExit('Implementation payload not found')
           Path('/tmp/live-squad.b64').write_text(match.group(1))
+          print('payload length', len(match.group(1)))
           PY
-          base64 -d /tmp/live-squad.b64 | tar -xz
-          python3 apply_patch.py
-          rm apply_patch.py
+            base64 -d /tmp/live-squad.b64 | tar -xz
+            python3 apply_patch.py
+            rm apply_patch.py
+          } > /tmp/live-squad-debug.log 2>&1
+          status=$?
+          cat /tmp/live-squad-debug.log
+          if [ "$status" -ne 0 ]; then
+            cp /tmp/live-squad-debug.log live-squad-debug.log
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add live-squad-debug.log
+            git commit -m 'Journal de diagnostic de la refonte'
+            git push origin HEAD:feat/live-squad-and-formations
+            exit "$status"
+          fi
       - name: Format and test
         run: |
           flutter pub get
