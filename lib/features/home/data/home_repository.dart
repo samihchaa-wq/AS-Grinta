@@ -17,6 +17,18 @@ class RecentMeeting {
   bool get isDraw => grintaScore == opponentScore;
 }
 
+class HomePrediction {
+  const HomePrediction({
+    required this.grintaScore,
+    required this.opponentScore,
+    required this.useX2,
+  });
+
+  final int grintaScore;
+  final int opponentScore;
+  final bool useX2;
+}
+
 /// Un match mis en avant sur l'accueil (prochain ou dernier joué).
 class HomeMatch {
   const HomeMatch({
@@ -71,6 +83,7 @@ class HomeDashboardData {
     required this.predictionParticipantCount,
     required this.recentMeetings,
     required this.nextMatchPredicted,
+    required this.nextMatchPrediction,
   });
 
   /// Le prochain match à venir (avant ou après le coup d'envoi), ou null.
@@ -89,6 +102,9 @@ class HomeDashboardData {
 
   /// La personne a-t-elle déjà rempli son prono pour le prochain match ?
   final bool nextMatchPredicted;
+
+  /// Score pronostiqué sur le prochain match, lorsqu'il est rempli.
+  final HomePrediction? nextMatchPrediction;
 }
 
 class HomeRepository {
@@ -149,12 +165,25 @@ class HomeRepository {
 
     final predictions = await _client
         .from('match_predictions')
-        .select('match_id, is_filled')
+        .select(
+          'match_id, is_filled, predicted_score_as_grinta, '
+          'predicted_score_adverse, use_x2',
+        )
         .eq('profile_id', userId);
     final filledByMatch = <String, bool>{};
+    final predictionByMatch = <String, HomePrediction>{};
     for (final row in predictions as List) {
       final map = Map<String, dynamic>.from(row);
-      filledByMatch[map['match_id'].toString()] = map['is_filled'] == true;
+      final matchId = map['match_id'].toString();
+      final filled = map['is_filled'] == true;
+      filledByMatch[matchId] = filled;
+      if (filled) {
+        predictionByMatch[matchId] = HomePrediction(
+          grintaScore: (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
+          opponentScore: (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
+          useX2: map['use_x2'] == true,
+        );
+      }
     }
 
     final matches = (rows as List)
@@ -234,6 +263,8 @@ class HomeRepository {
       recentMeetings: recentMeetings,
       nextMatchPredicted:
           nextMatch != null && filledByMatch[nextMatch.id] == true,
+      nextMatchPrediction:
+          nextMatch == null ? null : predictionByMatch[nextMatch.id],
     );
   }
 }

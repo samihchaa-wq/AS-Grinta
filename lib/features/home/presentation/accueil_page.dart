@@ -1,9 +1,6 @@
-import 'dart:async';
-
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
@@ -11,7 +8,6 @@ import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dar
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
-import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,7 +30,6 @@ class AccueilPage extends ConsumerWidget {
           ref
             ..invalidate(homeDashboardProvider)
             ..invalidate(myLastPronoProvider)
-            ..invalidate(leaderboardProvider)
             ..invalidate(myArmoireProvider)
             ..invalidate(publishedMatchCompositionProvider)
             ..invalidate(sportMotmVoteProvider);
@@ -46,13 +41,12 @@ class AccueilPage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: const [
+            HomeLastMatchVoteBlock(),
             _NextMatchBlock(),
             SizedBox(height: 18),
             _LastPronoBlock(),
             SizedBox(height: 18),
             HomeSportsFlowBlocks(),
-            _MyRankingsBlock(),
-            SizedBox(height: 18),
             _RecentBadgesBlock(),
           ],
         ),
@@ -155,6 +149,7 @@ class _NextMatchBlock extends ConsumerWidget {
               match: match,
               meetings: data.recentMeetings,
               predicted: data.nextMatchPredicted,
+              prediction: data.nextMatchPrediction,
               participants: data.predictionParticipantCount,
             );
           },
@@ -169,12 +164,14 @@ class _NextMatchCard extends StatelessWidget {
     required this.match,
     required this.meetings,
     required this.predicted,
+    required this.prediction,
     required this.participants,
   });
 
   final HomeMatch match;
   final List<RecentMeeting> meetings;
   final bool predicted;
+  final HomePrediction? prediction;
   final int participants;
 
   @override
@@ -186,6 +183,11 @@ class _NextMatchCard extends StatelessWidget {
     final open = !match.predictionsClosed &&
         closeAt != null &&
         DateTime.now().isBefore(closeAt);
+    final predictionScore = prediction == null
+        ? null
+        : match.isHome
+            ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
+            : '${prediction!.opponentScore} – ${prediction!.grintaScore}';
 
     return Card(
       color: const Color(0xFF25164F),
@@ -242,27 +244,11 @@ class _NextMatchCard extends StatelessWidget {
                       ),
                 ),
               ],
-              if (closeAt != null && !match.predictionsClosed) ...[
-                const SizedBox(height: 10),
-                _PronoCountdown(closeAt: closeAt),
-              ],
               MatchAvailabilitySelector(
                 matchId: match.id,
                 embeddedOnDark: true,
                 topSpacing: 14,
               ),
-              if (match.hasOdds) ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    _OddsChip(label: 'V', value: match.oddsWin),
-                    const SizedBox(width: 8),
-                    _OddsChip(label: 'N', value: match.oddsDraw),
-                    const SizedBox(width: 8),
-                    _OddsChip(label: 'D', value: match.oddsLoss),
-                  ],
-                ),
-              ],
               if (meetings.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -283,35 +269,46 @@ class _NextMatchCard extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(
-                    predicted ? Icons.check_circle : Icons.sports_soccer,
-                    size: 18,
-                    color: predicted ? const Color(0xFF52D08A) : Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      predicted
-                          ? 'Pari enregistré'
-                          : open
-                              ? 'Tu n\'as pas encore parié'
-                              : 'Pronostics fermés',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color:
-                            predicted ? const Color(0xFF52D08A) : Colors.white,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF160B36),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF3F2A73)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      predicted ? Icons.check_circle : Icons.sports_soccer,
+                      size: 18,
+                      color: predicted ? const Color(0xFF52D08A) : Colors.white,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        predicted && predictionScore != null
+                            ? 'Ton prono : $predictionScore'
+                                '${prediction!.useX2 ? ' · ×2' : ''}'
+                            : open
+                                ? 'Tu n\'as pas encore parié'
+                                : 'Pronostics fermés',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: predicted
+                              ? const Color(0xFF52D08A)
+                              : Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                  if (open)
-                    FilledButton(
-                      onPressed: () =>
-                          context.push('/matches/${match.id}/prediction'),
-                      child: Text(predicted ? 'Modifier' : 'Parier'),
-                    ),
-                ],
+                    if (open)
+                      FilledButton(
+                        onPressed: () => context.push(
+                          '/matches/${match.id}/prediction',
+                        ),
+                        child: Text(predicted ? 'Modifier' : 'Parier'),
+                      ),
+                  ],
+                ),
               ),
               if (participants > 0) ...[
                 const SizedBox(height: 8),
@@ -325,122 +322,6 @@ class _NextMatchCard extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Compte à rebours jusqu'à la clôture des pronos (coup d'envoi − 5 min).
-class _PronoCountdown extends StatefulWidget {
-  const _PronoCountdown({required this.closeAt});
-  final DateTime closeAt;
-
-  @override
-  State<_PronoCountdown> createState() => _PronoCountdownState();
-}
-
-class _PronoCountdownState extends State<_PronoCountdown> {
-  Timer? _timer;
-  late Duration _remaining;
-
-  @override
-  void initState() {
-    super.initState();
-    _remaining = widget.closeAt.difference(DateTime.now());
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() => _remaining = widget.closeAt.difference(DateTime.now()));
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  String _format(Duration d) {
-    if (d.inDays >= 1) return '${d.inDays}j ${d.inHours % 24}h';
-    if (d.inHours >= 1) return '${d.inHours}h ${d.inMinutes % 60}min';
-    if (d.inMinutes >= 1) return '${d.inMinutes}min ${d.inSeconds % 60}s';
-    return '${d.inSeconds}s';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final closed = _remaining.isNegative || _remaining == Duration.zero;
-    final soon = !closed && _remaining.inHours < 1;
-    final color = closed
-        ? const Color(0xFF9299A5)
-        : (soon ? AppTheme.accent : const Color(0xFFCAB5FF));
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            closed ? Icons.lock_outline : Icons.timer_outlined,
-            size: 15,
-            color: color,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            closed
-                ? 'Pronos fermés'
-                : 'Clôture des pronos dans ${_format(_remaining)}',
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w800,
-              fontSize: 12.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OddsChip extends StatelessWidget {
-  const _OddsChip({required this.label, required this.value});
-  final String label;
-  final double? value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF160B36),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF3F2A73)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFFB6A9E0),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              AppFormats.odds(value),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -619,138 +500,7 @@ class _ResultTag extends StatelessWidget {
   }
 }
 
-// ─────────────────────────── 3) Tes classements ───────────────────────────
-
-class _MyRankingsBlock extends ConsumerWidget {
-  const _MyRankingsBlock();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(leaderboardProvider);
-    final uid = ref.watch(authControllerProvider).profile?.id;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _BlockHeader('🏅', 'Tes classements'),
-        async.when(
-          loading: () => const _MiniLoader(),
-          error: (_, __) =>
-              const _EmptyCard('Impossible de charger les classements.'),
-          data: (entries) {
-            if (uid == null || entries.isEmpty) {
-              return const _EmptyCard('Pas encore de classement.');
-            }
-            final total = entries.length;
-            final matchRank = _rankOf(entries, uid, (e) => e.matchPoints);
-            final seasonRank = _rankOf(entries, uid, (e) => e.seasonPoints);
-            final generalRank = _rankOf(entries, uid, (e) => e.totalPoints);
-            if (matchRank == null) {
-              return const _EmptyCard(
-                'Tu n\'apparais pas encore au classement.',
-              );
-            }
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  children: [
-                    _RankRow(
-                      label: 'Matchs',
-                      rank: matchRank,
-                      total: total,
-                      onTap: () =>
-                          context.go('/pronos?category=general&view=matches'),
-                    ),
-                    const Divider(height: 1),
-                    _RankRow(
-                      label: 'Prono joueurs',
-                      rank: seasonRank!,
-                      total: total,
-                      onTap: () =>
-                          context.go('/pronos?category=general&view=scorers'),
-                    ),
-                    const Divider(height: 1),
-                    _RankRow(
-                      label: 'Général',
-                      rank: generalRank!,
-                      total: total,
-                      highlight: true,
-                      onTap: () =>
-                          context.go('/pronos?category=general&view=general'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  int? _rankOf(
-    List<LeaderboardEntry> entries,
-    String uid,
-    double Function(LeaderboardEntry) value,
-  ) {
-    final sorted = [...entries]..sort((a, b) => value(b).compareTo(value(a)));
-    final index = sorted.indexWhere((e) => e.profileId == uid);
-    return index < 0 ? null : index + 1;
-  }
-}
-
-class _RankRow extends StatelessWidget {
-  const _RankRow({
-    required this.label,
-    required this.rank,
-    required this.total,
-    this.onTap,
-    this.highlight = false,
-  });
-  final String label;
-  final int rank;
-  final int total;
-  final VoidCallback? onTap;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
-                  ),
-            ),
-            const Spacer(),
-            Text(
-              '$rank',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: highlight ? AppTheme.accent : AppTheme.primaryBright,
-                  ),
-            ),
-            Text(
-              ' / $total',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────── 4) Badges récents ───────────────────────────
+// ─────────────────────────── Badges récents ───────────────────────────
 
 class _RecentBadgesBlock extends ConsumerWidget {
   const _RecentBadgesBlock();

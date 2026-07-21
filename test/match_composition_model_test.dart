@@ -179,7 +179,7 @@ void main() {
 
     expect(guest.isGuest, isTrue);
     expect(guest.guestPlayerId, 'guest-1');
-    expect(guest.displayName, 'Alex Gardien (Invité)');
+    expect(guest.displayName, 'Alex');
     expect(guest.canBeSelected, isTrue);
     expect(guest.isGoalkeeper, isTrue);
 

@@ -33,26 +33,20 @@ void main() {
     expect(find.text('Présent enregistré.'), findsOneWidget);
   });
 
-  testWidgets('records Absent with an optional private reason', (tester) async {
+  testWidgets('records Absent immediately without a private reason', (
+    tester,
+  ) async {
     final repository = _FakeAvailabilityRepository();
     await tester.pumpWidget(_harness(repository));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
     await tester.pumpAndSettle();
-    expect(find.text('Signaler ton absence'), findsOneWidget);
 
-    await tester.enterText(
-      find.byType(TextFormField),
-      'Déplacement professionnel',
-    );
-    await tester.tap(
-      find.widgetWithText(FilledButton, 'Confirmer mon absence'),
-    );
-    await tester.pumpAndSettle();
-
+    expect(find.text('Signaler ton absence'), findsNothing);
     expect(repository.lastStatus, MatchAvailabilityStatus.absent);
-    expect(repository.lastComment, 'Déplacement professionnel');
+    expect(repository.lastComment, isNull);
+    expect(find.text('Absent enregistré.'), findsOneWidget);
   });
 }
 

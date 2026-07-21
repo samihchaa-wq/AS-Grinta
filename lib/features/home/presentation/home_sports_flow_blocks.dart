@@ -7,6 +7,37 @@ import 'package:as_grinta/features/sports_management/presentation/sport_motm_vot
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+class HomeLastMatchVoteBlock extends ConsumerWidget {
+  const HomeLastMatchVoteBlock({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(sportsManagementEnabledProvider)) {
+      return const SizedBox.shrink();
+    }
+    final dashboardAsync = ref.watch(homeDashboardProvider);
+    return dashboardAsync.maybeWhen(
+      data: (dashboard) {
+        final lastMatch = dashboard.lastMatch;
+        if (lastMatch == null) return const SizedBox.shrink();
+        final vote = ref.watch(sportMotmVoteProvider(lastMatch.id)).valueOrNull;
+        if (vote == null || !vote.isOpen || !vote.isEligibleVoter) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _HomeSportHeader('🗳️', 'Dernier match'),
+            MatchMotmVoteCard(matchId: lastMatch.id),
+            const SizedBox(height: 18),
+          ],
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
 class HomeSportsFlowBlocks extends ConsumerWidget {
   const HomeSportsFlowBlocks({super.key});
 
@@ -15,61 +46,30 @@ class HomeSportsFlowBlocks extends ConsumerWidget {
     if (!ref.watch(sportsManagementEnabledProvider)) {
       return const SizedBox.shrink();
     }
-
     final dashboardAsync = ref.watch(homeDashboardProvider);
     return dashboardAsync.maybeWhen(
       data: (dashboard) {
-        final children = <Widget>[];
-        final now = DateTime.now();
         final nextMatch = dashboard.nextMatch;
-
-        if (nextMatch != null &&
-            nextMatch.kickoffAt != null &&
-            now.isBefore(nextMatch.kickoffAt!)) {
-          final lineupAsync = ref.watch(
-            publishedMatchCompositionProvider(nextMatch.id),
-          );
-          final composition = lineupAsync.maybeWhen(
-            data: (value) => value,
-            orElse: () => null,
-          );
-          if (composition != null) {
-            children
-              ..add(const _HomeSportHeader('📋', 'Composition d’équipe'))
-              ..add(
-                PublishedLineupCard(
-                  matchId: nextMatch.id,
-                  showAvailabilityFlow: false,
-                  bottomSpacing: 18,
-                ),
-              );
-          }
+        if (nextMatch == null ||
+            nextMatch.kickoffAt == null ||
+            !DateTime.now().isBefore(nextMatch.kickoffAt!)) {
+          return const SizedBox.shrink();
         }
-
-        final lastMatch = dashboard.lastMatch;
-        if (lastMatch != null) {
-          final voteAsync = ref.watch(sportMotmVoteProvider(lastMatch.id));
-          final vote = voteAsync.maybeWhen(
-            data: (value) => value,
-            orElse: () => null,
-          );
-          if (vote != null && vote.isOpen && vote.isEligibleVoter) {
-            children
-              ..add(
-                const _HomeSportHeader('🗳️', 'Voter pour l’homme du match'),
-              )
-              ..add(
-                MatchMotmVoteCard(matchId: lastMatch.id, bottomSpacing: 18),
-              );
-          }
-        }
-
-        return children.isEmpty
-            ? const SizedBox.shrink()
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: children,
-              );
+        final composition = ref
+            .watch(publishedMatchCompositionProvider(nextMatch.id))
+            .valueOrNull;
+        if (composition == null) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _HomeSportHeader('📋', 'Composition d’équipe'),
+            PublishedLineupCard(
+              matchId: nextMatch.id,
+              showAvailabilityFlow: false,
+              bottomSpacing: 18,
+            ),
+          ],
+        );
       },
       orElse: () => const SizedBox.shrink(),
     );
@@ -93,9 +93,10 @@ class _HomeSportHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
         ],

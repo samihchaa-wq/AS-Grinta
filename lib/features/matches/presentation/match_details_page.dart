@@ -97,19 +97,6 @@ class MatchDetailsPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   MatchMotmVoteCard(matchId: matchId),
                 ],
-                if (isAdmin && sportsEnabled) ...[
-                  const SizedBox(height: 16),
-                  _SportsManagementSection(
-                    matchId: matchId,
-                    actions: const [
-                      _SportAction(
-                        'Suivi des votes HDM',
-                        Icons.how_to_vote_outlined,
-                        'motm',
-                      ),
-                    ],
-                  ),
-                ],
                 if (details.playerStats.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _MatchSummary(details: details),
