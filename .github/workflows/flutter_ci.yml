@@ -41,7 +41,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Check formatting of changed Dart files
+      - name: Format changed Dart files and export them
         shell: bash
         run: |
           set -euo pipefail
@@ -56,7 +56,11 @@ jobs:
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+          dart format "${files[@]}"
+          mkdir -p formatted
+          for file in "${files[@]}"; do
+            cp --parents "$file" formatted/
+          done
 
       - name: Analyze
         shell: bash
@@ -89,6 +93,7 @@ jobs:
         with:
           name: flutter-validation-logs
           path: |
+            formatted
             analyze.log
             test.log
             build-web.log
