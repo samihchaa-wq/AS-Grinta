@@ -1,0 +1,38 @@
+Dart files (9):
+lib/features/home/presentation/accueil_page.dart
+lib/features/home/presentation/home_sports_flow_blocks.dart
+lib/features/sports_management/data/match_availability_board_repository.dart
+lib/features/sports_management/domain/match_availability_board.dart
+lib/features/sports_management/presentation/match_lineup_page.dart
+lib/features/sports_management/presentation/widgets/match_availability_board_card.dart
+lib/features/sports_management/presentation/widgets/match_availability_selector.dart
+test/match_availability_board_test.dart
+test/match_availability_selector_test.dart
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Formatted 9 files (0 changed) in 0.07 seconds.
+strict_status=0
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Warning: Package resolution error when reading "analysis_options.yaml" file:
+Failed to resolve package URI "package:flutter_lints/flutter.yaml" in include at "/home/runner/work/AS-Grinta/AS-Grinta/analysis_options.yaml".
+Formatted 9 files (0 changed) in 0.07 seconds.
+Files changed by formatter:
