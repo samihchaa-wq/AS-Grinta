@@ -26,53 +26,50 @@ jobs:
 
           router = Path('lib/app/router/app_router.dart')
           text = router.read_text()
-          text = text.replace(
-              "import 'package:as_grinta/features/sports_management/presentation/admin_composition_page.dart';\n",
-              "import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';\n",
-          )
-          text = text.replace('const AdminCompositionPage()', 'const AdminSquadPlanPage()')
-          text = text.replace(
-              'AdminCompositionPage(\n              initialMatchId:',
-              'AdminSquadPlanPage(\n              initialMatchId:',
-          )
+          old_import = "import 'package:as_grinta/features/sports_management/presentation/admin_composition_page.dart';"
+          new_import = "import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';"
+          if old_import not in text:
+              raise SystemExit('Admin composition import not found')
+          text = text.replace(old_import, new_import)
+          if text.count('AdminCompositionPage') != 2:
+              raise SystemExit(f'Unexpected AdminCompositionPage count: {text.count("AdminCompositionPage")}')
+          text = text.replace('AdminCompositionPage', 'AdminSquadPlanPage')
           router.write_text(text)
 
           details = Path('lib/features/matches/presentation/match_details_page.dart')
           text = details.read_text()
-          old_upcoming = """actions: const [
-                        _SportAction('Convocations', Icons.how_to_reg_outlined,
-                            'convocations'),
-                        _SportAction('Composition',
-                            Icons.sports_soccer_outlined, 'composition'),
-                        _SportAction('Invités', Icons.person_add_alt_1_outlined,
-                            'guests'),
-                      ],"""
-          new_upcoming = """actions: const [
+
+          def replace_actions(source: str, marker: str, replacement: str) -> str:
+              marker_at = source.index(marker)
+              start = source.rfind('actions: const [', 0, marker_at)
+              if start < 0:
+                  raise SystemExit(f'Actions start not found for {marker}')
+              end = source.index('],', marker_at) + 2
+              return source[:start] + replacement + source[end:]
+
+          text = replace_actions(
+              text,
+              "_SportAction('Convocations'",
+              """actions: const [
                         _SportAction(
                           'Sélection & composition',
                           Icons.sports_soccer_outlined,
                           'composition',
                         ),
-                      ],"""
-          if old_upcoming not in text:
-              raise SystemExit('Upcoming sports actions block not found')
-          text = text.replace(old_upcoming, new_upcoming)
-          old_finished = """actions: const [
-                      _SportAction('Suivi des votes HDM',
-                          Icons.how_to_vote_outlined, 'motm'),
-                      _SportAction('Composition', Icons.sports_soccer_outlined,
-                          'composition'),
-                    ],"""
-          new_finished = """actions: const [
+                      ],""",
+          )
+          text = replace_actions(
+              text,
+              "_SportAction('Suivi des votes HDM'",
+              """actions: const [
                       _SportAction(
                         'Suivi des votes HDM',
                         Icons.how_to_vote_outlined,
                         'motm',
                       ),
-                    ],"""
-          if old_finished not in text:
-              raise SystemExit('Finished sports actions block not found')
-          details.write_text(text.replace(old_finished, new_finished))
+                    ],""",
+          )
+          details.write_text(text)
 
           index = Path('web/index.html')
           text = index.read_text().replace('sw.js?v=57', 'sw.js?v=58')
@@ -103,7 +100,7 @@ jobs:
       - name: Commit patched files
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "4189824+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "[unified-squad-ui] Brancher sélection et composition"
           git push origin HEAD:feature/unified-squad-composition
