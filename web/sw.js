@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
 // et réception des notifications push Web Push.
-const CACHE_NAME = 'as-grinta-v56';
+const CACHE_NAME = 'as-grinta-v57';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
