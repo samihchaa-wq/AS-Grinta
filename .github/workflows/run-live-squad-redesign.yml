@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/run-live-squad-redesign.yml
       - .github/workflows/apply-live-squad-redesign.yml
+      - .github/payload/**
 
 permissions:
   contents: write
@@ -27,19 +28,8 @@ jobs:
         run: |
           set +e
           {
-            python3 - <<'PY'
-          from pathlib import Path
-          text = Path('.github/workflows/apply-live-squad-redesign.yml').read_text()
-          payload = None
-          for line in text.splitlines():
-              if "echo '" in line and "' | base64" in line:
-                  payload = line.split("echo '", 1)[1].split("' | base64", 1)[0]
-                  break
-          if not payload:
-              raise SystemExit('Implementation payload not found')
-          Path('/tmp/live-squad.b64').write_text(payload)
-          print('payload length', len(payload))
-          PY
+            cat .github/payload/live-squad-*.b64 > /tmp/live-squad.b64
+            echo "payload length $(wc -c < /tmp/live-squad.b64)"
             base64 -d /tmp/live-squad.b64 | tar -xz
             python3 apply_patch.py
             rm apply_patch.py
@@ -56,17 +46,33 @@ jobs:
             exit "$status"
           fi
       - name: Format and test
+        shell: bash
         run: |
-          flutter pub get
-          dart format lib test
-          flutter analyze
-          flutter test
+          set +e
+          {
+            flutter pub get
+            dart format lib test
+            flutter analyze
+            flutter test
+          } > /tmp/live-squad-ci.log 2>&1
+          status=$?
+          cat /tmp/live-squad-ci.log
+          if [ "$status" -ne 0 ]; then
+            cp /tmp/live-squad-ci.log live-squad-ci.log
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -A
+            git commit -m 'Journal CI de la refonte'
+            git push origin HEAD:feat/live-squad-and-formations
+            exit "$status"
+          fi
       - name: Commit implementation
         shell: bash
         run: |
+          rm -rf .github/payload
           rm .github/workflows/apply-live-squad-redesign.yml
           rm .github/workflows/run-live-squad-redesign.yml
-          rm -f live-squad-debug.log
+          rm -f live-squad-debug.log live-squad-ci.log
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
