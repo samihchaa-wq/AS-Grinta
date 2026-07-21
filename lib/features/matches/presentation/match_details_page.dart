@@ -68,12 +68,11 @@ class MatchDetailsPage extends ConsumerWidget {
                     _SportsManagementSection(
                       matchId: matchId,
                       actions: const [
-                        _SportAction('Convocations', Icons.how_to_reg_outlined,
-                            'convocations'),
-                        _SportAction('Composition',
-                            Icons.sports_soccer_outlined, 'composition'),
-                        _SportAction('Invités', Icons.person_add_alt_1_outlined,
-                            'guests'),
+                        _SportAction(
+                          'Sélection & composition',
+                          Icons.sports_soccer_outlined,
+                          'composition',
+                        ),
                       ],
                     ),
                   ],
@@ -116,10 +115,11 @@ class MatchDetailsPage extends ConsumerWidget {
                   _SportsManagementSection(
                     matchId: matchId,
                     actions: const [
-                      _SportAction('Suivi des votes HDM',
-                          Icons.how_to_vote_outlined, 'motm'),
-                      _SportAction('Composition', Icons.sports_soccer_outlined,
-                          'composition'),
+                      _SportAction(
+                        'Suivi des votes HDM',
+                        Icons.how_to_vote_outlined,
+                        'motm',
+                      ),
                     ],
                   ),
                 ],

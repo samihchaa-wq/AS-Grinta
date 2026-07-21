@@ -22,7 +22,7 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_composition_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_motm_dashboard_page.dart';
@@ -83,7 +83,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/admin/composition',
-            builder: (_, __) => const AdminCompositionPage(),
+            builder: (_, __) => const AdminSquadPlanPage(),
           ),
           GoRoute(
             path: '/admin/guests',
@@ -150,7 +150,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/matches/:matchId/composition',
-            builder: (context, state) => AdminCompositionPage(
+            builder: (context, state) => AdminSquadPlanPage(
               initialMatchId: state.pathParameters['matchId'],
             ),
           ),

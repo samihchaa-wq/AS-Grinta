@@ -19,8 +19,7 @@ class AdminSquadPlanPage extends ConsumerStatefulWidget {
   final String? initialMatchId;
 
   @override
-  ConsumerState<AdminSquadPlanPage> createState() =>
-      _AdminSquadPlanPageState();
+  ConsumerState<AdminSquadPlanPage> createState() => _AdminSquadPlanPageState();
 }
 
 class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
@@ -92,8 +91,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final convocations = results[0] as MatchConvocations;
       final reminders = results[1] as AvailabilityReminderSummary;
       final saved = results[2] as MatchComposition?;
-      final goalkeeperIds = await compositionRepository
-          .fetchGoalkeeperSeasonPlayerIds([
+      final goalkeeperIds =
+          await compositionRepository.fetchGoalkeeperSeasonPlayerIds([
         for (final player in convocations.players)
           if (player.seasonPlayerId.isNotEmpty) player.seasonPlayerId,
       ]);
@@ -178,7 +177,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final permanentPresent = convocations.players
         .where((item) => !item.isGuest && item.isAvailable)
         .length;
-    final exclusions = math.max(0, permanentPresent - convocations.squadSizeLimit);
+    final exclusions =
+        math.max(0, permanentPresent - convocations.squadSizeLimit);
     final position = player.waitlistPosition;
     return exclusions > 0 && position != null && position <= exclusions;
   }
@@ -392,7 +392,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               ListTile(
                 leading: const Icon(Icons.hourglass_empty),
                 title: const Text('Laisser à placer'),
-                onTap: () => Navigator.pop(sheetContext, _PlayerAction.available),
+                onTap: () =>
+                    Navigator.pop(sheetContext, _PlayerAction.available),
               ),
               ListTile(
                 leading: const Icon(Icons.person_off_outlined),
@@ -404,7 +405,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ListTile(
                   leading: const Icon(Icons.delete_outline),
                   title: const Text('Retirer cet invité du match'),
-                  onTap: () => Navigator.pop(sheetContext, _PlayerAction.remove),
+                  onTap: () =>
+                      Navigator.pop(sheetContext, _PlayerAction.remove),
                 ),
             ],
           ),
@@ -716,7 +718,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       return false;
     }
     if (publishing && composition.availableCount > 0) {
-      _showMessage('Place chaque joueur sélectionné sur le terrain ou le banc.');
+      _showMessage(
+          'Place chaque joueur sélectionné sur le terrain ou le banc.');
       return false;
     }
     return true;
@@ -758,11 +761,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: Text(
-              composition.isPublished
-                  ? 'Republier la sélection ?'
-                  : 'Publier la sélection ?'
-            ),
+            title: Text(composition.isPublished
+                ? 'Republier la sélection ?'
+                : 'Publier la sélection ?'),
             content: Text(
               '${composition.fieldCount} titulaire${composition.fieldCount > 1 ? 's' : ''} et '
               '${composition.benchCount} remplaçant${composition.benchCount > 1 ? 's' : ''}. '
@@ -785,14 +786,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (!confirmed) return;
     setState(() => _busy = true);
     try {
-      final published = await ref
-          .read(matchSquadPlanRepositoryProvider)
-          .publishPlan(
-            composition: composition,
-            reason: composition.isPublished
-                ? 'Republication depuis Sélection & composition'
-                : 'Première publication depuis Sélection & composition',
-          );
+      final published =
+          await ref.read(matchSquadPlanRepositoryProvider).publishPlan(
+                composition: composition,
+                reason: composition.isPublished
+                    ? 'Republication depuis Sélection & composition'
+                    : 'Première publication depuis Sélection & composition',
+              );
       final waitlistRepository = ref.read(sportWaitlistRepositoryProvider);
       final convocations = await waitlistRepository.fetchMatchConvocations(
         composition.matchId,
@@ -817,7 +817,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -1007,7 +1008,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 FilledButton.tonalIcon(
                   onPressed: _busy ? null : _save,
                   icon: const Icon(Icons.save_outlined),
-                  label: Text(_dirty ? 'Enregistrer le brouillon' : 'Enregistré'),
+                  label:
+                      Text(_dirty ? 'Enregistrer le brouillon' : 'Enregistré'),
                 ),
                 const SizedBox(height: 10),
                 FilledButton.icon(
@@ -1193,7 +1195,8 @@ class _AvailabilityBoard extends StatelessWidget {
     final present = convocations.players
         .where((player) => player.isGuest || player.isAvailable)
         .toList();
-    final absent = convocations.players.where((player) => player.isAbsent).toList();
+    final absent =
+        convocations.players.where((player) => player.isAbsent).toList();
     final unanswered = convocations.players
         .where((player) => player.availabilityStatus == 'no_response')
         .toList();
