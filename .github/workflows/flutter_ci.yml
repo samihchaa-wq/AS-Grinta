@@ -41,7 +41,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Format changed Dart files and export them
+      - name: Check formatting of changed Dart files
         shell: bash
         run: |
           set -euo pipefail
@@ -56,8 +56,7 @@ jobs:
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format "${files[@]}"
-          tar -czf formatted-dart-files.tar.gz "${files[@]}"
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
@@ -93,5 +92,4 @@ jobs:
             analyze.log
             test.log
             build-web.log
-            formatted-dart-files.tar.gz
           if-no-files-found: warn
