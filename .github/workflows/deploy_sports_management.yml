@@ -88,4 +88,4 @@ jobs:
             migration-after.txt
           if-no-files-found: warn
 
-# Authorized deployment run 4 after migration-history repair; feature flag remains disabled.
+# Final authorized deployment run; feature flag remains disabled.
