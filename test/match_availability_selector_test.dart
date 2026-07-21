@@ -18,7 +18,7 @@ void main() {
     expect(repository.fetchCount, 0);
   });
 
-  testWidgets('records Disponible and refreshes the shared server state', (
+  testWidgets('records Present and refreshes the shared server state', (
     tester,
   ) async {
     final repository = _FakeAvailabilityRepository();
@@ -26,11 +26,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ta disponibilité'), findsOneWidget);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Disponible'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Présent'));
     await tester.pumpAndSettle();
 
     expect(repository.lastStatus, MatchAvailabilityStatus.available);
-    expect(find.text('Disponible enregistré.'), findsOneWidget);
+    expect(find.text('Présent enregistré.'), findsOneWidget);
   });
 
   testWidgets('records Absent with an optional private reason', (tester) async {
