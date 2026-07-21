@@ -143,6 +143,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/matches/:matchId/convocations',
+            builder: (context, state) => AdminConvocationsPage(
+              initialMatchId: state.pathParameters['matchId'],
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/composition',
+            builder: (context, state) => AdminCompositionPage(
+              initialMatchId: state.pathParameters['matchId'],
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/guests',
+            builder: (context, state) => AdminGuestsPage(
+              initialMatchId: state.pathParameters['matchId'],
+            ),
+          ),
+          GoRoute(
+            path: '/matches/:matchId/motm',
+            builder: (context, state) => AdminMotmDashboardPage(
+              initialMatchId: state.pathParameters['matchId'],
+            ),
+          ),
+          GoRoute(
             path: '/pronos',
             pageBuilder: (context, state) => NoTransitionPage(
               child: PronosHubPage(

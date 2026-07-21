@@ -7,7 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AdminConvocationsPage extends ConsumerStatefulWidget {
-  const AdminConvocationsPage({super.key});
+  const AdminConvocationsPage({super.key, this.initialMatchId});
+
+  /// Quand fourni (ouverture depuis un match), la page se cale d'emblée sur ce
+  /// match au lieu du premier match à venir.
+  final String? initialMatchId;
 
   @override
   ConsumerState<AdminConvocationsPage> createState() =>
@@ -26,6 +30,7 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
   @override
   void initState() {
     super.initState();
+    _selectedMatchId = widget.initialMatchId;
     Future.microtask(_loadMatches);
   }
 

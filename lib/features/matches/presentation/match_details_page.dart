@@ -63,6 +63,20 @@ class MatchDetailsPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
                   _HeadToHeadCard(details: details),
+                  if (isAdmin && sportsEnabled) ...[
+                    const SizedBox(height: 16),
+                    _SportsManagementSection(
+                      matchId: matchId,
+                      actions: const [
+                        _SportAction('Convocations', Icons.how_to_reg_outlined,
+                            'convocations'),
+                        _SportAction('Composition',
+                            Icons.sports_soccer_outlined, 'composition'),
+                        _SportAction('Invités', Icons.person_add_alt_1_outlined,
+                            'guests'),
+                      ],
+                    ),
+                  ],
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
                     FilledButton.icon(
@@ -95,6 +109,18 @@ class MatchDetailsPage extends ConsumerWidget {
                     actualGrinta: details.scoreGrinta ?? 0,
                     actualOpponent: details.scoreOpponent ?? 0,
                     isHome: details.location == 'domicile',
+                  ),
+                ],
+                if (isAdmin && sportsEnabled) ...[
+                  const SizedBox(height: 16),
+                  _SportsManagementSection(
+                    matchId: matchId,
+                    actions: const [
+                      _SportAction('Suivi des votes HDM',
+                          Icons.how_to_vote_outlined, 'motm'),
+                      _SportAction('Composition', Icons.sports_soccer_outlined,
+                          'composition'),
+                    ],
                   ),
                 ],
                 if (isAdmin) ...[
@@ -259,6 +285,62 @@ class _MatchSummary extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               ...cleanSheets.map((line) => Text(line.name)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SportAction {
+  const _SportAction(this.label, this.icon, this.route);
+
+  final String label;
+  final IconData icon;
+  final String route;
+}
+
+/// Accès aux fonctions de gestion sportive d'un match (réservé à l'admin) :
+/// convocations, composition, invités, suivi HDM. Elles n'apparaissent plus
+/// dans un menu global mais directement dans le match concerné.
+class _SportsManagementSection extends StatelessWidget {
+  const _SportsManagementSection({
+    required this.matchId,
+    required this.actions,
+  });
+
+  final String matchId;
+  final List<_SportAction> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Gestion sportive',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            for (final action in actions) ...[
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                  alignment: Alignment.centerLeft,
+                ),
+                onPressed: () =>
+                    context.push('/matches/$matchId/${action.route}'),
+                icon: Icon(action.icon),
+                label: Text(action.label),
+              ),
+              const SizedBox(height: 8),
             ],
           ],
         ),

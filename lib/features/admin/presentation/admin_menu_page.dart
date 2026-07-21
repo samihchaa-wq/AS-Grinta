@@ -47,66 +47,6 @@ class AdminMenuPage extends ConsumerWidget {
             const SizedBox(height: 10),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.how_to_reg_outlined),
-                title: const Text(
-                  'Convocations',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Valider la proposition automatique et gérer les exceptions.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/admin/convocations'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.sports_soccer_outlined),
-                title: const Text(
-                  'Composition',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Placer les titulaires, organiser le banc et publier l’équipe.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/admin/composition'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.person_add_alt_1_outlined),
-                title: const Text(
-                  'Invités',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Créer ou réutiliser un renfort pour un match.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/admin/guests'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.how_to_vote_outlined),
-                title: const Text(
-                  'Suivi des votes HDM',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Participation, notifications, intégrité statistique et audit.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/admin/motm'),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Card(
-              child: ListTile(
                 leading: const Icon(Icons.format_list_numbered),
                 title: const Text(
                   'Liste d’attente',
