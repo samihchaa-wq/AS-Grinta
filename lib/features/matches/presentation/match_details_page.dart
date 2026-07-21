@@ -97,10 +97,8 @@ class MatchDetailsPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   MatchMotmVoteCard(matchId: matchId),
                 ],
-                if (details.playerStats.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _MatchSummary(details: details),
-                ],
+                const SizedBox(height: 16),
+                _MatchSummary(details: details),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -236,11 +234,6 @@ class _MatchSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scorers =
-        details.playerStats.where((line) => line.goals > 0).toList();
-    final cleanSheets =
-        details.playerStats.where((line) => line.cleanSheet).toList();
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -251,28 +244,34 @@ class _MatchSummary extends StatelessWidget {
               'Résumé du match',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            if (scorers.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                scorers.length == 1 ? 'Buteur' : 'Buteurs',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 6),
-              ...scorers.map(
-                (line) => Text(
-                  line.goals == 1 ? line.name : '${line.name} x${line.goals}',
+            const SizedBox(height: 16),
+            Text(
+              'Composition de départ',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            if (details.startingLineup.isEmpty)
+              const Text('Composition de départ non renseignée.')
+            else
+              ...details.startingLineup.map(
+                (player) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(player.name)),
+                      if (player.goals > 0) ...[
+                        Text(
+                          player.goals == 1 ? '⚽️' : '⚽️ ×${player.goals}',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (player.isManOfTheMatch)
+                        const Text('👑', style: TextStyle(fontSize: 18)),
+                    ],
+                  ),
                 ),
               ),
-            ],
-            if (cleanSheets.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Clean sheet',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 6),
-              ...cleanSheets.map((line) => Text(line.name)),
-            ],
           ],
         ),
       ),

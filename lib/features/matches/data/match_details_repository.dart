@@ -28,6 +28,22 @@ class MatchStatLine {
   final bool cleanSheet;
 }
 
+class MatchStartingPlayer {
+  const MatchStartingPlayer({
+    required this.seasonPlayerId,
+    required this.name,
+    required this.goals,
+    required this.isManOfTheMatch,
+    required this.sortOrder,
+  });
+
+  final String? seasonPlayerId;
+  final String name;
+  final int goals;
+  final bool isManOfTheMatch;
+  final int sortOrder;
+}
+
 class MatchPredictionResult {
   const MatchPredictionResult({
     required this.profileId,
@@ -65,6 +81,7 @@ class MatchDetailsData {
     required this.predictionParticipantCount,
     required this.headToHead,
     required this.playerStats,
+    required this.startingLineup,
     required this.predictions,
   });
 
@@ -82,6 +99,7 @@ class MatchDetailsData {
   final int predictionParticipantCount;
   final List<HeadToHeadMatch> headToHead;
   final List<MatchStatLine> playerStats;
+  final List<MatchStartingPlayer> startingLineup;
   final List<MatchPredictionResult> predictions;
 
   bool get isValidated => status == 'termine' || status == 'archive';
@@ -149,25 +167,73 @@ class MatchDetailsRepository {
         .toList();
 
     var playerStats = const <MatchStatLine>[];
+    var startingLineup = const <MatchStartingPlayer>[];
     var predictions = const <MatchPredictionResult>[];
 
     if (isValidated) {
       final statRows = await _client.from('match_player_stats').select('''
-        goals,clean_sheet,
+        season_player_id,goals,clean_sheet,
         season_players(first_name,last_name)
       ''').eq('match_id', matchId);
+      final statsByPlayerId = <String, MatchStatLine>{};
       playerStats = (statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final player = map['season_players'] is Map
             ? Map<String, dynamic>.from(map['season_players'] as Map)
             : const <String, dynamic>{};
-        return MatchStatLine(
+        final stat = MatchStatLine(
           name: _displayName(player),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           cleanSheet: map['clean_sheet'] == true,
         );
+        final seasonPlayerId = map['season_player_id']?.toString();
+        if (seasonPlayerId != null && seasonPlayerId.isNotEmpty) {
+          statsByPlayerId[seasonPlayerId] = stat;
+        }
+        return stat;
       }).toList()
         ..sort((a, b) => b.goals.compareTo(a.goals));
+
+      final publication = await _client
+          .from('match_composition_publications')
+          .select('snapshot')
+          .eq('match_id', matchId)
+          .order('version', ascending: false)
+          .order('published_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      final manOfMatchRows = await _client
+          .from('match_man_of_match')
+          .select('season_player_id')
+          .eq('match_id', matchId);
+      final manOfMatchIds = {
+        for (final raw in manOfMatchRows as List)
+          if ((raw as Map)['season_player_id'] != null)
+            raw['season_player_id'].toString(),
+      };
+      final snapshot = publication?['snapshot'];
+      if (snapshot is Map && snapshot['entries'] is List) {
+        startingLineup = (snapshot['entries'] as List)
+            .whereType<Map>()
+            .map((raw) => Map<String, dynamic>.from(raw))
+            .where((entry) => entry['zone']?.toString() == 'field')
+            .map((entry) {
+          final seasonPlayerId = entry['season_player_id']?.toString();
+          final stat =
+              seasonPlayerId == null ? null : statsByPlayerId[seasonPlayerId];
+          return MatchStartingPlayer(
+            seasonPlayerId: seasonPlayerId,
+            name: _firstNameFromText(
+              (entry['display_name'] ?? 'Joueur').toString(),
+            ),
+            goals: stat?.goals ?? 0,
+            isManOfTheMatch: seasonPlayerId != null &&
+                manOfMatchIds.contains(seasonPlayerId),
+            sortOrder: (entry['sort_order'] as num?)?.toInt() ?? 0,
+          );
+        }).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      }
 
       final pointRows = await _client
           .from('v_match_prediction_points')
@@ -221,6 +287,7 @@ class MatchDetailsRepository {
       predictionParticipantCount: (countResult as num?)?.toInt() ?? 0,
       headToHead: history,
       playerStats: playerStats,
+      startingLineup: startingLineup,
       predictions: predictions,
     );
   }
@@ -228,6 +295,12 @@ class MatchDetailsRepository {
   static String _displayName(Map<String, dynamic> profile) {
     final firstName = (profile['first_name'] ?? '').toString().trim();
     return firstName.isEmpty ? 'Joueur' : firstName;
+  }
+
+  static String _firstNameFromText(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return 'Joueur';
+    return trimmed.split(RegExp(r'\s+')).first;
   }
 
   Future<void> reportMatch({
