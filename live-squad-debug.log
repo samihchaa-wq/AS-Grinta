@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/usr/lib/python3.12/pathlib.py", line 1046, in write_text
+    raise TypeError('data must be str, not %s' %
+TypeError: data must be str, not NoneType
+base64: /tmp/live-squad.b64: No such file or directory
+
+gzip: stdin: unexpected end of file
+tar: Child returned status 1
+tar: Error is not recoverable: exiting now
+python3: can't open file '/home/runner/work/AS-Grinta/AS-Grinta/apply_patch.py': [Errno 2] No such file or directory
+rm: cannot remove 'apply_patch.py': No such file or directory
