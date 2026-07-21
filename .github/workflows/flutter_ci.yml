@@ -41,7 +41,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Check formatting of changed Dart files
+      - name: Format changed Dart files and record the exact diff
         shell: bash
         run: |
           set -euo pipefail
@@ -54,9 +54,11 @@ jobs:
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No changed Dart files to format."
+            : > format.patch
             exit 0
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+          dart format "${files[@]}"
+          git diff -- "${files[@]}" > format.patch
 
       - name: Analyze
         shell: bash
@@ -89,6 +91,7 @@ jobs:
         with:
           name: flutter-validation-logs
           path: |
+            format.patch
             analyze.log
             test.log
             build-web.log
