@@ -94,7 +94,7 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
               style: style,
             ),
             SortableHeaderCell(
-              label: widget.showMatchStats ? 'Exacts' : 'Saison',
+              label: widget.showMatchStats ? 'Exacts' : 'Buteurs',
               flex: 2,
               active: _sort == _LbCol.second,
               descending: _desc,
