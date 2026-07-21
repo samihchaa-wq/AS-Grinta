@@ -30,7 +30,6 @@ class AccueilPage extends ConsumerWidget {
           ref
             ..invalidate(homeDashboardProvider)
             ..invalidate(myLastPronoProvider)
-            ..invalidate(leaderboardProvider)
             ..invalidate(myArmoireProvider)
             ..invalidate(publishedMatchCompositionProvider)
             ..invalidate(sportMotmVoteProvider);
