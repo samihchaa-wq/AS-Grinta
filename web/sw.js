@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
-// et réception des notifications push Web Push. Cache fonctionnel v58 — sélection unifiée.
-const CACHE_NAME = 'as-grinta-v58';
+// et réception des notifications push Web Push. Cache fonctionnel v59 — visibilité sportive.
+const CACHE_NAME = 'as-grinta-v59';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -11,7 +11,9 @@ self.addEventListener('activate', (event) => {
     (async () => {
       const names = await caches.keys();
       await Promise.all(
-        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)),
+        names
+          .filter((name) => name.startsWith('as-grinta-') && name !== CACHE_NAME)
+          .map((name) => caches.delete(name)),
       );
       await self.clients.claim();
     })(),
@@ -19,72 +21,53 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
-  if (request.method !== 'GET') return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
+  if (event.request.method !== 'GET') return;
 
   event.respondWith(
     (async () => {
-      const cache = await caches.open(CACHE_NAME);
       try {
-        const response = await fetch(request, { cache: 'no-store' });
-        if (response && response.ok) {
-          cache.put(request, response.clone());
-        }
-        return response;
-      } catch (error) {
-        const cached = await cache.match(request);
-        if (cached) return cached;
-        if (request.mode === 'navigate') {
-          const index = await cache.match(
-            new URL('index.html', self.registration.scope).href,
-          );
-          if (index) return index;
-        }
-        throw error;
+        return await fetch(event.request, { cache: 'no-store' });
+      } catch (_) {
+        const cached = await caches.match(event.request);
+        return cached || Response.error();
       }
     })(),
   );
 });
 
 self.addEventListener('push', (event) => {
-  let data = {};
+  let payload = {};
   try {
-    data = event.data ? event.data.json() : {};
+    payload = event.data ? event.data.json() : {};
   } catch (_) {
-    data = { body: event.data ? event.data.text() : '' };
+    payload = { body: event.data ? event.data.text() : '' };
   }
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Ma Petite Grinta', {
-      body: data.body || '',
-      icon: 'icons/Icon-192.png',
-      badge: 'icons/Icon-192.png',
-      tag: data.tag || undefined,
-      data: { url: data.url || '.' },
-    }),
-  );
+
+  const title = payload.title || 'Ma Petite Grinta';
+  const options = {
+    body: payload.body || '',
+    icon: 'icons/Icon-192.png',
+    badge: 'icons/Icon-192.png',
+    data: payload.data || {},
+    tag: payload.tag || undefined,
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = new URL(
-    (event.notification.data && event.notification.data.url) || '.',
-    self.registration.scope,
-  ).href;
+  const target = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : './';
   event.waitUntil(
-    (async () => {
-      const windows = await self.clients.matchAll({
-        type: 'window',
-        includeUncontrolled: true,
-      });
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       for (const client of windows) {
-        if (client.url.startsWith(self.registration.scope) && 'focus' in client) {
-          await client.focus();
-          return;
+        if ('focus' in client) {
+          client.navigate(target);
+          return client.focus();
         }
       }
-      await self.clients.openWindow(target);
-    })(),
+      return clients.openWindow(target);
+    }),
   );
 });
