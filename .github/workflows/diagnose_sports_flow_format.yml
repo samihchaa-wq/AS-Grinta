@@ -1,0 +1,56 @@
+name: Diagnose sports flow format
+
+on:
+  push:
+    branches: [feature/simple-player-sports-flow]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagnose-sports-flow-format-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    if: ${{ !contains(github.event.head_commit.message, '[format-diagnosed]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/simple-player-sports-flow
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Diagnose exact CI command
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart')
+          {
+            echo "Dart files (${#files[@]}):"
+            printf '%s\n' "${files[@]}"
+          } > format-report.txt
+          set +e
+          dart format --output=none --set-exit-if-changed "${files[@]}" >> format-report.txt 2>&1
+          status=$?
+          set -e
+          echo "strict_status=$status" >> format-report.txt
+          dart format "${files[@]}" >> format-report.txt 2>&1
+          echo "Files changed by formatter:" >> format-report.txt
+          git diff --name-only -- "${files[@]}" >> format-report.txt
+          rm .github/workflows/diagnose_sports_flow_format.yml
+
+      - name: Commit report and exact formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "[format-diagnosed] Appliquer le formatage exact de la CI"
+          git push origin HEAD:feature/simple-player-sports-flow
