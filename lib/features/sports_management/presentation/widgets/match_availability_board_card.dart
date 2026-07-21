@@ -10,11 +10,13 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
     required this.matchId,
     this.bottomSpacing = 0,
     this.compact = false,
+    this.showAfterComposition = false,
   });
 
   final String matchId;
   final double bottomSpacing;
   final bool compact;
+  final bool showAfterComposition;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,9 +29,11 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
       data: (board) {
-        if (board == null || !board.isVisibleAt(DateTime.now())) {
-          return const SizedBox.shrink();
-        }
+        final now = DateTime.now();
+        final visible = board != null &&
+            (board.isVisibleAt(now) ||
+                (showAfterComposition && now.isBefore(board.kickoffAt)));
+        if (!visible) return const SizedBox.shrink();
         return Padding(
           padding: EdgeInsets.only(bottom: bottomSpacing),
           child: Card(
@@ -194,7 +198,7 @@ class _BoardGroup extends StatelessWidget {
                     avatar: player.isGuest
                         ? const Icon(Icons.person_add_alt_1_outlined, size: 16)
                         : null,
-                    label: Text(player.displayName),
+                    label: Text(player.firstNameOnly),
                   ),
               ],
             ),
