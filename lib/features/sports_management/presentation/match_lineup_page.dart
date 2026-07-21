@@ -1,8 +1,11 @@
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_board_card.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -74,44 +77,71 @@ class PublishedLineupCard extends ConsumerWidget {
     super.key,
     required this.matchId,
     this.bottomSpacing = 0,
+    this.showAvailabilityFlow = true,
   });
 
   final String matchId;
   final double bottomSpacing;
+  final bool showAvailabilityFlow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!ref.watch(sportsManagementEnabledProvider)) {
       return const SizedBox.shrink();
     }
+
+    final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
+    final matchStarted = boardAsync.maybeWhen(
+      data: (board) => board != null && !DateTime.now().isBefore(board.kickoffAt),
+      orElse: () => false,
+    );
+    if (matchStarted) return const SizedBox.shrink();
+
     final lineup = ref.watch(publishedMatchCompositionProvider(matchId));
-    return lineup.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (composition) {
-        if (composition == null) return const SizedBox.shrink();
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottomSpacing),
-          child: Card(
-            child: ListTile(
-              leading: const CircleAvatar(
-                child: Icon(Icons.sports_soccer_outlined),
-              ),
-              title: const Text(
-                'Composition publiée',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-              subtitle: Text(
-                '${composition.formationCode ?? 'Formation libre'} · '
-                '${composition.fieldCount} titulaires · '
-                '${composition.benchCount} remplaçants',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/matches/$matchId/lineup'),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showAvailabilityFlow)
+          MatchAvailabilitySelector(
+            matchId: matchId,
+            bottomSpacing: bottomSpacing,
           ),
-        );
-      },
+        lineup.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (composition) {
+            if (composition == null) {
+              return showAvailabilityFlow
+                  ? MatchAvailabilityBoardCard(
+                      matchId: matchId,
+                      bottomSpacing: bottomSpacing,
+                    )
+                  : const SizedBox.shrink();
+            }
+            return Padding(
+              padding: EdgeInsets.only(bottom: bottomSpacing),
+              child: Card(
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.sports_soccer_outlined),
+                  ),
+                  title: const Text(
+                    'Composition publiée',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  subtitle: Text(
+                    '${composition.formationCode ?? 'Formation libre'} · '
+                    '${composition.fieldCount} titulaires · '
+                    '${composition.benchCount} remplaçants',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/matches/$matchId/lineup'),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
