@@ -164,8 +164,7 @@ class StatisticsRepository {
       players.add(
         PlayerStatistics(
           period: period,
-          periodLabel:
-              (map['period_label'] ?? period.fallbackLabel).toString(),
+          periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
           rank: rank,
           displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
           playerName: name,
@@ -190,9 +189,7 @@ class StatisticsRepository {
   }
 
   Future<TeamStatistics> fetchTeam(StatisticsPeriod period) async {
-    final response = await _client
-        .from('v_statistics_team')
-        .select('''
+    final response = await _client.from('v_statistics_team').select('''
           period_key,
           period_label,
           matches_played,
@@ -203,9 +200,7 @@ class StatisticsRepository {
           goals_against,
           goal_difference,
           clean_sheets
-        ''')
-        .eq('period_key', period.databaseKey)
-        .maybeSingle();
+        ''').eq('period_key', period.databaseKey).maybeSingle();
 
     final map = response == null
         ? <String, dynamic>{}
