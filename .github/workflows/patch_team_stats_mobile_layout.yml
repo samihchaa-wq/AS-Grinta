@@ -1,0 +1,184 @@
+name: Patch team stats mobile layout
+
+on:
+  push:
+    branches: [fix/team-stats-mobile-layout]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix/team-stats-mobile-layout
+          fetch-depth: 0
+
+      - name: Patch team statistics layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/statistics/presentation/team_statistics_panel.dart')
+          text = path.read_text()
+
+          old_header_text = """        const SizedBox(height: 12),
+        Text(
+          statistics.period == StatisticsPeriod.allTime
+              ? 'Tous les événements'
+              : 'AS La Grinta',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          statistics.period == StatisticsPeriod.allTime
+              ? statistics.periodLabel
+              : 'Saison ${statistics.periodLabel}',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+"""
+          if old_header_text not in text:
+              raise SystemExit('Team period labels not found')
+          text = text.replace(old_header_text, '', 1)
+          text = text.replace(
+              "    final theme = Theme.of(context);\n    return Column(\n",
+              "    return Column(\n",
+              1,
+          )
+
+          old_rings = """            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _ResultRing(
+                    value: statistics.wins,
+                    total: statistics.matchesPlayed,
+                    label: 'victoires',
+                    color: _teamGreen,
+                  ),
+                ),
+                Expanded(
+                  child: _ResultRing(
+                    value: statistics.draws,
+                    total: statistics.matchesPlayed,
+                    label: 'nuls',
+                    color: _teamYellow,
+                  ),
+                ),
+                Expanded(
+                  child: _ResultRing(
+                    value: statistics.losses,
+                    total: statistics.matchesPlayed,
+                    label: 'défaites',
+                    color: _teamRed,
+                  ),
+                ),
+              ],
+            ),
+"""
+          new_rings = """            const SizedBox(height: 24),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 12.0;
+                final ringSize = math.min(
+                  96.0,
+                  (constraints.maxWidth - gap * 2) / 3,
+                );
+
+                Widget ring({
+                  required int value,
+                  required String label,
+                  required Color color,
+                }) {
+                  return SizedBox.square(
+                    dimension: ringSize,
+                    child: _ResultRing(
+                      value: value,
+                      total: statistics.matchesPlayed,
+                      label: label,
+                      color: color,
+                    ),
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ring(
+                      value: statistics.wins,
+                      label: 'victoires',
+                      color: _teamGreen,
+                    ),
+                    ring(
+                      value: statistics.draws,
+                      label: 'nuls',
+                      color: _teamYellow,
+                    ),
+                    ring(
+                      value: statistics.losses,
+                      label: 'défaites',
+                      color: _teamRed,
+                    ),
+                  ],
+                );
+              },
+            ),
+"""
+          if old_rings not in text:
+              raise SystemExit('Old result rings row not found')
+          text = text.replace(old_rings, new_rings, 1)
+
+          old_ring_box = """    return SizedBox(
+      width: 92,
+      height: 92,
+      child: Stack(
+"""
+          new_ring_box = """    return Stack(
+"""
+          if old_ring_box not in text:
+              raise SystemExit('Old result ring box not found')
+          text = text.replace(old_ring_box, new_ring_box, 1)
+
+          old_stack_end = """        ],
+      ),
+    );
+  }
+}
+
+class _TeamGoalsCard"""
+          new_stack_end = """      ],
+    );
+  }
+}
+
+class _TeamGoalsCard"""
+          if old_stack_end not in text:
+              raise SystemExit('Result ring stack ending not found')
+          text = text.replace(old_stack_end, new_stack_end, 1)
+
+          path.write_text(text)
+          PY
+
+          dart format lib/features/statistics/presentation/team_statistics_panel.dart
+
+      - name: Commit correction and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/patch_team_stats_mobile_layout.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/statistics/presentation/team_statistics_panel.dart .github/workflows/patch_team_stats_mobile_layout.yml
+          git commit -m "Corriger les libellés et anneaux des statistiques équipe"
+          git push origin HEAD:fix/team-stats-mobile-layout
