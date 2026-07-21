@@ -294,63 +294,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     });
   }
 
-  void _applyAutomaticProposal() {
-    final composition = _composition;
-    final convocations = _convocations;
-    if (composition == null || convocations == null || _busy) return;
-    final candidates = composition.entries.where((entry) {
-      if (!_canPlace(entry)) return false;
-      final player = _playerFor(entry.participantId);
-      return entry.isGuest || player?.isConvoked == true;
-    }).toList()
-      ..sort((a, b) {
-        if (a.isGoalkeeper != b.isGoalkeeper) return a.isGoalkeeper ? -1 : 1;
-        final aPlayer = _playerFor(a.participantId);
-        final bPlayer = _playerFor(b.participantId);
-        final aPosition = aPlayer?.waitlistPosition ?? 9999;
-        final bPosition = bPlayer?.waitlistPosition ?? 9999;
-        return bPosition.compareTo(aPosition);
-      });
-    final selected = candidates.take(convocations.squadSizeLimit).toList();
-    final selectedIds = {for (final entry in selected) entry.participantId};
-    final positions =
-        _formationPositions[composition.formationCode ?? '4-3-3'] ??
-            _formationPositions['4-3-3']!;
-    final updated = <String, MatchCompositionEntry>{};
-    for (var index = 0; index < selected.length; index += 1) {
-      final entry = selected[index];
-      if (index < 11) {
-        updated[entry.participantId] = entry.moveTo(
-          MatchCompositionZone.field,
-          x: positions[index].dx,
-          y: positions[index].dy,
-          sortOrder: index,
-        );
-      } else {
-        updated[entry.participantId] = entry.moveTo(
-          MatchCompositionZone.bench,
-          sortOrder: index - 11,
-        );
-      }
-    }
-    setState(() {
-      _composition = composition.copyWith(
-        entries: [
-          for (final entry in composition.entries)
-            updated[entry.participantId] ??
-                (selectedIds.contains(entry.participantId)
-                    ? entry
-                    : entry.moveTo(
-                        MatchCompositionZone.notSelected,
-                        sortOrder: composition.entries.length,
-                      )),
-        ],
-        hasUnpublishedChanges: true,
-      );
-      _dirty = true;
-    });
-  }
-
   Future<void> _showPlayerActions(MatchCompositionEntry entry) async {
     if (!_canPlace(entry)) {
       final player = _playerFor(entry.participantId);
@@ -425,97 +368,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _movePlayer(entry, MatchCompositionZone.notSelected, null);
       case _PlayerAction.remove:
         await _removeGuest(entry);
-    }
-  }
-
-  Future<void> _configureLimit() async {
-    final convocations = _convocations;
-    if (convocations == null || _busy) return;
-    final controller = TextEditingController(
-      text: convocations.squadSizeLimit.toString(),
-    );
-    final value = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Nombre de sélectionnables'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Limite pour ce match',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final parsed = int.tryParse(controller.text.trim());
-              if (parsed == null || parsed < 1 || parsed > 30) return;
-              Navigator.pop(dialogContext, parsed);
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (value == null) return;
-    setState(() => _busy = true);
-    try {
-      await ref.read(sportWaitlistRepositoryProvider).configureMatch(
-            matchId: convocations.matchId,
-            squadSizeLimit: value,
-          );
-      await _loadWorkspace(convocations.matchId);
-    } catch (error) {
-      if (mounted) _showMessage(humanizeError(error));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _recomputeProposal() async {
-    final convocations = _convocations;
-    if (convocations == null || _busy) return;
-    if (_dirty) {
-      final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: const Text('Reprendre la proposition automatique ?'),
-              content: const Text(
-                'Les placements non enregistrés seront remplacés par la proposition de la liste d’attente.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext, false),
-                  child: const Text('Annuler'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, true),
-                  child: const Text('Recalculer'),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-      if (!confirmed) return;
-    }
-    setState(() => _busy = true);
-    try {
-      await ref.read(sportWaitlistRepositoryProvider).recomputeMatch(
-            matchId: convocations.matchId,
-            resetOverrides: true,
-          );
-      await _loadWorkspace(convocations.matchId);
-    } catch (error) {
-      if (mounted) _showMessage(humanizeError(error));
-    } finally {
-      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -956,9 +808,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           reminders: _reminders,
           dirty: _dirty,
           busy: _busy,
-          onLimit: _configureLimit,
-          onRecompute: _recomputeProposal,
-          onAutoPlace: _applyAutomaticProposal,
           onReminder: _sendReminder,
           onGuest: _addGuest,
           onFormationChanged: _applyFormation,
@@ -1037,9 +886,6 @@ class _PlanSummaryCard extends StatelessWidget {
     required this.reminders,
     required this.dirty,
     required this.busy,
-    required this.onLimit,
-    required this.onRecompute,
-    required this.onAutoPlace,
     required this.onReminder,
     required this.onGuest,
     required this.onFormationChanged,
@@ -1050,9 +896,6 @@ class _PlanSummaryCard extends StatelessWidget {
   final AvailabilityReminderSummary? reminders;
   final bool dirty;
   final bool busy;
-  final VoidCallback onLimit;
-  final VoidCallback onRecompute;
-  final VoidCallback onAutoPlace;
   final VoidCallback onReminder;
   final VoidCallback onGuest;
   final ValueChanged<String> onFormationChanged;
@@ -1087,25 +930,10 @@ class _PlanSummaryCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(label: Text('${composition.fieldCount}/11 titulaires')),
-                Chip(label: Text('${composition.benchCount} sur le banc')),
-                Chip(
-                  label: Text(
-                    '${composition.selectedCount}/${convocations.squadSizeLimit} sélectionnés',
-                  ),
-                  side: overLimit
-                      ? BorderSide(color: Theme.of(context).colorScheme.error)
-                      : null,
-                ),
-                if (composition.version > 0)
-                  Chip(label: Text('Version ${composition.version}')),
-              ],
-            ),
+            if (composition.version > 0) ...[
+              const SizedBox(height: 12),
+              Chip(label: Text('Version ${composition.version}')),
+            ],
             if (overLimit) ...[
               const SizedBox(height: 10),
               Text(
@@ -1143,21 +971,6 @@ class _PlanSummaryCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                OutlinedButton.icon(
-                  onPressed: busy ? null : onLimit,
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Modifier la limite'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: busy ? null : onRecompute,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Recalculer la liste d’attente'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: busy ? null : onAutoPlace,
-                  icon: const Icon(Icons.auto_awesome_outlined),
-                  label: const Text('Placer la proposition'),
-                ),
                 FilledButton.tonalIcon(
                   onPressed: busy ||
                           reminders?.canRemind != true ||
@@ -1303,7 +1116,11 @@ class _AvailabilityGroup extends StatelessWidget {
                   avatar: player.isGuest
                       ? const Icon(Icons.person_add_alt_1_outlined, size: 17)
                       : null,
-                  label: Text(player.displayName),
+                  label: Text(
+                    player.firstName.trim().isEmpty
+                        ? player.displayName
+                        : player.firstName.trim(),
+                  ),
                   backgroundColor: isWaitlistConcerned(player)
                       ? const Color(0xFFF59E0B).withValues(alpha: 0.20)
                       : color.withValues(alpha: 0.10),

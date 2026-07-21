@@ -197,9 +197,7 @@ class _NextMatchCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push(
-          open ? '/matches/${match.id}/prediction' : '/matches/${match.id}',
-        ),
+        onTap: () => context.push('/matches/${match.id}'),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
