@@ -124,7 +124,7 @@ class _TeamResultsCard extends StatelessWidget {
                 final ringSize = math.min(
                   96.0,
                   math.max(
-                    0,
+                    0.0,
                     (constraints.maxWidth - gap * 2) / 3,
                   ),
                 );
@@ -425,7 +425,7 @@ class _RecentResultsCard extends StatelessWidget {
                 : math.min(
                     48.0,
                     math.max(
-                      0,
+                      0.0,
                       (constraints.maxWidth - gap * (count - 1)) / count,
                     ),
                   );
