@@ -7,6 +7,9 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
+import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dart';
+import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +35,9 @@ class AccueilPage extends ConsumerWidget {
             ..invalidate(homeDashboardProvider)
             ..invalidate(myLastPronoProvider)
             ..invalidate(leaderboardProvider)
-            ..invalidate(myArmoireProvider);
+            ..invalidate(myArmoireProvider)
+            ..invalidate(publishedMatchCompositionProvider)
+            ..invalidate(sportMotmVoteProvider);
           await Future.wait([
             ref.read(homeDashboardProvider.future),
             ref.read(myLastPronoProvider.future),
@@ -45,6 +50,7 @@ class AccueilPage extends ConsumerWidget {
             SizedBox(height: 18),
             _LastPronoBlock(),
             SizedBox(height: 18),
+            HomeSportsFlowBlocks(),
             _MyRankingsBlock(),
             SizedBox(height: 18),
             _RecentBadgesBlock(),

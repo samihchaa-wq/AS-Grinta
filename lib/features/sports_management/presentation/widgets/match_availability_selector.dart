@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_availability.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
@@ -114,13 +115,18 @@ class _MatchAvailabilitySelectorState
             status: status,
             privateComment: privateComment,
           );
-      ref.invalidate(myMatchAvailabilityProvider(widget.matchId));
+      ref
+        ..invalidate(myMatchAvailabilityProvider(widget.matchId))
+        ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
       await ref.read(myMatchAvailabilityProvider(widget.matchId).future);
 
       if (!mounted) return;
+      final label = status == MatchAvailabilityStatus.available
+          ? 'Présent'
+          : status.label;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('${status.label} enregistré.')));
+      ).showSnackBar(SnackBar(content: Text('$label enregistré.')));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -161,6 +167,8 @@ class _AvailabilityPanel extends StatelessWidget {
     final foreground = embeddedOnDark ? Colors.white : null;
     final secondary =
         embeddedOnDark ? const Color(0xFFD7C8FF) : AppTheme.textSecondary;
+    final statusLabel =
+        selectedAvailable ? 'Présent' : availability.status.label;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -192,7 +200,7 @@ class _AvailabilityPanel extends StatelessWidget {
                 ),
               ),
               Text(
-                availability.status.label,
+                statusLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: selectedAvailable
                       ? const Color(0xFF52D08A)
@@ -219,7 +227,7 @@ class _AvailabilityPanel extends StatelessWidget {
                     ? FilledButton.icon(
                         onPressed: saving ? null : onAvailable,
                         icon: const Icon(Icons.check_circle_outline),
-                        label: const Text('Disponible'),
+                        label: const Text('Présent'),
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF168A52),
                         ),
@@ -227,7 +235,7 @@ class _AvailabilityPanel extends StatelessWidget {
                     : OutlinedButton.icon(
                         onPressed: saving ? null : onAvailable,
                         icon: const Icon(Icons.check_circle_outline),
-                        label: const Text('Disponible'),
+                        label: const Text('Présent'),
                       ),
               ),
               const SizedBox(width: 8),
