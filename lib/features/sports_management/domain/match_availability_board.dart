@@ -47,10 +47,14 @@ class MatchAvailabilityBoardPlayer {
   final int? waitlistPosition;
 
   String get displayName {
-    final first = firstName.trim();
-    if (first.isNotEmpty) return first;
     final fullName = '$firstName $lastName'.trim();
     return fullName.isEmpty ? 'Joueur' : fullName;
+  }
+
+  String get firstNameOnly {
+    final first = firstName.trim();
+    if (first.isNotEmpty) return first;
+    return displayName.split(RegExp(r'\s+')).first;
   }
 
   bool get isConvoked =>
@@ -77,7 +81,8 @@ class MatchAvailabilityBoard {
   factory MatchAvailabilityBoard.fromRpc(Object? raw) {
     if (raw is! Map) {
       throw const FormatException(
-          'Availability board RPC must return an object');
+        'Availability board RPC must return an object',
+      );
     }
     final json = Map<String, dynamic>.from(raw);
     final kickoffAt = DateTime.tryParse('${json['kickoff_at'] ?? ''}');
@@ -104,9 +109,11 @@ class MatchAvailabilityBoard {
               Map<String, dynamic>.from(player as Map),
             ),
           )
-          .where((player) =>
-              player.status != MatchAvailabilityBoardStatus.ignored ||
-              player.isGuest)
+          .where(
+            (player) =>
+                player.status != MatchAvailabilityBoardStatus.ignored ||
+                player.isGuest,
+          )
           .toList(growable: false),
     );
   }
@@ -120,7 +127,8 @@ class MatchAvailabilityBoard {
   final String convocationState;
   final List<MatchAvailabilityBoardPlayer> players;
 
-  bool isVisibleAt(DateTime now) => now.isBefore(kickoffAt);
+  bool isVisibleAt(DateTime now) =>
+      now.isBefore(kickoffAt) && !compositionPublished;
 
   List<MatchAvailabilityBoardPlayer> get convoked {
     final result = players.where((player) => player.isConvoked).toList();
