@@ -1,0 +1,82 @@
+name: Apply home sports flow
+
+on:
+  push:
+    branches: [feature/simple-player-sports-flow]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-home-sports-flow-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[home-sports-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/simple-player-sports-flow
+          fetch-depth: 0
+
+      - name: Apply targeted changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('lib/features/home/presentation/accueil_page.dart')
+          text = path.read_text()
+
+          old_import = "import 'package:as_grinta/features/home/data/home_repository.dart';\n"
+          new_import = old_import + (
+              "import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dart';\n"
+              "import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';\n"
+              "import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';\n"
+          )
+          if old_import not in text:
+              raise SystemExit('home repository import anchor not found')
+          text = text.replace(old_import, new_import, 1)
+
+          old_refresh = (
+              "            ..invalidate(leaderboardProvider)\n"
+              "            ..invalidate(myArmoireProvider);"
+          )
+          new_refresh = (
+              "            ..invalidate(leaderboardProvider)\n"
+              "            ..invalidate(myArmoireProvider)\n"
+              "            ..invalidate(publishedMatchCompositionProvider)\n"
+              "            ..invalidate(sportMotmVoteProvider);"
+          )
+          if old_refresh not in text:
+              raise SystemExit('refresh anchor not found')
+          text = text.replace(old_refresh, new_refresh, 1)
+
+          old_children = (
+              "            _LastPronoBlock(),\n"
+              "            SizedBox(height: 18),\n"
+              "            _MyRankingsBlock(),"
+          )
+          new_children = (
+              "            _LastPronoBlock(),\n"
+              "            SizedBox(height: 18),\n"
+              "            HomeSportsFlowBlocks(),\n"
+              "            _MyRankingsBlock(),"
+          )
+          if old_children not in text:
+              raise SystemExit('home children anchor not found')
+          text = text.replace(old_children, new_children, 1)
+          path.write_text(text)
+
+          Path('.github/workflows/apply_home_sports_flow.yml').unlink()
+
+      - name: Commit targeted changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/home/presentation/accueil_page.dart .github/workflows/apply_home_sports_flow.yml
+          git commit -m "[home-sports-applied] Brancher le parcours sportif sur l’accueil"
+          git push origin HEAD:feature/simple-player-sports-flow
