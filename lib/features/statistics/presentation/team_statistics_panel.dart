@@ -35,8 +35,6 @@ class TeamStatisticsPanel extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
           children: [
-            _TeamPeriodHeader(statistics: statistics),
-            const SizedBox(height: 22),
             const _TeamSectionTitle('Résultats'),
             const SizedBox(height: 10),
             _TeamResultsCard(statistics: statistics),
@@ -91,54 +89,6 @@ class _TeamSectionTitle extends StatelessWidget {
   }
 }
 
-class _TeamPeriodHeader extends StatelessWidget {
-  const _TeamPeriodHeader({required this.statistics});
-
-  final TeamStatistics statistics;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _teamGreen.withValues(alpha: .12),
-            border: Border.all(color: _teamGreen.withValues(alpha: .45)),
-          ),
-          child: const Icon(
-            Icons.sports_soccer_rounded,
-            color: _teamGreen,
-            size: 38,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          statistics.period == StatisticsPeriod.allTime
-              ? 'Tous les événements'
-              : 'AS La Grinta',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          statistics.period == StatisticsPeriod.allTime
-              ? statistics.periodLabel
-              : 'Saison ${statistics.periodLabel}',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _TeamResultsCard extends StatelessWidget {
   const _TeamResultsCard({required this.statistics});
 
@@ -147,10 +97,11 @@ class _TeamResultsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 22, 16, 20),
+        padding: const EdgeInsets.fromLTRB(14, 22, 14, 20),
         child: Column(
           children: [
             Text(
@@ -167,33 +118,52 @@ class _TeamResultsCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: _ResultRing(
-                    value: statistics.wins,
-                    total: statistics.matchesPlayed,
-                    label: 'victoires',
-                    color: _teamGreen,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 8.0;
+                final ringSize = math.min(
+                  96.0,
+                  math.max(
+                    0.0,
+                    (constraints.maxWidth - gap * 2) / 3,
                   ),
-                ),
-                Expanded(
-                  child: _ResultRing(
-                    value: statistics.draws,
-                    total: statistics.matchesPlayed,
-                    label: 'nuls',
-                    color: _teamYellow,
-                  ),
-                ),
-                Expanded(
-                  child: _ResultRing(
-                    value: statistics.losses,
-                    total: statistics.matchesPlayed,
-                    label: 'défaites',
-                    color: _teamRed,
-                  ),
-                ),
-              ],
+                );
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox.square(
+                      dimension: ringSize,
+                      child: _ResultRing(
+                        value: statistics.wins,
+                        total: statistics.matchesPlayed,
+                        label: 'victoires',
+                        color: _teamGreen,
+                      ),
+                    ),
+                    const SizedBox(width: gap),
+                    SizedBox.square(
+                      dimension: ringSize,
+                      child: _ResultRing(
+                        value: statistics.draws,
+                        total: statistics.matchesPlayed,
+                        label: 'nuls',
+                        color: _teamYellow,
+                      ),
+                    ),
+                    const SizedBox(width: gap),
+                    SizedBox.square(
+                      dimension: ringSize,
+                      child: _ResultRing(
+                        value: statistics.losses,
+                        total: statistics.matchesPlayed,
+                        label: 'défaites',
+                        color: _teamRed,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -219,40 +189,64 @@ class _ResultRing extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = total == 0 ? 0.0 : value / total;
-    return SizedBox(
-      width: 92,
-      height: 92,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 10,
-            strokeCap: StrokeCap.butt,
-            color: color,
-            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: .12),
-          ),
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$value',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final side = math.min(constraints.maxWidth, constraints.maxHeight);
+        final strokeWidth = side < 76 ? 7.0 : 9.0;
+        final valueFontSize = side < 76 ? 18.0 : 22.0;
+        final labelFontSize = side < 76 ? 10.0 : 12.0;
+
+        return AspectRatio(
+          aspectRatio: 1,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CircularProgressIndicator(
+                value: progress,
+                strokeWidth: strokeWidth,
+                strokeCap: StrokeCap.butt,
+                color: color,
+                backgroundColor:
+                    theme.colorScheme.onSurface.withValues(alpha: .12),
+              ),
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(side * .18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$value',
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontSize: valueFontSize,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: labelFontSize,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  label,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -271,35 +265,40 @@ class _TeamGoalsCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 24),
-        child: Row(
-          children: [
-            Expanded(
-              child: _GoalValue(
-                value: statistics.goalsFor,
-                label: 'buts marqués',
-                color: _teamGreen,
-              ),
-            ),
-            SizedBox(
-              width: 92,
-              height: 92,
-              child: CustomPaint(
-                painter: _GoalsDonutPainter(
-                  scoredRatio: scoredRatio,
-                  backgroundColor:
-                      theme.colorScheme.onSurface.withValues(alpha: .1),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final donutSize = math.min(88.0, constraints.maxWidth * .27);
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _GoalValue(
+                    value: statistics.goalsFor,
+                    label: 'buts marqués',
+                    color: _teamGreen,
+                  ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: _GoalValue(
-                value: statistics.goalsAgainst,
-                label: 'buts encaissés',
-                color: _teamRed,
-              ),
-            ),
-          ],
+                SizedBox.square(
+                  dimension: donutSize,
+                  child: CustomPaint(
+                    painter: _GoalsDonutPainter(
+                      scoredRatio: scoredRatio,
+                      backgroundColor:
+                          theme.colorScheme.onSurface.withValues(alpha: .1),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _GoalValue(
+                    value: statistics.goalsAgainst,
+                    label: 'buts encaissés',
+                    color: _teamRed,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -320,24 +319,37 @@ class _GoalValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      children: [
-        Text(
-          '$value',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w900,
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '$value',
+                maxLines: 1,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
           ),
-        ),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
+          Text(
+            label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -354,8 +366,12 @@ class _GoalsDonutPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final strokeWidth = math.min(size.width, size.height) * .22;
-    final rect = Offset.zero & size;
-    final arcRect = rect.deflate(strokeWidth / 2);
+    final side = math.min(size.width, size.height);
+    final left = (size.width - side) / 2;
+    final top = (size.height - side) / 2;
+    final arcRect =
+        Rect.fromLTWH(left, top, side, side).deflate(strokeWidth / 2);
+
     final basePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
@@ -400,11 +416,34 @@ class _RecentResultsCard extends StatelessWidget {
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            for (final result in results) _ResultBubble(result: result),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 8.0;
+            final count = results.length;
+            final bubbleSize = count == 0
+                ? 0.0
+                : math.min(
+                    48.0,
+                    math.max(
+                      0.0,
+                      (constraints.maxWidth - gap * (count - 1)) / count,
+                    ),
+                  );
+
+            return Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              runAlignment: WrapAlignment.center,
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final result in results)
+                  _ResultBubble(
+                    result: result,
+                    dimension: bubbleSize,
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -412,9 +451,13 @@ class _RecentResultsCard extends StatelessWidget {
 }
 
 class _ResultBubble extends StatelessWidget {
-  const _ResultBubble({required this.result});
+  const _ResultBubble({
+    required this.result,
+    required this.dimension,
+  });
 
   final String result;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) {
@@ -423,17 +466,26 @@ class _ResultBubble extends StatelessWidget {
       'N' => _teamYellow,
       _ => _teamRed,
     };
-    return Container(
-      width: 48,
-      height: 48,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Text(
-        result,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          fontSize: 22,
+
+    return SizedBox.square(
+      dimension: dimension,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              result,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: dimension * .46,
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -698,7 +750,10 @@ class _TeamStreaksSection extends StatelessWidget {
 }
 
 class _StreakGroupCard extends StatelessWidget {
-  const _StreakGroupCard({required this.title, required this.children});
+  const _StreakGroupCard({
+    required this.title,
+    required this.children,
+  });
 
   final String title;
   final List<Widget> children;
@@ -744,6 +799,7 @@ class _StreakRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final ratio = scale == 0 ? 0.0 : streak.length / scale;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -792,12 +848,16 @@ class _StreakRow extends StatelessWidget {
 String _formatDate(String value) {
   final date = DateTime.tryParse(value);
   if (date == null) return value;
+
   String twoDigits(int number) => number.toString().padLeft(2, '0');
   return '${twoDigits(date.day)}/${twoDigits(date.month)}/${date.year}';
 }
 
 class _ScrollableMessage extends StatelessWidget {
-  const _ScrollableMessage({required this.message, required this.onRefresh});
+  const _ScrollableMessage({
+    required this.message,
+    required this.onRefresh,
+  });
 
   final String message;
   final Future<void> Function() onRefresh;
