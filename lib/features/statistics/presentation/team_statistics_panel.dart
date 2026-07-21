@@ -230,8 +230,7 @@ class _ResultRing extends StatelessWidget {
             strokeWidth: 10,
             strokeCap: StrokeCap.butt,
             color: color,
-            backgroundColor:
-                theme.colorScheme.onSurface.withValues(alpha: .12),
+            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: .12),
           ),
           Center(
             child: Column(
@@ -267,8 +266,7 @@ class _TeamGoalsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalGoals = statistics.goalsFor + statistics.goalsAgainst;
-    final scoredRatio =
-        totalGoals == 0 ? .5 : statistics.goalsFor / totalGoals;
+    final scoredRatio = totalGoals == 0 ? .5 : statistics.goalsFor / totalGoals;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -373,8 +371,7 @@ class _GoalsDonutPainter extends CustomPainter {
 
     canvas.drawArc(arcRect, 0, math.pi * 2, false, basePaint);
     const start = -math.pi / 2;
-    final scoredSweep =
-        math.pi * 2 * scoredRatio.clamp(0.0, 1.0).toDouble();
+    final scoredSweep = math.pi * 2 * scoredRatio.clamp(0.0, 1.0).toDouble();
     canvas.drawArc(arcRect, start, scoredSweep, false, scoredPaint);
     canvas.drawArc(
       arcRect,
