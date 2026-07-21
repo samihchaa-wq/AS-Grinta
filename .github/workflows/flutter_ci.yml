@@ -1,91 +1,95 @@
-name: Update sports UX tests
+name: Flutter CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  patch:
-    if: github.head_ref == 'ux/home-sports-cleanup'
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - uses: subosito/flutter-action@v2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Update tests
-        shell: python
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Read application version
+        shell: bash
         run: |
-          from pathlib import Path
+          set -euo pipefail
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          test -n "$version"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-          availability = Path('test/match_availability_selector_test.dart')
-          text = availability.read_text()
-          old = """  testWidgets('records Absent with an optional private reason', (tester) async {
-    final repository = _FakeAvailabilityRepository();
-    await tester.pumpWidget(_harness(repository));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
-    await tester.pumpAndSettle();
-    expect(find.text('Signaler ton absence'), findsOneWidget);
-
-    await tester.enterText(
-      find.byType(TextFormField),
-      'Déplacement professionnel',
-    );
-    await tester.tap(
-      find.widgetWithText(FilledButton, 'Confirmer mon absence'),
-    );
-    await tester.pumpAndSettle();
-
-    expect(repository.lastStatus, MatchAvailabilityStatus.absent);
-    expect(repository.lastComment, 'Déplacement professionnel');
-  });"""
-          new = """  testWidgets('records Absent immediately without a private reason', (
-    tester,
-  ) async {
-    final repository = _FakeAvailabilityRepository();
-    await tester.pumpWidget(_harness(repository));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Absent'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Signaler ton absence'), findsNothing);
-    expect(repository.lastStatus, MatchAvailabilityStatus.absent);
-    expect(repository.lastComment, isNull);
-    expect(find.text('Absent enregistré.'), findsOneWidget);
-  });"""
-          if old not in text:
-              raise SystemExit('availability test block not found')
-          availability.write_text(text.replace(old, new, 1))
-
-          composition = Path('test/match_composition_model_test.dart')
-          text = composition.read_text()
-          old = "expect(guest.displayName, 'Alex Gardien (Invité)');"
-          new = "expect(guest.displayName, 'Alex');"
-          if old not in text:
-              raise SystemExit('composition expectation not found')
-          composition.write_text(text.replace(old, new, 1))
-      - name: Format and commit
+      - name: Check formatting of changed Dart files
+        shell: bash
         run: |
-          flutter pub get
-          dart format \
-            test/match_availability_selector_test.dart \
-            test/match_composition_model_test.dart
-          git checkout origin/main -- .github/workflows/flutter_ci.yml
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add \
-            .github/workflows/flutter_ci.yml \
-            test/match_availability_selector_test.dart \
-            test/match_composition_model_test.dart
-          git commit -m "test: aligner le parcours sportif simplifié"
-          git push origin HEAD:${{ github.head_ref }}
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            range="$base...HEAD"
+          else
+            range="HEAD^...HEAD"
+          fi
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Dart files to format."
+            exit 0
+          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}"
+
+      - name: Analyze
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --fatal-infos 2>&1 | tee analyze.log
+
+      - name: Test
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test 2>&1 | tee test.log
+
+      - name: Build web
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --no-web-resources-cdn \
+            --dart-define-from-file=config/production.json \
+            --dart-define=APP_VERSION="$APP_VERSION" \
+            2>&1 | tee build-web.log
+
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-validation-logs
+          path: |
+            analyze.log
+            test.log
+            build-web.log
+          if-no-files-found: warn
