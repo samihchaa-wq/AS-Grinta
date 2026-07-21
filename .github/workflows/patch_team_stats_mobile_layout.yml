@@ -1,0 +1,164 @@
+name: Patch team stats mobile layout
+
+on:
+  push:
+    branches: [fix/team-stats-mobile-layout]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix/team-stats-mobile-layout
+          fetch-depth: 0
+
+      - name: Patch team statistics layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('lib/features/statistics/presentation/team_statistics_panel.dart')
+          text = path.read_text()
+
+          old_header_call = """            _TeamPeriodHeader(statistics: statistics),
+            const SizedBox(height: 22),
+            const _TeamSectionTitle('Résultats'),
+"""
+          new_header_call = """            const _TeamSectionTitle('Résultats'),
+"""
+          if old_header_call not in text:
+              raise SystemExit('Team period header call not found')
+          text = text.replace(old_header_call, new_header_call, 1)
+
+          text, removed = re.subn(
+              r"\nclass _TeamPeriodHeader extends StatelessWidget \{.*?\n\}\n\nclass _TeamResultsCard",
+              "\nclass _TeamResultsCard",
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if removed != 1:
+              raise SystemExit('Team period header class not found')
+
+          old_rings = """            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _ResultRing(
+                    value: statistics.wins,
+                    total: statistics.matchesPlayed,
+                    label: 'victoires',
+                    color: _teamGreen,
+                  ),
+                ),
+                Expanded(
+                  child: _ResultRing(
+                    value: statistics.draws,
+                    total: statistics.matchesPlayed,
+                    label: 'nuls',
+                    color: _teamYellow,
+                  ),
+                ),
+                Expanded(
+                  child: _ResultRing(
+                    value: statistics.losses,
+                    total: statistics.matchesPlayed,
+                    label: 'défaites',
+                    color: _teamRed,
+                  ),
+                ),
+              ],
+            ),
+"""
+          new_rings = """            const SizedBox(height: 24),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const minimumGap = 12.0;
+                final ringSize = math.min(
+                  96.0,
+                  (constraints.maxWidth - minimumGap * 2) / 3,
+                );
+
+                Widget ring({
+                  required int value,
+                  required String label,
+                  required Color color,
+                }) {
+                  return SizedBox.square(
+                    dimension: ringSize,
+                    child: _ResultRing(
+                      value: value,
+                      total: statistics.matchesPlayed,
+                      label: label,
+                      color: color,
+                    ),
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ring(
+                      value: statistics.wins,
+                      label: 'victoires',
+                      color: _teamGreen,
+                    ),
+                    ring(
+                      value: statistics.draws,
+                      label: 'nuls',
+                      color: _teamYellow,
+                    ),
+                    ring(
+                      value: statistics.losses,
+                      label: 'défaites',
+                      color: _teamRed,
+                    ),
+                  ],
+                );
+              },
+            ),
+"""
+          if old_rings not in text:
+              raise SystemExit('Old result rings row not found')
+          text = text.replace(old_rings, new_rings, 1)
+
+          old_ring_box = """    return SizedBox(
+      width: 92,
+      height: 92,
+      child: Stack(
+"""
+          new_ring_box = """    return AspectRatio(
+      aspectRatio: 1,
+      child: Stack(
+"""
+          if old_ring_box not in text:
+              raise SystemExit('Old result ring box not found')
+          text = text.replace(old_ring_box, new_ring_box, 1)
+
+          path.write_text(text)
+          PY
+
+          dart format lib/features/statistics/presentation/team_statistics_panel.dart
+
+      - name: Commit correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No change to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/statistics/presentation/team_statistics_panel.dart
+          git commit -m "Corriger l'affichage mobile des statistiques équipe"
+          git push origin HEAD:fix/team-stats-mobile-layout
