@@ -1,7 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
@@ -9,7 +8,6 @@ import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dar
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
-import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -503,138 +501,7 @@ class _ResultTag extends StatelessWidget {
   }
 }
 
-// ─────────────────────────── 3) Tes classements ───────────────────────────
-
-class _MyRankingsBlock extends ConsumerWidget {
-  const _MyRankingsBlock();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(leaderboardProvider);
-    final uid = ref.watch(authControllerProvider).profile?.id;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _BlockHeader('🏅', 'Tes classements'),
-        async.when(
-          loading: () => const _MiniLoader(),
-          error: (_, __) =>
-              const _EmptyCard('Impossible de charger les classements.'),
-          data: (entries) {
-            if (uid == null || entries.isEmpty) {
-              return const _EmptyCard('Pas encore de classement.');
-            }
-            final total = entries.length;
-            final matchRank = _rankOf(entries, uid, (e) => e.matchPoints);
-            final seasonRank = _rankOf(entries, uid, (e) => e.seasonPoints);
-            final generalRank = _rankOf(entries, uid, (e) => e.totalPoints);
-            if (matchRank == null) {
-              return const _EmptyCard(
-                'Tu n\'apparais pas encore au classement.',
-              );
-            }
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Column(
-                  children: [
-                    _RankRow(
-                      label: 'Matchs',
-                      rank: matchRank,
-                      total: total,
-                      onTap: () =>
-                          context.go('/pronos?category=general&view=matches'),
-                    ),
-                    const Divider(height: 1),
-                    _RankRow(
-                      label: 'Prono joueurs',
-                      rank: seasonRank!,
-                      total: total,
-                      onTap: () =>
-                          context.go('/pronos?category=general&view=scorers'),
-                    ),
-                    const Divider(height: 1),
-                    _RankRow(
-                      label: 'Général',
-                      rank: generalRank!,
-                      total: total,
-                      highlight: true,
-                      onTap: () =>
-                          context.go('/pronos?category=general&view=general'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  int? _rankOf(
-    List<LeaderboardEntry> entries,
-    String uid,
-    double Function(LeaderboardEntry) value,
-  ) {
-    final sorted = [...entries]..sort((a, b) => value(b).compareTo(value(a)));
-    final index = sorted.indexWhere((e) => e.profileId == uid);
-    return index < 0 ? null : index + 1;
-  }
-}
-
-class _RankRow extends StatelessWidget {
-  const _RankRow({
-    required this.label,
-    required this.rank,
-    required this.total,
-    this.onTap,
-    this.highlight = false,
-  });
-  final String label;
-  final int rank;
-  final int total;
-  final VoidCallback? onTap;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
-                  ),
-            ),
-            const Spacer(),
-            Text(
-              '$rank',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: highlight ? AppTheme.accent : AppTheme.primaryBright,
-                  ),
-            ),
-            Text(
-              ' / $total',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────── 4) Badges récents ───────────────────────────
+// ─────────────────────────── Badges récents ───────────────────────────
 
 class _RecentBadgesBlock extends ConsumerWidget {
   const _RecentBadgesBlock();
