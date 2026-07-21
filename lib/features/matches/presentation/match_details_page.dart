@@ -30,10 +30,10 @@ class MatchDetailsPage extends ConsumerWidget {
       appBar: GrintaAppBar(title: const Text('Match')),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(matchDetailsProvider(matchId));
-          if (sportsEnabled) {
-            ref.invalidate(sportMotmVoteProvider(matchId));
-          }
+          await ref.read(featureFlagsControllerProvider.notifier).refresh();
+          ref
+            ..invalidate(matchDetailsProvider(matchId))
+            ..invalidate(sportMotmVoteProvider(matchId));
           await ref.read(matchDetailsProvider(matchId).future);
         },
         child: detailsAsync.when(
@@ -60,9 +60,6 @@ class MatchDetailsPage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
                   _UpcomingHeader(details: details),
-                  const SizedBox(height: 16),
-                  PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
-                  _HeadToHeadCard(details: details),
                   if (isAdmin && sportsEnabled) ...[
                     const SizedBox(height: 16),
                     _SportsManagementSection(
@@ -76,6 +73,9 @@ class MatchDetailsPage extends ConsumerWidget {
                       ],
                     ),
                   ],
+                  const SizedBox(height: 16),
+                  PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
+                  _HeadToHeadCard(details: details),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
                     FilledButton.icon(
@@ -97,19 +97,6 @@ class MatchDetailsPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   MatchMotmVoteCard(matchId: matchId),
                 ],
-                if (details.playerStats.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _MatchSummary(details: details),
-                ],
-                if (details.predictions.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  _PredictionsTable(
-                    predictions: details.predictions,
-                    actualGrinta: details.scoreGrinta ?? 0,
-                    actualOpponent: details.scoreOpponent ?? 0,
-                    isHome: details.location == 'domicile',
-                  ),
-                ],
                 if (isAdmin && sportsEnabled) ...[
                   const SizedBox(height: 16),
                   _SportsManagementSection(
@@ -121,6 +108,19 @@ class MatchDetailsPage extends ConsumerWidget {
                         'motm',
                       ),
                     ],
+                  ),
+                ],
+                if (details.playerStats.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _MatchSummary(details: details),
+                ],
+                if (details.predictions.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _PredictionsTable(
+                    predictions: details.predictions,
+                    actualGrinta: details.scoreGrinta ?? 0,
+                    actualOpponent: details.scoreOpponent ?? 0,
+                    isHome: details.location == 'domicile',
                   ),
                 ],
                 if (isAdmin) ...[
@@ -321,12 +321,46 @@ class _SportsManagementSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Gestion sportive',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Gestion sportive',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF39E784).withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: const Color(0xFF39E784).withValues(alpha: .55),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        size: 14,
+                        color: Color(0xFF39E784),
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Active',
+                        style: TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             for (final action in actions) ...[
@@ -430,7 +464,35 @@ class _PredictionsTable extends StatelessWidget {
                         name: prediction.name,
                       ),
                     ),
-                    Expanded(child: Text(score, textAlign: TextAlign.center)),
+                    Expanded(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 5,
+                        children: [
+                          Text(score),
+                          if (prediction.usedX2)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFB020),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                '×2',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                     Expanded(
                       child: Text(
                         prediction.points.round().toString(),
