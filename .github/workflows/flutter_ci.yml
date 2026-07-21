@@ -35,10 +35,14 @@ jobs:
           def write(path, text):
               Path(path).write_text(text)
 
+          def fail(message):
+              write('patch_failure.txt', message + '\n')
+              raise SystemExit(message)
+
           def replace(path, old, new, label):
               text = read(path)
               if old not in text:
-                  raise SystemExit(f'Block not found: {label} in {path}')
+                  fail(f'Block not found: {label} in {path}')
               write(path, text.replace(old, new, 1))
               print(f'patched: {label}')
 
@@ -46,7 +50,7 @@ jobs:
               text = read(path)
               updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
               if count != 1:
-                  raise SystemExit(f'Regex block not found: {label} in {path}')
+                  fail(f'Regex block not found: {label} in {path}')
               write(path, updated)
               print(f'patched: {label}')
 
@@ -434,9 +438,20 @@ jobs:
           for path in ['web/index.html', 'web/sw.js']:
               text = read(path)
               if 'v59' not in text:
-                  raise SystemExit(f'Expected v59 in {path}')
+                  fail(f'Expected v59 in {path}')
               write(path, text.replace('v59', 'v60'))
               print(f'patched: cache v60 in {path}')
+
+      - name: Publish patch failure
+        if: failure()
+        run: |
+          test -f patch_failure.txt || echo "Unknown patch failure" > patch_failure.txt
+          git checkout origin/main -- .github/workflows/flutter_ci.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add patch_failure.txt .github/workflows/flutter_ci.yml
+          git commit -m "ci: publier le diagnostic du patch UX"
+          git push origin HEAD:${{ github.head_ref }}
 
       - name: Format changed Dart files
         run: |
