@@ -1,0 +1,319 @@
+Resolving dependencies...
+Downloading packages...
+  app_links 6.4.1 (7.2.1 available)
+  app_links_platform_interface 2.0.2 (2.0.4 available)
+  async 2.13.0 (2.13.1 available)
+  connectivity_plus 6.1.5 (7.3.0 available)
+  cupertino_icons 1.0.8 (1.0.9 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  flutter_riverpod 2.6.1 (3.3.2 available)
+  go_router 14.8.1 (17.3.0 available)
+  gotrue 2.25.0 (2.26.0 available)
+  intl 0.20.2 (0.20.3 available)
+  json_annotation 4.9.0 (4.12.0 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  path_provider_linux 2.2.1 (2.2.2 available)
+  path_provider_platform_interface 2.1.2 (2.1.3 available)
+  realtime_client 2.10.0 (2.11.0 available)
+  riverpod 2.6.1 (3.3.2 available)
+  shared_preferences 2.5.3 (2.5.5 available)
+  shared_preferences_android 2.4.13 (2.4.27 available)
+  shared_preferences_foundation 2.5.4 (2.5.6 available)
+  shared_preferences_platform_interface 2.4.1 (2.4.2 available)
+  source_span 1.10.1 (1.10.2 available)
+  supabase 2.13.4 (2.14.0 available)
+  supabase_flutter 2.15.4 (2.16.0 available)
+  test_api 0.7.11 (0.7.13 available)
+  url_launcher_android 6.3.20 (6.3.32 available)
+  url_launcher_ios 6.3.4 (6.4.1 available)
+  url_launcher_macos 3.2.3 (3.2.5 available)
+  url_launcher_web 2.4.1 (2.4.3 available)
+  vector_math 2.2.0 (2.4.0 available)
+  vm_service 15.0.0 (15.2.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+34 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Formatted lib/features/auth/presentation/forced_password_change_page.dart
+Formatted lib/features/home/presentation/accueil_page.dart
+Formatted lib/features/players/data/roster_repository.dart
+Formatted lib/features/players/presentation/players_registry_page.dart
+Formatted lib/features/preferences/data/preferences_repository.dart
+Formatted lib/features/sports_management/domain/match_availability_board.dart
+Formatted lib/features/sports_management/presentation/admin_squad_plan_page.dart
+Formatted lib/features/sports_management/presentation/match_lineup_page.dart
+Formatted lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart
+Formatted lib/features/sports_management/presentation/widgets/match_availability_board_card.dart
+Formatted 153 files (10 changed) in 0.31 seconds.
+Resolving dependencies...
+Downloading packages...
+  app_links 6.4.1 (7.2.1 available)
+  app_links_platform_interface 2.0.2 (2.0.4 available)
+  async 2.13.0 (2.13.1 available)
+  connectivity_plus 6.1.5 (7.3.0 available)
+  cupertino_icons 1.0.8 (1.0.9 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  flutter_riverpod 2.6.1 (3.3.2 available)
+  go_router 14.8.1 (17.3.0 available)
+  gotrue 2.25.0 (2.26.0 available)
+  intl 0.20.2 (0.20.3 available)
+  json_annotation 4.9.0 (4.12.0 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  path_provider_linux 2.2.1 (2.2.2 available)
+  path_provider_platform_interface 2.1.2 (2.1.3 available)
+  realtime_client 2.10.0 (2.11.0 available)
+  riverpod 2.6.1 (3.3.2 available)
+  shared_preferences 2.5.3 (2.5.5 available)
+  shared_preferences_android 2.4.13 (2.4.27 available)
+  shared_preferences_foundation 2.5.4 (2.5.6 available)
+  shared_preferences_platform_interface 2.4.1 (2.4.2 available)
+  source_span 1.10.1 (1.10.2 available)
+  supabase 2.13.4 (2.14.0 available)
+  supabase_flutter 2.15.4 (2.16.0 available)
+  test_api 0.7.11 (0.7.13 available)
+  url_launcher_android 6.3.20 (6.3.32 available)
+  url_launcher_ios 6.3.4 (6.4.1 available)
+  url_launcher_macos 3.2.3 (3.2.5 available)
+  url_launcher_web 2.4.1 (2.4.3 available)
+  vector_math 2.2.0 (2.4.0 available)
+  vm_service 15.0.0 (15.2.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+34 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing AS-Grinta...                                          
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/sports_management/presentation/admin_squad_plan_page.dart:284:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/sports_management/presentation/admin_squad_plan_page.dart:656:7 • curly_braces_in_flow_control_structures
+   info • 'onReorder' is deprecated and shouldn't be used. Use the onReorderItem callback instead. The onReorderItem callback adjusts the newIndex parameter for a removed item at the oldIndex. This feature was deprecated after v3.41.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/features/sports_management/presentation/admin_squad_plan_page.dart:949:23 • deprecated_member_use
+
+3 issues found. (ran in 10.3s)
+Resolving dependencies...
+Downloading packages...
+  app_links 6.4.1 (7.2.1 available)
+  app_links_platform_interface 2.0.2 (2.0.4 available)
+  async 2.13.0 (2.13.1 available)
+  connectivity_plus 6.1.5 (7.3.0 available)
+  cupertino_icons 1.0.8 (1.0.9 available)
+  flutter_lints 5.0.0 (6.0.0 available)
+  flutter_riverpod 2.6.1 (3.3.2 available)
+  go_router 14.8.1 (17.3.0 available)
+  gotrue 2.25.0 (2.26.0 available)
+  intl 0.20.2 (0.20.3 available)
+  json_annotation 4.9.0 (4.12.0 available)
+  lints 5.1.1 (6.1.0 available)
+  matcher 0.12.19 (0.12.20 available)
+  meta 1.18.0 (1.19.0 available)
+  passkeys_platform_interface 2.8.0 (2.9.0 available)
+  path_provider_linux 2.2.1 (2.2.2 available)
+  path_provider_platform_interface 2.1.2 (2.1.3 available)
+  realtime_client 2.10.0 (2.11.0 available)
+  riverpod 2.6.1 (3.3.2 available)
+  shared_preferences 2.5.3 (2.5.5 available)
+  shared_preferences_android 2.4.13 (2.4.27 available)
+  shared_preferences_foundation 2.5.4 (2.5.6 available)
+  shared_preferences_platform_interface 2.4.1 (2.4.2 available)
+  source_span 1.10.1 (1.10.2 available)
+  supabase 2.13.4 (2.14.0 available)
+  supabase_flutter 2.15.4 (2.16.0 available)
+  test_api 0.7.11 (0.7.13 available)
+  url_launcher_android 6.3.20 (6.3.32 available)
+  url_launcher_ios 6.3.4 (6.4.1 available)
+  url_launcher_macos 3.2.3 (3.2.5 available)
+  url_launcher_web 2.4.1 (2.4.3 available)
+  vector_math 2.2.0 (2.4.0 available)
+  vm_service 15.0.0 (15.2.0 available)
+  xml 6.6.1 (7.0.1 available)
+Got dependencies!
+34 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_profile_policy_test.dart: groupAdminProfiles separates pending accounts from validated and archived accounts
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_profile_policy_test.dart: groupAdminProfiles returns immutable result lists
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_profile_policy_test.dart: adminProfileActionPolicy pending accounts can only be validated or rejected
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_profile_policy_test.dart: adminProfileActionPolicy active accounts can be reset, archived or deleted
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_profile_policy_test.dart: adminProfileActionPolicy archived accounts can be reactivated but not archived again
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_profile_policy_test.dart: adminProfileActionPolicy the current administrator cannot manage their own account
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sports_management_route_guard_test.dart: sports-management route guard blocks every sports route while the server flag is disabled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sports_management_route_guard_test.dart: sports-management route guard allows player sports routes when the flag is enabled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sports_management_route_guard_test.dart: sports-management route guard keeps all sports administration routes restricted to administrators
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring score exact = cote x2
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring bon vainqueur + bon écart = cote x1,5
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring bon vainqueur + score exact d’une équipe = cote x1,5
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring bon vainqueur seul = cote x1
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring nul prédit et nul réel sans score exact = cote x1,5
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring mauvais résultat = 0
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/prediction_scoring_test.dart: PredictionScoring sans cote = null
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: MatchPredictionItem timing closes exactly five minutes before kickoff
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: MatchPredictionItem timing respects an explicit earlier closure timestamp
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: MatchPredictionItem timing non-upcoming matches are always closed
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController loads prediction items
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController clears items and exposes an error when loading fails
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController changes scores and clamps them between zero and 99
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController does not edit a closed match
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController enables x2 only with an available token
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController cannot enable x2 without a token
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController can disable an already selected x2 even when none remain
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController saves the current values and marks the prediction filled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController keeps the prediction editable and exposes save errors
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/predictions_controller_test.dart: PredictionsController does not call the repository for a closed prediction
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/profile_test.dart: Profile role handling legacy moderator role maps to admin (rôles fusionnés)
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/profile_test.dart: Profile role handling admin is staff, pronostiqueur is not
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/availability_reminder_models_test.dart: AvailabilityReminderSummary parses reminder counts and player cooldowns
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/availability_reminder_models_test.dart: AvailabilityReminderSummary uses safe defaults when optional values are absent
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/availability_reminder_models_test.dart: AvailabilityReminderResult parses server counters
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/widget_test.dart: loading screen displays the authentication loader
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_waitlist_models_test.dart: parses the permanent waitlist attendance snapshot
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_waitlist_models_test.dart: keeps convocation and turn consumption independent
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_waitlist_models_test.dart: parses an early promoted player with a waived turn
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_waitlist_page_test.dart: an administrator can reorder and save the complete waitlist
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_selector_test.dart: is completely hidden when the feature flag is disabled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_match_finalization_model_test.dart: parses permanent and guest final statistics
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_match_finalization_model_test.dart: marking a participant absent clears all match statistics
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_selector_test.dart: records Present and refreshes the shared server state
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_selector_test.dart: records Absent immediately without a private reason
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/name_with_badges_test.dart: un nom très long + 2 badges ne débordent pas (colonne étroite)
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/name_with_badges_test.dart: un nom court + 3 badges ne débordent pas (largeur normale)
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/name_with_badges_test.dart: un prénom court reste entier avec 2 grands badges (colonne de classement)
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_motm_dashboard_model_test.dart: parse le suivi HDM sans identité de votant
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_motm_dashboard_model_test.dart: parse le contrôle de cohérence statistique
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController loads an active profile on startup
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController keeps the user signed out when no session profile exists
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController signIn authenticates after the post-login refresh
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController inactive profiles are signed out and rejected
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController signIn exposes a stable user-facing error on failure
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController signOut clears the authenticated state
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_controller_test.dart: AuthController ignores a refresh result that became stale after signedOut
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect sends loading states to the loading route without looping
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect leaves the loading route once loading finishes without a session
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect preserves the requested local path for signed-out users
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect allows signed-out users to remain on auth routes
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect forces password renewal before all other authenticated routes
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect redirects authenticated users away from auth routes
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect rejects external and auth redirect targets
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect blocks privileged routes for regular users
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect allows privileged routes for administrators
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_redirect_test.dart: resolveAuthRedirect normalizes root aliases to Accueil
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_composition_model_test.dart: parses a published composition snapshot
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_composition_model_test.dart: creates a complete initial draft from convocations
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_composition_model_test.dart: clears field coordinates when a player moves to the bench
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_composition_model_test.dart: treats a convoked guest as selectable without availability
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_model_test.dart: FeatureFlagsSnapshot parses the sports-management server configuration
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_model_test.dart: FeatureFlagsSnapshot uses safe defaults for malformed optional configuration
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_model_test.dart: FeatureFlagsSnapshot rejects a response without the expected feature
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_model_test.dart: FeatureFlagsSnapshot unavailable snapshot always fails closed
+::group::❌ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_board_test.dart: parses public player statuses without staff-only fields (failed)
+Expected: 'Samih Chaa'
+  Actual: 'Samih'
+   Which: is different. Both strings start the same, but the actual value is missing the following trailing characters:  Chaa
+
+package:matcher                                     expect
+package:flutter_test/src/widget_tester.dart 473:18  expect
+test/match_availability_board_test.dart 20:5        main.<fn>
+::endgroup::
+::group::❌ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_board_test.dart: is hidden once kickoff starts or composition is published (failed)
+Expected: false
+  Actual: <true>
+
+package:matcher                                     expect
+package:flutter_test/src/widget_tester.dart 473:18  expect
+test/match_availability_board_test.dart 60:5        main.<fn>
+::endgroup::
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/features/sports_management/domain/football_formation_test.dart: expose les 29 formations EA FC avec onze emplacements
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_motm_vote_model_test.dart: masque les résultats pendant un scrutin ouvert
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sport_motm_vote_model_test.dart: accepte plusieurs co-HDM après clôture
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sports_management_composition_route_test.dart: blocks sports routes while the module is disabled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sports_management_composition_route_test.dart: allows sports routes for an administrator when enabled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/sports_management_composition_route_test.dart: still blocks sports admin routes for a regular player
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_sports_management_section_test.dart: an administrator can enable the module
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/admin_sports_management_section_test.dart: disabling requires confirmation and preserves the reason
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/app_logger_test.dart: formats a useful record without including the error message
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/published_lineup_card_test.dart: is hidden and performs no RPC when the flag is disabled
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/matches_test.dart: MatchModel exposes readable location and status labels
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/matches_test.dart: MatchModel uses the absolute server kickoff instant
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/matches_test.dart: MatchModel keeps the legacy local fields as a migration fallback
+::group::❌ /home/runner/work/AS-Grinta/AS-Grinta/test/published_lineup_card_test.dart: shows the latest published composition (failed)
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 147 pixels on the bottom.
+
+The relevant error-causing widget was:
+  Column
+  Column:file:///home/runner/work/AS-Grinta/AS-Grinta/lib/features/sports_management/presentation/match_lineup_page.dart:70:14
+
+The overflowing RenderFlex has an orientation of Axis.vertical.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#7f322 relayoutBoundary=up2 OVERFLOWING:
+  creator: Column ← Padding ← PublishedLineupCard ← KeyedSubtree-[GlobalKey#21dee] ← _BodyBuilder ←
+    MediaQuery ← LayoutId-[<_ScaffoldSlot.body>] ← CustomMultiChildLayout ← _ActionsScope ← Actions ←
+    Builder ← DefaultTextStyle ← ⋯
+  parentData: offset=Offset(0.0, 0.0) (can use size)
+  constraints: BoxConstraints(0.0<=w<=800.0, 0.0<=h<=600.0)
+  size: Size(800.0, 600.0)
+  direction: vertical
+  mainAxisAlignment: start
+  mainAxisSize: max
+  crossAxisAlignment: stretch
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Composition publiée": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///home/runner/work/AS-Grinta/AS-Grinta/test/published_lineup_card_test.dart:26:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1952:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///home/runner/work/AS-Grinta/AS-Grinta/test/published_lineup_card_test.dart line 26
+The test description was:
+  shows the latest published composition
+════════════════════════════════════════════════════════════════════════════════════════════════════
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+════════════════════════════════════════════════════════════════════════════════════════════════════
+Test failed. See exception logs above.
+The test description was: shows the latest published composition
+
+::endgroup::
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/auth_profile_test.dart: AuthProfile parses a Supabase profile payload into a domain model
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/app_preferences_test.dart: copyWith conserve les préférences non modifiées
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_model_test.dart: parses the private availability RPC payload
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/match_availability_model_test.dart: rejects an invalid availability status
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/app_router_stability_test.dart: keeps the same GoRouter instance across authentication changes
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/guest_player_models_test.dart: parses active and archived reusable guests
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/guest_player_models_test.dart: parses an invited participant attached to a match
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_controller_test.dart: does not call the server before authentication
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_controller_test.dart: fails closed when the server flag cannot be loaded
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/feature_flags_controller_test.dart: updates the server flag and publishes the new value
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/first_open_prediction_window_test.dart: first open prediction window the first open match remains editable
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/first_open_prediction_window_test.dart: first open prediction window a later time-open match waits for the previous match
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/first_open_prediction_window_test.dart: first open prediction window a manually closed match is not reported as waiting
+✅ /home/runner/work/AS-Grinta/AS-Grinta/test/first_open_prediction_window_test.dart: first open prediction window the controller never saves a later match
+
+::error::101 tests passed, 3 failed.

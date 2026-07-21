@@ -152,6 +152,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/matches/:matchId/composition',
             builder: (context, state) => AdminSquadPlanPage(
               initialMatchId: state.pathParameters['matchId'],
+              initialStep: state.uri.queryParameters['step'],
             ),
           ),
           GoRoute(

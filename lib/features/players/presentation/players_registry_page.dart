@@ -220,9 +220,8 @@ Future<void> _showProfileLinkDialog(
   final currentIsAvailable = profiles.any(
     (profile) => profile.id == player.linkedProfileId,
   );
-  var selectedProfileId = currentIsAvailable
-      ? player.linkedProfileId ?? ''
-      : '';
+  var selectedProfileId =
+      currentIsAvailable ? player.linkedProfileId ?? '' : '';
   var saving = false;
   String? error;
   final linkedPlayerByProfileId = <String, String>{

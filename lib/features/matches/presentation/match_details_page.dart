@@ -66,9 +66,14 @@ class MatchDetailsPage extends ConsumerWidget {
                       matchId: matchId,
                       actions: const [
                         _SportAction(
-                          'Sélection & composition',
+                          'Effectif',
+                          Icons.groups_2_outlined,
+                          'composition?step=effectif',
+                        ),
+                        _SportAction(
+                          'Composition',
                           Icons.sports_soccer_outlined,
-                          'composition',
+                          'composition?step=composition',
                         ),
                       ],
                     ),
