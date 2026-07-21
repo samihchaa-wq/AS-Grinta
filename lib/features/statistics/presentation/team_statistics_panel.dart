@@ -369,7 +369,8 @@ class _GoalsDonutPainter extends CustomPainter {
     final side = math.min(size.width, size.height);
     final left = (size.width - side) / 2;
     final top = (size.height - side) / 2;
-    final arcRect = Rect.fromLTWH(left, top, side, side).deflate(strokeWidth / 2);
+    final arcRect =
+        Rect.fromLTWH(left, top, side, side).deflate(strokeWidth / 2);
 
     final basePaint = Paint()
       ..style = PaintingStyle.stroke
