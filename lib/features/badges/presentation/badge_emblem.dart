@@ -17,9 +17,9 @@ Color? parseBadgeColor(String? hex) {
 }
 
 /// Le seuil à écrire en petit sur l'emblème d'un badge de barème (paliers de
-/// stats). `null` pour les titres, triplé, etc. (emoji déjà unique).
+/// stats). `null` pour les badges à palier unique, les titres, triplé, etc.
 String? baremeLabelFor(String? metric, int? threshold) {
-  if (metric == null || threshold == null) return null;
+  if (metric == null || threshold == null || threshold <= 1) return null;
   if (metric == 'max_match_goals' ||
       metric == 'seasons_complete' ||
       metric.startsWith('title_')) {
