@@ -75,12 +75,44 @@ class StatisticsPeriodData {
   final List<PlayerStatistics> players;
 }
 
+class TeamStatistics {
+  const TeamStatistics({
+    required this.period,
+    required this.periodLabel,
+    required this.matchesPlayed,
+    required this.wins,
+    required this.draws,
+    required this.losses,
+    required this.goalsFor,
+    required this.goalsAgainst,
+    required this.goalDifference,
+    required this.cleanSheets,
+  });
+
+  final StatisticsPeriod period;
+  final String periodLabel;
+  final int matchesPlayed;
+  final int wins;
+  final int draws;
+  final int losses;
+  final int goalsFor;
+  final int goalsAgainst;
+  final int goalDifference;
+  final int cleanSheets;
+
+  double get winRate => matchesPlayed == 0 ? 0 : wins * 100 / matchesPlayed;
+  double get goalsForPerMatch =>
+      matchesPlayed == 0 ? 0 : goalsFor / matchesPlayed;
+  double get goalsAgainstPerMatch =>
+      matchesPlayed == 0 ? 0 : goalsAgainst / matchesPlayed;
+}
+
 class StatisticsRepository {
   StatisticsRepository(this._client);
 
   final SupabaseClient _client;
 
-  Future<StatisticsPeriodData> fetch(StatisticsPeriod period) async {
+  Future<StatisticsPeriodData> fetchPlayers(StatisticsPeriod period) async {
     final response = await _client.from('v_statistics_players').select('''
           period_key,
           period_label,
@@ -114,7 +146,8 @@ class StatisticsRepository {
         return _firstName((a['player_name'] ?? '').toString())
             .toLowerCase()
             .compareTo(
-                _firstName((b['player_name'] ?? '').toString()).toLowerCase());
+              _firstName((b['player_name'] ?? '').toString()).toLowerCase(),
+            );
       });
 
     final players = <PlayerStatistics>[];
@@ -128,28 +161,62 @@ class StatisticsRepository {
         prevMatches = matches ?? 0;
       }
       final name = _firstName((map['player_name'] ?? 'Joueur').toString());
-      players.add(PlayerStatistics(
-        period: period,
-        periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
-        rank: rank,
-        displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
-        playerName: name,
-        profileId: map['profile_id']?.toString(),
-        isGoalkeeper: map['is_goalkeeper'] == true,
-        matchesPlayed: matches,
-        wins: (map['wins'] as num?)?.toInt(),
-        draws: (map['draws'] as num?)?.toInt(),
-        losses: (map['losses'] as num?)?.toInt(),
-        goals: (map['goals'] as num?)?.toInt() ?? 0,
-        hdm: (map['hdm'] as num?)?.toInt(),
-        cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
-      ));
+      players.add(
+        PlayerStatistics(
+          period: period,
+          periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
+          rank: rank,
+          displayOrder: (map['display_order'] as num?)?.toInt() ?? 9999,
+          playerName: name,
+          profileId: map['profile_id']?.toString(),
+          isGoalkeeper: map['is_goalkeeper'] == true,
+          matchesPlayed: matches,
+          wins: (map['wins'] as num?)?.toInt(),
+          draws: (map['draws'] as num?)?.toInt(),
+          losses: (map['losses'] as num?)?.toInt(),
+          goals: (map['goals'] as num?)?.toInt() ?? 0,
+          hdm: (map['hdm'] as num?)?.toInt(),
+          cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
+        ),
+      );
     }
 
     return StatisticsPeriodData(
       period: period,
       label: players.isEmpty ? period.fallbackLabel : players.first.periodLabel,
       players: players,
+    );
+  }
+
+  Future<TeamStatistics> fetchTeam(StatisticsPeriod period) async {
+    final response = await _client.from('v_statistics_team').select('''
+          period_key,
+          period_label,
+          matches_played,
+          wins,
+          draws,
+          losses,
+          goals_for,
+          goals_against,
+          goal_difference,
+          clean_sheets
+        ''').eq('period_key', period.databaseKey).maybeSingle();
+
+    final map = response == null
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(response);
+
+    return TeamStatistics(
+      period: period,
+      periodLabel: (map['period_label'] ?? period.fallbackLabel).toString(),
+      matchesPlayed: (map['matches_played'] as num?)?.toInt() ?? 0,
+      wins: (map['wins'] as num?)?.toInt() ?? 0,
+      draws: (map['draws'] as num?)?.toInt() ?? 0,
+      losses: (map['losses'] as num?)?.toInt() ?? 0,
+      goalsFor: (map['goals_for'] as num?)?.toInt() ?? 0,
+      goalsAgainst: (map['goals_against'] as num?)?.toInt() ?? 0,
+      goalDifference: (map['goal_difference'] as num?)?.toInt() ?? 0,
+      cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -160,5 +227,10 @@ final statisticsRepositoryProvider = Provider<StatisticsRepository>((ref) {
 
 final statisticsPeriodProvider = FutureProvider.autoDispose
     .family<StatisticsPeriodData, StatisticsPeriod>((ref, period) {
-  return ref.watch(statisticsRepositoryProvider).fetch(period);
+  return ref.watch(statisticsRepositoryProvider).fetchPlayers(period);
+});
+
+final teamStatisticsPeriodProvider = FutureProvider.autoDispose
+    .family<TeamStatistics, StatisticsPeriod>((ref, period) {
+  return ref.watch(statisticsRepositoryProvider).fetchTeam(period);
 });
