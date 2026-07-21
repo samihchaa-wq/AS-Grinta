@@ -1,5 +1,5 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
-// et réception des notifications push Web Push. Cache fonctionnel v60 — accueil sportif simplifié.
+// et réception des notifications push Web Push. Cache fonctionnel v60 — parcours sportif simplifié.
 const CACHE_NAME = 'as-grinta-v60';
 
 self.addEventListener('install', () => {
