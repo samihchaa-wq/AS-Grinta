@@ -75,6 +75,25 @@ class StatisticsPeriodData {
   final List<PlayerStatistics> players;
 }
 
+class TeamStreak {
+  const TeamStreak({
+    required this.length,
+    required this.startDate,
+    required this.endDate,
+  });
+
+  final int length;
+  final String? startDate;
+  final String? endDate;
+
+  bool get hasDates =>
+      length > 0 &&
+      startDate != null &&
+      startDate!.isNotEmpty &&
+      endDate != null &&
+      endDate!.isNotEmpty;
+}
+
 class TeamStatistics {
   const TeamStatistics({
     required this.period,
@@ -86,7 +105,12 @@ class TeamStatistics {
     required this.goalsFor,
     required this.goalsAgainst,
     required this.goalDifference,
-    required this.cleanSheets,
+    required this.recentResults,
+    required this.scoreMarginDistribution,
+    required this.bestWinStreak,
+    required this.bestUnbeatenStreak,
+    required this.worstLossStreak,
+    required this.worstWinlessStreak,
   });
 
   final StatisticsPeriod period;
@@ -98,7 +122,12 @@ class TeamStatistics {
   final int goalsFor;
   final int goalsAgainst;
   final int goalDifference;
-  final int cleanSheets;
+  final List<String> recentResults;
+  final Map<int, int> scoreMarginDistribution;
+  final TeamStreak bestWinStreak;
+  final TeamStreak bestUnbeatenStreak;
+  final TeamStreak worstLossStreak;
+  final TeamStreak worstWinlessStreak;
 
   double get winRate => matchesPlayed == 0 ? 0 : wins * 100 / matchesPlayed;
   double get goalsForPerMatch =>
@@ -199,7 +228,20 @@ class StatisticsRepository {
           goals_for,
           goals_against,
           goal_difference,
-          clean_sheets
+          recent_results,
+          score_margin_distribution,
+          best_win_streak,
+          best_win_start,
+          best_win_end,
+          best_unbeaten_streak,
+          best_unbeaten_start,
+          best_unbeaten_end,
+          worst_loss_streak,
+          worst_loss_start,
+          worst_loss_end,
+          worst_winless_streak,
+          worst_winless_start,
+          worst_winless_end
         ''').eq('period_key', period.databaseKey).maybeSingle();
 
     final map = response == null
@@ -216,7 +258,67 @@ class StatisticsRepository {
       goalsFor: (map['goals_for'] as num?)?.toInt() ?? 0,
       goalsAgainst: (map['goals_against'] as num?)?.toInt() ?? 0,
       goalDifference: (map['goal_difference'] as num?)?.toInt() ?? 0,
-      cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
+      recentResults: _parseRecentResults(map['recent_results']),
+      scoreMarginDistribution:
+          _parseScoreMarginDistribution(map['score_margin_distribution']),
+      bestWinStreak: _parseStreak(
+        map,
+        lengthKey: 'best_win_streak',
+        startKey: 'best_win_start',
+        endKey: 'best_win_end',
+      ),
+      bestUnbeatenStreak: _parseStreak(
+        map,
+        lengthKey: 'best_unbeaten_streak',
+        startKey: 'best_unbeaten_start',
+        endKey: 'best_unbeaten_end',
+      ),
+      worstLossStreak: _parseStreak(
+        map,
+        lengthKey: 'worst_loss_streak',
+        startKey: 'worst_loss_start',
+        endKey: 'worst_loss_end',
+      ),
+      worstWinlessStreak: _parseStreak(
+        map,
+        lengthKey: 'worst_winless_streak',
+        startKey: 'worst_winless_start',
+        endKey: 'worst_winless_end',
+      ),
+    );
+  }
+
+  List<String> _parseRecentResults(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .map((item) => item.toString().toUpperCase())
+        .where((item) => item == 'V' || item == 'N' || item == 'D')
+        .toList(growable: false);
+  }
+
+  Map<int, int> _parseScoreMarginDistribution(dynamic value) {
+    if (value is! Map) return const {};
+    final distribution = <int, int>{};
+    for (final entry in value.entries) {
+      final margin = int.tryParse(entry.key.toString());
+      final count = (entry.value as num?)?.toInt();
+      if (margin != null && count != null) {
+        distribution[margin] = count;
+      }
+    }
+    return distribution;
+  }
+
+  TeamStreak _parseStreak(
+    Map<String, dynamic> map, {
+    required String lengthKey,
+    required String startKey,
+    required String endKey,
+  }) {
+    return TeamStreak(
+      length: (map[lengthKey] as num?)?.toInt() ?? 0,
+      startDate: map[startKey]?.toString(),
+      endDate: map[endKey]?.toString(),
     );
   }
 }
