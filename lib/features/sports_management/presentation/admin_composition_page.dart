@@ -10,7 +10,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AdminCompositionPage extends ConsumerStatefulWidget {
-  const AdminCompositionPage({super.key});
+  const AdminCompositionPage({super.key, this.initialMatchId});
+
+  /// Quand fourni (ouverture depuis un match), la page se cale d'emblée sur ce
+  /// match au lieu du premier match à venir.
+  final String? initialMatchId;
 
   @override
   ConsumerState<AdminCompositionPage> createState() =>
@@ -30,6 +34,7 @@ class _AdminCompositionPageState extends ConsumerState<AdminCompositionPage> {
   @override
   void initState() {
     super.initState();
+    _selectedMatchId = widget.initialMatchId;
     Future.microtask(_loadMatches);
   }
 

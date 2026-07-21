@@ -9,7 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AdminGuestsPage extends ConsumerStatefulWidget {
-  const AdminGuestsPage({super.key});
+  const AdminGuestsPage({super.key, this.initialMatchId});
+
+  /// Quand fourni (ouverture depuis un match), la page se cale d'emblée sur ce
+  /// match au lieu du premier match à venir.
+  final String? initialMatchId;
 
   @override
   ConsumerState<AdminGuestsPage> createState() => _AdminGuestsPageState();
@@ -28,6 +32,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
   @override
   void initState() {
     super.initState();
+    _selectedMatchId = widget.initialMatchId;
     Future.microtask(_loadMatches);
   }
 

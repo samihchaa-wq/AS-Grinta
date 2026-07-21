@@ -9,7 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AdminMotmDashboardPage extends ConsumerStatefulWidget {
-  const AdminMotmDashboardPage({super.key});
+  const AdminMotmDashboardPage({super.key, this.initialMatchId});
+
+  /// Quand fourni (ouverture depuis un match), le tableau se cale sur ce match
+  /// s'il possède déjà un scrutin HDM.
+  final String? initialMatchId;
 
   @override
   ConsumerState<AdminMotmDashboardPage> createState() =>
@@ -143,7 +147,10 @@ class _AdminMotmDashboardPageState
                 ],
               );
             }
-            _selectedMatchId ??= items.first.matchId;
+            _selectedMatchId ??= (widget.initialMatchId != null &&
+                    items.any((i) => i.matchId == widget.initialMatchId))
+                ? widget.initialMatchId
+                : items.first.matchId;
             final selectedId = _selectedMatchId!;
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
