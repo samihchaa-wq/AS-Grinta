@@ -6,6 +6,8 @@ import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+enum _StatisticsSection { players, team }
+
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
 
@@ -14,19 +16,46 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
+  _StatisticsSection _section = _StatisticsSection.players;
   StatisticsPeriod _period = StatisticsPeriod.current;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: GrintaAppBar(
-        title: const Text('Stats saisons'),
+        title: const Text('Statistiques'),
         actions: grintaHomeActions(context),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<_StatisticsSection>(
+                expandedInsets: EdgeInsets.zero,
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: _StatisticsSection.players,
+                    icon: Icon(Icons.groups_2_outlined),
+                    label: Text('Joueurs'),
+                  ),
+                  ButtonSegment(
+                    value: _StatisticsSection.team,
+                    icon: Icon(Icons.shield_outlined),
+                    label: Text('Équipe'),
+                  ),
+                ],
+                selected: {_section},
+                onSelectionChanged: (selection) {
+                  setState(() => _section = selection.first);
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: SizedBox(
               width: double.infinity,
               child: SegmentedButton<StatisticsPeriod>(
@@ -53,24 +82,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
               ),
             ),
           ),
-          Expanded(child: _StatisticsPeriodView(period: _period)),
+          Expanded(
+            child: switch (_section) {
+              _StatisticsSection.players =>
+                _PlayerStatisticsPeriodView(period: _period),
+              _StatisticsSection.team =>
+                _TeamStatisticsPeriodView(period: _period),
+            },
+          ),
         ],
       ),
     );
   }
 }
 
-class _StatisticsPeriodView extends ConsumerStatefulWidget {
-  const _StatisticsPeriodView({required this.period});
+class _PlayerStatisticsPeriodView extends ConsumerStatefulWidget {
+  const _PlayerStatisticsPeriodView({required this.period});
 
   final StatisticsPeriod period;
 
   @override
-  ConsumerState<_StatisticsPeriodView> createState() =>
-      _StatisticsPeriodViewState();
+  ConsumerState<_PlayerStatisticsPeriodView> createState() =>
+      _PlayerStatisticsPeriodViewState();
 }
 
-class _StatisticsPeriodViewState extends ConsumerState<_StatisticsPeriodView> {
+class _PlayerStatisticsPeriodViewState
+    extends ConsumerState<_PlayerStatisticsPeriodView> {
   // Colonne de tri active (null = ordre du classement fourni par le serveur).
   _StatCol? _sort;
   bool _desc = true;
@@ -110,7 +147,7 @@ class _StatisticsPeriodViewState extends ConsumerState<_StatisticsPeriodView> {
       data: (data) {
         if (data.players.isEmpty) {
           return _ScrollableMessage(
-            message: 'Aucune statistique disponible.',
+            message: 'Aucune statistique joueur disponible.',
             onRefresh: _refresh,
           );
         }
@@ -148,6 +185,327 @@ class _StatisticsPeriodViewState extends ConsumerState<_StatisticsPeriodView> {
   Future<void> _refresh() async {
     ref.invalidate(statisticsPeriodProvider(widget.period));
     await ref.read(statisticsPeriodProvider(widget.period).future);
+  }
+}
+
+class _TeamStatisticsPeriodView extends ConsumerWidget {
+  const _TeamStatisticsPeriodView({required this.period});
+
+  final StatisticsPeriod period;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dataAsync = ref.watch(teamStatisticsPeriodProvider(period));
+
+    Future<void> refresh() async {
+      ref.invalidate(teamStatisticsPeriodProvider(period));
+      await ref.read(teamStatisticsPeriodProvider(period).future);
+    }
+
+    return dataAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _ScrollableMessage(
+        message: humanizeError(error),
+        onRefresh: refresh,
+      ),
+      data: (statistics) => RefreshIndicator(
+        onRefresh: refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          children: [
+            _TeamSummaryCard(statistics: statistics),
+            const SizedBox(height: 16),
+            _TeamMetricGrid(statistics: statistics),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamSummaryCard extends StatelessWidget {
+  const _TeamSummaryCard({required this.statistics});
+
+  final TeamStatistics statistics;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: colors.primary.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.shield_rounded,
+                    color: colors.primary,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AS Grinta',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        statistics.periodLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${statistics.matchesPlayed}',
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'match${statistics.matchesPlayed > 1 ? 's' : ''}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                _RecordPill(
+                  label: 'V',
+                  value: statistics.wins,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: 8),
+                _RecordPill(
+                  label: 'N',
+                  value: statistics.draws,
+                  color: colors.tertiary,
+                ),
+                const SizedBox(width: 8),
+                _RecordPill(
+                  label: 'D',
+                  value: statistics.losses,
+                  color: colors.error,
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Text(
+                  'Taux de victoire',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${statistics.winRate.toStringAsFixed(1).replaceAll('.', ',')} %',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(99),
+              value: statistics.winRate / 100,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecordPill extends StatelessWidget {
+  const _RecordPill({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: .3)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              '$value',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamMetricGrid extends StatelessWidget {
+  const _TeamMetricGrid({required this.statistics});
+
+  final TeamStatistics statistics;
+
+  String _average(double value) {
+    return value.toStringAsFixed(2).replaceAll('.', ',');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final difference = statistics.goalDifference;
+    final differenceLabel = difference > 0 ? '+$difference' : '$difference';
+    final metrics = [
+      _TeamMetric(
+        label: 'Buts marqués',
+        value: '${statistics.goalsFor}',
+        icon: Icons.sports_soccer_rounded,
+      ),
+      _TeamMetric(
+        label: 'Buts encaissés',
+        value: '${statistics.goalsAgainst}',
+        icon: Icons.gpp_bad_outlined,
+      ),
+      _TeamMetric(
+        label: 'Différence',
+        value: differenceLabel,
+        icon: Icons.swap_vert_rounded,
+      ),
+      _TeamMetric(
+        label: 'Clean sheets',
+        value: '${statistics.cleanSheets}',
+        icon: Icons.lock_outline_rounded,
+      ),
+      _TeamMetric(
+        label: 'Marqués / match',
+        value: _average(statistics.goalsForPerMatch),
+        icon: Icons.trending_up_rounded,
+      ),
+      _TeamMetric(
+        label: 'Encaissés / match',
+        value: _average(statistics.goalsAgainstPerMatch),
+        icon: Icons.trending_down_rounded,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 760 ? 3 : 2;
+        const spacing = 12.0;
+        final width =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final metric in metrics)
+              SizedBox(
+                width: width,
+                child: _TeamMetricCard(metric: metric),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _TeamMetric {
+  const _TeamMetric({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+}
+
+class _TeamMetricCard extends StatelessWidget {
+  const _TeamMetricCard({required this.metric});
+
+  final _TeamMetric metric;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(metric.icon, color: colors.primary),
+            const SizedBox(height: 16),
+            Text(
+              metric.value,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              metric.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
