@@ -18,7 +18,10 @@ void main() {
     });
 
     expect(
-      board.playersWith(MatchAvailabilityBoardStatus.present).single.displayName,
+      board
+          .playersWith(MatchAvailabilityBoardStatus.present)
+          .single
+          .displayName,
       'Samih Chaa',
     );
     expect(
@@ -26,7 +29,10 @@ void main() {
       'Luka',
     );
     expect(
-      board.playersWith(MatchAvailabilityBoardStatus.noResponse).single.displayName,
+      board
+          .playersWith(MatchAvailabilityBoardStatus.noResponse)
+          .single
+          .displayName,
       'Milan',
     );
     expect(board.players, hasLength(3));

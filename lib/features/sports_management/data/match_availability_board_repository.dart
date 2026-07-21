@@ -26,13 +26,15 @@ class SupabaseMatchAvailabilityBoardRepository
 
 final matchAvailabilityBoardRepositoryProvider =
     Provider<MatchAvailabilityBoardRepository>((ref) {
-  return SupabaseMatchAvailabilityBoardRepository(
-    ref.watch(supabaseClientProvider),
-  );
-});
+      return SupabaseMatchAvailabilityBoardRepository(
+        ref.watch(supabaseClientProvider),
+      );
+    });
 
 final matchAvailabilityBoardProvider = FutureProvider.autoDispose
     .family<MatchAvailabilityBoard?, String>((ref, matchId) async {
-  if (!ref.watch(sportsManagementEnabledProvider)) return null;
-  return ref.watch(matchAvailabilityBoardRepositoryProvider).fetchBoard(matchId);
-});
+      if (!ref.watch(sportsManagementEnabledProvider)) return null;
+      return ref
+          .watch(matchAvailabilityBoardRepositoryProvider)
+          .fetchBoard(matchId);
+    });

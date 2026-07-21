@@ -110,7 +110,9 @@ class _MatchAvailabilitySelectorState
     setState(() => _saving = true);
 
     try {
-      await ref.read(matchAvailabilityRepositoryProvider).setMyAvailability(
+      await ref
+          .read(matchAvailabilityRepositoryProvider)
+          .setMyAvailability(
             matchId: availability.matchId,
             status: status,
             privateComment: privateComment,
@@ -165,9 +167,12 @@ class _AvailabilityPanel extends StatelessWidget {
     final selectedAbsent =
         availability.status == MatchAvailabilityStatus.absent;
     final foreground = embeddedOnDark ? Colors.white : null;
-    final secondary =
-        embeddedOnDark ? const Color(0xFFD7C8FF) : AppTheme.textSecondary;
-    final statusLabel = selectedAvailable ? 'Présent' : availability.status.label;
+    final secondary = embeddedOnDark
+        ? const Color(0xFFD7C8FF)
+        : AppTheme.textSecondary;
+    final statusLabel = selectedAvailable
+        ? 'Présent'
+        : availability.status.label;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -204,8 +209,8 @@ class _AvailabilityPanel extends StatelessWidget {
                   color: selectedAvailable
                       ? const Color(0xFF52D08A)
                       : selectedAbsent
-                          ? const Color(0xFFFF8A80)
-                          : secondary,
+                      ? const Color(0xFFFF8A80)
+                      : secondary,
                   fontWeight: FontWeight.w900,
                 ),
               ),

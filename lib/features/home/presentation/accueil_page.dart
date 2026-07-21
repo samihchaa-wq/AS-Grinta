@@ -101,17 +101,17 @@ class _MiniLoader extends StatelessWidget {
   const _MiniLoader();
   @override
   Widget build(BuildContext context) => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
-            ),
-          ),
+    child: Padding(
+      padding: EdgeInsets.all(24),
+      child: Center(
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2.4),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _EmptyCard extends StatelessWidget {
@@ -119,16 +119,16 @@ class _EmptyCard extends StatelessWidget {
   final String message;
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Text(
-            message,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Text(
+        message,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+      ),
+    ),
+  );
 }
 
 // ───────────────────── 1) Parier sur le prochain match ─────────────────────
@@ -183,7 +183,8 @@ class _NextMatchCard extends StatelessWidget {
     final awayName = match.isHome ? match.opponent : 'AS Grinta';
     // Les pronos ferment 5 minutes avant le coup d'envoi (ou manuellement).
     final closeAt = match.kickoffAt?.subtract(const Duration(minutes: 5));
-    final open = !match.predictionsClosed &&
+    final open =
+        !match.predictionsClosed &&
         closeAt != null &&
         DateTime.now().isBefore(closeAt);
 
@@ -209,8 +210,8 @@ class _NextMatchCard extends StatelessWidget {
                     child: Text(
                       '$homeName  vs  $awayName',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   Container(
@@ -238,8 +239,8 @@ class _NextMatchCard extends StatelessWidget {
                 Text(
                   AppFormats.dateTime(match.kickoffAt!),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFD7C8FF),
-                      ),
+                    color: const Color(0xFFD7C8FF),
+                  ),
                 ),
               ],
               if (closeAt != null && !match.predictionsClosed) ...[
@@ -268,9 +269,9 @@ class _NextMatchCard extends StatelessWidget {
                 Text(
                   '5 dernières confrontations',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFFCAB5FF),
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: const Color(0xFFCAB5FF),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
@@ -296,12 +297,13 @@ class _NextMatchCard extends StatelessWidget {
                       predicted
                           ? 'Pari enregistré'
                           : open
-                              ? 'Tu n\'as pas encore parié'
-                              : 'Pronostics fermés',
+                          ? 'Tu n\'as pas encore parié'
+                          : 'Pronostics fermés',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        color:
-                            predicted ? const Color(0xFF52D08A) : Colors.white,
+                        color: predicted
+                            ? const Color(0xFF52D08A)
+                            : Colors.white,
                       ),
                     ),
                   ),
@@ -319,8 +321,8 @@ class _NextMatchCard extends StatelessWidget {
                   AppFormats.counted(participants, 'pronostiqueur') +
                       (participants > 1 ? ' ont parié' : ' a parié'),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFFB6A9E0),
-                      ),
+                    color: const Color(0xFFB6A9E0),
+                  ),
                 ),
               ],
             ],
@@ -577,11 +579,11 @@ class _LastPronoCard extends StatelessWidget {
                   Text(
                     AppFormats.counted((prono.points * 100).round(), 'point'),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: accent == const Color(0xFF8A6D2F)
-                              ? Colors.white
-                              : accent,
-                        ),
+                      fontWeight: FontWeight.w900,
+                      color: accent == const Color(0xFF8A6D2F)
+                          ? Colors.white
+                          : accent,
+                    ),
                   ),
                 ],
               ),
@@ -724,16 +726,16 @@ class _RankRow extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
-                  ),
+                fontWeight: highlight ? FontWeight.w900 : FontWeight.w700,
+              ),
             ),
             const Spacer(),
             Text(
               '$rank',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: highlight ? AppTheme.accent : AppTheme.primaryBright,
-                  ),
+                fontWeight: FontWeight.w900,
+                color: highlight ? AppTheme.accent : AppTheme.primaryBright,
+              ),
             ),
             Text(
               ' / $total',

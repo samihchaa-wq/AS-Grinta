@@ -51,13 +51,18 @@ class MatchAvailabilityBoard {
 
   factory MatchAvailabilityBoard.fromRpc(Object? raw) {
     if (raw is! Map) {
-      throw const FormatException('Availability board RPC must return an object');
+      throw const FormatException(
+        'Availability board RPC must return an object',
+      );
     }
     final json = Map<String, dynamic>.from(raw);
     final kickoffAt = DateTime.tryParse('${json['kickoff_at'] ?? ''}');
     final opensAt = DateTime.tryParse('${json['availability_opens_at'] ?? ''}');
     final matchId = json['match_id']?.toString();
-    if (matchId == null || matchId.isEmpty || kickoffAt == null || opensAt == null) {
+    if (matchId == null ||
+        matchId.isEmpty ||
+        kickoffAt == null ||
+        opensAt == null) {
       throw const FormatException('Invalid availability board payload');
     }
 
@@ -92,5 +97,7 @@ class MatchAvailabilityBoard {
 
   List<MatchAvailabilityBoardPlayer> playersWith(
     MatchAvailabilityBoardStatus status,
-  ) => players.where((player) => player.status == status).toList(growable: false);
+  ) => players
+      .where((player) => player.status == status)
+      .toList(growable: false);
 }

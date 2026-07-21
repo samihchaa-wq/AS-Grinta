@@ -26,8 +26,9 @@ class HomeSportsFlowBlocks extends ConsumerWidget {
         if (nextMatch != null &&
             nextMatch.kickoffAt != null &&
             now.isBefore(nextMatch.kickoffAt!)) {
-          final lineupAsync =
-              ref.watch(publishedMatchCompositionProvider(nextMatch.id));
+          final lineupAsync = ref.watch(
+            publishedMatchCompositionProvider(nextMatch.id),
+          );
           final composition = lineupAsync.maybeWhen(
             data: (value) => value,
             orElse: () => null,
@@ -54,12 +55,11 @@ class HomeSportsFlowBlocks extends ConsumerWidget {
           );
           if (vote != null && vote.isOpen && vote.isEligibleVoter) {
             children
-              ..add(const _HomeSportHeader('🗳️', 'Voter pour l’homme du match'))
               ..add(
-                MatchMotmVoteCard(
-                  matchId: lastMatch.id,
-                  bottomSpacing: 18,
-                ),
+                const _HomeSportHeader('🗳️', 'Voter pour l’homme du match'),
+              )
+              ..add(
+                MatchMotmVoteCard(matchId: lastMatch.id, bottomSpacing: 18),
               );
           }
         }
@@ -93,9 +93,9 @@ class _HomeSportHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
         ],

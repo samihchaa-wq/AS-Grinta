@@ -31,8 +31,9 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
 
         final present = board.playersWith(MatchAvailabilityBoardStatus.present);
         final absent = board.playersWith(MatchAvailabilityBoardStatus.absent);
-        final noResponse =
-            board.playersWith(MatchAvailabilityBoardStatus.noResponse);
+        final noResponse = board.playersWith(
+          MatchAvailabilityBoardStatus.noResponse,
+        );
 
         return Padding(
           padding: EdgeInsets.only(bottom: bottomSpacing),
@@ -49,9 +50,8 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           'Réponses des joueurs',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w900),
                         ),
                       ),
                     ],
@@ -117,18 +117,15 @@ class _AvailabilityGroup extends StatelessWidget {
             Text(
               '$title (${players.length})',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                  ),
+                color: color,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
         if (players.isEmpty)
-          Text(
-            'Aucun joueur.',
-            style: Theme.of(context).textTheme.bodySmall,
-          )
+          Text('Aucun joueur.', style: Theme.of(context).textTheme.bodySmall)
         else
           Wrap(
             spacing: 7,

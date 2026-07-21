@@ -92,7 +92,8 @@ class PublishedLineupCard extends ConsumerWidget {
 
     final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
     final matchStarted = boardAsync.maybeWhen(
-      data: (board) => board != null && !DateTime.now().isBefore(board.kickoffAt),
+      data: (board) =>
+          board != null && !DateTime.now().isBefore(board.kickoffAt),
       orElse: () => false,
     );
     if (matchStarted) return const SizedBox.shrink();
