@@ -1,0 +1,416 @@
+from pathlib import Path
+import re
+from textwrap import dedent
+
+
+def read(path: str) -> str:
+    return Path(path).read_text()
+
+
+def write(path: str, text: str) -> None:
+    Path(path).write_text(text)
+
+
+def replace(path: str, old: str, new: str, label: str) -> None:
+    text = read(path)
+    if old not in text:
+        raise SystemExit(f"Block not found: {label} in {path}")
+    write(path, text.replace(old, new, 1))
+    print(f"patched: {label}")
+
+
+def sub(path: str, pattern: str, replacement: str, label: str) -> None:
+    text = read(path)
+    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+    if count != 1:
+        raise SystemExit(f"Regex block not found: {label} in {path}")
+    write(path, updated)
+    print(f"patched: {label}")
+
+
+repo = "lib/features/home/data/home_repository.dart"
+replace(
+    repo,
+    "/// Un match mis en avant sur l'accueil (prochain ou dernier joué).",
+    dedent(
+        """\
+        class HomePrediction {
+          const HomePrediction({
+            required this.grintaScore,
+            required this.opponentScore,
+            required this.useX2,
+          });
+
+          final int grintaScore;
+          final int opponentScore;
+          final bool useX2;
+        }
+
+        /// Un match mis en avant sur l'accueil (prochain ou dernier joué)."""
+    ),
+    "home prediction model",
+)
+replace(
+    repo,
+    "    required this.nextMatchPredicted,\n  });",
+    "    required this.nextMatchPredicted,\n    required this.nextMatchPrediction,\n  });",
+    "home dashboard constructor",
+)
+replace(
+    repo,
+    "  final bool nextMatchPredicted;\n}",
+    "  final bool nextMatchPredicted;\n\n  /// Score pronostiqué sur le prochain match, lorsqu'il est rempli.\n  final HomePrediction? nextMatchPrediction;\n}",
+    "home dashboard field",
+)
+replace(
+    repo,
+    ".select('match_id, is_filled')",
+    ".select(\n          'match_id, is_filled, predicted_score_as_grinta, '\n          'predicted_score_adverse, use_x2',\n        )",
+    "home predictions select",
+)
+sub(
+    repo,
+    r"    final filledByMatch = <String, bool>\{\};\n    for \(final row in predictions as List\) \{.*?\n    \}\n\n    final matches",
+    dedent(
+        """\
+            final filledByMatch = <String, bool>{};
+            final predictionByMatch = <String, HomePrediction>{};
+            for (final row in predictions as List) {
+              final map = Map<String, dynamic>.from(row);
+              final matchId = map['match_id'].toString();
+              final filled = map['is_filled'] == true;
+              filledByMatch[matchId] = filled;
+              if (filled) {
+                predictionByMatch[matchId] = HomePrediction(
+                  grintaScore:
+                      (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
+                  opponentScore:
+                      (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
+                  useX2: map['use_x2'] == true,
+                );
+              }
+            }
+
+            final matches"""
+    ),
+    "home prediction mapping",
+)
+replace(
+    repo,
+    "      nextMatchPredicted:\n          nextMatch != null && filledByMatch[nextMatch.id] == true,\n    );",
+    "      nextMatchPredicted:\n          nextMatch != null && filledByMatch[nextMatch.id] == true,\n      nextMatchPrediction:\n          nextMatch == null ? null : predictionByMatch[nextMatch.id],\n    );",
+    "home dashboard return",
+)
+
+home = "lib/features/home/presentation/accueil_page.dart"
+replace(home, "import 'dart:async';\n\n", "", "remove timer import")
+replace(
+    home,
+    "          children: const [\n            _NextMatchBlock(),",
+    "          children: const [\n            HomeLastMatchVoteBlock(),\n            _NextMatchBlock(),",
+    "home vote first",
+)
+replace(
+    home,
+    "            HomeSportsFlowBlocks(),\n            _MyRankingsBlock(),\n            SizedBox(height: 18),\n            _RecentBadgesBlock(),",
+    "            HomeSportsFlowBlocks(),\n            _RecentBadgesBlock(),",
+    "remove home rankings",
+)
+replace(
+    home,
+    "              predicted: data.nextMatchPredicted,\n              participants: data.predictionParticipantCount,",
+    "              predicted: data.nextMatchPredicted,\n              prediction: data.nextMatchPrediction,\n              participants: data.predictionParticipantCount,",
+    "pass home prediction",
+)
+replace(
+    home,
+    "    required this.predicted,\n    required this.participants,",
+    "    required this.predicted,\n    required this.prediction,\n    required this.participants,",
+    "next card constructor",
+)
+replace(
+    home,
+    "  final bool predicted;\n  final int participants;",
+    "  final bool predicted;\n  final HomePrediction? prediction;\n  final int participants;",
+    "next card prediction field",
+)
+replace(
+    home,
+    "    final open = !match.predictionsClosed &&\n        closeAt != null &&\n        DateTime.now().isBefore(closeAt);",
+    dedent(
+        """\
+            final open = !match.predictionsClosed &&
+                closeAt != null &&
+                DateTime.now().isBefore(closeAt);
+            final predictionScore = prediction == null
+                ? null
+                : match.isHome
+                    ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
+                    : '${prediction!.opponentScore} – ${prediction!.grintaScore}';"""
+    ),
+    "prediction score label",
+)
+sub(
+    home,
+    r"\n              if \(closeAt != null && !match\.predictionsClosed\) \.\.\.\[.*?\n              \],",
+    "",
+    "remove countdown usage",
+)
+sub(
+    home,
+    r"\n              if \(match\.hasOdds\) \.\.\.\[.*?\n              \],",
+    "",
+    "remove home odds",
+)
+sub(
+    home,
+    r"              const SizedBox\(height: 16\),\n              Row\(\n                children: \[\n                  Icon\(\n                    predicted \? Icons\.check_circle : Icons\.sports_soccer,.*?\n              \),\n              if \(participants > 0\)",
+    dedent(
+        """\
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF160B36),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF3F2A73)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            predicted ? Icons.check_circle : Icons.sports_soccer,
+                            size: 18,
+                            color: predicted
+                                ? const Color(0xFF52D08A)
+                                : Colors.white,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              predicted && predictionScore != null
+                                  ? 'Ton prono : $predictionScore'
+                                      '${prediction!.useX2 ? ' · ×2' : ''}'
+                                  : open
+                                      ? 'Tu n\\'as pas encore parié'
+                                      : 'Pronostics fermés',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: predicted
+                                    ? const Color(0xFF52D08A)
+                                    : Colors.white,
+                              ),
+                            ),
+                          ),
+                          if (open)
+                            FilledButton(
+                              onPressed: () => context.push(
+                                '/matches/${match.id}/prediction',
+                              ),
+                              child: Text(predicted ? 'Modifier' : 'Parier'),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (participants > 0)"""
+    ),
+    "compact prediction panel",
+)
+sub(
+    home,
+    r"/// Compte à rebours jusqu'à la clôture des pronos.*?class _MeetingDot",
+    "class _MeetingDot",
+    "remove countdown and odds classes",
+)
+
+write(
+    "lib/features/home/presentation/home_sports_flow_blocks.dart",
+    dedent(
+        """\
+        import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+        import 'package:as_grinta/features/home/data/home_repository.dart';
+        import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+        import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+        import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
+        import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
+        import 'package:flutter/material.dart';
+        import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+        class HomeLastMatchVoteBlock extends ConsumerWidget {
+          const HomeLastMatchVoteBlock({super.key});
+
+          @override
+          Widget build(BuildContext context, WidgetRef ref) {
+            if (!ref.watch(sportsManagementEnabledProvider)) {
+              return const SizedBox.shrink();
+            }
+            final dashboardAsync = ref.watch(homeDashboardProvider);
+            return dashboardAsync.maybeWhen(
+              data: (dashboard) {
+                final lastMatch = dashboard.lastMatch;
+                if (lastMatch == null) return const SizedBox.shrink();
+                final vote = ref.watch(sportMotmVoteProvider(lastMatch.id)).valueOrNull;
+                if (vote == null || !vote.isOpen || !vote.isEligibleVoter) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _HomeSportHeader('🗳️', 'Dernier match'),
+                    MatchMotmVoteCard(matchId: lastMatch.id),
+                    const SizedBox(height: 18),
+                  ],
+                );
+              },
+              orElse: () => const SizedBox.shrink(),
+            );
+          }
+        }
+
+        class HomeSportsFlowBlocks extends ConsumerWidget {
+          const HomeSportsFlowBlocks({super.key});
+
+          @override
+          Widget build(BuildContext context, WidgetRef ref) {
+            if (!ref.watch(sportsManagementEnabledProvider)) {
+              return const SizedBox.shrink();
+            }
+            final dashboardAsync = ref.watch(homeDashboardProvider);
+            return dashboardAsync.maybeWhen(
+              data: (dashboard) {
+                final nextMatch = dashboard.nextMatch;
+                if (nextMatch == null ||
+                    nextMatch.kickoffAt == null ||
+                    !DateTime.now().isBefore(nextMatch.kickoffAt!)) {
+                  return const SizedBox.shrink();
+                }
+                final composition = ref
+                    .watch(publishedMatchCompositionProvider(nextMatch.id))
+                    .valueOrNull;
+                if (composition == null) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _HomeSportHeader('📋', 'Composition d’équipe'),
+                    PublishedLineupCard(
+                      matchId: nextMatch.id,
+                      showAvailabilityFlow: false,
+                      bottomSpacing: 18,
+                    ),
+                  ],
+                );
+              },
+              orElse: () => const SizedBox.shrink(),
+            );
+          }
+        }
+
+        class _HomeSportHeader extends StatelessWidget {
+          const _HomeSportHeader(this.emoji, this.title);
+
+          final String emoji;
+          final String title;
+
+          @override
+          Widget build(BuildContext context) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+        }
+        """
+    ),
+)
+
+availability = "lib/features/sports_management/presentation/widgets/match_availability_selector.dart"
+replace(
+    availability,
+    "onAbsent: () => _chooseAbsent(value),",
+    "onAbsent: () => _save(value, MatchAvailabilityStatus.absent),",
+    "direct absent action",
+)
+sub(
+    availability,
+    r"  Future<void> _chooseAbsent\(MatchAvailability availability\) async \{.*?\n  \}\n\n  Future<void> _save",
+    "  Future<void> _save",
+    "remove absent dialog",
+)
+
+details = "lib/features/matches/presentation/match_details_page.dart"
+sub(
+    details,
+    r"                if \(isAdmin && sportsEnabled\) \.\.\.\[\n                  const SizedBox\(height: 16\),\n                  _SportsManagementSection\(\n                    matchId: matchId,\n                    actions: const \[\n                      _SportAction\(\n                        'Suivi des votes HDM'.*?\n                \],\n",
+    "",
+    "remove admin hdm tracking",
+)
+
+vote_page = "lib/features/sports_management/presentation/sport_motm_vote_page.dart"
+replace(
+    vote_page,
+    "import 'package:as_grinta/features/auth/domain/auth_profile.dart';\n",
+    "",
+    "remove auth profile import",
+)
+replace(
+    vote_page,
+    "import 'package:as_grinta/features/auth/presentation/auth_state.dart';\n",
+    "",
+    "remove auth state import",
+)
+sub(
+    vote_page,
+    r"  Future<String\?> _askReason\(String title\) async \{.*?\n  \}\n\n  @override",
+    "  @override",
+    "remove admin hdm actions",
+)
+sub(
+    vote_page,
+    r"    final voteAsync = ref\.watch\(sportMotmVoteProvider\(widget\.matchId\)\);\n    final isAdmin =.*?\n\n    return Scaffold\(\n      appBar: GrintaAppBar\(.*?\n      \),\n      body:",
+    "    final voteAsync = ref.watch(sportMotmVoteProvider(widget.matchId));\n\n    return Scaffold(\n      appBar: GrintaAppBar(title: const Text('Homme du match')),\n      body:",
+    "remove hdm admin menu",
+)
+
+composition = "lib/features/sports_management/domain/match_composition.dart"
+replace(
+    composition,
+    "import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';\n\n",
+    dedent(
+        """\
+        import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
+
+        String _firstName(String value) {
+          final trimmed = value.trim();
+          if (trimmed.isEmpty) return value;
+          return trimmed.split(RegExp(r'\\s+')).first;
+        }
+
+        """
+    ),
+    "composition first name helper",
+)
+replace(
+    composition,
+    "displayName: (json['display_name'] ?? 'Joueur').toString(),",
+    "displayName: _firstName((json['display_name'] ?? 'Joueur').toString()),",
+    "composition rpc first name",
+)
+replace(
+    composition,
+    "displayName: player.displayName,",
+    "displayName: _firstName(player.displayName),",
+    "composition initial first name",
+)
