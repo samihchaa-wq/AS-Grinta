@@ -1,8 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:flutter/material.dart';
@@ -76,93 +74,12 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
     }
   }
 
-  Future<String?> _askReason(String title) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 500,
-          minLines: 2,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Motif obligatoire',
-            hintText: 'Explique la raison de cette action.',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) Navigator.pop(context, value);
-            },
-            child: const Text('Valider'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return result;
-  }
-
-  Future<void> _adminAction({required bool restart}) async {
-    final reason = await _askReason(
-      restart ? 'Relancer le scrutin' : 'Annuler le scrutin',
-    );
-    if (reason == null || !mounted) return;
-    setState(() {
-      _isSubmitting = true;
-      _error = null;
-    });
-    try {
-      final repository = ref.read(sportMotmVoteRepositoryProvider);
-      if (restart) {
-        await repository.restart(matchId: widget.matchId, reason: reason);
-      } else {
-        await repository.cancel(matchId: widget.matchId, reason: reason);
-      }
-      ref.invalidate(sportMotmVoteProvider(widget.matchId));
-    } catch (error) {
-      if (mounted) setState(() => _error = humanizeError(error));
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final voteAsync = ref.watch(sportMotmVoteProvider(widget.matchId));
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     return Scaffold(
-      appBar: GrintaAppBar(
-        title: const Text('Homme du match'),
-        actions: [
-          if (isAdmin)
-            PopupMenuButton<String>(
-              enabled: !_isSubmitting,
-              onSelected: (value) => _adminAction(restart: value == 'restart'),
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: 'restart',
-                  child: Text('Relancer pour 24 h'),
-                ),
-                PopupMenuItem(
-                  value: 'cancel',
-                  child: Text('Annuler le scrutin'),
-                ),
-              ],
-            ),
-        ],
-      ),
+      appBar: GrintaAppBar(title: const Text('Homme du match')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(sportMotmVoteProvider(widget.matchId));

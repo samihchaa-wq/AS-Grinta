@@ -1,5 +1,11 @@
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 
+String _firstName(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return value;
+  return trimmed.split(RegExp(r'\s+')).first;
+}
+
 enum MatchCompositionZone {
   available,
   field,
@@ -54,7 +60,7 @@ class MatchCompositionEntry {
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString() ?? '',
       guestPlayerId: guestPlayerId,
-      displayName: (json['display_name'] ?? 'Joueur').toString(),
+      displayName: _firstName((json['display_name'] ?? 'Joueur').toString()),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
       zone: MatchCompositionZone.fromWire(json['zone']),
@@ -262,7 +268,7 @@ MatchCompositionEntry _initialEntry(
     participantId: player.participantId,
     seasonPlayerId: player.seasonPlayerId,
     guestPlayerId: player.guestPlayerId,
-    displayName: player.displayName,
+    displayName: _firstName(player.displayName),
     isGuest: player.isGuest,
     isGoalkeeper: player.isGoalkeeper ||
         goalkeeperSeasonPlayerIds.contains(player.seasonPlayerId),

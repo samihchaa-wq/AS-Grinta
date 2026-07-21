@@ -56,48 +56,10 @@ class _MatchAvailabilitySelectorState
             saving: _saving,
             embeddedOnDark: widget.embeddedOnDark,
             onAvailable: () => _save(value, MatchAvailabilityStatus.available),
-            onAbsent: () => _chooseAbsent(value),
+            onAbsent: () => _save(value, MatchAvailabilityStatus.absent),
           ),
         );
       },
-    );
-  }
-
-  Future<void> _chooseAbsent(MatchAvailability availability) async {
-    var comment = availability.privateComment ?? '';
-    final result = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Signaler ton absence'),
-        content: TextFormField(
-          initialValue: comment,
-          maxLength: 500,
-          minLines: 2,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Motif facultatif',
-            hintText: 'Visible uniquement par le staff',
-          ),
-          onChanged: (value) => comment = value,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, comment),
-            child: const Text('Confirmer mon absence'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == null || !mounted) return;
-    await _save(
-      availability,
-      MatchAvailabilityStatus.absent,
-      privateComment: result,
     );
   }
 
