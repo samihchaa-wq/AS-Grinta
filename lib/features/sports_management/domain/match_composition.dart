@@ -53,6 +53,8 @@ class MatchCompositionEntry {
     this.y,
     this.slotLabel,
     this.photoUrl,
+    this.goals = 0,
+    this.isMotm = false,
   });
 
   factory MatchCompositionEntry.fromJson(Map<String, dynamic> json) {
@@ -69,6 +71,8 @@ class MatchCompositionEntry {
       y: (json['y'] as num?)?.toDouble(),
       slotLabel: _nullableText(json['slot_label']),
       photoUrl: _nullableText(json['photo_url']),
+      goals: (json['goals'] as num?)?.toInt() ?? 0,
+      isMotm: json['is_motm'] == true,
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
       availabilityStatus:
           (json['availability_status'] ?? 'no_response').toString(),
@@ -89,6 +93,8 @@ class MatchCompositionEntry {
   final double? y;
   final String? slotLabel;
   final String? photoUrl;
+  final int goals;
+  final bool isMotm;
   final int sortOrder;
   final String availabilityStatus;
   final String convocationStatus;
