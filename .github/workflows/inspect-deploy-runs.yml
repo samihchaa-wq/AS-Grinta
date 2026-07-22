@@ -1,0 +1,28 @@
+name: Inspect secure deployment runs
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-deploy-runs.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List pull_request_target runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs?event=pull_request_target&per_page=100" \
+            > target-runs.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: secure-deployment-runs
+          path: target-runs.json
