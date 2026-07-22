@@ -1,8 +1,11 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,7 +26,36 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
 
   Future<void> _cast(SportMotmVote vote) async {
     final candidateId = _selectedCandidateId;
-    if (candidateId == null || _isSubmitting) return;
+    if (candidateId == null) return;
+    await _castCandidateId(vote, candidateId);
+  }
+
+  /// Vote direct en touchant un joueur de la composition.
+  Future<void> _castFromPitch(
+    SportMotmVote vote,
+    MatchCompositionEntry entry,
+  ) async {
+    if (_isSubmitting) return;
+    final candidate = vote.candidates
+        .where((item) => item.participantId == entry.participantId)
+        .firstOrNull;
+    if (candidate == null || !candidate.canChoose) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            candidate?.isSelf == true
+                ? 'Tu ne peux pas voter pour toi-même.'
+                : 'Ce joueur ne peut pas être choisi.',
+          ),
+        ),
+      );
+      return;
+    }
+    await _castCandidateId(vote, candidate.participantId);
+  }
+
+  Future<void> _castCandidateId(SportMotmVote vote, String candidateId) async {
+    if (_isSubmitting) return;
     final candidate = vote.candidates
         .where((item) => item.participantId == candidateId)
         .firstOrNull;
@@ -77,6 +109,9 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
   @override
   Widget build(BuildContext context) {
     final voteAsync = ref.watch(sportMotmVoteProvider(widget.matchId));
+    final composition = ref
+        .watch(publishedMatchCompositionProvider(widget.matchId))
+        .valueOrNull;
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Homme du match')),
@@ -120,15 +155,30 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
                 ],
               );
             }
-            return _buildVote(context, vote);
+            return _buildVote(context, vote, composition);
           },
         ),
       ),
     );
   }
 
-  Widget _buildVote(BuildContext context, SportMotmVote vote) {
+  Widget _buildVote(
+    BuildContext context,
+    SportMotmVote vote,
+    MatchComposition? composition,
+  ) {
     final candidates = vote.candidates;
+    final field = composition == null
+        ? const <MatchCompositionEntry>[]
+        : composition.entriesFor(MatchCompositionZone.field);
+    final bench = composition == null
+        ? const <MatchCompositionEntry>[]
+        : composition.entriesFor(MatchCompositionZone.bench);
+    final choosableIds = {
+      for (final candidate in candidates.where((item) => item.canChoose))
+        candidate.participantId,
+    };
+    final hasPitch = field.isNotEmpty || bench.isNotEmpty;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
@@ -157,7 +207,55 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
               title: 'Aucun vote possible',
               message: 'Aucun autre participant éligible ne peut être choisi.',
             )
-          else ...[
+          else if (hasPitch) ...[
+            Text(
+              'Choisis l’Homme du match',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Touche un joueur de la composition pour voter. '
+              'Un seul choix, définitif et secret.',
+            ),
+            const SizedBox(height: 14),
+            if (field.isNotEmpty)
+              Center(
+                child: CompositionPitch(
+                  entries: field,
+                  onPlayerTap: (entry) => _castFromPitch(vote, entry),
+                ),
+              ),
+            if (bench.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Remplaçants',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final entry in bench)
+                    ActionChip(
+                      avatar: Icon(
+                        entry.isGoalkeeper
+                            ? Icons.sports_handball
+                            : Icons.person_outline,
+                        size: 18,
+                      ),
+                      label: Text(entry.displayName),
+                      onPressed: choosableIds.contains(entry.participantId) &&
+                              !_isSubmitting
+                          ? () => _castFromPitch(vote, entry)
+                          : null,
+                    ),
+                ],
+              ),
+            ],
+          ] else ...[
             Text(
               'Choisis l’Homme du match',
               style: Theme.of(context).textTheme.titleLarge,
