@@ -93,8 +93,9 @@ class RosterRepository {
     final players = (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       final profileRaw = map['profiles'];
-      final profile =
-          profileRaw is Map ? Map<String, dynamic>.from(profileRaw) : null;
+      final profile = profileRaw is Map
+          ? Map<String, dynamic>.from(profileRaw)
+          : null;
       return RosterPlayer(
         id: map['id'].toString(),
         firstName: (map['first_name'] ?? '').toString(),
