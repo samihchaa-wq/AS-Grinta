@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
@@ -207,6 +208,29 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         error: 'Le profil n’a pas pu être enregistré.',
+      );
+    }
+  }
+
+  Future<void> uploadPhoto({
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final profile = await _repository.uploadProfilePhoto(
+        bytes: bytes,
+        fileExt: fileExt,
+      );
+      state = state.copyWith(
+        isLoading: false,
+        profile: profile,
+        clearError: true,
+      );
+    } catch (_) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'La photo n’a pas pu être enregistrée.',
       );
     }
   }

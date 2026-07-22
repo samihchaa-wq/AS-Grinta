@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
@@ -118,6 +119,35 @@ class AuthRepository {
         },
       ),
     );
+
+    final profile = await fetchProfile();
+    if (profile == null) {
+      throw StateError('Le profil mis à jour est introuvable.');
+    }
+    return profile;
+  }
+
+  /// Téléverse la photo de profil de l'utilisateur courant et met à jour
+  /// `profiles.photo_url`. Renvoie le profil rafraîchi.
+  Future<AuthProfile> uploadProfilePhoto({
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
+
+    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
+    final path = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    await _client.storage.from('profile-photos').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+        );
+    final publicUrl = _client.storage.from('profile-photos').getPublicUrl(path);
+
+    await _client.from('profiles').update({
+      'photo_url': publicUrl,
+    }).eq('id', userId);
 
     final profile = await fetchProfile();
     if (profile == null) {
