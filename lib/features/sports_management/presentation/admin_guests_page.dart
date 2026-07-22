@@ -4,9 +4,11 @@ import 'package:as_grinta/features/sports_management/data/guest_players_reposito
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/guest_player_models.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AdminGuestsPage extends ConsumerStatefulWidget {
   const AdminGuestsPage({super.key, this.initialMatchId});
@@ -280,6 +282,36 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
     }
   }
 
+  Future<void> _pickGuestPhoto(GuestPlayer guest) async {
+    if (_busy) return;
+    final file = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+    setState(() => _busy = true);
+    try {
+      final repo = ref.read(guestPlayersRepositoryProvider);
+      await repo.uploadGuestPhoto(
+        guestPlayerId: guest.id,
+        bytes: bytes,
+        fileExt: ext,
+      );
+      final catalog = await repo.fetchCatalog(includeArchived: true);
+      if (!mounted) return;
+      setState(() => _catalog = catalog);
+      _showMessage('Photo de ${guest.displayName} mise à jour.');
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,
@@ -451,10 +483,11 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                     for (final guest in catalog)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: Icon(
-                          guest.isReusable
-                              ? Icons.person_outline
-                              : Icons.inventory_2_outlined,
+                        leading: PlayerAvatar(
+                          photoUrl: guest.photoUrl,
+                          name: guest.firstName,
+                          isGoalkeeper: guest.isGoalkeeper,
+                          size: 40,
                         ),
                         title: Text(guest.displayName),
                         subtitle: Text(
@@ -468,6 +501,15 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                             ? Wrap(
                                 spacing: 2,
                                 children: [
+                                  IconButton(
+                                    tooltip: 'Changer la photo',
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _pickGuestPhoto(guest),
+                                    icon: const Icon(
+                                      Icons.photo_camera_outlined,
+                                    ),
+                                  ),
                                   IconButton(
                                     tooltip: assignedIds.contains(guest.id)
                                         ? 'Déjà ajouté'
