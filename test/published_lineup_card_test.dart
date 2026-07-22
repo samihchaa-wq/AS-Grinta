@@ -25,7 +25,8 @@ void main() {
 
     expect(find.text('Composition publiée'), findsOneWidget);
     expect(find.textContaining('4-3-3'), findsOneWidget);
-    expect(find.textContaining('1 titulaires'), findsOneWidget);
+    expect(find.text('Alex'), findsOneWidget);
+    expect(find.text('Remplaçants (1)'), findsOneWidget);
     expect(repository.publishedFetchCount, 1);
   });
 }

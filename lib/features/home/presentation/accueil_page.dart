@@ -7,6 +7,7 @@ import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,7 +47,6 @@ class AccueilPage extends ConsumerWidget {
             SizedBox(height: 18),
             _LastPronoBlock(),
             SizedBox(height: 18),
-            HomeSportsFlowBlocks(),
             _RecentBadgesBlock(),
           ],
         ),
@@ -247,6 +247,11 @@ class _NextMatchCard extends StatelessWidget {
                 embeddedOnDark: true,
                 topSpacing: 14,
               ),
+              PublishedLineupPreview(
+                matchId: match.id,
+                embeddedOnDark: true,
+                topSpacing: 12,
+              ),
               if (meetings.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -303,7 +308,11 @@ class _NextMatchCard extends StatelessWidget {
                         onPressed: () => context.push(
                           '/matches/${match.id}/prediction',
                         ),
-                        child: Text(predicted ? 'Modifier' : 'Parier'),
+                        child: Text(
+                          predicted
+                              ? 'Modifier ton prono'
+                              : 'Remplir ton prono',
+                        ),
                       ),
                   ],
                 ),

@@ -66,15 +66,22 @@ class MatchDetailsPage extends ConsumerWidget {
                       matchId: matchId,
                       actions: const [
                         _SportAction(
-                          'Sélection & composition',
+                          'Effectif',
+                          Icons.groups_2_outlined,
+                          'composition?step=effectif',
+                        ),
+                        _SportAction(
+                          'Composition',
                           Icons.sports_soccer_outlined,
-                          'composition',
+                          'composition?step=composition',
                         ),
                       ],
                     ),
                   ],
                   const SizedBox(height: 16),
                   PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
+                  _UpcomingPredictionCard(details: details, matchId: matchId),
+                  const SizedBox(height: 16),
                   _HeadToHeadCard(details: details),
                   if (isAdmin) ...[
                     const SizedBox(height: 16),
@@ -94,6 +101,8 @@ class MatchDetailsPage extends ConsumerWidget {
               children: [
                 _MatchHeader(details: details),
                 if (sportsEnabled) ...[
+                  const SizedBox(height: 16),
+                  PublishedLineupPreview(matchId: matchId, expanded: true),
                   const SizedBox(height: 16),
                   MatchMotmVoteCard(matchId: matchId),
                 ],
@@ -146,6 +155,67 @@ class _UpcomingHeader extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UpcomingPredictionCard extends StatelessWidget {
+  const _UpcomingPredictionCard({required this.details, required this.matchId});
+
+  final MatchDetailsData details;
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context) {
+    final closesAt = details.kickoffAt.subtract(const Duration(minutes: 5));
+    final open = DateTime.now().isBefore(closesAt);
+    final odds = <(String, double?)>[
+      ('Victoire Grinta', details.oddsWin),
+      ('Nul', details.oddsDraw),
+      ('Victoire adverse', details.oddsLoss),
+    ].where((item) => item.$2 != null).toList(growable: false);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.sports_score_outlined),
+                const SizedBox(width: 8),
+                Text(
+                  'Ton prono',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
+            ),
+            if (odds.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final odd in odds)
+                    Chip(
+                      label: Text('${odd.$1} · ${odd.$2!.toStringAsFixed(2)}'),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: open
+                  ? () => context.push('/matches/$matchId/prediction')
+                  : null,
+              icon: const Icon(Icons.edit_note_outlined),
+              label: Text(open ? 'Remplir ton prono' : 'Pronostics fermés'),
+            ),
           ],
         ),
       ),
@@ -312,10 +382,9 @@ class _SportsManagementSection extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Gestion sportive',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
                 Container(

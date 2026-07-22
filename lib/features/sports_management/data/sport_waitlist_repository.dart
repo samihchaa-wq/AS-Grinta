@@ -30,6 +30,13 @@ abstract interface class SportWaitlistRepository {
     required int squadSizeLimit,
   });
 
+  Future<MatchConvocations> saveEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  });
+
   Future<MatchConvocations> recomputeMatch({
     required String matchId,
     bool resetOverrides = false,
@@ -148,6 +155,31 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       params: {'p_match_id': matchId, 'p_squad_size_limit': squadSizeLimit},
     );
     return fetchMatchConvocations(matchId);
+  }
+
+  @override
+  Future<MatchConvocations> saveEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_save_match_effectif',
+      params: {
+        'p_match_id': matchId,
+        'p_squad_size_limit': squadSizeLimit,
+        'p_decisions': [
+          for (final decision in decisions.entries)
+            {
+              'season_player_id': decision.key,
+              'status': decision.value.wireValue,
+            },
+        ],
+        'p_reason': _clean(reason),
+      },
+    );
+    return MatchConvocations.fromRpc(response);
   }
 
   @override
