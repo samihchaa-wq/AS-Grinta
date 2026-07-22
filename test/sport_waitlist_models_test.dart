@@ -20,7 +20,7 @@ void main() {
     });
 
     expect(waitlist.seasonId, 'season-1');
-    expect(waitlist.entries.single.displayName, 'Alice Grinta');
+    expect(waitlist.entries.single.displayName, 'Alice');
     expect(waitlist.entries.single.previousSeasonAttendanceCount, 4);
     expect(waitlist.entries.single.previousSeasonMatchCount, 12);
   });
