@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/local/local_flags.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
@@ -5,17 +6,39 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_last_match_card.dart';
+import 'package:as_grinta/features/home/presentation/onboarding_sheet.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AccueilPage extends ConsumerWidget {
+class AccueilPage extends ConsumerStatefulWidget {
   const AccueilPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AccueilPage> createState() => _AccueilPageState();
+}
+
+class _AccueilPageState extends ConsumerState<AccueilPage> {
+  static const _onboardingFlag = 'onboarding_seen_v1';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowOnboarding());
+  }
+
+  Future<void> _maybeShowOnboarding() async {
+    if (localFlagGet(_onboardingFlag)) return;
+    // On note tout de suite pour ne jamais risquer un double affichage.
+    localFlagSet(_onboardingFlag, true);
+    if (!mounted) return;
+    await showOnboardingSheet(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Accueil'),
