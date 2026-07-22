@@ -35,6 +35,9 @@ class MatchStartingPlayer {
     required this.goals,
     required this.isManOfTheMatch,
     required this.sortOrder,
+    required this.isStarter,
+    required this.x,
+    required this.y,
   });
 
   final String? seasonPlayerId;
@@ -42,6 +45,9 @@ class MatchStartingPlayer {
   final int goals;
   final bool isManOfTheMatch;
   final int sortOrder;
+  final bool isStarter;
+  final double? x;
+  final double? y;
 }
 
 class MatchPredictionResult {
@@ -60,7 +66,6 @@ class MatchPredictionResult {
   final int scoreOpponent;
 
   /// Points déjà convertis en base 100 pour l'affichage.
-  /// Exemple : 3,10 points réels deviennent 310.
   final double points;
   final bool usedX2;
 }
@@ -216,11 +221,16 @@ class MatchDetailsRepository {
         startingLineup = (snapshot['entries'] as List)
             .whereType<Map>()
             .map((raw) => Map<String, dynamic>.from(raw))
-            .where((entry) => entry['zone']?.toString() == 'field')
+            .where(
+              (entry) =>
+                  entry['zone']?.toString() == 'field' ||
+                  entry['zone']?.toString() == 'bench',
+            )
             .map((entry) {
           final seasonPlayerId = entry['season_player_id']?.toString();
           final stat =
               seasonPlayerId == null ? null : statsByPlayerId[seasonPlayerId];
+          final isStarter = entry['zone']?.toString() == 'field';
           return MatchStartingPlayer(
             seasonPlayerId: seasonPlayerId,
             name: _firstNameFromText(
@@ -230,9 +240,15 @@ class MatchDetailsRepository {
             isManOfTheMatch: seasonPlayerId != null &&
                 manOfMatchIds.contains(seasonPlayerId),
             sortOrder: (entry['sort_order'] as num?)?.toInt() ?? 0,
+            isStarter: isStarter,
+            x: isStarter ? (entry['x'] as num?)?.toDouble() : null,
+            y: isStarter ? (entry['y'] as num?)?.toDouble() : null,
           );
         }).toList()
-          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+          ..sort((a, b) {
+            if (a.isStarter != b.isStarter) return a.isStarter ? -1 : 1;
+            return a.sortOrder.compareTo(b.sortOrder);
+          });
       }
 
       final pointRows = await _client

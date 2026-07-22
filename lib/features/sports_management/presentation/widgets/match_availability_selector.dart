@@ -7,6 +7,7 @@ import 'package:as_grinta/features/sports_management/domain/match_availability.d
 import 'package:as_grinta/features/sports_management/presentation/match_availability_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class MatchAvailabilitySelector extends ConsumerStatefulWidget {
   const MatchAvailabilitySelector({
@@ -33,7 +34,8 @@ class _MatchAvailabilitySelectorState
 
   @override
   Widget build(BuildContext context) {
-    if (!ref.watch(sportsManagementEnabledProvider)) {
+    if (!ref.watch(sportsManagementEnabledProvider) ||
+        _isPredictionRoute(context)) {
       return const SizedBox.shrink();
     }
 
@@ -61,6 +63,14 @@ class _MatchAvailabilitySelectorState
         );
       },
     );
+  }
+
+  bool _isPredictionRoute(BuildContext context) {
+    try {
+      return GoRouterState.of(context).uri.path.endsWith('/prediction');
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _save(

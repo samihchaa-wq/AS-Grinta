@@ -1,8 +1,11 @@
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_board_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
@@ -24,6 +27,16 @@ class MatchLineupPage extends ConsumerWidget {
     final initialSection = GoRouterState.of(
       context,
     ).uri.queryParameters['section'];
+    final isAdmin =
+        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+
+    if (isAdmin) {
+      return AdminSquadPlanPage(
+        initialMatchId: matchId,
+        initialStep: initialSection,
+      );
+    }
+
     final showEffectif = initialSection != 'composition';
     final showComposition = initialSection != 'effectif';
     final title = switch (initialSection) {
@@ -161,7 +174,7 @@ class PublishedLineupPreview extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.sports_soccer_outlined, color: foreground),
+                  Icon(Icons.groups_2_outlined, color: foreground),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -223,6 +236,9 @@ class PublishedLineupPreview extends ConsumerWidget {
                       MatchCompositionZone.bench,
                     ))
                       Chip(
+                        avatar: const CircleAvatar(
+                          child: Icon(Icons.person_outline, size: 16),
+                        ),
                         visualDensity: VisualDensity.compact,
                         label: Text(entry.displayName),
                       ),
