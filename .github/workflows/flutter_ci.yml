@@ -1,18 +1,11 @@
 name: Flutter CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write
-
-concurrency:
-  group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   validate:
@@ -20,16 +13,9 @@ jobs:
     timeout-minutes: 35
     steps:
       - name: Checkout live squad branch
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/live-squad-and-formations' }}
         uses: actions/checkout@v4
         with:
           ref: feat/live-squad-and-formations
-          fetch-depth: 0
-
-      - name: Checkout
-        if: ${{ github.event_name != 'pull_request' || github.head_ref != 'feat/live-squad-and-formations' }}
-        uses: actions/checkout@v4
-        with:
           fetch-depth: 0
 
       - name: Setup Flutter
@@ -41,8 +27,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Prepare and format live squad implementation
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/live-squad-and-formations' }}
+      - name: Prepare and format implementation
         shell: bash
         run: |
           set -euo pipefail
@@ -78,81 +63,28 @@ jobs:
           text = text.replace('    if (newIndex > oldIndex) newIndex -= 1;\n', '')
           text = text.replace('onReorder: _reorderBench,', 'onReorderItem: _reorderBench,')
           path.write_text(text)
-
-          sw = Path('web/sw.js')
-          sw.write_text(
-              sw.read_text()
-              .replace(
-                  'Cache fonctionnel v62 — résumé et sélection simplifiés.',
-                  'Cache fonctionnel v63 — effectif en direct et compositions complètes.',
-              )
-              .replace('as-grinta-v62', 'as-grinta-v63')
-          )
-          index = Path('web/index.html')
-          index.write_text(
-              index.read_text()
-              .replace('sw.js?v=62', 'sw.js?v=63')
-              .replace('flutter_bootstrap.js?v=62', 'flutter_bootstrap.js?v=63')
-          )
           PY
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main -- '*.dart')
-          if [ "${#files[@]}" -gt 0 ]; then
-            dart format "${files[@]}"
-          fi
-
-      - name: Check formatting of changed Dart files
-        if: ${{ github.event_name != 'pull_request' || github.head_ref != 'feat/live-squad-and-formations' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="origin/${{ github.base_ref }}"
-            range="$base...HEAD"
-          else
-            range="HEAD^...HEAD"
-          fi
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No changed Dart files to format."
-            exit 0
-          fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
-
-      - name: Read application version
-        shell: bash
-        run: |
-          set -euo pipefail
-          version=$(awk '/^version:/{print $2}' pubspec.yaml)
-          test -n "$version"
-          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+          dart format "${files[@]}"
 
       - name: Analyze
-        shell: bash
-        run: |
-          set -o pipefail
-          flutter analyze --fatal-infos 2>&1 | tee analyze.log
+        run: flutter analyze --fatal-infos
 
       - name: Test
-        shell: bash
-        run: |
-          set -o pipefail
-          flutter test 2>&1 | tee test.log
+        run: flutter test
 
       - name: Build web
-        shell: bash
         run: |
-          set -o pipefail
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
           flutter build web \
             --release \
             --base-href "/AS-Grinta/" \
             --pwa-strategy=none \
             --no-web-resources-cdn \
             --dart-define-from-file=config/production.json \
-            --dart-define=APP_VERSION="$APP_VERSION" \
-            2>&1 | tee build-web.log
+            --dart-define=APP_VERSION="$version"
 
       - name: Commit formatted implementation
-        if: ${{ github.event_name == 'pull_request' && github.head_ref == 'feat/live-squad-and-formations' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -166,14 +98,3 @@ jobs:
             git commit -m 'Finaliser la refonte effectif et composition'
             git push origin HEAD:feat/live-squad-and-formations
           fi
-
-      - name: Upload validation logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-validation-logs
-          path: |
-            analyze.log
-            test.log
-            build-web.log
-          if-no-files-found: warn
