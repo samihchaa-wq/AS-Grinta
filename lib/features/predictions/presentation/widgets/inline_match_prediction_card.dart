@@ -84,7 +84,7 @@ class _InlineMatchPredictionCardState
                 children: [
                   Expanded(
                     child: Text(
-                      'Ton pari',
+                      'Ton prono',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),

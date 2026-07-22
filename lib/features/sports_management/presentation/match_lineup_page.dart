@@ -84,7 +84,7 @@ class MatchLineupPage extends ConsumerWidget {
                 ButtonSegment(
                   value: 'prediction',
                   icon: Icon(Icons.sports_score_outlined),
-                  label: Text('Ton pari'),
+                  label: Text('Ton prono'),
                 ),
               ],
               selected: {section},

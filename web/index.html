@@ -50,7 +50,7 @@
       }
     };
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=86').then(function (registration) {
+      navigator.serviceWorker.register('sw.js?v=87').then(function (registration) {
         if (!registration) return;
         function considerWorker(worker) {
           // On ne propose la mise à jour que s'il y a déjà une version en place.
@@ -121,6 +121,6 @@
       },
     };
   </script>
-  <script src="flutter_bootstrap.js?v=86" async></script>
+  <script src="flutter_bootstrap.js?v=87" async></script>
 </body>
 </html>
