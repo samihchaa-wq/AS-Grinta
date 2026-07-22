@@ -8,6 +8,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/match_
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class MatchLineupPage extends ConsumerWidget {
   const MatchLineupPage({super.key, required this.matchId});
@@ -19,28 +20,48 @@ class MatchLineupPage extends ConsumerWidget {
     if (!ref.watch(sportsManagementEnabledProvider)) {
       return const Scaffold(body: SizedBox.shrink());
     }
+
+    final initialSection =
+        GoRouterState.of(context).uri.queryParameters['section'];
+    final showEffectif = initialSection != 'composition';
+    final showComposition = initialSection != 'effectif';
+    final title = switch (initialSection) {
+      'effectif' => 'Effectif',
+      'composition' => 'Composition',
+      _ => 'Effectif et composition',
+    };
+
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Équipe')),
+      appBar: GrintaAppBar(title: Text(title)),
       body: RefreshIndicator(
         onRefresh: () async {
           ref
             ..invalidate(publishedMatchCompositionProvider(matchId))
             ..invalidate(matchAvailabilityBoardProvider(matchId));
           await Future.wait([
-            ref.read(publishedMatchCompositionProvider(matchId).future),
-            ref.read(matchAvailabilityBoardProvider(matchId).future),
+            if (showComposition)
+              ref.read(publishedMatchCompositionProvider(matchId).future),
+            if (showEffectif)
+              ref.read(matchAvailabilityBoardProvider(matchId).future),
           ]);
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
-            MatchAvailabilitySelector(matchId: matchId, bottomSpacing: 16),
-            PublishedLineupPreview(
-              matchId: matchId,
-              showLists: true,
-              expanded: true,
-            ),
+            if (showEffectif)
+              MatchAvailabilityBoardCard(
+                matchId: matchId,
+                showAfterComposition: true,
+              ),
+            if (showEffectif && showComposition) const SizedBox(height: 16),
+            if (showComposition)
+              PublishedLineupPreview(
+                matchId: matchId,
+                expanded: true,
+                fallbackToEffectif: false,
+                emptyMessage: 'Composition non publiée.',
+              ),
           ],
         ),
       ),
@@ -91,6 +112,8 @@ class PublishedLineupPreview extends ConsumerWidget {
     this.bottomSpacing = 0,
     this.showLists = false,
     this.expanded = false,
+    this.fallbackToEffectif = true,
+    this.emptyMessage,
   });
 
   final String matchId;
@@ -99,6 +122,8 @@ class PublishedLineupPreview extends ConsumerWidget {
   final double bottomSpacing;
   final bool showLists;
   final bool expanded;
+  final bool fallbackToEffectif;
+  final String? emptyMessage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -110,7 +135,16 @@ class PublishedLineupPreview extends ConsumerWidget {
         error: (_, __) => const SizedBox.shrink(),
         data: (composition) {
           if (composition == null) {
-            return MatchAvailabilityBoardCard(matchId: matchId, compact: true);
+            if (fallbackToEffectif) {
+              return MatchAvailabilityBoardCard(matchId: matchId, compact: true);
+            }
+            return Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Text(emptyMessage ?? 'Composition non publiée.'),
+              ),
+            );
           }
           final board =
               ref.watch(matchAvailabilityBoardProvider(matchId)).valueOrNull;
@@ -127,7 +161,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Équipe',
+                      'Composition',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: foreground,
                             fontWeight: FontWeight.w900,
