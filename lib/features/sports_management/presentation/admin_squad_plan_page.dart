@@ -8,7 +8,7 @@ import 'package:as_grinta/features/sports_management/data/sport_waitlist_reposit
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
-import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -392,6 +392,33 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       );
       _compositionDirty = true;
     });
+  }
+
+  /// Placement libre : on dépose le joueur n'importe où sur le terrain et il
+  /// se cale automatiquement sur le poste le plus proche.
+  void _onPitchMoved(
+    MatchCompositionEntry moving,
+    MatchCompositionZone zone,
+    Offset? normalized,
+  ) {
+    if (zone != MatchCompositionZone.field || normalized == null) {
+      _moveToBench(moving);
+      return;
+    }
+    _dropOnSlot(moving, _nearestSlot(normalized));
+  }
+
+  FootballFormationSlot _nearestSlot(Offset target) {
+    var nearest = matchSheetSlots.first;
+    var distance = double.infinity;
+    for (final slot in matchSheetSlots) {
+      final candidate = (target - slot.position).distance;
+      if (candidate < distance) {
+        distance = candidate;
+        nearest = slot;
+      }
+    }
+    return nearest;
   }
 
   void _moveToBench(MatchCompositionEntry moving) {
@@ -814,7 +841,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Glisse les convoqués sur le poste de ton choix. Les emplacements libres restent visibles.',
+                  'Glisse les convoqués où tu veux sur le terrain : ils se placent '
+                  'automatiquement au poste le plus proche. Touche un joueur pour '
+                  'le renvoyer au banc.',
                 ),
               ],
             ),
@@ -822,12 +851,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ),
         const SizedBox(height: 14),
         Center(
-          child: FormationPitchEditor(
-            slots: matchSheetSlots,
+          child: CompositionPitch(
             entries: field,
             editable: !_busy && !_locked,
-            onDroppedOnSlot: _dropOnSlot,
-            onRemoveFromField: _moveToBench,
+            onMoved: _onPitchMoved,
+            onPlayerTap: _moveToBench,
           ),
         ),
         const SizedBox(height: 14),
