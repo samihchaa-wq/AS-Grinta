@@ -3,8 +3,6 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   errors:
     unused_import: ignore
-    curly_braces_in_flow_control_structures: ignore
-    deprecated_member_use: ignore
 
 linter:
   rules:
