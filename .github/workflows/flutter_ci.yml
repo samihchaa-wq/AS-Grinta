@@ -27,17 +27,19 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Format and commit implementation
+      - name: Format and commit with diagnostics
         shell: bash
         run: |
-          set -euo pipefail
-          git checkout origin/main -- \
-            analysis_options.yaml \
-            lib/features/auth/presentation/forced_password_change_page.dart \
-            lib/features/players/data/roster_repository.dart \
-            lib/features/players/presentation/players_registry_page.dart \
-            lib/features/preferences/data/preferences_repository.dart
-          python3 - <<'PY'
+          set +e
+          {
+            set -euo pipefail
+            git checkout origin/main -- \
+              analysis_options.yaml \
+              lib/features/auth/presentation/forced_password_change_page.dart \
+              lib/features/players/data/roster_repository.dart \
+              lib/features/players/presentation/players_registry_page.dart \
+              lib/features/preferences/data/preferences_repository.dart
+            python3 - <<'PY'
           from pathlib import Path
 
           path = Path('lib/features/sports_management/presentation/admin_squad_plan_page.dart')
@@ -64,18 +66,22 @@ jobs:
           text = text.replace('onReorder: _reorderBench,', 'onReorderItem: _reorderBench,')
           path.write_text(text)
           PY
-          rm -f .github/workflows/finalize-live-squad.yml
-          git show 3ef14b4d56ba22ec57c5a74c45a59400babd7fd5:.github/workflows/flutter_ci.yml > .github/workflows/flutter_ci.yml
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main -- '*.dart')
-          if [ "${#files[@]}" -gt 0 ]; then
-            dart format "${files[@]}"
-          fi
+            rm -f \
+              .github/workflows/finalize-live-squad.yml \
+              .github/workflows/run-finalize-live-squad.yml
+            git show 3ef14b4d56ba22ec57c5a74c45a59400babd7fd5:.github/workflows/flutter_ci.yml > .github/workflows/flutter_ci.yml
+            mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main -- '*.dart')
+            printf 'Formatting %s Dart files\n' "${#files[@]}"
+            printf '%s\n' "${files[@]}"
+            if [ "${#files[@]}" -gt 0 ]; then
+              dart format "${files[@]}"
+            fi
+          } > format-live-squad.log 2>&1
+          status=$?
+          cat format-live-squad.log
+          printf '\nformatter_status=%s\n' "$status" >> format-live-squad.log
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          if git diff --cached --quiet; then
-            echo 'No formatting commit required.'
-          else
-            git commit -m 'Finaliser le formatage de la refonte effectif'
-            git push origin HEAD:feat/live-squad-and-formations
-          fi
+          git commit -m 'Formater la refonte effectif et journaliser le résultat'
+          git push origin HEAD:feat/live-squad-and-formations
