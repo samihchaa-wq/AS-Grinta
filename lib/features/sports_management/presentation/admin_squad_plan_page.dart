@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
@@ -712,11 +713,18 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Effectif',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Effectif',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                    const _AdminBadge(),
+                  ],
                 ),
                 const SizedBox(height: 5),
                 const Text(
@@ -845,11 +853,18 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Composition',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Composition',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                    const _AdminBadge(),
+                  ],
                 ),
                 const SizedBox(height: 5),
                 const Text(
@@ -1103,4 +1118,36 @@ class _GuestInput {
   final String firstName;
   final String lastName;
   final bool goalkeeper;
+}
+
+/// Signe distinctif des sections que seul l'admin peut modifier.
+class _AdminBadge extends StatelessWidget {
+  const _AdminBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: .5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.shield_outlined, size: 14, color: AppTheme.accent),
+          const SizedBox(width: 4),
+          Text(
+            'Admin',
+            style: TextStyle(
+              color: AppTheme.accent,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
