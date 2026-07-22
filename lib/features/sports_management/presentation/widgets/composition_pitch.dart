@@ -109,7 +109,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
     Size size,
   ) {
     const markerWidth = 64.0;
-    const markerHeight = 80.0;
+    const markerHeight = 84.0;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -300,13 +300,42 @@ class _PlayerMarker extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PlayerAvatar(
-            photoUrl: entry.photoUrl,
-            name: entry.displayName,
-            isGoalkeeper: entry.isGoalkeeper,
-            size: 52,
+          SizedBox(
+            width: 60,
+            height: 64,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: PlayerAvatar(
+                    photoUrl: entry.photoUrl,
+                    name: entry.displayName,
+                    isGoalkeeper: entry.isGoalkeeper,
+                    size: 52,
+                  ),
+                ),
+                // La couronne de l'HDM passe derrière les ballons.
+                if (entry.isMotm)
+                  const Positioned(
+                    top: 6,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Text('👑', style: TextStyle(fontSize: 18)),
+                    ),
+                  ),
+                if (entry.goals > 0)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Center(child: _GoalBalls(goals: entry.goals)),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Text(
             firstName,
             maxLines: 1,
@@ -319,6 +348,44 @@ class _PlayerMarker extends StatelessWidget {
               shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Petits ballons collés au-dessus de la photo indiquant le nombre de buts.
+class _GoalBalls extends StatelessWidget {
+  const _GoalBalls({required this.goals});
+
+  final int goals;
+
+  @override
+  Widget build(BuildContext context) {
+    final count = goals.clamp(1, 6);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .55),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < count; i++)
+            const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
+          if (goals > 6)
+            const Padding(
+              padding: EdgeInsets.only(left: 1),
+              child: Text(
+                '+',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                ),
+              ),
+            ),
         ],
       ),
     );
