@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,14 +31,10 @@ class _GrintaTitleBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
-          // Logo MPG, aligné à gauche.
           Expanded(
             flex: 2,
             child: Align(
               alignment: Alignment.centerLeft,
-              // Variante « barre » : le mot-symbole MPG est centré
-              // verticalement (padding bas) pour tomber pile au niveau du
-              // milieu du titre de la page, quelle que soit l'échelle.
               child: Image.asset(
                 'assets/images/mpg_logo_bar.png',
                 height: 96,
@@ -45,8 +42,6 @@ class _GrintaTitleBar extends StatelessWidget {
               ),
             ),
           ),
-          // Nom de la page, centré. On réduit la taille si le titre est long
-          // plutôt que de le tronquer.
           Expanded(
             flex: 3,
             child: Center(
@@ -64,7 +59,6 @@ class _GrintaTitleBar extends StatelessWidget {
               ),
             ),
           ),
-          // Actions (armoire, paramètres), alignées à droite.
           Expanded(
             flex: 2,
             child: FittedBox(
@@ -82,17 +76,8 @@ class _GrintaTitleBar extends StatelessWidget {
   }
 }
 
-/// Actions communes du 4e quart des onglets principaux : l'armoire à badges
-/// (à gauche) puis les paramètres (engrenage, à droite).
 List<Widget> grintaHomeActions(BuildContext context) => [
-      IconButton(
-        tooltip: 'Armoire à badges',
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        constraints: const BoxConstraints(),
-        icon: const Text('🏆', style: TextStyle(fontSize: 28)),
-        onPressed: () => context.push('/armoire'),
-      ),
+      const BadgeTrophyButton(),
       const SizedBox(width: 6),
       IconButton(
         tooltip: 'Paramètres',
