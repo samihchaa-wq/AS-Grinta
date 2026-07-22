@@ -43,9 +43,11 @@ class SportWaitlistEntry {
     required this.previousSeasonAttendanceCount,
     required this.previousSeasonMatchCount,
     required this.source,
+    this.serverName,
   });
 
   factory SportWaitlistEntry.fromJson(Map<String, dynamic> json) {
+    final rawName = json['display_name']?.toString().trim();
     return SportWaitlistEntry(
       seasonPlayerId: json['season_player_id'].toString(),
       firstName: (json['first_name'] ?? '').toString(),
@@ -56,6 +58,7 @@ class SportWaitlistEntry {
       previousSeasonMatchCount:
           (json['previous_season_match_count'] as num?)?.toInt() ?? 0,
       source: (json['source'] ?? 'previous_season_attendance').toString(),
+      serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,
     );
   }
 
@@ -67,8 +70,10 @@ class SportWaitlistEntry {
   final int previousSeasonMatchCount;
   final String source;
 
-  // Appellation : prénom uniquement, jamais le nom de famille.
-  String get displayName => firstName.trim();
+  /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom.
+  final String? serverName;
+
+  String get displayName => serverName ?? firstName.trim();
 }
 
 class SportWaitlist {
@@ -134,6 +139,7 @@ class ConvocationPlayer {
     this.guestPlayerId,
     this.isGuest = false,
     this.isGoalkeeper = false,
+    this.serverName,
   });
 
   factory ConvocationPlayer.fromJson(Map<String, dynamic> json) {
@@ -144,6 +150,7 @@ class ConvocationPlayer {
       guestPlayerId: guestPlayerId,
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
+      serverName: _nullableText(json['display_name']),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
       availabilityStatus:
@@ -176,8 +183,13 @@ class ConvocationPlayer {
   final WaitlistTurnState turnState;
   final DateTime? promotedAfterWithdrawalAt;
 
-  // Appellation : prénom uniquement, jamais le nom de famille.
+  /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom
+  /// (avec « (Invité) » pour les invités). Repli sur le prénom seul.
+  final String? serverName;
+
   String get displayName {
+    final server = serverName?.trim();
+    if (server != null && server.isNotEmpty) return server;
     final name = firstName.trim();
     return isGuest ? '$name (Invité)' : name;
   }
