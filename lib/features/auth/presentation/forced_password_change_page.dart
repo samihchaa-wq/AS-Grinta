@@ -91,8 +91,7 @@ class _ForcedPasswordChangePageState
                           labelText: 'Nouveau mot de passe',
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
-                            onPressed: () =>
-                                setState(() => _obscure = !_obscure),
+                            onPressed: () => setState(() => _obscure = !_obscure),
                             icon: Icon(
                               _obscure
                                   ? Icons.visibility_outlined
@@ -118,8 +117,7 @@ class _ForcedPasswordChangePageState
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check_circle_outline),
                         label: const Text('Enregistrer mon mot de passe'),
