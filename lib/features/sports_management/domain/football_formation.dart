@@ -19,36 +19,36 @@ class FootballFormationSlot {
 /// (les titulaires), les emplacements vides restent visibles.
 const List<FootballFormationSlot> matchSheetSlots = <FootballFormationSlot>[
   // Gardien
-  FootballFormationSlot(label: 'GB', position: Offset(.48, .85)),
+  FootballFormationSlot(label: 'GB', position: Offset(.50, .85)),
 
   // Défenseurs
   FootballFormationSlot(label: 'DG', position: Offset(.10, .65)),
   FootballFormationSlot(label: 'DCG', position: Offset(.32, .70)),
-  FootballFormationSlot(label: 'DC', position: Offset(.48, .72)),
-  FootballFormationSlot(label: 'DCD', position: Offset(.64, .70)),
-  FootballFormationSlot(label: 'DD', position: Offset(.86, .65)),
+  FootballFormationSlot(label: 'DC', position: Offset(.50, .72)),
+  FootballFormationSlot(label: 'DCD', position: Offset(.68, .70)),
+  FootballFormationSlot(label: 'DD', position: Offset(.90, .65)),
 
   // Milieux défensifs
   FootballFormationSlot(label: 'MDG', position: Offset(.30, .50)),
-  FootballFormationSlot(label: 'MDC', position: Offset(.48, .53)),
-  FootballFormationSlot(label: 'MDD', position: Offset(.66, .50)),
+  FootballFormationSlot(label: 'MDC', position: Offset(.50, .53)),
+  FootballFormationSlot(label: 'MDD', position: Offset(.70, .50)),
 
   // Milieux centraux & côtés
   FootballFormationSlot(label: 'MG', position: Offset(.10, .38)),
-  FootballFormationSlot(label: 'MCG', position: Offset(.35, .38)),
-  FootballFormationSlot(label: 'MC', position: Offset(.48, .40)),
-  FootballFormationSlot(label: 'MCD', position: Offset(.61, .38)),
-  FootballFormationSlot(label: 'MD', position: Offset(.86, .38)),
+  FootballFormationSlot(label: 'MCG', position: Offset(.34, .38)),
+  FootballFormationSlot(label: 'MC', position: Offset(.50, .40)),
+  FootballFormationSlot(label: 'MCD', position: Offset(.66, .38)),
+  FootballFormationSlot(label: 'MD', position: Offset(.90, .38)),
 
   // Milieux offensifs & ailiers
   FootballFormationSlot(label: 'AG', position: Offset(.12, .22)),
   FootballFormationSlot(label: 'MOG', position: Offset(.32, .25)),
-  FootballFormationSlot(label: 'MOC', position: Offset(.48, .27)),
-  FootballFormationSlot(label: 'MOD', position: Offset(.64, .25)),
-  FootballFormationSlot(label: 'AD', position: Offset(.86, .22)),
+  FootballFormationSlot(label: 'MOC', position: Offset(.50, .27)),
+  FootballFormationSlot(label: 'MOD', position: Offset(.68, .25)),
+  FootballFormationSlot(label: 'AD', position: Offset(.88, .22)),
 
   // Buteurs
   FootballFormationSlot(label: 'BUG', position: Offset(.35, .10)),
-  FootballFormationSlot(label: 'BU', position: Offset(.48, .08)),
-  FootballFormationSlot(label: 'BUD', position: Offset(.61, .10)),
+  FootballFormationSlot(label: 'BU', position: Offset(.50, .08)),
+  FootballFormationSlot(label: 'BUD', position: Offset(.65, .10)),
 ];
