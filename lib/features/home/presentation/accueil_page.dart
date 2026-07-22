@@ -4,14 +4,13 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
-import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dart';
+import 'package:as_grinta/features/home/presentation/home_last_match_card.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Écran d'accueil : point d'atterrissage de l'app.
 class AccueilPage extends ConsumerWidget {
   const AccueilPage({super.key});
 
@@ -37,10 +36,9 @@ class AccueilPage extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: const [
-            HomeLastMatchVoteBlock(),
             _NextMatchBlock(),
             SizedBox(height: 18),
-            _LastPronoBlock(),
+            HomeLastMatchCard(),
             SizedBox(height: 18),
             _RecentBadgesBlock(),
           ],
@@ -50,11 +48,10 @@ class AccueilPage extends ConsumerWidget {
   }
 }
 
-// ─────────────────────────── En-têtes de bloc ───────────────────────────
-
 class _BlockHeader extends StatelessWidget {
-  const _BlockHeader(this.emoji, this.title, {this.onSeeAll, this.seeAllLabel});
-  final String emoji;
+  const _BlockHeader(this.icon, this.title, {this.onSeeAll, this.seeAllLabel});
+
+  final IconData icon;
   final String title;
   final VoidCallback? onSeeAll;
   final String? seeAllLabel;
@@ -65,7 +62,7 @@ class _BlockHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 18)),
+          Icon(icon, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -88,39 +85,44 @@ class _BlockHeader extends StatelessWidget {
 
 class _MiniLoader extends StatelessWidget {
   const _MiniLoader();
+
   @override
-  Widget build(BuildContext context) => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
-            ),
+  Widget build(BuildContext context) {
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2.4),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class _EmptyCard extends StatelessWidget {
   const _EmptyCard(this.message);
-  final String message;
-  @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Text(
-            message,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-          ),
-        ),
-      );
-}
 
-// ─────────────────────────── Prochain match ───────────────────────────
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Text(
+          message,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+        ),
+      ),
+    );
+  }
+}
 
 class _NextMatchBlock extends ConsumerWidget {
   const _NextMatchBlock();
@@ -131,7 +133,7 @@ class _NextMatchBlock extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _BlockHeader('⚽', 'Prochain match'),
+        const _BlockHeader(Icons.event_rounded, 'Prochain match'),
         async.when(
           loading: () => const _MiniLoader(),
           error: (_, __) => const _EmptyCard('Impossible de charger le match.'),
@@ -185,7 +187,7 @@ class _NextMatchCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.go('/pronos?category=matches'),
+        onTap: () => context.push('/matches/${match.id}'),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
@@ -201,24 +203,7 @@ class _NextMatchCard extends StatelessWidget {
                           ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (match.isHome ? AppTheme.primary : AppTheme.accent)
-                          .withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      match.isHome ? 'Domicile' : 'Extérieur',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                  const Icon(Icons.chevron_right, color: Color(0xFFD7C8FF)),
                 ],
               ),
               if (match.kickoffAt != null) ...[
@@ -260,7 +245,7 @@ class _NextMatchCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          predicted ? Icons.check_circle : Icons.sports_soccer,
+                          predicted ? Icons.check_circle : Icons.edit_note,
                           size: 18,
                           color: predicted
                               ? const Color(0xFF52D08A)
@@ -302,142 +287,6 @@ class _NextMatchCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────── Ton dernier prono ───────────────────────────
-
-class _LastPronoBlock extends ConsumerWidget {
-  const _LastPronoBlock();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(myLastPronoProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _BlockHeader('🎯', 'Ton dernier prono'),
-        async.when(
-          loading: () => const _MiniLoader(),
-          error: (_, __) =>
-              const _EmptyCard('Impossible de charger ton prono.'),
-          data: (prono) {
-            if (prono == null) {
-              return const _EmptyCard(
-                'Tu n\'as pas encore de prono sur un match terminé.',
-              );
-            }
-            return _LastPronoCard(prono: prono);
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _LastPronoCard extends StatelessWidget {
-  const _LastPronoCard({required this.prono});
-  final LastProno prono;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color accent;
-    if (prono.isWin) {
-      accent = const Color(0xFF2E9E63);
-    } else if (prono.isDraw) {
-      accent = const Color(0xFF8A6D2F);
-    } else {
-      accent = const Color(0xFFB23B4E);
-    }
-    final homeName = prono.isHome ? 'AS Grinta' : prono.opponent;
-    final awayName = prono.isHome ? prono.opponent : 'AS Grinta';
-    final homeReal = prono.isHome ? prono.grintaScore : prono.opponentScore;
-    final awayReal = prono.isHome ? prono.opponentScore : prono.grintaScore;
-    final homePred = prono.isHome ? prono.predGrinta : prono.predAdverse;
-    final awayPred = prono.isHome ? prono.predAdverse : prono.predGrinta;
-
-    return Card(
-      color: accent.withValues(alpha: 0.16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: accent.withValues(alpha: 0.7), width: 1.4),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push('/matches/${prono.matchId}'),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$homeName  $homeReal – $awayReal  $awayName',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Ton pari : $homePred – $awayPred'
-                '${prono.useX2 ? '  ·  ×2' : ''}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  if (prono.exact)
-                    const _ResultTag('Score exact', Color(0xFF52D08A))
-                  else if (prono.goodWinner)
-                    const _ResultTag('Bon vainqueur', Color(0xFF6BA0FF))
-                  else
-                    const _ResultTag('Raté', Color(0xFF9299A5)),
-                  const Spacer(),
-                  Text(
-                    AppFormats.counted((prono.points * 100).round(), 'point'),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: accent == const Color(0xFF8A6D2F)
-                              ? Colors.white
-                              : accent,
-                        ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultTag extends StatelessWidget {
-  const _ResultTag(this.label, this.color);
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w800,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────── Badges récents ───────────────────────────
-
 class _RecentBadgesBlock extends ConsumerWidget {
   const _RecentBadgesBlock();
 
@@ -448,7 +297,7 @@ class _RecentBadgesBlock extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _BlockHeader(
-          '🏆',
+          Icons.emoji_events_outlined,
           'Badges récents',
           seeAllLabel: 'Armoire',
           onSeeAll: () => context.push('/armoire'),
@@ -461,7 +310,7 @@ class _RecentBadgesBlock extends ConsumerWidget {
             final recent = armoire.recent.take(4).toList();
             if (recent.isEmpty) {
               return const _EmptyCard(
-                'Aucun badge pour l\'instant. À toi de jouer !',
+                'Aucun badge pour l’instant. À toi de jouer !',
               );
             }
             return Card(
@@ -470,7 +319,7 @@ class _RecentBadgesBlock extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [for (final b in recent) _BadgeChip(badge: b)],
+                  children: [for (final badge in recent) _BadgeChip(badge: badge)],
                 ),
               ),
             );
@@ -483,6 +332,7 @@ class _RecentBadgesBlock extends ConsumerWidget {
 
 class _BadgeChip extends StatelessWidget {
   const _BadgeChip({required this.badge});
+
   final ArmoireBadge badge;
 
   @override
