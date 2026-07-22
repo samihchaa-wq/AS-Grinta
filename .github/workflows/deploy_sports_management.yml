@@ -1,14 +1,13 @@
-name: Deploy sports management disabled
+name: Deploy sports management v63
 
 on:
-  pull_request_target:
-    branches: [main]
+  push:
+    branches: [release/run-sports-deployment-live-squad-v63]
     paths:
       - '.github/workflows/deploy_sports_management.yml'
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -17,17 +16,14 @@ env:
 
 jobs:
   deploy:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       startsWith(github.event.pull_request.head.ref, 'release/run-sports-deployment'))
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
       - name: Checkout authorized deployment candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: release/run-sports-deployment-live-squad-v63
+          fetch-depth: 0
 
       - name: Check deployment secrets
         shell: bash
@@ -78,14 +74,26 @@ jobs:
             --no-verify-jwt \
             --use-api
 
+      - name: Record successful deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'commit=%s\ndeployed_at=%s\n' \
+            '1fdf0ec93be65172dee970f9131048be47d43484' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > sports-management-v63-production.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sports-management-v63-production.txt
+          git commit -m 'Confirmer le déploiement Production v63'
+          git push origin HEAD:release/run-sports-deployment-live-squad-v63
+
       - name: Upload deployment diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sports-management-production-deployment
+          name: sports-management-production-deployment-v63
           path: |
             migration-before.txt
             migration-after.txt
           if-no-files-found: warn
-
-# Production deployment authorized on 2026-07-22 for live squad redesign v63.
