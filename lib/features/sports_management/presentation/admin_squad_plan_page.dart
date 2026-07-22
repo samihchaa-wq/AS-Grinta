@@ -366,7 +366,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         : null;
     setState(() {
       _composition = composition.copyWith(
-        formationCode: footballFormationByCode(composition.formationCode).code,
         hasUnpublishedChanges: true,
         entries: [
           for (final entry in composition.entries)
@@ -439,50 +438,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 entry,
                 MatchCompositionZone.bench,
                 sortOrder: order[entry.participantId],
-              )
-            else
-              entry,
-        ],
-      );
-      _compositionDirty = true;
-    });
-  }
-
-  void _applyFormation(String code) {
-    final composition = _composition;
-    if (composition == null || _busy || _locked) return;
-    final formation = footballFormationByCode(code);
-    final field = composition.entriesFor(MatchCompositionZone.field);
-    field.sort((a, b) {
-      if (a.isGoalkeeper != b.isGoalkeeper) return a.isGoalkeeper ? -1 : 1;
-      final ay = a.y ?? .5;
-      final by = b.y ?? .5;
-      return by.compareTo(ay);
-    });
-    final assigned = <String, FootballFormationSlot>{};
-    final free = [...formation.slots];
-    for (final entry in field) {
-      if (free.isEmpty) break;
-      final current = Offset(entry.x ?? .5, entry.y ?? .5);
-      free.sort(
-        (a, b) => (current - a.position).distance.compareTo(
-              (current - b.position).distance,
-            ),
-      );
-      assigned[entry.participantId] = free.removeAt(0);
-    }
-    setState(() {
-      _composition = composition.copyWith(
-        formationCode: code,
-        hasUnpublishedChanges: true,
-        entries: [
-          for (final entry in composition.entries)
-            if (assigned[entry.participantId] case final slot?)
-              _entryWithStatus(
-                entry,
-                MatchCompositionZone.field,
-                x: slot.position.dx,
-                y: slot.position.dy,
               )
             else
               entry,
@@ -667,30 +622,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
-          DropdownButtonFormField<String>(
-            initialValue: _selectedMatchId,
-            decoration: const InputDecoration(
-              labelText: 'Match',
-              border: OutlineInputBorder(),
-            ),
-            items: [
-              for (final match in _matches)
-                DropdownMenuItem(
-                  value: match.id,
-                  child: Text(
-                    '${match.opponentName} · ${_formatDate(match.kickoffAt)}',
-                  ),
-                ),
-            ],
-            onChanged: _busy
-                ? null
-                : (value) {
-                    if (value == null) return;
-                    setState(() => _selectedMatchId = value);
-                    _loadWorkspace(value);
-                  },
-          ),
-          const SizedBox(height: 14),
           SegmentedButton<_AdminStep>(
             segments: [
               const ButtonSegment(
@@ -863,7 +794,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   Widget _buildComposition() {
     final composition = _composition!;
-    final formation = footballFormationByCode(composition.formationCode);
     final field = composition.entriesFor(MatchCompositionZone.field);
     final bench = composition.entriesFor(MatchCompositionZone.bench)
       ..removeWhere((entry) => !_desiredConvoked.contains(entry.participantId));
@@ -884,41 +814,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Choisis un dispositif puis glisse les convoqués. Les emplacements vides restent visibles.',
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: formation.code,
-                  decoration: const InputDecoration(
-                    labelText: 'Dispositif',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: [
-                    for (final defenders in const [3, 4, 5]) ...[
-                      DropdownMenuItem<String>(
-                        enabled: false,
-                        value: 'header-$defenders',
-                        child: Text(
-                          '$defenders défenseurs',
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      for (final item in footballFormationsForDefenders(
-                        defenders,
-                      ))
-                        DropdownMenuItem(
-                          value: item.code,
-                          child: Text(item.label),
-                        ),
-                    ],
-                  ],
-                  onChanged: _busy || _locked
-                      ? null
-                      : (value) {
-                          if (value != null && !value.startsWith('header-')) {
-                            _applyFormation(value);
-                          }
-                        },
+                  'Glisse les convoqués sur le poste de ton choix. Les emplacements libres restent visibles.',
                 ),
               ],
             ),
@@ -927,7 +823,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         const SizedBox(height: 14),
         Center(
           child: FormationPitchEditor(
-            formation: formation,
+            slots: matchSheetSlots,
             entries: field,
             editable: !_busy && !_locked,
             onDroppedOnSlot: _dropOnSlot,
@@ -1152,13 +1048,4 @@ class _GuestInput {
   final String firstName;
   final String lastName;
   final bool goalkeeper;
-}
-
-String _formatDate(DateTime value) {
-  final local = value.toLocal();
-  final day = local.day.toString().padLeft(2, '0');
-  final month = local.month.toString().padLeft(2, '0');
-  final hour = local.hour.toString().padLeft(2, '0');
-  final minute = local.minute.toString().padLeft(2, '0');
-  return '$day/$month · $hour:$minute';
 }

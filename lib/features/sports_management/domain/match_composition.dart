@@ -178,7 +178,7 @@ class MatchComposition {
   }) {
     return MatchComposition(
       matchId: convocations.matchId,
-      formationCode: '4-3-3',
+      formationCode: null,
       status: 'draft',
       version: 0,
       hasUnpublishedChanges: true,
