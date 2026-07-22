@@ -1,8 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/badges/data/badge_repository.dart';
-import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_last_match_card.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
@@ -26,7 +24,6 @@ class AccueilPage extends ConsumerWidget {
           ref
             ..invalidate(homeDashboardProvider)
             ..invalidate(myLastPronoProvider)
-            ..invalidate(myArmoireProvider)
             ..invalidate(sportMotmVoteProvider);
           await Future.wait([
             ref.read(homeDashboardProvider.future),
@@ -39,8 +36,6 @@ class AccueilPage extends ConsumerWidget {
             _NextMatchBlock(),
             SizedBox(height: 18),
             HomeLastMatchCard(),
-            SizedBox(height: 18),
-            _RecentBadgesBlock(),
           ],
         ),
       ),
@@ -49,12 +44,10 @@ class AccueilPage extends ConsumerWidget {
 }
 
 class _BlockHeader extends StatelessWidget {
-  const _BlockHeader(this.icon, this.title, {this.onSeeAll, this.seeAllLabel});
+  const _BlockHeader(this.icon, this.title);
 
   final IconData icon;
   final String title;
-  final VoidCallback? onSeeAll;
-  final String? seeAllLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -72,11 +65,6 @@ class _BlockHeader extends StatelessWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
-          if (onSeeAll != null)
-            TextButton(
-              onPressed: onSeeAll,
-              child: Text(seeAllLabel ?? 'Voir tout'),
-            ),
         ],
       ),
     );
@@ -282,89 +270,6 @@ class _NextMatchCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _RecentBadgesBlock extends ConsumerWidget {
-  const _RecentBadgesBlock();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(myArmoireProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _BlockHeader(
-          Icons.emoji_events_outlined,
-          'Badges récents',
-          seeAllLabel: 'Armoire',
-          onSeeAll: () => context.push('/armoire'),
-        ),
-        async.when(
-          loading: () => const _MiniLoader(),
-          error: (_, __) =>
-              const _EmptyCard('Impossible de charger tes badges.'),
-          data: (armoire) {
-            final recent = armoire.recent.take(4).toList();
-            if (recent.isEmpty) {
-              return const _EmptyCard(
-                'Aucun badge pour l’instant. À toi de jouer !',
-              );
-            }
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (final badge in recent) _BadgeChip(badge: badge)
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _BadgeChip extends StatelessWidget {
-  const _BadgeChip({required this.badge});
-
-  final ArmoireBadge badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 68,
-      child: Column(
-        children: [
-          BadgeEmblem(
-            emoji: badge.def.emoji,
-            imageUrl: badge.def.imageUrl,
-            color: badge.def.color,
-            baremeLabel: baremeLabelFor(badge.def.metric, badge.def.threshold),
-            showStar: badge.def.hasStar,
-            starCount: badge.stars,
-            starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
-            size: 66,
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            height: 30,
-            child: Text(
-              badge.def.name,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall,
-            ),
-          ),
-        ],
       ),
     );
   }
