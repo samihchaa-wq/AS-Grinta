@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:as_grinta/app/router/app_router.dart';
@@ -82,6 +83,14 @@ class _FakeAuthRepository implements AuthRepository {
     required String firstName,
     required String lastName,
     String? surnom,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AuthProfile> uploadProfilePhoto({
+    required Uint8List bytes,
+    required String fileExt,
   }) {
     throw UnimplementedError();
   }

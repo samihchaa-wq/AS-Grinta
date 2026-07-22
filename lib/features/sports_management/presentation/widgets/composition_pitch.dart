@@ -108,8 +108,8 @@ class _CompositionPitchState extends State<CompositionPitch> {
     MatchCompositionEntry entry,
     Size size,
   ) {
-    const markerWidth = 82.0;
-    const markerHeight = 52.0;
+    const markerWidth = 64.0;
+    const markerHeight = 80.0;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -294,42 +294,90 @@ class _PlayerMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firstName = entry.displayName.trim().split(RegExp(r'\s+')).first;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-          decoration: BoxDecoration(
-            color:
-                entry.isGoalkeeper ? const Color(0xFFE59A1F) : AppTheme.primary,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white70),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PlayerAvatar(
+            photoUrl: entry.photoUrl,
+            name: entry.displayName,
+            isGoalkeeper: entry.isGoalkeeper,
+            size: 52,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                entry.isGoalkeeper
-                    ? Icons.sports_handball
-                    : Icons.sports_soccer,
-                size: 16,
-                color: Colors.white,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                firstName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
+          const SizedBox(height: 3),
+          Text(
+            firstName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Vignette d'un joueur : photo si disponible, sinon initiales.
+/// Utilisée uniquement sur les compositions.
+class PlayerAvatar extends StatelessWidget {
+  const PlayerAvatar({
+    super.key,
+    required this.photoUrl,
+    required this.name,
+    this.isGoalkeeper = false,
+    this.size = 52,
+  });
+
+  final String? photoUrl;
+  final String name;
+  final bool isGoalkeeper;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
+    final url = photoUrl;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2350),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(color: border, width: 2),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: url != null && url.isNotEmpty
+          ? Image.network(
+              url,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _initials(),
+            )
+          : _initials(),
+    );
+  }
+
+  Widget _initials() {
+    final word = name.trim().split(RegExp(r'\s+')).first;
+    final initials = word.isEmpty
+        ? '?'
+        : (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
+    return Center(
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: size * 0.32,
         ),
       ),
     );

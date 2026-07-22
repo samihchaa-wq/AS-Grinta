@@ -2,9 +2,11 @@ import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -54,6 +56,47 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Column(
+                      children: [
+                        Stack(
+                          children: [
+                            PlayerAvatar(
+                              photoUrl: profile?.photoUrl,
+                              name: profile?.displayName ?? '',
+                              size: 96,
+                            ),
+                            Positioned(
+                              right: -4,
+                              bottom: -4,
+                              child: Material(
+                                color: Theme.of(context).colorScheme.primary,
+                                shape: const CircleBorder(),
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: busy ? null : _pickAndUploadPhoto,
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(7),
+                                    child: Icon(
+                                      Icons.photo_camera_outlined,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Ta photo apparaît sur les compositions.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
                   Text(
                     profile?.fullName.isNotEmpty == true
                         ? profile!.fullName
@@ -129,6 +172,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ],
         ],
       ),
+    );
+  }
+
+  Future<void> _pickAndUploadPhoto() async {
+    final picker = ImagePicker();
+    final file = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 800,
+      maxHeight: 800,
+      imageQuality: 85,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    final name = file.name;
+    final ext = name.contains('.') ? name.split('.').last : 'jpg';
+    await ref
+        .read(authControllerProvider.notifier)
+        .uploadPhoto(bytes: bytes, fileExt: ext);
+    if (!mounted) return;
+    final error = ref.read(authControllerProvider).error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'Photo mise à jour.')),
     );
   }
 

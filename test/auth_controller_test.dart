@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:async';
 
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
@@ -218,6 +219,14 @@ class _FakeAuthRepository implements AuthRepository {
     required String firstName,
     required String lastName,
     String? surnom,
+  }) async {
+    return _activeProfile;
+  }
+
+  @override
+  Future<AuthProfile> uploadProfilePhoto({
+    required Uint8List bytes,
+    required String fileExt,
   }) async {
     return _activeProfile;
   }

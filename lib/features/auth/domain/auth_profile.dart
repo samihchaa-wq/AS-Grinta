@@ -24,6 +24,7 @@ class AuthProfile {
     required this.firstName,
     required this.lastName,
     this.surnom = '',
+    this.photoUrl,
     required this.role,
     required this.isGoalkeeper,
     required this.isActive,
@@ -36,6 +37,7 @@ class AuthProfile {
   final String? username;
   final String firstName;
   final String lastName;
+  final String? photoUrl;
 
   /// Surnom optionnel : s'il est renseigné, il s'affiche partout à la place du
   /// prénom.
@@ -74,6 +76,9 @@ class AuthProfile {
       firstName: (json['first_name'] ?? '').toString(),
       lastName: (json['last_name'] ?? '').toString(),
       surnom: (json['surnom'] ?? '').toString(),
+      photoUrl: (json['photo_url']?.toString().trim().isNotEmpty ?? false)
+          ? json['photo_url'].toString()
+          : null,
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
       isActive: statusValue == 'active',
