@@ -1,9 +1,0 @@
-payload length 20023
-base64: invalid input
-
-gzip: stdin: unexpected end of file
-tar: Unexpected EOF in archive
-tar: Unexpected EOF in archive
-tar: Error is not recoverable: exiting now
-python3: can't open file '/home/runner/work/AS-Grinta/AS-Grinta/apply_patch.py': [Errno 2] No such file or directory
-rm: cannot remove 'apply_patch.py': No such file or directory
