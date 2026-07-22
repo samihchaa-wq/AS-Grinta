@@ -126,6 +126,16 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }
 
   @override
+  Future<MatchConvocations> saveEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<MatchConvocations> recomputeMatch({
     required String matchId,
     bool resetOverrides = false,

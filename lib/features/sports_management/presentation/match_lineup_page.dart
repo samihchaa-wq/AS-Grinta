@@ -8,7 +8,6 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/match_
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class MatchLineupPage extends ConsumerWidget {
   const MatchLineupPage({super.key, required this.matchId});
@@ -17,56 +16,33 @@ class MatchLineupPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = ref.watch(sportsManagementEnabledProvider);
-    if (!enabled) {
+    if (!ref.watch(sportsManagementEnabledProvider)) {
       return const Scaffold(body: SizedBox.shrink());
     }
-    final lineup = ref.watch(publishedMatchCompositionProvider(matchId));
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Composition')),
-      body: lineup.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => const Center(
-          child: Text('La composition est momentanément indisponible.'),
-        ),
-        data: (composition) {
-          if (composition == null) {
-            return const Center(child: Text('Composition non publiée.'));
-          }
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(publishedMatchCompositionProvider(matchId));
-              await ref.read(publishedMatchCompositionProvider(matchId).future);
-            },
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-              children: [
-                _PublicationHeader(composition: composition),
-                const SizedBox(height: 16),
-                Center(
-                  child: CompositionPitch(
-                    entries: composition.entriesFor(MatchCompositionZone.field),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _PublishedGroup(
-                  title: 'Remplaçants',
-                  icon: Icons.event_seat_outlined,
-                  entries: composition.entriesFor(MatchCompositionZone.bench),
-                ),
-                const SizedBox(height: 12),
-                _PublishedGroup(
-                  title: 'Non convoqués',
-                  icon: Icons.person_off_outlined,
-                  entries: composition.entriesFor(
-                    MatchCompositionZone.notSelected,
-                  ),
-                ),
-              ],
-            ),
-          );
+      appBar: GrintaAppBar(title: const Text('Équipe')),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref
+            ..invalidate(publishedMatchCompositionProvider(matchId))
+            ..invalidate(matchAvailabilityBoardProvider(matchId));
+          await Future.wait([
+            ref.read(publishedMatchCompositionProvider(matchId).future),
+            ref.read(matchAvailabilityBoardProvider(matchId).future),
+          ]);
         },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          children: [
+            MatchAvailabilitySelector(matchId: matchId, bottomSpacing: 16),
+            PublishedLineupPreview(
+              matchId: matchId,
+              showLists: true,
+              expanded: true,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -89,99 +65,16 @@ class PublishedLineupCard extends ConsumerWidget {
     if (!ref.watch(sportsManagementEnabledProvider)) {
       return const SizedBox.shrink();
     }
-
-    final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
-    final matchStarted = boardAsync.maybeWhen(
-      data: (board) =>
-          board != null && !DateTime.now().isBefore(board.kickoffAt),
-      orElse: () => false,
-    );
-    if (matchStarted) return const SizedBox.shrink();
-
-    final lineup = ref.watch(publishedMatchCompositionProvider(matchId));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showAvailabilityFlow)
-          MatchAvailabilitySelector(
-            matchId: matchId,
-            bottomSpacing: bottomSpacing,
-          ),
-        lineup.when(
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
-          data: (composition) {
-            if (composition == null) {
-              return showAvailabilityFlow
-                  ? MatchAvailabilityBoardCard(
-                      matchId: matchId,
-                      bottomSpacing: bottomSpacing,
-                    )
-                  : const SizedBox.shrink();
-            }
-            return Padding(
-              padding: EdgeInsets.only(bottom: bottomSpacing),
-              child: Card(
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.sports_soccer_outlined),
-                  ),
-                  title: const Text(
-                    'Composition publiée',
-                    style: TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  subtitle: Text(
-                    '${composition.formationCode ?? 'Formation libre'} · '
-                    '${composition.fieldCount} titulaires · '
-                    '${composition.benchCount} remplaçants',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/matches/$matchId/lineup'),
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _PublicationHeader extends StatelessWidget {
-  const _PublicationHeader({required this.composition});
-
-  final MatchComposition composition;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomSpacing),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const CircleAvatar(child: Icon(Icons.campaign_outlined)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    composition.formationCode ?? 'Formation libre',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Version ${composition.version}'
-                    '${composition.publishedAt == null ? '' : ' · ${_formatDateTime(composition.publishedAt!)}'}',
-                  ),
-                ],
-              ),
-            ),
-            Chip(
-              label: Text(
-                '${composition.fieldCount} + ${composition.benchCount}',
-              ),
-            ),
+            if (showAvailabilityFlow)
+              MatchAvailabilitySelector(matchId: matchId, bottomSpacing: 12),
+            PublishedLineupPreview(matchId: matchId, showLists: true),
           ],
         ),
       ),
@@ -189,59 +82,156 @@ class _PublicationHeader extends StatelessWidget {
   }
 }
 
-class _PublishedGroup extends StatelessWidget {
-  const _PublishedGroup({
-    required this.title,
-    required this.icon,
-    required this.entries,
+class PublishedLineupPreview extends ConsumerWidget {
+  const PublishedLineupPreview({
+    super.key,
+    required this.matchId,
+    this.embeddedOnDark = false,
+    this.topSpacing = 0,
+    this.bottomSpacing = 0,
+    this.showLists = false,
+    this.expanded = false,
   });
 
-  final String title;
-  final IconData icon;
-  final List<MatchCompositionEntry> entries;
+  final String matchId;
+  final bool embeddedOnDark;
+  final double topSpacing;
+  final double bottomSpacing;
+  final bool showLists;
+  final bool expanded;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon),
-                const SizedBox(width: 8),
-                Text(
-                  '$title (${entries.length})',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (entries.isEmpty)
-              const Text('Aucun joueur.')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lineup = ref.watch(publishedMatchCompositionProvider(matchId));
+    return Padding(
+      padding: EdgeInsets.only(top: topSpacing, bottom: bottomSpacing),
+      child: lineup.when(
+        loading: () => const SizedBox.shrink(),
+        error: (_, __) => const SizedBox.shrink(),
+        data: (composition) {
+          if (composition == null) {
+            return MatchAvailabilityBoardCard(matchId: matchId, compact: true);
+          }
+          final board =
+              ref.watch(matchAvailabilityBoardProvider(matchId)).valueOrNull;
+          final beforeKickoff =
+              board == null || DateTime.now().isBefore(board.kickoffAt);
+          final foreground = embeddedOnDark ? Colors.white : null;
+          final secondary = embeddedOnDark ? Colors.white70 : null;
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 children: [
-                  for (final entry in entries)
-                    CompositionPlayerChip(entry: entry),
+                  Icon(Icons.sports_soccer_outlined, color: foreground),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Équipe',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: foreground,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ),
+                  Text(
+                    composition.formationCode ?? '4-3-3',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: secondary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
                 ],
               ),
-          ],
-        ),
+              const SizedBox(height: 4),
+              Text(
+                'Composition publiée',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: secondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: expanded ? 500 : 360),
+                  child: CompositionPitch(
+                    entries: composition.entriesFor(MatchCompositionZone.field),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Remplaçants (${composition.benchCount})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: foreground,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              if (composition.benchCount == 0)
+                Text(
+                  'Aucun remplaçant.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: secondary,
+                      ),
+                )
+              else
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: [
+                    for (final entry
+                        in composition.entriesFor(MatchCompositionZone.bench))
+                      Chip(
+                        visualDensity: VisualDensity.compact,
+                        label: Text(entry.displayName),
+                      ),
+                  ],
+                ),
+              if (showLists && beforeKickoff) ...[
+                const SizedBox(height: 12),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: const EdgeInsets.only(top: 8),
+                  leading: Icon(Icons.list_alt_outlined, color: foreground),
+                  title: Text(
+                    'Voir les listes',
+                    style: TextStyle(
+                      color: foreground,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  children: [
+                    MatchAvailabilityBoardCard(
+                      matchId: matchId,
+                      compact: true,
+                      showAfterComposition: true,
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          );
+          if (embeddedOnDark) {
+            return Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .06),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: const Color(0xFF9B6CFF).withValues(alpha: .55),
+                ),
+              ),
+              child: content,
+            );
+          }
+          return Card(
+            margin: EdgeInsets.zero,
+            child: Padding(padding: const EdgeInsets.all(16), child: content),
+          );
+        },
       ),
     );
   }
-}
-
-String _formatDateTime(DateTime value) {
-  final local = value.toLocal();
-  final day = local.day.toString().padLeft(2, '0');
-  final month = local.month.toString().padLeft(2, '0');
-  final hour = local.hour.toString().padLeft(2, '0');
-  final minute = local.minute.toString().padLeft(2, '0');
-  return '$day/$month à $hour:$minute';
 }
