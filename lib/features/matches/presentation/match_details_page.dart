@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -6,9 +7,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
-import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
-import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,38 +59,16 @@ class MatchDetailsPage extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
                   _UpcomingHeader(details: details),
-                  if (isAdmin && sportsEnabled) ...[
-                    const SizedBox(height: 16),
-                    _SportsManagementSection(
-                      matchId: matchId,
-                      actions: const [
-                        _SportAction(
-                          'Effectif',
-                          Icons.groups_2_outlined,
-                          'composition?step=effectif',
-                        ),
-                        _SportAction(
-                          'Composition',
-                          Icons.sports_soccer_outlined,
-                          'composition?step=composition',
-                        ),
-                      ],
-                    ),
-                  ],
                   const SizedBox(height: 16),
-                  PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
-                  _UpcomingPredictionCard(details: details, matchId: matchId),
-                  const SizedBox(height: 16),
-                  _HeadToHeadCard(details: details),
-                  if (isAdmin) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.push('/matches/$matchId/finalize'),
-                      icon: const Text('👑'),
-                      label: const Text('Entrer les statistiques'),
+                  if (sportsEnabled)
+                    _UpcomingModules(matchId: matchId, isAdmin: isAdmin)
+                  else
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(18),
+                        child: Text('Gestion sportive indisponible.'),
+                      ),
                     ),
-                  ],
                 ],
               );
             }
@@ -102,12 +79,10 @@ class MatchDetailsPage extends ConsumerWidget {
                 _MatchHeader(details: details),
                 if (sportsEnabled) ...[
                   const SizedBox(height: 16),
-                  PublishedLineupPreview(matchId: matchId, expanded: true),
-                  const SizedBox(height: 16),
                   MatchMotmVoteCard(matchId: matchId),
                 ],
                 const SizedBox(height: 16),
-                _MatchSummary(details: details),
+                _CompletedCompositionCard(details: details),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -121,8 +96,8 @@ class MatchDetailsPage extends ConsumerWidget {
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: () => context.push('/matches/$matchId/finalize'),
-                    icon: const Icon(Icons.history_edu_outlined),
-                    label: const Text('👑 Modifier les statistiques'),
+                    icon: const Icon(Icons.edit_note_outlined),
+                    label: const Text('Modifier les statistiques'),
                   ),
                 ],
               ],
@@ -141,13 +116,16 @@ class _UpcomingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final home = details.location == 'domicile';
+    final homeName = home ? 'AS Grinta' : details.opponentName;
+    final awayName = home ? details.opponentName : 'AS Grinta';
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
           children: [
             Text(
-              'AS Grinta vs ${details.opponentName}',
+              '$homeName vs $awayName',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -162,105 +140,106 @@ class _UpcomingHeader extends StatelessWidget {
   }
 }
 
-class _UpcomingPredictionCard extends StatelessWidget {
-  const _UpcomingPredictionCard({required this.details, required this.matchId});
+class _UpcomingModules extends StatelessWidget {
+  const _UpcomingModules({required this.matchId, required this.isAdmin});
 
-  final MatchDetailsData details;
   final String matchId;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context) {
-    final closesAt = details.kickoffAt.subtract(const Duration(minutes: 5));
-    final open = DateTime.now().isBefore(closesAt);
-    final odds = <(String, double?)>[
-      ('Victoire Grinta', details.oddsWin),
-      ('Nul', details.oddsDraw),
-      ('Victoire adverse', details.oddsLoss),
-    ].where((item) => item.$2 != null).toList(growable: false);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 520;
+        final effectif = _MatchModule(
+          icon: Icons.groups_2_outlined,
+          title: 'Effectif',
+          subtitle: isAdmin
+              ? 'Sélectionner puis enregistrer l’effectif.'
+              : 'Consulter les joueurs convoqués.',
+          onTap: () => context.push(
+            isAdmin
+                ? '/matches/$matchId/composition?step=effectif'
+                : '/matches/$matchId/lineup?section=effectif',
+          ),
+        );
+        final composition = _MatchModule(
+          icon: Icons.dashboard_customize_outlined,
+          title: 'Composition',
+          subtitle: isAdmin
+              ? 'Créer, enregistrer et publier la composition.'
+              : 'Consulter la composition publiée.',
+          onTap: () => context.push(
+            isAdmin
+                ? '/matches/$matchId/composition?step=composition'
+                : '/matches/$matchId/lineup?section=composition',
+          ),
+        );
+        if (compact) {
+          return Column(
+            children: [effectif, const SizedBox(height: 12), composition],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Icon(Icons.sports_score_outlined),
-                const SizedBox(width: 8),
-                Text(
-                  'Ton prono',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-              ],
-            ),
-            if (odds.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final odd in odds)
-                    Chip(
-                      label: Text('${odd.$1} · ${odd.$2!.toStringAsFixed(2)}'),
-                    ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              onPressed: open
-                  ? () => context.push('/matches/$matchId/prediction')
-                  : null,
-              icon: const Icon(Icons.edit_note_outlined),
-              label: Text(open ? 'Remplir ton prono' : 'Pronostics fermés'),
-            ),
+            Expanded(child: effectif),
+            const SizedBox(width: 12),
+            Expanded(child: composition),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-class _HeadToHeadCard extends StatelessWidget {
-  const _HeadToHeadCard({required this.details});
+class _MatchModule extends StatelessWidget {
+  const _MatchModule({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
-  final MatchDetailsData details;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Les 5 dernières rencontres',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            if (details.headToHead.isEmpty)
-              const Text('Aucune confrontation précédente.')
-            else
-              ...details.headToHead.map(
-                (match) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(AppFormats.date(match.date))),
-                      MatchResultScoreChip(
-                        scoreGrinta: match.scoreGrinta ?? 0,
-                        scoreOpponent: match.scoreOpponent ?? 0,
-                      ),
-                    ],
-                  ),
-                ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(radius: 24, child: Icon(icon)),
+              const SizedBox(height: 14),
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Icon(Icons.chevron_right),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -287,7 +266,12 @@ class _MatchHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
           ],
@@ -297,145 +281,295 @@ class _MatchHeader extends StatelessWidget {
   }
 }
 
-class _MatchSummary extends StatelessWidget {
-  const _MatchSummary({required this.details});
+class _CompletedCompositionCard extends StatelessWidget {
+  const _CompletedCompositionCard({required this.details});
 
   final MatchDetailsData details;
 
   @override
   Widget build(BuildContext context) {
+    final starters = details.startingLineup
+        .where((player) => player.isStarter)
+        .toList(growable: false);
+    final substitutes = details.startingLineup
+        .where((player) => !player.isStarter)
+        .toList(growable: false);
+    final fallbackPlayers = details.playerStats;
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Résumé du match',
-              style: Theme.of(context).textTheme.titleLarge,
+              'Composition et résumé',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Les buts et le statut HDM sont affichés directement sur les joueurs.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Composition de départ',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            if (details.startingLineup.isEmpty)
-              const Text('Composition de départ non renseignée.')
+            if (starters.isNotEmpty)
+              Center(child: _CompletedPitch(players: starters))
+            else if (fallbackPlayers.isEmpty)
+              const Text('Composition non renseignée.')
             else
-              ...details.startingLineup.map(
-                (player) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(player.name)),
-                      if (player.goals > 0) ...[
-                        Text(
-                          player.goals == 1 ? '⚽️' : '⚽️ ×${player.goals}',
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      if (player.isManOfTheMatch)
-                        const Text('👑', style: TextStyle(fontSize: 18)),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SportAction {
-  const _SportAction(this.label, this.icon, this.route);
-
-  final String label;
-  final IconData icon;
-  final String route;
-}
-
-/// Accès aux fonctions de gestion sportive d'un match (réservé à l'admin) :
-/// convocations, composition, invités, suivi HDM. Elles n'apparaissent plus
-/// dans un menu global mais directement dans le match concerné.
-class _SportsManagementSection extends StatelessWidget {
-  const _SportsManagementSection({
-    required this.matchId,
-    required this.actions,
-  });
-
-  final String matchId;
-  final List<_SportAction> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Gestion sportive',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF39E784).withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: const Color(0xFF39E784).withValues(alpha: .55),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final player in fallbackPlayers)
+                    _PlayerSummaryTile(
+                      name: player.name,
+                      goals: player.goals,
+                      isHdm: false,
                     ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 14,
-                        color: Color(0xFF39E784),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Active',
-                        style: TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            for (final action in actions) ...[
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  alignment: Alignment.centerLeft,
-                ),
-                onPressed: () =>
-                    context.push('/matches/$matchId/${action.route}'),
-                icon: Icon(action.icon),
-                label: Text(action.label),
+                ],
               ),
-              const SizedBox(height: 8),
+            if (substitutes.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Remplaçants',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final player in substitutes)
+                    _PlayerSummaryTile(
+                      name: player.name,
+                      goals: player.goals,
+                      isHdm: player.isManOfTheMatch,
+                    ),
+                ],
+              ),
             ],
           ],
         ),
       ),
     );
   }
+}
+
+class _CompletedPitch extends StatelessWidget {
+  const _CompletedPitch({required this.players});
+
+  final List<MatchStartingPlayer> players;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 520),
+      child: AspectRatio(
+        aspectRatio: .68,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF174936),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFF6DAD8B), width: 1.5),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: Stack(
+                  children: [
+                    const Positioned.fill(
+                      child: CustomPaint(painter: _CompletedPitchPainter()),
+                    ),
+                    for (var index = 0; index < players.length; index += 1)
+                      _positionedPlayer(
+                        players[index],
+                        constraints.biggest,
+                        index,
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _positionedPlayer(
+    MatchStartingPlayer player,
+    Size size,
+    int index,
+  ) {
+    const width = 86.0;
+    const height = 74.0;
+    final fallbackColumn = index % 4;
+    final fallbackRow = index ~/ 4;
+    final x = (player.x ?? (.17 + fallbackColumn * .22)).clamp(.1, .9);
+    final y = (player.y ?? (.18 + fallbackRow * .25)).clamp(.08, .92);
+    final left = (x * size.width - width / 2)
+        .clamp(0.0, size.width - width)
+        .toDouble();
+    final top = (y * size.height - height / 2)
+        .clamp(0.0, size.height - height)
+        .toDouble();
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: _PlayerSummaryTile(
+        name: player.name,
+        goals: player.goals,
+        isHdm: player.isManOfTheMatch,
+        compact: true,
+      ),
+    );
+  }
+}
+
+class _PlayerSummaryTile extends StatelessWidget {
+  const _PlayerSummaryTile({
+    required this.name,
+    required this.goals,
+    required this.isHdm,
+    this.compact = false,
+  });
+
+  final String name;
+  final int goals;
+  final bool isHdm;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final goalLabel = goals == 0
+        ? null
+        : goals == 1
+            ? '1 but'
+            : '$goals buts';
+    return Container(
+      constraints: compact ? null : const BoxConstraints(minWidth: 120),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 5 : 10,
+        vertical: compact ? 5 : 8,
+      ),
+      decoration: BoxDecoration(
+        color: compact ? const Color(0xE625164F) : AppTheme.surfaceHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isHdm ? const Color(0xFFFFC857) : Colors.white38,
+          width: isHdm ? 1.8 : 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CircleAvatar(
+                radius: compact ? 15 : 19,
+                backgroundColor: const Color(0xFFD9DCE3),
+                child: Icon(
+                  Icons.person,
+                  size: compact ? 20 : 25,
+                  color: const Color(0xFF596170),
+                ),
+              ),
+              if (isHdm)
+                const Positioned(
+                  right: -7,
+                  top: -7,
+                  child: Icon(
+                    Icons.emoji_events,
+                    size: 17,
+                    color: Color(0xFFFFC857),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: compact ? Colors.white : null,
+              fontSize: compact ? 11 : 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (goalLabel != null)
+            Text(
+              goalLabel,
+              style: TextStyle(
+                color: compact ? const Color(0xFFFFE082) : AppTheme.textSecondary,
+                fontSize: compact ? 10 : 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompletedPitchPainter extends CustomPainter {
+  const _CompletedPitchPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xAAFFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    final inset = size.shortestSide * .045;
+    final rect = Rect.fromLTWH(
+      inset,
+      inset,
+      size.width - inset * 2,
+      size.height - inset * 2,
+    );
+    canvas
+      ..drawRect(rect, paint)
+      ..drawLine(
+        Offset(rect.left, rect.center.dy),
+        Offset(rect.right, rect.center.dy),
+        paint,
+      )
+      ..drawCircle(rect.center, size.width * .13, paint)
+      ..drawRect(
+        Rect.fromCenter(
+          center: Offset(rect.center.dx, rect.top + rect.height * .08),
+          width: rect.width * .58,
+          height: rect.height * .16,
+        ),
+        paint,
+      )
+      ..drawRect(
+        Rect.fromCenter(
+          center: Offset(rect.center.dx, rect.bottom - rect.height * .08),
+          width: rect.width * .58,
+          height: rect.height * .16,
+        ),
+        paint,
+      );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PredictionsTable extends StatelessWidget {
@@ -458,18 +592,10 @@ class _PredictionsTable extends StatelessWidget {
     final exact = prediction.scoreGrinta == actualGrinta &&
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
-
     final correctWinner =
         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
             _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
-
-    final correctDifference =
-        prediction.scoreGrinta - prediction.scoreOpponent ==
-            actualGrinta - actualOpponent;
-    final oneExactTeam = prediction.scoreGrinta == actualGrinta ||
-        prediction.scoreOpponent == actualOpponent;
-    if (correctDifference || oneExactTeam) return const Color(0xFF1DCBFF);
     return const Color(0xFF39E784);
   }
 
@@ -483,32 +609,16 @@ class _PredictionsTable extends StatelessWidget {
           children: [
             Text('Pronostics', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            const Row(
-              children: [
-                Expanded(flex: 2, child: Text('Joueur')),
-                Expanded(child: Text('Prono', textAlign: TextAlign.center)),
-                Expanded(child: Text('Points', textAlign: TextAlign.end)),
-              ],
-            ),
-            const Divider(),
-            ...predictions.map((prediction) {
-              final color = _colorFor(prediction);
-              final score = isHome
-                  ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
-                  : '${prediction.scoreOpponent}–${prediction.scoreGrinta}';
-
-              return Container(
+            for (final prediction in predictions)
+              Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 9,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
-                  border: color == null
+                  border: _colorFor(prediction) == null
                       ? null
-                      : Border.all(color: color, width: 1.7),
-                  color: color?.withValues(alpha: .08),
+                      : Border.all(color: _colorFor(prediction)!, width: 1.7),
+                  color: _colorFor(prediction)?.withValues(alpha: .08),
                 ),
                 child: Row(
                   children: [
@@ -520,50 +630,23 @@ class _PredictionsTable extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: 5,
-                        children: [
-                          Text(score),
-                          if (prediction.usedX2)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFB020),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Text(
-                                '×2',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                        ],
+                      child: Text(
+                        isHome
+                            ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
+                            : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
+                        textAlign: TextAlign.center,
                       ),
                     ),
                     Expanded(
                       child: Text(
                         prediction.points.round().toString(),
                         textAlign: TextAlign.end,
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: color == null
-                              ? FontWeight.normal
-                              : FontWeight.w900,
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                     ),
                   ],
                 ),
-              );
-            }),
+              ),
           ],
         ),
       ),
