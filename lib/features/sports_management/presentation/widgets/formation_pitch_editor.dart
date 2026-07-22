@@ -6,14 +6,14 @@ import 'package:flutter/material.dart';
 class FormationPitchEditor extends StatelessWidget {
   const FormationPitchEditor({
     super.key,
-    required this.formation,
+    required this.slots,
     required this.entries,
     required this.onDroppedOnSlot,
     required this.onRemoveFromField,
     this.editable = true,
   });
 
-  final FootballFormation formation;
+  final List<FootballFormationSlot> slots;
   final List<MatchCompositionEntry> entries;
   final void Function(
     MatchCompositionEntry entry,
@@ -63,7 +63,7 @@ class FormationPitchEditor extends StatelessWidget {
                   children: [
                     const Positioned.fill(
                         child: CustomPaint(painter: _PitchPainter())),
-                    for (final slot in formation.slots)
+                    for (final slot in slots)
                       _slot(
                           context, constraints.biggest, slot, _entryFor(slot)),
                   ],
@@ -82,8 +82,10 @@ class FormationPitchEditor extends StatelessWidget {
     FootballFormationSlot slot,
     MatchCompositionEntry? entry,
   ) {
-    const width = 82.0;
-    const height = 56.0;
+    // La feuille de match affiche 22 postes : on garde des marqueurs
+    // compacts pour qu'ils tiennent sans se chevaucher sur mobile.
+    const width = 58.0;
+    const height = 46.0;
     final left = (slot.position.dx * size.width - width / 2)
         .clamp(0.0, size.width - width)
         .toDouble();
@@ -118,12 +120,12 @@ class FormationPitchEditor extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.add, color: Colors.white, size: 22),
+                  const Icon(Icons.add, color: Colors.white, size: 18),
                   Text(
                     slot.label,
                     style: const TextStyle(
                       color: Colors.white70,
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -156,17 +158,17 @@ class FormationPitchEditor extends StatelessWidget {
                       entry.isGoalkeeper
                           ? Icons.sports_handball
                           : Icons.sports_soccer,
-                      size: 16,
+                      size: 14,
                       color: Colors.white,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       entry.displayName.trim().split(RegExp(r'\s+')).first,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w900,
                       ),
                     ),

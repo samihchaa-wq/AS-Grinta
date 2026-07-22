@@ -215,13 +215,14 @@ class PublishedLineupPreview extends ConsumerWidget {
                           ),
                     ),
                   ),
-                  Text(
-                    composition.formationCode ?? '4-3-3',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: secondary,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
+                  if (composition.formationCode != null)
+                    Text(
+                      composition.formationCode!,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            color: secondary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
                 ],
               ),
               const SizedBox(height: 4),
