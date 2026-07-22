@@ -38,9 +38,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
     super.dispose();
   }
 
-  /// Amène le prochain match tout en haut de la liste, même s'il y a des matchs
-  /// plus lointains au-dessus dans la frise. On réessaie quelques frames tant
-  /// que la carte n'est pas encore montée (liste paresseuse).
   void _scrollToNextMatch(int attempt) {
     if (!mounted) return;
     final targetContext = _nextMatchKey.currentContext;
@@ -62,34 +59,16 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
-    final predictionState = ref.watch(predictionsControllerProvider);
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     final matches = state.matches.toList();
-    // Frise chronologique unique : du match le plus loin dans le futur (tout en
-    // haut) au plus ancien (tout en bas). Les dates se suivent donc dans un
-    // seul sens, sans rupture entre « à venir » et « terminés ».
     final orderedMatches = matches.toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    // Le « prochain » match reste mis en avant par sa couleur : c'est le match
-    // à venir le plus proche dans le temps.
     final upcomingMatches = matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     final nextMatchId = upcomingMatches.firstOrNull?.id;
 
-    final predictionsByMatchId = {
-      for (final item in predictionState.items) item.matchId: item,
-    };
-    final nextEditableMatchId = upcomingMatches
-        .map((match) => predictionsByMatchId[match.id])
-        .whereType<MatchPredictionItem>()
-        .where((item) => !item.isClosed)
-        .map((item) => item.matchId)
-        .firstOrNull;
-
-    // À l'ouverture, une fois les matchs chargés, on se positionne directement
-    // sur le prochain match (programmé une seule fois).
     if (!_autoScrolledToNext &&
         !state.isLoading &&
         matches.isNotEmpty &&
@@ -116,9 +95,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Ajout d'un match (admin) : gros bouton centré en haut de la liste,
-          // pour ne pas modifier la hauteur de la barre du haut. La couronne
-          // signale que l'action est réservée à l'admin.
           if (isAdmin)
             SliverToBoxAdapter(
               child: Padding(
@@ -172,7 +148,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
               ),
             )
           else
-            // Frise unique : futur en haut → passé en bas (ordre décroissant).
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               sliver: SliverList(
@@ -187,7 +162,6 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                         match: match,
                         isAdmin: isAdmin,
                         isNextMatch: isNext,
-                        predictionAvailable: match.id == nextEditableMatchId,
                       ),
                     );
                   },
@@ -206,13 +180,11 @@ class _CalendarMatchCard extends ConsumerWidget {
     required this.match,
     required this.isAdmin,
     required this.isNextMatch,
-    this.predictionAvailable = false,
   });
 
   final MatchModel match;
   final bool isAdmin;
   final bool isNextMatch;
-  final bool predictionAvailable;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -250,6 +222,76 @@ class _CalendarMatchCard extends ConsumerWidget {
       statusLabel = 'À venir';
     }
 
+    final content = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  match.isFinished
+                      ? '$homeName $homeScore–$awayScore $awayName'
+                      : '$homeName vs $awayName',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                statusLabel,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            AppFormats.dateTime(match.kickoffAt),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: dateColor,
+                ),
+          ),
+          if (isNextMatch) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(
+                      '/matches/${match.id}/lineup?section=effectif',
+                    ),
+                    icon: const Icon(Icons.groups_2_outlined),
+                    label: const Text('Effectif'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(
+                      '/matches/${match.id}/lineup?section=composition',
+                    ),
+                    icon: const Icon(Icons.sports_soccer_outlined),
+                    label: const Text('Composition'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (match.isFinished && isAdmin) ...[
+            const SizedBox(height: 14),
+            _AdminMatchActions(match: match),
+          ],
+        ],
+      ),
+    );
+
     return Card(
       color: background,
       shape: RoundedRectangleBorder(
@@ -257,67 +299,12 @@ class _CalendarMatchCard extends ConsumerWidget {
         side: BorderSide(color: outline, width: isNextMatch ? 1.8 : 1.2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(
-          predictionAvailable
-              ? '/matches/${match.id}/prediction'
-              : '/matches/${match.id}',
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      match.isFinished
-                          ? '$homeName $homeScore–$awayScore $awayName'
-                          : '$homeName vs $awayName',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    statusLabel,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.w800,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                AppFormats.dateTime(match.kickoffAt),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: dateColor,
-                    ),
-              ),
-              if (!match.isFinished) ...[
-                const SizedBox(height: 12),
-                Text(
-                  predictionAvailable
-                      ? 'Ton pari est disponible.'
-                      : 'Le pronostic s’ouvrira lorsque les matchs précédents seront fermés.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary,
-                      ),
-                ),
-              ],
-              if (isAdmin) ...[
-                const SizedBox(height: 14),
-                _AdminMatchActions(match: match),
-              ],
-            ],
-          ),
-        ),
-      ),
+      child: match.isFinished
+          ? InkWell(
+              onTap: () => context.push('/matches/${match.id}'),
+              child: content,
+            )
+          : content,
     );
   }
 }
@@ -357,9 +344,7 @@ class _AdminMatchActions extends ConsumerWidget {
               child: FilledButton.tonalIcon(
                 onPressed: () => context.push('/matches/${match.id}/finalize'),
                 icon: const Text('👑'),
-                label: Text(
-                  match.isFinished ? 'Changer les stats' : 'Entrer les stats',
-                ),
+                label: const Text('Changer les stats'),
               ),
             ),
           ],
