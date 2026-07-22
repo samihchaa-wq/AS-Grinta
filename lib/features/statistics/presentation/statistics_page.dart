@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
@@ -141,13 +142,19 @@ class _PlayerStatisticsPeriodViewState
     return dataAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => _ScrollableMessage(
+        icon: Icons.wifi_off_rounded,
+        title: 'Statistiques indisponibles',
         message: humanizeError(error),
+        tone: GrintaEmptyTone.alert,
         onRefresh: _refresh,
       ),
       data: (data) {
         if (data.players.isEmpty) {
           return _ScrollableMessage(
-            message: 'Aucune statistique joueur disponible.',
+            icon: Icons.bar_chart_rounded,
+            title: 'Pas encore de statistiques',
+            message: 'Les stats des joueurs apparaîtront après le premier '
+                'match validé.',
             onRefresh: _refresh,
           );
         }
@@ -190,9 +197,18 @@ class _PlayerStatisticsPeriodViewState
 
 /// Message plein écran (vide / erreur) rafraîchissable par tirer-lâcher.
 class _ScrollableMessage extends StatelessWidget {
-  const _ScrollableMessage({required this.message, required this.onRefresh});
+  const _ScrollableMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.onRefresh,
+    this.tone = GrintaEmptyTone.neutral,
+  });
 
+  final IconData icon;
+  final String title;
   final String message;
+  final GrintaEmptyTone tone;
   final Future<void> Function() onRefresh;
 
   @override
@@ -204,9 +220,11 @@ class _ScrollableMessage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(message),
+            child: GrintaEmptyState(
+              icon: icon,
+              title: title,
+              message: message,
+              tone: tone,
             ),
           ),
         ],
