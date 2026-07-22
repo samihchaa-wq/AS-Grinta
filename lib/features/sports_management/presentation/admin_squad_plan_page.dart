@@ -588,6 +588,44 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     }
   }
 
+  Future<void> _removeGuestFromMatch(ConvocationPlayer player) async {
+    final matchId = _selectedMatchId;
+    if (matchId == null || _busy || _locked || !player.isGuest) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Retirer l’invité ?'),
+        content: Text(
+          '${player.displayName} sera retiré de ce match.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(guestPlayersRepositoryProvider).removeGuest(
+            matchId: matchId,
+            participantId: player.participantId,
+            reason: 'Retrait depuis Effectif',
+          );
+      await _loadWorkspace(matchId);
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,
@@ -727,6 +765,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 acceptsDrops: true,
                 onAccept: (player) => _setConvoked(player, true),
                 onToggle: (player) => _setConvoked(player, false),
+                onRemoveGuest: _removeGuestFromMatch,
                 locked: _locked || _busy,
               ),
               _EffectifColumn(
@@ -931,6 +970,7 @@ class _EffectifColumn extends StatelessWidget {
     this.acceptsDrops = false,
     this.onAccept,
     this.onToggle,
+    this.onRemoveGuest,
   });
 
   final String title;
@@ -941,6 +981,7 @@ class _EffectifColumn extends StatelessWidget {
   final bool acceptsDrops;
   final ValueChanged<ConvocationPlayer>? onAccept;
   final ValueChanged<ConvocationPlayer>? onToggle;
+  final ValueChanged<ConvocationPlayer>? onRemoveGuest;
 
   @override
   Widget build(BuildContext context) {
@@ -995,7 +1036,11 @@ class _EffectifColumn extends StatelessWidget {
                       player: player,
                       color: color,
                       draggable: !locked && onToggle != null && !player.isGuest,
-                      onTap: onToggle == null ? null : () => onToggle!(player),
+                      onTap: player.isGuest
+                          ? (onRemoveGuest == null
+                              ? null
+                              : () => onRemoveGuest!(player))
+                          : (onToggle == null ? null : () => onToggle!(player)),
                     ),
                 ],
               ),
@@ -1025,10 +1070,19 @@ class _EffectifPlayerChip extends StatelessWidget {
       avatar: player.isGuest
           ? const Icon(Icons.person_add_alt_1_outlined, size: 16)
           : null,
-      label: Text(
-        player.firstName.trim().isEmpty
-            ? player.displayName
-            : player.firstName.trim(),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            player.firstName.trim().isEmpty
+                ? player.displayName
+                : player.firstName.trim(),
+          ),
+          if (player.isGuest && onTap != null) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.close, size: 15, color: color.withValues(alpha: .8)),
+          ],
+        ],
       ),
       onPressed: onTap,
       side: BorderSide(color: color.withValues(alpha: .55)),
