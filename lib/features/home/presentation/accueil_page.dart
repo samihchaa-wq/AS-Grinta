@@ -268,8 +268,9 @@ class _NextMatchCard extends StatelessWidget {
                         ),
                         if (open)
                           FilledButton(
-                            onPressed: () =>
-                                context.push('/matches/${match.id}/prediction'),
+                            onPressed: () => context.push(
+                              '/matches/${match.id}/lineup?section=prediction',
+                            ),
                             child: Text(predicted ? 'Modifier' : 'Remplir'),
                           ),
                       ],
