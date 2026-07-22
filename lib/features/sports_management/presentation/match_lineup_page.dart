@@ -79,7 +79,7 @@ class MatchLineupPage extends ConsumerWidget {
                 ButtonSegment(
                   value: 'composition',
                   icon: Icon(Icons.sports_soccer_outlined),
-                  label: Text('Composition'),
+                  label: Text('Compo'),
                 ),
                 ButtonSegment(
                   value: 'prediction',
