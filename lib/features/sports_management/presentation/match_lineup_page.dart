@@ -37,7 +37,11 @@ class MatchLineupPage extends ConsumerWidget {
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     if (isAdmin) {
-      return _AdminMatchWorkspace(matchId: matchId, section: section);
+      return AdminSquadPlanPage(
+        initialMatchId: matchId,
+        initialStep: section,
+        showPredictionStep: true,
+      );
     }
 
     final showEffectif = section == 'effectif';
@@ -104,62 +108,6 @@ class MatchLineupPage extends ConsumerWidget {
             if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _AdminMatchWorkspace extends StatelessWidget {
-  const _AdminMatchWorkspace({required this.matchId, required this.section});
-
-  final String matchId;
-  final String section;
-
-  @override
-  Widget build(BuildContext context) {
-    final content = section == 'prediction'
-        ? Scaffold(
-            appBar: GrintaAppBar(title: const Text('Gestion du match')),
-            body: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-              children: [InlineMatchPredictionCard(matchId: matchId)],
-            ),
-          )
-        : AdminSquadPlanPage(
-            initialMatchId: matchId,
-            initialStep: section,
-          );
-
-    return Scaffold(
-      body: content,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: switch (section) {
-          'composition' => 1,
-          'prediction' => 2,
-          _ => 0,
-        },
-        onDestinationSelected: (index) {
-          final target = switch (index) {
-            1 => 'composition',
-            2 => 'prediction',
-            _ => 'effectif',
-          };
-          context.go('/matches/$matchId/lineup?section=$target');
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.groups_2_outlined),
-            label: 'Effectif',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.sports_soccer_outlined),
-            label: 'Composition',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.sports_score_outlined),
-            label: 'Ton pari',
-          ),
-        ],
       ),
     );
   }

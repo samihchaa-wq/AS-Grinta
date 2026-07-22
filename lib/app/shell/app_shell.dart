@@ -10,29 +10,23 @@ class AppShell extends ConsumerWidget {
 
   Uri get _uri => Uri.parse(location);
 
-  /// Seuls les 4 onglets principaux affichent la barre du bas. Les autres écrans
-  /// (Paramètres, Armoire, Profil, Admin, détail de match…) sont des pages
-  /// poussées, en plein écran avec un bouton retour.
-  bool get _isMainTab {
-    final p = _uri.path;
-    return p == '/accueil' || p == '/pronos' || p == '/statistics';
-  }
-
   int get _selectedIndex {
-    if (_uri.path == '/statistics') return 3;
-    if (_uri.path == '/pronos') {
+    final path = _uri.path;
+    if (path == '/statistics') return 3;
+    if (path == '/pronos') {
       return switch (_uri.queryParameters['category']) {
         'general' || 'scorers' => 2,
         _ => 1,
       };
+    }
+    if (path.startsWith('/matches') || path.startsWith('/predictions')) {
+      return 1;
     }
     return 0;
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!_isMainTab) return child;
-
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
