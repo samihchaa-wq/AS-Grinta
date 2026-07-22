@@ -1,10 +1,9 @@
+import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
-import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -147,7 +146,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   _MatchCard(
                     key: match.id == target?.id ? _nextMatchKey : null,
                     match: match,
-                    canEdit: isAdmin && !match.isFinished,
+                    isNext: match.id == target?.id && !match.isFinished,
+                    canEdit: isAdmin,
                     canFinalize: isAdmin,
                     canDelete: isAdmin,
                   ),
@@ -166,42 +166,45 @@ class _MatchCard extends StatelessWidget {
     required this.canDelete,
     required this.canEdit,
     required this.canFinalize,
+    required this.isNext,
   });
 
   final MatchModel match;
   final bool canDelete;
   final bool canEdit;
   final bool canFinalize;
+  final bool isNext;
 
   @override
   Widget build(BuildContext context) {
     final isFinished = match.isFinished;
-    final cardColor =
-        isFinished ? const Color(0xFF1C2433) : const Color(0xFF102A66);
+    final cardColor = isFinished
+        ? const Color(0xFF1C2433)
+        : isNext
+            ? const Color(0xFF25164F)
+            : const Color(0xFF102A66);
     final borderColor = isFinished
         ? Colors.white.withValues(alpha: .10)
-        : const Color(0xFF4B6FFF);
+        : isNext
+            ? const Color(0xFF9B6CFF)
+            : const Color(0xFF4B6FFF);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: borderColor, width: 1.4),
+        side: BorderSide(color: borderColor, width: isNext ? 1.8 : 1.4),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () {
-          if (isFinished) {
-            context.push('/matches/${match.id}');
-          } else {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => UpcomingMatchPredictionPage(matchId: match.id),
-              ),
-            );
-          }
-        },
+        onTap: isFinished
+            ? () => context.push('/matches/${match.id}')
+            : isNext
+                ? () => context.push(
+                      '/matches/${match.id}/lineup?section=effectif',
+                    )
+                : null,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -226,11 +229,11 @@ class _MatchCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isFinished
                           ? Colors.white.withValues(alpha: .08)
-                          : const Color(0xFF4B6FFF).withValues(alpha: .22),
+                          : borderColor.withValues(alpha: .22),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      isFinished ? 'Terminé' : 'À venir',
+                      isFinished ? 'Terminé' : isNext ? 'Prochain' : 'À venir',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
@@ -238,68 +241,66 @@ class _MatchCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(_formatKickoff(match.kickoffAt)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (canEdit)
-                    FilledButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => MatchFormPage(match: match),
+              if (canEdit || canFinalize || canDelete) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (canEdit)
+                      FilledButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => MatchFormPage(match: match),
+                          ),
                         ),
+                        icon: const Text('⚙️', style: TextStyle(fontSize: 18)),
+                        label: const Text('Modifier'),
                       ),
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('👑 Modifier'),
-                    ),
-                  if (canFinalize)
-                    FilledButton.icon(
-                      onPressed: () =>
-                          context.push('/matches/${match.id}/finalize'),
-                      icon: const Icon(Icons.fact_check_outlined),
-                      label: Text(
-                        isFinished
-                            ? '👑 Modifier les statistiques'
-                            : '👑 Saisir les statistiques',
+                    if (canFinalize)
+                      FilledButton.icon(
+                        onPressed: () =>
+                            context.push('/matches/${match.id}/finalize'),
+                        icon: const Text('📈', style: TextStyle(fontSize: 18)),
+                        label: const Text('Stats'),
                       ),
-                    ),
-                  if (canDelete)
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: const Text('Supprimer ce match ?'),
-                                content: const Text(
-                                  'Le match, ses pronostics et ses statistiques '
-                                  'seront définitivement supprimés.',
+                    if (canDelete)
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Supprimer ce match ?'),
+                                  content: const Text(
+                                    'Le match, ses pronostics et ses statistiques '
+                                    'seront définitivement supprimés.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dialogContext, false),
+                                      child: const Text('Annuler'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(dialogContext, true),
+                                      child: const Text('Supprimer'),
+                                    ),
+                                  ],
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, false),
-                                    child: const Text('Annuler'),
-                                  ),
-                                  FilledButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext, true),
-                                    child: const Text('Supprimer'),
-                                  ),
-                                ],
-                              ),
-                            ) ??
-                            false;
-                        if (!confirmed || !context.mounted) return;
-                        await ProviderScope.containerOf(context)
-                            .read(matchesControllerProvider.notifier)
-                            .deleteMatch(match.id);
-                      },
-                      icon: const Icon(Icons.delete_outline),
-                      label: const Text('👑 Supprimer'),
-                    ),
-                ],
-              ),
+                              ) ??
+                              false;
+                          if (!confirmed || !context.mounted) return;
+                          await ProviderScope.containerOf(context)
+                              .read(matchesControllerProvider.notifier)
+                              .deleteMatch(match.id);
+                        },
+                        icon: const Text('🚫', style: TextStyle(fontSize: 18)),
+                        label: const Text('Supprimer'),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
