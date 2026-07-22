@@ -256,33 +256,7 @@ class _CalendarMatchCard extends ConsumerWidget {
               context,
             ).textTheme.bodySmall?.copyWith(color: dateColor),
           ),
-          if (isNextMatch) ...[
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(
-                      '/matches/${match.id}/lineup?section=effectif',
-                    ),
-                    icon: const Icon(Icons.groups_2_outlined),
-                    label: const Text('Effectif'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(
-                      '/matches/${match.id}/lineup?section=composition',
-                    ),
-                    icon: const Icon(Icons.sports_soccer_outlined),
-                    label: const Text('Composition'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          if (match.isFinished && isAdmin) ...[
+          if (isAdmin) ...[
             const SizedBox(height: 14),
             _AdminMatchActions(match: match),
           ],
@@ -297,9 +271,13 @@ class _CalendarMatchCard extends ConsumerWidget {
         side: BorderSide(color: outline, width: isNextMatch ? 1.8 : 1.2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: match.isFinished
+      child: match.isFinished || isNextMatch
           ? InkWell(
-              onTap: () => context.push('/matches/${match.id}'),
+              onTap: () => context.push(
+                match.isFinished
+                    ? '/matches/${match.id}'
+                    : '/matches/${match.id}/lineup?section=effectif',
+              ),
               child: content,
             )
           : content,
@@ -333,16 +311,16 @@ class _AdminMatchActions extends ConsumerWidget {
                     ..invalidate(matchDetailsProvider(match.id));
                   await ref.read(predictionsControllerProvider.notifier).load();
                 },
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('👑 Modifier'),
+                icon: const Text('⚙️', style: TextStyle(fontSize: 18)),
+                label: const Text('Modifier'),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: FilledButton.tonalIcon(
                 onPressed: () => context.push('/matches/${match.id}/finalize'),
-                icon: const Text('👑'),
-                label: const Text('Changer les stats'),
+                icon: const Text('📈', style: TextStyle(fontSize: 18)),
+                label: const Text('Stats'),
               ),
             ),
           ],
@@ -399,8 +377,8 @@ class _DeleteMatchButton extends ConsumerWidget {
           ..invalidate(matchDetailsProvider(matchId));
         await ref.read(predictionsControllerProvider.notifier).load();
       },
-      icon: const Icon(Icons.delete_outline),
-      label: const Text('👑 Supprimer'),
+      icon: const Text('🚫', style: TextStyle(fontSize: 18)),
+      label: const Text('Supprimer'),
     );
   }
 }

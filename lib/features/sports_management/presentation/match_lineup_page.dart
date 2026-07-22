@@ -2,6 +2,7 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -24,51 +25,75 @@ class MatchLineupPage extends ConsumerWidget {
       return const Scaffold(body: SizedBox.shrink());
     }
 
-    final initialSection = GoRouterState.of(
+    final requestedSection = GoRouterState.of(
       context,
     ).uri.queryParameters['section'];
+    final section = switch (requestedSection) {
+      'composition' => 'composition',
+      'prediction' => 'prediction',
+      _ => 'effectif',
+    };
     final isAdmin =
         ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
 
     if (isAdmin) {
-      return AdminSquadPlanPage(
-        initialMatchId: matchId,
-        initialStep: initialSection,
-      );
+      return _AdminMatchWorkspace(matchId: matchId, section: section);
     }
 
-    final showEffectif = initialSection != 'composition';
-    final showComposition = initialSection != 'effectif';
-    final title = switch (initialSection) {
-      'effectif' => 'Effectif',
-      'composition' => 'Composition',
-      _ => 'Effectif et composition',
-    };
+    final showEffectif = section == 'effectif';
+    final showComposition = section == 'composition';
+    final showPrediction = section == 'prediction';
 
     return Scaffold(
-      appBar: GrintaAppBar(title: Text(title)),
+      appBar: GrintaAppBar(title: const Text('Fiche du match')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref
             ..invalidate(publishedMatchCompositionProvider(matchId))
-            ..invalidate(matchAvailabilityBoardProvider(matchId));
+            ..invalidate(matchAvailabilityBoardProvider(matchId))
+            ..invalidate(inlineMatchPredictionProvider(matchId));
           await Future.wait([
             if (showComposition)
               ref.read(publishedMatchCompositionProvider(matchId).future),
             if (showEffectif)
               ref.read(matchAvailabilityBoardProvider(matchId).future),
+            if (showPrediction)
+              ref.read(inlineMatchPredictionProvider(matchId).future),
           ]);
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(
+                  value: 'effectif',
+                  icon: Icon(Icons.groups_2_outlined),
+                  label: Text('Effectif'),
+                ),
+                ButtonSegment(
+                  value: 'composition',
+                  icon: Icon(Icons.sports_soccer_outlined),
+                  label: Text('Composition'),
+                ),
+                ButtonSegment(
+                  value: 'prediction',
+                  icon: Icon(Icons.sports_score_outlined),
+                  label: Text('Ton pari'),
+                ),
+              ],
+              selected: {section},
+              onSelectionChanged: (selection) => context.go(
+                '/matches/$matchId/lineup?section=${selection.first}',
+              ),
+            ),
+            const SizedBox(height: 16),
             if (showEffectif)
               MatchAvailabilityBoardCard(
                 matchId: matchId,
                 showAfterComposition: true,
               ),
-            if (showEffectif && showComposition) const SizedBox(height: 16),
             if (showComposition)
               PublishedLineupPreview(
                 matchId: matchId,
@@ -76,8 +101,65 @@ class MatchLineupPage extends ConsumerWidget {
                 fallbackToEffectif: false,
                 emptyMessage: 'Composition non publiée.',
               ),
+            if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AdminMatchWorkspace extends StatelessWidget {
+  const _AdminMatchWorkspace({required this.matchId, required this.section});
+
+  final String matchId;
+  final String section;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = section == 'prediction'
+        ? Scaffold(
+            appBar: GrintaAppBar(title: const Text('Gestion du match')),
+            body: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+              children: [InlineMatchPredictionCard(matchId: matchId)],
+            ),
+          )
+        : AdminSquadPlanPage(
+            initialMatchId: matchId,
+            initialStep: section,
+          );
+
+    return Scaffold(
+      body: content,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: switch (section) {
+          'composition' => 1,
+          'prediction' => 2,
+          _ => 0,
+        },
+        onDestinationSelected: (index) {
+          final target = switch (index) {
+            1 => 'composition',
+            2 => 'prediction',
+            _ => 'effectif',
+          };
+          context.go('/matches/$matchId/lineup?section=$target');
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.groups_2_outlined),
+            label: 'Effectif',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sports_soccer_outlined),
+            label: 'Composition',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sports_score_outlined),
+            label: 'Ton pari',
+          ),
+        ],
       ),
     );
   }

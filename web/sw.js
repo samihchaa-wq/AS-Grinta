@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
-// et réception des notifications push Web Push. Cache fonctionnel v66 — pastille des nouveaux badges.
-const CACHE_NAME = 'as-grinta-v66';
+// et réception des notifications push Web Push. Cache fonctionnel v67 — fiches de match, pari et vote HDM.
+const CACHE_NAME = 'as-grinta-v67';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
