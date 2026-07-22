@@ -1,0 +1,440 @@
+name: Finalize live squad redesign
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/finalize-live-squad.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/live-squad-and-formations
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Apply final targeted changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          admin = Path('lib/features/sports_management/presentation/admin_squad_plan_page.dart')
+          text = admin.read_text()
+          text = text.replace(
+              """        if (player.convocationStatus == wanted && player.manualOverride)
+          continue;
+""",
+              """        if (player.convocationStatus == wanted && player.manualOverride) {
+          continue;
+        }
+""",
+          )
+          text = text.replace(
+              """    if (_matches.isEmpty)
+      return const Center(child: Text('Aucun match à venir.'));
+""",
+              """    if (_matches.isEmpty) {
+      return const Center(child: Text('Aucun match à venir.'));
+    }
+""",
+          )
+          save_start = text.index(
+              '      final repository = ref.read(sportWaitlistRepositoryProvider);',
+              text.index('Future<void> _saveEffectif()'),
+          )
+          save_end = text.index(
+              '      await _loadWorkspace(convocations.matchId);',
+              save_start,
+          )
+          text = text[:save_start] + """      final repository = ref.read(sportWaitlistRepositoryProvider);
+      await repository.saveEffectif(
+        matchId: convocations.matchId,
+        squadSizeLimit: limit,
+        decisions: {
+          for (final player in convocations.players)
+            if (!player.isGuest &&
+                player.isAvailable &&
+                player.seasonPlayerId.isNotEmpty)
+              player.seasonPlayerId: _desiredConvoked.contains(player.participantId)
+                  ? ConvocationStatus.convoked
+                  : ConvocationStatus.notConvoked,
+        },
+        reason: 'Effectif enregistré depuis le match',
+      );
+""" + text[save_end:]
+          admin.write_text(text)
+
+          repository = Path('lib/features/sports_management/data/sport_waitlist_repository.dart')
+          text = repository.read_text()
+          interface_anchor = """  Future<MatchConvocations> configureMatch({
+    required String matchId,
+    required int squadSizeLimit,
+  });
+
+"""
+          interface_addition = interface_anchor + """  Future<MatchConvocations> saveEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  });
+
+"""
+          if 'Future<MatchConvocations> saveEffectif' not in text:
+              text = text.replace(interface_anchor, interface_addition)
+
+          implementation_anchor = """  @override
+  Future<MatchConvocations> recomputeMatch({
+"""
+          implementation = """  @override
+  Future<MatchConvocations> saveEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_save_match_effectif',
+      params: {
+        'p_match_id': matchId,
+        'p_squad_size_limit': squadSizeLimit,
+        'p_decisions': [
+          for (final decision in decisions.entries)
+            {
+              'season_player_id': decision.key,
+              'status': decision.value.wireValue,
+            },
+        ],
+        'p_reason': _clean(reason),
+      },
+    );
+    return MatchConvocations.fromRpc(response);
+  }
+
+"""
+          if "'admin_save_match_effectif'" not in text:
+              text = text.replace(implementation_anchor, implementation + implementation_anchor)
+          repository.write_text(text)
+
+          details = Path('lib/features/matches/presentation/match_details_page.dart')
+          text = details.read_text()
+          text = text.replace(
+              """                  PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
+                  _HeadToHeadCard(details: details),
+""",
+              """                  PublishedLineupCard(matchId: matchId, bottomSpacing: 16),
+                  _UpcomingPredictionCard(details: details, matchId: matchId),
+                  const SizedBox(height: 16),
+                  _HeadToHeadCard(details: details),
+""",
+          )
+          prediction_class = r'''
+class _UpcomingPredictionCard extends StatelessWidget {
+  const _UpcomingPredictionCard({
+    required this.details,
+    required this.matchId,
+  });
+
+  final MatchDetailsData details;
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context) {
+    final closesAt = details.kickoffAt.subtract(const Duration(minutes: 5));
+    final open = DateTime.now().isBefore(closesAt);
+    final odds = <(String, double?)>[
+      ('Victoire Grinta', details.oddsWin),
+      ('Nul', details.oddsDraw),
+      ('Victoire adverse', details.oddsLoss),
+    ].where((item) => item.$2 != null).toList(growable: false);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.sports_score_outlined),
+                const SizedBox(width: 8),
+                Text(
+                  'Ton prono',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
+            ),
+            if (odds.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final odd in odds)
+                    Chip(label: Text('${odd.$1} · ${odd.$2!.toStringAsFixed(2)}')),
+                ],
+              ),
+            ],
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: open
+                  ? () => context.push('/matches/$matchId/prediction')
+                  : null,
+              icon: const Icon(Icons.edit_note_outlined),
+              label: Text(open ? 'Remplir ton prono' : 'Pronostics fermés'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+'''
+          marker = 'class _HeadToHeadCard extends StatelessWidget {'
+          if 'class _UpcomingPredictionCard' not in text:
+              text = text.replace(marker, prediction_class + marker)
+          details.write_text(text)
+
+          migration = Path('supabase/migrations/20260722010000_live_effectif_and_composition.sql')
+          sql = migration.read_text()
+          atomic_sql = r'''
+
+create or replace function private.save_match_effectif(
+  p_match_id uuid,
+  p_squad_size_limit integer,
+  p_decisions jsonb,
+  p_reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid := (select auth.uid());
+  v_reason text := nullif(btrim(p_reason), '');
+  v_kickoff_at timestamptz;
+  v_match_status text;
+  v_expected_count integer;
+  v_input_count integer;
+  v_invalid_count integer;
+begin
+  perform private.require_sports_management_enabled();
+  if not private.is_admin() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+  if p_squad_size_limit < 1 or p_squad_size_limit > 30 then
+    raise exception 'Squad size limit must be between 1 and 30' using errcode = '22023';
+  end if;
+  if p_decisions is null or jsonb_typeof(p_decisions) <> 'array' then
+    raise exception 'Effectif decisions must be a JSON array' using errcode = '22023';
+  end if;
+  if v_reason is not null and char_length(v_reason) > 500 then
+    raise exception 'Reason cannot exceed 500 characters' using errcode = '22023';
+  end if;
+
+  select match.kickoff_at, match.status
+  into v_kickoff_at, v_match_status
+  from public.matches match
+  join public.match_sport_workflows workflow on workflow.match_id = match.id
+  where match.id = p_match_id
+  for update of match, workflow;
+
+  if not found then
+    raise exception 'Sport workflow not found' using errcode = 'P0002';
+  end if;
+  if v_match_status <> 'a_venir' or now() >= v_kickoff_at then
+    raise exception 'Effectif can only be edited before kickoff' using errcode = '22023';
+  end if;
+
+  create temporary table if not exists pg_temp.effectif_input (
+    season_player_id uuid primary key,
+    status public.sport_convocation_status not null
+  ) on commit drop;
+  truncate table pg_temp.effectif_input;
+
+  begin
+    insert into pg_temp.effectif_input(season_player_id, status)
+    select
+      (item ->> 'season_player_id')::uuid,
+      (item ->> 'status')::public.sport_convocation_status
+    from jsonb_array_elements(p_decisions) item
+    where item ->> 'status' in ('convoked', 'not_convoked');
+  exception
+    when unique_violation then
+      raise exception 'A player can appear only once in effectif decisions' using errcode = '22023';
+    when invalid_text_representation then
+      raise exception 'Invalid effectif decision' using errcode = '22023';
+  end;
+
+  select count(*)::integer into v_input_count from pg_temp.effectif_input;
+  select count(*)::integer into v_expected_count
+  from public.match_sport_participants participant
+  where participant.match_id = p_match_id
+    and participant.is_eligible
+    and participant.season_player_id is not null
+    and participant.availability_status = 'available';
+
+  if v_input_count <> v_expected_count then
+    raise exception 'Every available permanent player needs one effectif decision' using errcode = '22023';
+  end if;
+
+  select count(*)::integer into v_invalid_count
+  from pg_temp.effectif_input input
+  left join public.match_sport_participants participant
+    on participant.match_id = p_match_id
+   and participant.season_player_id = input.season_player_id
+   and participant.is_eligible
+   and participant.availability_status = 'available'
+  where participant.id is null;
+
+  if v_invalid_count > 0 then
+    raise exception 'Effectif contains an unavailable or ineligible player' using errcode = '22023';
+  end if;
+
+  update public.match_sport_workflows
+  set squad_size_limit = p_squad_size_limit,
+      convocation_state = 'published',
+      convocation_version = convocation_version + 1,
+      convocation_generated_at = now(),
+      convocation_published_at = coalesce(convocation_published_at, now()),
+      updated_by = v_actor,
+      updated_at = now()
+  where match_id = p_match_id;
+
+  update public.match_sport_participants participant
+  set convocation_status = input.status,
+      convocation_manual_override = true,
+      waitlist_recommended_not_convoked = false,
+      waitlist_turn_should_consume = input.status = 'not_convoked',
+      waitlist_turn_state = case
+        when participant.waitlist_turn_state = 'consumed' then 'consumed'::public.sport_waitlist_turn_state
+        when input.status = 'not_convoked' then 'pending'::public.sport_waitlist_turn_state
+        else 'waived'::public.sport_waitlist_turn_state
+      end,
+      waitlist_turn_updated_at = now(),
+      selection_updated_at = now(),
+      selection_updated_by = v_actor,
+      updated_at = now()
+  from pg_temp.effectif_input input
+  where participant.match_id = p_match_id
+    and participant.season_player_id = input.season_player_id;
+
+  update public.match_sport_participants participant
+  set convocation_status = 'not_applicable',
+      convocation_manual_override = false,
+      waitlist_recommended_not_convoked = false,
+      waitlist_turn_should_consume = false,
+      waitlist_turn_state = case
+        when participant.waitlist_turn_state = 'consumed' then 'consumed'::public.sport_waitlist_turn_state
+        else 'not_applicable'::public.sport_waitlist_turn_state
+      end,
+      waitlist_turn_updated_at = now(),
+      updated_at = now()
+  where participant.match_id = p_match_id
+    and participant.is_eligible
+    and participant.season_player_id is not null
+    and participant.availability_status <> 'available';
+
+  update public.match_sport_participants participant
+  set convocation_status = 'convoked',
+      convocation_manual_override = true,
+      waitlist_turn_should_consume = false,
+      waitlist_turn_state = 'waived',
+      waitlist_turn_updated_at = now(),
+      updated_at = now()
+  where participant.match_id = p_match_id
+    and participant.is_eligible
+    and participant.guest_player_id is not null;
+
+  insert into private.sport_admin_audit_log (
+    match_id, action, actor_profile_id, reason, metadata
+  ) values (
+    p_match_id,
+    'save_match_effectif',
+    v_actor,
+    v_reason,
+    jsonb_build_object(
+      'squad_size_limit', p_squad_size_limit,
+      'convoked_count', (
+        select count(*) from pg_temp.effectif_input where status = 'convoked'
+      ),
+      'waitlisted_count', (
+        select count(*) from pg_temp.effectif_input where status = 'not_convoked'
+      )
+    )
+  );
+
+  return private.get_match_convocations(p_match_id);
+end;
+$$;
+
+create or replace function public.admin_save_match_effectif(
+  p_match_id uuid,
+  p_squad_size_limit integer,
+  p_decisions jsonb,
+  p_reason text default null
+)
+returns jsonb
+language sql
+set search_path = ''
+as $$
+  select private.save_match_effectif(
+    p_match_id,
+    p_squad_size_limit,
+    p_decisions,
+    p_reason
+  );
+$$;
+'''
+          if 'private.save_match_effectif(' not in sql:
+              migration.write_text(sql.rstrip() + atomic_sql + '\n')
+          PY
+
+          dart format \
+            lib/features/sports_management/presentation/admin_squad_plan_page.dart \
+            lib/features/sports_management/data/sport_waitlist_repository.dart \
+            lib/features/matches/presentation/match_details_page.dart
+
+      - name: Validate Flutter
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter pub get
+          flutter analyze --fatal-infos 2>&1 | tee analyze.log
+          flutter test 2>&1 | tee test.log
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --no-web-resources-cdn \
+            --dart-define-from-file=config/production.json \
+            --dart-define=APP_VERSION="$version" \
+            2>&1 | tee build-web.log
+
+      - name: Commit validated implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/finalize-live-squad.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Finaliser effectif atomique et module de prono'
+          git push origin HEAD:feat/live-squad-and-formations
