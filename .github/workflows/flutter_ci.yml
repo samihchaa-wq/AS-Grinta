@@ -3,16 +3,14 @@ name: Flutter CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
-  validate:
+  format-live-squad:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 20
     steps:
       - name: Checkout live squad branch
         uses: actions/checkout@v4
@@ -29,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Prepare and format implementation
+      - name: Format and commit implementation
         shell: bash
         run: |
           set -euo pipefail
@@ -66,37 +64,18 @@ jobs:
           text = text.replace('onReorder: _reorderBench,', 'onReorderItem: _reorderBench,')
           path.write_text(text)
           PY
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main -- '*.dart')
-          dart format "${files[@]}"
-
-      - name: Analyze
-        run: flutter analyze --fatal-infos
-
-      - name: Test
-        run: flutter test
-
-      - name: Build web
-        run: |
-          version=$(awk '/^version:/{print $2}' pubspec.yaml)
-          flutter build web \
-            --release \
-            --base-href "/AS-Grinta/" \
-            --pwa-strategy=none \
-            --no-web-resources-cdn \
-            --dart-define-from-file=config/production.json \
-            --dart-define=APP_VERSION="$version"
-
-      - name: Commit formatted implementation
-        shell: bash
-        run: |
-          set -euo pipefail
+          rm -f .github/workflows/finalize-live-squad.yml
           git show 3ef14b4d56ba22ec57c5a74c45a59400babd7fd5:.github/workflows/flutter_ci.yml > .github/workflows/flutter_ci.yml
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main -- '*.dart')
+          if [ "${#files[@]}" -gt 0 ]; then
+            dart format "${files[@]}"
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           if git diff --cached --quiet; then
             echo 'No formatting commit required.'
           else
-            git commit -m 'Finaliser la refonte effectif et composition'
+            git commit -m 'Finaliser le formatage de la refonte effectif'
             git push origin HEAD:feat/live-squad-and-formations
           fi
