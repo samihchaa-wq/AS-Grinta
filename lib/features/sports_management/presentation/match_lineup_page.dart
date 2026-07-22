@@ -21,8 +21,9 @@ class MatchLineupPage extends ConsumerWidget {
       return const Scaffold(body: SizedBox.shrink());
     }
 
-    final initialSection =
-        GoRouterState.of(context).uri.queryParameters['section'];
+    final initialSection = GoRouterState.of(
+      context,
+    ).uri.queryParameters['section'];
     final showEffectif = initialSection != 'composition';
     final showComposition = initialSection != 'effectif';
     final title = switch (initialSection) {
@@ -136,7 +137,10 @@ class PublishedLineupPreview extends ConsumerWidget {
         data: (composition) {
           if (composition == null) {
             if (fallbackToEffectif) {
-              return MatchAvailabilityBoardCard(matchId: matchId, compact: true);
+              return MatchAvailabilityBoardCard(
+                matchId: matchId,
+                compact: true,
+              );
             }
             return Card(
               margin: EdgeInsets.zero,
@@ -146,8 +150,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               ),
             );
           }
-          final board =
-              ref.watch(matchAvailabilityBoardProvider(matchId)).valueOrNull;
+          final board = ref
+              .watch(matchAvailabilityBoardProvider(matchId))
+              .valueOrNull;
           final beforeKickoff =
               board == null || DateTime.now().isBefore(board.kickoffAt);
           final foreground = embeddedOnDark ? Colors.white : null;
@@ -163,17 +168,17 @@ class PublishedLineupPreview extends ConsumerWidget {
                     child: Text(
                       'Composition',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: foreground,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: foreground,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   Text(
                     composition.formationCode ?? '4-3-3',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: secondary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: secondary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ),
@@ -181,9 +186,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               Text(
                 'Composition publiée',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: secondary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: secondary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               Center(
@@ -198,25 +203,26 @@ class PublishedLineupPreview extends ConsumerWidget {
               Text(
                 'Remplaçants (${composition.benchCount})',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: foreground,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: foreground,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               if (composition.benchCount == 0)
                 Text(
                   'Aucun remplaçant.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: secondary,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: secondary),
                 )
               else
                 Wrap(
                   spacing: 7,
                   runSpacing: 7,
                   children: [
-                    for (final entry
-                        in composition.entriesFor(MatchCompositionZone.bench))
+                    for (final entry in composition.entriesFor(
+                      MatchCompositionZone.bench,
+                    ))
                       Chip(
                         visualDensity: VisualDensity.compact,
                         label: Text(entry.displayName),

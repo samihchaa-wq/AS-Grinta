@@ -30,7 +30,8 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (board) {
         final now = DateTime.now();
-        final visible = board != null &&
+        final visible =
+            board != null &&
             (board.isVisibleAt(now) ||
                 (showAfterComposition && now.isBefore(board.kickoffAt)));
         if (!visible) return const SizedBox.shrink();
@@ -57,8 +58,9 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final absent = board.playersWith(MatchAvailabilityBoardStatus.absent);
-    final noResponse =
-        board.playersWith(MatchAvailabilityBoardStatus.noResponse);
+    final noResponse = board.playersWith(
+      MatchAvailabilityBoardStatus.noResponse,
+    );
     final overLimit = board.convoked.length > board.squadSizeLimit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,9 +72,9 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
             Expanded(
               child: Text(
                 'Effectif',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ),
             if (overLimit)
@@ -175,9 +177,9 @@ class _BoardGroup extends StatelessWidget {
                 child: Text(
                   '$title (${players.length})',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    color: color,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
