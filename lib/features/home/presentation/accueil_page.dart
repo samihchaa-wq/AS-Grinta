@@ -90,17 +90,17 @@ class _MiniLoader extends StatelessWidget {
   const _MiniLoader();
   @override
   Widget build(BuildContext context) => const Card(
-    child: Padding(
-      padding: EdgeInsets.all(24),
-      child: Center(
-        child: SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2.4),
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(
+            child: SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
 
 class _EmptyCard extends StatelessWidget {
@@ -108,16 +108,16 @@ class _EmptyCard extends StatelessWidget {
   final String message;
   @override
   Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(18),
-      child: Text(
-        message,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-      ),
-    ),
-  );
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Text(
+            message,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
+          ),
+        ),
+      );
 }
 
 // ─────────────────────────── Prochain match ───────────────────────────
@@ -168,15 +168,14 @@ class _NextMatchCard extends StatelessWidget {
     final homeName = match.isHome ? 'AS Grinta' : match.opponent;
     final awayName = match.isHome ? match.opponent : 'AS Grinta';
     final closeAt = match.kickoffAt?.subtract(const Duration(minutes: 5));
-    final open =
-        !match.predictionsClosed &&
+    final open = !match.predictionsClosed &&
         closeAt != null &&
         DateTime.now().isBefore(closeAt);
     final predictionScore = prediction == null
         ? null
         : match.isHome
-        ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
-        : '${prediction!.opponentScore} – ${prediction!.grintaScore}';
+            ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
+            : '${prediction!.opponentScore} – ${prediction!.grintaScore}';
 
     return Card(
       color: const Color(0xFF25164F),
@@ -198,8 +197,8 @@ class _NextMatchCard extends StatelessWidget {
                     child: Text(
                       '$homeName  vs  $awayName',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                   ),
                   Container(
@@ -227,8 +226,8 @@ class _NextMatchCard extends StatelessWidget {
                 Text(
                   AppFormats.dateTime(match.kickoffAt!),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFD7C8FF),
-                  ),
+                        color: const Color(0xFFD7C8FF),
+                      ),
                 ),
               ],
               MatchAvailabilitySelector(
@@ -272,10 +271,10 @@ class _NextMatchCard extends StatelessWidget {
                           child: Text(
                             predicted && predictionScore != null
                                 ? '$predictionScore'
-                                      '${prediction!.useX2 ? ' · ×2' : ''}'
+                                    '${prediction!.useX2 ? ' · ×2' : ''}'
                                 : open
-                                ? 'Pas encore rempli'
-                                : 'Pronostics fermés',
+                                    ? 'Pas encore rempli'
+                                    : 'Pronostics fermés',
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               color: predicted
@@ -395,11 +394,11 @@ class _LastPronoCard extends StatelessWidget {
                   Text(
                     AppFormats.counted((prono.points * 100).round(), 'point'),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: accent == const Color(0xFF8A6D2F)
-                          ? Colors.white
-                          : accent,
-                    ),
+                          fontWeight: FontWeight.w900,
+                          color: accent == const Color(0xFF8A6D2F)
+                              ? Colors.white
+                              : accent,
+                        ),
                   ),
                 ],
               ),

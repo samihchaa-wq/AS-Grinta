@@ -2,10 +2,8 @@ part of 'pronos_hub_page.dart';
 
 final _calendarPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-      return ref
-          .watch(predictionsRepositoryProvider)
-          .fetchMatchPrediction(matchId);
-    });
+  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
+});
 
 class _CalendarSection extends ConsumerStatefulWidget {
   const _CalendarSection();
@@ -237,17 +235,17 @@ class _CalendarMatchCard extends ConsumerWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                        fontWeight: FontWeight.w800,
+                      ),
                 ),
               ),
               const SizedBox(width: 12),
               Text(
                 statusLabel,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: statusColor,
-                  fontWeight: FontWeight.w800,
-                ),
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
             ],
           ),
@@ -368,8 +366,7 @@ class _DeleteMatchButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return OutlinedButton.icon(
       onPressed: () async {
-        final confirmed =
-            await showDialog<bool>(
+        final confirmed = await showDialog<bool>(
               context: context,
               builder: (dialogContext) => AlertDialog(
                 title: const Text('Supprimer ce match ?'),
