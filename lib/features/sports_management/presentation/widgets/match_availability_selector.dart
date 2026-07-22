@@ -253,6 +253,22 @@ class _AvailabilityPanel extends StatelessWidget {
             const LinearProgressIndicator(minHeight: 2),
           ],
           if (showManageShortcut) ...[
+            const SizedBox(height: 14),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: embeddedOnDark
+                  ? Colors.white.withValues(alpha: .18)
+                  : AppTheme.outline,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Gestion du match',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: secondary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
