@@ -44,12 +44,10 @@ class AccueilPage extends ConsumerWidget {
 }
 
 class _BlockHeader extends StatelessWidget {
-  const _BlockHeader(this.icon, this.title, {this.onSeeAll, this.seeAllLabel});
+  const _BlockHeader(this.icon, this.title);
 
   final IconData icon;
   final String title;
-  final VoidCallback? onSeeAll;
-  final String? seeAllLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +65,6 @@ class _BlockHeader extends StatelessWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
-          if (onSeeAll != null)
-            TextButton(
-              onPressed: onSeeAll,
-              child: Text(seeAllLabel ?? 'Voir tout'),
-            ),
         ],
       ),
     );
