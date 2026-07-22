@@ -67,7 +67,8 @@ class SportWaitlistEntry {
   final int previousSeasonMatchCount;
   final String source;
 
-  String get displayName => '$firstName $lastName'.trim();
+  // Appellation : prénom uniquement, jamais le nom de famille.
+  String get displayName => firstName.trim();
 }
 
 class SportWaitlist {
@@ -175,8 +176,9 @@ class ConvocationPlayer {
   final WaitlistTurnState turnState;
   final DateTime? promotedAfterWithdrawalAt;
 
+  // Appellation : prénom uniquement, jamais le nom de famille.
   String get displayName {
-    final name = '$firstName $lastName'.trim();
+    final name = firstName.trim();
     return isGuest ? '$name (Invité)' : name;
   }
 

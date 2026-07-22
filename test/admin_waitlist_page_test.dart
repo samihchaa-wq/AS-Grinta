@@ -21,8 +21,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Alice Grinta'), findsOneWidget);
-    expect(find.text('Bruno Grinta'), findsOneWidget);
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bruno'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
     await tester.pump();
