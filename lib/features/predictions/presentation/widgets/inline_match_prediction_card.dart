@@ -188,6 +188,7 @@ class _InlineMatchPredictionCardState
                       label: '1',
                       value: AppFormats.odds(item.oddsWin),
                       selected: grinta > opponent,
+                      accent: const Color(0xFF39E784),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -196,6 +197,7 @@ class _InlineMatchPredictionCardState
                       label: 'N',
                       value: AppFormats.odds(item.oddsDraw),
                       selected: grinta == opponent,
+                      accent: const Color(0xFFE59A1F),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -204,6 +206,7 @@ class _InlineMatchPredictionCardState
                       label: '2',
                       value: AppFormats.odds(item.oddsLoss),
                       selected: grinta < opponent,
+                      accent: const Color(0xFFFF6B6B),
                     ),
                   ),
                 ],
@@ -420,31 +423,47 @@ class _Odd extends StatelessWidget {
     required this.label,
     required this.value,
     required this.selected,
+    required this.accent,
   });
 
   final String label;
   final String value;
   final bool selected;
 
+  /// Couleur du résultat (1 vert, N orange, 2 rouge), appliquée à la
+  /// sélection.
+  final Color accent;
+
   @override
   Widget build(BuildContext context) {
-    final primary = Theme.of(context).colorScheme.primary;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: selected ? primary.withValues(alpha: .10) : null,
+        color: selected ? accent.withValues(alpha: .16) : null,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: selected ? primary : AppTheme.outline,
+          color: selected ? accent : AppTheme.outline,
           width: selected ? 2 : 1,
         ),
       ),
       child: Column(
         children: [
-          Text(label),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              color: selected ? accent : null,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              color: selected ? accent : null,
+            ),
+          ),
         ],
       ),
     );
