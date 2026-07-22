@@ -667,30 +667,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
-          DropdownButtonFormField<String>(
-            initialValue: _selectedMatchId,
-            decoration: const InputDecoration(
-              labelText: 'Match',
-              border: OutlineInputBorder(),
-            ),
-            items: [
-              for (final match in _matches)
-                DropdownMenuItem(
-                  value: match.id,
-                  child: Text(
-                    '${match.opponentName} · ${_formatDate(match.kickoffAt)}',
-                  ),
-                ),
-            ],
-            onChanged: _busy
-                ? null
-                : (value) {
-                    if (value == null) return;
-                    setState(() => _selectedMatchId = value);
-                    _loadWorkspace(value);
-                  },
-          ),
-          const SizedBox(height: 14),
           SegmentedButton<_AdminStep>(
             segments: [
               const ButtonSegment(
@@ -1152,13 +1128,4 @@ class _GuestInput {
   final String firstName;
   final String lastName;
   final bool goalkeeper;
-}
-
-String _formatDate(DateTime value) {
-  final local = value.toLocal();
-  final day = local.day.toString().padLeft(2, '0');
-  final month = local.month.toString().padLeft(2, '0');
-  final hour = local.hour.toString().padLeft(2, '0');
-  final minute = local.minute.toString().padLeft(2, '0');
-  return '$day/$month · $hour:$minute';
 }

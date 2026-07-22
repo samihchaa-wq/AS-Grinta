@@ -66,8 +66,12 @@ class _MatchAvailabilitySelectorState
             onAvailable: () => _save(value, MatchAvailabilityStatus.available),
             onAbsent: () => _save(value, MatchAvailabilityStatus.absent),
             showManageShortcut: widget.showManageShortcut,
-            onManage: () =>
-                context.push('/matches/${widget.matchId}/composition'),
+            onOpenEffectif: () => context.push(
+              '/matches/${widget.matchId}/composition?step=effectif',
+            ),
+            onOpenComposition: () => context.push(
+              '/matches/${widget.matchId}/composition?step=composition',
+            ),
           ),
         );
       },
@@ -131,7 +135,8 @@ class _AvailabilityPanel extends StatelessWidget {
     required this.onAvailable,
     required this.onAbsent,
     this.showManageShortcut = false,
-    this.onManage,
+    this.onOpenEffectif,
+    this.onOpenComposition,
   });
 
   final MatchAvailability availability;
@@ -140,7 +145,8 @@ class _AvailabilityPanel extends StatelessWidget {
   final VoidCallback onAvailable;
   final VoidCallback onAbsent;
   final bool showManageShortcut;
-  final VoidCallback? onManage;
+  final VoidCallback? onOpenEffectif;
+  final VoidCallback? onOpenComposition;
 
   @override
   Widget build(BuildContext context) {
@@ -246,21 +252,38 @@ class _AvailabilityPanel extends StatelessWidget {
             const SizedBox(height: 8),
             const LinearProgressIndicator(minHeight: 2),
           ],
-          if (showManageShortcut && onManage != null) ...[
+          if (showManageShortcut) ...[
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: onManage,
-                icon: const Icon(Icons.sports_soccer_outlined),
-                label: const Text('Effectif et composition'),
-                style: embeddedOnDark
-                    ? OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
-                      )
-                    : null,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onOpenEffectif,
+                    icon: const Icon(Icons.groups_2_outlined),
+                    label: const Text('Effectif'),
+                    style: embeddedOnDark
+                        ? OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white54),
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onOpenComposition,
+                    icon: const Icon(Icons.sports_soccer_outlined),
+                    label: const Text('Compo'),
+                    style: embeddedOnDark
+                        ? OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white54),
+                          )
+                        : null,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
