@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,13 +24,11 @@ class PlayersRegistryPage extends ConsumerWidget {
         data: (seasonId) {
           if (seasonId == null) {
             return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Aucune saison ouverte. Crée une saison dans '
-                  'Administration pour définir ton effectif.',
-                  textAlign: TextAlign.center,
-                ),
+              child: GrintaEmptyState(
+                icon: Icons.calendar_month_rounded,
+                title: 'Aucune saison ouverte',
+                message: 'Crée une saison dans Administration pour définir '
+                    'ton effectif.',
               ),
             );
           }
@@ -71,9 +70,12 @@ class _RosterList extends ConsumerWidget {
           children: [
             if (players.isEmpty)
               const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(18),
-                  child: Text('Aucun joueur dans l’effectif.'),
+                child: GrintaEmptyState(
+                  icon: Icons.groups_rounded,
+                  title: 'Effectif vide',
+                  message: 'Ajoute tes joueurs avec le bouton « Ajouter » '
+                      'en bas de l\'écran.',
+                  compact: true,
                 ),
               )
             else

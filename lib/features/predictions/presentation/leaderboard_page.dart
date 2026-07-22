@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -100,9 +101,11 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                       padding: const EdgeInsets.all(16),
                       children: const [
                         Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Text('Aucun classement disponible.'),
+                          child: GrintaEmptyState(
+                            icon: Icons.leaderboard_rounded,
+                            title: 'Classement à venir',
+                            message: 'Le classement se remplit dès les '
+                                'premiers pronostics notés.',
                           ),
                         ),
                       ],

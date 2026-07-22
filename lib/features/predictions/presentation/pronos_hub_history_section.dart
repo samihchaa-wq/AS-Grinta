@@ -138,14 +138,24 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               sliver: SliverToBoxAdapter(
-                child: _MessageCard(message: state.error!),
+                child: _MessageCard(
+                  title: 'Historique indisponible',
+                  icon: Icons.wifi_off_rounded,
+                  message: state.error!,
+                  tone: GrintaEmptyTone.alert,
+                ),
               ),
             )
           else if (matches.isEmpty)
             const SliverPadding(
               padding: EdgeInsets.fromLTRB(16, 16, 16, 32),
               sliver: SliverToBoxAdapter(
-                child: _MessageCard(message: 'Aucun match.'),
+                child: _MessageCard(
+                  title: 'Aucun match joué',
+                  icon: Icons.history_rounded,
+                  message: 'Les matchs terminés et leurs pronos s\'afficheront '
+                      'ici.',
+                ),
               ),
             )
           else

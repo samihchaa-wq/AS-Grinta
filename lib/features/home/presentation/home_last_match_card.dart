@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
@@ -22,12 +23,20 @@ class HomeLastMatchCard extends ConsumerWidget {
         dashboard.when(
           loading: () => const _LoadingCard(),
           error: (_, __) => const _MessageCard(
-            message: 'Impossible de charger le dernier match.',
+            title: 'Chargement impossible',
+            icon: Icons.wifi_off_rounded,
+            message: 'Tire pour rafraîchir.',
+            tone: GrintaEmptyTone.alert,
           ),
           data: (data) {
             final match = data.lastMatch;
             if (match == null) {
-              return const _MessageCard(message: 'Aucun match terminé.');
+              return const _MessageCard(
+                title: 'Aucun match joué',
+                message:
+                    'Le résultat et la compo s\'afficheront après le premier '
+                    'match de la saison.',
+              );
             }
             return _LastMatchContent(match: match);
           },
@@ -73,7 +82,12 @@ class _LastMatchContent extends ConsumerWidget {
 
     return detailsAsync.when(
       loading: () => const _LoadingCard(),
-      error: (error, _) => _MessageCard(message: humanizeError(error)),
+      error: (error, _) => _MessageCard(
+        title: 'Détails indisponibles',
+        icon: Icons.wifi_off_rounded,
+        message: humanizeError(error),
+        tone: GrintaEmptyTone.alert,
+      ),
       data: (details) {
         final homeName = match.isHome ? 'AS Grinta' : match.opponent;
         final awayName = match.isHome ? match.opponent : 'AS Grinta';
@@ -286,16 +300,27 @@ class _LoadingCard extends StatelessWidget {
 }
 
 class _MessageCard extends StatelessWidget {
-  const _MessageCard({required this.message});
+  const _MessageCard({
+    required this.title,
+    this.icon = Icons.sports_soccer_rounded,
+    this.message,
+    this.tone = GrintaEmptyTone.neutral,
+  });
 
-  final String message;
+  final String title;
+  final IconData icon;
+  final String? message;
+  final GrintaEmptyTone tone;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(message),
+      child: GrintaEmptyState(
+        icon: icon,
+        title: title,
+        message: message,
+        tone: tone,
+        compact: true,
       ),
     );
   }

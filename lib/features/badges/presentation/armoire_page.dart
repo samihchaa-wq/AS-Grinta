@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
@@ -72,6 +73,17 @@ class ArmoirePage extends ConsumerWidget {
             children: [
               const _Header(),
               const SizedBox(height: 20),
+              if (armoire.validated.isEmpty &&
+                  armoire.inProgress.isEmpty &&
+                  armoire.locked.isEmpty)
+                const Card(
+                  child: GrintaEmptyState(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'Ta collection est vide',
+                    message: 'Joue, pronostique et gagne des matchs pour '
+                        'débloquer tes premiers badges.',
+                  ),
+                ),
               if (armoire.validated.isNotEmpty) ...[
                 _SectionTitle('Validés', armoire.validated.length),
                 const SizedBox(height: 4),

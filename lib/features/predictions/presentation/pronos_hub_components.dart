@@ -42,7 +42,10 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
   @override
   Widget build(BuildContext context) {
     if (widget.entries.isEmpty) {
-      return const _MessageCard(message: 'Aucun point pour le moment.');
+      return const _MessageCard(
+        title: 'Aucun point pour le moment',
+        message: 'Le classement se remplit dès les premiers matchs notés.',
+      );
     }
 
     final sorted = [...widget.entries]..sort((a, b) {
@@ -225,16 +228,26 @@ class _LoadingCard extends StatelessWidget {
 }
 
 class _MessageCard extends StatelessWidget {
-  const _MessageCard({required this.message});
+  const _MessageCard({
+    required this.title,
+    this.icon = Icons.scoreboard_rounded,
+    this.message,
+    this.tone = GrintaEmptyTone.neutral,
+  });
 
-  final String message;
+  final String title;
+  final IconData icon;
+  final String? message;
+  final GrintaEmptyTone tone;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Text(message),
+      child: GrintaEmptyState(
+        icon: icon,
+        title: title,
+        message: message,
+        tone: tone,
       ),
     );
   }

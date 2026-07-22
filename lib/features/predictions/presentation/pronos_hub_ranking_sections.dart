@@ -78,7 +78,10 @@ class _MatchRankingView extends ConsumerWidget {
     return leaderboard.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => const _MessageCard(
-        message: 'Le classement des matchs est indisponible.',
+        title: 'Classement indisponible',
+        icon: Icons.wifi_off_rounded,
+        message: 'Le classement des matchs n\'a pas pu être chargé.',
+        tone: GrintaEmptyTone.alert,
       ),
       data: (entries) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
@@ -124,7 +127,10 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
     return leaderboard.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => const _MessageCard(
-        message: 'Le classement général est indisponible.',
+        title: 'Classement indisponible',
+        icon: Icons.wifi_off_rounded,
+        message: 'Le classement général n\'a pas pu être chargé.',
+        tone: GrintaEmptyTone.alert,
       ),
       data: (entries) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),

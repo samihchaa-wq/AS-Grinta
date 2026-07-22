@@ -1,6 +1,6 @@
-import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
@@ -94,21 +94,27 @@ class _MiniLoader extends StatelessWidget {
 }
 
 class _EmptyCard extends StatelessWidget {
-  const _EmptyCard(this.message);
+  const _EmptyCard(
+    this.title, {
+    this.icon = Icons.event_busy_rounded,
+    this.message,
+    this.tone = GrintaEmptyTone.neutral,
+  });
 
-  final String message;
+  final String title;
+  final IconData icon;
+  final String? message;
+  final GrintaEmptyTone tone;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Text(
-          message,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
-        ),
+      child: GrintaEmptyState(
+        icon: icon,
+        title: title,
+        message: message,
+        tone: tone,
+        compact: true,
       ),
     );
   }
@@ -126,11 +132,20 @@ class _NextMatchBlock extends ConsumerWidget {
         const _BlockHeader(Icons.event_rounded, 'Prochain match'),
         async.when(
           loading: () => const _MiniLoader(),
-          error: (_, __) => const _EmptyCard('Impossible de charger le match.'),
+          error: (_, __) => const _EmptyCard(
+            'Chargement impossible',
+            icon: Icons.wifi_off_rounded,
+            message: 'Tire pour rafraîchir.',
+            tone: GrintaEmptyTone.alert,
+          ),
           data: (data) {
             final match = data.nextMatch;
             if (match == null) {
-              return const _EmptyCard('Aucun match à venir pour le moment.');
+              return const _EmptyCard(
+                'Pas de match programmé',
+                message:
+                    'Le prochain match apparaîtra ici dès qu\'il sera créé.',
+              );
             }
             final isAdmin = ref.watch(authControllerProvider).profile?.role ==
                 AuthRole.admin;
