@@ -5,17 +5,13 @@ import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dart';
-import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
-import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// Écran d'accueil : point d'atterrissage de l'app.
-/// 1) Parier sur le prochain match · 2) Ton dernier prono ·
-/// 3) Tes classements · 4) Badges récents.
 class AccueilPage extends ConsumerWidget {
   const AccueilPage({super.key});
 
@@ -32,7 +28,6 @@ class AccueilPage extends ConsumerWidget {
             ..invalidate(homeDashboardProvider)
             ..invalidate(myLastPronoProvider)
             ..invalidate(myArmoireProvider)
-            ..invalidate(publishedMatchCompositionProvider)
             ..invalidate(sportMotmVoteProvider);
           await Future.wait([
             ref.read(homeDashboardProvider.future),
@@ -125,7 +120,7 @@ class _EmptyCard extends StatelessWidget {
       );
 }
 
-// ───────────────────── 1) Parier sur le prochain match ─────────────────────
+// ─────────────────────────── Prochain match ───────────────────────────
 
 class _NextMatchBlock extends ConsumerWidget {
   const _NextMatchBlock();
@@ -147,10 +142,8 @@ class _NextMatchBlock extends ConsumerWidget {
             }
             return _NextMatchCard(
               match: match,
-              meetings: data.recentMeetings,
               predicted: data.nextMatchPredicted,
               prediction: data.nextMatchPrediction,
-              participants: data.predictionParticipantCount,
             );
           },
         ),
@@ -162,23 +155,18 @@ class _NextMatchBlock extends ConsumerWidget {
 class _NextMatchCard extends StatelessWidget {
   const _NextMatchCard({
     required this.match,
-    required this.meetings,
     required this.predicted,
     required this.prediction,
-    required this.participants,
   });
 
   final HomeMatch match;
-  final List<RecentMeeting> meetings;
   final bool predicted;
   final HomePrediction? prediction;
-  final int participants;
 
   @override
   Widget build(BuildContext context) {
     final homeName = match.isHome ? 'AS Grinta' : match.opponent;
     final awayName = match.isHome ? match.opponent : 'AS Grinta';
-    // Les pronos ferment 5 minutes avant le coup d'envoi (ou manuellement).
     final closeAt = match.kickoffAt?.subtract(const Duration(minutes: 5));
     final open = !match.predictionsClosed &&
         closeAt != null &&
@@ -197,7 +185,7 @@ class _NextMatchCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/matches/${match.id}'),
+        onTap: () => context.go('/pronos?category=matches'),
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
@@ -247,31 +235,7 @@ class _NextMatchCard extends StatelessWidget {
                 embeddedOnDark: true,
                 topSpacing: 14,
               ),
-              PublishedLineupPreview(
-                matchId: match.id,
-                embeddedOnDark: true,
-                topSpacing: 12,
-              ),
-              if (meetings.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  '5 dernières confrontations',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: const Color(0xFFCAB5FF),
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (final m in meetings) ...[
-                      _MeetingDot(meeting: m),
-                      const SizedBox(width: 8),
-                    ],
-                  ],
-                ),
-              ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -279,54 +243,57 @@ class _NextMatchCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: const Color(0xFF3F2A73)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Icon(
-                      predicted ? Icons.check_circle : Icons.sports_soccer,
-                      size: 18,
-                      color: predicted ? const Color(0xFF52D08A) : Colors.white,
+                    const Row(
+                      children: [
+                        Icon(Icons.sports_score_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text(
+                          'Ton prono',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        predicted && predictionScore != null
-                            ? 'Ton prono : $predictionScore'
-                                '${prediction!.useX2 ? ' · ×2' : ''}'
-                            : open
-                                ? 'Tu n\'as pas encore parié'
-                                : 'Pronostics fermés',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          color: predicted
-                              ? const Color(0xFF52D08A)
-                              : Colors.white,
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(
+                          predicted ? Icons.check_circle : Icons.sports_soccer,
+                          size: 18,
+                          color:
+                              predicted ? const Color(0xFF52D08A) : Colors.white,
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            predicted && predictionScore != null
+                                ? '$predictionScore'
+                                    '${prediction!.useX2 ? ' · ×2' : ''}'
+                                : open
+                                    ? 'Pas encore rempli'
+                                    : 'Pronostics fermés',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: predicted
+                                  ? const Color(0xFF52D08A)
+                                  : Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (open)
+                          FilledButton(
+                            onPressed: () => context.push(
+                              '/matches/${match.id}/prediction',
+                            ),
+                            child: Text(predicted ? 'Modifier' : 'Remplir'),
+                          ),
+                      ],
                     ),
-                    if (open)
-                      FilledButton(
-                        onPressed: () => context.push(
-                          '/matches/${match.id}/prediction',
-                        ),
-                        child: Text(
-                          predicted
-                              ? 'Modifier ton prono'
-                              : 'Remplir ton prono',
-                        ),
-                      ),
                   ],
                 ),
               ),
-              if (participants > 0) ...[
-                const SizedBox(height: 8),
-                Text(
-                  AppFormats.counted(participants, 'pronostiqueur') +
-                      (participants > 1 ? ' ont parié' : ' a parié'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFFB6A9E0),
-                      ),
-                ),
-              ],
             ],
           ),
         ),
@@ -335,45 +302,7 @@ class _NextMatchCard extends StatelessWidget {
   }
 }
 
-class _MeetingDot extends StatelessWidget {
-  const _MeetingDot({required this.meeting});
-  final RecentMeeting meeting;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color color;
-    final String letter;
-    if (meeting.isWin) {
-      color = const Color(0xFF2E9E63);
-      letter = 'V';
-    } else if (meeting.isDraw) {
-      color = const Color(0xFF8A6D2F);
-      letter = 'N';
-    } else {
-      color = const Color(0xFFB23B4E);
-      letter = 'D';
-    }
-    return Container(
-      width: 30,
-      height: 30,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        letter,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          fontSize: 13,
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────── 2) Ton dernier prono ───────────────────────────
+// ─────────────────────────── Ton dernier prono ───────────────────────────
 
 class _LastPronoBlock extends ConsumerWidget {
   const _LastPronoBlock();
@@ -573,8 +502,6 @@ class _BadgeChip extends StatelessWidget {
             size: 66,
           ),
           const SizedBox(height: 6),
-          // Hauteur fixe de 2 lignes : les noms courts comme longs occupent
-          // la même place, donc tous les emblèmes restent alignés.
           SizedBox(
             height: 30,
             child: Text(
