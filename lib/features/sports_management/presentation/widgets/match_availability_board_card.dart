@@ -57,8 +57,9 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final absent = board.playersWith(MatchAvailabilityBoardStatus.absent);
-    final noResponse =
-        board.playersWith(MatchAvailabilityBoardStatus.noResponse);
+    final noResponse = board.playersWith(
+      MatchAvailabilityBoardStatus.noResponse,
+    );
     final overLimit = board.convoked.length > board.squadSizeLimit;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,10 +70,10 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Équipe',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                'Effectif',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ),
             if (overLimit)
