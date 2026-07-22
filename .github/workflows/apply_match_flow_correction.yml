@@ -1,0 +1,1033 @@
+name: Apply match flow correction
+
+on:
+  push:
+    branches: [agent/fix-next-and-last-match-flow]
+    paths:
+      - '.github/workflows/apply_match_flow_correction.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-next-and-last-match-flow
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Apply scoped UI correction
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def read(path):
+              return Path(path).read_text()
+
+          def write(path, text):
+              Path(path).write_text(text)
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'{label}: expected exactly one occurrence, found {count}')
+              return text.replace(old, new, 1)
+
+          def matching(text, opening, open_char='{', close_char='}'):
+              depth = 0
+              i = opening
+              quote = None
+              triple = False
+              line_comment = False
+              block_comment = False
+              while i < len(text):
+                  c = text[i]
+                  n = text[i + 1] if i + 1 < len(text) else ''
+                  if line_comment:
+                      if c == '\n':
+                          line_comment = False
+                      i += 1
+                      continue
+                  if block_comment:
+                      if c == '*' and n == '/':
+                          block_comment = False
+                          i += 2
+                      else:
+                          i += 1
+                      continue
+                  if quote:
+                      if triple:
+                          if text.startswith(quote * 3, i):
+                              quote = None
+                              triple = False
+                              i += 3
+                          else:
+                              i += 1
+                      elif c == '\\':
+                          i += 2
+                      elif c == quote:
+                          quote = None
+                          i += 1
+                      else:
+                          i += 1
+                      continue
+                  if c == '/' and n == '/':
+                      line_comment = True
+                      i += 2
+                      continue
+                  if c == '/' and n == '*':
+                      block_comment = True
+                      i += 2
+                      continue
+                  if c in ("'", '"'):
+                      if text.startswith(c * 3, i):
+                          quote = c
+                          triple = True
+                          i += 3
+                      else:
+                          quote = c
+                          i += 1
+                      continue
+                  if c == open_char:
+                      depth += 1
+                  elif c == close_char:
+                      depth -= 1
+                      if depth == 0:
+                          return i
+                  i += 1
+              raise RuntimeError(f'No matching {close_char}')
+
+          def remove_class(text, name):
+              marker = f'class {name}'
+              start = text.find(marker)
+              if start < 0:
+                  return text
+              brace = text.find('{', start)
+              end = matching(text, brace)
+              while end + 1 < len(text) and text[end + 1] in ' \t':
+                  end += 1
+              while end + 1 < len(text) and text[end + 1] == '\n':
+                  end += 1
+                  if end + 1 < len(text) and text[end + 1] != '\n':
+                      break
+              return text[:start] + text[end + 1:]
+
+          def remove_widget_statement(text, widget_name):
+              marker = widget_name + '('
+              start_name = text.find(marker)
+              if start_name < 0:
+                  return text
+              line_start = text.rfind('\n', 0, start_name) + 1
+              paren = text.find('(', start_name)
+              end = matching(text, paren, '(', ')')
+              j = end + 1
+              while j < len(text) and text[j] in ' \t':
+                  j += 1
+              if j < len(text) and text[j] == ',':
+                  j += 1
+              if j < len(text) and text[j] == '\n':
+                  j += 1
+              return text[:line_start] + text[j:]
+
+          def remove_collection_if(text, marker):
+              start = text.find(marker)
+              if start < 0:
+                  raise RuntimeError(f'Collection marker not found: {marker}')
+              line_start = text.rfind('\n', 0, start) + 1
+              bracket = text.find('[', start)
+              end = matching(text, bracket, '[', ']')
+              j = end + 1
+              while j < len(text) and text[j] in ' \t':
+                  j += 1
+              if j < len(text) and text[j] == ',':
+                  j += 1
+              if j < len(text) and text[j] == '\n':
+                  j += 1
+              return text[:line_start] + text[j:]
+
+          # Accueil: next match opens its fiche; last prono becomes last match.
+          path = 'lib/features/home/presentation/accueil_page.dart'
+          text = read(path)
+          import_line = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
+          if import_line not in text:
+              anchor = "import 'package:as_grinta/features/home/presentation/home_sports_flow_blocks.dart';\n"
+              text = replace_once(text, anchor, anchor + import_line, 'home details import')
+          text = text.replace('            HomeLastMatchVoteBlock(),\n', '', 1)
+          text = replace_once(text, '            _LastPronoBlock(),', '            _LastMatchBlock(),', 'home last block')
+          if '..invalidate(matchDetailsProvider)' not in text:
+              text = replace_once(
+                  text,
+                  '            ..invalidate(myArmoireProvider)\n',
+                  '            ..invalidate(myArmoireProvider)\n            ..invalidate(matchDetailsProvider)\n',
+                  'home refresh details',
+              )
+          text = replace_once(
+              text,
+              "        onTap: () => context.go('/pronos?category=matches'),",
+              "        onTap: () => context.push('/matches/${match.id}'),",
+              'next match destination',
+          )
+          last_start = text.find('class _LastPronoBlock')
+          result_tag = text.find('class _ResultTag', last_start)
+          if last_start < 0 or result_tag < 0:
+              raise RuntimeError('Unable to locate former last prediction block')
+          comment_start = text.rfind('//', 0, last_start)
+          if comment_start < 0:
+              comment_start = last_start
+          new_last = r'''// ─────────────────────────── Dernier match ───────────────────────────
+
+class _LastMatchBlock extends ConsumerWidget {
+  const _LastMatchBlock();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(myLastPronoProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _BlockHeader('🏁', 'Dernier match'),
+        async.when(
+          loading: () => const _MiniLoader(),
+          error: (_, __) =>
+              const _EmptyCard('Impossible de charger le dernier match.'),
+          data: (prono) {
+            if (prono == null) {
+              return const _EmptyCard('Aucun match terminé pour le moment.');
+            }
+            return _LastMatchCard(prono: prono);
+          },
+        ),
+        const SizedBox(height: 12),
+        const HomeLastMatchVoteBlock(),
+      ],
+    );
+  }
+}
+
+class _LastMatchCard extends ConsumerWidget {
+  const _LastMatchCard({required this.prono});
+
+  final LastProno prono;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final Color accent;
+    if (prono.isWin) {
+      accent = const Color(0xFF2E9E63);
+    } else if (prono.isDraw) {
+      accent = const Color(0xFF8A6D2F);
+    } else {
+      accent = const Color(0xFFB23B4E);
+    }
+    final homeName = prono.isHome ? 'AS Grinta' : prono.opponent;
+    final awayName = prono.isHome ? prono.opponent : 'AS Grinta';
+    final homeReal = prono.isHome ? prono.grintaScore : prono.opponentScore;
+    final awayReal = prono.isHome ? prono.opponentScore : prono.grintaScore;
+    final homePred = prono.isHome ? prono.predGrinta : prono.predAdverse;
+    final awayPred = prono.isHome ? prono.predAdverse : prono.predGrinta;
+    final detailsAsync = ref.watch(matchDetailsProvider(prono.matchId));
+
+    return Card(
+      color: accent.withValues(alpha: 0.16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: accent.withValues(alpha: 0.7), width: 1.4),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/matches/${prono.matchId}'),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$homeName  $homeReal – $awayReal  $awayName',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              detailsAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (details) {
+                  final scorers = details.startingLineup
+                      .where((player) => player.goals > 0)
+                      .map(
+                        (player) => player.goals == 1
+                            ? player.name
+                            : '${player.name} (${player.goals})',
+                      )
+                      .toList(growable: false);
+                  final motm = details.startingLineup
+                      .where((player) => player.isManOfTheMatch)
+                      .map((player) => player.name)
+                      .toList(growable: false);
+                  return Column(
+                    children: [
+                      _LastMatchInfoRow(
+                        label: 'Buteur${scorers.length > 1 ? 's' : ''}',
+                        value: scorers.isEmpty ? 'Aucun' : scorers.join(', '),
+                      ),
+                      const SizedBox(height: 7),
+                      _LastMatchInfoRow(
+                        label: 'HDM',
+                        value: motm.isEmpty ? 'Vote en cours' : motm.join(', '),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Ton prono : $homePred – $awayPred'
+                '${prono.useX2 ? ' · ×2' : ''} · '
+                '${AppFormats.counted((prono.points * 100).round(), 'point')}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  if (prono.exact)
+                    const _ResultTag('Score exact', Color(0xFF52D08A))
+                  else if (prono.goodWinner)
+                    const _ResultTag('Bon vainqueur', Color(0xFF6BA0FF))
+                  else
+                    const _ResultTag('Raté', Color(0xFF9299A5)),
+                  const Spacer(),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LastMatchInfoRow extends StatelessWidget {
+  const _LastMatchInfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 72,
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+'''
+          text = text[:comment_start] + new_last + text[result_tag:]
+          write(path, text)
+
+          # Prediction screen: availability must not appear here.
+          path = 'lib/features/matches/presentation/upcoming_match_prediction_page.dart'
+          text = read(path)
+          text = ''.join(
+              line for line in text.splitlines(keepends=True)
+              if 'match_availability_selector.dart' not in line
+          )
+          text = remove_widget_statement(text, 'MatchAvailabilitySelector')
+          write(path, text)
+
+          # Match calendar: only the next card opens the fiche; later matches stay inert.
+          path = 'lib/features/predictions/presentation/pronos_hub_history_section.dart'
+          text = read(path)
+          if '          if (isNextMatch) ...[' in text:
+              text = remove_collection_if(text, '          if (isNextMatch) ...[')
+          text = text.replace(
+              'class _CalendarMatchCard extends ConsumerWidget {',
+              'class _CalendarMatchCard extends StatelessWidget {',
+              1,
+          )
+          text = text.replace(
+              '  Widget build(BuildContext context, WidgetRef ref) {',
+              '  Widget build(BuildContext context) {',
+              1,
+          )
+          old_child = '''      child: match.isFinished
+          ? InkWell(
+              onTap: () => context.push('/matches/${match.id}'),
+              child: content,
+            )
+          : content,'''
+          new_child = '''      child: match.isFinished || isNextMatch
+          ? InkWell(
+              onTap: () => context.push('/matches/${match.id}'),
+              child: content,
+            )
+          : content,'''
+          text = replace_once(text, old_child, new_child, 'calendar fiche link')
+          write(path, text)
+
+          # Match fiche: upcoming is Effectif + Composition; finished uses merged result composition.
+          path = 'lib/features/matches/presentation/match_details_page.dart'
+          text = read(path)
+          additions = [
+              "import 'package:as_grinta/features/matches/presentation/match_result_composition_card.dart';\n",
+              "import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';\n",
+              "import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_board_card.dart';\n",
+          ]
+          anchor = "import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';\n"
+          text = text.replace(anchor, '')
+          insert_anchor = "import 'package:as_grinta/features/matches/data/match_details_repository.dart';\n"
+          for addition in additions:
+              if addition not in text:
+                  text = text.replace(insert_anchor, insert_anchor + addition, 1)
+                  insert_anchor = addition
+
+          marker = '            if (!details.isValidated) {'
+          start = text.find(marker)
+          if start < 0:
+              raise RuntimeError('Upcoming details branch not found')
+          brace = text.find('{', start)
+          end = matching(text, brace)
+          upcoming = r'''            if (!details.isValidated) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [
+                  _UpcomingHeader(details: details),
+                  const SizedBox(height: 16),
+                  if (sportsEnabled)
+                    _UpcomingSportsModules(matchId: matchId, isAdmin: isAdmin)
+                  else
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(18),
+                        child: Text('Gestion sportive indisponible.'),
+                      ),
+                    ),
+                ],
+              );
+            }'''
+          text = text[:start] + upcoming + text[end + 1:]
+
+          old_finished = '''                if (sportsEnabled) ...[
+                  const SizedBox(height: 16),
+                  PublishedLineupPreview(matchId: matchId, expanded: true),
+                  const SizedBox(height: 16),
+                  MatchMotmVoteCard(matchId: matchId),
+                ],
+                const SizedBox(height: 16),
+                _MatchSummary(details: details),'''
+          new_finished = '''                if (sportsEnabled) ...[
+                  const SizedBox(height: 16),
+                  MatchResultCompositionCard(
+                    matchId: matchId,
+                    details: details,
+                  ),
+                  const SizedBox(height: 16),
+                  MatchMotmVoteCard(matchId: matchId),
+                ] else ...[
+                  const SizedBox(height: 16),
+                  _MatchSummary(details: details),
+                ],'''
+          text = replace_once(text, old_finished, new_finished, 'finished composition summary')
+
+          for obsolete in (
+              '_UpcomingPredictionCard',
+              '_HeadToHeadCard',
+              '_SportAction',
+              '_SportsManagementSection',
+          ):
+              text = remove_class(text, obsolete)
+
+          insert = text.find('class _UpcomingHeader')
+          if insert < 0:
+              raise RuntimeError('Upcoming header not found')
+          modules = r'''class _UpcomingSportsModules extends StatelessWidget {
+  const _UpcomingSportsModules({required this.matchId, required this.isAdmin});
+
+  final String matchId;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _UpcomingEffectifModule(matchId: matchId, isAdmin: isAdmin),
+        const SizedBox(height: 16),
+        _UpcomingCompositionModule(matchId: matchId, isAdmin: isAdmin),
+      ],
+    );
+  }
+}
+
+class _UpcomingEffectifModule extends ConsumerWidget {
+  const _UpcomingEffectifModule({required this.matchId, required this.isAdmin});
+
+  final String matchId;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.groups_2_outlined),
+                const SizedBox(width: 8),
+                Text(
+                  'Effectif',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            boardAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) =>
+                  const Text('Impossible de charger l’effectif.'),
+              data: (board) => board == null
+                  ? const Text('Effectif non enregistré.')
+                  : MatchAvailabilityBoardContent(board: board),
+            ),
+            if (isAdmin) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => context.push(
+                  '/matches/$matchId/composition?step=effectif',
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Gérer et enregistrer l’effectif'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UpcomingCompositionModule extends StatelessWidget {
+  const _UpcomingCompositionModule({
+    required this.matchId,
+    required this.isAdmin,
+  });
+
+  final String matchId;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.sports_soccer_outlined),
+                const SizedBox(width: 8),
+                Text(
+                  'Composition',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            PublishedLineupPreview(
+              matchId: matchId,
+              expanded: true,
+              fallbackToEffectif: false,
+              emptyMessage: 'Composition non publiée.',
+            ),
+            if (isAdmin) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => context.push(
+                  '/matches/$matchId/composition?step=composition',
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Faire ou modifier la composition'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+'''
+          text = text[:insert] + modules + text[insert:]
+          write(path, text)
+
+          # New finished-match composition: avatars, goals and HDM on the players.
+          result_path = Path(
+              'lib/features/matches/presentation/match_result_composition_card.dart'
+          )
+          result_path.write_text(r'''import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class MatchResultCompositionCard extends ConsumerWidget {
+  const MatchResultCompositionCard({
+    super.key,
+    required this.matchId,
+    required this.details,
+  });
+
+  final String matchId;
+  final MatchDetailsData details;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final compositionAsync = ref.watch(publishedMatchCompositionProvider(matchId));
+    final stats = <String, _ResultPlayerStats>{
+      for (final player in details.startingLineup)
+        _normalize(player.name): _ResultPlayerStats(
+          goals: player.goals,
+          isManOfTheMatch: player.isManOfTheMatch,
+        ),
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.people_alt_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Composition et résumé',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            compositionAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const Text(
+                'Impossible de charger la composition de ce match.',
+              ),
+              data: (composition) {
+                if (composition == null) {
+                  return _FallbackResultPlayers(
+                    details: details,
+                    stats: stats,
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (composition.formationCode != null)
+                      Text(
+                        composition.formationCode!,
+                        textAlign: TextAlign.end,
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    const SizedBox(height: 8),
+                    _ResultPitch(
+                      entries: composition.entriesFor(
+                        MatchCompositionZone.field,
+                      ),
+                      stats: stats,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Remplaçants',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 10),
+                    _BenchPlayers(
+                      entries: composition.entriesFor(
+                        MatchCompositionZone.bench,
+                      ),
+                      stats: stats,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultPitch extends StatelessWidget {
+  const _ResultPitch({required this.entries, required this.stats});
+
+  final List<MatchCompositionEntry> entries;
+  final Map<String, _ResultPlayerStats> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return AspectRatio(
+      aspectRatio: 0.72,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const markerWidth = 88.0;
+          const markerHeight = 82.0;
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF12633D),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: Colors.white54, width: 2),
+            ),
+            child: Stack(
+              children: [
+                const Positioned.fill(child: _PitchLines()),
+                for (final entry in entries)
+                  Positioned(
+                    left: ((entry.x ?? 0.5) * constraints.maxWidth -
+                            markerWidth / 2)
+                        .clamp(0, constraints.maxWidth - markerWidth),
+                    top: ((entry.y ?? 0.5) * constraints.maxHeight -
+                            markerHeight / 2)
+                        .clamp(0, constraints.maxHeight - markerHeight),
+                    child: SizedBox(
+                      width: markerWidth,
+                      height: markerHeight,
+                      child: _ResultPlayer(
+                        name: entry.displayName,
+                        stats: _statsFor(entry.displayName, stats),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PitchLines extends StatelessWidget {
+  const _PitchLines();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(painter: _PitchPainter());
+  }
+}
+
+class _PitchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white38
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawLine(
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      paint,
+    );
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), 38, paint);
+    final boxWidth = size.width * 0.56;
+    final boxHeight = size.height * 0.15;
+    canvas.drawRect(
+      Rect.fromLTWH((size.width - boxWidth) / 2, 0, boxWidth, boxHeight),
+      paint,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(
+        (size.width - boxWidth) / 2,
+        size.height - boxHeight,
+        boxWidth,
+        boxHeight,
+      ),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ResultPlayer extends StatelessWidget {
+  const _ResultPlayer({required this.name, this.stats});
+
+  final String name;
+  final _ResultPlayerStats? stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: const Color(0xFFF2F4F8),
+          foregroundColor: const Color(0xFF14223A),
+          child: Text(
+            _initials(name),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          _shortName(name),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            shadows: [Shadow(blurRadius: 3, color: Colors.black87)],
+          ),
+        ),
+        if ((stats?.goals ?? 0) > 0 || (stats?.isManOfTheMatch ?? false))
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 3,
+            children: [
+              if ((stats?.goals ?? 0) > 0)
+                _SmallResultBadge(
+                  label: stats!.goals == 1 ? '1 but' : '${stats!.goals} buts',
+                ),
+              if (stats?.isManOfTheMatch ?? false)
+                const _SmallResultBadge(label: 'HDM'),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _SmallResultBadge extends StatelessWidget {
+  const _SmallResultBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFF07142E).withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white54),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _BenchPlayers extends StatelessWidget {
+  const _BenchPlayers({required this.entries, required this.stats});
+
+  final List<MatchCompositionEntry> entries;
+  final Map<String, _ResultPlayerStats> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return const Text('Aucun remplaçant.');
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final entry in entries)
+          _BenchPlayer(
+            name: entry.displayName,
+            stats: _statsFor(entry.displayName, stats),
+          ),
+      ],
+    );
+  }
+}
+
+class _BenchPlayer extends StatelessWidget {
+  const _BenchPlayer({required this.name, this.stats});
+
+  final String name;
+  final _ResultPlayerStats? stats;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = <String>[
+      if ((stats?.goals ?? 0) > 0)
+        stats!.goals == 1 ? '1 but' : '${stats!.goals} buts',
+      if (stats?.isManOfTheMatch ?? false) 'HDM',
+    ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 7, 10, 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            child: Text(
+              _initials(name),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+            ),
+          ),
+          const SizedBox(width: 7),
+          Text(
+            labels.isEmpty ? name : '$name · ${labels.join(' · ')}',
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FallbackResultPlayers extends StatelessWidget {
+  const _FallbackResultPlayers({required this.details, required this.stats});
+
+  final MatchDetailsData details;
+  final Map<String, _ResultPlayerStats> stats;
+
+  @override
+  Widget build(BuildContext context) {
+    if (details.startingLineup.isEmpty) {
+      return const Text('Composition non renseignée.');
+    }
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final player in details.startingLineup)
+          _BenchPlayer(
+            name: player.name,
+            stats: stats[_normalize(player.name)],
+          ),
+      ],
+    );
+  }
+}
+
+class _ResultPlayerStats {
+  const _ResultPlayerStats({required this.goals, required this.isManOfTheMatch});
+
+  final int goals;
+  final bool isManOfTheMatch;
+}
+
+_ResultPlayerStats? _statsFor(
+  String displayName,
+  Map<String, _ResultPlayerStats> stats,
+) {
+  final normalized = _normalize(displayName);
+  final exact = stats[normalized];
+  if (exact != null) return exact;
+  final firstName = normalized.split(' ').first;
+  for (final entry in stats.entries) {
+    if (entry.key.split(' ').first == firstName) return entry.value;
+  }
+  return null;
+}
+
+String _normalize(String value) =>
+    value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+String _shortName(String value) => value.trim().split(RegExp(r'\s+')).first;
+
+String _initials(String value) {
+  final parts = value.trim().split(RegExp(r'\s+'));
+  if (parts.isEmpty || parts.first.isEmpty) return '?';
+  if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+  return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+      .toUpperCase();
+}
+''')
+
+          # PWA cache bump.
+          for path in ('web/index.html', 'web/sw.js'):
+              text = read(path).replace('v64', 'v65')
+              write(path, text)
+          PY
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/home/presentation/accueil_page.dart \
+            lib/features/matches/presentation/upcoming_match_prediction_page.dart \
+            lib/features/predictions/presentation/pronos_hub_history_section.dart \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/matches/presentation/match_result_composition_card.dart
+          dart format --output=none --set-exit-if-changed \
+            lib/features/home/presentation/accueil_page.dart \
+            lib/features/matches/presentation/upcoming_match_prediction_page.dart \
+            lib/features/predictions/presentation/pronos_hub_history_section.dart \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/matches/presentation/match_result_composition_card.dart
+      - name: Commit correction
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            lib/features/home/presentation/accueil_page.dart \
+            lib/features/matches/presentation/upcoming_match_prediction_page.dart \
+            lib/features/predictions/presentation/pronos_hub_history_section.dart \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/matches/presentation/match_result_composition_card.dart \
+            web/index.html web/sw.js
+          git commit -m 'Corriger les fiches du prochain et du dernier match'
+          git push origin HEAD:agent/fix-next-and-last-match-flow
