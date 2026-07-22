@@ -408,20 +408,52 @@ class PlayerAvatar extends StatelessWidget {
   final bool isGoalkeeper;
   final double size;
 
+  // Palette d'avatars « aléatoires » (stables par joueur, dérivés du nom).
+  static const _avatarPalette = <List<Color>>[
+    [Color(0xFF7C4DFF), Color(0xFF5E35B1)],
+    [Color(0xFF2E86DE), Color(0xFF1B4F91)],
+    [Color(0xFF17A589), Color(0xFF0E6B57)],
+    [Color(0xFFE84393), Color(0xFFB61E74)],
+    [Color(0xFFE67E22), Color(0xFFB35900)],
+    [Color(0xFF27AE60), Color(0xFF1E7A45)],
+    [Color(0xFFE74C3C), Color(0xFF992D22)],
+    [Color(0xFF00B2A9), Color(0xFF00807A)],
+    [Color(0xFF8E44AD), Color(0xFF5E2C72)],
+    [Color(0xFFF39C12), Color(0xFFB9770E)],
+  ];
+
+  List<Color> get _avatarColors {
+    final seed = name.trim().toLowerCase();
+    var hash = 0;
+    for (final unit in seed.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    return _avatarPalette[hash % _avatarPalette.length];
+  }
+
   @override
   Widget build(BuildContext context) {
     final border = isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
     final url = photoUrl;
+    final hasPhoto = url != null && url.isNotEmpty;
+    final colors = _avatarColors;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: const Color(0xFF2A2350),
+        gradient: hasPhoto
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: colors,
+              ),
+        color: hasPhoto ? const Color(0xFF2A2350) : null,
         borderRadius: BorderRadius.circular(size * 0.28),
         border: Border.all(color: border, width: 2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: url != null && url.isNotEmpty
+      child: hasPhoto
           ? Image.network(
               url,
               width: size,
@@ -445,6 +477,7 @@ class PlayerAvatar extends StatelessWidget {
           color: Colors.white,
           fontWeight: FontWeight.w900,
           fontSize: size * 0.32,
+          shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
         ),
       ),
     );
