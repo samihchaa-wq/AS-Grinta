@@ -24,9 +24,54 @@
 </head>
 <body>
   <script>
+    // Bandeau « nouvelle version disponible ».
+    window.asGrintaUpdate = {
+      _worker: null,
+      show: function (worker) {
+        this._worker = worker;
+        if (!worker || document.getElementById('as-grinta-update-bar')) return;
+        var bar = document.createElement('div');
+        bar.id = 'as-grinta-update-bar';
+        bar.textContent = '🔄 Nouvelle version disponible — appuyez pour mettre à jour';
+        bar.setAttribute('style', [
+          'position:fixed', 'top:0', 'left:0', 'right:0', 'z-index:2147483647',
+          'background:#9B6CFF', 'color:#ffffff',
+          'font:600 14px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+          'padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px',
+          'text-align:center', 'cursor:pointer',
+          'box-shadow:0 2px 10px rgba(0,0,0,.35)'
+        ].join(';'));
+        var self = this;
+        bar.addEventListener('click', function () {
+          bar.textContent = 'Mise à jour…';
+          if (self._worker) self._worker.postMessage({ type: 'SKIP_WAITING' });
+        });
+        document.body.appendChild(bar);
+      }
+    };
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js?v=85').then(function (registration) {
-        if (registration) registration.update();
+      navigator.serviceWorker.register('sw.js?v=86').then(function (registration) {
+        if (!registration) return;
+        function considerWorker(worker) {
+          // On ne propose la mise à jour que s'il y a déjà une version en place.
+          if (worker && navigator.serviceWorker.controller) {
+            window.asGrintaUpdate.show(worker);
+          }
+        }
+        considerWorker(registration.waiting);
+        registration.addEventListener('updatefound', function () {
+          var incoming = registration.installing;
+          if (!incoming) return;
+          incoming.addEventListener('statechange', function () {
+            if (incoming.state === 'installed') considerWorker(incoming);
+          });
+        });
+        // Re-vérifie au lancement, régulièrement, et au retour au premier plan.
+        registration.update();
+        setInterval(function () { registration.update(); }, 60000);
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') registration.update();
+        });
       }).catch(function () {});
       var refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', function () {
@@ -76,6 +121,6 @@
       },
     };
   </script>
-  <script src="flutter_bootstrap.js?v=85" async></script>
+  <script src="flutter_bootstrap.js?v=86" async></script>
 </body>
 </html>
