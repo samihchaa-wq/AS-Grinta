@@ -1,7 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_repository.dart';
@@ -18,12 +16,18 @@ class MatchAvailabilitySelector extends ConsumerStatefulWidget {
     this.embeddedOnDark = false,
     this.topSpacing = 0,
     this.bottomSpacing = 0,
+    this.showManageShortcut = false,
   });
 
   final String matchId;
   final bool embeddedOnDark;
   final double topSpacing;
   final double bottomSpacing;
+
+  /// Affiche, sous les boutons de disponibilité, un raccourci « Effectif et
+  /// composition » vers la gestion du match. Réservé à l'admin : c'est
+  /// l'appelant (qui connaît le rôle) qui l'active.
+  final bool showManageShortcut;
 
   @override
   ConsumerState<MatchAvailabilitySelector> createState() =>
@@ -50,9 +54,6 @@ class _MatchAvailabilitySelectorState
           return const SizedBox.shrink();
         }
 
-        final isAdmin =
-            ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
-
         return Padding(
           padding: EdgeInsets.only(
             top: widget.topSpacing,
@@ -64,7 +65,7 @@ class _MatchAvailabilitySelectorState
             embeddedOnDark: widget.embeddedOnDark,
             onAvailable: () => _save(value, MatchAvailabilityStatus.available),
             onAbsent: () => _save(value, MatchAvailabilityStatus.absent),
-            showManageShortcut: isAdmin,
+            showManageShortcut: widget.showManageShortcut,
             onManage: () =>
                 context.push('/matches/${widget.matchId}/composition'),
           ),

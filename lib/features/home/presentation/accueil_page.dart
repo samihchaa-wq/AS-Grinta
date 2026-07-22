@@ -1,6 +1,8 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_last_match_card.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
@@ -130,10 +132,13 @@ class _NextMatchBlock extends ConsumerWidget {
             if (match == null) {
               return const _EmptyCard('Aucun match à venir pour le moment.');
             }
+            final isAdmin = ref.watch(authControllerProvider).profile?.role ==
+                AuthRole.admin;
             return _NextMatchCard(
               match: match,
               predicted: data.nextMatchPredicted,
               prediction: data.nextMatchPrediction,
+              isAdmin: isAdmin,
             );
           },
         ),
@@ -147,11 +152,13 @@ class _NextMatchCard extends StatelessWidget {
     required this.match,
     required this.predicted,
     required this.prediction,
+    required this.isAdmin,
   });
 
   final HomeMatch match;
   final bool predicted;
   final HomePrediction? prediction;
+  final bool isAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +216,7 @@ class _NextMatchCard extends StatelessWidget {
                 matchId: match.id,
                 embeddedOnDark: true,
                 topSpacing: 14,
+                showManageShortcut: isAdmin,
               ),
               const SizedBox(height: 12),
               Container(
