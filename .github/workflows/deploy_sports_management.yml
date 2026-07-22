@@ -97,3 +97,5 @@ jobs:
             migration-before.txt
             migration-after.txt
           if-no-files-found: warn
+
+# Deployment retry authorized on 2026-07-22.
