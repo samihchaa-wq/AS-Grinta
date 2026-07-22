@@ -677,7 +677,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 const ButtonSegment(
                   value: _AdminStep.prediction,
                   icon: Icon(Icons.sports_score_outlined),
-                  label: Text('Ton pari'),
+                  label: Text('Ton prono'),
                 ),
             ],
             selected: {_step},

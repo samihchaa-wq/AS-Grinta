@@ -10,7 +10,7 @@ class UpcomingMatchPredictionPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Ton pari')),
+      appBar: GrintaAppBar(title: const Text('Ton prono')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [InlineMatchPredictionCard(matchId: matchId)],
