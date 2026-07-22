@@ -701,7 +701,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               const ButtonSegment(
                 value: _AdminStep.composition,
                 icon: Icon(Icons.sports_soccer_outlined),
-                label: Text('Composition'),
+                label: Text('Compo'),
               ),
               if (widget.showPredictionStep)
                 const ButtonSegment(

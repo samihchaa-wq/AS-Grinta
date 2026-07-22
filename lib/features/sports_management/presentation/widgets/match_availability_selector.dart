@@ -16,12 +16,18 @@ class MatchAvailabilitySelector extends ConsumerStatefulWidget {
     this.embeddedOnDark = false,
     this.topSpacing = 0,
     this.bottomSpacing = 0,
+    this.showManageShortcut = false,
   });
 
   final String matchId;
   final bool embeddedOnDark;
   final double topSpacing;
   final double bottomSpacing;
+
+  /// Affiche, sous les boutons de disponibilité, un raccourci « Effectif et
+  /// composition » vers la gestion du match. Réservé à l'admin : c'est
+  /// l'appelant (qui connaît le rôle) qui l'active.
+  final bool showManageShortcut;
 
   @override
   ConsumerState<MatchAvailabilitySelector> createState() =>
@@ -59,6 +65,9 @@ class _MatchAvailabilitySelectorState
             embeddedOnDark: widget.embeddedOnDark,
             onAvailable: () => _save(value, MatchAvailabilityStatus.available),
             onAbsent: () => _save(value, MatchAvailabilityStatus.absent),
+            showManageShortcut: widget.showManageShortcut,
+            onManage: () =>
+                context.push('/matches/${widget.matchId}/composition'),
           ),
         );
       },
@@ -121,6 +130,8 @@ class _AvailabilityPanel extends StatelessWidget {
     required this.embeddedOnDark,
     required this.onAvailable,
     required this.onAbsent,
+    this.showManageShortcut = false,
+    this.onManage,
   });
 
   final MatchAvailability availability;
@@ -128,6 +139,8 @@ class _AvailabilityPanel extends StatelessWidget {
   final bool embeddedOnDark;
   final VoidCallback onAvailable;
   final VoidCallback onAbsent;
+  final bool showManageShortcut;
+  final VoidCallback? onManage;
 
   @override
   Widget build(BuildContext context) {
@@ -233,13 +246,20 @@ class _AvailabilityPanel extends StatelessWidget {
             const SizedBox(height: 8),
             const LinearProgressIndicator(minHeight: 2),
           ],
-          if (availability.compositionAlreadyPublished) ...[
-            const SizedBox(height: 8),
-            Text(
-              'La composition est déjà publiée : préviens également le coach.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: embeddedOnDark ? const Color(0xFFFFD180) : Colors.orange,
-                fontWeight: FontWeight.w700,
+          if (showManageShortcut && onManage != null) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onManage,
+                icon: const Icon(Icons.sports_soccer_outlined),
+                label: const Text('Effectif et composition'),
+                style: embeddedOnDark
+                    ? OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white54),
+                      )
+                    : null,
               ),
             ),
           ],

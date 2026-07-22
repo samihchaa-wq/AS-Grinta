@@ -315,10 +315,6 @@ class _SportMatchFinalizationPageState
             opponentScore: value.scoreAdverse,
             saving: _saving,
             onPresentChanged: (present) => _setPresent(participant, present),
-            onRoleChanged: (role) => _updateParticipant(
-              participant,
-              participant.copyWith(selectionStatus: role),
-            ),
             onGoalsChanged: (goals) => _updateParticipant(
               participant,
               participant.copyWith(goals: goals),
@@ -494,7 +490,6 @@ class _ParticipantCard extends StatelessWidget {
     required this.opponentScore,
     required this.saving,
     required this.onPresentChanged,
-    required this.onRoleChanged,
     required this.onGoalsChanged,
     required this.onCleanSheetChanged,
   });
@@ -503,7 +498,6 @@ class _ParticipantCard extends StatelessWidget {
   final int opponentScore;
   final bool saving;
   final ValueChanged<bool> onPresentChanged;
-  final ValueChanged<SportFinalSelectionStatus> onRoleChanged;
   final ValueChanged<int> onGoalsChanged;
   final ValueChanged<bool> onCleanSheetChanged;
 
@@ -523,7 +517,7 @@ class _ParticipantCard extends StatelessWidget {
                 child: Text(participant.isGoalkeeper ? '🧤' : '⚽'),
               ),
               title: Text(
-                participant.displayName,
+                participant.displayName.trim().split(RegExp(r'\s+')).first,
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(
@@ -533,23 +527,6 @@ class _ParticipantCard extends StatelessWidget {
             ),
             if (participant.present) ...[
               const Divider(),
-              DropdownButtonFormField<SportFinalSelectionStatus>(
-                initialValue: participant.selectionStatus,
-                decoration: const InputDecoration(
-                  labelText: 'Rôle réel',
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  for (final role in SportFinalSelectionStatus.values)
-                    DropdownMenuItem(value: role, child: Text(role.label)),
-                ],
-                onChanged: saving
-                    ? null
-                    : (value) {
-                        if (value != null) onRoleChanged(value);
-                      },
-              ),
-              const SizedBox(height: 10),
               Row(
                 children: [
                   const Expanded(child: Text('Buts inscrits')),

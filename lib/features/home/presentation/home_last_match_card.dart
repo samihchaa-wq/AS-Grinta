@@ -99,17 +99,17 @@ class _LastMatchContent extends ConsumerWidget {
                 'point',
               );
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Card(
-              color: const Color(0xFF20242C),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
+        return Card(
+          color: const Color(0xFF20242C),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              InkWell(
                 onTap: () => context.push('/matches/${match.id}'),
                 child: Padding(
                   padding: const EdgeInsets.all(18),
@@ -166,12 +166,19 @@ class _LastMatchContent extends ConsumerWidget {
                   ),
                 ),
               ),
-            ),
-            if (vote != null && vote.isOpen) ...[
-              const SizedBox(height: 10),
-              HomeMotmInlineVote(matchId: match.id, vote: vote),
+              if (vote != null && vote.isOpen) ...[
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFF3A414D),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                  child: HomeMotmInlineVote(matchId: match.id, vote: vote),
+                ),
+              ],
             ],
-          ],
+          ),
         );
       },
     );
@@ -216,7 +223,8 @@ class _HomeMotmInlineVoteState extends ConsumerState<HomeMotmInlineVote> {
   Widget build(BuildContext context) {
     final vote = widget.vote;
     if (vote.hasVoted) {
-      return const _MessageCard(
+      return _hdmInfo(
+        context,
         icon: Icons.lock_outline,
         title: 'Vote HDM enregistré',
         message:
@@ -224,7 +232,8 @@ class _HomeMotmInlineVoteState extends ConsumerState<HomeMotmInlineVote> {
       );
     }
     if (!vote.isEligibleVoter || !vote.canVote) {
-      return const _MessageCard(
+      return _hdmInfo(
+        context,
         icon: Icons.visibility_outlined,
         title: 'Vote HDM ouvert',
         message: 'Tu peux consulter le scrutin depuis la fiche du match.',
@@ -234,62 +243,85 @@ class _HomeMotmInlineVoteState extends ConsumerState<HomeMotmInlineVote> {
     final candidates = vote.candidates
         .where((candidate) => candidate.canChoose)
         .toList(growable: false);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Vote Homme du match',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 4),
+        const Text('Choisis un joueur ayant participé au match.'),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Text(
-              'Vote Homme du match',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            const Text('Choisis un joueur ayant participé au match.'),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final candidate in candidates)
-                  ChoiceChip(
-                    avatar: const CircleAvatar(
-                      child: Icon(Icons.person_outline, size: 17),
-                    ),
-                    label: Text(candidate.displayName),
-                    selected: _selected == candidate.participantId,
-                    onSelected: _saving
-                        ? null
-                        : (_) => setState(
-                              () => _selected = candidate.participantId,
-                            ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _selected == null || _saving ? null : _submit,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.how_to_vote_outlined),
-              label: const Text('Valider définitivement mon vote'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+            for (final candidate in candidates)
+              ChoiceChip(
+                avatar: const CircleAvatar(
+                  child: Icon(Icons.person_outline, size: 17),
+                ),
+                label: Text(candidate.displayName),
+                selected: _selected == candidate.participantId,
+                onSelected: _saving
+                    ? null
+                    : (_) => setState(
+                          () => _selected = candidate.participantId,
+                        ),
               ),
-            ],
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _selected == null || _saving ? null : _submit,
+          icon: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.how_to_vote_outlined),
+          label: const Text('Valider définitivement mon vote'),
+        ),
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _hdmInfo(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 19, color: AppTheme.textSecondary),
+            const SizedBox(width: 9),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          message,
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: AppTheme.textSecondary),
+        ),
+      ],
     );
   }
 
@@ -392,45 +424,16 @@ class _LoadingCard extends StatelessWidget {
 }
 
 class _MessageCard extends StatelessWidget {
-  const _MessageCard({
-    required this.message,
-    this.icon,
-    this.title,
-  });
+  const _MessageCard({required this.message});
 
   final String message;
-  final IconData? icon;
-  final String? title;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (icon != null) ...[
-              Icon(icon),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (title != null) ...[
-                    Text(
-                      title!,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                  Text(message),
-                ],
-              ),
-            ),
-          ],
-        ),
+        child: Text(message),
       ),
     );
   }
