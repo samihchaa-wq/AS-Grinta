@@ -27,8 +27,10 @@ jobs:
       - name: Apply targeted implementation
         shell: bash
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
+          set -o pipefail
+          {
+            set -euo pipefail
+            python3 - <<'PY'
           from pathlib import Path
           from textwrap import dedent
 
@@ -39,11 +41,12 @@ jobs:
           script = dedent(source[start:end])
           Path('/tmp/finalize_live_squad.py').write_text(script)
           PY
-          python3 /tmp/finalize_live_squad.py
-          dart format \
-            lib/features/sports_management/presentation/admin_squad_plan_page.dart \
-            lib/features/sports_management/data/sport_waitlist_repository.dart \
-            lib/features/matches/presentation/match_details_page.dart
+            python3 /tmp/finalize_live_squad.py
+            dart format \
+              lib/features/sports_management/presentation/admin_squad_plan_page.dart \
+              lib/features/sports_management/data/sport_waitlist_repository.dart \
+              lib/features/matches/presentation/match_details_page.dart
+          } 2>&1 | tee finalize-apply.log
 
       - name: Validate Flutter
         shell: bash
@@ -69,8 +72,21 @@ jobs:
           git rm \
             .github/workflows/finalize-live-squad.yml \
             .github/workflows/run-finalize-live-squad.yml
+          rm -f finalize-apply.log analyze.log test.log build-web.log
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Finaliser effectif atomique et module de prono'
+          git push origin HEAD:feat/live-squad-and-formations
+
+      - name: Commit failure diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          git diff > finalize-diff.patch
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add finalize-apply.log analyze.log test.log build-web.log finalize-diff.patch 2>/dev/null
+          git commit -m 'Diagnostic de la finalisation'
           git push origin HEAD:feat/live-squad-and-formations
