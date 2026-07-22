@@ -1,0 +1,85 @@
+name: Finalize live squad branch
+
+on:
+  pull_request:
+    branches: [feat/live-squad-and-formations]
+    paths:
+      - .github/workflows/finalize-live-squad.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/live-squad-and-formations
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply final source fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/sports_management/presentation/admin_squad_plan_page.dart')
+          text = path.read_text()
+          text = text.replace(
+              """        if (player.convocationStatus == wanted && player.manualOverride)
+          continue;
+""",
+              """        if (player.convocationStatus == wanted && player.manualOverride) {
+          continue;
+        }
+""",
+          )
+          text = text.replace(
+              """    if (_matches.isEmpty)
+      return const Center(child: Text('Aucun match à venir.'));
+""",
+              """    if (_matches.isEmpty) {
+      return const Center(child: Text('Aucun match à venir.'));
+    }
+""",
+          )
+          text = text.replace('    if (newIndex > oldIndex) newIndex -= 1;\n', '')
+          text = text.replace('onReorder: _reorderBench,', 'onReorderItem: _reorderBench,')
+          path.write_text(text)
+          PY
+      - name: Format and test
+        shell: bash
+        run: |
+          set +e
+          {
+            flutter pub get
+            dart format lib test
+            flutter analyze
+            flutter test
+          } > /tmp/live-squad-final.log 2>&1
+          status=$?
+          cat /tmp/live-squad-final.log
+          if [ "$status" -ne 0 ]; then
+            cp /tmp/live-squad-final.log live-squad-final.log
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -A
+            git commit -m 'Journal final de la refonte'
+            git push origin HEAD:feat/live-squad-and-formations
+            exit "$status"
+          fi
+      - name: Commit clean implementation
+        shell: bash
+        run: |
+          rm -rf .github/payload
+          rm -f .github/workflows/apply-live-squad-redesign.yml
+          rm -f .github/workflows/run-live-squad-redesign.yml
+          rm -f live-squad-debug.log live-squad-ci.log live-squad-final.log
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Refondre effectif et composition en direct'
+          git push origin HEAD:feat/live-squad-and-formations
