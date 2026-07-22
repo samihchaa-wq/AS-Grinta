@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/sports_management/domain/guest_player_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +34,12 @@ abstract interface class GuestPlayersRepository {
     required String guestPlayerId,
     required bool archived,
     String? reason,
+  });
+
+  Future<void> uploadGuestPhoto({
+    required String guestPlayerId,
+    required Uint8List bytes,
+    required String fileExt,
   });
 }
 
@@ -132,6 +140,27 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
       },
     );
     return GuestCatalog.fromRpc(response);
+  }
+
+  @override
+  Future<void> uploadGuestPhoto({
+    required String guestPlayerId,
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
+    final path =
+        'guest/$guestPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    await _client.storage.from('profile-photos').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+        );
+    final url = _client.storage.from('profile-photos').getPublicUrl(path);
+    await _client.rpc(
+      'admin_set_guest_photo',
+      params: {'p_guest_player_id': guestPlayerId, 'p_photo_url': url},
+    );
   }
 
   String? _clean(String? value) {

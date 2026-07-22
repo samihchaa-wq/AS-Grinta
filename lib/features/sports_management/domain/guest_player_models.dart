@@ -7,9 +7,11 @@ class GuestPlayer {
     required this.isGoalkeeper,
     required this.isReusable,
     this.archivedAt,
+    this.photoUrl,
   });
 
   factory GuestPlayer.fromJson(Map<String, dynamic> json) {
+    final rawPhoto = json['photo_url']?.toString().trim();
     return GuestPlayer(
       id: json['guest_player_id'].toString(),
       firstName: (json['first_name'] ?? '').toString(),
@@ -18,6 +20,7 @@ class GuestPlayer {
       isGoalkeeper: json['is_goalkeeper'] == true,
       isReusable: json['is_reusable'] == true,
       archivedAt: _dateOrNull(json['archived_at']),
+      photoUrl: (rawPhoto != null && rawPhoto.isNotEmpty) ? rawPhoto : null,
     );
   }
 
@@ -28,6 +31,7 @@ class GuestPlayer {
   final bool isGoalkeeper;
   final bool isReusable;
   final DateTime? archivedAt;
+  final String? photoUrl;
 }
 
 class GuestCatalog {
