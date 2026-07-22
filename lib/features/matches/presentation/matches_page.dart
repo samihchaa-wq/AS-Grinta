@@ -233,7 +233,11 @@ class _MatchCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      isFinished ? 'Terminé' : isNext ? 'Prochain' : 'À venir',
+                      isFinished
+                          ? 'Terminé'
+                          : isNext
+                              ? 'Prochain'
+                              : 'À venir',
                       style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
