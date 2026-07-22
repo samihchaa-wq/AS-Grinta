@@ -1,0 +1,5 @@
+commit=1fdf0ec93be65172dee970f9131048be47d43484
+migration=20260722015530_live_effectif_and_composition
+migration_count=250
+send_push_version=5
+verified_at=2026-07-22T02:01:15Z
