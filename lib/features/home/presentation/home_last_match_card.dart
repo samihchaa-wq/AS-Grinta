@@ -77,12 +77,10 @@ class _LastMatchContent extends ConsumerWidget {
       data: (details) {
         final homeName = match.isHome ? 'AS Grinta' : match.opponent;
         final awayName = match.isHome ? match.opponent : 'AS Grinta';
-        final homeScore = match.isHome
-            ? match.grintaScore ?? 0
-            : match.opponentScore ?? 0;
-        final awayScore = match.isHome
-            ? match.opponentScore ?? 0
-            : match.grintaScore ?? 0;
+        final homeScore =
+            match.isHome ? match.grintaScore ?? 0 : match.opponentScore ?? 0;
+        final awayScore =
+            match.isHome ? match.opponentScore ?? 0 : match.grintaScore ?? 0;
         final scorers = details.playerStats
             .where((player) => player.goals > 0)
             .map(
@@ -157,10 +155,11 @@ class _LastMatchContent extends ConsumerWidget {
                         alignment: Alignment.centerRight,
                         child: Text(
                           'Voir la fiche du match',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: const Color(0xFFCAB5FF),
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: const Color(0xFFCAB5FF),
+                                    fontWeight: FontWeight.w800,
+                                  ),
                         ),
                       ),
                     ],
@@ -180,9 +179,8 @@ class _LastMatchContent extends ConsumerWidget {
 
   String _hdmLabel(MatchDetailsData details, SportMotmVote? vote) {
     if (vote != null && vote.isClosed) {
-      final winners = vote.winners
-          .map((candidate) => candidate.displayName)
-          .join(' · ');
+      final winners =
+          vote.winners.map((candidate) => candidate.displayName).join(' · ');
       return winners.isEmpty ? 'Aucun' : winners;
     }
     final recorded = details.startingLineup
@@ -206,8 +204,7 @@ class HomeMotmInlineVote extends ConsumerStatefulWidget {
   final SportMotmVote vote;
 
   @override
-  ConsumerState<HomeMotmInlineVote> createState() =>
-      _HomeMotmInlineVoteState();
+  ConsumerState<HomeMotmInlineVote> createState() => _HomeMotmInlineVoteState();
 }
 
 class _HomeMotmInlineVoteState extends ConsumerState<HomeMotmInlineVote> {
@@ -222,7 +219,8 @@ class _HomeMotmInlineVoteState extends ConsumerState<HomeMotmInlineVote> {
       return const _MessageCard(
         icon: Icons.lock_outline,
         title: 'Vote HDM enregistré',
-        message: 'Ton choix est définitif. Les résultats seront révélés ensuite.',
+        message:
+            'Ton choix est définitif. Les résultats seront révélés ensuite.',
       );
     }
     if (!vote.isEligibleVoter || !vote.canVote) {

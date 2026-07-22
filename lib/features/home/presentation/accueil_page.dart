@@ -319,7 +319,9 @@ class _RecentBadgesBlock extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [for (final badge in recent) _BadgeChip(badge: badge)],
+                  children: [
+                    for (final badge in recent) _BadgeChip(badge: badge)
+                  ],
                 ),
               ),
             );

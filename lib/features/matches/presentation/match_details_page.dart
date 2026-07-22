@@ -416,9 +416,8 @@ class _CompletedPitch extends StatelessWidget {
     final fallbackRow = index ~/ 4;
     final x = (player.x ?? (.17 + fallbackColumn * .22)).clamp(.1, .9);
     final y = (player.y ?? (.18 + fallbackRow * .25)).clamp(.08, .92);
-    final left = (x * size.width - width / 2)
-        .clamp(0.0, size.width - width)
-        .toDouble();
+    final left =
+        (x * size.width - width / 2).clamp(0.0, size.width - width).toDouble();
     final top = (y * size.height - height / 2)
         .clamp(0.0, size.height - height)
         .toDouble();
@@ -515,7 +514,8 @@ class _PlayerSummaryTile extends StatelessWidget {
             Text(
               goalLabel,
               style: TextStyle(
-                color: compact ? const Color(0xFFFFE082) : AppTheme.textSecondary,
+                color:
+                    compact ? const Color(0xFFFFE082) : AppTheme.textSecondary,
                 fontSize: compact ? 10 : 12,
                 fontWeight: FontWeight.w800,
               ),
@@ -612,7 +612,8 @@ class _PredictionsTable extends StatelessWidget {
             for (final prediction in predictions)
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(14),
                   border: _colorFor(prediction) == null
