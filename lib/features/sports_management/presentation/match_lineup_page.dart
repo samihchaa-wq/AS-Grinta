@@ -67,13 +67,16 @@ class PublishedLineupCard extends ConsumerWidget {
     }
     return Padding(
       padding: EdgeInsets.only(bottom: bottomSpacing),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (showAvailabilityFlow)
-            MatchAvailabilitySelector(matchId: matchId, bottomSpacing: 12),
-          PublishedLineupPreview(matchId: matchId, showLists: true),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showAvailabilityFlow)
+              MatchAvailabilitySelector(matchId: matchId, bottomSpacing: 12),
+            PublishedLineupPreview(matchId: matchId, showLists: true),
+          ],
+        ),
       ),
     );
   }
@@ -140,12 +143,21 @@ class PublishedLineupPreview extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Composition publiée',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: secondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
               const SizedBox(height: 12),
               Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: expanded ? 500 : 360),
                   child: CompositionPitch(
-                    entries: composition.entriesFor(MatchCompositionZone.field),
+                    entries:
+                        composition.entriesFor(MatchCompositionZone.field),
                   ),
                 ),
               ),
@@ -187,10 +199,16 @@ class PublishedLineupPreview extends ConsumerWidget {
                   title: Text(
                     'Voir les listes',
                     style: TextStyle(
-                        color: foreground, fontWeight: FontWeight.w800),
+                      color: foreground,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   children: [
-                    MatchAvailabilityBoardCard(matchId: matchId, compact: true),
+                    MatchAvailabilityBoardCard(
+                      matchId: matchId,
+                      compact: true,
+                      showAfterComposition: true,
+                    ),
                   ],
                 ),
               ],
@@ -203,7 +221,8 @@ class PublishedLineupPreview extends ConsumerWidget {
                 color: Colors.white.withValues(alpha: .06),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                    color: const Color(0xFF9B6CFF).withValues(alpha: .55)),
+                  color: const Color(0xFF9B6CFF).withValues(alpha: .55),
+                ),
               ),
               child: content,
             );
