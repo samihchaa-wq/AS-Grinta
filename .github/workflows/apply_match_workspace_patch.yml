@@ -3,6 +3,8 @@ name: Apply match workspace patch
 on:
   push:
     branches: [agent/match-actions-pari-hdm]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
@@ -30,8 +32,6 @@ jobs:
                   raise SystemExit(f'Expected snippet not found in {path}: {old[:120]!r}')
               file.write_text(text.replace(old, new, 1))
 
-          # Main Matchs calendar: the next card opens Effectif directly, future
-          # cards remain inert, and admin actions appear on every match.
           path = 'lib/features/predictions/presentation/pronos_hub_history_section.dart'
           replace_once(path, """          if (isNextMatch) ...[
             const SizedBox(height: 14),
@@ -89,7 +89,6 @@ jobs:
           replace_once(path, "icon: const Text('👑'),\n                label: const Text('Changer les stats'),", "icon: const Text('📈', style: TextStyle(fontSize: 18)),\n                label: const Text('Stats'),")
           replace_once(path, "icon: const Icon(Icons.delete_outline),\n      label: const Text('👑 Supprimer'),", "icon: const Text('🚫', style: TextStyle(fontSize: 18)),\n      label: const Text('Supprimer'),")
 
-          # Secondary admin match list: same actions and navigation rules.
           path = 'lib/features/matches/presentation/matches_page.dart'
           replace_once(path, "import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';\n", "")
           replace_once(path, """                    match: match,
@@ -151,14 +150,12 @@ jobs:
 """)
           replace_once(path, "icon: const Icon(Icons.delete_outline),\n                       label: const Text('👑 Supprimer'),", "icon: const Text('🚫', style: TextStyle(fontSize: 18)),\n                       label: const Text('Supprimer'),")
 
-          # Home next-match shortcut opens the match workspace directly on Effectif.
           replace_once(
               'lib/features/home/presentation/accueil_page.dart',
               "onTap: () => context.push('/matches/${match.id}'),",
               "onTap: () => context.push(\n          '/matches/${match.id}/lineup?section=effectif',\n        ),",
           )
 
-          # Admin workspace: add Ton pari as a third section.
           path = 'lib/features/sports_management/presentation/admin_squad_plan_page.dart'
           replace_once(path, "import 'package:as_grinta/core/widgets/grinta_app_bar.dart';\n", "import 'package:as_grinta/core/widgets/grinta_app_bar.dart';\nimport 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';\n")
           replace_once(path, "enum _AdminStep { effectif, composition }", "enum _AdminStep { effectif, composition, prediction }")
@@ -199,7 +196,6 @@ jobs:
                 : _buildComposition(),
 """)
 
-          # Public workspace: explicit three-section navigation, default Effectif.
           path = 'lib/features/sports_management/presentation/match_lineup_page.dart'
           replace_once(path, "import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';\n", "import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';\nimport 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';\n")
           replace_once(path, """    final showEffectif = initialSection != 'composition';
@@ -265,7 +261,6 @@ jobs:
             if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
 """)
 
-          # The home shortcut and Ton pari tab now share the exact same card.
           Path('lib/features/matches/presentation/upcoming_match_prediction_page.dart').write_text("""import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:flutter/material.dart';
@@ -288,8 +283,6 @@ class UpcomingMatchPredictionPage extends StatelessWidget {
 }
 """)
 
-          # The public RPC wrappers are invokers: allow them to invoke the
-          # private, security-definer implementations that enforce auth rules.
           Path('supabase/migrations/20260722102000_fix_motm_rpc_permissions.sql').write_text("""-- The public MOTM RPC wrappers are SECURITY INVOKER and delegate to private
 -- SECURITY DEFINER implementations containing the actual authorization checks.
 -- Their private delegates must therefore be executable by signed-in members.
@@ -300,7 +293,6 @@ grant execute on function private.admin_cancel_match_motm_vote(uuid, text) to au
 grant execute on function private.admin_restart_match_motm_vote(uuid, text) to authenticated;
 """)
 
-          # Force the PWA to take the new workspace/navigation bundle.
           replace_once(
               'web/sw.js',
               "// et réception des notifications push Web Push. Cache fonctionnel v66 — pastille des nouveaux badges.\nconst CACHE_NAME = 'as-grinta-v66';",
