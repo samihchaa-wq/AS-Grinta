@@ -23,9 +23,11 @@ class MatchAvailabilityBoardPlayer {
     required this.convocationStatus,
     required this.isGuest,
     this.waitlistPosition,
+    this.serverName,
   });
 
   factory MatchAvailabilityBoardPlayer.fromJson(Map<String, dynamic> json) {
+    final rawName = json['display_name']?.toString().trim();
     return MatchAvailabilityBoardPlayer(
       participantId: (json['participant_id'] ?? '').toString(),
       firstName: (json['first_name'] ?? '').toString().trim(),
@@ -35,6 +37,7 @@ class MatchAvailabilityBoardPlayer {
           (json['convocation_status'] ?? 'not_applicable').toString(),
       isGuest: json['is_guest'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
+      serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,
     );
   }
 
@@ -46,12 +49,17 @@ class MatchAvailabilityBoardPlayer {
   final bool isGuest;
   final int? waitlistPosition;
 
+  /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom.
+  final String? serverName;
+
   String get displayName {
+    if (serverName != null) return serverName!;
     final fullName = '$firstName $lastName'.trim();
     return fullName.isEmpty ? 'Joueur' : fullName;
   }
 
   String get firstNameOnly {
+    if (serverName != null) return serverName!;
     final first = firstName.trim();
     if (first.isNotEmpty) return first;
     return displayName.split(RegExp(r'\s+')).first;
