@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +14,7 @@ class RosterPlayer {
     required this.linkedProfileId,
     required this.linkedProfileName,
     required this.linkedProfileUsername,
+    this.photoUrl,
   });
 
   final String id;
@@ -22,6 +25,7 @@ class RosterPlayer {
   final String? linkedProfileId;
   final String? linkedProfileName;
   final String? linkedProfileUsername;
+  final String? photoUrl;
 
   String get displayName {
     final first = firstName.trim();
@@ -84,18 +88,26 @@ class RosterRepository {
       is_goalkeeper,
       is_active,
       profile_id,
+      photo_url,
       profiles!season_players_profile_id_fkey(
         id,
         first_name,
-        status
+        status,
+        photo_url
       )
     ''').eq('season_id', seasonId);
     final players = (rows as List).map((row) {
       final map = Map<String, dynamic>.from(row);
       final profileRaw = map['profiles'];
-      final profile = profileRaw is Map
-          ? Map<String, dynamic>.from(profileRaw)
-          : null;
+      final profile =
+          profileRaw is Map ? Map<String, dynamic>.from(profileRaw) : null;
+      final profilePhoto = profile?['photo_url']?.toString();
+      final seasonPhoto = map['photo_url']?.toString();
+      final photo = (profilePhoto != null && profilePhoto.trim().isNotEmpty)
+          ? profilePhoto
+          : (seasonPhoto != null && seasonPhoto.trim().isNotEmpty)
+              ? seasonPhoto
+              : null;
       return RosterPlayer(
         id: map['id'].toString(),
         firstName: (map['first_name'] ?? '').toString(),
@@ -105,6 +117,7 @@ class RosterRepository {
         linkedProfileId: map['profile_id']?.toString(),
         linkedProfileName: profile?['first_name']?.toString(),
         linkedProfileUsername: null,
+        photoUrl: photo,
       );
     }).toList();
     players.sort(
@@ -191,6 +204,27 @@ class RosterRepository {
       'first_name': f,
       'is_goalkeeper': isGoalkeeper,
     }).eq('id', id);
+  }
+
+  /// Téléverse la photo d'un joueur de l'effectif (utile pour les joueurs
+  /// sans compte) et met à jour `season_players.photo_url`.
+  Future<void> uploadPlayerPhoto({
+    required String seasonPlayerId,
+    required Uint8List bytes,
+    required String fileExt,
+  }) async {
+    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
+    final path =
+        'season/$seasonPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    await _client.storage.from('profile-photos').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+        );
+    final url = _client.storage.from('profile-photos').getPublicUrl(path);
+    await _client
+        .from('season_players')
+        .update({'photo_url': url}).eq('id', seasonPlayerId);
   }
 
   Future<void> setActive({required String id, required bool active}) async {

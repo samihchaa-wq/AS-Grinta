@@ -1,8 +1,10 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 /// Effectif de la saison. Chaque joueur peut être relié à un compte de
 /// pronostiqueur, sans que cette liaison soit obligatoire.
@@ -79,12 +81,11 @@ class _RosterList extends ConsumerWidget {
                 (player) => Card(
                   margin: const EdgeInsets.only(bottom: 8),
                   child: ListTile(
-                    leading: CircleAvatar(
-                      child: Icon(
-                        player.isGoalkeeper
-                            ? Icons.sports_handball
-                            : Icons.sports_soccer,
-                      ),
+                    leading: PlayerAvatar(
+                      photoUrl: player.photoUrl,
+                      name: player.displayName,
+                      isGoalkeeper: player.isGoalkeeper,
+                      size: 44,
                     ),
                     title: Text(player.displayName),
                     subtitle: Text(
@@ -106,6 +107,15 @@ class _RosterList extends ConsumerWidget {
                               ref,
                               seasonId: seasonId,
                               existing: player,
+                            );
+                            return;
+                          }
+                          if (action == 'photo') {
+                            await _pickAndUploadRosterPhoto(
+                              context,
+                              ref,
+                              seasonId: seasonId,
+                              player: player,
                             );
                             return;
                           }
@@ -162,6 +172,10 @@ class _RosterList extends ConsumerWidget {
                           value: 'edit',
                           child: Text('Modifier le joueur'),
                         ),
+                        const PopupMenuItem(
+                          value: 'photo',
+                          child: Text('Changer la photo'),
+                        ),
                         PopupMenuItem(
                           value: 'link',
                           child: Text(
@@ -196,6 +210,42 @@ class _RosterList extends ConsumerWidget {
   }
 }
 
+Future<void> _pickAndUploadRosterPhoto(
+  BuildContext context,
+  WidgetRef ref, {
+  required String seasonId,
+  required RosterPlayer player,
+}) async {
+  final file = await ImagePicker().pickImage(
+    source: ImageSource.gallery,
+    maxWidth: 800,
+    maxHeight: 800,
+    imageQuality: 85,
+  );
+  if (file == null) return;
+  final bytes = await file.readAsBytes();
+  final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+  try {
+    await ref.read(rosterRepositoryProvider).uploadPlayerPhoto(
+          seasonPlayerId: player.id,
+          bytes: bytes,
+          fileExt: ext,
+        );
+    ref.invalidate(rosterProvider(seasonId));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Photo de ${player.displayName} mise à jour.')),
+      );
+    }
+  } catch (error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
+    }
+  }
+}
+
 Future<void> _showProfileLinkDialog(
   BuildContext context,
   WidgetRef ref, {
@@ -220,9 +270,8 @@ Future<void> _showProfileLinkDialog(
   final currentIsAvailable = profiles.any(
     (profile) => profile.id == player.linkedProfileId,
   );
-  var selectedProfileId = currentIsAvailable
-      ? player.linkedProfileId ?? ''
-      : '';
+  var selectedProfileId =
+      currentIsAvailable ? player.linkedProfileId ?? '' : '';
   var saving = false;
   String? error;
   final linkedPlayerByProfileId = <String, String>{
