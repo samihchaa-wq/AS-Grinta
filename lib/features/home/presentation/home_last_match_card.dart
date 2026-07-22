@@ -172,9 +172,49 @@ class _LastMatchContent extends ConsumerWidget {
                   thickness: 1,
                   color: Color(0xFF3A414D),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-                  child: HomeMotmInlineVote(matchId: match.id, vote: vote),
+                InkWell(
+                  onTap: () => context.push('/matches/${match.id}/vote'),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.how_to_vote_outlined,
+                          color: Color(0xFFCAB5FF),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                vote.hasVoted
+                                    ? 'Ton vote HDM est enregistré'
+                                    : 'Voter pour l’homme du match',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                vote.hasVoted
+                                    ? 'Consulte le scrutin depuis la compo.'
+                                    : 'Choisis un joueur depuis la composition.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Color(0xFFCAB5FF),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -197,184 +237,6 @@ class _LastMatchContent extends ConsumerWidget {
     if (recorded.isNotEmpty) return recorded;
     if (vote != null && vote.isOpen) return 'Vote ouvert';
     return 'Non désigné';
-  }
-}
-
-class HomeMotmInlineVote extends ConsumerStatefulWidget {
-  const HomeMotmInlineVote({
-    super.key,
-    required this.matchId,
-    required this.vote,
-  });
-
-  final String matchId;
-  final SportMotmVote vote;
-
-  @override
-  ConsumerState<HomeMotmInlineVote> createState() => _HomeMotmInlineVoteState();
-}
-
-class _HomeMotmInlineVoteState extends ConsumerState<HomeMotmInlineVote> {
-  String? _selected;
-  bool _saving = false;
-  String? _error;
-
-  @override
-  Widget build(BuildContext context) {
-    final vote = widget.vote;
-    if (vote.hasVoted) {
-      return _hdmInfo(
-        context,
-        icon: Icons.lock_outline,
-        title: 'Vote HDM enregistré',
-        message:
-            'Ton choix est définitif. Les résultats seront révélés ensuite.',
-      );
-    }
-    if (!vote.isEligibleVoter || !vote.canVote) {
-      return _hdmInfo(
-        context,
-        icon: Icons.visibility_outlined,
-        title: 'Vote HDM ouvert',
-        message: 'Tu peux consulter le scrutin depuis la fiche du match.',
-      );
-    }
-
-    final candidates = vote.candidates
-        .where((candidate) => candidate.canChoose)
-        .toList(growable: false);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Vote Homme du match',
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 4),
-        const Text('Choisis un joueur ayant participé au match.'),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final candidate in candidates)
-              ChoiceChip(
-                avatar: const CircleAvatar(
-                  child: Icon(Icons.person_outline, size: 17),
-                ),
-                label: Text(candidate.displayName),
-                selected: _selected == candidate.participantId,
-                onSelected: _saving
-                    ? null
-                    : (_) => setState(
-                          () => _selected = candidate.participantId,
-                        ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: _selected == null || _saving ? null : _submit,
-          icon: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.how_to_vote_outlined),
-          label: const Text('Valider définitivement mon vote'),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            _error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _hdmInfo(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String message,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 19, color: AppTheme.textSecondary),
-            const SizedBox(width: 9),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          message,
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: AppTheme.textSecondary),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _submit() async {
-    final candidateId = _selected;
-    if (candidateId == null || _saving) return;
-    final candidate = widget.vote.candidates
-        .where((item) => item.participantId == candidateId)
-        .firstOrNull;
-    if (candidate == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer ton vote ?'),
-        content: Text(
-          'Tu votes pour ${candidate.displayName}. Ce choix ne pourra plus être modifié.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmer'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await ref.read(sportMotmVoteRepositoryProvider).castVote(
-            matchId: widget.matchId,
-            candidateParticipantId: candidateId,
-          );
-      ref.invalidate(sportMotmVoteProvider(widget.matchId));
-      if (mounted) {
-        setState(() => _selected = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vote HDM enregistré.')),
-        );
-      }
-    } catch (error) {
-      if (mounted) setState(() => _error = humanizeError(error));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
   }
 }
 
