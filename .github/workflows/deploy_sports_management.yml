@@ -1,11 +1,10 @@
-name: Deploy sports management disabled
+name: Deploy sports management v63
 
 on:
-  pull_request_target:
+  pull_request:
     branches: [main]
     paths:
       - '.github/workflows/deploy_sports_management.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,16 +17,15 @@ env:
 jobs:
   deploy:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       startsWith(github.event.pull_request.head.ref, 'release/run-sports-deployment'))
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.event.pull_request.head.ref, 'release/deploy-live-squad-v63-pr')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
       - name: Checkout authorized deployment candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Check deployment secrets
         shell: bash
@@ -82,10 +80,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sports-management-production-deployment
+          name: sports-management-production-deployment-v63
           path: |
             migration-before.txt
             migration-after.txt
           if-no-files-found: warn
-
-# Production deployment authorized on 2026-07-21.
