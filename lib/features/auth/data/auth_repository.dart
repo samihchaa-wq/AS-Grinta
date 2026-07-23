@@ -153,6 +153,23 @@ class AuthRepository {
       'photo_url': publicUrl,
     }).eq('id', userId);
 
+    // Nettoyage des anciennes photos : une seule doit subsister par joueur.
+    // Best-effort — un échec ne doit jamais compromettre la mise à jour.
+    try {
+      final existing =
+          await _client.storage.from('profile-photos').list(path: userId);
+      final stale = [
+        for (final object in existing)
+          if (object.name.isNotEmpty && '$userId/${object.name}' != path)
+            '$userId/${object.name}',
+      ];
+      if (stale.isNotEmpty) {
+        await _client.storage.from('profile-photos').remove(stale);
+      }
+    } catch (_) {
+      // On ignore silencieusement : la nouvelle photo est déjà en place.
+    }
+
     final profile = await fetchProfile();
     if (profile == null) {
       throw StateError('Le profil mis à jour est introuvable.');
