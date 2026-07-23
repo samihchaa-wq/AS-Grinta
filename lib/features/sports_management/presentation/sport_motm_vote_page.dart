@@ -321,8 +321,9 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
         ] else ...[
           const _MessageCard(
             icon: Icons.schedule_outlined,
-            title: 'Scrutin indisponible',
-            message: 'Le vote n’est pas encore ouvert.',
+            title: 'Scrutin bientôt ouvert',
+            message: 'Le vote s’ouvre 1 h 45 après le coup d’envoi '
+                '(ou dès la validation du résultat).',
           ),
         ],
         if (_error != null) ...[
@@ -434,8 +435,10 @@ class _VoteHeader extends StatelessWidget {
             const Text('👑', style: TextStyle(fontSize: 42)),
             const SizedBox(height: 8),
             Text(
-              'AS Grinta ${vote.scoreAsGrinta} – ${vote.scoreAdverse} '
-              '${vote.opponentName}',
+              vote.hasScore
+                  ? 'AS Grinta ${vote.scoreAsGrinta} – ${vote.scoreAdverse} '
+                      '${vote.opponentName}'
+                  : 'AS Grinta – ${vote.opponentName}',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -512,6 +515,41 @@ class _Results extends StatelessWidget {
               ),
             ),
           ),
+        if (vote.ballots.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Text(
+            'Détail des votes',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Qui a voté pour qui, révélé à la clôture.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  for (final ballot in vote.ballots)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.how_to_vote_outlined, size: 20),
+                      title: Text(ballot.voterName),
+                      trailing: Text(
+                        '→ ${ballot.candidateName}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
