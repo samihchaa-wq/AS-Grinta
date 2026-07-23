@@ -51,6 +51,24 @@ class SportMotmCandidate {
   final bool isWinner;
 }
 
+/// Un bulletin nominatif révélé à la fermeture : « X a voté pour Y ».
+class SportMotmBallot {
+  const SportMotmBallot({
+    required this.voterName,
+    required this.candidateName,
+  });
+
+  factory SportMotmBallot.fromJson(Map<String, dynamic> json) {
+    return SportMotmBallot(
+      voterName: (json['voter_name'] ?? 'Joueur').toString(),
+      candidateName: (json['candidate_name'] ?? 'Joueur').toString(),
+    );
+  }
+
+  final String voterName;
+  final String candidateName;
+}
+
 class SportMotmVote {
   const SportMotmVote({
     required this.matchId,
@@ -68,6 +86,7 @@ class SportMotmVote {
     required this.totalVotes,
     required this.maxVotes,
     required this.candidates,
+    required this.ballots,
   });
 
   factory SportMotmVote.fromJson(Map<String, dynamic> json) {
@@ -79,8 +98,8 @@ class SportMotmVote {
     return SportMotmVote(
       matchId: json['match_id'].toString(),
       opponentName: (json['opponent_name'] ?? 'Adversaire').toString(),
-      scoreAsGrinta: (json['score_as_grinta'] as num?)?.toInt() ?? 0,
-      scoreAdverse: (json['score_adverse'] as num?)?.toInt() ?? 0,
+      scoreAsGrinta: (json['score_as_grinta'] as num?)?.toInt(),
+      scoreAdverse: (json['score_adverse'] as num?)?.toInt(),
       state: SportMotmVoteState.parse(json['state']),
       opensAt: parseDate(json['opens_at']),
       closesAt: parseDate(json['closes_at']),
@@ -98,13 +117,20 @@ class SportMotmVote {
             ),
           )
           .toList(growable: false),
+      ballots: (json['ballots'] as List? ?? const [])
+          .map(
+            (ballot) => SportMotmBallot.fromJson(
+              Map<String, dynamic>.from(ballot as Map),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 
   final String matchId;
   final String opponentName;
-  final int scoreAsGrinta;
-  final int scoreAdverse;
+  final int? scoreAsGrinta;
+  final int? scoreAdverse;
   final SportMotmVoteState state;
   final DateTime? opensAt;
   final DateTime? closesAt;
@@ -116,6 +142,7 @@ class SportMotmVote {
   final int? totalVotes;
   final int? maxVotes;
   final List<SportMotmCandidate> candidates;
+  final List<SportMotmBallot> ballots;
 
   List<SportMotmCandidate> get winners => candidates
       .where((candidate) => candidate.isWinner)
@@ -123,4 +150,7 @@ class SportMotmVote {
 
   bool get isOpen => state == SportMotmVoteState.open;
   bool get isClosed => state == SportMotmVoteState.closed;
+
+  /// Le score n'est connu qu'une fois la feuille de match validée.
+  bool get hasScore => scoreAsGrinta != null && scoreAdverse != null;
 }
