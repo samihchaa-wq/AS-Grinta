@@ -201,7 +201,7 @@ Deno.serve(async (req: Request) => {
     if (action === "reset-password") {
       const userId = String(body.userId ?? "");
       const uuidIsValid =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
           .test(userId);
       if (!uuidIsValid) {
         return jsonResponse({ error: "Valid user id is required" }, 400);
@@ -251,7 +251,7 @@ Deno.serve(async (req: Request) => {
     if (action === "delete") {
       const userId = String(body.userId ?? "");
       const uuidIsValid =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
           .test(userId);
       if (!uuidIsValid) {
         return jsonResponse({ error: "Valid user id is required" }, 400);
