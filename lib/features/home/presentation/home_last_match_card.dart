@@ -212,7 +212,7 @@ class _LastMatchContent extends ConsumerWidget {
                               const SizedBox(height: 2),
                               Text(
                                 vote.hasVoted
-                                    ? 'Consulte le scrutin depuis la compo.'
+                                    ? 'Appuie pour consulter le scrutin.'
                                     : 'Choisis un joueur depuis la composition.',
                                 style: Theme.of(context)
                                     .textTheme
