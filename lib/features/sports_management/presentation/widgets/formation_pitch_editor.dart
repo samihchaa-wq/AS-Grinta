@@ -179,7 +179,7 @@ class FormationPitchEditor extends StatelessWidget {
                           borderRadius: BorderRadius.circular(7),
                         ),
                         child: Text(
-                          entry.displayName.trim().split(RegExp(r'\s+')).first,
+                          entry.displayName.trim(),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,

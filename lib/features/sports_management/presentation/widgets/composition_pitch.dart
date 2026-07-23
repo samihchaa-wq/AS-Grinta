@@ -295,7 +295,7 @@ class _PlayerMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstName = entry.displayName.trim().split(RegExp(r'\s+')).first;
+    final label = entry.displayName.trim();
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -339,7 +339,7 @@ class _PlayerMarker extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            firstName,
+            label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
