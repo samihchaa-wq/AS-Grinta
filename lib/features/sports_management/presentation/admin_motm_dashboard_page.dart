@@ -442,8 +442,9 @@ class _ActionCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Chaque intervention reste inscrite dans l’historique. '
-              'Aucun bulletin individuel n’est affiché.',
+              'Chaque intervention reste inscrite dans l’historique. Le détail '
+              'nominatif des votes est révélé à tous après la clôture, sur '
+              'l’écran du scrutin.',
             ),
             const SizedBox(height: 12),
             if (isOpen)
