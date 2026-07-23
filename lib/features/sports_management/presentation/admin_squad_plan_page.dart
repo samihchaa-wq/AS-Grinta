@@ -423,35 +423,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     });
   }
 
-  void _reorderBench(int oldIndex, int newIndex) {
-    final composition = _composition;
-    if (composition == null || _busy || _locked) return;
-    final bench = composition.entriesFor(MatchCompositionZone.bench);
-    final moved = bench.removeAt(oldIndex);
-    bench.insert(newIndex, moved);
-    final order = {
-      for (var index = 0; index < bench.length; index += 1)
-        bench[index].participantId: index,
-    };
-    setState(() {
-      _composition = composition.copyWith(
-        hasUnpublishedChanges: true,
-        entries: [
-          for (final entry in composition.entries)
-            if (order.containsKey(entry.participantId))
-              _entryWithStatus(
-                entry,
-                MatchCompositionZone.bench,
-                sortOrder: order[entry.participantId],
-              )
-            else
-              entry,
-        ],
-      );
-      _compositionDirty = true;
-    });
-  }
-
   MatchComposition _compositionReadyToSave() {
     final composition = _composition!;
     final currentConvoked = {
@@ -923,40 +894,16 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                   if (bench.isEmpty)
                     const Text('Aucun remplaçant.')
                   else
-                    ReorderableListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      buildDefaultDragHandles: false,
-                      itemCount: bench.length,
-                      onReorderItem: _reorderBench,
-                      itemBuilder: (context, index) {
-                        final entry = bench[index];
-                        final tile = ListTile(
-                          key: ValueKey(entry.participantId),
-                          dense: true,
-                          leading: PlayerAvatar(
-                            photoUrl: entry.photoUrl,
-                            name: entry.displayName,
-                            isGoalkeeper: entry.isGoalkeeper,
-                            size: 36,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 14,
+                      children: [
+                        for (final entry in bench)
+                          _BenchBox(
+                            entry: entry,
+                            draggable: !_busy && !_locked,
                           ),
-                          title: Text(entry.displayName),
-                          trailing: ReorderableDragStartListener(
-                            index: index,
-                            child: const Icon(Icons.drag_handle),
-                          ),
-                        );
-                        if (_busy || _locked) return tile;
-                        return LongPressDraggable<MatchCompositionEntry>(
-                          key: ValueKey('drag-${entry.participantId}'),
-                          data: entry,
-                          feedback: Material(
-                            child: SizedBox(width: 240, child: tile),
-                          ),
-                          childWhenDragging: Opacity(opacity: .3, child: tile),
-                          child: tile,
-                        );
-                      },
+                      ],
                     ),
                 ],
               ),
@@ -1227,6 +1174,48 @@ class _AdminMatchTools extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Case d'un remplaçant : même format que les titulaires (photo/initiales +
+/// nom dessous), disposées côte à côte. Déplaçable vers le terrain.
+class _BenchBox extends StatelessWidget {
+  const _BenchBox({required this.entry, required this.draggable});
+
+  final MatchCompositionEntry entry;
+  final bool draggable;
+
+  @override
+  Widget build(BuildContext context) {
+    final box = SizedBox(
+      width: 64,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PlayerAvatar(
+            photoUrl: entry.photoUrl,
+            name: entry.displayName,
+            isGoalkeeper: entry.isGoalkeeper,
+            size: 58,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            entry.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+    if (!draggable) return box;
+    return LongPressDraggable<MatchCompositionEntry>(
+      data: entry,
+      feedback: Material(color: Colors.transparent, child: box),
+      childWhenDragging: Opacity(opacity: .3, child: box),
+      child: box,
     );
   }
 }

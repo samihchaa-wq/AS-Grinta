@@ -461,6 +461,11 @@ class PlayerAvatar extends StatelessWidget {
               width: size,
               height: size,
               fit: BoxFit.cover,
+              // Décode à la taille d'affichage (et non 800 px) : le rendu des
+              // photos est bien plus rapide, surtout avec toute une compo.
+              cacheWidth: (size * 3).round(),
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.low,
               errorBuilder: (_, __, ___) => _initials(),
             )
           : _initials(),

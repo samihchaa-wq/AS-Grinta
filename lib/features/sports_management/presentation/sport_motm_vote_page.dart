@@ -196,14 +196,7 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
                   subtitle: candidate.isGuest
                       ? const Text('Invité · candidat uniquement')
                       : null,
-                  trailing: Text(
-                    candidate.isGoalkeeper
-                        ? '🧤'
-                        : candidate.isGuest
-                            ? '⭐'
-                            : '⚽',
-                    style: const TextStyle(fontSize: 22),
-                  ),
+                  trailing: _CandidateExploit(candidate: candidate),
                 ),
               ),
             const SizedBox(height: 12),
@@ -472,6 +465,39 @@ class _MessageCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Exploit du joueur affiché dans la liste de vote : buts pour les joueurs de
+/// champ, clean sheet ou non pour le gardien.
+class _CandidateExploit extends StatelessWidget {
+  const _CandidateExploit({required this.candidate});
+
+  final SportMotmCandidate candidate;
+
+  @override
+  Widget build(BuildContext context) {
+    if (candidate.isGoalkeeper) {
+      final cleanSheet = candidate.cleanSheet;
+      if (cleanSheet == null) return const SizedBox.shrink();
+      return Text(
+        cleanSheet ? 'Clean sheet' : 'A encaissé',
+        style: TextStyle(
+          color: cleanSheet ? const Color(0xFF52D08A) : Colors.white54,
+          fontWeight: FontWeight.w800,
+          fontSize: 13,
+        ),
+      );
+    }
+    final goals = candidate.goals;
+    return Text(
+      goals <= 1 ? '$goals but' : '$goals buts',
+      style: TextStyle(
+        color: goals > 0 ? const Color(0xFFCAB5FF) : Colors.white54,
+        fontWeight: FontWeight.w800,
+        fontSize: 13,
       ),
     );
   }
