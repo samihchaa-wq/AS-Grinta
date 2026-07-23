@@ -26,40 +26,25 @@ class _AdminMotmDashboardPageState
   bool _isSubmitting = false;
   String? _error;
 
-  Future<String?> _askReason(String title) async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 500,
-          minLines: 2,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            labelText: 'Motif obligatoire',
-            hintText: 'Explique la raison de cette intervention.',
+  Future<bool> _confirmAction(String title) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: const Text('Confirmer cette intervention ?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Confirmer'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) Navigator.pop(context, value);
-            },
-            child: const Text('Valider'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return result;
+        ) ??
+        false;
   }
 
   Future<void> _runAction(String action) async {
@@ -70,8 +55,9 @@ class _AdminMotmDashboardPageState
       'cancel' => 'Annuler le scrutin',
       _ => 'Relancer le scrutin pour 24 h',
     };
-    final reason = await _askReason(title);
-    if (reason == null || !mounted) return;
+    final confirmed = await _confirmAction(title);
+    if (!confirmed || !mounted) return;
+    const reason = 'Intervention admin';
 
     setState(() {
       _isSubmitting = true;
@@ -92,7 +78,7 @@ class _AdminMotmDashboardPageState
       ref.invalidate(sportStatisticsIntegrityProvider(matchId));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Intervention enregistrée et auditée.')),
+          const SnackBar(content: Text('Intervention enregistrée.')),
         );
       }
     } catch (error) {
@@ -456,8 +442,8 @@ class _ActionCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Chaque intervention exige un motif et reste inscrite dans '
-              'l’historique. Aucun bulletin individuel n’est affiché.',
+              'Chaque intervention reste inscrite dans l’historique. '
+              'Aucun bulletin individuel n’est affiché.',
             ),
             const SizedBox(height: 12),
             if (isOpen)

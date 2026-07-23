@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:flutter/material.dart';
@@ -141,7 +142,14 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
     final waitlist = _waitlist;
     if (waitlist == null || _entries.isEmpty) {
-      return const Center(child: Text('Aucun joueur actif dans la saison.'));
+      return const Center(
+        child: GrintaEmptyState(
+          icon: Icons.format_list_numbered_rounded,
+          title: 'Aucun joueur dans la saison',
+          message: 'Ajoute des joueurs à l’effectif pour construire l’ordre '
+              'de la liste d’attente.',
+        ),
+      );
     }
 
     return ListView(

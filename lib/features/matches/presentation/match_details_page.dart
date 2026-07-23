@@ -7,8 +7,11 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,7 +85,7 @@ class MatchDetailsPage extends ConsumerWidget {
                   MatchMotmVoteCard(matchId: matchId),
                 ],
                 const SizedBox(height: 16),
-                _CompletedCompositionCard(details: details),
+                _CompletedCompositionCard(details: details, matchId: matchId),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -281,13 +284,27 @@ class _MatchHeader extends StatelessWidget {
   }
 }
 
-class _CompletedCompositionCard extends StatelessWidget {
-  const _CompletedCompositionCard({required this.details});
+class _CompletedCompositionCard extends ConsumerWidget {
+  const _CompletedCompositionCard({
+    required this.details,
+    required this.matchId,
+  });
 
   final MatchDetailsData details;
+  final String matchId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Priorité au rendu MPG (photos, couronne 👑, ballons ⚽) dès qu'une
+    // composition publiée existe : même visuel avant et après le match.
+    final composition =
+        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
+    final fieldEntries =
+        composition?.entriesFor(MatchCompositionZone.field) ?? const [];
+    if (fieldEntries.isNotEmpty) {
+      return _MpgCompletedCard(composition: composition!);
+    }
+
     final starters = details.startingLineup
         .where((player) => player.isStarter)
         .toList(growable: false);
@@ -352,6 +369,79 @@ class _CompletedCompositionCard extends StatelessWidget {
                       name: player.name,
                       goals: player.goals,
                       isHdm: player.isManOfTheMatch,
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Rendu MPG d'une composition publiée (photos, couronne, ballons) pour un
+/// match terminé — identique à l'affichage d'avant-match.
+class _MpgCompletedCard extends StatelessWidget {
+  const _MpgCompletedCard({required this.composition});
+
+  final MatchComposition composition;
+
+  @override
+  Widget build(BuildContext context) {
+    final bench = composition.entriesFor(MatchCompositionZone.bench);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Composition et résumé',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Les buts ⚽ et l’homme du match 👑 sont affichés directement '
+              'sur les joueurs.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: CompositionPitch(
+                  entries: composition.entriesFor(MatchCompositionZone.field),
+                ),
+              ),
+            ),
+            if (bench.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Remplaçants (${bench.length})',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                children: [
+                  for (final entry in bench)
+                    Chip(
+                      avatar: const CircleAvatar(
+                        child: Icon(Icons.person_outline, size: 16),
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      label: Text(entry.displayName),
                     ),
                 ],
               ),

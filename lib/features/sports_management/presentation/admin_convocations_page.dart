@@ -175,7 +175,6 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
         ? ConvocationStatus.notConvoked
         : ConvocationStatus.convoked;
     var consumeTurn = player.turnShouldConsume;
-    var reason = '';
 
     final decision = await showDialog<_ConvocationDecision>(
       context: context,
@@ -218,17 +217,6 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
                     'même s’il reste convoqué.',
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  maxLength: 500,
-                  maxLines: 3,
-                  onChanged: (value) => reason = value,
-                  decoration: const InputDecoration(
-                    labelText: 'Motif facultatif',
-                    hintText: 'Retour de blessure, choix sportif…',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
               ],
             ),
           ),
@@ -243,7 +231,7 @@ class _AdminConvocationsPageState extends ConsumerState<AdminConvocationsPage> {
                 _ConvocationDecision(
                   status: status,
                   consumeTurn: consumeTurn,
-                  reason: reason.trim(),
+                  reason: '',
                 ),
               ),
               child: const Text('Appliquer'),

@@ -101,11 +101,9 @@ class AdminSportsManagementSection extends ConsumerWidget {
     WidgetRef ref, {
     required bool enabled,
   }) async {
-    String? justification;
     if (!enabled) {
-      final decision = await _confirmDisable(context);
-      if (decision == null) return;
-      justification = decision.justification;
+      final confirmed = await _confirmDisable(context);
+      if (!confirmed) return;
     }
 
     try {
@@ -113,7 +111,7 @@ class AdminSportsManagementSection extends ConsumerWidget {
           .read(featureFlagsControllerProvider.notifier)
           .setSportsManagementEnabled(
             enabled: enabled,
-            justification: justification,
+            justification: null,
           );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -133,54 +131,30 @@ class AdminSportsManagementSection extends ConsumerWidget {
     }
   }
 
-  Future<_DisableDecision?> _confirmDisable(BuildContext context) async {
-    var justification = '';
-    return showDialog<_DisableDecision>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Désactiver le module ?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
+  Future<bool> _confirmDisable(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Désactiver le module ?'),
+            content: const Text(
               'Les disponibilités, compositions, notifications et votes '
               'seront masqués et bloqués. Toutes les données historiques '
               'seront conservées.',
             ),
-            const SizedBox(height: 16),
-            TextField(
-              maxLength: 500,
-              maxLines: 2,
-              onChanged: (value) => justification = value,
-              decoration: const InputDecoration(
-                labelText: 'Motif facultatif',
-                border: OutlineInputBorder(),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Annuler'),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Annuler'),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Désactiver'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(
-              dialogContext,
-            ).pop(_DisableDecision(justification.trim())),
-            child: const Text('Désactiver'),
-          ),
-        ],
-      ),
-    );
+        ) ??
+        false;
   }
-}
-
-class _DisableDecision {
-  const _DisableDecision(this.justification);
-
-  final String justification;
 }
 
 String _reminderLabel(List<int> reminderHoursBefore) {
