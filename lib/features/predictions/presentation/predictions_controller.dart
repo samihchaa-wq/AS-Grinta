@@ -131,6 +131,7 @@ extension MatchPredictionItemUpdate on MatchPredictionItem {
       opponentName: opponentName,
       kickoffAt: kickoffAt,
       status: status,
+      isHome: isHome,
       scoreGrinta: scoreGrinta ?? this.scoreGrinta,
       scoreOpponent: scoreOpponent ?? this.scoreOpponent,
       isFilled: isFilled ?? this.isFilled,
