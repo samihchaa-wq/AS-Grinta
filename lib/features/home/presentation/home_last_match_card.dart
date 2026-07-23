@@ -180,7 +180,7 @@ class _LastMatchContent extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (vote != null && vote.isOpen) ...[
+              if (vote != null && vote.isOpen && vote.isEligibleVoter) ...[
                 const Divider(
                   height: 1,
                   thickness: 1,
