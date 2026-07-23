@@ -515,41 +515,6 @@ class _Results extends StatelessWidget {
               ),
             ),
           ),
-        if (vote.ballots.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(
-            'Détail des votes',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Qui a voté pour qui, révélé à la clôture.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                children: [
-                  for (final ballot in vote.ballots)
-                    ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.how_to_vote_outlined, size: 20),
-                      title: Text(ballot.voterName),
-                      trailing: Text(
-                        '→ ${ballot.candidateName}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }

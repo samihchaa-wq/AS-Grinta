@@ -51,24 +51,6 @@ class SportMotmCandidate {
   final bool isWinner;
 }
 
-/// Un bulletin nominatif révélé à la fermeture : « X a voté pour Y ».
-class SportMotmBallot {
-  const SportMotmBallot({
-    required this.voterName,
-    required this.candidateName,
-  });
-
-  factory SportMotmBallot.fromJson(Map<String, dynamic> json) {
-    return SportMotmBallot(
-      voterName: (json['voter_name'] ?? 'Joueur').toString(),
-      candidateName: (json['candidate_name'] ?? 'Joueur').toString(),
-    );
-  }
-
-  final String voterName;
-  final String candidateName;
-}
-
 class SportMotmVote {
   const SportMotmVote({
     required this.matchId,
@@ -86,7 +68,6 @@ class SportMotmVote {
     required this.totalVotes,
     required this.maxVotes,
     required this.candidates,
-    required this.ballots,
   });
 
   factory SportMotmVote.fromJson(Map<String, dynamic> json) {
@@ -117,13 +98,6 @@ class SportMotmVote {
             ),
           )
           .toList(growable: false),
-      ballots: (json['ballots'] as List? ?? const [])
-          .map(
-            (ballot) => SportMotmBallot.fromJson(
-              Map<String, dynamic>.from(ballot as Map),
-            ),
-          )
-          .toList(growable: false),
     );
   }
 
@@ -142,7 +116,6 @@ class SportMotmVote {
   final int? totalVotes;
   final int? maxVotes;
   final List<SportMotmCandidate> candidates;
-  final List<SportMotmBallot> ballots;
 
   List<SportMotmCandidate> get winners => candidates
       .where((candidate) => candidate.isWinner)

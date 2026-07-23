@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:as_grinta/features/sports_management/domain/guest_player_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -154,7 +155,10 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
     await _client.storage.from('profile-photos').uploadBinary(
           path,
           bytes,
-          fileOptions: FileOptions(contentType: 'image/$ext', upsert: true),
+          fileOptions: FileOptions(
+            contentType: imageMimeForExt(ext),
+            upsert: true,
+          ),
         );
     final url = _client.storage.from('profile-photos').getPublicUrl(path);
     await _client.rpc(

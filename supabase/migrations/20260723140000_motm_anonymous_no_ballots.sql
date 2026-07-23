@@ -1,0 +1,132 @@
+-- Le vote Homme du match est anonyme : on ne révèle jamais « qui a voté pour
+-- qui ». On retire donc le détail nominatif des bulletins (clé `ballots`) de la
+-- réponse de get_match_motm_vote. Seuls les décomptes par candidat restent
+-- exposés à la clôture.
+
+create or replace function private.get_match_motm_vote(p_match_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor uuid := (select auth.uid());
+  v_election public.match_sport_motm_elections%rowtype;
+  v_voter_participant_id uuid;
+  v_has_voted boolean := false;
+  v_can_vote boolean := false;
+  v_result jsonb;
+begin
+  perform private.require_sports_management_enabled();
+  if not private.is_active_profile() then
+    raise exception 'Active profile required' using errcode = '42501';
+  end if;
+
+  perform private.ensure_match_motm_election(p_match_id);
+  perform private.transition_match_motm_election(p_match_id);
+
+  select * into v_election
+  from public.match_sport_motm_elections election
+  where election.match_id = p_match_id;
+
+  if not found then
+    return null;
+  end if;
+
+  select participant.id into v_voter_participant_id
+  from private.match_motm_candidate_participants(p_match_id) candidate
+  join public.match_sport_participants participant
+    on participant.id = candidate.participant_id
+  join public.season_players player on player.id = participant.season_player_id
+  join public.profiles profile on profile.id = player.profile_id
+  where profile.id = v_actor
+    and profile.status = 'active'
+  order by participant.id
+  limit 1;
+
+  v_has_voted := exists (
+    select 1 from public.match_sport_motm_votes vote
+    where vote.match_id = p_match_id
+      and vote.voter_profile_id = v_actor
+  );
+
+  v_can_vote := v_election.state = 'open'
+    and v_election.opens_at is not null
+    and now() >= v_election.opens_at
+    and now() < v_election.closes_at
+    and v_voter_participant_id is not null
+    and not v_has_voted
+    and exists (
+      select 1
+      from private.match_motm_candidate_participants(p_match_id) candidate
+      join public.match_sport_participants participant
+        on participant.id = candidate.participant_id
+      left join public.season_players candidate_player
+        on candidate_player.id = participant.season_player_id
+      where participant.id <> v_voter_participant_id
+        and (
+          participant.guest_player_id is not null
+          or candidate_player.profile_id is distinct from v_actor
+        )
+    );
+
+  select jsonb_build_object(
+    'match_id', election.match_id,
+    'opponent_name', opponent.name,
+    'score_as_grinta', finalization.score_as_grinta,
+    'score_adverse', finalization.score_adverse,
+    'state', election.state,
+    'opens_at', election.opens_at,
+    'closes_at', election.closes_at,
+    'closed_at', election.closed_at,
+    'finalization_version', election.finalization_version,
+    'has_voted', v_has_voted,
+    'can_vote', v_can_vote,
+    'is_eligible_voter', v_voter_participant_id is not null,
+    'total_votes', case when election.state = 'closed' then election.total_votes else null end,
+    'max_votes', case when election.state = 'closed' then election.max_votes else null end,
+    'candidates', coalesce((
+      select jsonb_agg(candidate_json order by candidate_order desc, candidate_name, candidate_pid)
+      from (
+        select
+          jsonb_build_object(
+            'participant_id', participant.id,
+            'season_player_id', participant.season_player_id,
+            'guest_player_id', participant.guest_player_id,
+            'display_name', case
+              when guest.id is not null then
+                btrim(guest.first_name) || ' (Invité)'
+              else coalesce(nullif(btrim(profile.surnom), ''), btrim(player.first_name))
+            end,
+            'is_guest', guest.id is not null,
+            'is_goalkeeper', coalesce(player.is_goalkeeper, guest.is_goalkeeper, false),
+            'is_self', player.profile_id = v_actor,
+            'can_choose', guest.id is not null or player.profile_id is distinct from v_actor,
+            'votes_count', case when election.state = 'closed' then coalesce(result.votes_count, 0) else null end,
+            'is_winner', case when election.state = 'closed' then coalesce(result.is_winner, false) else null end
+          ) as candidate_json,
+          case when election.state = 'closed' then coalesce(result.votes_count, 0) else 0 end as candidate_order,
+          coalesce(nullif(btrim(profile.surnom), ''), player.first_name, guest.first_name) as candidate_name,
+          participant.id as candidate_pid
+        from private.match_motm_candidate_participants(p_match_id) candidate
+        join public.match_sport_participants participant
+          on participant.id = candidate.participant_id
+        left join public.season_players player on player.id = participant.season_player_id
+        left join public.profiles profile on profile.id = player.profile_id
+        left join public.guest_players guest on guest.id = participant.guest_player_id
+        left join public.match_sport_motm_results result
+          on result.match_id = participant.match_id
+         and result.participant_id = participant.id
+      ) candidates
+    ), '[]'::jsonb)
+  ) into v_result
+  from public.match_sport_motm_elections election
+  join public.matches match on match.id = election.match_id
+  join public.opponents opponent on opponent.id = match.opponent_id
+  left join public.match_sport_finalizations finalization
+    on finalization.match_id = election.match_id
+  where election.match_id = p_match_id;
+
+  return v_result;
+end;
+$function$;
