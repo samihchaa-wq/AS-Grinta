@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
+import 'package:as_grinta/features/predictions/presentation/season_prono_help_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,12 +79,26 @@ class _SeasonPredictionEntryPageState
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
-                const Card(
+                Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'Pronostique combien de buts (ou de clean sheets pour les '
-                      'gardiens) chaque joueur marquera sur toute la saison.',
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Pronostique combien de buts (ou de clean sheets pour '
+                          'les gardiens) chaque joueur marquera sur toute la '
+                          'saison.',
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () => showSeasonPronoHelpSheet(context),
+                            icon: const Icon(Icons.help_outline, size: 18),
+                            label: const Text('Comment ça marche ?'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
