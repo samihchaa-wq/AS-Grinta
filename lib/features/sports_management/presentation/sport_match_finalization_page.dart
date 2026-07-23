@@ -521,7 +521,7 @@ class _ParticipantCard extends StatelessWidget {
                 child: Text(participant.isGoalkeeper ? '🧤' : '⚽'),
               ),
               title: Text(
-                participant.displayName.trim().split(RegExp(r'\s+')).first,
+                participant.displayName.trim(),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(

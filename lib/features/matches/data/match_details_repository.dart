@@ -178,7 +178,7 @@ class MatchDetailsRepository {
     if (isValidated) {
       final statRows = await _client.from('match_player_stats').select('''
         season_player_id,goals,clean_sheet,
-        season_players(first_name,last_name)
+        season_players(first_name,last_name,profiles(surnom))
       ''').eq('match_id', matchId);
       final statsByPlayerId = <String, MatchStatLine>{};
       playerStats = (statRows as List).map((row) {
@@ -186,8 +186,15 @@ class MatchDetailsRepository {
         final player = map['season_players'] is Map
             ? Map<String, dynamic>.from(map['season_players'] as Map)
             : const <String, dynamic>{};
+        final playerProfile = player['profiles'] is Map
+            ? Map<String, dynamic>.from(player['profiles'] as Map)
+            : const <String, dynamic>{};
         final stat = MatchStatLine(
-          name: _displayName(player),
+          name: _resolveName(
+            playerProfile['surnom'],
+            player['first_name'],
+            player['last_name'],
+          ),
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           cleanSheet: map['clean_sheet'] == true,
         );
@@ -233,9 +240,7 @@ class MatchDetailsRepository {
           final isStarter = entry['zone']?.toString() == 'field';
           return MatchStartingPlayer(
             seasonPlayerId: seasonPlayerId,
-            name: _firstNameFromText(
-              (entry['display_name'] ?? 'Joueur').toString(),
-            ),
+            name: (entry['display_name'] ?? 'Joueur').toString().trim(),
             goals: stat?.goals ?? 0,
             isManOfTheMatch: seasonPlayerId != null &&
                 manOfMatchIds.contains(seasonPlayerId),
@@ -274,7 +279,7 @@ class MatchDetailsRepository {
             : const <String, dynamic>{};
         return MatchPredictionResult(
           profileId: profileId,
-          name: _displayName(profile),
+          name: _resolveName(profile['surnom'], profile['first_name']),
           scoreGrinta: (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
           scoreOpponent: (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
           points: pointsByProfile[profileId] ?? 0,
@@ -308,15 +313,19 @@ class MatchDetailsRepository {
     );
   }
 
-  static String _displayName(Map<String, dynamic> profile) {
-    final firstName = (profile['first_name'] ?? '').toString().trim();
-    return firstName.isEmpty ? 'Joueur' : firstName;
-  }
-
-  static String _firstNameFromText(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return 'Joueur';
-    return trimmed.split(RegExp(r'\s+')).first;
+  /// Nom court unifié : surnom s'il est renseigné, sinon prénom (repli sur
+  /// prénom + nom). Même règle que partout ailleurs dans l'app.
+  static String _resolveName(
+    Object? surnom,
+    Object? firstName, [
+    Object? lastName,
+  ]) {
+    final nick = (surnom ?? '').toString().trim();
+    if (nick.isNotEmpty) return nick;
+    final first = (firstName ?? '').toString().trim();
+    if (first.isNotEmpty) return first;
+    final full = '${firstName ?? ''} ${lastName ?? ''}'.trim();
+    return full.isEmpty ? 'Joueur' : full;
   }
 
   Future<void> reportMatch({
