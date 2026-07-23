@@ -2,6 +2,28 @@
 
 Ce document décrit le fonctionnement post-match de la V1 publique.
 
+> ## Mise à jour — état actuel (prioritaire)
+>
+> Les points ci-dessous corrigent le corps du document, resté au stade V1 :
+>
+> - **Rôles** : `pronostiqueur` et `admin` uniquement. Le rôle `moderateur`
+>   n'existe plus.
+> - **Comptes** : auto-inscription via un lien public puis validation par
+>   l'admin (et non plus uniquement sur invitation).
+> - **Feuille de match / statistiques** : présence, **buts** et **clean sheets**
+>   seulement. Les passes décisives et les fautes provoquant un penalty ont été
+>   retirées.
+> - **Homme du match** : désigné par un **vote collectif anonyme**, ouvert après
+>   la validation du résultat et clôturé automatiquement (plus une désignation
+>   admin facultative). Co-vainqueurs possibles en cas d'égalité.
+> - **Module de gestion sportive** ajouté : disponibilités et rappels,
+>   listes d'attente et rotation, convocations, invités réutilisables,
+>   composition tactique positionnée et versionnée (photos, couronne HDM,
+>   ballons de buts), notifications push.
+> - **Nom affiché** partout : surnom s'il est renseigné, sinon prénom.
+> - Le « tableau du coach » et toute l'infrastructure temps réel (Live) restent
+>   absents et ont été retirés du code.
+
 ## Comptes et rôles
 
 - Les comptes sont créés uniquement sur invitation.

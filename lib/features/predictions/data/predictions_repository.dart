@@ -144,6 +144,8 @@ class PredictionsRepository {
   ''';
 
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
     final response = await _client
         .from('matches')
         .select(_matchSelect)
@@ -153,17 +155,34 @@ class PredictionsRepository {
         .map((match) => Map<String, dynamic>.from(match as Map))
         .toList();
     final firstOpenMatchId = _firstOpenMatchId(matches, DateTime.now());
+    final matchIds = [for (final match in matches) match['id'].toString()];
 
-    final items = <MatchPredictionItem>[];
-    for (final match in matches) {
-      items.add(
-        await _buildItem(
+    // Portefeuille ×2 : identique pour tous les matchs, lu une seule fois.
+    final x2Available = await _fetchX2Available(userId);
+
+    // Tous les pronos de l'utilisateur en un seul appel (au lieu d'un par match).
+    final predictionsById = <String, Map<String, dynamic>>{};
+    if (matchIds.isNotEmpty) {
+      final predRows = await _client
+          .from('match_predictions')
+          .select(_predictionSelect)
+          .eq('profile_id', userId)
+          .inFilter('match_id', matchIds);
+      for (final row in predRows as List) {
+        final map = Map<String, dynamic>.from(row as Map);
+        predictionsById[map['match_id'].toString()] = map;
+      }
+    }
+
+    return [
+      for (final match in matches)
+        _buildItem(
           match,
+          prediction: predictionsById[match['id'].toString()],
+          x2Available: x2Available,
           isFirstOpenMatch: match['id']?.toString() == firstOpenMatchId,
         ),
-      );
-    }
-    return items;
+    ];
   }
 
   Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async {
@@ -184,10 +203,33 @@ class PredictionsRepository {
         .toList();
     final firstOpenMatchId = _firstOpenMatchId(openMatches, DateTime.now());
 
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    final prediction = await _client
+        .from('match_predictions')
+        .select(_predictionSelect)
+        .eq('profile_id', userId)
+        .eq('match_id', matchId)
+        .maybeSingle();
+    final x2Available = await _fetchX2Available(userId);
+
     return _buildItem(
       Map<String, dynamic>.from(match),
+      prediction: prediction == null
+          ? null
+          : Map<String, dynamic>.from(prediction),
+      x2Available: x2Available,
       isFirstOpenMatch: matchId == firstOpenMatchId,
     );
+  }
+
+  Future<int> _fetchX2Available(String userId) async {
+    final wallet = await _client
+        .from('v_x2_wallet')
+        .select('available_count')
+        .eq('profile_id', userId)
+        .maybeSingle();
+    return (wallet?['available_count'] as num?)?.toInt() ?? 0;
   }
 
   String? _firstOpenMatchId(List<Map<String, dynamic>> matches, DateTime now) {
@@ -209,27 +251,17 @@ class PredictionsRepository {
     return null;
   }
 
-  Future<MatchPredictionItem> _buildItem(
-    Map<String, dynamic> matchMap, {
-    required bool isFirstOpenMatch,
-  }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) throw StateError('Utilisateur non authentifié.');
-    final matchId = matchMap['id'].toString();
-    final prediction = await _client
-        .from('match_predictions')
-        .select(
-          'match_id, predicted_score_as_grinta, predicted_score_adverse, is_filled, use_x2',
-        )
-        .eq('profile_id', userId)
-        .eq('match_id', matchId)
-        .maybeSingle();
-    final wallet = await _client
-        .from('v_x2_wallet')
-        .select('available_count')
-        .eq('profile_id', userId)
-        .maybeSingle();
+  static const _predictionSelect =
+      'match_id, predicted_score_as_grinta, predicted_score_adverse, '
+      'is_filled, use_x2';
 
+  MatchPredictionItem _buildItem(
+    Map<String, dynamic> matchMap, {
+    required Map<String, dynamic>? prediction,
+    required int x2Available,
+    required bool isFirstOpenMatch,
+  }) {
+    final matchId = matchMap['id'].toString();
     final serverKickoff = DateTime.tryParse(
       '${matchMap['kickoff_at'] ?? ''}',
     )?.toLocal();
@@ -259,7 +291,7 @@ class PredictionsRepository {
           int.tryParse('${prediction?['predicted_score_adverse'] ?? 0}') ?? 0,
       isFilled: prediction?['is_filled'] == true,
       useX2: prediction?['use_x2'] == true,
-      x2Available: (wallet?['available_count'] as num?)?.toInt() ?? 0,
+      x2Available: x2Available,
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),
