@@ -69,6 +69,47 @@ class _InlineMatchPredictionCardState
         final useX2 = _useX2 ?? item.useX2;
         final canEdit = item.canEdit && !_saving;
 
+        // L'équipe qui reçoit (domicile) est affichée à gauche, comme partout
+        // ailleurs dans l'app.
+        final grintaNameLabel = Expanded(
+          child: Text(
+            'AS Grinta',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        );
+        final opponentNameLabel = Expanded(
+          child: Text(
+            item.opponentName,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        );
+        final grintaPicker = Expanded(
+          child: _ScorePicker(
+            label: 'AS Grinta',
+            value: grinta,
+            enabled: canEdit,
+            onMinus: () => setState(() {
+              if (grinta > 0) _scoreGrinta = grinta - 1;
+            }),
+            onPlus: () => setState(() => _scoreGrinta = grinta + 1),
+          ),
+        );
+        final opponentPicker = Expanded(
+          child: _ScorePicker(
+            label: item.opponentName,
+            value: opponent,
+            enabled: canEdit,
+            onMinus: () => setState(() {
+              if (opponent > 0) _scoreOpponent = opponent - 1;
+            }),
+            onPlus: () => setState(() => _scoreOpponent = opponent + 1),
+          ),
+        );
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
@@ -96,26 +137,12 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: 18),
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      'AS Grinta',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
+                  if (item.isHome) grintaNameLabel else opponentNameLabel,
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Text('–'),
                   ),
-                  Expanded(
-                    child: Text(
-                      item.opponentName,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                  ),
+                  if (item.isHome) opponentNameLabel else grintaNameLabel,
                 ],
               ),
               const SizedBox(height: 8),
@@ -145,30 +172,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: _ScorePicker(
-                      label: 'AS Grinta',
-                      value: grinta,
-                      enabled: canEdit,
-                      onMinus: () => setState(() {
-                        if (grinta > 0) _scoreGrinta = grinta - 1;
-                      }),
-                      onPlus: () => setState(() => _scoreGrinta = grinta + 1),
-                    ),
-                  ),
+                  if (item.isHome) grintaPicker else opponentPicker,
                   const Text('–'),
-                  Expanded(
-                    child: _ScorePicker(
-                      label: item.opponentName,
-                      value: opponent,
-                      enabled: canEdit,
-                      onMinus: () => setState(() {
-                        if (opponent > 0) _scoreOpponent = opponent - 1;
-                      }),
-                      onPlus: () =>
-                          setState(() => _scoreOpponent = opponent + 1),
-                    ),
-                  ),
+                  if (item.isHome) opponentPicker else grintaPicker,
                 ],
               ),
               const SizedBox(height: 18),

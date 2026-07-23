@@ -9,6 +9,7 @@ class MatchPredictionItem {
     required this.opponentName,
     required this.kickoffAt,
     required this.status,
+    this.isHome = true,
     required this.scoreGrinta,
     required this.scoreOpponent,
     required this.isFilled,
@@ -27,6 +28,10 @@ class MatchPredictionItem {
   final String opponentName;
   final DateTime kickoffAt;
   final String status;
+
+  /// Vrai si AS Grinta reçoit (domicile). Sert à afficher l'équipe qui reçoit
+  /// à gauche, comme sur le reste de l'app.
+  final bool isHome;
   final int scoreGrinta;
   final int scoreOpponent;
   final bool isFilled;
@@ -74,6 +79,7 @@ class MatchPredictionItem {
       opponentName: opponentName,
       kickoffAt: kickoffAt,
       status: status,
+      isHome: isHome,
       scoreGrinta: scoreGrinta ?? this.scoreGrinta,
       scoreOpponent: scoreOpponent ?? this.scoreOpponent,
       isFilled: isFilled ?? this.isFilled,
@@ -125,6 +131,7 @@ class PredictionsRepository {
     match_time,
     kickoff_at,
     status,
+    location,
     score_as_grinta,
     score_adverse,
     predictions_closed_at,
@@ -245,6 +252,7 @@ class PredictionsRepository {
       opponentName: opponent['name']?.toString() ?? 'Adversaire',
       kickoffAt: kickoffAt,
       status: matchMap['status']?.toString() ?? 'a_venir',
+      isHome: matchMap['location']?.toString() != 'exterieur',
       scoreGrinta:
           int.tryParse('${prediction?['predicted_score_as_grinta'] ?? 0}') ?? 0,
       scoreOpponent:
