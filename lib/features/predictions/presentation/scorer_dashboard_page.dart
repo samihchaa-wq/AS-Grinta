@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/season_prediction_entry_page.dart';
+import 'package:as_grinta/features/predictions/presentation/season_prono_help_sheet.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/player_predictions_sheet.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/reference_player_gauge_card.dart';
 import 'package:flutter/material.dart';
@@ -59,6 +60,15 @@ class _LockedScorerDashboard extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => showSeasonPronoHelpSheet(context),
+                  icon: const Icon(Icons.help_outline, size: 18),
+                  label: const Text('Comment ça marche ?'),
+                ),
+              ),
+              const SizedBox(height: 4),
               if (scorers.isNotEmpty)
                 _GaugeSection(
                   title: 'Buteurs',
