@@ -229,6 +229,26 @@ class RosterRepository {
     await _client
         .from('season_players')
         .update({'photo_url': url}).eq('id', seasonPlayerId);
+    await _removeStalePhotos('season/$seasonPlayerId', keep: path);
+  }
+
+  /// Supprime les anciennes photos d'un dossier (une seule doit subsister).
+  /// Best-effort — un échec ne compromet jamais la mise à jour de la photo.
+  Future<void> _removeStalePhotos(String folder, {required String keep}) async {
+    try {
+      final existing =
+          await _client.storage.from('profile-photos').list(path: folder);
+      final stale = [
+        for (final object in existing)
+          if (object.name.isNotEmpty && '$folder/${object.name}' != keep)
+            '$folder/${object.name}',
+      ];
+      if (stale.isNotEmpty) {
+        await _client.storage.from('profile-photos').remove(stale);
+      }
+    } catch (_) {
+      // Ignoré : la nouvelle photo est déjà en place.
+    }
   }
 
   Future<void> setActive({required String id, required bool active}) async {
