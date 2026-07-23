@@ -23,6 +23,13 @@
 grant execute on function public.is_admin() to authenticated, anon;
 grant execute on function public.is_match_staff() to authenticated, anon;
 
+-- 3) Le rôle authenticated n'avait pas le droit d'UPDATE sur profiles.photo_url
+--    (seuls first_name/last_name/surnom/updated_at l'étaient), donc l'upload
+--    réussissait mais l'écriture de l'URL en base échouait
+--    (« permission denied for table profiles »). La RLS limite déjà la mise à
+--    jour à sa propre ligne.
+grant update (photo_url) on public.profiles to authenticated;
+
 drop policy if exists profile_photos_admin_write on storage.objects;
 create policy profile_photos_admin_write on storage.objects
   for all to authenticated
