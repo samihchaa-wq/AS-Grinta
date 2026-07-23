@@ -55,6 +55,7 @@ class SportMotmVote {
   const SportMotmVote({
     required this.matchId,
     required this.opponentName,
+    required this.isHome,
     required this.scoreAsGrinta,
     required this.scoreAdverse,
     required this.state,
@@ -79,6 +80,7 @@ class SportMotmVote {
     return SportMotmVote(
       matchId: json['match_id'].toString(),
       opponentName: (json['opponent_name'] ?? 'Adversaire').toString(),
+      isHome: json['is_home'] != false,
       scoreAsGrinta: (json['score_as_grinta'] as num?)?.toInt(),
       scoreAdverse: (json['score_adverse'] as num?)?.toInt(),
       state: SportMotmVoteState.parse(json['state']),
@@ -103,6 +105,7 @@ class SportMotmVote {
 
   final String matchId;
   final String opponentName;
+  final bool isHome;
   final int? scoreAsGrinta;
   final int? scoreAdverse;
   final SportMotmVoteState state;
@@ -126,4 +129,16 @@ class SportMotmVote {
 
   /// Le score n'est connu qu'une fois la feuille de match validée.
   bool get hasScore => scoreAsGrinta != null && scoreAdverse != null;
+
+  /// Intitulé du match avec l'équipe qui reçoit affichée en premier, comme sur
+  /// le reste de l'app (domicile à gauche).
+  String get matchTitle {
+    const grinta = 'AS Grinta';
+    if (!hasScore) {
+      return isHome ? '$grinta – $opponentName' : '$opponentName – $grinta';
+    }
+    return isHome
+        ? '$grinta $scoreAsGrinta – $scoreAdverse $opponentName'
+        : '$opponentName $scoreAdverse – $scoreAsGrinta $grinta';
+  }
 }
