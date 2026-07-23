@@ -721,22 +721,23 @@ class _PredictionsTable extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            isHome
-                                ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
-                                : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
-                            textAlign: TextAlign.center,
-                          ),
-                          if (prediction.usedX2) ...[
-                            const SizedBox(width: 6),
-                            const _X2Badge(),
-                          ],
-                        ],
+                      child: Text(
+                        isHome
+                            ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
+                            : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
+                        textAlign: TextAlign.center,
                       ),
                     ),
+                    SizedBox(
+                      width: 30,
+                      child: prediction.usedX2
+                          ? const Align(
+                              alignment: Alignment.centerRight,
+                              child: _X2Badge(),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         prediction.points.round().toString(),

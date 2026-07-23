@@ -84,9 +84,10 @@ class FormationPitchEditor extends StatelessWidget {
     MatchCompositionEntry? entry,
   ) {
     // La feuille de match affiche 22 postes : on garde des marqueurs
-    // compacts pour qu'ils tiennent sans se chevaucher sur mobile.
+    // compacts (carrés) pour qu'ils tiennent sans se chevaucher sur mobile.
+    // Le joueur placé occupe le même carré que l'emplacement vide.
     const width = 58.0;
-    const height = 56.0;
+    const height = 58.0;
     final left = (slot.position.dx * size.width - width / 2)
         .clamp(0.0, size.width - width)
         .toDouble();
@@ -139,44 +140,59 @@ class FormationPitchEditor extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: editable ? () => onRemoveFromField(entry) : null,
-              borderRadius: BorderRadius.circular(14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: highlighted
-                          ? [
-                              BoxShadow(
-                                color: AppTheme.accent.withValues(alpha: .9),
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: PlayerAvatar(
+              borderRadius: BorderRadius.circular(16),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: highlighted
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.accent.withValues(alpha: .9),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                // L'avatar occupe tout le carré (même taille qu'un emplacement
+                // vide) ; le prénom est un bandeau en bas.
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    PlayerAvatar(
                       photoUrl: entry.photoUrl,
                       name: entry.displayName,
                       isGoalkeeper: entry.isGoalkeeper,
-                      size: 34,
+                      size: width,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    entry.displayName.trim().split(RegExp(r'\s+')).first,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+                    Positioned(
+                      left: 2,
+                      right: 2,
+                      bottom: 2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 3,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .55),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: Text(
+                          entry.displayName.trim().split(RegExp(r'\s+')).first,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

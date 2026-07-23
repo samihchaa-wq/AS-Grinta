@@ -13,6 +13,7 @@ import 'package:as_grinta/features/sports_management/domain/sport_waitlist_model
 import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_motm_dashboard_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -934,9 +935,12 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                         final tile = ListTile(
                           key: ValueKey(entry.participantId),
                           dense: true,
-                          leading: entry.isGoalkeeper
-                              ? const Icon(Icons.sports_handball)
-                              : const Icon(Icons.person_outline),
+                          leading: PlayerAvatar(
+                            photoUrl: entry.photoUrl,
+                            name: entry.displayName,
+                            isGoalkeeper: entry.isGoalkeeper,
+                            size: 36,
+                          ),
                           title: Text(entry.displayName),
                           trailing: ReorderableDragStartListener(
                             index: index,
