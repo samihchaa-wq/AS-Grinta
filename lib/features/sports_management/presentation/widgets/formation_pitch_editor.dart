@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 
 class FormationPitchEditor extends StatelessWidget {
@@ -85,7 +86,7 @@ class FormationPitchEditor extends StatelessWidget {
     // La feuille de match affiche 22 postes : on garde des marqueurs
     // compacts pour qu'ils tiennent sans se chevaucher sur mobile.
     const width = 58.0;
-    const height = 46.0;
+    const height = 56.0;
     final left = (slot.position.dx * size.width - width / 2)
         .clamp(0.0, size.width - width)
         .toDouble();
@@ -138,42 +139,44 @@ class FormationPitchEditor extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: editable ? () => onRemoveFromField(entry) : null,
-              borderRadius: BorderRadius.circular(17),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-                decoration: BoxDecoration(
-                  color: entry.isGoalkeeper
-                      ? const Color(0xFFE59A1F)
-                      : highlighted
-                          ? AppTheme.accent
-                          : AppTheme.primary,
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(color: Colors.white70),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      entry.isGoalkeeper
-                          ? Icons.sports_handball
-                          : Icons.sports_soccer,
-                      size: 14,
+              borderRadius: BorderRadius.circular(14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: highlighted
+                          ? [
+                              BoxShadow(
+                                color: AppTheme.accent.withValues(alpha: .9),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: PlayerAvatar(
+                      photoUrl: entry.photoUrl,
+                      name: entry.displayName,
+                      isGoalkeeper: entry.isGoalkeeper,
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    entry.displayName.trim().split(RegExp(r'\s+')).first,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
                       color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
                     ),
-                    const SizedBox(height: 1),
-                    Text(
-                      entry.displayName.trim().split(RegExp(r'\s+')).first,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );

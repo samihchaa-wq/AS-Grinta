@@ -175,9 +175,11 @@ class CompositionPlayerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chip = ActionChip(
-      avatar: Icon(
-        entry.isGoalkeeper ? Icons.sports_handball : Icons.person_outline,
-        size: 18,
+      avatar: PlayerAvatar(
+        photoUrl: entry.photoUrl,
+        name: entry.displayName,
+        isGoalkeeper: entry.isGoalkeeper,
+        size: 24,
       ),
       label: Text(entry.displayName),
       onPressed: onTap,
