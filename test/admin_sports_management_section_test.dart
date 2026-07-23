@@ -20,9 +20,7 @@ void main() {
     expect(find.text('Activé'), findsOneWidget);
   });
 
-  testWidgets('disabling requires confirmation and preserves the reason', (
-    tester,
-  ) async {
+  testWidgets('disabling requires confirmation', (tester) async {
     final repository = _WidgetFeatureFlagsRepository(initialEnabled: true);
     await tester.pumpWidget(_harness(repository));
     await tester.pumpAndSettle();
@@ -31,12 +29,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Désactiver le module ?'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), 'Retour au mode historique');
     await tester.tap(find.widgetWithText(FilledButton, 'Désactiver'));
     await tester.pumpAndSettle();
 
     expect(repository.lastEnabled, isFalse);
-    expect(repository.lastJustification, 'Retour au mode historique');
     expect(find.text('Désactivé'), findsOneWidget);
   });
 }

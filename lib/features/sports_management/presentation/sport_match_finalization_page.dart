@@ -64,6 +64,24 @@ class _SportMatchFinalizationPageState
     });
   }
 
+  void _setAllPresent() {
+    final current = _finalization;
+    if (current == null || _saving) return;
+    setState(() {
+      _finalization = current.copyWith(
+        participants: [
+          for (final item in current.participants)
+            item.present
+                ? item
+                : item.copyWith(
+                    present: true,
+                    selectionStatus: _defaultRole(item),
+                  ),
+        ],
+      );
+    });
+  }
+
   void _setPresent(SportFinalParticipant participant, bool present) {
     final nextRole = present
         ? _defaultRole(participant)
@@ -137,7 +155,6 @@ class _SportMatchFinalizationPageState
       return;
     }
 
-    final reasonController = TextEditingController();
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
@@ -160,18 +177,6 @@ class _SportMatchFinalizationPageState
                     'Les joueurs permanents alimenteront immédiatement les statistiques, '
                     'les badges et les classements. Les invités resteront liés au résultat.',
                   ),
-                  if (value.isValidated) ...[
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: reasonController,
-                      maxLength: 500,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Motif de la correction',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -181,13 +186,7 @@ class _SportMatchFinalizationPageState
                 child: const Text('Annuler'),
               ),
               FilledButton.icon(
-                onPressed: () {
-                  if (value.isValidated &&
-                      reasonController.text.trim().isEmpty) {
-                    return;
-                  }
-                  Navigator.pop(dialogContext, true);
-                },
+                onPressed: () => Navigator.pop(dialogContext, true),
                 icon: const Icon(Icons.verified_outlined),
                 label: Text(value.isValidated ? 'Corriger' : 'Valider'),
               ),
@@ -195,10 +194,7 @@ class _SportMatchFinalizationPageState
           ),
         ) ??
         false;
-    if (!confirmed) {
-      reasonController.dispose();
-      return;
-    }
+    if (!confirmed) return;
 
     setState(() => _saving = true);
     try {
@@ -206,7 +202,7 @@ class _SportMatchFinalizationPageState
           await ref.read(sportMatchFinalizationRepositoryProvider).finalize(
                 finalization: value,
                 reason: value.isValidated
-                    ? reasonController.text.trim()
+                    ? 'Correction depuis Flutter'
                     : 'Validation sportive depuis Flutter',
               );
       if (!mounted) return;
@@ -222,7 +218,6 @@ class _SportMatchFinalizationPageState
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
-      reasonController.dispose();
       if (mounted) setState(() => _saving = false);
     }
   }
@@ -307,6 +302,15 @@ class _SportMatchFinalizationPageState
           'La composition publiée sert uniquement de préremplissage. Corrige ici '
           'ce qui s’est réellement passé.',
           style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: _saving ? null : _setAllPresent,
+            icon: const Icon(Icons.done_all_rounded, size: 18),
+            label: const Text('Tout marquer présents'),
+          ),
         ),
         const SizedBox(height: 12),
         for (final participant in value.participants)

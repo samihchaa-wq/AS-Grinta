@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
 import 'package:as_grinta/features/admin/presentation/admin_sports_management_section.dart';
@@ -97,9 +98,12 @@ class AdminPage extends ConsumerWidget {
                 const SizedBox(height: 20),
                 if (dashboard.profiles.isEmpty)
                   const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(18),
-                      child: Text('Aucun compte pour l’instant.'),
+                    child: GrintaEmptyState(
+                      icon: Icons.group_add_rounded,
+                      title: 'Aucun compte pour l’instant',
+                      message: 'Partage le lien d’inscription ci-dessus : les '
+                          'comptes créés apparaîtront ici pour validation.',
+                      compact: true,
                     ),
                   )
                 else ...[

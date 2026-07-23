@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/guest_players_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -653,7 +654,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_matches.isEmpty) {
-      return const Center(child: Text('Aucun match à venir.'));
+      return const Center(
+        child: GrintaEmptyState(
+          icon: Icons.event_busy_rounded,
+          title: 'Aucun match à venir',
+          message: 'Crée un match depuis l’onglet Matchs pour préparer '
+              'l’effectif et la composition.',
+        ),
+      );
     }
     return RefreshIndicator(
       onRefresh: _loadMatches,

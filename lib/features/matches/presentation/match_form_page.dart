@@ -20,7 +20,6 @@ class MatchFormPage extends ConsumerStatefulWidget {
 
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _timeController = TextEditingController();
   final _squadSizeController = TextEditingController(text: '14');
 
   double? _oddsWin;
@@ -64,7 +63,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _opponentId = match?.opponentId ?? '';
     _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
-    _timeController.text = _formatTime(_kickoffAt);
     _isHome = match?.isHome ?? true;
     _oddsWin = match?.oddsWin;
     _oddsDraw = match?.oddsDraw;
@@ -73,7 +71,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
 
   @override
   void dispose() {
-    _timeController.dispose();
     _squadSizeController.dispose();
     super.dispose();
   }
@@ -198,14 +195,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               trailing: const Icon(Icons.calendar_today),
               onTap: _pickDate,
             ),
-            TextFormField(
-              controller: _timeController,
-              keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(
-                labelText: 'Heure',
-                hintText: '21:00',
-              ),
-              validator: _validateTime,
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Heure'),
+              subtitle: Text(_formatTime(_kickoffAt)),
+              trailing: const Icon(Icons.schedule),
+              onTap: _pickTime,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<bool>(
@@ -397,6 +392,27 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     });
   }
 
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_kickoffAt),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    if (time == null) return;
+    setState(() {
+      _kickoffAt = DateTime(
+        _kickoffAt.year,
+        _kickoffAt.month,
+        _kickoffAt.day,
+        time.hour,
+        time.minute,
+      );
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final oddsWin = _oddsWin;
@@ -413,14 +429,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
     final squadSizeLimit =
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-    final parts = _timeController.text.trim().split(':');
-    _kickoffAt = DateTime(
-      _kickoffAt.year,
-      _kickoffAt.month,
-      _kickoffAt.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-    );
     final notifier = ref.read(matchesControllerProvider.notifier);
     if (widget.match == null) {
       await notifier.createMatch(
@@ -451,17 +459,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (ref.read(matchesControllerProvider).error == null) {
       Navigator.pop(context);
     }
-  }
-
-  String? _validateTime(String? raw) {
-    final match = RegExp(r'^(\d{1,2}):(\d{2})$').firstMatch(raw?.trim() ?? '');
-    if (match == null) return 'Format attendu : HH:mm';
-    final hour = int.tryParse(match.group(1) ?? '');
-    final minute = int.tryParse(match.group(2) ?? '');
-    if (hour == null || minute == null || hour > 23 || minute > 59) {
-      return 'Heure invalide';
-    }
-    return null;
   }
 
   String _formatDate(DateTime value) =>

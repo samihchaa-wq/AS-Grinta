@@ -136,32 +136,13 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   ),
                 )
               else if (matches.isEmpty)
-                Card(
+                const Card(
                   child: GrintaEmptyState(
                     icon: Icons.stadium_rounded,
                     title: 'Aucun match cette saison',
-                    message: isAdmin
-                        ? 'Crée le premier match pour ouvrir les pronostics '
-                            'et les convocations.'
-                        : 'Les matchs de la saison apparaîtront ici dès '
-                            'qu\'ils seront programmés.',
-                    action: isAdmin
-                        ? FilledButton.icon(
-                            onPressed: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const MatchFormPage(),
-                                ),
-                              );
-                              if (!mounted) return;
-                              await ref
-                                  .read(matchesControllerProvider.notifier)
-                                  .load(seasonId: state.selectedSeasonId);
-                            },
-                            icon: const Icon(Icons.add_circle_outline),
-                            label: const Text('Créer un match'),
-                          )
-                        : null,
+                    message: 'Les matchs de la saison apparaîtront ici dès '
+                        'qu\'ils seront programmés.',
+                    compact: true,
                   ),
                 )
               else
