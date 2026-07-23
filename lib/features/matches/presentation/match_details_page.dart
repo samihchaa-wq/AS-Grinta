@@ -721,11 +721,20 @@ class _PredictionsTable extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: Text(
-                        isHome
-                            ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
-                            : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
-                        textAlign: TextAlign.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            isHome
+                                ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
+                                : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
+                            textAlign: TextAlign.center,
+                          ),
+                          if (prediction.usedX2) ...[
+                            const SizedBox(width: 6),
+                            const _X2Badge(),
+                          ],
+                        ],
                       ),
                     ),
                     Expanded(
@@ -739,6 +748,32 @@ class _PredictionsTable extends StatelessWidget {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pastille « ×2 » indiquant qu'un joueur a utilisé son bonus double sur ce
+/// pronostic (ses points sont doublés).
+class _X2Badge extends StatelessWidget {
+  const _X2Badge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppTheme.accent.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.accent.withValues(alpha: .55)),
+      ),
+      child: const Text(
+        '×2',
+        style: TextStyle(
+          color: AppTheme.accent,
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
         ),
       ),
     );
