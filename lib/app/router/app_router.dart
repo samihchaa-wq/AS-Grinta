@@ -25,7 +25,6 @@ import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_motm_dashboard_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_match_finalization_page.dart';
@@ -88,10 +87,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/guests',
             builder: (_, __) => const AdminGuestsPage(),
-          ),
-          GoRoute(
-            path: '/admin/motm',
-            builder: (_, __) => const AdminMotmDashboardPage(),
           ),
           GoRoute(
             path: '/admin/waitlist',
@@ -158,12 +153,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/matches/:matchId/guests',
             builder: (context, state) => AdminGuestsPage(
-              initialMatchId: state.pathParameters['matchId'],
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/motm',
-            builder: (context, state) => AdminMotmDashboardPage(
               initialMatchId: state.pathParameters['matchId'],
             ),
           ),

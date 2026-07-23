@@ -435,10 +435,7 @@ class _VoteHeader extends StatelessWidget {
             const Text('👑', style: TextStyle(fontSize: 42)),
             const SizedBox(height: 8),
             Text(
-              vote.hasScore
-                  ? 'AS Grinta ${vote.scoreAsGrinta} – ${vote.scoreAdverse} '
-                      '${vote.opponentName}'
-                  : 'AS Grinta – ${vote.opponentName}',
+              vote.matchTitle,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,

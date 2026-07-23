@@ -12,7 +12,6 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_motm_dashboard_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
@@ -1171,8 +1170,9 @@ class _AdminBadge extends StatelessWidget {
   }
 }
 
-/// Raccourcis admin vers les outils du match (convocations, invités, scrutin
-/// HDM) — sinon inaccessibles depuis la navigation principale.
+/// Raccourcis admin vers les outils du match (convocations, invités) — sinon
+/// inaccessibles depuis la navigation principale. Le scrutin HDM est
+/// entièrement automatisé (ouverture, clôture, résultats), sans intervention.
 class _AdminMatchTools extends StatelessWidget {
   const _AdminMatchTools({required this.matchId});
 
@@ -1222,12 +1222,6 @@ class _AdminMatchTools extends StatelessWidget {
                 onPressed: () => open(AdminGuestsPage(initialMatchId: matchId)),
                 icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
                 label: const Text('Invités'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    open(AdminMotmDashboardPage(initialMatchId: matchId)),
-                icon: const Icon(Icons.emoji_events_outlined, size: 18),
-                label: const Text('Scrutin HDM'),
               ),
             ],
           ),
