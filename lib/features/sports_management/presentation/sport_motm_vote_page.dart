@@ -356,6 +356,11 @@ class MatchMotmVoteCard extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (vote) {
         if (vote == null) return const SizedBox.shrink();
+        // Ceux qui n'étaient pas au match ne voient rien pendant le scrutin :
+        // uniquement le résultat une fois clos.
+        if (vote.isOpen && !vote.isEligibleVoter) {
+          return const SizedBox.shrink();
+        }
         final (icon, title, subtitle) = switch (vote.state) {
           SportMotmVoteState.open when vote.hasVoted => (
               Icons.lock_outline,
