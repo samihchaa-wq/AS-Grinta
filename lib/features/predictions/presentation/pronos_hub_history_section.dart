@@ -164,6 +164,14 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final match = orderedMatches[index];
                   final isNext = match.id == nextMatchId;
+                  // Les 5 dernières rencontres contre cet adversaire (matchs
+                  // terminés, du plus récent au plus ancien).
+                  final lastEncounters = orderedMatches
+                      .where((other) =>
+                          other.isFinished &&
+                          other.opponentId == match.opponentId)
+                      .take(5)
+                      .toList();
                   return Padding(
                     key: isNext ? _nextMatchKey : null,
                     padding: const EdgeInsets.only(bottom: 12),
@@ -171,6 +179,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                       match: match,
                       isAdmin: isAdmin,
                       isNextMatch: isNext,
+                      lastEncounters: lastEncounters,
                     ),
                   );
                 }, childCount: orderedMatches.length),
@@ -187,11 +196,15 @@ class _CalendarMatchCard extends ConsumerWidget {
     required this.match,
     required this.isAdmin,
     required this.isNextMatch,
+    required this.lastEncounters,
   });
 
   final MatchModel match;
   final bool isAdmin;
   final bool isNextMatch;
+
+  /// Jusqu'à 5 rencontres terminées contre le même adversaire.
+  final List<MatchModel> lastEncounters;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -262,12 +275,19 @@ class _CalendarMatchCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            AppFormats.dateTime(match.kickoffAt),
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: dateColor),
-          ),
+          if (match.isFinished)
+            Text(
+              AppFormats.dateTime(match.kickoffAt),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: dateColor),
+            )
+          else
+            _MatchInfoPanel(
+              match: match,
+              lastEncounters: lastEncounters,
+              accent: dateColor,
+            ),
           if (isAdmin) ...[
             const SizedBox(height: 14),
             _AdminMatchActions(match: match),
@@ -404,6 +424,117 @@ class _ActionRow extends StatelessWidget {
         const SizedBox(width: 12),
         Text(label),
       ],
+    );
+  }
+}
+
+/// Module « Info » d'un match à venir : heure, adresse cliquable et les 5
+/// dernières rencontres contre le même adversaire.
+class _MatchInfoPanel extends StatelessWidget {
+  const _MatchInfoPanel({
+    required this.match,
+    required this.lastEncounters,
+    required this.accent,
+  });
+
+  final MatchModel match;
+  final List<MatchModel> lastEncounters;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = Theme.of(context)
+        .textTheme
+        .bodySmall
+        ?.copyWith(color: accent, fontWeight: FontWeight.w700);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.schedule_rounded, size: 15, color: accent),
+            const SizedBox(width: 6),
+            Text(AppFormats.dateTime(match.kickoffAt), style: labelStyle),
+          ],
+        ),
+        if (match.address != null) ...[
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: () => showMatchAddressSheet(context, match.address!),
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  const Icon(Icons.place_outlined, size: 15,
+                      color: Color(0xFF9B6CFF)),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      match.address!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF9B6CFF),
+                        fontWeight: FontWeight.w800,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Color(0xFF9B6CFF),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Text('5 dernières rencontres', style: labelStyle),
+        const SizedBox(height: 6),
+        if (lastEncounters.isEmpty)
+          Text(
+            'Aucune rencontre passée.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: accent.withValues(alpha: .7),
+                ),
+          )
+        else
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              for (final encounter in lastEncounters)
+                _EncounterChip(encounter: encounter),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// Pastille d'une rencontre passée : score du point de vue d'AS Grinta,
+/// coloré selon le résultat.
+class _EncounterChip extends StatelessWidget {
+  const _EncounterChip({required this.encounter});
+
+  final MatchModel encounter;
+
+  @override
+  Widget build(BuildContext context) {
+    final grinta = encounter.grintaScore ?? 0;
+    final opponent = encounter.opponentScore ?? 0;
+    final color = MatchFixture.resultColor(grinta, opponent);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: .5)),
+      ),
+      child: Text(
+        '$grinta–$opponent',
+        style: TextStyle(color: color, fontWeight: FontWeight.w900),
+      ),
     );
   }
 }
