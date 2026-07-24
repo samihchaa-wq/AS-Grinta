@@ -146,7 +146,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
-        scrollCacheExtent: nextMatchCacheExtent,
+        scrollCacheExtent: ScrollCacheExtent.pixels(nextMatchCacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
