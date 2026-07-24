@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 ///
 /// ```
 /// Lun
-/// 07        <- gras
+/// 07
 /// Sept
 /// 20:45
 /// ```
@@ -36,19 +36,19 @@ class MatchDateColumn extends StatelessWidget {
           style: TextStyle(
             color: color ?? (bold ? main : soft),
             fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
-            fontSize: bold ? 20 : 13,
-            height: 1.1,
+            fontSize: 14,
+            height: 1.15,
           ),
         );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         line(AppFormats.weekdayShort(kickoffAt)),
         line(AppFormats.dayNumber(kickoffAt), bold: true),
         line(AppFormats.monthShort(kickoffAt)),
-        const SizedBox(height: 2),
         line(AppFormats.hourMinute(kickoffAt)),
       ],
     );
@@ -80,7 +80,7 @@ class MatchDateHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 58,
+            width: 52,
             child: MatchDateColumn(
               kickoffAt: kickoffAt,
               foreground: foreground,
@@ -89,12 +89,18 @@ class MatchDateHeader extends StatelessWidget {
           ),
           Container(
             width: 1,
-            margin: const EdgeInsets.symmetric(horizontal: 12),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
             color: dividerColor ??
-                (foreground ?? Theme.of(context).dividerColor)
-                    .withValues(alpha: .25),
+                (foreground ?? Theme.of(context).dividerColor).withValues(
+                  alpha: .25,
+                ),
           ),
-          Expanded(child: child),
+          Expanded(
+            child: Align(
+              alignment: Alignment.center,
+              child: SizedBox(width: double.infinity, child: child),
+            ),
+          ),
         ],
       ),
     );
