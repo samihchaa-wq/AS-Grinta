@@ -42,8 +42,7 @@ class ArmoirePage extends ConsumerWidget {
           data: (codes) => codes,
           orElse: () => const <String>{},
         );
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+    final isAdmin = ref.watch(isAdminViewProvider);
 
     return Scaffold(
       appBar: AppBar(

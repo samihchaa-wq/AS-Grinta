@@ -33,8 +33,7 @@ class MatchLineupPage extends ConsumerWidget {
       'prediction' => 'prediction',
       _ => 'effectif',
     };
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+    final isAdmin = ref.watch(isAdminViewProvider);
 
     if (isAdmin) {
       return AdminSquadPlanPage(

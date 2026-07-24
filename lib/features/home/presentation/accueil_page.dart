@@ -170,8 +170,7 @@ class _NextMatchBlock extends ConsumerWidget {
                     'Le prochain match apparaîtra ici dès qu\'il sera créé.',
               );
             }
-            final isAdmin = ref.watch(authControllerProvider).profile?.role ==
-                AuthRole.admin;
+            final isAdmin = ref.watch(isAdminViewProvider);
             return _NextMatchCard(
               match: match,
               predicted: data.nextMatchPredicted,

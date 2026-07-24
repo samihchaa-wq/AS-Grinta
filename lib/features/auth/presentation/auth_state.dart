@@ -248,3 +248,21 @@ final authControllerProvider =
   final repository = ref.watch(authRepositoryProvider);
   return AuthController(repository);
 });
+
+/// Aperçu « utilisateur lambda » : quand actif, l'admin voit l'application
+/// sans aucun contrôle réservé à l'admin, pour vérifier ce que voient les
+/// joueurs. N'affecte QUE l'affichage — les droits côté serveur restent ceux
+/// de l'admin.
+final viewAsUserProvider = StateProvider<bool>((ref) => false);
+
+/// Vrai si le compte connecté est réellement admin, sans tenir compte de
+/// l'aperçu. Sert à afficher le bouton d'aperçu et la bannière de sortie.
+final isRealAdminProvider = Provider<bool>((ref) {
+  return ref.watch(authControllerProvider).profile?.role.isStaff == true;
+});
+
+/// Vrai si les contrôles admin doivent être visibles : compte admin ET pas en
+/// mode aperçu utilisateur. À utiliser pour TOUTE décision d'affichage admin.
+final isAdminViewProvider = Provider<bool>((ref) {
+  return ref.watch(isRealAdminProvider) && !ref.watch(viewAsUserProvider);
+});

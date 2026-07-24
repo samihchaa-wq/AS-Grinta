@@ -39,8 +39,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
-    final role = ref.watch(authControllerProvider).profile?.role;
-    final isAdmin = role == AuthRole.admin;
+    final isAdmin = ref.watch(isAdminViewProvider);
 
     // Ordre chronologique : précédents en haut, prochains en bas.
     final matches = [...state.matches]
