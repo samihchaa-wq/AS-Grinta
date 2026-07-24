@@ -22,7 +22,8 @@ void main() {
     }
   });
 
-  test('a match sheet falls back to its prono while the module is disabled', () {
+  test('a match sheet falls back to its prono while the module is disabled',
+      () {
     expect(
       resolveAuthRedirect(
         authState: _adminState,
