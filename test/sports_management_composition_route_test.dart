@@ -17,7 +17,7 @@ void main() {
           matchedLocation: route,
           sportsManagementEnabled: false,
         ),
-        '/pronos',
+        '/matches',
       );
     }
   });
@@ -66,7 +66,7 @@ void main() {
           matchedLocation: route,
           sportsManagementEnabled: true,
         ),
-        '/pronos',
+        '/matches',
       );
     }
   });
