@@ -18,7 +18,7 @@ class _SeasonCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Saison', style: Theme.of(context).textTheme.titleLarge),
+            Text('Pari buteurs', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 10),
             if (openSeason == null)
               FilledButton.icon(

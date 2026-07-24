@@ -71,16 +71,25 @@ class AdminSportsManagementSection extends ConsumerWidget {
               const SizedBox(height: 12),
             ],
             Text(
-              'Désactivé, ce module ne change rien aux pronostics, aux '
-              'statistiques, aux badges ni à la finalisation historique.',
+              'Ce module gère la vie sportive du club : disponibilités des '
+              'joueurs, convocations, composition d’équipe, feuille de match et '
+              'vote de l’Homme du Match, avec les notifications associées.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
             Text(
-              'Paramètres serveur : ouverture J−${feature.availabilityOpenHoursBefore ~/ 24}, '
-              'relances ${_reminderLabel(feature.reminderHoursBefore)}, '
-              'limite proposée ${feature.usualSquadSize} et modifiable par '
-              'match, vote ${feature.voteDurationHours} h.',
+              'Désactivé, tout cela est masqué et bloqué. Les pronostics, les '
+              'classements, les statistiques et les badges continuent '
+              'normalement, et les données déjà saisies sont conservées.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Réglages serveur : disponibilités ouvertes J−'
+              '${feature.availabilityOpenHoursBefore ~/ 24} avant le match, '
+              'effectif proposé à ${feature.usualSquadSize} (modifiable match '
+              'par match), scrutin Homme du Match ouvert '
+              '${feature.voteDurationHours} h.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (feature.updatedAt != null) ...[
@@ -155,10 +164,6 @@ class AdminSportsManagementSection extends ConsumerWidget {
         ) ??
         false;
   }
-}
-
-String _reminderLabel(List<int> reminderHoursBefore) {
-  return reminderHoursBefore.map((hours) => 'J−${hours ~/ 24}').join(' et ');
 }
 
 String _formatDate(DateTime value) {

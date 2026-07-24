@@ -9,7 +9,6 @@ void main() {
       '/admin/composition',
       '/admin/guests',
       '/admin/motm',
-      '/matches/match-1/lineup',
     ]) {
       expect(
         resolveAuthRedirect(
@@ -21,6 +20,18 @@ void main() {
         '/pronos',
       );
     }
+  });
+
+  test('a match sheet falls back to its prono while the module is disabled', () {
+    expect(
+      resolveAuthRedirect(
+        authState: _adminState,
+        uri: Uri.parse('/matches/match-1/lineup'),
+        matchedLocation: '/matches/match-1/lineup',
+        sportsManagementEnabled: false,
+      ),
+      '/matches/match-1/prediction',
+    );
   });
 
   test('allows sports routes for an administrator when enabled', () {

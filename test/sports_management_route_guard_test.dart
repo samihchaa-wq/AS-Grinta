@@ -8,7 +8,6 @@ void main() {
     test('blocks every sports route while the server flag is disabled', () {
       for (final route in <String>[
         '/matches/m1/availability',
-        '/matches/m1/lineup',
         '/matches/m1/vote',
         '/admin/matches/m1/sport-management',
         '/admin/waitlist',
@@ -26,6 +25,21 @@ void main() {
           '/pronos',
         );
       }
+    });
+
+    test('a match sheet falls back to its prono when the flag is disabled', () {
+      expect(
+        resolveAuthRedirect(
+          authState: const AuthState(
+            isLoading: false,
+            isAuthenticated: true,
+            profile: _adminProfile,
+          ),
+          uri: Uri.parse('/matches/m1/lineup?section=prediction'),
+          matchedLocation: '/matches/m1/lineup',
+        ),
+        '/matches/m1/prediction',
+      );
     });
 
     test('allows player sports routes when the flag is enabled', () {
