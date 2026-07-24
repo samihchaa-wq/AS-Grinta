@@ -127,8 +127,12 @@ class _AppShellState extends ConsumerState<AppShell> {
         selectedIndex: _selectedIndex,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
-          final destination = index == 0 ? '/matches' : '/stats';
-          if (widget.location != destination) context.go(destination);
+          if (index == 0) {
+            final focusRequest = DateTime.now().microsecondsSinceEpoch;
+            context.go('/matches?focusRequest=$focusRequest');
+            return;
+          }
+          if (_uri.path != '/stats') context.go('/stats');
         },
         destinations: const [
           NavigationDestination(
