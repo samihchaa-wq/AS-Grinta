@@ -46,6 +46,16 @@ String? resolveAuthRedirect({
   }
 
   if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
+    // Sans le module, effectif/compo/HDM n'existent pas — mais le prono reste
+    // ouvert. Une fiche de match (…/lineup) renvoie donc vers « Ton prono »
+    // plutôt que d'être bloquée.
+    final segments =
+        uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    if (segments.length == 3 &&
+        segments[0] == 'matches' &&
+        segments[2] == 'lineup') {
+      return '/matches/${segments[1]}/prediction';
+    }
     return '/pronos';
   }
 

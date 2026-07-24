@@ -2,6 +2,7 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -21,8 +22,11 @@ class MatchLineupPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Sans le module de gestion sportive, il n'y a ni effectif ni compo : on
+    // ne prive pas le joueur de son prono pour autant. On bascule sur la page
+    // « Ton prono » autonome, indépendante du module.
     if (!ref.watch(sportsManagementEnabledProvider)) {
-      return const Scaffold(body: SizedBox.shrink());
+      return UpcomingMatchPredictionPage(matchId: matchId);
     }
 
     final requestedSection = GoRouterState.of(
