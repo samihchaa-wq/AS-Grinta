@@ -18,11 +18,7 @@ final historyMatchPredictionProvider = FutureProvider.autoDispose
 /// Version réutilisable de la carte « Dernier match » pour chaque rencontre
 /// passée de l'historique.
 class MatchHistoryCard extends ConsumerWidget {
-  const MatchHistoryCard({
-    required this.match,
-    this.adminActions,
-    super.key,
-  });
+  const MatchHistoryCard({required this.match, this.adminActions, super.key});
 
   final MatchModel match;
   final Widget? adminActions;
@@ -54,54 +50,40 @@ class MatchHistoryCard extends ConsumerWidget {
           InkWell(
             onTap: () => context.push('/matches/${match.id}'),
             child: Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  MatchDateHeader(
-                    kickoffAt: match.kickoffAt,
-                    secondary: AppTheme.textSecondary,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: MatchFixture(
-                            homeName: homeName,
-                            awayName: awayName,
-                            grintaIsHome: match.isHome,
-                            homeScore: homeScore,
-                            awayScore: awayScore,
-                            finished: true,
-                            nameStyle: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                        if (actions != null) ...[
-                          const SizedBox(width: 6),
-                          actions,
-                        ],
-                      ],
+              padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
+              child: MatchDateHeader(
+                kickoffAt: match.kickoffAt,
+                secondary: AppTheme.textSecondary,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: MatchFixture(
+                        homeName: homeName,
+                        awayName: awayName,
+                        grintaIsHome: match.isHome,
+                        homeScore: homeScore,
+                        awayScore: awayScore,
+                        finished: true,
+                        nameStyle: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontSize: 17, height: 1.1),
+                        scoreFontSize: 20,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Voir la fiche du match',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: const Color(0xFFCAB5FF),
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ),
-                ],
+                    if (actions != null) ...[
+                      const SizedBox(width: 2),
+                      SizedBox(width: 38, child: actions),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
           if (vote != null && vote.isOpen && vote.isEligibleVoter) ...[
-            const Divider(
-              height: 1,
-              thickness: 1,
-              color: Color(0xFF3A414D),
-            ),
+            const Divider(height: 1, thickness: 1, color: Color(0xFF3A414D)),
             InkWell(
               onTap: () => context.push('/matches/${match.id}/vote'),
               child: Padding(
@@ -136,10 +118,7 @@ class MatchHistoryCard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Color(0xFFCAB5FF),
-                    ),
+                    const Icon(Icons.chevron_right, color: Color(0xFFCAB5FF)),
                   ],
                 ),
               ),
