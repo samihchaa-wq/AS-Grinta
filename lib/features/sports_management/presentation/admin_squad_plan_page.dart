@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
@@ -234,6 +235,88 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Feuille d'infos affichée au toucher d'un joueur : sa disponibilité
+  /// (jour + heure de la dernière réponse) et son rang en liste d'attente.
+  /// Propose une relance pour un joueur sans réponse.
+  void _showPlayerInfo(ConvocationPlayer player) {
+    final status = player.availabilityStatus;
+    final updatedAt = player.availabilityUpdatedAt;
+
+    final (availabilityLabel, availabilityIcon, availabilityColor) =
+        switch (status) {
+      'available' => ('Disponible', Icons.check_circle_outline, Colors.green),
+      'absent' => ('Absent', Icons.cancel_outlined, Colors.redAccent),
+      _ => ('Sans réponse', Icons.schedule_outlined, Colors.orangeAccent),
+    };
+
+    final hasResponded = status == 'available' || status == 'absent';
+    final availabilityDetail = player.isGuest
+        ? 'Invité ajouté manuellement.'
+        : hasResponded && updatedAt != null
+            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+            : 'Aucune réponse enregistrée pour l’instant.';
+
+    final waitlistDetail = player.waitlistPosition != null
+        ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
+        : 'Hors liste d’attente';
+
+    final canRelance = !player.isGuest &&
+        status == 'no_response' &&
+        !_locked &&
+        (_reminders?.canRemind ?? false);
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                player.displayName,
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 16),
+              _PlayerInfoRow(
+                icon: availabilityIcon,
+                color: availabilityColor,
+                title: availabilityLabel,
+                detail: availabilityDetail,
+              ),
+              const SizedBox(height: 12),
+              _PlayerInfoRow(
+                icon: Icons.hourglass_top_rounded,
+                color: const Color(0xFFE08A00),
+                title: 'Liste d’attente',
+                detail: waitlistDetail,
+              ),
+              if (canRelance) ...[
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      _sendReminder(player: player);
+                    },
+                    icon: const Icon(Icons.notifications_active_outlined),
+                    label: const Text('Relancer ce joueur'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   MatchComposition _normalizeComposition(
@@ -922,7 +1005,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Les réponses évoluent en direct. Tes déplacements deviennent publics après enregistrement.',
+                  'Touche un joueur pour voir sa disponibilité et son rang. '
+                  'Glisse-le pour changer de colonne. Tes déplacements '
+                  'deviennent publics après enregistrement.',
                 ),
                 const SizedBox(height: 14),
                 TextField(
@@ -968,6 +1053,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 onAccept: (player) => _setConvoked(player, true),
                 onToggle: (player) => _setConvoked(player, false),
                 onRemoveGuest: _removeGuestFromMatch,
+                onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
               _EffectifColumn(
@@ -978,6 +1064,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 acceptsDrops: true,
                 onAccept: (player) => _setConvoked(player, false),
                 onToggle: (player) => _setConvoked(player, true),
+                onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
               _EffectifColumn(
@@ -985,6 +1072,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 color: const Color(0xFFB33A3A),
                 icon: Icons.cancel_outlined,
                 players: _absentPlayers,
+                onShowInfo: _showPlayerInfo,
                 locked: true,
               ),
               _EffectifColumn(
@@ -993,7 +1081,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 icon: Icons.schedule_outlined,
                 players: _unansweredPlayers,
                 locked: _busy || _locked,
-                onRelance: (player) => _sendReminder(player: player),
+                onShowInfo: _showPlayerInfo,
                 onRelanceAll: (_reminders?.canRemind ?? false)
                     ? () => _sendReminder()
                     : null,
@@ -1168,7 +1256,7 @@ class _EffectifColumn extends StatelessWidget {
     this.onAccept,
     this.onToggle,
     this.onRemoveGuest,
-    this.onRelance,
+    this.onShowInfo,
     this.onRelanceAll,
   });
 
@@ -1182,9 +1270,10 @@ class _EffectifColumn extends StatelessWidget {
   final ValueChanged<ConvocationPlayer>? onToggle;
   final ValueChanged<ConvocationPlayer>? onRemoveGuest;
 
-  /// Relance de disponibilité : individuelle (touche un joueur) et collective
-  /// (bouton d'en-tête). Utilisé pour la colonne « Sans réponse ».
-  final ValueChanged<ConvocationPlayer>? onRelance;
+  /// Ouvre la feuille d'infos du joueur (disponibilité + rang) au toucher.
+  final ValueChanged<ConvocationPlayer>? onShowInfo;
+
+  /// Relance collective de disponibilité (bouton d'en-tête « Sans réponse »).
   final VoidCallback? onRelanceAll;
 
   @override
@@ -1235,13 +1324,6 @@ class _EffectifColumn extends StatelessWidget {
                   ),
               ],
             ),
-            if (onRelance != null && players.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(
-                'Touche un joueur pour le relancer.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
             const SizedBox(height: 9),
             if (players.isEmpty)
               Text(
@@ -1262,11 +1344,9 @@ class _EffectifColumn extends StatelessWidget {
                           ? (onRemoveGuest == null
                               ? null
                               : () => onRemoveGuest!(player))
-                          : onToggle != null
-                              ? () => onToggle!(player)
-                              : (onRelance == null || locked
-                                  ? null
-                                  : () => onRelance!(player)),
+                          : (onShowInfo == null
+                              ? null
+                              : () => onShowInfo!(player)),
                     ),
                 ],
               ),
@@ -1458,6 +1538,49 @@ class _FormationDropdown extends StatelessWidget {
               if (selected == null || selected.startsWith('__hdr_')) return;
               onChanged!(selected);
             },
+    );
+  }
+}
+
+/// Ligne d'information de la feuille d'un joueur : icône colorée, intitulé
+/// et détail (ex. « Disponible » + « Indiquée le 21/07/26 • 18h30 »).
+class _PlayerInfoRow extends StatelessWidget {
+  const _PlayerInfoRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 2),
+              Text(detail, style: Theme.of(context).textTheme.bodyMedium),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

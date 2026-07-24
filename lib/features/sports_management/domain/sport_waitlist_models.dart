@@ -136,6 +136,7 @@ class ConvocationPlayer {
     required this.turnShouldConsume,
     required this.turnState,
     required this.promotedAfterWithdrawalAt,
+    this.availabilityUpdatedAt,
     this.guestPlayerId,
     this.isGuest = false,
     this.isGoalkeeper = false,
@@ -155,6 +156,7 @@ class ConvocationPlayer {
       isGoalkeeper: json['is_goalkeeper'] == true,
       availabilityStatus:
           (json['availability_status'] ?? 'no_response').toString(),
+      availabilityUpdatedAt: _dateOrNull(json['availability_updated_at']),
       convocationStatus: ConvocationStatus.fromWire(json['convocation_status']),
       manualOverride: json['manual_override'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
@@ -175,6 +177,9 @@ class ConvocationPlayer {
   final bool isGuest;
   final bool isGoalkeeper;
   final String availabilityStatus;
+
+  /// Date/heure de la dernière indication (ou modification) de disponibilité.
+  final DateTime? availabilityUpdatedAt;
   final ConvocationStatus convocationStatus;
   final bool manualOverride;
   final int? waitlistPosition;
