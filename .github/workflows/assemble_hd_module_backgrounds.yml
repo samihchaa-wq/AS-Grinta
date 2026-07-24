@@ -7,6 +7,12 @@ on:
     paths:
       - .github/workflows/assemble_hd_module_backgrounds.yml
       - .tmp_hd_backgrounds/**
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/assemble_hd_module_backgrounds.yml
+      - .tmp_hd_backgrounds/**
 
 permissions:
   contents: write
