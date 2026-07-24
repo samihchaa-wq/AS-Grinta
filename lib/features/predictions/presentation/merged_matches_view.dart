@@ -27,7 +27,7 @@ class MergedMatchesView extends ConsumerStatefulWidget {
 
 class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   final GlobalKey _nextMatchKey = GlobalKey();
-  String? _initiallyFocusedMatchId;
+  String? _lastFocusSignature;
 
   @override
   void initState() {
@@ -51,21 +51,48 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     ]);
   }
 
-  void _focusNextMatchOnce(String? matchId) {
-    if (matchId == null || _initiallyFocusedMatchId == matchId) return;
+  void _focusNextMatch({
+    required String? matchId,
+    required bool cardIsReady,
+    required String requestToken,
+  }) {
+    if (matchId == null || !cardIsReady) return;
+
+    final signature = '$matchId:$requestToken';
+    if (_lastFocusSignature == signature) return;
+    _lastFocusSignature = signature;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _initiallyFocusedMatchId == matchId) return;
-      final targetContext = _nextMatchKey.currentContext;
-      if (targetContext == null) return;
-
-      _initiallyFocusedMatchId = matchId;
-      Scrollable.ensureVisible(
-        targetContext,
-        alignment: .06,
-        duration: Duration.zero,
-      );
+      _positionNextMatch(signature);
     });
+  }
+
+  Future<void> _positionNextMatch(String signature) async {
+    if (!mounted || _lastFocusSignature != signature) return;
+    final targetContext = _nextMatchKey.currentContext;
+    if (targetContext == null) {
+      _lastFocusSignature = null;
+      return;
+    }
+
+    await Scrollable.ensureVisible(
+      targetContext,
+      alignment: 0,
+      duration: Duration.zero,
+    );
+
+    // La carte complète remplace parfois le squelette après le premier cadre.
+    // Un second positionnement garantit que son titre reste collé en haut et
+    // que toute la carte tient dans la zone visible.
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    if (!mounted || _lastFocusSignature != signature) return;
+    final settledContext = _nextMatchKey.currentContext;
+    if (settledContext == null) return;
+    await Scrollable.ensureVisible(
+      settledContext,
+      alignment: 0,
+      duration: Duration.zero,
+    );
   }
 
   @override
@@ -82,8 +109,16 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final laterUpcoming = upcoming.length > 1
         ? upcoming.sublist(0, upcoming.length - 1)
         : <MatchModel>[];
+    final focusRequest = GoRouterState.of(
+      context,
+    ).uri.queryParameters['focusRequest'];
+    final nextCardIsReady = dashboard.valueOrNull?.nextMatch?.id == nextMatchId;
 
-    _focusNextMatchOnce(nextMatchId);
+    _focusNextMatch(
+      matchId: nextMatchId,
+      cardIsReady: nextCardIsReady,
+      requestToken: focusRequest ?? 'initial',
+    );
 
     return RefreshIndicator(
       onRefresh: _refresh,
