@@ -349,9 +349,8 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return ColoredBox(
-      color: overlapsContent
-          ? const Color(0xF2071738)
-          : const Color(0xB3071738),
+      color:
+          overlapsContent ? const Color(0xF2071738) : const Color(0xB3071738),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
