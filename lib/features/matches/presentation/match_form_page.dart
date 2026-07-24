@@ -124,6 +124,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         title: Text(
           widget.match == null ? 'Créer un match' : 'Modifier le match',
         ),
+        admin: true,
         actions: [
           if (widget.match != null && canManage)
             IconButton(

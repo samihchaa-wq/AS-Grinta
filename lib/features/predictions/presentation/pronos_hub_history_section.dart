@@ -351,36 +351,39 @@ class _AdminMatchActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: PopupMenuButton<String>(
-        tooltip: 'Options du match',
-        icon: const Text('✏️', style: TextStyle(fontSize: 22)),
-        onSelected: (value) {
-          switch (value) {
-            case 'edit':
-              _edit(context, ref);
-            case 'stats':
-              context.push('/matches/${match.id}/finalize');
-            case 'delete':
-              _delete(context, ref);
-          }
-        },
-        itemBuilder: (context) => const [
-          PopupMenuItem<String>(
-            value: 'edit',
-            child: _ActionRow(emoji: '⚙️', label: 'Modifier'),
-          ),
-          PopupMenuItem<String>(
-            value: 'stats',
-            child: _ActionRow(emoji: '📈', label: 'Stats'),
-          ),
-          PopupMenuItem<String>(
-            value: 'delete',
-            child: _ActionRow(emoji: '🚫', label: 'Supprimer'),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const AdminBadge(),
+        PopupMenuButton<String>(
+          tooltip: 'Options du match',
+          icon: const Text('✏️', style: TextStyle(fontSize: 22)),
+          onSelected: (value) {
+            switch (value) {
+              case 'edit':
+                _edit(context, ref);
+              case 'stats':
+                context.push('/matches/${match.id}/finalize');
+              case 'delete':
+                _delete(context, ref);
+            }
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem<String>(
+              value: 'edit',
+              child: _ActionRow(emoji: '⚙️', label: 'Modifier'),
+            ),
+            PopupMenuItem<String>(
+              value: 'stats',
+              child: _ActionRow(emoji: '📈', label: 'Stats'),
+            ),
+            PopupMenuItem<String>(
+              value: 'delete',
+              child: _ActionRow(emoji: '🚫', label: 'Supprimer'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

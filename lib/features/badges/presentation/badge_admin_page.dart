@@ -90,7 +90,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
     final badgesAsync = ref.watch(badgeCatalogProvider);
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Badges')),
+      appBar: GrintaAppBar(title: const Text('Badges'), admin: true),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
