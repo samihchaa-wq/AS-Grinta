@@ -41,9 +41,10 @@ class _StatsHubPageState extends State<StatsHubPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: double.infinity,
               child: SegmentedButton<_StatsSection>(
+                expandedInsets: EdgeInsets.zero,
                 showSelectedIcon: false,
                 segments: const [
                   ButtonSegment(
@@ -54,12 +55,12 @@ class _StatsHubPageState extends State<StatsHubPage> {
                   ButtonSegment(
                     value: _StatsSection.players,
                     icon: Icon(Icons.groups_2_outlined),
-                    label: Text('Stats joueurs'),
+                    label: Text('Joueur'),
                   ),
                   ButtonSegment(
                     value: _StatsSection.team,
                     icon: Icon(Icons.shield_outlined),
-                    label: Text('Stat équipe'),
+                    label: Text('Équipe'),
                   ),
                 ],
                 selected: {_section},
