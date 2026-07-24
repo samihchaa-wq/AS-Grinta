@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
@@ -71,33 +72,25 @@ class _StatsHubPageState extends State<StatsHubPage> {
             ),
           ),
           if (hasPeriod)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<StatisticsPeriod>(
-                  expandedInsets: EdgeInsets.zero,
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(
-                      value: StatisticsPeriod.current,
-                      label: Text('Actuelle'),
-                    ),
-                    ButtonSegment(
-                      value: StatisticsPeriod.previous,
-                      label: Text('Précédente'),
-                    ),
-                    ButtonSegment(
-                      value: StatisticsPeriod.allTime,
-                      label: Text('Toutes'),
-                    ),
-                  ],
-                  selected: {_period},
-                  onSelectionChanged: (value) {
-                    setState(() => _period = value.first);
-                  },
+            GrintaSecondaryTabs<StatisticsPeriod>(
+              segments: const [
+                ButtonSegment(
+                  value: StatisticsPeriod.current,
+                  label: Text('Actuelle'),
                 ),
-              ),
+                ButtonSegment(
+                  value: StatisticsPeriod.previous,
+                  label: Text('Précédente'),
+                ),
+                ButtonSegment(
+                  value: StatisticsPeriod.allTime,
+                  label: Text('Toutes'),
+                ),
+              ],
+              selected: {_period},
+              onSelectionChanged: (value) {
+                setState(() => _period = value.first);
+              },
             ),
           Expanded(
             child: switch (_section) {
