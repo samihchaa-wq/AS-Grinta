@@ -1,7 +1,9 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +24,9 @@ class MatchHistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vote = ref.watch(sportMotmVoteProvider(match.id)).valueOrNull;
+    final isAdmin = ref.watch(isAdminViewProvider);
+    final actions = adminActions ??
+        (isAdmin ? AdminMatchOptionsButton(match: match) : null);
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
@@ -63,9 +68,9 @@ class MatchHistoryCard extends ConsumerWidget {
                             nameStyle: Theme.of(context).textTheme.titleLarge,
                           ),
                         ),
-                        if (adminActions != null) ...[
+                        if (actions != null) ...[
                           const SizedBox(width: 6),
-                          adminActions!,
+                          actions,
                         ],
                       ],
                     ),
