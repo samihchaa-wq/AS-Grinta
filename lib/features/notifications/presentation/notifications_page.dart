@@ -1,6 +1,8 @@
-import 'package:as_grinta/features/preferences/data/preferences_repository.dart';
-import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
+import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,127 +11,119 @@ class NotificationsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final preferencesAsync = ref.watch(appPreferencesProvider);
-    // Les « Me prévenir… » sont gouvernés par l'interrupteur principal :
-    // tant qu'on ne reçoit pas les notifications sur cet appareil, ils sont
-    // désactivés (et remis à zéro dès qu'on coupe le principal).
-    final pushSubscribed =
-        ref.watch(pushStatusProvider).valueOrNull?.subscribed ?? false;
-
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Notifications')),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(appPreferencesProvider);
           ref.invalidate(pushStatusProvider);
-          await Future.wait([
-            ref.read(appPreferencesProvider.future),
-            ref.read(pushStatusProvider.future),
-          ]);
+          await ref.read(pushStatusProvider.future);
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: const [
+            _PushActivationCard(),
+            SizedBox(height: 16),
+            _NotificationsInfoCard(),
+            _AdminTestButton(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationsInfoCard extends StatelessWidget {
+  const _NotificationsInfoCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _PushActivationCard(),
-            const SizedBox(height: 16),
             Text(
-              'Me prévenir…',
-              style: Theme.of(context).textTheme.titleLarge,
+              'Ce que tu reçois',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 8),
-            preferencesAsync.when(
-              loading: () => const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-              ),
-              error: (_, __) => Card(
-                child: ListTile(
-                  title: const Text('Préférences indisponibles'),
-                  trailing: IconButton(
-                    onPressed: () => ref.invalidate(appPreferencesProvider),
-                    icon: const Icon(Icons.refresh),
-                  ),
-                ),
-              ),
-              data: (preferences) => Card(
-                child: Column(
-                  children: [
-                    SwitchListTile.adaptive(
-                      title: const Text('Quand un pronostic est ouvert'),
-                      subtitle: const Text(
-                        'Dès qu’un nouveau match est annoncé.',
-                      ),
-                      value: pushSubscribed && preferences.predictionOpen,
-                      onChanged: pushSubscribed
-                          ? (value) => _save(
-                                context,
-                                ref,
-                                preferences.copyWith(predictionOpen: value),
-                              )
-                          : null,
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: const Text('2 h avant le match'),
-                      subtitle: const Text(
-                        'Seulement si tu n’as pas encore pronostiqué.',
-                      ),
-                      value: pushSubscribed && preferences.predictionReminders,
-                      onChanged: pushSubscribed
-                          ? (value) => _save(
-                                context,
-                                ref,
-                                preferences.copyWith(
-                                  predictionReminders: value,
-                                ),
-                              )
-                          : null,
-                    ),
-                    const Divider(height: 1),
-                    SwitchListTile.adaptive(
-                      title: const Text('Quand le match est fini'),
-                      subtitle: const Text(
-                        'Points gagnés et pronostics des autres révélés.',
-                      ),
-                      value: pushSubscribed && preferences.matchReminders,
-                      onChanged: pushSubscribed
-                          ? (value) => _save(
-                                context,
-                                ref,
-                                preferences.copyWith(matchReminders: value),
-                              )
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            const SizedBox(height: 12),
+            _line('📅', 'La demande de disponibilité, avec un rappel de '
+                'pronostiquer.'),
+            _line('🏁', 'Le score final de chaque match.'),
+            _line('👑', 'L’invitation à voter pour l’Homme du match, si tu '
+                'étais présent.'),
+            _line('🎉', 'Le résultat du vote, si tu as voté.'),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _save(
-    BuildContext context,
-    WidgetRef ref,
-    AppPreferences preferences,
-  ) async {
+  Widget _line(String emoji, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Bouton réservé à l'admin : envoie une notification de test à soi-même
+/// uniquement, pour valider le rendu sans déranger l'équipe.
+class _AdminTestButton extends ConsumerStatefulWidget {
+  const _AdminTestButton();
+
+  @override
+  ConsumerState<_AdminTestButton> createState() => _AdminTestButtonState();
+}
+
+class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
+  bool _sending = false;
+
+  Future<void> _send() async {
+    setState(() => _sending = true);
+    var message = 'Test envoyé — regarde tes notifications.';
     try {
-      await ref.read(preferencesRepositoryProvider).update(preferences);
-      ref.invalidate(appPreferencesProvider);
+      await ref.read(supabaseClientProvider).rpc('admin_send_test_push');
     } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Les préférences n’ont pas pu être enregistrées.'),
-          ),
-        );
-      }
+      message = 'Impossible d’envoyer le test.';
     }
+    if (!mounted) return;
+    setState(() => _sending = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isStaff =
+        ref.watch(authControllerProvider).profile?.role.isStaff == true;
+    if (!isStaff) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: OutlinedButton.icon(
+        onPressed: _sending ? null : _send,
+        icon: _sending
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.send_outlined),
+        label: const Text('M’envoyer un test'),
+      ),
+    );
   }
 }
 
@@ -171,8 +165,8 @@ class _PushActivationCard extends ConsumerWidget {
             secondary: const Icon(Icons.notifications_active_outlined),
             title: const Text('Recevoir les notifications sur cet appareil'),
             subtitle: const Text(
-              'Active d’abord ceci, puis choisis en dessous quand être '
-              'prévenu.',
+              'Active ceci pour être prévenu des matchs, des votes et des '
+              'résultats de l’équipe.',
             ),
             value: status.subscribed,
             onChanged: (value) => _toggle(context, ref, value),

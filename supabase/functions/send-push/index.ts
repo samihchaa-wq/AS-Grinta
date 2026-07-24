@@ -81,6 +81,58 @@ Deno.serve(async (req: Request) => {
   } catch {
     return new Response("corps invalide", { status: 400 });
   }
+
+  // Canal de test : envoie une notification fixe UNIQUEMENT aux profils passés
+  // (l'admin lui-même), pour valider le rendu sans déranger l'équipe.
+  if (body.kind === "test") {
+    const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
+    if (profileIds.length === 0) {
+      return new Response("profile_ids requis", { status: 400 });
+    }
+    const { data: subs } = await supabase
+      .from("push_subscriptions")
+      .select("profile_id, endpoint, p256dh, auth")
+      .in("profile_id", profileIds);
+    const testSubs: SubscriptionRow[] = subs ?? [];
+    if (testSubs.length === 0) {
+      return Response.json({ attempted: 0, sent: 0, failed: 0 });
+    }
+    webpush.setVapidDetails(
+      "https://samihchaa-wq.github.io/AS-Grinta",
+      config.vapid_public,
+      config.vapid_private,
+    );
+    const testPayload = JSON.stringify({
+      title: "Test AS Grinta",
+      body: "Si tu vois ceci, les notifications fonctionnent 🎉",
+      url: ".",
+      tag: "test-push",
+    });
+    const testDead: string[] = [];
+    let testSent = 0;
+    await Promise.all(testSubs.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          testPayload,
+          { TTL: 600, urgency: "high" },
+        );
+        testSent += 1;
+      } catch (error) {
+        const statusCode = (error as { statusCode?: number }).statusCode ?? null;
+        if (statusCode === 404 || statusCode === 410) testDead.push(sub.endpoint);
+      }
+    }));
+    if (testDead.length > 0) {
+      await supabase.rpc("internal_push_prune", { p_endpoints: testDead });
+    }
+    return Response.json({
+      attempted: testSubs.length,
+      sent: testSent,
+      failed: testSubs.length - testSent,
+    });
+  }
+
   if (!body.kind || !body.match_id) {
     return new Response("kind et match_id requis", { status: 400 });
   }
