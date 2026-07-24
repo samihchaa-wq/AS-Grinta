@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
@@ -128,15 +129,13 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         ? upcoming.sublist(0, upcoming.length - 1)
         : <MatchModel>[];
 
-    final focusRequest = GoRouterState.of(
-      context,
-    ).uri.queryParameters['focusRequest'];
+    final focusRequest = ref.watch(matchesFocusRequestProvider);
     final nextCardIsReady = dashboard.valueOrNull?.nextMatch?.id == nextMatchId;
 
     _focusNextMatch(
       matchId: nextMatchId,
       cardIsReady: nextCardIsReady,
-      requestToken: focusRequest ?? 'initial',
+      requestToken: '$focusRequest',
     );
 
     // Le prochain match se trouve après toutes les rencontres plus lointaines.
