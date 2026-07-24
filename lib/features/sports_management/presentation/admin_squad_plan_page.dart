@@ -47,7 +47,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   bool _loading = true;
   bool _busy = false;
   bool _effectifDirty = false;
-  bool _compositionDirty = false;
   String? _error;
 
   _AdminStep _stepFrom(String? value) {
@@ -152,7 +151,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         };
         _limitController.text = '${convocations.squadSizeLimit}';
         _effectifDirty = false;
-        _compositionDirty = saved == null;
       });
     } catch (error) {
       if (mounted) setState(() => _error = humanizeError(error));
@@ -645,7 +643,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               entry,
         ],
       );
-      _compositionDirty = true;
     });
   }
 
@@ -691,7 +688,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               entry,
         ],
       );
-      _compositionDirty = true;
     });
   }
 
@@ -715,7 +711,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               entry,
         ],
       );
-      _compositionDirty = true;
     });
   }
 
@@ -771,7 +766,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       if (!mounted) return result;
       setState(() {
         _composition = result;
-        _compositionDirty = false;
       });
       ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
       _showMessage(publish ? 'Composition publiée.' : 'Brouillon enregistré.');
