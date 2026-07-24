@@ -1,44 +1,29 @@
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
-import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
-import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// Carte complète du prochain match, réutilisable sur l'accueil historique et
 /// dans le nouvel onglet Matchs fusionné.
-class HomeNextMatchCard extends ConsumerWidget {
+class HomeNextMatchCard extends StatelessWidget {
   const HomeNextMatchCard({
     required this.match,
-    required this.predicted,
-    required this.prediction,
     required this.isAdmin,
     super.key,
   });
 
-  final HomeMatch match;
-  final bool predicted;
-  final HomePrediction? prediction;
+  final MatchModel match;
   final bool isAdmin;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final homeName = match.isHome ? 'AS Grinta' : match.opponent;
-    final awayName = match.isHome ? match.opponent : 'AS Grinta';
-    MatchModel? editableMatch;
-    if (isAdmin) {
-      for (final candidate in ref.watch(matchesControllerProvider).matches) {
-        if (candidate.id == match.id) {
-          editableMatch = candidate;
-          break;
-        }
-      }
-    }
+  Widget build(BuildContext context) {
+    final opponent = match.opponentName ?? 'Adversaire';
+    final homeName = match.isHome ? 'AS Grinta' : opponent;
+    final awayName = match.isHome ? opponent : 'AS Grinta';
 
     final fixtureRow = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -55,11 +40,11 @@ class HomeNextMatchCard extends ConsumerWidget {
             textAlign: TextAlign.center,
           ),
         ),
-        if (editableMatch != null) ...[
+        if (isAdmin) ...[
           const SizedBox(width: 2),
           SizedBox(
             width: 38,
-            child: AdminMatchOptionsButton(match: editableMatch),
+            child: AdminMatchOptionsButton(match: match),
           ),
         ],
         const Icon(Icons.chevron_right, size: 22, color: Color(0xFFD7C8FF)),
@@ -80,20 +65,17 @@ class HomeNextMatchCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (match.kickoffAt case final kickoffAt?)
-                MatchDateHeader(
-                  kickoffAt: kickoffAt,
-                  foreground: Colors.white,
-                  secondary: const Color(0xFFD7C8FF),
-                  dividerColor: const Color(0xFF7A5AB7),
-                  child: fixtureRow,
-                )
-              else
-                fixtureRow,
-              if (match.address != null) ...[
+              MatchDateHeader(
+                kickoffAt: match.kickoffAt,
+                foreground: Colors.white,
+                secondary: const Color(0xFFD7C8FF),
+                dividerColor: const Color(0xFF7A5AB7),
+                child: fixtureRow,
+              ),
+              if (match.address case final address?) ...[
                 const SizedBox(height: 10),
                 InkWell(
-                  onTap: () => showMatchAddressSheet(context, match.address!),
+                  onTap: () => showMatchAddressSheet(context, address),
                   borderRadius: BorderRadius.circular(6),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -111,7 +93,7 @@ class HomeNextMatchCard extends ConsumerWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            match.address!,
+                            address,
                             style: const TextStyle(
                               color: Color(0xFF9B6CFF),
                               fontWeight: FontWeight.w800,
