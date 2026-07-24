@@ -24,6 +24,11 @@ class MatchLineupPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final queryParameters = GoRouterState.of(context).uri.queryParameters;
+    if (queryParameters['infoOnly'] == 'true') {
+      return _MatchInfoOnlyPage(matchId: matchId);
+    }
+
     // Sans le module de gestion sportive, il n'y a ni effectif ni compo : on
     // ne prive pas le joueur de son prono pour autant. On bascule sur la page
     // « Ton prono » autonome, indépendante du module.
@@ -31,9 +36,7 @@ class MatchLineupPage extends ConsumerWidget {
       return UpcomingMatchPredictionPage(matchId: matchId);
     }
 
-    final requestedSection = GoRouterState.of(
-      context,
-    ).uri.queryParameters['section'];
+    final requestedSection = queryParameters['section'];
     final section = switch (requestedSection) {
       'info' => 'info',
       'composition' => 'composition',
@@ -107,6 +110,30 @@ class MatchLineupPage extends ConsumerWidget {
               ),
             if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MatchInfoOnlyPage extends ConsumerWidget {
+  const _MatchInfoOnlyPage({required this.matchId});
+
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: GrintaAppBar(title: const Text('Fiche du match')),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(matchInfoProvider(matchId));
+          await ref.read(matchInfoProvider(matchId).future);
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          children: [MatchInfoTab(matchId: matchId)],
         ),
       ),
     );
