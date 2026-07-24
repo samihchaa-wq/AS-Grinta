@@ -65,8 +65,18 @@ class MatchesRepository {
         .toList();
   }
 
-  /// Enregistre l'adresse d'un match ; elle est mémorisée sur l'adversaire pour
-  /// préremplir les prochaines rencontres.
+  /// Adresse du terrain d'AS Grinta (mémorisée pour les matchs à domicile).
+  Future<String?> fetchClubHomeAddress() async {
+    final row = await _client
+        .from('club_settings')
+        .select('home_address')
+        .maybeSingle();
+    final value = row?['home_address']?.toString().trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  /// Enregistre l'adresse d'un match ; elle est mémorisée sur l'équipe à
+  /// domicile pour préremplir les prochaines rencontres.
   Future<void> setMatchAddress({
     required String matchId,
     required String? address,
