@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
@@ -128,13 +129,16 @@ class _LastMatchContent extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(18),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        '$homeName  $homeScore – $awayScore  $awayName',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
+                      MatchFixture(
+                        homeName: homeName,
+                        awayName: awayName,
+                        grintaIsHome: match.isHome,
+                        homeScore: homeScore,
+                        awayScore: awayScore,
+                        finished: true,
+                        nameStyle: Theme.of(context).textTheme.titleLarge,
                       ),
                       if (match.kickoffAt != null) ...[
                         const SizedBox(height: 4),
