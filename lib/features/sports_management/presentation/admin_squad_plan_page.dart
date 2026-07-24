@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/guest_players_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -16,7 +17,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/format
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum _AdminStep { effectif, composition, prediction }
+enum _AdminStep { info, effectif, composition, prediction }
 
 class AdminSquadPlanPage extends ConsumerStatefulWidget {
   const AdminSquadPlanPage({
@@ -53,6 +54,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (widget.showPredictionStep && value == 'prediction') {
       return _AdminStep.prediction;
     }
+    if (value == 'info') return _AdminStep.info;
     if (value == 'composition') return _AdminStep.composition;
     return _AdminStep.effectif;
   }
@@ -939,22 +941,24 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
           SegmentedButton<_AdminStep>(
+            showSelectedIcon: false,
             segments: [
               const ButtonSegment(
+                value: _AdminStep.info,
+                label: Text('Info'),
+              ),
+              const ButtonSegment(
                 value: _AdminStep.effectif,
-                icon: Icon(Icons.groups_2_outlined),
                 label: Text('Effectif'),
               ),
               const ButtonSegment(
                 value: _AdminStep.composition,
-                icon: Icon(Icons.sports_soccer_outlined),
                 label: Text('Compo'),
               ),
               if (widget.showPredictionStep)
                 const ButtonSegment(
                   value: _AdminStep.prediction,
-                  icon: Icon(Icons.sports_score_outlined),
-                  label: Text('Ton prono'),
+                  label: Text('Prono'),
                 ),
             ],
             selected: {_step},
@@ -967,7 +971,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           ],
           if (_error != null) ...[const SizedBox(height: 12), Text(_error!)],
           const SizedBox(height: 16),
-          if (_step == _AdminStep.prediction && _selectedMatchId != null)
+          if (_step == _AdminStep.info && _selectedMatchId != null)
+            MatchInfoTab(matchId: _selectedMatchId!)
+          else if (_step == _AdminStep.prediction && _selectedMatchId != null)
             InlineMatchPredictionCard(matchId: _selectedMatchId!)
           else if (_convocations != null && _composition != null)
             _step == _AdminStep.effectif
