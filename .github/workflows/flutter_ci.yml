@@ -41,7 +41,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Format changed Dart files
+      - name: Check formatting of changed Dart files
         shell: bash
         run: |
           set -euo pipefail
@@ -56,7 +56,7 @@ jobs:
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format "${files[@]}"
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
@@ -92,5 +92,4 @@ jobs:
             analyze.log
             test.log
             build-web.log
-            lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart
           if-no-files-found: warn
