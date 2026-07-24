@@ -11,30 +11,17 @@ import 'package:go_router/go_router.dart';
 class HomeNextMatchCard extends StatelessWidget {
   const HomeNextMatchCard({
     required this.match,
-    required this.predicted,
-    required this.prediction,
-    required this.isAdmin,
+    this.adminActions,
     super.key,
   });
 
   final HomeMatch match;
-  final bool predicted;
-  final HomePrediction? prediction;
-  final bool isAdmin;
+  final Widget? adminActions;
 
   @override
   Widget build(BuildContext context) {
     final homeName = match.isHome ? 'AS Grinta' : match.opponent;
     final awayName = match.isHome ? match.opponent : 'AS Grinta';
-    final closeAt = match.kickoffAt?.subtract(const Duration(minutes: 5));
-    final open = !match.predictionsClosed &&
-        closeAt != null &&
-        DateTime.now().isBefore(closeAt);
-    final predictionScore = prediction == null
-        ? null
-        : match.isHome
-            ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
-            : '${prediction!.opponentScore} – ${prediction!.grintaScore}';
 
     return Card(
       color: const Color(0xFF25164F),
@@ -61,6 +48,10 @@ class HomeNextMatchCard extends StatelessWidget {
                       foreground: Colors.white,
                     ),
                   ),
+                  if (adminActions != null) ...[
+                    const SizedBox(width: 6),
+                    adminActions!,
+                  ],
                   const Icon(Icons.chevron_right, color: Color(0xFFD7C8FF)),
                 ],
               ),
@@ -109,67 +100,6 @@ class HomeNextMatchCard extends StatelessWidget {
                 matchId: match.id,
                 embeddedOnDark: true,
                 topSpacing: 14,
-                showManageShortcut: isAdmin,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF160B36),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF3F2A73)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(Icons.sports_score_outlined, size: 18),
-                        SizedBox(width: 8),
-                        Text(
-                          'Ton prono',
-                          style: TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(
-                          predicted ? Icons.check_circle : Icons.edit_note,
-                          size: 18,
-                          color: predicted
-                              ? const Color(0xFF52D08A)
-                              : Colors.white,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            predicted && predictionScore != null
-                                ? '$predictionScore'
-                                    '${prediction!.useX2 ? ' · ×2' : ''}'
-                                : open
-                                    ? 'Pas encore rempli'
-                                    : 'Pronostics fermés',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: predicted
-                                  ? const Color(0xFF52D08A)
-                                  : Colors.white,
-                            ),
-                          ),
-                        ),
-                        if (open)
-                          FilledButton(
-                            onPressed: () => context.push(
-                              '/matches/${match.id}/lineup?section=prediction',
-                            ),
-                            child: Text(predicted ? 'Modifier' : 'Remplir'),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
