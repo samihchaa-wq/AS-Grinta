@@ -49,7 +49,7 @@ class _StatsHubPageState extends State<StatsHubPage> {
                   ButtonSegment(
                     value: _StatsSection.rankings,
                     icon: Icon(Icons.leaderboard_outlined),
-                    label: Text('Classement'),
+                    label: Text('Prono'),
                   ),
                   ButtonSegment(
                     value: _StatsSection.players,
