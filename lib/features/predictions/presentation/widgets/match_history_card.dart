@@ -15,10 +15,8 @@ import 'package:go_router/go_router.dart';
 
 final historyMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-      return ref
-          .watch(predictionsRepositoryProvider)
-          .fetchMatchPrediction(matchId);
-    });
+  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
+});
 
 /// Version réutilisable de la carte « Dernier match » pour chaque rencontre
 /// passée de l'historique.
@@ -45,12 +43,10 @@ class MatchHistoryCard extends ConsumerWidget {
         final opponent = match.opponentName ?? 'Adversaire';
         final homeName = match.isHome ? 'AS Grinta' : opponent;
         final awayName = match.isHome ? opponent : 'AS Grinta';
-        final homeScore = match.isHome
-            ? match.grintaScore ?? 0
-            : match.opponentScore ?? 0;
-        final awayScore = match.isHome
-            ? match.opponentScore ?? 0
-            : match.grintaScore ?? 0;
+        final homeScore =
+            match.isHome ? match.grintaScore ?? 0 : match.opponentScore ?? 0;
+        final awayScore =
+            match.isHome ? match.opponentScore ?? 0 : match.grintaScore ?? 0;
         final scorers = details.playerStats
             .where((player) => player.goals > 0)
             .map(
@@ -66,8 +62,8 @@ class MatchHistoryCard extends ConsumerWidget {
         final predictionPoints = prediction == null || !prediction.isFilled
             ? 'Aucun prono'
             : earnedPoints == null
-            ? 'En attente'
-            : AppFormats.counted((earnedPoints * 100).round(), 'point');
+                ? 'En attente'
+                : AppFormats.counted((earnedPoints * 100).round(), 'point');
 
         return Card(
           color: const Color(0xFF20242C),
@@ -122,11 +118,11 @@ class MatchHistoryCard extends ConsumerWidget {
                         alignment: Alignment.centerRight,
                         child: Text(
                           'Voir la fiche du match',
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(
-                                color: const Color(0xFFCAB5FF),
-                                fontWeight: FontWeight.w800,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: const Color(0xFFCAB5FF),
+                                    fontWeight: FontWeight.w800,
+                                  ),
                         ),
                       ),
                     ],
@@ -167,7 +163,9 @@ class MatchHistoryCard extends ConsumerWidget {
                                 vote.hasVoted
                                     ? 'Appuie pour consulter le scrutin.'
                                     : 'Choisis un joueur depuis la composition.',
-                                style: Theme.of(context).textTheme.bodySmall
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
                                     ?.copyWith(color: AppTheme.textSecondary),
                               ),
                             ],
@@ -191,9 +189,8 @@ class MatchHistoryCard extends ConsumerWidget {
 
   String _hdmLabel(MatchDetailsData details, SportMotmVote? vote) {
     if (vote != null && vote.isClosed) {
-      final winners = vote.winners
-          .map((candidate) => candidate.displayName)
-          .join(' · ');
+      final winners =
+          vote.winners.map((candidate) => candidate.displayName).join(' · ');
       return winners.isEmpty ? 'Aucun' : winners;
     }
     final recorded = details.startingLineup

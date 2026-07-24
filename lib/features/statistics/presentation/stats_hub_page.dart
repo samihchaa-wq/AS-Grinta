@@ -100,8 +100,8 @@ class _StatsHubPageState extends State<StatsHubPage> {
           Expanded(
             child: switch (_section) {
               _StatsSection.rankings => RankingsPanel(
-                initialView: widget.initialRankingView,
-              ),
+                  initialView: widget.initialRankingView,
+                ),
               _StatsSection.players => _PlayersPanel(period: _period),
               _StatsSection.team => TeamStatisticsPanel(period: _period),
             },

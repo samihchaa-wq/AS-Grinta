@@ -276,8 +276,7 @@ class _AdminMatchActions extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
