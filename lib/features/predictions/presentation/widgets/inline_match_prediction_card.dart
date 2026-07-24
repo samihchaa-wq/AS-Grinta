@@ -69,24 +69,6 @@ class _InlineMatchPredictionCardState
         final useX2 = _useX2 ?? item.useX2;
         final canEdit = item.canEdit && !_saving;
 
-        // L'équipe qui reçoit (domicile) est affichée à gauche, comme partout
-        // ailleurs dans l'app.
-        final grintaNameLabel = Expanded(
-          child: Text(
-            'AS Grinta',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        );
-        final opponentNameLabel = Expanded(
-          child: Text(
-            item.opponentName,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        );
         final grintaPicker = Expanded(
           child: _ScorePicker(
             label: 'AS Grinta',
@@ -112,7 +94,7 @@ class _InlineMatchPredictionCardState
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: const Color(0xFF102A56),
             borderRadius: BorderRadius.circular(22),
@@ -121,55 +103,31 @@ class _InlineMatchPredictionCardState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Ton prono',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                  ),
-                  _StatusChip(item: item),
-                ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: _StatusChip(item: item),
               ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  if (item.isHome) grintaNameLabel else opponentNameLabel,
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('–'),
-                  ),
-                  if (item.isHome) opponentNameLabel else grintaNameLabel,
-                ],
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  AppFormats.dateTime(item.kickoffAt),
-                  style: const TextStyle(color: AppTheme.textSecondary),
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Divider(height: 1),
-              const SizedBox(height: 18),
+              const SizedBox(height: 10),
               details.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(
+                  child: SizedBox.square(
+                    dimension: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (data) => _HeadToHead(data: data),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               const Divider(height: 1),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               Text(
                 'Score à modifier',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   if (item.isHome) grintaPicker else opponentPicker,
@@ -177,16 +135,16 @@ class _InlineMatchPredictionCardState
                   if (item.isHome) opponentPicker else grintaPicker,
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               const Divider(height: 1),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               Text(
                 'Les cotes',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -217,10 +175,10 @@ class _InlineMatchPredictionCardState
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .035),
                   borderRadius: BorderRadius.circular(16),
@@ -229,10 +187,11 @@ class _InlineMatchPredictionCardState
                 child: Row(
                   children: [
                     const Icon(Icons.bolt_rounded),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text(
                             'Activer le ×2',
@@ -250,6 +209,7 @@ class _InlineMatchPredictionCardState
                     ),
                     Switch(
                       value: useX2,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onChanged: !canEdit || (!useX2 && item.x2Available <= 0)
                           ? null
                           : (value) => setState(() => _useX2 = value),
@@ -257,10 +217,14 @@ class _InlineMatchPredictionCardState
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(44),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   onPressed: canEdit ? () => _save(item) : null,
                   icon: _saving
                       ? const SizedBox(
@@ -272,7 +236,7 @@ class _InlineMatchPredictionCardState
                   label: const Text('Enregistrer'),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               const Text(
                 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
@@ -316,7 +280,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: item.isFilled
             ? const Color(0xFF39E784).withValues(alpha: .10)
@@ -355,7 +319,7 @@ class _HeadToHead extends StatelessWidget {
           'Les 5 dernières rencontres',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         if (matches.isEmpty)
           const Text(
             'Aucune confrontation précédente.',
@@ -363,8 +327,8 @@ class _HeadToHead extends StatelessWidget {
           )
         else
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: matches.map((match) {
               return MatchResultScoreChip(
                 scoreGrinta: match.scoreGrinta ?? 0,
@@ -395,6 +359,7 @@ class _ScorePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
@@ -406,14 +371,22 @@ class _ScorePicker extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              padding: EdgeInsets.zero,
               onPressed: enabled && value > 0 ? onMinus : null,
               icon: const Icon(Icons.remove_circle_outline),
             ),
             Text(
               '$value',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              padding: EdgeInsets.zero,
               onPressed: enabled ? onPlus : null,
               icon: const Icon(Icons.add_circle_outline),
             ),
@@ -444,7 +417,7 @@ class _Odd extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: selected ? accent.withValues(alpha: .16) : null,
         borderRadius: BorderRadius.circular(14),
