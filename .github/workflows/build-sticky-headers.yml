@@ -1,0 +1,122 @@
+name: Build sticky headers
+
+on:
+  push:
+    branches:
+      - agent/build-sticky-headers
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Integrate sticky headers with latest main
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          path = Path('lib/features/predictions/presentation/merged_matches_view.dart')
+          source = subprocess.check_output(
+              [
+                  'git',
+                  'show',
+                  'a982a11850ac6495cdb2c81f93be99fd53230932:'
+                  'lib/features/predictions/presentation/merged_matches_view.dart',
+              ],
+              text=True,
+          )
+
+          source, removed = re.subn(
+              r'\n          if \(isAdmin\)\n            SliverPadding\(\n.*?\n            \),\n          if \(state\.isLoading\)',
+              '\n          if (state.isLoading)',
+              source,
+              count=1,
+              flags=re.S,
+          )
+          if removed != 1:
+              raise SystemExit('Impossible de retirer le bouton admin supérieur')
+
+          marker = '''                const SliverToBoxAdapter(child: SizedBox(height: 22)),
+              ],
+            ),
+            SliverMainAxisGroup(
+'''
+          replacement = '''                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+              ],
+            ),
+            if (isAdmin)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: '👑 Ajouter un match',
+                            iconSize: 30,
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 38,
+                              height: 38,
+                            ),
+                            onPressed: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const MatchFormPage(),
+                                ),
+                              );
+                              if (!context.mounted) return;
+                              await _refresh();
+                            },
+                            icon: const Icon(Icons.add_circle),
+                          ),
+                          Text(
+                            '👑 Ajouter un match',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            SliverMainAxisGroup(
+'''
+          if marker not in source:
+              raise SystemExit('Impossible de trouver la limite avant Matchs passés')
+          source = source.replace(marker, replacement, 1)
+          path.write_text(source, encoding='utf-8')
+          PY
+
+      - name: Format Dart file
+        run: dart format lib/features/predictions/presentation/merged_matches_view.dart
+
+      - name: Remove temporary workflow
+        run: rm .github/workflows/build-sticky-headers.yml
+
+      - name: Commit integrated file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/merged_matches_view.dart .github/workflows/build-sticky-headers.yml
+          git commit -m "Intégrer les en-têtes persistants"
+          git push
