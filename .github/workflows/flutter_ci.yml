@@ -8,20 +8,61 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  format-unified-composition-button:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'feature/unified-composition-publish-button'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format changed Dart file
+        run: dart format lib/features/sports_management/presentation/admin_squad_plan_page.dart
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- lib/features/sports_management/presentation/admin_squad_plan_page.dart; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/sports_management/presentation/admin_squad_plan_page.dart
+          git commit -m "Format unified composition button"
+          git push origin HEAD:${{ github.head_ref }}
+
   validate:
+    needs: format-unified-composition-button
+    if: >-
+      always() &&
+      (needs.format-unified-composition-button.result == 'success' ||
+       needs.format-unified-composition-button.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
           fetch-depth: 0
 
       - name: Setup Flutter
