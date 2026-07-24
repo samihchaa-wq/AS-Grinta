@@ -159,8 +159,6 @@ class _AvailabilityPanel extends StatelessWidget {
     final foreground = embeddedOnDark ? Colors.white : null;
     final secondary =
         embeddedOnDark ? const Color(0xFFD7C8FF) : AppTheme.textSecondary;
-    final statusLabel =
-        selectedAvailable ? 'Présent' : availability.status.label;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -189,17 +187,6 @@ class _AvailabilityPanel extends StatelessWidget {
                     color: foreground,
                     fontWeight: FontWeight.w900,
                   ),
-                ),
-              ),
-              Text(
-                statusLabel,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: selectedAvailable
-                      ? const Color(0xFF52D08A)
-                      : selectedAbsent
-                          ? const Color(0xFFFF8A80)
-                          : secondary,
-                  fontWeight: FontWeight.w900,
                 ),
               ),
             ],

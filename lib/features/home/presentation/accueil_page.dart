@@ -243,50 +243,42 @@ class _NextMatchCard extends StatelessWidget {
                   const Icon(Icons.chevron_right, color: Color(0xFFD7C8FF)),
                 ],
               ),
-              if (match.kickoffAt != null || match.address != null) ...[
+              if (match.kickoffAt != null) ...[
                 const SizedBox(height: 4),
-                Row(
-                  children: [
-                    if (match.kickoffAt != null)
-                      Text(
-                        AppFormats.dateTime(match.kickoffAt!),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFFD7C8FF),
-                            ),
+                Text(
+                  AppFormats.dateTime(match.kickoffAt!),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFFD7C8FF),
                       ),
-                    if (match.address != null) ...[
-                      if (match.kickoffAt != null)
-                        const Text(
-                          '  ·  ',
-                          style: TextStyle(color: Color(0xFFD7C8FF)),
-                        ),
-                      InkWell(
-                        onTap: () =>
-                            showMatchAddressSheet(context, match.address!),
-                        borderRadius: BorderRadius.circular(6),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.place_outlined,
-                                  size: 16, color: Color(0xFF9B6CFF)),
-                              SizedBox(width: 2),
-                              Text(
-                                'Adresse',
-                                style: TextStyle(
-                                  color: Color(0xFF9B6CFF),
-                                  fontWeight: FontWeight.w800,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Color(0xFF9B6CFF),
-                                ),
-                              ),
-                            ],
+                ),
+              ],
+              if (match.address != null) ...[
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: () => showMatchAddressSheet(context, match.address!),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.place_outlined,
+                            size: 18, color: Color(0xFF9B6CFF)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            match.address!,
+                            style: const TextStyle(
+                              color: Color(0xFF9B6CFF),
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Color(0xFF9B6CFF),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ],
               MatchAvailabilitySelector(
