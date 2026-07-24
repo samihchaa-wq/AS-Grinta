@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
-import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -156,7 +155,6 @@ class _AvailabilityPanel extends StatelessWidget {
         availability.status == MatchAvailabilityStatus.available;
     final selectedAbsent =
         availability.status == MatchAvailabilityStatus.absent;
-    final foreground = embeddedOnDark ? Colors.white : null;
     final secondary =
         embeddedOnDark ? const Color(0xFFD7C8FF) : AppTheme.textSecondary;
 
@@ -176,29 +174,6 @@ class _AvailabilityPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.event_available_outlined, size: 19, color: foreground),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Ta disponibilité',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (availability.updatedAt != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Mise à jour ${AppFormats.dateTime(availability.updatedAt!)}',
-              style: theme.textTheme.bodySmall?.copyWith(color: secondary),
-            ),
-          ],
-          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
