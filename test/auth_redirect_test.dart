@@ -26,21 +26,21 @@ void main() {
       );
     });
 
-    test('leaves the loading route once loading finishes without a session',
-        () {
-      // Régression : quand le chargement se termine sans session, on ne doit
-      // PAS rester bloqué sur /auth/loading — on part sur la connexion.
-      const state = AuthState(isLoading: false);
+    test(
+      'leaves the loading route once loading finishes without a session',
+      () {
+        const state = AuthState(isLoading: false);
 
-      expect(
-        resolveAuthRedirect(
-          authState: state,
-          uri: Uri.parse('/auth/loading'),
-          matchedLocation: '/auth/loading',
-        ),
-        '/auth/sign-in',
-      );
-    });
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse('/auth/loading'),
+            matchedLocation: '/auth/loading',
+          ),
+          '/auth/sign-in',
+        );
+      },
+    );
 
     test('preserves the requested local path for signed-out users', () {
       const state = AuthState(isLoading: false);
@@ -132,7 +132,7 @@ void main() {
             uri: uri,
             matchedLocation: '/auth/sign-in',
           ),
-          '/accueil',
+          '/matches',
         );
       }
     });
@@ -156,7 +156,7 @@ void main() {
             uri: Uri.parse(route),
             matchedLocation: route,
           ),
-          '/pronos',
+          '/matches',
         );
       }
     });
@@ -185,29 +185,23 @@ void main() {
       }
     });
 
-    test('normalizes root aliases to Accueil', () {
+    test('normalizes root and former home aliases to Matchs', () {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
         profile: _userProfile,
       );
 
-      expect(
-        resolveAuthRedirect(
-          authState: state,
-          uri: Uri.parse('/'),
-          matchedLocation: '/',
-        ),
-        '/accueil',
-      );
-      expect(
-        resolveAuthRedirect(
-          authState: state,
-          uri: Uri.parse('/home'),
-          matchedLocation: '/home',
-        ),
-        '/accueil',
-      );
+      for (final route in <String>['/', '/home', '/accueil']) {
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse(route),
+            matchedLocation: route,
+          ),
+          '/matches',
+        );
+      }
     });
   });
 }

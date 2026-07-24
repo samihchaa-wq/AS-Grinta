@@ -15,6 +15,7 @@ import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
+import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
 import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
@@ -81,11 +82,24 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         actions: grintaHomeActions(context),
       ),
       body: switch (_category) {
-        _PronosCategory.matches => const _CalendarSection(),
+        _PronosCategory.matches => const MergedMatchesView(),
         _PronosCategory.scorers => const _ScorerRankingView(),
-        _PronosCategory.general =>
-          _GeneralRankingsSection(initialView: widget.initialView),
+        _PronosCategory.general => _GeneralRankingsSection(
+            initialView: widget.initialView,
+          ),
       },
     );
+  }
+}
+
+/// Panneau de classement réutilisable dans le nouvel onglet Stats.
+class RankingsPanel extends StatelessWidget {
+  const RankingsPanel({super.key, this.initialView});
+
+  final String? initialView;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GeneralRankingsSection(initialView: initialView);
   }
 }

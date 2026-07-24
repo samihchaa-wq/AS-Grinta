@@ -17,12 +17,13 @@ void main() {
           matchedLocation: route,
           sportsManagementEnabled: false,
         ),
-        '/pronos',
+        '/matches',
       );
     }
   });
 
-  test('a match sheet falls back to its prono while the module is disabled', () {
+  test('a match sheet falls back to its prono while the module is disabled',
+      () {
     expect(
       resolveAuthRedirect(
         authState: _adminState,
@@ -66,7 +67,7 @@ void main() {
           matchedLocation: route,
           sportsManagementEnabled: true,
         ),
-        '/pronos',
+        '/matches',
       );
     }
   });

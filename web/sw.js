@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
-// et réception des notifications push Web Push. Cache fonctionnel v68 — navigation principale persistante.
-const CACHE_NAME = 'as-grinta-v148';
+// et réception des notifications push Web Push. Cache v149 — navigation Matchs/Stats fusionnée.
+const CACHE_NAME = 'as-grinta-v149';
 
 self.addEventListener('install', () => {
   // On n'active plus la nouvelle version en douce : elle reste « en attente »
@@ -81,18 +81,16 @@ self.addEventListener('notificationclick', (event) => {
     self.registration.scope,
   ).href;
   event.waitUntil(
-    (async () => {
-      const windows = await self.clients.matchAll({
-        type: 'window',
-        includeUncontrolled: true,
-      });
-      for (const client of windows) {
-        if (client.url.startsWith(self.registration.scope) && 'focus' in client) {
-          await client.focus();
-          return;
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(
+      (clients) => {
+        for (const client of clients) {
+          if ('focus' in client) {
+            client.navigate(target);
+            return client.focus();
+          }
         }
-      }
-      await self.clients.openWindow(target);
-    })(),
+        return self.clients.openWindow(target);
+      },
+    ),
   );
 });

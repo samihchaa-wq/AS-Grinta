@@ -14,15 +14,10 @@ class AppShell extends ConsumerWidget {
 
   int get _selectedIndex {
     final path = _uri.path;
-    if (path == '/statistics') return 3;
+    if (path == '/stats' || path == '/statistics') return 1;
     if (path == '/pronos') {
-      return switch (_uri.queryParameters['category']) {
-        'general' || 'scorers' => 2,
-        _ => 1,
-      };
-    }
-    if (path.startsWith('/matches') || path.startsWith('/predictions')) {
-      return 1;
+      final category = _uri.queryParameters['category'];
+      if (category == 'general' || category == 'scorers') return 1;
     }
     return 0;
   }
@@ -35,8 +30,7 @@ class AppShell extends ConsumerWidget {
         children: [
           if (viewingAsUser)
             _PreviewBanner(
-              onExit: () =>
-                  ref.read(viewAsUserProvider.notifier).state = false,
+              onExit: () => ref.read(viewAsUserProvider.notifier).state = false,
             ),
           Expanded(child: child),
         ],
@@ -46,29 +40,14 @@ class AppShell extends ConsumerWidget {
         selectedIndex: _selectedIndex,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
-          final destination = switch (index) {
-            0 => '/accueil',
-            1 => '/pronos?category=matches',
-            2 => '/pronos?category=general',
-            _ => '/statistics',
-          };
+          final destination = index == 0 ? '/matches' : '/stats';
           if (location != destination) context.go(destination);
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Accueil',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.sports_soccer_outlined),
             selectedIcon: Icon(Icons.sports_soccer_rounded),
             label: 'Matchs',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.leaderboard_outlined),
-            selectedIcon: Icon(Icons.leaderboard_rounded),
-            label: 'Classements',
           ),
           NavigationDestination(
             icon: Icon(Icons.query_stats_outlined),
@@ -81,8 +60,6 @@ class AppShell extends ConsumerWidget {
   }
 }
 
-/// Bandeau permanent affiché en mode « aperçu utilisateur » : rappelle à
-/// l'admin qu'il voit l'app comme un joueur et permet de revenir en un geste.
 class _PreviewBanner extends StatelessWidget {
   const _PreviewBanner({required this.onExit});
 
@@ -98,8 +75,11 @@ class _PreviewBanner extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
           child: Row(
             children: [
-              const Icon(Icons.visibility_outlined,
-                  size: 18, color: Colors.white),
+              const Icon(
+                Icons.visibility_outlined,
+                size: 18,
+                color: Colors.white,
+              ),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
