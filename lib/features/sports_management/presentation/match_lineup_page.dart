@@ -2,7 +2,9 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -33,6 +35,7 @@ class MatchLineupPage extends ConsumerWidget {
       context,
     ).uri.queryParameters['section'];
     final section = switch (requestedSection) {
+      'info' => 'info',
       'composition' => 'composition',
       'prediction' => 'prediction',
       _ => 'effectif',
@@ -47,6 +50,7 @@ class MatchLineupPage extends ConsumerWidget {
       );
     }
 
+    final showInfo = section == 'info';
     final showEffectif = section == 'effectif';
     final showComposition = section == 'composition';
     final showPrediction = section == 'prediction';
@@ -58,12 +62,14 @@ class MatchLineupPage extends ConsumerWidget {
           ref
             ..invalidate(publishedMatchCompositionProvider(matchId))
             ..invalidate(matchAvailabilityBoardProvider(matchId))
+            ..invalidate(matchInfoProvider(matchId))
             ..invalidate(inlineMatchPredictionProvider(matchId));
           await Future.wait([
             if (showComposition)
               ref.read(publishedMatchCompositionProvider(matchId).future),
             if (showEffectif)
               ref.read(matchAvailabilityBoardProvider(matchId).future),
+            if (showInfo) ref.read(matchInfoProvider(matchId).future),
             if (showPrediction)
               ref.read(inlineMatchPredictionProvider(matchId).future),
           ]);
@@ -73,22 +79,12 @@ class MatchLineupPage extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
             SegmentedButton<String>(
+              showSelectedIcon: false,
               segments: const [
-                ButtonSegment(
-                  value: 'effectif',
-                  icon: Icon(Icons.groups_2_outlined),
-                  label: Text('Effectif'),
-                ),
-                ButtonSegment(
-                  value: 'composition',
-                  icon: Icon(Icons.sports_soccer_outlined),
-                  label: Text('Compo'),
-                ),
-                ButtonSegment(
-                  value: 'prediction',
-                  icon: Icon(Icons.sports_score_outlined),
-                  label: Text('Ton prono'),
-                ),
+                ButtonSegment(value: 'info', label: Text('Info')),
+                ButtonSegment(value: 'effectif', label: Text('Effectif')),
+                ButtonSegment(value: 'composition', label: Text('Compo')),
+                ButtonSegment(value: 'prediction', label: Text('Prono')),
               ],
               selected: {section},
               onSelectionChanged: (selection) => context.go(
@@ -96,6 +92,7 @@ class MatchLineupPage extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
+            if (showInfo) MatchInfoTab(matchId: matchId),
             if (showEffectif)
               MatchAvailabilityBoardCard(
                 matchId: matchId,
