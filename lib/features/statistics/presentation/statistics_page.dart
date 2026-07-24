@@ -190,7 +190,9 @@ class _PlayerStatisticsPeriodViewState
   }
 
   Future<void> _refresh() async {
-    ref.invalidate(statisticsPeriodProvider(widget.period));
+    ref
+      ..invalidate(statisticsPeriodProvider(widget.period))
+      ..invalidate(teamStatisticsPeriodProvider(widget.period));
     await ref.read(statisticsPeriodProvider(widget.period).future);
   }
 }
