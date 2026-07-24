@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -23,12 +27,10 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _matchesBackground = NetworkImage(
     'https://ovzijmqrnsgcmryinkfa.supabase.co/storage/v1/object/public/app-assets/module-backgrounds/matches-source-full.png',
   );
-  static const _statsBackground = AssetImage(
-    'assets/images/module_backgrounds/stats.webp',
-  );
+  static const _statsBackgroundAsset =
+      'assets/images/module_backgrounds/stats.webp.b64';
   static const _backgrounds = <ImageProvider<Object>>[
     _matchesBackground,
-    _statsBackground,
   ];
 
   bool _precacheScheduled = false;
@@ -39,13 +41,15 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   int get _selectedIndex => widget.navigationShell.currentIndex;
 
+  bool get _isStatsModule {
+    final path = _uri.path;
+    return path == '/stats' || path == '/statistics';
+  }
+
   ImageProvider<Object>? get _moduleBackground {
     final path = _uri.path;
     if (path == '/matches' || path.startsWith('/matches/')) {
       return _matchesBackground;
-    }
-    if (path == '/stats' || path == '/statistics') {
-      return _statsBackground;
     }
     return null;
   }
@@ -105,12 +109,17 @@ class _AppShellState extends ConsumerState<AppShell> {
   Widget build(BuildContext context) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final background = _moduleBackground;
-    final moduleContent = background == null
-        ? widget.navigationShell
-        : _ModuleBackground(
-            image: background,
+    final moduleContent = _isStatsModule
+        ? _Base64ModuleBackground(
+            assetPath: _statsBackgroundAsset,
             child: widget.navigationShell,
-          );
+          )
+        : background == null
+            ? widget.navigationShell
+            : _ModuleBackground(
+                image: background,
+                child: widget.navigationShell,
+              );
 
     return Scaffold(
       body: Column(
@@ -179,6 +188,59 @@ class _ModuleBackground extends StatelessWidget {
         const ColoredBox(color: Color(0x24000000)),
         RepaintBoundary(child: child),
       ],
+    );
+  }
+}
+
+class _Base64ModuleBackground extends StatefulWidget {
+  const _Base64ModuleBackground({
+    required this.assetPath,
+    required this.child,
+  });
+
+  final String assetPath;
+  final Widget child;
+
+  @override
+  State<_Base64ModuleBackground> createState() =>
+      _Base64ModuleBackgroundState();
+}
+
+class _Base64ModuleBackgroundState extends State<_Base64ModuleBackground> {
+  late final Future<Uint8List> _imageBytes = _loadImageBytes();
+
+  Future<Uint8List> _loadImageBytes() async {
+    final encoded = await rootBundle.loadString(widget.assetPath);
+    return base64Decode(encoded.replaceAll(RegExp(r'\s'), ''));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _imageBytes,
+      builder: (context, snapshot) {
+        return Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.hardEdge,
+          children: [
+            const ColoredBox(color: AppTheme.background),
+            if (snapshot.hasData)
+              RepaintBoundary(
+                child: Image.memory(
+                  snapshot.data!,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
+                  gaplessPlayback: true,
+                  excludeFromSemantics: true,
+                ),
+              ),
+            const ColoredBox(color: Color(0x24000000)),
+            RepaintBoundary(child: widget.child),
+          ],
+        );
+      },
     );
   }
 }
