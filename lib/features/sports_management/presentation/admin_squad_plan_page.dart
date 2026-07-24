@@ -11,7 +11,6 @@ import 'package:as_grinta/features/sports_management/domain/availability_reminde
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
@@ -879,13 +878,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             onSelectionChanged:
                 _busy ? null : (value) => setState(() => _step = value.first),
           ),
-          // Les outils du match (invités) n'ont pas de sens sur l'onglet
-          // « Ton prono » : on ne les affiche que sur Effectif et Compo.
-          if (_selectedMatchId != null &&
-              _step != _AdminStep.prediction) ...[
-            const SizedBox(height: 12),
-            _AdminMatchTools(matchId: _selectedMatchId!),
-          ],
           if (_busy) ...[
             const SizedBox(height: 10),
             const LinearProgressIndicator(),
@@ -1374,58 +1366,6 @@ class _AdminBadge extends StatelessWidget {
 /// Raccourcis admin vers les outils du match (convocations, invités) — sinon
 /// inaccessibles depuis la navigation principale. Le scrutin HDM est
 /// entièrement automatisé (ouverture, clôture, résultats), sans intervention.
-class _AdminMatchTools extends StatelessWidget {
-  const _AdminMatchTools({required this.matchId});
-
-  final String matchId;
-
-  @override
-  Widget build(BuildContext context) {
-    void open(Widget page) {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
-    }
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.accent.withValues(alpha: .35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const _AdminBadge(),
-              const SizedBox(width: 8),
-              Text(
-                'Outils du match',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelLarge
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => open(AdminGuestsPage(initialMatchId: matchId)),
-                icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
-                label: const Text('Invités'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Case d'un remplaçant : même format que les titulaires (photo/initiales +
 /// nom dessous), disposées côte à côte. Déplaçable vers le terrain.
 class _BenchBox extends StatelessWidget {
