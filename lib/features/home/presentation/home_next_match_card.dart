@@ -15,13 +15,15 @@ import 'package:go_router/go_router.dart';
 class HomeNextMatchCard extends ConsumerWidget {
   const HomeNextMatchCard({
     required this.match,
-    required bool predicted,
-    required HomePrediction? prediction,
+    required this.predicted,
+    required this.prediction,
     required this.isAdmin,
     super.key,
   });
 
   final HomeMatch match;
+  final bool predicted;
+  final HomePrediction? prediction;
   final bool isAdmin;
 
   @override
