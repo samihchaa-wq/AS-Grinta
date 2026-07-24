@@ -34,11 +34,11 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
                 ),
                 ButtonSegment(
                   value: _GeneralRankingView.scorers,
-                  label: Text('Prono joueurs'),
+                  label: Text('Buteurs'),
                 ),
                 ButtonSegment(
                   value: _GeneralRankingView.general,
-                  label: Text('Général'),
+                  label: Text('Global'),
                 ),
               ],
               selected: {_view},
