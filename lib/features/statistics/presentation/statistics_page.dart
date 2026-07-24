@@ -130,7 +130,7 @@ class _PlayerStatisticsPeriodViewState
         _StatCol.wins => p.wins ?? 0,
         _StatCol.draws => p.draws ?? 0,
         _StatCol.losses => p.losses ?? 0,
-        _StatCol.main => p.isGoalkeeper ? p.cleanSheets : p.goals,
+        _StatCol.goals => p.goals,
         _StatCol.hdm => p.hdm ?? 0,
         _StatCol.name => 0,
       };
@@ -167,6 +167,11 @@ class _PlayerStatisticsPeriodViewState
                     .toLowerCase()
                     .compareTo(b.playerName.toLowerCase())
                 : _value(sort, a).compareTo(_value(sort, b));
+            if (cmp == 0) {
+              return a.playerName
+                  .toLowerCase()
+                  .compareTo(b.playerName.toLowerCase());
+            }
             return _desc ? -cmp : cmp;
           });
         }
@@ -238,7 +243,7 @@ class _ScrollableMessage extends StatelessWidget {
 const _statNameFlex = 7;
 const _statValueFlex = 2;
 
-enum _StatCol { name, played, wins, draws, losses, main, hdm }
+enum _StatCol { name, played, wins, draws, losses, goals, hdm }
 
 class _StatisticsHeaderRow extends StatelessWidget {
   const _StatisticsHeaderRow({
@@ -253,10 +258,7 @@ class _StatisticsHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Colors.white70,
-          fontWeight: FontWeight.w800,
-        );
+    final style = grintaTableHeaderTextStyle(context);
 
     Widget cell(String label, _StatCol col) => SortableHeaderCell(
           label: label,
@@ -268,7 +270,7 @@ class _StatisticsHeaderRow extends StatelessWidget {
         );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 11, 12, 11),
+      padding: grintaTableHeaderPadding,
       child: Row(
         children: [
           SortableHeaderCell(
@@ -284,7 +286,7 @@ class _StatisticsHeaderRow extends StatelessWidget {
           cell('G', _StatCol.wins),
           cell('N', _StatCol.draws),
           cell('P', _StatCol.losses),
-          cell('B/CS', _StatCol.main),
+          cell('B', _StatCol.goals),
           cell('HDM', _StatCol.hdm),
         ],
       ),
@@ -300,19 +302,17 @@ class _StatisticsDataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mainStat = player.isGoalkeeper ? player.cleanSheets : player.goals;
-
     Widget value(int v) => Expanded(
           flex: _statValueFlex,
           child: Text(
             '$v',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            style: grintaTableCellTextStyle(context),
           ),
         );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
+      padding: grintaTableRowPadding,
       child: Row(
         children: [
           Expanded(
@@ -320,24 +320,22 @@ class _StatisticsDataRow extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 18,
+                  width: 22,
                   child: Text(
                     '$rank',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white54,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: grintaTableRankTextStyle(context),
                   ),
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Expanded(
                   child: NameWithBadges(
                     profileId: player.profileId,
                     name: player.playerName,
                     badgeSize: 18,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    style: grintaTableCellTextStyle(
+                      context,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -347,7 +345,7 @@ class _StatisticsDataRow extends StatelessWidget {
           value(player.wins ?? 0),
           value(player.draws ?? 0),
           value(player.losses ?? 0),
-          value(mainStat),
+          value(player.goals),
           value(player.hdm ?? 0),
         ],
       ),
