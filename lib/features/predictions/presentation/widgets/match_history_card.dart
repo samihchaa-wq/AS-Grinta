@@ -25,7 +25,13 @@ class MatchHistoryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final vote = ref.watch(sportMotmVoteProvider(match.id)).valueOrNull;
+    final now = DateTime.now();
+    final voteWindowEnd = match.kickoffAt.add(const Duration(hours: 24));
+    final voteMayStillBeOpen =
+        !now.isBefore(match.kickoffAt) && now.isBefore(voteWindowEnd);
+    final vote = voteMayStillBeOpen
+        ? ref.watch(sportMotmVoteProvider(match.id)).valueOrNull
+        : null;
     final isAdmin = ref.watch(isAdminViewProvider);
     final actions = adminActions ??
         (isAdmin ? AdminMatchOptionsButton(match: match) : null);
