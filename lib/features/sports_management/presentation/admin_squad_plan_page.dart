@@ -47,7 +47,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   bool _loading = true;
   bool _busy = false;
   bool _effectifDirty = false;
-  bool _compositionDirty = false;
   String? _error;
 
   _AdminStep _stepFrom(String? value) {
@@ -152,7 +151,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         };
         _limitController.text = '${convocations.squadSizeLimit}';
         _effectifDirty = false;
-        _compositionDirty = saved == null;
       });
     } catch (error) {
       if (mounted) setState(() => _error = humanizeError(error));
@@ -245,8 +243,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final status = player.availabilityStatus;
     final updatedAt = player.availabilityUpdatedAt;
 
-    final (availabilityLabel, availabilityIcon, availabilityColor) =
-        switch (status) {
+    final (
+      availabilityLabel,
+      availabilityIcon,
+      availabilityColor,
+    ) = switch (status) {
       'available' => ('Disponible', Icons.check_circle_outline, Colors.green),
       'absent' => ('Absent', Icons.cancel_outlined, Colors.redAccent),
       _ => ('Sans réponse', Icons.schedule_outlined, Colors.orangeAccent),
@@ -280,10 +281,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             children: [
               Text(
                 player.displayName,
-                style: Theme.of(sheetContext)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),
               _PlayerInfoRow(
@@ -346,38 +346,38 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     };
     return _rescueOrphans(
       saved.copyWith(
-      entries: [
-        for (final base in baseline.entries)
-          if (!base.canBeSelected)
-            base.moveTo(MatchCompositionZone.notSelected)
-          else if (savedById[base.participantId] case final previous?)
-            MatchCompositionEntry(
-              participantId: base.participantId,
-              seasonPlayerId: base.seasonPlayerId,
-              guestPlayerId: base.guestPlayerId,
-              displayName: base.displayName,
-              isGuest: base.isGuest,
-              isGoalkeeper: base.isGoalkeeper,
-              zone: previous.zone == MatchCompositionZone.field
-                  ? MatchCompositionZone.field
-                  : MatchCompositionZone.bench,
-              x: previous.zone == MatchCompositionZone.field
-                  ? previous.x
-                  : null,
-              y: previous.zone == MatchCompositionZone.field
-                  ? previous.y
-                  : null,
-              slotLabel: previous.slotLabel,
-              sortOrder: previous.sortOrder,
-              availabilityStatus: base.availabilityStatus,
-              convocationStatus: base.convocationStatus,
-              selectionStatus: previous.zone == MatchCompositionZone.field
-                  ? 'starter'
-                  : 'substitute',
-            )
-          else
-            base.moveTo(MatchCompositionZone.bench),
-      ],
+        entries: [
+          for (final base in baseline.entries)
+            if (!base.canBeSelected)
+              base.moveTo(MatchCompositionZone.notSelected)
+            else if (savedById[base.participantId] case final previous?)
+              MatchCompositionEntry(
+                participantId: base.participantId,
+                seasonPlayerId: base.seasonPlayerId,
+                guestPlayerId: base.guestPlayerId,
+                displayName: base.displayName,
+                isGuest: base.isGuest,
+                isGoalkeeper: base.isGoalkeeper,
+                zone: previous.zone == MatchCompositionZone.field
+                    ? MatchCompositionZone.field
+                    : MatchCompositionZone.bench,
+                x: previous.zone == MatchCompositionZone.field
+                    ? previous.x
+                    : null,
+                y: previous.zone == MatchCompositionZone.field
+                    ? previous.y
+                    : null,
+                slotLabel: previous.slotLabel,
+                sortOrder: previous.sortOrder,
+                availabilityStatus: base.availabilityStatus,
+                convocationStatus: base.convocationStatus,
+                selectionStatus: previous.zone == MatchCompositionZone.field
+                    ? 'starter'
+                    : 'substitute',
+              )
+            else
+              base.moveTo(MatchCompositionZone.bench),
+        ],
       ),
     );
   }
@@ -432,8 +432,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         overflow.add(entry.participantId);
       }
     }
-    final benchBase =
-        composition.entriesFor(MatchCompositionZone.bench).length;
+    final benchBase = composition.entriesFor(MatchCompositionZone.bench).length;
     var benchExtra = 0;
     return composition.copyWith(
       formationCode: formation.code,
@@ -619,8 +618,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         overflow.add(ordered[i].participantId);
       }
     }
-    final benchBase =
-        composition.entriesFor(MatchCompositionZone.bench).length;
+    final benchBase = composition.entriesFor(MatchCompositionZone.bench).length;
     var benchExtra = 0;
     setState(() {
       _composition = composition.copyWith(
@@ -645,7 +643,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               entry,
         ],
       );
-      _compositionDirty = true;
     });
   }
 
@@ -691,7 +688,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               entry,
         ],
       );
-      _compositionDirty = true;
     });
   }
 
@@ -715,7 +711,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               entry,
         ],
       );
-      _compositionDirty = true;
     });
   }
 
@@ -771,7 +766,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       if (!mounted) return result;
       setState(() {
         _composition = result;
-        _compositionDirty = false;
       });
       ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
       _showMessage(publish ? 'Composition publiée.' : 'Brouillon enregistré.');
@@ -867,9 +861,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Retirer l’invité ?'),
-        content: Text(
-          '${player.displayName} sera retiré de ce match.',
-        ),
+        content: Text('${player.displayName} sera retiré de ce match.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -943,10 +935,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           SegmentedButton<_AdminStep>(
             showSelectedIcon: false,
             segments: [
-              const ButtonSegment(
-                value: _AdminStep.info,
-                label: Text('Info'),
-              ),
+              const ButtonSegment(value: _AdminStep.info, label: Text('Info')),
               const ButtonSegment(
                 value: _AdminStep.effectif,
                 label: Text('Effectif'),
@@ -998,9 +987,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               children: [
                 Text(
                   'Effectif',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 const Text(
@@ -1140,9 +1129,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               children: [
                 Text(
                   'Composition',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 const Text(
@@ -1212,9 +1201,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           onPressed:
               _busy || _locked ? null : () => _saveComposition(publish: true),
           icon: const Icon(Icons.campaign_outlined),
-          label: Text(
-            composition.isPublished ? 'Mettre à jour' : 'Publier',
-          ),
+          label: Text(composition.isPublished ? 'Mettre à jour' : 'Publier'),
         ),
         if (_locked)
           const Padding(
@@ -1299,8 +1286,10 @@ class _EffectifColumn extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    icon: const Icon(Icons.notifications_active_outlined,
-                        size: 16),
+                    icon: const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 16,
+                    ),
                     label: const Text('Relancer tous'),
                   ),
               ],
@@ -1457,8 +1446,10 @@ class _FormationDropdown extends StatelessWidget {
           DropdownMenuItem<String>(
             enabled: false,
             value: '__hdr_${formation.defenderLine}',
-            child: Text('${formation.defenderLine} DÉFENSEURS',
-                style: headerStyle),
+            child: Text(
+              '${formation.defenderLine} DÉFENSEURS',
+              style: headerStyle,
+            ),
           ),
         );
       }
@@ -1516,10 +1507,9 @@ class _PlayerInfoRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 2),
               Text(detail, style: Theme.of(context).textTheme.bodyMedium),
