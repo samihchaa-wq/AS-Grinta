@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,13 +11,24 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
   final trimmed = address.trim();
 
   Future<void> openMaps(BuildContext sheetContext) async {
+    final query = Uri.encodeComponent(trimmed);
+    // Sur iOS/macOS, un lien Apple Plans (maps.apple.com) est intercepté par le
+    // système et ouvre directement l'app native — sans laisser d'onglet vide
+    // dans le navigateur intégré de la PWA. Ailleurs, on ouvre Google Maps.
+    final isApple = defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS;
     final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query='
-      '${Uri.encodeComponent(trimmed)}',
+      isApple
+          ? 'https://maps.apple.com/?q=$query'
+          : 'https://www.google.com/maps/search/?api=1&query=$query',
     );
     if (sheetContext.mounted) Navigator.pop(sheetContext);
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok) messenger.showSnackBar(const SnackBar(content: Text('Impossible d’ouvrir la carte.')));
+    if (!ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Impossible d’ouvrir la carte.')),
+      );
+    }
   }
 
   Future<void> copy(BuildContext sheetContext) async {
