@@ -1,0 +1,43 @@
+name: Format instant navigation with project language
+
+on:
+  push:
+    branches: [agent/instant-page-navigation]
+    paths:
+      - .github/workflows/format_instant_navigation_project_version.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format changed Dart files with project language version
+        run: |
+          dart format \
+            lib/core/theme/app_theme.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page.dart
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/format_instant_navigation_project_version.yml
+          git add -A
+          git commit -m "Formater avec la version Dart du projet"
+          git push
