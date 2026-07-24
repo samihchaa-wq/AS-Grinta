@@ -327,12 +327,16 @@ final statisticsRepositoryProvider = Provider<StatisticsRepository>((ref) {
   return StatisticsRepository(ref.watch(supabaseClientProvider));
 });
 
-final statisticsPeriodProvider = FutureProvider.autoDispose
-    .family<StatisticsPeriodData, StatisticsPeriod>((ref, period) {
+// Mis en cache (pas d'autoDispose) : revenir sur l'onglet Stats est instantané
+// au lieu de tout recharger. Les données sont rafraîchies au « tire pour
+// rafraîchir » et au redémarrage.
+final statisticsPeriodProvider =
+    FutureProvider.family<StatisticsPeriodData, StatisticsPeriod>(
+        (ref, period) {
   return ref.watch(statisticsRepositoryProvider).fetchPlayers(period);
 });
 
-final teamStatisticsPeriodProvider = FutureProvider.autoDispose
-    .family<TeamStatistics, StatisticsPeriod>((ref, period) {
+final teamStatisticsPeriodProvider =
+    FutureProvider.family<TeamStatistics, StatisticsPeriod>((ref, period) {
   return ref.watch(statisticsRepositoryProvider).fetchTeam(period);
 });
