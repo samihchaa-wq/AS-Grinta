@@ -289,7 +289,7 @@ class _CalendarMatchCard extends ConsumerWidget {
         onTap: () => context.push(
           match.isFinished
               ? '/matches/${match.id}'
-              : '/matches/${match.id}/lineup?section=effectif',
+              : '/matches/${match.id}/lineup?section=info',
         ),
         child: content,
       ),
