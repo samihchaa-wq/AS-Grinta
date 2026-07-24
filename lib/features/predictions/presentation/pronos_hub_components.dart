@@ -175,6 +175,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
                   child: NameWithBadges(
                     profileId: profileId,
                     name: name,
+                    badgeSize: 18,
                     style: grintaTableCellTextStyle(
                       context,
                       fontWeight: FontWeight.w800,
