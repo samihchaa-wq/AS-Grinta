@@ -263,19 +263,13 @@ class PublishedLineupPreview extends ConsumerWidget {
                 )
               else
                 Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
                     for (final entry in composition.entriesFor(
                       MatchCompositionZone.bench,
                     ))
-                      Chip(
-                        avatar: const CircleAvatar(
-                          child: Icon(Icons.person_outline, size: 16),
-                        ),
-                        visualDensity: VisualDensity.compact,
-                        label: Text(entry.displayName),
-                      ),
+                      CompositionPlayerTile(entry: entry),
                   ],
                 ),
               if (showLists && beforeKickoff) ...[
