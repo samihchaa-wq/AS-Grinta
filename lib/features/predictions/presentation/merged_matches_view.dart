@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
@@ -6,6 +7,8 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
+import 'package:as_grinta/features/internal_matches/data/internal_matches_repository.dart';
+import 'package:as_grinta/features/internal_matches/presentation/internal_match_form_page.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
@@ -16,8 +19,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// Contenu du nouvel onglet Matchs : le prochain match reprend toutes les
-/// fonctions de l'ancien accueil et chaque match passé reprend la carte
-/// détaillée « Dernier match ».
+/// fonctions de l'ancien accueil, chaque match passé reprend la carte détaillée
+/// « Dernier match » et les matchs internes restent totalement séparés des
+/// pronostics, votes HDM et statistiques officielles.
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key});
 
@@ -39,19 +43,38 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     ref
       ..invalidate(homeDashboardProvider)
       ..invalidate(myLastPronoProvider)
-      ..invalidate(historyMatchPredictionProvider);
+      ..invalidate(historyMatchPredictionProvider)
+      ..invalidate(internalMatchesProvider);
     await Future.wait([
       ref
           .read(matchesControllerProvider.notifier)
           .load(seasonId: state.selectedSeasonId, allSeasons: true),
       ref.read(homeDashboardProvider.future),
+      ref.read(internalMatchesProvider.future),
     ]);
+  }
+
+  Future<void> _openOfficialForm(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MatchFormPage()),
+    );
+    if (!context.mounted) return;
+    await _refresh();
+  }
+
+  Future<void> _openInternalForm(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const InternalMatchFormPage()),
+    );
+    if (!context.mounted) return;
+    await _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final dashboard = ref.watch(homeDashboardProvider);
+    final internalAsync = ref.watch(internalMatchesProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
 
     final upcoming = state.matches.where((match) => !match.isFinished).toList()
@@ -67,32 +90,11 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
           if (isAdmin) ...[
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: '👑 Ajouter un match',
-                    iconSize: 46,
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const MatchFormPage(),
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      await _refresh();
-                    },
-                    icon: const Icon(Icons.add_circle),
-                  ),
-                  Text(
-                    '👑 Ajouter un match',
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                ],
-              ),
+            _CreateMatchActions(
+              onOfficial: () => _openOfficialForm(context),
+              onInternal: () => _openInternalForm(context),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
           ],
           if (state.isLoading)
             const _LoadingCard()
@@ -103,41 +105,42 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               message: state.error!,
               tone: GrintaEmptyTone.alert,
             )
-          else if (state.matches.isEmpty)
-            const _MessageCard(
-              title: 'Aucun match',
-              message: 'Le premier match apparaîtra ici dès qu’il sera créé.',
-            )
           else ...[
             const _SectionHeader(
               icon: Icons.event_rounded,
               title: 'Prochain match',
             ),
-            dashboard.when(
-              loading: () => const _LoadingCard(),
-              error: (_, __) => const _MessageCard(
-                title: 'Prochain match indisponible',
-                icon: Icons.wifi_off_rounded,
-                message: 'Tire pour rafraîchir.',
-                tone: GrintaEmptyTone.alert,
-              ),
-              data: (data) {
-                final next = data.nextMatch;
-                if (next == null || next.id != nextMatchId) {
-                  return const _MessageCard(
-                    title: 'Pas de match programmé',
-                    message:
-                        'Le prochain match apparaîtra ici dès qu’il sera créé.',
+            if (state.matches.isEmpty)
+              const _MessageCard(
+                title: 'Pas de match officiel programmé',
+                message: 'Le prochain match apparaîtra ici dès qu’il sera créé.',
+              )
+            else
+              dashboard.when(
+                loading: () => const _LoadingCard(),
+                error: (_, __) => const _MessageCard(
+                  title: 'Prochain match indisponible',
+                  icon: Icons.wifi_off_rounded,
+                  message: 'Tire pour rafraîchir.',
+                  tone: GrintaEmptyTone.alert,
+                ),
+                data: (data) {
+                  final next = data.nextMatch;
+                  if (next == null || next.id != nextMatchId) {
+                    return const _MessageCard(
+                      title: 'Pas de match officiel programmé',
+                      message:
+                          'Le prochain match apparaîtra ici dès qu’il sera créé.',
+                    );
+                  }
+                  return HomeNextMatchCard(
+                    match: next,
+                    predicted: data.nextMatchPredicted,
+                    prediction: data.nextMatchPrediction,
+                    isAdmin: isAdmin,
                   );
-                }
-                return HomeNextMatchCard(
-                  match: next,
-                  predicted: data.nextMatchPredicted,
-                  prediction: data.nextMatchPrediction,
-                  isAdmin: isAdmin,
-                );
-              },
-            ),
+                },
+              ),
             if (upcoming.length > 1) ...[
               const SizedBox(height: 22),
               const _SectionHeader(
@@ -151,12 +154,55 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
             ],
             const SizedBox(height: 22),
             const _SectionHeader(
+              icon: Icons.groups_2_outlined,
+              title: 'Matchs entre nous',
+            ),
+            internalAsync.when(
+              loading: () => const _LoadingCard(),
+              error: (error, _) => _MessageCard(
+                title: 'Matchs entre nous indisponibles',
+                icon: Icons.wifi_off_rounded,
+                message: error.toString(),
+                tone: GrintaEmptyTone.alert,
+              ),
+              data: (internalMatches) {
+                if (internalMatches.isEmpty) {
+                  return const _MessageCard(
+                    title: 'Aucun match entre nous',
+                    message:
+                        'Crée deux équipes libres depuis le bouton administrateur.',
+                  );
+                }
+                final upcomingInternal = internalMatches
+                    .where((match) => !match.isFinished)
+                    .toList()
+                  ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+                final finishedInternal = internalMatches
+                    .where((match) => match.isFinished)
+                    .toList()
+                  ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final match in [
+                      ...upcomingInternal,
+                      ...finishedInternal,
+                    ]) ...[
+                      _InternalMatchCard(match: match, isAdmin: isAdmin),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            const _SectionHeader(
               icon: Icons.history_rounded,
-              title: 'Matchs passés',
+              title: 'Matchs officiels passés',
             ),
             if (finished.isEmpty)
               const _MessageCard(
-                title: 'Aucun match joué',
+                title: 'Aucun match officiel joué',
                 message:
                     'Les résultats, buteurs, HDM et points de prono apparaîtront ici.',
               )
@@ -167,6 +213,44 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ],
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _CreateMatchActions extends StatelessWidget {
+  const _CreateMatchActions({
+    required this.onOfficial,
+    required this.onInternal,
+  });
+
+  final VoidCallback onOfficial;
+  final VoidCallback onInternal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onOfficial,
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Text('Match officiel'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onInternal,
+                icon: const Icon(Icons.groups_2_outlined),
+                label: const Text('Match entre nous'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -188,10 +272,225 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InternalMatchCard extends StatelessWidget {
+  const _InternalMatchCard({required this.match, required this.isAdmin});
+
+  final InternalMatch match;
+  final bool isAdmin;
+
+  Future<void> _edit(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => InternalMatchFormPage(match: match)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final score = match.isFinished
+        ? '${match.scoreA ?? 0} – ${match.scoreB ?? 0}'
+        : 'À venir';
+    return Card(
+      color: const Color(0xFF17251E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFF4A9B71), width: 1.3),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: isAdmin ? () => _edit(context) : null,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.groups_2_outlined, color: Color(0xFF75D59F)),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'MATCH ENTRE NOUS',
+                      style: TextStyle(
+                        color: Color(0xFF75D59F),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  if (isAdmin)
+                    const Icon(Icons.edit_outlined, color: Color(0xFF75D59F)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              MatchDateHeader(
+                kickoffAt: match.kickoffAt,
+                secondary: const Color(0xFFA8CDB7),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            match.teamAName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '${match.teamAPlayers.length} joueur(s)',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Column(
+                        children: [
+                          Text(
+                            score,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          if (!match.isFinished)
+                            Text(
+                              AppFormats.hourMinute(match.kickoffAt),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            match.teamBName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '${match.teamBPlayers.length} joueur(s)',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (match.address != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.place_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(match.address!)),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 14),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final cards = [
+                    _InternalTeamList(
+                      name: match.teamAName,
+                      players: match.teamAPlayers,
+                    ),
+                    _InternalTeamList(
+                      name: match.teamBName,
+                      players: match.teamBPlayers,
+                    ),
+                  ];
+                  if (constraints.maxWidth >= 620) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: cards.first),
+                        const SizedBox(width: 10),
+                        Expanded(child: cards.last),
+                      ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      cards.first,
+                      const SizedBox(height: 10),
+                      cards.last,
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Interne pur · aucun prono, HDM, classement ou statistique',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFFA8CDB7),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InternalTeamList extends StatelessWidget {
+  const _InternalTeamList({required this.name, required this.players});
+
+  final String name;
+  final List<InternalMatchPlayer> players;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF102019),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF315B43)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            name,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          if (players.isEmpty)
+            const Text('Aucun joueur')
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final player in players)
+                  Chip(
+                    avatar: player.isGoalkeeper
+                        ? const Icon(Icons.sports_handball, size: 16)
+                        : null,
+                    label: Text(player.name),
+                  ),
+              ],
+            ),
         ],
       ),
     );
@@ -265,9 +564,9 @@ class _AdminMatchActions extends ConsumerWidget {
   final MatchModel match;
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
+    );
     if (!context.mounted) return;
     ref
       ..invalidate(homeDashboardProvider)
