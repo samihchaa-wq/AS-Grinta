@@ -115,8 +115,8 @@ class _StatsHubPageState extends State<StatsHubPage> {
 
 enum _PlayerStatCol { name, played, wins, draws, losses, goals, hdm }
 
-const _playerNameFlex = 7;
-const _playerValueFlex = 2;
+const _playerNameFlex = 5;
+const _playerValueFlex = 1;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
@@ -200,6 +200,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           child: StickyHeaderTableCard(
+            minWidth: 0,
             onRefresh: _refresh,
             header: _PlayersHeaderRow(
               sort: _sort,
