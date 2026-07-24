@@ -12,18 +12,26 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
 
   Future<void> openMaps(BuildContext sheetContext) async {
     final query = Uri.encodeComponent(trimmed);
-    // Sur iOS/macOS, un lien Apple Plans (maps.apple.com) est intercepté par le
-    // système et ouvre directement l'app native — sans laisser d'onglet vide
-    // dans le navigateur intégré de la PWA. Ailleurs, on ouvre Google Maps.
     final isApple = defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
-    final uri = Uri.parse(
-      isApple
-          ? 'https://maps.apple.com/?q=$query'
-          : 'https://www.google.com/maps/search/?api=1&query=$query',
-    );
     if (sheetContext.mounted) Navigator.pop(sheetContext);
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (isApple) {
+      // En PWA iOS, ouvrir un NOUVEL onglet (_blank) laisse un onglet vide dans
+      // le navigateur intégré. On navigue donc la fenêtre courante (_self) vers
+      // un lien Apple Plans : iOS l'intercepte et ouvre l'app native, la PWA
+      // reste en place.
+      await launchUrl(
+        Uri.parse('https://maps.apple.com/?q=$query'),
+        webOnlyWindowName: '_self',
+      );
+      return;
+    }
+
+    final ok = await launchUrl(
+      Uri.parse('https://www.google.com/maps/search/?api=1&query=$query'),
+      mode: LaunchMode.externalApplication,
+    );
     if (!ok) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Impossible d’ouvrir la carte.')),
