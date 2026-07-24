@@ -37,6 +37,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadLimitLoading = false;
   bool _squadLimitLoaded = false;
 
+  /// Adresse du terrain d'AS Grinta (matchs à domicile), mémorisée globalement.
+  String? _clubHomeAddress;
+
   Future<void> _suggestOdds() async {
     if (_opponentId.isEmpty) return;
 
@@ -69,6 +72,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
+    // Adresse du terrain d'AS Grinta, pour préremplir un match à domicile.
+    Future.microtask(() async {
+      final home =
+          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
+      if (!mounted) return;
+      setState(() => _clubHomeAddress = home);
+      _prefillAddress();
+    });
   }
 
   @override
@@ -78,16 +89,24 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     super.dispose();
   }
 
-  /// Préremplit l'adresse depuis l'adversaire sélectionné (mémorisée lors d'un
-  /// précédent match) tant que le champ n'a pas été renseigné à la main.
-  void _prefillAddressFromOpponent() {
+  /// Préremplit l'adresse avec celle de l'équipe à domicile mémorisée : le
+  /// terrain d'AS Grinta pour un match à domicile, celui de l'adversaire pour
+  /// un match à l'extérieur. Ne touche pas un champ déjà renseigné.
+  void _prefillAddress() {
     if (_addressController.text.trim().isNotEmpty) return;
-    final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
-          (item) => item['id'].toString() == _opponentId,
-          orElse: () => const <String, dynamic>{},
-        );
-    final remembered = opponent['address']?.toString().trim() ?? '';
-    if (remembered.isNotEmpty) _addressController.text = remembered;
+    String? remembered;
+    if (_isHome) {
+      remembered = _clubHomeAddress;
+    } else if (_opponentId.isNotEmpty) {
+      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+            (item) => item['id'].toString() == _opponentId,
+            orElse: () => const <String, dynamic>{},
+          );
+      remembered = opponent['address']?.toString().trim();
+    }
+    if (remembered != null && remembered.isNotEmpty) {
+      _addressController.text = remembered;
+    }
   }
 
   Future<void> _loadSquadLimit() async {
@@ -189,7 +208,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                     onChanged: (value) {
                       setState(() {
                         _opponentId = value ?? '';
-                        _prefillAddressFromOpponent();
+                        _prefillAddress();
                       });
                       _suggestOdds();
                     },
@@ -229,8 +248,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               decoration: const InputDecoration(
                 labelText: 'Adresse (facultatif)',
                 hintText: 'Terrain, rue, ville…',
-                helperText: 'Mémorisée pour les prochains matchs contre cette '
-                    'équipe.',
+                helperText: 'Terrain de l’équipe qui reçoit. Mémorisée et '
+                    'préremplie aux prochains matchs.',
                 prefixIcon: Icon(Icons.place_outlined),
               ),
             ),
@@ -243,7 +262,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 DropdownMenuItem(value: false, child: Text('Extérieur')),
               ],
               onChanged: (value) {
-                setState(() => _isHome = value ?? true);
+                setState(() {
+                  _isHome = value ?? true;
+                  _prefillAddress();
+                });
                 _suggestOdds();
               },
             ),

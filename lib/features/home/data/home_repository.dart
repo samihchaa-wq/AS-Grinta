@@ -148,7 +148,12 @@ class HomeRepository {
       oddsWin: (odds?['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds?['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds?['odds_victoire_adverse'] as num?)?.toDouble(),
-      address: _cleanAddress(map['address']) ?? _cleanAddress(opponent['address']),
+      // L'adresse est celle de l'équipe à domicile : on ne retombe sur celle de
+      // l'adversaire que pour un match à l'extérieur.
+      address: _cleanAddress(map['address']) ??
+          ((map['location']?.toString() ?? 'domicile') == 'domicile'
+              ? null
+              : _cleanAddress(opponent['address'])),
     );
   }
 
