@@ -57,7 +57,7 @@ class _FakeCompositionRepository implements MatchCompositionRepository {
           MatchCompositionEntry(
             participantId: 'participant-1',
             seasonPlayerId: 'player-1',
-            displayName: 'Alex Gardien',
+            displayName: 'Alex',
             isGoalkeeper: true,
             zone: MatchCompositionZone.field,
             x: 0.5,

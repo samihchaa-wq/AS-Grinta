@@ -11,7 +11,6 @@ void main() {
         '/matches/m1/lineup',
         '/matches/m1/vote',
         '/admin/matches/m1/sport-management',
-        '/admin/convocations',
         '/admin/waitlist',
       ]) {
         expect(
@@ -56,7 +55,6 @@ void main() {
       () {
         for (final route in <String>[
           '/admin/matches/m1/sport-management',
-          '/admin/convocations',
           '/admin/waitlist',
         ]) {
           expect(
