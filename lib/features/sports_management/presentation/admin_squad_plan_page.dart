@@ -247,19 +247,22 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       goalkeeperSeasonPlayerIds: goalkeeperIds,
     );
     if (saved == null) {
-      return baseline.copyWith(
-        entries: [
-          for (final entry in baseline.entries)
-            entry.canBeSelected
-                ? entry.moveTo(MatchCompositionZone.bench)
-                : entry.moveTo(MatchCompositionZone.notSelected),
-        ],
+      return _rescueOrphans(
+        baseline.copyWith(
+          entries: [
+            for (final entry in baseline.entries)
+              entry.canBeSelected
+                  ? entry.moveTo(MatchCompositionZone.bench)
+                  : entry.moveTo(MatchCompositionZone.notSelected),
+          ],
+        ),
       );
     }
     final savedById = {
       for (final entry in saved.entries) entry.participantId: entry,
     };
-    return saved.copyWith(
+    return _rescueOrphans(
+      saved.copyWith(
       entries: [
         for (final base in baseline.entries)
           if (!base.canBeSelected)
@@ -291,6 +294,83 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             )
           else
             base.moveTo(MatchCompositionZone.bench),
+      ],
+      ),
+    );
+  }
+
+  /// Rétablit sur le terrain les titulaires dont la position ne tombe sur aucun
+  /// poste du dispositif courant (compos anciennes), sans déplacer ceux déjà
+  /// bien placés. Les titulaires en surplus passent au banc.
+  MatchComposition _rescueOrphans(MatchComposition composition) {
+    final formation = formationForCode(composition.formationCode);
+    final slots = formation.slots;
+    final field = composition.entriesFor(MatchCompositionZone.field);
+    final used = List<bool>.filled(slots.length, false);
+    final placement = <String, Offset>{};
+    final orphans = <MatchCompositionEntry>[];
+    for (final entry in field) {
+      final position = Offset(entry.x ?? .5, entry.y ?? .5);
+      var bestIndex = -1;
+      var bestDistance = 0.08;
+      for (var i = 0; i < slots.length; i += 1) {
+        if (used[i]) continue;
+        final distance = (position - slots[i].position).distance;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = i;
+        }
+      }
+      if (bestIndex >= 0) {
+        used[bestIndex] = true;
+        placement[entry.participantId] = slots[bestIndex].position;
+      } else {
+        orphans.add(entry);
+      }
+    }
+    if (orphans.isEmpty) {
+      return composition.copyWith(formationCode: formation.code);
+    }
+    final ordered = [
+      ...orphans.where((entry) => entry.isGoalkeeper),
+      ...orphans.where((entry) => !entry.isGoalkeeper),
+    ];
+    final freeSlots = [
+      for (var i = 0; i < slots.length; i += 1)
+        if (!used[i]) i,
+    ];
+    final overflow = <String>{};
+    var next = 0;
+    for (final entry in ordered) {
+      if (next < freeSlots.length) {
+        placement[entry.participantId] = slots[freeSlots[next]].position;
+        next += 1;
+      } else {
+        overflow.add(entry.participantId);
+      }
+    }
+    final benchBase =
+        composition.entriesFor(MatchCompositionZone.bench).length;
+    var benchExtra = 0;
+    return composition.copyWith(
+      formationCode: formation.code,
+      entries: [
+        for (final entry in composition.entries)
+          if (placement.containsKey(entry.participantId))
+            _entryWithStatus(
+              entry,
+              MatchCompositionZone.field,
+              x: placement[entry.participantId]!.dx,
+              y: placement[entry.participantId]!.dy,
+            )
+          else if (overflow.contains(entry.participantId))
+            _entryWithStatus(
+              entry,
+              MatchCompositionZone.bench,
+              sortOrder: benchBase + benchExtra++,
+            )
+          else
+            entry,
       ],
     );
   }
@@ -432,6 +512,58 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         MatchCompositionZone.available => 'undecided',
       },
     );
+  }
+
+  /// Change le dispositif et repositionne les titulaires sur les nouveaux
+  /// postes (le gardien d'abord, sur le GB). Les titulaires en trop passent au
+  /// banc, les postes en surplus restent vides.
+  void _applyFormation(String code) {
+    final composition = _composition;
+    if (composition == null || _busy || _locked) return;
+    if (formationForCode(composition.formationCode).code == code) return;
+    final slots = formationForCode(code).slots;
+    final field = composition.entriesFor(MatchCompositionZone.field);
+    final ordered = [
+      ...field.where((entry) => entry.isGoalkeeper),
+      ...field.where((entry) => !entry.isGoalkeeper),
+    ];
+    final placement = <String, Offset>{};
+    final overflow = <String>{};
+    for (var i = 0; i < ordered.length; i += 1) {
+      if (i < slots.length) {
+        placement[ordered[i].participantId] = slots[i].position;
+      } else {
+        overflow.add(ordered[i].participantId);
+      }
+    }
+    final benchBase =
+        composition.entriesFor(MatchCompositionZone.bench).length;
+    var benchExtra = 0;
+    setState(() {
+      _composition = composition.copyWith(
+        formationCode: code,
+        hasUnpublishedChanges: true,
+        entries: [
+          for (final entry in composition.entries)
+            if (placement.containsKey(entry.participantId))
+              _entryWithStatus(
+                entry,
+                MatchCompositionZone.field,
+                x: placement[entry.participantId]!.dx,
+                y: placement[entry.participantId]!.dy,
+              )
+            else if (overflow.contains(entry.participantId))
+              _entryWithStatus(
+                entry,
+                MatchCompositionZone.bench,
+                sortOrder: benchBase + benchExtra++,
+              )
+            else
+              entry,
+        ],
+      );
+      _compositionDirty = true;
+    });
   }
 
   void _dropOnSlot(MatchCompositionEntry moving, FootballFormationSlot slot) {
@@ -942,8 +1074,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
                 const SizedBox(height: 5),
                 const Text(
-                  'Glisse les convoqués sur le poste de ton choix. Les '
-                  'emplacements libres restent visibles.',
+                  'Choisis un dispositif, puis glisse les convoqués sur les '
+                  'postes affichés.',
+                ),
+                const SizedBox(height: 14),
+                _FormationDropdown(
+                  value: formationForCode(composition.formationCode).code,
+                  onChanged: (_busy || _locked) ? null : _applyFormation,
                 ),
               ],
             ),
@@ -952,7 +1089,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         const SizedBox(height: 14),
         Center(
           child: FormationPitchEditor(
-            slots: matchSheetSlots,
+            slots: formationForCode(composition.formationCode).slots,
             entries: field,
             editable: !_busy && !_locked,
             onDroppedOnSlot: _dropOnSlot,
@@ -1327,6 +1464,60 @@ class _BenchBox extends StatelessWidget {
       feedback: Material(color: Colors.transparent, child: box),
       childWhenDragging: Opacity(opacity: .3, child: box),
       child: box,
+    );
+  }
+}
+
+/// Menu déroulant des dispositifs, regroupés par ligne défensive.
+class _FormationDropdown extends StatelessWidget {
+  const _FormationDropdown({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Colors.white54,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .4,
+        );
+    final items = <DropdownMenuItem<String>>[];
+    int? lastLine;
+    for (final formation in footballFormations) {
+      if (formation.defenderLine != lastLine) {
+        lastLine = formation.defenderLine;
+        items.add(
+          DropdownMenuItem<String>(
+            enabled: false,
+            value: '__hdr_${formation.defenderLine}',
+            child: Text('${formation.defenderLine} DÉFENSEURS',
+                style: headerStyle),
+          ),
+        );
+      }
+      items.add(
+        DropdownMenuItem<String>(
+          value: formation.code,
+          child: Text(formation.code),
+        ),
+      );
+    }
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Dispositif',
+        prefixIcon: Icon(Icons.grid_view_rounded),
+        border: OutlineInputBorder(),
+      ),
+      items: items,
+      onChanged: onChanged == null
+          ? null
+          : (selected) {
+              if (selected == null || selected.startsWith('__hdr_')) return;
+              onChanged!(selected);
+            },
     );
   }
 }
