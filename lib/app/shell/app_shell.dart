@@ -4,13 +4,48 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({required this.child, required this.location, super.key});
 
   final Widget child;
   final String location;
 
-  Uri get _uri => Uri.parse(location);
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  static final _matchesBackground = ResizeImage.resizeIfNeeded(
+    432,
+    null,
+    const AssetImage('assets/images/module_backgrounds/matches.webp'),
+  );
+  static final _statsBackground = ResizeImage.resizeIfNeeded(
+    432,
+    null,
+    const AssetImage('assets/images/module_backgrounds/stats.webp'),
+  );
+  static final _settingsBackground = ResizeImage.resizeIfNeeded(
+    432,
+    null,
+    const AssetImage('assets/images/module_backgrounds/settings.webp'),
+  );
+  static final _badgesBackground = ResizeImage.resizeIfNeeded(
+    432,
+    null,
+    const AssetImage('assets/images/module_backgrounds/badges.webp'),
+  );
+  static final _backgrounds = <ImageProvider<Object>>[
+    _matchesBackground,
+    _statsBackground,
+    _settingsBackground,
+    _badgesBackground,
+  ];
+
+  bool _precacheScheduled = false;
+  late ThemeData _transparentTheme;
+
+  Uri get _uri => Uri.parse(widget.location);
 
   int get _selectedIndex {
     final path = _uri.path;
@@ -22,30 +57,58 @@ class AppShell extends ConsumerWidget {
     return 0;
   }
 
-  String? get _moduleBackgroundAsset {
+  ImageProvider<Object>? get _moduleBackground {
     final path = _uri.path;
     if (path == '/matches' || path.startsWith('/matches/')) {
-      return 'assets/images/module_backgrounds/matches.webp';
+      return _matchesBackground;
     }
     if (path == '/stats' || path == '/statistics') {
-      return 'assets/images/module_backgrounds/stats.webp';
+      return _statsBackground;
     }
     if (path == '/more' || path == '/profile' || path == '/notifications') {
-      return 'assets/images/module_backgrounds/settings.webp';
+      return _settingsBackground;
     }
     if (path == '/armoire' || path == '/admin/badges') {
-      return 'assets/images/module_backgrounds/badges.webp';
+      return _badgesBackground;
     }
     return null;
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _transparentTheme = Theme.of(
+      context,
+    ).copyWith(scaffoldBackgroundColor: Colors.transparent);
+    if (_precacheScheduled) return;
+    _precacheScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _precacheBackgrounds();
+    });
+  }
+
+  Future<void> _precacheBackgrounds() async {
+    final current = _moduleBackground;
+    final ordered = <ImageProvider<Object>>[
+      if (current != null) current,
+      for (final background in _backgrounds)
+        if (background != current) background,
+    ];
+
+    for (final background in ordered) {
+      if (!mounted) return;
+      await precacheImage(background, context);
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
-    final backgroundAsset = _moduleBackgroundAsset;
-    final moduleContent = backgroundAsset == null
-        ? child
-        : _ModuleBackground(assetPath: backgroundAsset, child: child);
+    final background = _moduleBackground;
+    final moduleContent = background == null
+        ? widget.child
+        : _ModuleBackground(image: background, child: widget.child);
 
     return Scaffold(
       body: Column(
@@ -54,7 +117,9 @@ class AppShell extends ConsumerWidget {
             _PreviewBanner(
               onExit: () => ref.read(viewAsUserProvider.notifier).state = false,
             ),
-          Expanded(child: moduleContent),
+          Expanded(
+            child: Theme(data: _transparentTheme, child: moduleContent),
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -63,7 +128,7 @@ class AppShell extends ConsumerWidget {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
           final destination = index == 0 ? '/matches' : '/stats';
-          if (location != destination) context.go(destination);
+          if (widget.location != destination) context.go(destination);
         },
         destinations: const [
           NavigationDestination(
@@ -83,31 +148,30 @@ class AppShell extends ConsumerWidget {
 }
 
 class _ModuleBackground extends StatelessWidget {
-  const _ModuleBackground({required this.assetPath, required this.child});
+  const _ModuleBackground({required this.image, required this.child});
 
-  final String assetPath;
+  final ImageProvider<Object> image;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        image: DecorationImage(
-          image: AssetImage(assetPath),
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const ColoredBox(color: AppTheme.background),
+        RepaintBoundary(
+          child: Image(
+            image: image,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.low,
+            gaplessPlayback: true,
+            excludeFromSemantics: true,
+          ),
         ),
-      ),
-      child: ColoredBox(
-        color: const Color(0x24000000),
-        child: Theme(
-          data: Theme.of(
-            context,
-          ).copyWith(scaffoldBackgroundColor: Colors.transparent),
-          child: child,
-        ),
-      ),
+        const ColoredBox(color: Color(0x24000000)),
+        child,
+      ],
     );
   }
 }
