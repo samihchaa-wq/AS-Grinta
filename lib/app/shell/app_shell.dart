@@ -1,3 +1,4 @@
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -5,9 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({required this.child, required this.location, super.key});
+  const AppShell({
+    required this.navigationShell,
+    required this.location,
+    super.key,
+  });
 
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
   final String location;
 
   @override
@@ -43,19 +48,12 @@ class _AppShellState extends ConsumerState<AppShell> {
   ];
 
   bool _precacheScheduled = false;
+  bool _matchFocusScheduled = false;
   late ThemeData _transparentTheme;
 
   Uri get _uri => Uri.parse(widget.location);
 
-  int get _selectedIndex {
-    final path = _uri.path;
-    if (path == '/stats' || path == '/statistics') return 1;
-    if (path == '/pronos') {
-      final category = _uri.queryParameters['category'];
-      if (category == 'general' || category == 'scorers') return 1;
-    }
-    return 0;
-  }
+  int get _selectedIndex => widget.navigationShell.currentIndex;
 
   ImageProvider<Object>? get _moduleBackground {
     final path = _uri.path;
@@ -102,13 +100,39 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  void _scheduleMatchFocus() {
+    if (_matchFocusScheduled) return;
+    _matchFocusScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _matchFocusScheduled = false;
+      if (!mounted) return;
+      final notifier = ref.read(matchesFocusRequestProvider.notifier);
+      notifier.state++;
+    });
+  }
+
+  void _openMatches() {
+    if (widget.navigationShell.currentIndex != 0 || _uri.path != '/matches') {
+      widget.navigationShell.goBranch(0, initialLocation: true);
+    }
+    _scheduleMatchFocus();
+  }
+
+  void _openStats() {
+    if (widget.navigationShell.currentIndex == 1) return;
+    widget.navigationShell.goBranch(1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final background = _moduleBackground;
     final moduleContent = background == null
-        ? widget.child
-        : _ModuleBackground(image: background, child: widget.child);
+        ? widget.navigationShell
+        : _ModuleBackground(
+            image: background,
+            child: widget.navigationShell,
+          );
 
     return Scaffold(
       body: Column(
@@ -128,11 +152,10 @@ class _AppShellState extends ConsumerState<AppShell> {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         onDestinationSelected: (index) {
           if (index == 0) {
-            final focusRequest = DateTime.now().microsecondsSinceEpoch;
-            context.go('/matches?focusRequest=$focusRequest');
-            return;
+            _openMatches();
+          } else {
+            _openStats();
           }
-          if (_uri.path != '/stats') context.go('/stats');
         },
         destinations: const [
           NavigationDestination(
@@ -161,6 +184,7 @@ class _ModuleBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
+      clipBehavior: Clip.hardEdge,
       children: [
         const ColoredBox(color: AppTheme.background),
         RepaintBoundary(
@@ -174,7 +198,7 @@ class _ModuleBackground extends StatelessWidget {
           ),
         ),
         const ColoredBox(color: Color(0x24000000)),
-        child,
+        RepaintBoundary(child: child),
       ],
     );
   }
