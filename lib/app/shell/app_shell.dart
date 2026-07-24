@@ -30,8 +30,7 @@ class AppShell extends ConsumerWidget {
         children: [
           if (viewingAsUser)
             _PreviewBanner(
-              onExit: () =>
-                  ref.read(viewAsUserProvider.notifier).state = false,
+              onExit: () => ref.read(viewAsUserProvider.notifier).state = false,
             ),
           Expanded(child: child),
         ],

@@ -84,8 +84,9 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       body: switch (_category) {
         _PronosCategory.matches => const MergedMatchesView(),
         _PronosCategory.scorers => const _ScorerRankingView(),
-        _PronosCategory.general =>
-          _GeneralRankingsSection(initialView: widget.initialView),
+        _PronosCategory.general => _GeneralRankingsSection(
+          initialView: widget.initialView,
+        ),
       },
     );
   }

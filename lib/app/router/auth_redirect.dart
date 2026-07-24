@@ -40,8 +40,9 @@ String? resolveAuthRedirect({
   }
 
   if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
-    final segments =
-        uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+    final segments = uri.pathSegments
+        .where((segment) => segment.isNotEmpty)
+        .toList();
     if (segments.length == 3 &&
         segments[0] == 'matches' &&
         segments[2] == 'lineup') {
@@ -65,17 +66,21 @@ String? resolveAuthRedirect({
 }
 
 bool _isSportsManagementRoute(Uri uri) {
-  final segments =
-      uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
+  final segments = uri.pathSegments
+      .where((segment) => segment.isNotEmpty)
+      .toList();
 
-  final isPlayerMatchRoute = segments.length == 3 &&
+  final isPlayerMatchRoute =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {'availability', 'lineup', 'vote'}.contains(segments.last);
-  final isAdminMatchRoute = segments.length == 4 &&
+  final isAdminMatchRoute =
+      segments.length == 4 &&
       segments[0] == 'admin' &&
       segments[1] == 'matches' &&
       segments[3] == 'sport-management';
-  final isAdminRotationRoute = segments.length == 2 &&
+  final isAdminRotationRoute =
+      segments.length == 2 &&
       segments.first == 'admin' &&
       const {
         'composition',
@@ -94,8 +99,7 @@ String? _safeLocalRedirect(String? value) {
   if (uri == null || uri.hasScheme || uri.hasAuthority) return null;
   if (!uri.path.startsWith('/') || uri.path.startsWith('/auth')) return null;
   if (uri.path == '/accueil' || uri.path == '/home') return '/matches';
-  if (uri.path == '/pronos' &&
-      uri.queryParameters['category'] == 'matches') {
+  if (uri.path == '/pronos' && uri.queryParameters['category'] == 'matches') {
     return '/matches';
   }
 

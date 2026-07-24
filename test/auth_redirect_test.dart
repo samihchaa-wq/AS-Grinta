@@ -26,19 +26,21 @@ void main() {
       );
     });
 
-    test('leaves the loading route once loading finishes without a session',
-        () {
-      const state = AuthState(isLoading: false);
+    test(
+      'leaves the loading route once loading finishes without a session',
+      () {
+        const state = AuthState(isLoading: false);
 
-      expect(
-        resolveAuthRedirect(
-          authState: state,
-          uri: Uri.parse('/auth/loading'),
-          matchedLocation: '/auth/loading',
-        ),
-        '/auth/sign-in',
-      );
-    });
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse('/auth/loading'),
+            matchedLocation: '/auth/loading',
+          ),
+          '/auth/sign-in',
+        );
+      },
+    );
 
     test('preserves the requested local path for signed-out users', () {
       const state = AuthState(isLoading: false);

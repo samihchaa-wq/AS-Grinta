@@ -76,7 +76,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     iconSize: 46,
                     onPressed: () async {
                       await Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const MatchFormPage()),
+                        MaterialPageRoute(
+                          builder: (_) => const MatchFormPage(),
+                        ),
                       );
                       if (!context.mounted) return;
                       await _refresh();
@@ -186,10 +188,9 @@ class _SectionHeader extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             title,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),
@@ -217,8 +218,7 @@ class _UpcomingMatchCard extends ConsumerWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () =>
-            context.push('/matches/${match.id}/lineup?section=info'),
+        onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -265,9 +265,9 @@ class _AdminMatchActions extends ConsumerWidget {
   final MatchModel match;
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref
       ..invalidate(homeDashboardProvider)
@@ -276,7 +276,8 @@ class _AdminMatchActions extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
