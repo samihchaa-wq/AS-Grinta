@@ -22,18 +22,20 @@ void main() {
     }
   });
 
-  test('a match sheet falls back to its prono while the module is disabled',
-      () {
-    expect(
-      resolveAuthRedirect(
-        authState: _adminState,
-        uri: Uri.parse('/matches/match-1/lineup'),
-        matchedLocation: '/matches/match-1/lineup',
-        sportsManagementEnabled: false,
-      ),
-      '/matches/match-1/prediction',
-    );
-  });
+  test(
+    'a match sheet falls back to its prono while the module is disabled',
+    () {
+      expect(
+        resolveAuthRedirect(
+          authState: _adminState,
+          uri: Uri.parse('/matches/match-1/lineup'),
+          matchedLocation: '/matches/match-1/lineup',
+          sportsManagementEnabled: false,
+        ),
+        '/matches/match-1/prediction',
+      );
+    },
+  );
 
   test('allows sports routes for an administrator when enabled', () {
     for (final route in <String>[

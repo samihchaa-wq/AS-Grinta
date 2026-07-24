@@ -27,14 +27,15 @@ class HomeNextMatchCard extends StatelessWidget {
     final homeName = match.isHome ? 'AS Grinta' : match.opponent;
     final awayName = match.isHome ? match.opponent : 'AS Grinta';
     final closeAt = match.kickoffAt?.subtract(const Duration(minutes: 5));
-    final open = !match.predictionsClosed &&
+    final open =
+        !match.predictionsClosed &&
         closeAt != null &&
         DateTime.now().isBefore(closeAt);
     final predictionScore = prediction == null
         ? null
         : match.isHome
-            ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
-            : '${prediction!.opponentScore} – ${prediction!.grintaScore}';
+        ? '${prediction!.grintaScore} – ${prediction!.opponentScore}'
+        : '${prediction!.opponentScore} – ${prediction!.grintaScore}';
 
     return Card(
       color: const Color(0xFF25164F),
@@ -69,8 +70,8 @@ class HomeNextMatchCard extends StatelessWidget {
                 Text(
                   AppFormats.dateTime(match.kickoffAt!),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFD7C8FF),
-                      ),
+                    color: const Color(0xFFD7C8FF),
+                  ),
                 ),
               ],
               if (match.address != null) ...[
@@ -147,10 +148,10 @@ class HomeNextMatchCard extends StatelessWidget {
                           child: Text(
                             predicted && predictionScore != null
                                 ? '$predictionScore'
-                                    '${prediction!.useX2 ? ' · ×2' : ''}'
+                                      '${prediction!.useX2 ? ' · ×2' : ''}'
                                 : open
-                                    ? 'Pas encore rempli'
-                                    : 'Pronostics fermés',
+                                ? 'Pas encore rempli'
+                                : 'Pronostics fermés',
                             style: TextStyle(
                               fontWeight: FontWeight.w800,
                               color: predicted
