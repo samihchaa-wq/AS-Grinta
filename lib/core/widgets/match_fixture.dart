@@ -18,6 +18,7 @@ class MatchFixture extends StatelessWidget {
     this.foreground,
     this.nameStyle,
     this.scoreFontSize = 22,
+    this.textAlign = TextAlign.start,
   });
 
   final String homeName;
@@ -35,6 +36,7 @@ class MatchFixture extends StatelessWidget {
   final Color? foreground;
   final TextStyle? nameStyle;
   final double scoreFontSize;
+  final TextAlign textAlign;
 
   static const Color _won = Color(0xFF3BD16F);
   static const Color _lost = Color(0xFFE5555A);
@@ -59,9 +61,10 @@ class MatchFixture extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseName =
-        (nameStyle ?? Theme.of(context).textTheme.titleMedium ?? const TextStyle())
-            .copyWith(fontWeight: FontWeight.w800, color: foreground);
+    final baseName = (nameStyle ??
+            Theme.of(context).textTheme.titleMedium ??
+            const TextStyle())
+        .copyWith(fontWeight: FontWeight.w800, color: foreground);
     final scoreColor = _scoreColor;
 
     Widget line(String name, int? score) {
@@ -72,11 +75,12 @@ class MatchFixture extends StatelessWidget {
               name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
+              textAlign: textAlign,
               style: baseName,
             ),
           ),
           if (_hasScores) ...[
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Text(
               '$score',
               style: baseName.copyWith(
@@ -93,6 +97,7 @@ class MatchFixture extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         line(homeName, homeScore),
