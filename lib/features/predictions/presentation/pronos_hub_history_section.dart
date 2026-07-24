@@ -247,14 +247,18 @@ class _CalendarMatchCard extends ConsumerWidget {
                   finished: match.isFinished,
                 ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                statusLabel,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
+              // Le score suffit à indiquer qu'un match est terminé : on ne
+              // montre l'étiquette de statut que pour les matchs à venir.
+              if (!match.isFinished) ...[
+                const SizedBox(width: 12),
+                Text(
+                  statusLabel,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: statusColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),

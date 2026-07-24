@@ -108,6 +108,7 @@ class SportMatchFinalization {
   const SportMatchFinalization({
     required this.matchId,
     required this.opponentName,
+    required this.isHome,
     required this.kickoffAt,
     required this.matchStatus,
     required this.isValidated,
@@ -128,6 +129,7 @@ class SportMatchFinalization {
     return SportMatchFinalization(
       matchId: json['match_id'].toString(),
       opponentName: (json['opponent_name'] ?? 'Adversaire').toString(),
+      isHome: json['is_home'] != false,
       kickoffAt: DateTime.parse(json['kickoff_at'].toString()).toLocal(),
       matchStatus: (json['match_status'] ?? 'a_venir').toString(),
       isValidated: json['is_validated'] == true,
@@ -149,6 +151,9 @@ class SportMatchFinalization {
 
   final String matchId;
   final String opponentName;
+
+  /// Vrai si AS Grinta reçoit (match à domicile).
+  final bool isHome;
   final DateTime kickoffAt;
   final String matchStatus;
   final bool isValidated;
@@ -191,6 +196,7 @@ class SportMatchFinalization {
     return SportMatchFinalization(
       matchId: matchId,
       opponentName: opponentName,
+      isHome: isHome,
       kickoffAt: kickoffAt,
       matchStatus: matchStatus,
       isValidated: isValidated,
