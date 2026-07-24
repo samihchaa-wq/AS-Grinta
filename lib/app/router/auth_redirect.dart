@@ -77,7 +77,6 @@ bool _isSportsManagementRoute(Uri uri) {
   final isAdminRotationRoute = segments.length == 2 &&
       segments.first == 'admin' &&
       const {
-        'convocations',
         'composition',
         'guests',
         'motm',
