@@ -242,6 +242,15 @@ class _UpcomingMatchCard extends StatelessWidget {
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
+    final now = DateTime.now();
+    final availabilityOpensAt = match.kickoffAt.subtract(
+      const Duration(days: 6),
+    );
+    final availabilityIsOpen =
+        !now.isBefore(availabilityOpensAt) && now.isBefore(match.kickoffAt);
+    final detailsRoute = availabilityIsOpen
+        ? '/matches/${match.id}/lineup?section=info'
+        : '/matches/${match.id}/lineup?section=info&infoOnly=true';
 
     final fixtureRow = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -277,7 +286,7 @@ class _UpcomingMatchCard extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
+        onTap: () => context.push(detailsRoute),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 14, 12, 16),
           child: Column(
@@ -325,11 +334,12 @@ class _UpcomingMatchCard extends StatelessWidget {
                   ),
                 ),
               ],
-              MatchAvailabilitySelector(
-                matchId: match.id,
-                embeddedOnDark: true,
-                topSpacing: 14,
-              ),
+              if (availabilityIsOpen)
+                MatchAvailabilitySelector(
+                  matchId: match.id,
+                  embeddedOnDark: true,
+                  topSpacing: 14,
+                ),
             ],
           ),
         ),
