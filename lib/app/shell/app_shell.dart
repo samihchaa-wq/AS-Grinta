@@ -1,11 +1,7 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,63 +20,11 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  static const _matchesBackground = NetworkImage(
-    'https://ovzijmqrnsgcmryinkfa.supabase.co/storage/v1/object/public/app-assets/module-backgrounds/matches-source-full.png',
-  );
-  static const _statsBackgroundAsset =
-      'assets/images/module_backgrounds/stats.webp.b64';
-  static const _backgrounds = <ImageProvider<Object>>[
-    _matchesBackground,
-  ];
-
-  bool _precacheScheduled = false;
   bool _matchFocusScheduled = false;
-  late ThemeData _transparentTheme;
 
   Uri get _uri => Uri.parse(widget.location);
 
   int get _selectedIndex => widget.navigationShell.currentIndex;
-
-  bool get _isStatsModule {
-    final path = _uri.path;
-    return path == '/stats' || path == '/statistics';
-  }
-
-  ImageProvider<Object>? get _moduleBackground {
-    final path = _uri.path;
-    if (path == '/matches' || path.startsWith('/matches/')) {
-      return _matchesBackground;
-    }
-    return null;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _transparentTheme = Theme.of(
-      context,
-    ).copyWith(scaffoldBackgroundColor: Colors.transparent);
-    if (_precacheScheduled) return;
-    _precacheScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _precacheBackgrounds();
-    });
-  }
-
-  Future<void> _precacheBackgrounds() async {
-    final current = _moduleBackground;
-    final ordered = <ImageProvider<Object>>[
-      if (current != null) current,
-      for (final background in _backgrounds)
-        if (background != current) background,
-    ];
-
-    for (final background in ordered) {
-      if (!mounted) return;
-      await precacheImage(background, context);
-      await Future<void>.delayed(Duration.zero);
-    }
-  }
 
   void _scheduleMatchFocus() {
     if (_matchFocusScheduled) return;
@@ -108,20 +52,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
-    final background = _moduleBackground;
-    final moduleContent = _isStatsModule
-        ? _Base64ModuleBackground(
-            assetPath: _statsBackgroundAsset,
-            child: widget.navigationShell,
-          )
-        : background == null
-            ? widget.navigationShell
-            : _ModuleBackground(
-                image: background,
-                child: widget.navigationShell,
-              );
 
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: Column(
         children: [
           if (viewingAsUser)
@@ -129,7 +62,10 @@ class _AppShellState extends ConsumerState<AppShell> {
               onExit: () => ref.read(viewAsUserProvider.notifier).state = false,
             ),
           Expanded(
-            child: Theme(data: _transparentTheme, child: moduleContent),
+            child: ColoredBox(
+              color: AppTheme.background,
+              child: widget.navigationShell,
+            ),
           ),
         ],
       ),
@@ -157,90 +93,6 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ModuleBackground extends StatelessWidget {
-  const _ModuleBackground({required this.image, required this.child});
-
-  final ImageProvider<Object> image;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      clipBehavior: Clip.hardEdge,
-      children: [
-        const ColoredBox(color: AppTheme.background),
-        RepaintBoundary(
-          child: Image(
-            image: image,
-            fit: BoxFit.cover,
-            alignment: Alignment.center,
-            filterQuality: FilterQuality.high,
-            isAntiAlias: true,
-            gaplessPlayback: true,
-            excludeFromSemantics: true,
-          ),
-        ),
-        const ColoredBox(color: Color(0x24000000)),
-        RepaintBoundary(child: child),
-      ],
-    );
-  }
-}
-
-class _Base64ModuleBackground extends StatefulWidget {
-  const _Base64ModuleBackground({
-    required this.assetPath,
-    required this.child,
-  });
-
-  final String assetPath;
-  final Widget child;
-
-  @override
-  State<_Base64ModuleBackground> createState() =>
-      _Base64ModuleBackgroundState();
-}
-
-class _Base64ModuleBackgroundState extends State<_Base64ModuleBackground> {
-  late final Future<Uint8List> _imageBytes = _loadImageBytes();
-
-  Future<Uint8List> _loadImageBytes() async {
-    final encoded = await rootBundle.loadString(widget.assetPath);
-    return base64Decode(encoded.replaceAll(RegExp(r'\s'), ''));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Uint8List>(
-      future: _imageBytes,
-      builder: (context, snapshot) {
-        return Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.hardEdge,
-          children: [
-            const ColoredBox(color: AppTheme.background),
-            if (snapshot.hasData)
-              RepaintBoundary(
-                child: Image.memory(
-                  snapshot.data!,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  filterQuality: FilterQuality.high,
-                  isAntiAlias: true,
-                  gaplessPlayback: true,
-                  excludeFromSemantics: true,
-                ),
-              ),
-            const ColoredBox(color: Color(0x24000000)),
-            RepaintBoundary(child: widget.child),
-          ],
-        );
-      },
     );
   }
 }
