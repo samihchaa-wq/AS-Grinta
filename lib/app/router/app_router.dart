@@ -11,7 +11,6 @@ import 'package:as_grinta/features/auth/presentation/forced_password_change_page
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
 import 'package:as_grinta/features/badges/presentation/badge_admin_page.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
-import 'package:as_grinta/features/home/presentation/accueil_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
@@ -19,16 +18,15 @@ import 'package:as_grinta/features/matches/presentation/upcoming_match_predictio
 import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
-import 'package:as_grinta/features/predictions/presentation/leaderboard_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
+import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_match_finalization_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
-import 'package:as_grinta/features/statistics/presentation/statistics_page.dart';
+import 'package:as_grinta/features/statistics/presentation/stats_hub_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -46,7 +44,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: '/accueil',
+    initialLocation: '/matches',
     refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
       authState: ref.read(authControllerProvider),
@@ -55,17 +53,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       sportsManagementEnabled: ref.read(sportsManagementEnabledProvider),
     ),
     routes: [
-      GoRoute(path: '/', redirect: (_, __) => '/accueil'),
-      GoRoute(path: '/home', redirect: (_, __) => '/accueil'),
+      GoRoute(path: '/', redirect: (_, __) => '/matches'),
+      GoRoute(path: '/home', redirect: (_, __) => '/matches'),
+      GoRoute(path: '/accueil', redirect: (_, __) => '/matches'),
       ShellRoute(
         builder: (context, state, child) =>
             AppShell(location: state.uri.toString(), child: child),
         routes: [
-          GoRoute(
-            path: '/accueil',
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: AccueilPage()),
-          ),
           GoRoute(path: '/admin', builder: (_, __) => const AdminMenuPage()),
           GoRoute(
             path: '/admin/administration',
@@ -98,7 +92,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/matches',
-            redirect: (_, __) => '/pronos?category=matches',
+            pageBuilder: (_, __) => const NoTransitionPage(
+              child: PronosHubPage(initialCategory: 'matches'),
+            ),
           ),
           GoRoute(
             path: '/matches/:matchId',
@@ -146,26 +142,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: '/pronos',
+            path: '/stats',
             pageBuilder: (context, state) => NoTransitionPage(
-              child: PronosHubPage(
-                initialCategory: state.uri.queryParameters['category'],
-                initialView: state.uri.queryParameters['view'],
+              child: StatsHubPage(
+                initialSection: state.uri.queryParameters['section'],
+                initialRankingView: state.uri.queryParameters['view'],
               ),
             ),
           ),
           GoRoute(
-            path: '/predictions',
-            redirect: (_, __) => '/pronos?category=matches',
+            path: '/pronos',
+            redirect: (context, state) {
+              final category = state.uri.queryParameters['category'];
+              if (category == 'matches' || category == null) return '/matches';
+              final view = category == 'scorers'
+                  ? 'scorers'
+                  : state.uri.queryParameters['view'] ?? 'matches';
+              return '/stats?section=rankings&view=$view';
+            },
           ),
+          GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
           GoRoute(
             path: '/predictions/leaderboard',
-            builder: (_, __) => const LeaderboardPage(),
+            redirect: (_, __) => '/stats?section=rankings&view=matches',
           ),
           GoRoute(
             path: '/statistics',
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: StatisticsPage()),
+            redirect: (_, __) => '/stats?section=players',
           ),
           GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
           GoRoute(path: '/armoire', builder: (_, __) => const ArmoirePage()),
