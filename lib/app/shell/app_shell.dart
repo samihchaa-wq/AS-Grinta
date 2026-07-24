@@ -15,27 +15,15 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  static final _matchesBackground = ResizeImage.resizeIfNeeded(
-    432,
-    null,
-    const AssetImage('assets/images/module_backgrounds/matches.webp'),
-  );
-  static final _statsBackground = ResizeImage.resizeIfNeeded(
-    432,
-    null,
-    const AssetImage('assets/images/module_backgrounds/stats.webp'),
-  );
-  static final _settingsBackground = ResizeImage.resizeIfNeeded(
-    432,
-    null,
-    const AssetImage('assets/images/module_backgrounds/settings.webp'),
-  );
-  static final _badgesBackground = ResizeImage.resizeIfNeeded(
-    432,
-    null,
-    const AssetImage('assets/images/module_backgrounds/badges.webp'),
-  );
-  static final _backgrounds = <ImageProvider<Object>>[
+  static const _matchesBackground =
+      AssetImage('assets/images/module_backgrounds/matches.webp');
+  static const _statsBackground =
+      AssetImage('assets/images/module_backgrounds/stats.webp');
+  static const _settingsBackground =
+      AssetImage('assets/images/module_backgrounds/settings.webp');
+  static const _badgesBackground =
+      AssetImage('assets/images/module_backgrounds/badges.webp');
+  static const _backgrounds = <ImageProvider<Object>>[
     _matchesBackground,
     _statsBackground,
     _settingsBackground,
@@ -164,7 +152,8 @@ class _ModuleBackground extends StatelessWidget {
             image: image,
             fit: BoxFit.cover,
             alignment: Alignment.center,
-            filterQuality: FilterQuality.low,
+            filterQuality: FilterQuality.high,
+            isAntiAlias: true,
             gaplessPlayback: true,
             excludeFromSemantics: true,
           ),
