@@ -119,7 +119,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
         .clamp(0.0, size.height - markerHeight)
         .toDouble();
 
-    final marker = _PlayerMarker(
+    final marker = CompositionPlayerTile(
       entry: entry,
       onTap:
           widget.onPlayerTap == null ? null : () => widget.onPlayerTap!(entry),
@@ -287,8 +287,8 @@ class CompositionDropZone extends StatelessWidget {
   }
 }
 
-class _PlayerMarker extends StatelessWidget {
-  const _PlayerMarker({required this.entry, this.onTap});
+class CompositionPlayerTile extends StatelessWidget {
+  const CompositionPlayerTile({super.key, required this.entry, this.onTap});
 
   final MatchCompositionEntry entry;
   final VoidCallback? onTap;

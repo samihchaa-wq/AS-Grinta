@@ -432,17 +432,10 @@ class _MpgCompletedCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Wrap(
-                spacing: 7,
-                runSpacing: 7,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  for (final entry in bench)
-                    Chip(
-                      avatar: const CircleAvatar(
-                        child: Icon(Icons.person_outline, size: 16),
-                      ),
-                      visualDensity: VisualDensity.compact,
-                      label: Text(entry.displayName),
-                    ),
+                  for (final entry in bench) CompositionPlayerTile(entry: entry),
                 ],
               ),
             ],
