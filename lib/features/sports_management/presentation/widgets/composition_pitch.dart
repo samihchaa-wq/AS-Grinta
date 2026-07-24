@@ -484,6 +484,10 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       fit: BoxFit.cover,
       gaplessPlayback: true,
       filterQuality: FilterQuality.medium,
+      // Sur le web, si le moteur de rendu (CanvasKit) n'arrive pas à décoder
+      // l'image, on la montre via un vrai élément HTML <img> — ce qui règle
+      // les cas où la photo ne s'affichait pas malgré une URL valide.
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       // Pendant le chargement : on montre les initiales, jamais du vide.
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : _initials(),
