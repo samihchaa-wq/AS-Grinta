@@ -1,5 +1,5 @@
-import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
+import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
@@ -40,6 +40,32 @@ class HomeNextMatchCard extends ConsumerWidget {
       }
     }
 
+    final fixtureRow = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: MatchFixture(
+            homeName: homeName,
+            awayName: awayName,
+            grintaIsHome: match.isHome,
+            nameStyle: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontSize: 18, height: 1.1),
+            foreground: Colors.white,
+            textAlign: TextAlign.center,
+          ),
+        ),
+        if (editableMatch != null) ...[
+          const SizedBox(width: 2),
+          SizedBox(
+            width: 38,
+            child: AdminMatchOptionsButton(match: editableMatch),
+          ),
+        ],
+        const Icon(Icons.chevron_right, size: 22, color: Color(0xFFD7C8FF)),
+      ],
+    );
+
     return Card(
       color: const Color(0xFF25164F),
       shape: RoundedRectangleBorder(
@@ -50,44 +76,30 @@ class HomeNextMatchCard extends ConsumerWidget {
       child: InkWell(
         onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(10, 14, 12, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: MatchFixture(
-                      homeName: homeName,
-                      awayName: awayName,
-                      grintaIsHome: match.isHome,
-                      nameStyle: Theme.of(context).textTheme.titleLarge,
-                      foreground: Colors.white,
-                    ),
-                  ),
-                  if (editableMatch != null) ...[
-                    const SizedBox(width: 4),
-                    AdminMatchOptionsButton(match: editableMatch),
-                  ],
-                  const Icon(Icons.chevron_right, color: Color(0xFFD7C8FF)),
-                ],
-              ),
-              if (match.kickoffAt != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  AppFormats.dateTime(match.kickoffAt!),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFD7C8FF),
-                      ),
-                ),
-              ],
+              if (match.kickoffAt case final kickoffAt?)
+                MatchDateHeader(
+                  kickoffAt: kickoffAt,
+                  foreground: Colors.white,
+                  secondary: const Color(0xFFD7C8FF),
+                  dividerColor: const Color(0xFF7A5AB7),
+                  child: fixtureRow,
+                )
+              else
+                fixtureRow,
               if (match.address != null) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: 10),
                 InkWell(
                   onTap: () => showMatchAddressSheet(context, match.address!),
                   borderRadius: BorderRadius.circular(6),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
