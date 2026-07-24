@@ -2,6 +2,7 @@ import 'package:as_grinta/core/local/local_flags.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -242,13 +243,50 @@ class _NextMatchCard extends StatelessWidget {
                   const Icon(Icons.chevron_right, color: Color(0xFFD7C8FF)),
                 ],
               ),
-              if (match.kickoffAt != null) ...[
+              if (match.kickoffAt != null || match.address != null) ...[
                 const SizedBox(height: 4),
-                Text(
-                  AppFormats.dateTime(match.kickoffAt!),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: const Color(0xFFD7C8FF),
+                Row(
+                  children: [
+                    if (match.kickoffAt != null)
+                      Text(
+                        AppFormats.dateTime(match.kickoffAt!),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFFD7C8FF),
+                            ),
                       ),
+                    if (match.address != null) ...[
+                      if (match.kickoffAt != null)
+                        const Text(
+                          '  ·  ',
+                          style: TextStyle(color: Color(0xFFD7C8FF)),
+                        ),
+                      InkWell(
+                        onTap: () =>
+                            showMatchAddressSheet(context, match.address!),
+                        borderRadius: BorderRadius.circular(6),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.place_outlined,
+                                  size: 16, color: Color(0xFF9B6CFF)),
+                              SizedBox(width: 2),
+                              Text(
+                                'Adresse',
+                                style: TextStyle(
+                                  color: Color(0xFF9B6CFF),
+                                  fontWeight: FontWeight.w800,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Color(0xFF9B6CFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
               MatchAvailabilitySelector(

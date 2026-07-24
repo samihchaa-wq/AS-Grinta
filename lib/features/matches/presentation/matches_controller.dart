@@ -134,6 +134,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsDraw,
     required double oddsLoss,
     int? squadSizeLimit,
+    String? address,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -162,7 +163,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repository.createMatch(
+      final matchId = await _repository.createMatch(
         seasonId: seasonId,
         opponentId: opponentId,
         kickoffAt: kickoffAt,
@@ -172,6 +173,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
       );
+      await _repository.setMatchAddress(matchId: matchId, address: address);
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
@@ -193,6 +195,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsDraw,
     required double oddsLoss,
     int? squadSizeLimit,
+    String? address,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -233,6 +236,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
       );
+      await _repository.setMatchAddress(matchId: id, address: address);
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,

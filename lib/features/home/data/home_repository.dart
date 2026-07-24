@@ -44,6 +44,7 @@ class HomeMatch {
     required this.oddsWin,
     required this.oddsDraw,
     required this.oddsLoss,
+    this.address,
   });
 
   final String id;
@@ -51,6 +52,9 @@ class HomeMatch {
   final String opponent;
   final bool isHome;
   final DateTime? kickoffAt;
+
+  /// Adresse du lieu (celle du match, sinon celle mémorisée sur l'adversaire).
+  final String? address;
 
   /// 'a_venir', 'termine' ou 'archive'.
   final String status;
@@ -144,7 +148,13 @@ class HomeRepository {
       oddsWin: (odds?['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds?['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds?['odds_victoire_adverse'] as num?)?.toDouble(),
+      address: _cleanAddress(map['address']) ?? _cleanAddress(opponent['address']),
     );
+  }
+
+  static String? _cleanAddress(Object? value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   Future<HomeDashboardData> fetchDashboard() async {
@@ -155,8 +165,8 @@ class HomeRepository {
         .from('matches')
         .select(
           'id, opponent_id, match_date, match_time, kickoff_at, location, status, '
-          'score_as_grinta, score_adverse, predictions_closed_at, '
-          'opponents(name), '
+          'score_as_grinta, score_adverse, predictions_closed_at, address, '
+          'opponents(name, address), '
           'match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)',
         )
         .inFilter('status', const ['a_venir', 'termine', 'archive']).order(

@@ -21,6 +21,7 @@ class MatchFormPage extends ConsumerStatefulWidget {
 class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _squadSizeController = TextEditingController(text: '14');
+  final _addressController = TextEditingController();
 
   double? _oddsWin;
   double? _oddsDraw;
@@ -67,12 +68,26 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsWin = match?.oddsWin;
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
+    _addressController.text = match?.address ?? '';
   }
 
   @override
   void dispose() {
     _squadSizeController.dispose();
+    _addressController.dispose();
     super.dispose();
+  }
+
+  /// Préremplit l'adresse depuis l'adversaire sélectionné (mémorisée lors d'un
+  /// précédent match) tant que le champ n'a pas été renseigné à la main.
+  void _prefillAddressFromOpponent() {
+    if (_addressController.text.trim().isNotEmpty) return;
+    final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+          (item) => item['id'].toString() == _opponentId,
+          orElse: () => const <String, dynamic>{},
+        );
+    final remembered = opponent['address']?.toString().trim() ?? '';
+    if (remembered.isNotEmpty) _addressController.text = remembered;
   }
 
   Future<void> _loadSquadLimit() async {
@@ -172,7 +187,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                         )
                         .toList(),
                     onChanged: (value) {
-                      setState(() => _opponentId = value ?? '');
+                      setState(() {
+                        _opponentId = value ?? '';
+                        _prefillAddressFromOpponent();
+                      });
                       _suggestOdds();
                     },
                     validator: (value) => value == null || value.isEmpty
@@ -202,6 +220,19 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               subtitle: Text(_formatTime(_kickoffAt)),
               trailing: const Icon(Icons.schedule),
               onTap: _pickTime,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _addressController,
+              textCapitalization: TextCapitalization.words,
+              maxLength: 300,
+              decoration: const InputDecoration(
+                labelText: 'Adresse (facultatif)',
+                hintText: 'Terrain, rue, ville…',
+                helperText: 'Mémorisée pour les prochains matchs contre cette '
+                    'équipe.',
+                prefixIcon: Icon(Icons.place_outlined),
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<bool>(
@@ -431,6 +462,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final squadSizeLimit =
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
     final notifier = ref.read(matchesControllerProvider.notifier);
+    final address = _addressController.text.trim();
     if (widget.match == null) {
       await notifier.createMatch(
         seasonId: _seasonId,
@@ -441,6 +473,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
+        address: address.isEmpty ? null : address,
       );
     } else {
       await notifier.updateMatch(
@@ -454,6 +487,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
+        address: address.isEmpty ? null : address,
       );
     }
     if (!mounted) return;

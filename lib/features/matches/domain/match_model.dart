@@ -18,6 +18,7 @@ class MatchModel {
     this.updatedAt,
     this.opponentName,
     this.seasonName,
+    this.address,
   });
 
   final String id;
@@ -38,6 +39,9 @@ class MatchModel {
   final DateTime? updatedAt;
   final String? opponentName;
   final String? seasonName;
+
+  /// Adresse du lieu de la rencontre (facultative).
+  final String? address;
 
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
   bool get isArchived => status == 'archive';
@@ -106,6 +110,9 @@ class MatchModel {
           : null,
       seasonName:
           json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
+      address: (json['address']?.toString().trim().isNotEmpty ?? false)
+          ? json['address'].toString()
+          : null,
     );
   }
 }

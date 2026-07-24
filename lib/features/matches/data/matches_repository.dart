@@ -22,6 +22,7 @@ class MatchesRepository {
       score_as_grinta,
       score_adverse,
       predictions_closed_at,
+      address,
       created_by,
       created_at,
       updated_at,
@@ -55,11 +56,25 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchOpponents() async {
-    final response =
-        await _client.from('opponents').select('id, name').order('name');
+    final response = await _client
+        .from('opponents')
+        .select('id, name, address')
+        .order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
+  }
+
+  /// Enregistre l'adresse d'un match ; elle est mémorisée sur l'adversaire pour
+  /// préremplir les prochaines rencontres.
+  Future<void> setMatchAddress({
+    required String matchId,
+    required String? address,
+  }) async {
+    await _client.rpc(
+      'admin_set_match_address',
+      params: {'p_match_id': matchId, 'p_address': address},
+    );
   }
 
   Future<String> createOpponent(String name) async {
@@ -73,7 +88,8 @@ class MatchesRepository {
     return result.toString();
   }
 
-  Future<void> createMatch({
+  /// Crée le match et renvoie son identifiant.
+  Future<String> createMatch({
     required String seasonId,
     required String opponentId,
     required DateTime kickoffAt,
@@ -103,6 +119,7 @@ class MatchesRepository {
     if (result == null || result.toString().isEmpty) {
       throw StateError('Le match n’a pas pu être créé.');
     }
+    return result.toString();
   }
 
   /// Cotes suggérées par le modèle historique (V2.1) pour un adversaire et
