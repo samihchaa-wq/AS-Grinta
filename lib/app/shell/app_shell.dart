@@ -22,9 +22,31 @@ class AppShell extends ConsumerWidget {
     return 0;
   }
 
+  String? get _moduleBackgroundAsset {
+    final path = _uri.path;
+    if (path == '/matches' || path.startsWith('/matches/')) {
+      return 'assets/images/module_backgrounds/matches.webp';
+    }
+    if (path == '/stats' || path == '/statistics') {
+      return 'assets/images/module_backgrounds/stats.webp';
+    }
+    if (path == '/more' || path == '/profile' || path == '/notifications') {
+      return 'assets/images/module_backgrounds/settings.webp';
+    }
+    if (path == '/armoire' || path == '/admin/badges') {
+      return 'assets/images/module_backgrounds/badges.webp';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
+    final backgroundAsset = _moduleBackgroundAsset;
+    final moduleContent = backgroundAsset == null
+        ? child
+        : _ModuleBackground(assetPath: backgroundAsset, child: child);
+
     return Scaffold(
       body: Column(
         children: [
@@ -32,7 +54,7 @@ class AppShell extends ConsumerWidget {
             _PreviewBanner(
               onExit: () => ref.read(viewAsUserProvider.notifier).state = false,
             ),
-          Expanded(child: child),
+          Expanded(child: moduleContent),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -55,6 +77,36 @@ class AppShell extends ConsumerWidget {
             label: 'Stats',
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ModuleBackground extends StatelessWidget {
+  const _ModuleBackground({required this.assetPath, required this.child});
+
+  final String assetPath;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        image: DecorationImage(
+          image: AssetImage(assetPath),
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+        ),
+      ),
+      child: ColoredBox(
+        color: const Color(0x24000000),
+        child: Theme(
+          data: Theme.of(
+            context,
+          ).copyWith(scaffoldBackgroundColor: Colors.transparent),
+          child: child,
+        ),
       ),
     );
   }
