@@ -14,7 +14,8 @@ void main() {
     await tester.pumpWidget(_harness(repository, enabled: false));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ta disponibilité'), findsNothing);
+    expect(find.text('Présent'), findsNothing);
+    expect(find.text('Absent'), findsNothing);
     expect(repository.fetchCount, 0);
   });
 
@@ -25,7 +26,9 @@ void main() {
     await tester.pumpWidget(_harness(repository));
     await tester.pumpAndSettle();
 
-    expect(find.text('Ta disponibilité'), findsOneWidget);
+    expect(find.text('Ta disponibilité'), findsNothing);
+    expect(find.textContaining('Mise à jour'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, 'Présent'), findsOneWidget);
     await tester.tap(find.widgetWithText(OutlinedButton, 'Présent'));
     await tester.pumpAndSettle();
 
