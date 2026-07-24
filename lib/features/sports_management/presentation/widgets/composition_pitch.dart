@@ -396,7 +396,7 @@ class _GoalBalls extends StatelessWidget {
 
 /// Vignette d'un joueur : photo si disponible, sinon initiales.
 /// Utilisée uniquement sur les compositions.
-class PlayerAvatar extends StatelessWidget {
+class PlayerAvatar extends StatefulWidget {
   const PlayerAvatar({
     super.key,
     required this.photoUrl,
@@ -410,6 +410,11 @@ class PlayerAvatar extends StatelessWidget {
   final bool isGoalkeeper;
   final double size;
 
+  @override
+  State<PlayerAvatar> createState() => _PlayerAvatarState();
+}
+
+class _PlayerAvatarState extends State<PlayerAvatar> {
   // Palette d'avatars « aléatoires » (stables par joueur, dérivés du nom).
   static const _avatarPalette = <List<Color>>[
     [Color(0xFF7C4DFF), Color(0xFF5E35B1)],
@@ -424,8 +429,17 @@ class PlayerAvatar extends StatelessWidget {
     [Color(0xFFF39C12), Color(0xFFB9770E)],
   ];
 
+  // Compteur de tentatives : on réessaie le chargement en cas d'échec.
+  int _attempt = 0;
+
+  @override
+  void didUpdateWidget(PlayerAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.photoUrl != widget.photoUrl) _attempt = 0;
+  }
+
   List<Color> get _avatarColors {
-    final seed = name.trim().toLowerCase();
+    final seed = widget.name.trim().toLowerCase();
     var hash = 0;
     for (final unit in seed.codeUnits) {
       hash = (hash * 31 + unit) & 0x7fffffff;
@@ -435,10 +449,11 @@ class PlayerAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
-    final url = photoUrl;
+    final size = widget.size;
+    final border =
+        widget.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
+    final url = widget.photoUrl;
     final hasPhoto = url != null && url.isNotEmpty;
-    final colors = _avatarColors;
     return Container(
       width: size,
       height: size,
@@ -448,32 +463,46 @@ class PlayerAvatar extends StatelessWidget {
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: colors,
+                colors: _avatarColors,
               ),
         color: hasPhoto ? const Color(0xFF2A2350) : null,
         borderRadius: BorderRadius.circular(size * 0.28),
         border: Border.all(color: border, width: 2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: hasPhoto
-          ? Image.network(
-              url,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-              // Décode à la taille d'affichage (et non 800 px) : le rendu des
-              // photos est bien plus rapide, surtout avec toute une compo.
-              cacheWidth: (size * 3).round(),
-              gaplessPlayback: true,
-              filterQuality: FilterQuality.low,
-              errorBuilder: (_, __, ___) => _initials(),
-            )
-          : _initials(),
+      child: hasPhoto ? _photo(url) : _initials(),
+    );
+  }
+
+  Widget _photo(String url) {
+    return Image.network(
+      url,
+      // La clé change à chaque tentative pour forcer un nouveau chargement.
+      key: ValueKey('$url#$_attempt'),
+      width: widget.size,
+      height: widget.size,
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
+      // Pendant le chargement : on montre les initiales, jamais du vide.
+      loadingBuilder: (context, child, progress) =>
+          progress == null ? child : _initials(),
+      // En cas d'échec (fréquent sur le web quand plusieurs photos chargent
+      // en même temps), on réessaie quelques fois avant de rester sur les
+      // initiales.
+      errorBuilder: (context, error, stack) {
+        if (_attempt < 3) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _attempt += 1);
+          });
+        }
+        return _initials();
+      },
     );
   }
 
   Widget _initials() {
-    final word = name.trim().split(RegExp(r'\s+')).first;
+    final word = widget.name.trim().split(RegExp(r'\s+')).first;
     final initials = word.isEmpty
         ? '?'
         : (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
@@ -483,7 +512,7 @@ class PlayerAvatar extends StatelessWidget {
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w900,
-          fontSize: size * 0.32,
+          fontSize: widget.size * 0.32,
           shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
         ),
       ),
