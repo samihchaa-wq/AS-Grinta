@@ -6,10 +6,14 @@ on:
       - agent/restore-hd-module-backgrounds
     paths:
       - .github/workflows/finalize_hd_module_backgrounds.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/finalize_hd_module_backgrounds.yml
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   finalize:
@@ -128,7 +132,3 @@ jobs:
             git commit -m "Intégrer les fonds de modules haute définition"
             git push origin HEAD:agent/restore-hd-module-backgrounds
           fi
-
-      - name: Enable safe squash merge
-        shell: bash
-        run: gh pr merge 460 --repo "${GITHUB_REPOSITORY}" --squash --auto
