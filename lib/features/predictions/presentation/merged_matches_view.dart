@@ -87,7 +87,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     if (!mounted || _lastFocusSignature != signature) return;
     final settledContext = _nextMatchKey.currentContext;
-    if (settledContext == null) return;
+    if (settledContext == null || !settledContext.mounted) return;
     await Scrollable.ensureVisible(
       settledContext,
       alignment: 0,
