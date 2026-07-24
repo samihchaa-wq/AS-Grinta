@@ -1,0 +1,134 @@
+name: Finalize HD module backgrounds
+
+on:
+  push:
+    branches:
+      - agent/restore-hd-module-backgrounds
+    paths:
+      - .github/workflows/finalize_hd_module_backgrounds.yml
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/restore-hd-module-backgrounds
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Assemble assets when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! -d .tmp_hd_backgrounds ]]; then
+            echo "Assets already assembled."
+            exit 0
+          fi
+
+          fetch_text_blob() {
+            local sha="$1"
+            curl -fsSL \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs/${sha}" \
+              | jq -r '.content' \
+              | tr -d '\n' \
+              | base64 -d
+          }
+
+          fetch_binary_blob() {
+            local sha="$1"
+            local output="$2"
+            curl -fsSL \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs/${sha}" \
+              | jq -r '.content' \
+              | tr -d '\n' \
+              | base64 -d > "${output}"
+          }
+
+          mkdir -p assets/images/module_backgrounds
+
+          {
+            cat .tmp_hd_backgrounds/matches/part00
+            fetch_text_blob 96c3a1587f0c8cbc6b635109fb9db9fe14b1b226
+            cat .tmp_hd_backgrounds/matches/p02/chunk0
+            fetch_text_blob b45fde17ab3ce5adb94f06ee865b68c260efbdfa
+            fetch_text_blob 3dd4dae17ddd1c9a4a2eff3fd06a27708e6a01ba
+            fetch_text_blob 315b6fab71078fb495051b8525925e94a54be73d
+            fetch_text_blob e064bf85c6b3878ca09f3ae6dbd57efc0f0b20dc
+            fetch_text_blob 53232bdbee8a228cde149e82016895f632c5fa3a
+            fetch_text_blob ceef00dfe045970d236bc61090678620579e1cfa
+            fetch_text_blob 301d5130adaaefe9ca35f26920c4e955a266a0c2
+          } | tr -d '\n' | base64 -d > assets/images/module_backgrounds/matches.webp
+
+          fetch_binary_blob 034fa7dca2356ca459b8b5f2e503dc12c90e1edb assets/images/module_backgrounds/stats.webp
+          fetch_binary_blob 5dd0b12dac8bee1f4f3554f1335214fa25cb84b2 assets/images/module_backgrounds/settings.webp
+          fetch_binary_blob c3c65e5c15b53c99b3534b627321f462ca73ead6 assets/images/module_backgrounds/badges.webp
+
+      - name: Verify image quality
+        shell: bash
+        run: |
+          set -euo pipefail
+          for asset in \
+            assets/images/module_backgrounds/matches.webp \
+            assets/images/module_backgrounds/stats.webp \
+            assets/images/module_backgrounds/settings.webp \
+            assets/images/module_backgrounds/badges.webp
+          do
+            test -s "${asset}"
+            file "${asset}" | grep -q 'Web/P image'
+            dimensions="$(identify -format '%w %h' "${asset}")"
+            width="${dimensions%% *}"
+            height="${dimensions##* }"
+            test "${width}" -ge 900
+            test "${height}" -ge 1600
+            echo "${asset}: ${width}x${height}"
+          done
+
+      - name: Validate Flutter project
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          dart format --output=none --set-exit-if-changed lib/app/shell/app_shell.dart
+          flutter analyze --fatal-infos
+          flutter test
+          flutter build web --release
+
+      - name: Commit final clean branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp_hd_backgrounds
+          rm -f .github/workflows/assemble_hd_module_backgrounds.yml
+          rm -f .github/workflows/assemble_hd_module_backgrounds_v2.yml
+          rm -f .github/workflows/assemble_hd_module_backgrounds_v3.yml
+          rm -f .github/workflows/assemble_hd_module_backgrounds_v4.yml
+          rm -f .github/workflows/finalize_hd_module_backgrounds.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Intégrer les fonds de modules haute définition"
+            git push origin HEAD:agent/restore-hd-module-backgrounds
+          fi
+
+      - name: Enable safe squash merge
+        shell: bash
+        run: gh pr merge 460 --repo "${GITHUB_REPOSITORY}" --squash --auto
