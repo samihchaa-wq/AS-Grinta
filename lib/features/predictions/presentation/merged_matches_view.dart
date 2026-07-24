@@ -1,5 +1,3 @@
-import 'package:as_grinta/core/theme/app_theme.dart';
-import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
@@ -7,10 +5,10 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
-import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
@@ -233,54 +231,64 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _UpcomingMatchCard extends ConsumerWidget {
+class _UpcomingMatchCard extends StatelessWidget {
   const _UpcomingMatchCard({required this.match, required this.isAdmin});
 
   final MatchModel match;
   final bool isAdmin;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
 
+    final fixtureRow = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: MatchFixture(
+            homeName: homeName,
+            awayName: awayName,
+            grintaIsHome: match.isHome,
+            nameStyle: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontSize: 18, height: 1.1),
+            foreground: Colors.white,
+            textAlign: TextAlign.center,
+          ),
+        ),
+        if (isAdmin) ...[
+          const SizedBox(width: 2),
+          SizedBox(
+            width: 38,
+            child: AdminMatchOptionsButton(match: match),
+          ),
+        ],
+        const Icon(Icons.chevron_right, size: 22, color: Color(0xFFD7C8FF)),
+      ],
+    );
+
     return Card(
-      color: const Color(0xFF102A56),
+      color: const Color(0xFF25164F),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFF4B8DFF), width: 1.2),
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFF9B6CFF), width: 1.6),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(10, 14, 12, 16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               MatchDateHeader(
                 kickoffAt: match.kickoffAt,
-                secondary: const Color(0xFFA9C8FF),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: MatchFixture(
-                        homeName: homeName,
-                        awayName: awayName,
-                        grintaIsHome: match.isHome,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'À venir',
-                      style: TextStyle(
-                        color: Color(0xFF7FB0FF),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
+                foreground: Colors.white,
+                secondary: const Color(0xFFD7C8FF),
+                dividerColor: const Color(0xFF7A5AB7),
+                child: fixtureRow,
               ),
               if (match.address case final address?) ...[
                 const SizedBox(height: 10),
@@ -298,17 +306,17 @@ class _UpcomingMatchCard extends ConsumerWidget {
                         const Icon(
                           Icons.place_outlined,
                           size: 18,
-                          color: Color(0xFF7FB0FF),
+                          color: Color(0xFF9B6CFF),
                         ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             address,
                             style: const TextStyle(
-                              color: Color(0xFF7FB0FF),
+                              color: Color(0xFF9B6CFF),
                               fontWeight: FontWeight.w800,
                               decoration: TextDecoration.underline,
-                              decorationColor: Color(0xFF7FB0FF),
+                              decorationColor: Color(0xFF9B6CFF),
                             ),
                           ),
                         ),
@@ -322,90 +330,10 @@ class _UpcomingMatchCard extends ConsumerWidget {
                 embeddedOnDark: true,
                 topSpacing: 14,
               ),
-              if (isAdmin) ...[
-                const SizedBox(height: 12),
-                _AdminMatchActions(match: match),
-              ],
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AdminMatchActions extends ConsumerWidget {
-  const _AdminMatchActions({required this.match});
-
-  final MatchModel match;
-
-  Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
-    if (!context.mounted) return;
-    ref
-      ..invalidate(homeDashboardProvider)
-      ..invalidate(matchDetailsProvider(match.id));
-    await ref.read(matchesControllerProvider.notifier).load(allSeasons: true);
-  }
-
-  Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Supprimer ce match ?'),
-            content: const Text(
-              'Le match, ses pronostics, ses buteurs et ses statistiques seront '
-              'définitivement supprimés.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Annuler'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Supprimer'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-    if (!confirmed || !context.mounted) return;
-    await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
-    ref
-      ..invalidate(homeDashboardProvider)
-      ..invalidate(historyMatchPredictionProvider)
-      ..invalidate(matchDetailsProvider(match.id));
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        const AdminBadge(),
-        PopupMenuButton<String>(
-          tooltip: 'Options du match',
-          icon: const Text('✏️', style: TextStyle(fontSize: 22)),
-          onSelected: (value) {
-            switch (value) {
-              case 'edit':
-                _edit(context, ref);
-              case 'stats':
-                context.push('/matches/${match.id}/finalize');
-              case 'delete':
-                _delete(context, ref);
-            }
-          },
-          itemBuilder: (context) => const [
-            PopupMenuItem(value: 'edit', child: Text('⚙️  Modifier')),
-            PopupMenuItem(value: 'stats', child: Text('📈  Stats')),
-            PopupMenuItem(value: 'delete', child: Text('🚫  Supprimer')),
-          ],
-        ),
-      ],
     );
   }
 }
