@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -11,6 +12,7 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,6 +28,9 @@ class MergedMatchesView extends ConsumerStatefulWidget {
 }
 
 class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
+  final GlobalKey _nextMatchKey = GlobalKey();
+  String? _initiallyFocusedMatchId;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +53,23 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     ]);
   }
 
+  void _focusNextMatchOnce(String? matchId) {
+    if (matchId == null || _initiallyFocusedMatchId == matchId) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _initiallyFocusedMatchId == matchId) return;
+      final targetContext = _nextMatchKey.currentContext;
+      if (targetContext == null) return;
+
+      _initiallyFocusedMatchId = matchId;
+      Scrollable.ensureVisible(
+        targetContext,
+        alignment: .06,
+        duration: Duration.zero,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
@@ -55,10 +77,15 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final isAdmin = ref.watch(isAdminViewProvider);
 
     final upcoming = state.matches.where((match) => !match.isFinished).toList()
-      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
     final finished = state.matches.where((match) => match.isFinished).toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final nextMatchId = upcoming.isEmpty ? null : upcoming.first.id;
+    final nextMatchId = upcoming.isEmpty ? null : upcoming.last.id;
+    final laterUpcoming = upcoming.length > 1
+        ? upcoming.sublist(0, upcoming.length - 1)
+        : <MatchModel>[];
+
+    _focusNextMatchOnce(nextMatchId);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -109,46 +136,54 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               message: 'Le premier match apparaîtra ici dès qu’il sera créé.',
             )
           else ...[
-            const _SectionHeader(
-              icon: Icons.event_rounded,
-              title: 'Prochain match',
-            ),
-            dashboard.when(
-              loading: () => const _LoadingCard(),
-              error: (_, __) => const _MessageCard(
-                title: 'Prochain match indisponible',
-                icon: Icons.wifi_off_rounded,
-                message: 'Tire pour rafraîchir.',
-                tone: GrintaEmptyTone.alert,
-              ),
-              data: (data) {
-                final next = data.nextMatch;
-                if (next == null || next.id != nextMatchId) {
-                  return const _MessageCard(
-                    title: 'Pas de match programmé',
-                    message:
-                        'Le prochain match apparaîtra ici dès qu’il sera créé.',
-                  );
-                }
-                return HomeNextMatchCard(
-                  match: next,
-                  predicted: data.nextMatchPredicted,
-                  prediction: data.nextMatchPrediction,
-                  isAdmin: isAdmin,
-                );
-              },
-            ),
-            if (upcoming.length > 1) ...[
-              const SizedBox(height: 22),
+            if (laterUpcoming.isNotEmpty) ...[
               const _SectionHeader(
                 icon: Icons.calendar_month_outlined,
                 title: 'Matchs à venir',
               ),
-              for (final match in upcoming.skip(1)) ...[
+              for (final match in laterUpcoming) ...[
                 _UpcomingMatchCard(match: match, isAdmin: isAdmin),
                 const SizedBox(height: 12),
               ],
+              const SizedBox(height: 10),
             ],
+            KeyedSubtree(
+              key: _nextMatchKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _SectionHeader(
+                    icon: Icons.event_rounded,
+                    title: 'Prochain match',
+                  ),
+                  dashboard.when(
+                    loading: () => const _LoadingCard(),
+                    error: (_, __) => const _MessageCard(
+                      title: 'Prochain match indisponible',
+                      icon: Icons.wifi_off_rounded,
+                      message: 'Tire pour rafraîchir.',
+                      tone: GrintaEmptyTone.alert,
+                    ),
+                    data: (data) {
+                      final next = data.nextMatch;
+                      if (next == null || next.id != nextMatchId) {
+                        return const _MessageCard(
+                          title: 'Pas de match programmé',
+                          message:
+                              'Le prochain match apparaîtra ici dès qu’il sera créé.',
+                        );
+                      }
+                      return HomeNextMatchCard(
+                        match: next,
+                        predicted: data.nextMatchPredicted,
+                        prediction: data.nextMatchPrediction,
+                        isAdmin: isAdmin,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 22),
             const _SectionHeader(
               icon: Icons.history_rounded,
@@ -246,6 +281,46 @@ class _UpcomingMatchCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
+              if (match.address case final address?) ...[
+                const SizedBox(height: 10),
+                InkWell(
+                  onTap: () => showMatchAddressSheet(context, address),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.place_outlined,
+                          size: 18,
+                          color: Color(0xFF7FB0FF),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            address,
+                            style: const TextStyle(
+                              color: Color(0xFF7FB0FF),
+                              fontWeight: FontWeight.w800,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Color(0xFF7FB0FF),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              MatchAvailabilitySelector(
+                matchId: match.id,
+                embeddedOnDark: true,
+                topSpacing: 14,
               ),
               if (isAdmin) ...[
                 const SizedBox(height: 12),
