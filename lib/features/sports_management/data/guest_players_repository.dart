@@ -161,27 +161,12 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
           ),
         );
     final url = _client.storage.from('profile-photos').getPublicUrl(path);
+    // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
+    // guest_players.photo_url), via admin_set_guest_photo.
     await _client.rpc(
       'admin_set_guest_photo',
       params: {'p_guest_player_id': guestPlayerId, 'p_photo_url': url},
     );
-    // Nettoyage des anciennes photos (une seule doit subsister par invité).
-    // Best-effort — un échec ne compromet jamais la mise à jour.
-    try {
-      final folder = 'guest/$guestPlayerId';
-      final existing =
-          await _client.storage.from('profile-photos').list(path: folder);
-      final stale = [
-        for (final object in existing)
-          if (object.name.isNotEmpty && '$folder/${object.name}' != path)
-            '$folder/${object.name}',
-      ];
-      if (stale.isNotEmpty) {
-        await _client.storage.from('profile-photos').remove(stale);
-      }
-    } catch (_) {
-      // Ignoré : la nouvelle photo est déjà en place.
-    }
   }
 
   String? _clean(String? value) {
