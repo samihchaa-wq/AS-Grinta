@@ -2,6 +2,9 @@ part of 'pronos_hub_page.dart';
 
 enum _LbCol { name, first, second, points }
 
+const _leaderboardNameFlex = 5;
+const _leaderboardValueFlex = 2;
+
 class _LeaderboardCard extends StatefulWidget {
   const _LeaderboardCard({
     required this.entries,
@@ -74,6 +77,7 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
     );
 
     return StickyHeaderTableCard(
+      minWidth: 0,
       onRefresh: widget.onRefresh,
       header: Padding(
         padding: grintaTableHeaderPadding,
@@ -81,7 +85,7 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
           children: [
             SortableHeaderCell(
               label: 'Joueurs',
-              flex: 6,
+              flex: _leaderboardNameFlex,
               align: TextAlign.start,
               active: _sort == _LbCol.name,
               descending: _desc,
@@ -90,7 +94,7 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
             ),
             SortableHeaderCell(
               label: widget.showMatchStats ? 'Bons' : 'Matchs',
-              flex: 2,
+              flex: _leaderboardValueFlex,
               active: _sort == _LbCol.first,
               descending: _desc,
               onTap: () => _onSort(_LbCol.first),
@@ -98,7 +102,7 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
             ),
             SortableHeaderCell(
               label: widget.showMatchStats ? 'Exacts' : 'Buteurs',
-              flex: 2,
+              flex: _leaderboardValueFlex,
               active: _sort == _LbCol.second,
               descending: _desc,
               onTap: () => _onSort(_LbCol.second),
@@ -106,7 +110,7 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
             ),
             SortableHeaderCell(
               label: 'Points',
-              flex: 2,
+              flex: _leaderboardValueFlex,
               align: TextAlign.end,
               active: _sort == _LbCol.points,
               descending: _desc,
@@ -157,7 +161,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 6,
+            flex: _leaderboardNameFlex,
             child: Row(
               children: [
                 SizedBox(
@@ -186,7 +190,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: _leaderboardValueFlex,
             child: Text(
               firstValue,
               textAlign: TextAlign.center,
@@ -194,7 +198,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: _leaderboardValueFlex,
             child: Text(
               secondValue,
               textAlign: TextAlign.center,
@@ -202,7 +206,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: _leaderboardValueFlex,
             child: Text(
               points,
               textAlign: TextAlign.end,
