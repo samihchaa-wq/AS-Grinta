@@ -13,9 +13,6 @@ String? resolveAuthRedirect({
     return location == '/auth/loading' ? null : '/auth/loading';
   }
 
-  // /auth/loading est purement transitoire : dès que le chargement est terminé,
-  // on doit le quitter, sinon on reste bloqué dessus. Sans session on part sur
-  // la connexion ; avec session, on laisse la suite router vers l'accueil.
   if (location == '/auth/loading' && !authState.isAuthenticated) {
     return '/auth/sign-in';
   }
@@ -26,7 +23,7 @@ String? resolveAuthRedirect({
   if (authState.isAuthenticated && mustChangePassword) {
     return isPasswordChangeRoute ? null : '/auth/new-password';
   }
-  if (isPasswordChangeRoute && !mustChangePassword) return '/accueil';
+  if (isPasswordChangeRoute && !mustChangePassword) return '/matches';
 
   final isAuthRoute = location.startsWith('/auth');
   if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
@@ -35,20 +32,14 @@ String? resolveAuthRedirect({
 
   if (authState.isAuthenticated && isAuthRoute) {
     final redirect = _safeLocalRedirect(uri.queryParameters['redirect']);
-    return redirect ?? '/accueil';
+    return redirect ?? '/matches';
   }
 
-  if (location == '/' || location == '/home') {
-    return '/accueil';
-  }
-  if (location == '/matches') {
-    return '/pronos?category=matches';
+  if (location == '/' || location == '/home' || location == '/accueil') {
+    return '/matches';
   }
 
   if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
-    // Sans le module, effectif/compo/HDM n'existent pas — mais le prono reste
-    // ouvert. Une fiche de match (…/lineup) renvoie donc vers « Ton prono »
-    // plutôt que d'être bloquée.
     final segments =
         uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
     if (segments.length == 3 &&
@@ -56,7 +47,7 @@ String? resolveAuthRedirect({
         segments[2] == 'lineup') {
       return '/matches/${segments[1]}/prediction';
     }
-    return '/pronos';
+    return '/matches';
   }
 
   final role = authState.profile?.role;
@@ -67,9 +58,9 @@ String? resolveAuthRedirect({
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
   final isPlayersRoute = location == '/players';
 
-  if (isFinalizationRoute && !isAdmin) return '/pronos';
-  if (isAdminRoute && !isStaff) return '/pronos';
-  if (isPlayersRoute && !isStaff) return '/pronos';
+  if (isFinalizationRoute && !isAdmin) return '/matches';
+  if (isAdminRoute && !isStaff) return '/matches';
+  if (isPlayersRoute && !isStaff) return '/matches';
   return null;
 }
 
@@ -102,7 +93,11 @@ String? _safeLocalRedirect(String? value) {
   final uri = Uri.tryParse(value);
   if (uri == null || uri.hasScheme || uri.hasAuthority) return null;
   if (!uri.path.startsWith('/') || uri.path.startsWith('/auth')) return null;
-  if (uri.path == '/matches') return '/pronos';
+  if (uri.path == '/accueil' || uri.path == '/home') return '/matches';
+  if (uri.path == '/pronos' &&
+      uri.queryParameters['category'] == 'matches') {
+    return '/matches';
+  }
 
   return uri.toString();
 }
