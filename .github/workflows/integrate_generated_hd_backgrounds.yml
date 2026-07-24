@@ -1,0 +1,77 @@
+name: Integrate generated HD backgrounds
+
+on:
+  push:
+    branches:
+      - agent/integrate-new-hd-backgrounds
+    paths:
+      - .github/workflows/integrate_generated_hd_backgrounds.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/integrate-new-hd-backgrounds
+          fetch-depth: 0
+
+      - name: Download full-resolution Canva renders
+        shell: bash
+        env:
+          MATCHES_URL: "https://media.canva.com/v2/document-image/hash:1503936622/height:2560/id:DAHQVkcY3qI/type:B/width:1440?brand=BAGDvzu1ngY&csig=AAAAAAAAAAAAAAAAAAAAAKbmzFo20oq9sZpiNbMlmOd9qxmwNLC1QS0vjDhhUgmp&disableexport=T&exp=1784934640&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FcY3qI%2FDAHQVkcY3qI%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260724%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260724T025541Z%26X-Amz-Expires%3D72899%26X-Amz-Signature%3D815c039c9b7f8c299831553460450ed1ebb32c7be02fbc94cb8e272287fa9409%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DFri%252C%252024%2520Jul%25202026%252023%253A10%253A40%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAHO1VBX8RyewGnDNiNSO7ms8JSauS44gf6EcY68RtNGg&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
+          STATS_URL: "https://media.canva.com/v2/document-image/hash:-711532471/height:2560/id:DAHQVifLm48/type:B/width:1440?brand=BAGDvzu1ngY&csig=AAAAAAAAAAAAAAAAAAAAANz_6NrYEMRNuaIcJHjz6SR54QZ2s6bXQzQJH8K3dcjp&disableexport=T&exp=1784935145&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FfLm48%2FDAHQVifLm48%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUHYGFFNMW3%252F20260724%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260724T093249Z%26X-Amz-Expires%3D49576%26X-Amz-Signature%3D97020e36c5a10077d8843a606dbfcc59663921948b41ffb28a9bde68709965b4%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DFri%252C%252024%2520Jul%25202026%252023%253A19%253A05%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAMxU4621M4c5Aa1E-dzrKHcNK6TJSMSAHxH6PkN35P3C&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/module-backgrounds assets/images/module_backgrounds
+          curl --fail --location --retry 3 --retry-delay 2 \
+            --output /tmp/module-backgrounds/matches-source "${MATCHES_URL}"
+          curl --fail --location --retry 3 --retry-delay 2 \
+            --output /tmp/module-backgrounds/stats-source "${STATS_URL}"
+          file /tmp/module-backgrounds/*
+
+      - name: Produce optimized 1440 by 2560 WebP assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          convert /tmp/module-backgrounds/matches-source \
+            -auto-orient -resize '1440x2560^' -gravity center -extent 1440x2560 \
+            -unsharp 0x0.65+0.75+0.015 -quality 94 \
+            assets/images/module_backgrounds/matches.webp
+          convert /tmp/module-backgrounds/stats-source \
+            -auto-orient -resize '1440x2560^' -gravity center -extent 1440x2560 \
+            -unsharp 0x0.65+0.75+0.015 -quality 94 \
+            assets/images/module_backgrounds/stats.webp
+
+      - name: Verify exact dimensions and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          for asset in \
+            assets/images/module_backgrounds/matches.webp \
+            assets/images/module_backgrounds/stats.webp
+          do
+            test -s "${asset}"
+            file "${asset}" | grep -q 'Web/P image'
+            test "$(identify -format '%wx%h' "${asset}")" = '1440x2560'
+            echo "${asset}: $(identify -format '%wx%h, %b' "${asset}")"
+          done
+
+      - name: Remove transfer workflow and commit assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/integrate_generated_hd_backgrounds.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/images/module_backgrounds/matches.webp \
+                  assets/images/module_backgrounds/stats.webp \
+                  .github/workflows/integrate_generated_hd_backgrounds.yml
+          git commit -m "Intégrer les nouveaux fonds Matchs et Stats en HD"
+          git push origin HEAD:agent/integrate-new-hd-backgrounds
