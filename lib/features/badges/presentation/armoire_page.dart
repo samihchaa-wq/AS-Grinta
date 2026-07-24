@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
@@ -222,7 +223,7 @@ class _BadgeGrid extends StatelessWidget {
 String? baremeThreshold(BadgeDef def) =>
     baremeLabelFor(def.metric, def.threshold);
 
-class _BadgeTile extends StatelessWidget {
+class _BadgeTile extends ConsumerWidget {
   const _BadgeTile({
     required this.badge,
     this.locked = false,
@@ -235,7 +236,7 @@ class _BadgeTile extends StatelessWidget {
   final void Function(String code, bool nowFeatured)? onToggleFeatured;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     // Emblème à la même taille que les badges « En cours » ; grille sur
     // 4 colonnes pour bien répartir les badges validés.
@@ -280,15 +281,28 @@ class _BadgeTile extends StatelessWidget {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => showBadgeDetailSheet(
-              context,
-              badge.def,
-              isFeatured: featured,
-              onToggleFeatured: canFeature
-                  ? () => onToggleFeatured!(badge.def.code, !featured)
-                  : null,
-            ),
+            onTap: () {
+              if (badge.isNew) {
+                final uid =
+                    ref.read(supabaseClientProvider).auth.currentUser?.id;
+                if (uid != null) {
+                  ref
+                      .read(badgeRepositoryProvider)
+                      .markBadgeSeen(uid, badge.def.code);
+                  ref.invalidate(myArmoireProvider);
+                }
+              }
+              showBadgeDetailSheet(
+                context,
+                badge.def,
+                isFeatured: featured,
+                onToggleFeatured: canFeature
+                    ? () => onToggleFeatured!(badge.def.code, !featured)
+                    : null,
+              );
+            },
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 BadgeEmblem(
                   emoji: badge.def.emoji,
@@ -301,6 +315,21 @@ class _BadgeTile extends StatelessWidget {
                       isCareerBadgeCategory(badge.def.category),
                   size: emblem,
                 ),
+                // Pastille « nouveau » : disparaît quand on clique le badge.
+                if (badge.isNew)
+                  Positioned(
+                    top: -3,
+                    left: -3,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE84393),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
                 // Badge arboré : marqué uniquement par l'étoile (pas de contour).
                 if (featured)
                   Positioned(
