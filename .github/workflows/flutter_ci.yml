@@ -41,7 +41,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Check formatting of changed Dart files
+      - name: Format changed Dart files for export
         shell: bash
         run: |
           set -euo pipefail
@@ -52,11 +52,23 @@ jobs:
             range="HEAD^...HEAD"
           fi
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          mkdir -p formatted
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+          dart format "${files[@]}"
+          for file in "${files[@]}"; do
+            mkdir -p "formatted/$(dirname "$file")"
+            cp "$file" "formatted/$file"
+          done
+
+      - name: Upload formatted Dart files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-dart-files
+          path: formatted
+          if-no-files-found: warn
 
       - name: Analyze
         shell: bash
