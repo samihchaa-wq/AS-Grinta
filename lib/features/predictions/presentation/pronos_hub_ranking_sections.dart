@@ -21,33 +21,25 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<_GeneralRankingView>(
-              expandedInsets: EdgeInsets.zero,
-              segments: const [
-                ButtonSegment(
-                  value: _GeneralRankingView.matches,
-                  label: Text('Matchs'),
-                ),
-                ButtonSegment(
-                  value: _GeneralRankingView.scorers,
-                  label: Text('Buteurs'),
-                ),
-                ButtonSegment(
-                  value: _GeneralRankingView.general,
-                  label: Text('Global'),
-                ),
-              ],
-              selected: {_view},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) {
-                setState(() => _view = selection.first);
-              },
+        GrintaSecondaryTabs<_GeneralRankingView>(
+          segments: const [
+            ButtonSegment(
+              value: _GeneralRankingView.matches,
+              label: Text('Matchs'),
             ),
-          ),
+            ButtonSegment(
+              value: _GeneralRankingView.scorers,
+              label: Text('Buteurs'),
+            ),
+            ButtonSegment(
+              value: _GeneralRankingView.general,
+              label: Text('Global'),
+            ),
+          ],
+          selected: {_view},
+          onSelectionChanged: (selection) {
+            setState(() => _view = selection.first);
+          },
         ),
         Expanded(
           child: switch (_view) {
