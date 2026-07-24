@@ -12,7 +12,7 @@ class AdminMenuPage extends ConsumerWidget {
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Admin')),
+      appBar: GrintaAppBar(title: const Text('Admin'), admin: true),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

@@ -190,7 +190,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
     );
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Saisie du match')),
+      appBar: GrintaAppBar(title: const Text('Saisie du match'), admin: true),
       body: contextAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(

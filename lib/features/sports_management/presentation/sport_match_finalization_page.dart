@@ -233,6 +233,7 @@ class _SportMatchFinalizationPageState
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Validation du match'),
+        admin: true,
         actions: [
           IconButton(
             tooltip: 'Actualiser',

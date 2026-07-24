@@ -17,7 +17,7 @@ class PlayersRegistryPage extends ConsumerWidget {
     final seasonAsync = ref.watch(openSeasonIdProvider);
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Effectif')),
+      appBar: GrintaAppBar(title: const Text('Effectif'), admin: true),
       body: seasonAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(humanizeError(error))),

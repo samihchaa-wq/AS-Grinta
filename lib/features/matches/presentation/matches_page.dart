@@ -76,6 +76,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Matchs'),
+        admin: true,
         actions: [
           if (isAdmin)
             IconButton(
