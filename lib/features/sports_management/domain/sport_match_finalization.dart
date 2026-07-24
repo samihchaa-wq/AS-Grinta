@@ -169,11 +169,13 @@ class SportMatchFinalization {
             p.present && p.selectionStatus == SportFinalSelectionStatus.starter,
       )
       .length;
+  // Tout présent qui n'est pas titulaire est de fait un remplaçant (y compris
+  // « présent hors composition »), pour que titulaires + remplaçants = présents.
   int get substituteCount => participants
       .where(
         (p) =>
             p.present &&
-            p.selectionStatus == SportFinalSelectionStatus.substitute,
+            p.selectionStatus != SportFinalSelectionStatus.starter,
       )
       .length;
   int get guestPresentCount =>
