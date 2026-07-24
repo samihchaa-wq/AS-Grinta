@@ -454,23 +454,47 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         widget.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
     final url = widget.photoUrl;
     final hasPhoto = url != null && url.isNotEmpty;
+    // Avec une photo : pas de cadre ni de fond, pour que la photo occupe tout
+    // le carré et qu'un fond transparent (PNG) laisse voir le terrain derrière.
+    // Sans photo : carré coloré bordé avec les initiales.
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        gradient: hasPhoto
-            ? null
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: _avatarColors,
-              ),
-        color: hasPhoto ? const Color(0xFF2A2350) : null,
         borderRadius: BorderRadius.circular(size * 0.28),
-        border: Border.all(color: border, width: 2),
+        border: hasPhoto ? null : Border.all(color: border, width: 2),
       ),
       clipBehavior: Clip.antiAlias,
       child: hasPhoto ? _photo(url) : _initials(),
+    );
+  }
+
+  /// Carré coloré des initiales, réutilisé aussi pendant le chargement ou en
+  /// cas d'échec d'une photo (pour ne jamais laisser des lettres flottantes).
+  Widget _initials() {
+    final word = widget.name.trim().split(RegExp(r'\s+')).first;
+    final initials = word.isEmpty
+        ? '?'
+        : (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _avatarColors,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: widget.size * 0.32,
+            shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
+          ),
+        ),
+      ),
     );
   }
 
@@ -502,24 +526,6 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         }
         return _initials();
       },
-    );
-  }
-
-  Widget _initials() {
-    final word = widget.name.trim().split(RegExp(r'\s+')).first;
-    final initials = word.isEmpty
-        ? '?'
-        : (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
-    return Center(
-      child: Text(
-        initials,
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          fontSize: widget.size * 0.32,
-          shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
-        ),
-      ),
     );
   }
 }

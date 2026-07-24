@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/photo_crop_preview.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -226,6 +227,9 @@ Future<void> _pickAndUploadRosterPhoto(
   );
   if (file == null) return;
   final bytes = await file.readAsBytes();
+  if (!context.mounted) return;
+  final confirmed = await confirmCompositionPhoto(context, bytes);
+  if (!confirmed) return;
   final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
   try {
     await ref.read(rosterRepositoryProvider).uploadPlayerPhoto(
