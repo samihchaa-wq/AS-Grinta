@@ -4,10 +4,16 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
+import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+final historyMatchPredictionProvider = FutureProvider.autoDispose
+    .family<MatchPredictionItem?, String>((ref, matchId) {
+  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
+});
 
 /// Version réutilisable de la carte « Dernier match » pour chaque rencontre
 /// passée de l'historique.
