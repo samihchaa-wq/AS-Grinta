@@ -96,12 +96,9 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
   }
 
   Widget _header(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w800,
-        );
+    final style = grintaTableHeaderTextStyle(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
+      padding: grintaTableHeaderPadding,
       child: Row(
         children: [
           SortableHeaderCell(
@@ -157,8 +154,10 @@ class _SeasonRankingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final valueStyle = grintaTableCellTextStyle(context);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 15, 12, 15),
+      padding: grintaTableRowPadding,
       child: Row(
         children: [
           Expanded(
@@ -166,23 +165,22 @@ class _SeasonRankingRow extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 18,
+                  width: 22,
                   child: Text(
                     '$rank',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: grintaTableRankTextStyle(context),
                   ),
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Expanded(
                   child: NameWithBadges(
                     profileId: entry.profileId,
                     name: entry.name,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    badgeSize: 18,
+                    style: grintaTableCellTextStyle(
+                      context,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -193,7 +191,7 @@ class _SeasonRankingRow extends StatelessWidget {
             child: Text(
               '${entry.seasonBons}',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: valueStyle,
             ),
           ),
           Expanded(
@@ -201,7 +199,7 @@ class _SeasonRankingRow extends StatelessWidget {
             child: Text(
               '${entry.seasonExacts}',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: valueStyle,
             ),
           ),
           Expanded(
@@ -209,9 +207,7 @@ class _SeasonRankingRow extends StatelessWidget {
             child: Text(
               points,
               textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: valueStyle,
             ),
           ),
         ],

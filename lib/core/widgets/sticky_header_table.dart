@@ -1,16 +1,62 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
+const grintaTableMinWidth = 620.0;
+const grintaTableHeaderFontSize = 12.0;
+const grintaTableCellFontSize = 13.0;
+const grintaTableRankFontSize = 12.0;
+const grintaTableHeaderPadding = EdgeInsets.fromLTRB(12, 12, 12, 12);
+const grintaTableRowPadding = EdgeInsets.fromLTRB(12, 14, 12, 14);
+
+TextStyle grintaTableHeaderTextStyle(
+  BuildContext context, {
+  Color? color,
+}) {
+  return TextStyle(
+    color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+    fontSize: grintaTableHeaderFontSize,
+    fontWeight: FontWeight.w800,
+  );
+}
+
+TextStyle grintaTableCellTextStyle(
+  BuildContext context, {
+  Color? color,
+  FontWeight fontWeight = FontWeight.w700,
+}) {
+  return TextStyle(
+    color: color ?? Theme.of(context).colorScheme.onSurface,
+    fontSize: grintaTableCellFontSize,
+    fontWeight: fontWeight,
+  );
+}
+
+TextStyle grintaTableRankTextStyle(
+  BuildContext context, {
+  Color? color,
+}) {
+  return TextStyle(
+    color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+    fontSize: grintaTableRankFontSize,
+    fontWeight: FontWeight.w700,
+  );
+}
 
 /// Cartouche de tableau dont la ligne d'en-tête reste fixe en haut pendant que
 /// les lignes défilent en dessous. Occupe toute la hauteur disponible : à
 /// placer dans un parent à hauteur bornée (Expanded, SizedBox…).
 ///
 /// L'en-tête et les lignes partagent la même largeur de colonnes (mêmes
-/// `flex`), donc l'alignement est conservé au défilement.
+/// `flex`), donc l'alignement est conservé au défilement. Le tableau dispose
+/// aussi d'une largeur minimale commune et peut être glissé horizontalement
+/// pour afficher toutes ses colonnes sur les petits écrans.
 class StickyHeaderTableCard extends StatelessWidget {
   const StickyHeaderTableCard({
     required this.header,
     required this.rows,
     this.onRefresh,
+    this.minWidth = grintaTableMinWidth,
     super.key,
   });
 
@@ -22,6 +68,9 @@ class StickyHeaderTableCard extends StatelessWidget {
 
   /// Rafraîchissement par tirer-lâcher (optionnel).
   final Future<void> Function()? onRefresh;
+
+  /// Largeur minimale commune avant activation du défilement horizontal.
+  final double minWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -38,12 +87,25 @@ class StickyHeaderTableCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          header,
-          const Divider(height: 1),
-          Expanded(child: list),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tableWidth = math.max(constraints.maxWidth, minWidth);
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
+            child: SizedBox(
+              width: tableWidth,
+              height: constraints.maxHeight,
+              child: Column(
+                children: [
+                  header,
+                  const Divider(height: 1),
+                  Expanded(child: list),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

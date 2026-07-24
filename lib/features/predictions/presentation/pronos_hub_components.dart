@@ -68,15 +68,15 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
         return _desc ? -cmp : cmp;
       });
 
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppTheme.textSecondary,
-          fontWeight: FontWeight.w800,
-        );
+    final style = grintaTableHeaderTextStyle(
+      context,
+      color: AppTheme.textSecondary,
+    );
 
     return StickyHeaderTableCard(
       onRefresh: widget.onRefresh,
       header: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 12, 12, 12),
+        padding: grintaTableHeaderPadding,
         child: Row(
           children: [
             SortableHeaderCell(
@@ -150,8 +150,10 @@ class _LeaderboardRowLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final valueStyle = grintaTableCellTextStyle(context);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 15, 12, 15),
+      padding: grintaTableRowPadding,
       child: Row(
         children: [
           Expanded(
@@ -159,23 +161,25 @@ class _LeaderboardRowLayout extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 18,
+                  width: 22,
                   child: Text(
                     '$rank',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    style: grintaTableRankTextStyle(
+                      context,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 Expanded(
                   child: NameWithBadges(
                     profileId: profileId,
                     name: name,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                    badgeSize: 18,
+                    style: grintaTableCellTextStyle(
+                      context,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -186,7 +190,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             child: Text(
               firstValue,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: valueStyle,
             ),
           ),
           Expanded(
@@ -194,7 +198,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             child: Text(
               secondValue,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: valueStyle,
             ),
           ),
           Expanded(
@@ -202,9 +206,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
             child: Text(
               points,
               textAlign: TextAlign.end,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: valueStyle,
             ),
           ),
         ],
