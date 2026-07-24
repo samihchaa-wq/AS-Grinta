@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 /// Identité visuelle unique : bleu nuit + rose flamant.
@@ -55,6 +56,19 @@ abstract final class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
       splashFactory: InkSparkle.splashFactory,
+      // Retour par balayage depuis le bord gauche, sur toutes les plateformes
+      // (y compris le web). Ne se déclenche qu'au bord, donc pas de conflit
+      // avec les zones qui défilent horizontalement.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+        },
+      ),
     );
 
     return base.copyWith(
