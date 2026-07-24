@@ -747,7 +747,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             onSelectionChanged:
                 _busy ? null : (value) => setState(() => _step = value.first),
           ),
-          if (_selectedMatchId != null) ...[
+          // Les outils du match (invités) n'ont pas de sens sur l'onglet
+          // « Ton prono » : on ne les affiche que sur Effectif et Compo.
+          if (_selectedMatchId != null &&
+              _step != _AdminStep.prediction) ...[
             const SizedBox(height: 12),
             _AdminMatchTools(matchId: _selectedMatchId!),
           ],
