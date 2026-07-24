@@ -222,7 +222,7 @@ class _NextMatchCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push(
-          '/matches/${match.id}/lineup?section=effectif',
+          '/matches/${match.id}/lineup?section=info',
         ),
         child: Padding(
           padding: const EdgeInsets.all(18),

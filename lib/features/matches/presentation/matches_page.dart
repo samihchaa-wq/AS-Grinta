@@ -206,7 +206,7 @@ class _MatchCard extends StatelessWidget {
             ? () => context.push('/matches/${match.id}')
             : isNext
                 ? () => context.push(
-                      '/matches/${match.id}/lineup?section=effectif',
+                      '/matches/${match.id}/lineup?section=info',
                     )
                 : null,
         child: Padding(
