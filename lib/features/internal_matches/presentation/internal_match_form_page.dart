@@ -16,8 +16,7 @@ class InternalMatchFormPage extends ConsumerStatefulWidget {
       _InternalMatchFormPageState();
 }
 
-class _InternalMatchFormPageState
-    extends ConsumerState<InternalMatchFormPage> {
+class _InternalMatchFormPageState extends ConsumerState<InternalMatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _teamAController = TextEditingController();
   final _teamBController = TextEditingController();
@@ -556,7 +555,8 @@ class _AssignmentPanel extends StatelessWidget {
                             : NetworkImage(player.photoUrl!),
                         child: player.photoUrl == null
                             ? Text(
-                                player.displayName.characters.first.toUpperCase(),
+                                player.displayName.characters.first
+                                    .toUpperCase(),
                               )
                             : null,
                       ),
@@ -623,8 +623,10 @@ class _CompositionsPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final teamA = players.where((player) => assignments[player.id] == 1).toList();
-    final teamB = players.where((player) => assignments[player.id] == 2).toList();
+    final teamA =
+        players.where((player) => assignments[player.id] == 1).toList();
+    final teamB =
+        players.where((player) => assignments[player.id] == 2).toList();
     return LayoutBuilder(
       builder: (context, constraints) {
         final cards = [

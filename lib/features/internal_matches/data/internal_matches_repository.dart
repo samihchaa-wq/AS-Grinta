@@ -47,15 +47,13 @@ class InternalMatch {
 
   bool get isFinished => status == 'termine';
 
-  List<InternalMatchPlayer> get teamAPlayers => players
-      .where((player) => player.teamNo == 1)
-      .toList()
-    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  List<InternalMatchPlayer> get teamAPlayers =>
+      players.where((player) => player.teamNo == 1).toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
-  List<InternalMatchPlayer> get teamBPlayers => players
-      .where((player) => player.teamNo == 2)
-      .toList()
-    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  List<InternalMatchPlayer> get teamBPlayers =>
+      players.where((player) => player.teamNo == 2).toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 }
 
 class InternalMatchAssignment {
@@ -156,32 +154,29 @@ class InternalMatchesRepository {
   InternalMatch _fromJson(Map<String, dynamic> json) {
     final playersRaw = json['internal_match_players'];
     final players = playersRaw is List
-        ? playersRaw
-            .whereType<Map>()
-            .map((raw) {
-              final item = Map<String, dynamic>.from(raw);
-              final playerRaw = item['season_players'];
-              final player = playerRaw is Map
-                  ? Map<String, dynamic>.from(playerRaw)
-                  : const <String, dynamic>{};
-              final firstName = (player['first_name'] ?? '').toString().trim();
-              final lastName = (player['last_name'] ?? '').toString().trim();
-              final name = firstName.isNotEmpty
-                  ? firstName
-                  : lastName.isNotEmpty
-                      ? lastName
-                      : 'Joueur';
-              final photo = player['photo_url']?.toString().trim();
-              return InternalMatchPlayer(
-                seasonPlayerId: item['season_player_id'].toString(),
-                name: name,
-                teamNo: (item['team_no'] as num?)?.toInt() ?? 1,
-                sortOrder: (item['sort_order'] as num?)?.toInt() ?? 0,
-                isGoalkeeper: player['is_goalkeeper'] == true,
-                photoUrl: photo == null || photo.isEmpty ? null : photo,
-              );
-            })
-            .toList()
+        ? playersRaw.whereType<Map>().map((raw) {
+            final item = Map<String, dynamic>.from(raw);
+            final playerRaw = item['season_players'];
+            final player = playerRaw is Map
+                ? Map<String, dynamic>.from(playerRaw)
+                : const <String, dynamic>{};
+            final firstName = (player['first_name'] ?? '').toString().trim();
+            final lastName = (player['last_name'] ?? '').toString().trim();
+            final name = firstName.isNotEmpty
+                ? firstName
+                : lastName.isNotEmpty
+                    ? lastName
+                    : 'Joueur';
+            final photo = player['photo_url']?.toString().trim();
+            return InternalMatchPlayer(
+              seasonPlayerId: item['season_player_id'].toString(),
+              name: name,
+              teamNo: (item['team_no'] as num?)?.toInt() ?? 1,
+              sortOrder: (item['sort_order'] as num?)?.toInt() ?? 0,
+              isGoalkeeper: player['is_goalkeeper'] == true,
+              photoUrl: photo == null || photo.isEmpty ? null : photo,
+            );
+          }).toList()
         : <InternalMatchPlayer>[];
 
     return InternalMatch(

@@ -113,7 +113,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
             if (state.matches.isEmpty)
               const _MessageCard(
                 title: 'Pas de match officiel programmé',
-                message: 'Le prochain match apparaîtra ici dès qu’il sera créé.',
+                message:
+                    'Le prochain match apparaîtra ici dès qu’il sera créé.',
               )
             else
               dashboard.when(
