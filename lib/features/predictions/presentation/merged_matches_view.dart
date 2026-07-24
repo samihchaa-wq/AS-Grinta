@@ -69,10 +69,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     });
   }
 
-  Future<void> _positionNextMatch(
-    String signature, {
-    int attempt = 0,
-  }) async {
+  Future<void> _positionNextMatch(String signature, {int attempt = 0}) async {
     if (!mounted || _lastFocusSignature != signature) return;
 
     final targetContext = _nextMatchKey.currentContext;
@@ -82,9 +79,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         return;
       }
 
-      await Future<void>.delayed(
-        Duration(milliseconds: 20 + (attempt * 15)),
-      );
+      await Future<void>.delayed(Duration(milliseconds: 20 + (attempt * 15)));
       if (!mounted || _lastFocusSignature != signature) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _positionNextMatch(signature, attempt: attempt + 1);
@@ -145,154 +140,238 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: ListView(
+      child: CustomScrollView(
         scrollCacheExtent: ScrollCacheExtent.pixels(nextMatchCacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: [
+        slivers: [
+          const SliverToBoxAdapter(child: SizedBox(height: 12)),
           if (state.isLoading)
-            const _LoadingCard()
+            const SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(child: _LoadingCard()),
+            )
           else if (state.error != null)
-            _MessageCard(
-              title: 'Matchs indisponibles',
-              icon: Icons.wifi_off_rounded,
-              message: state.error!,
-              tone: GrintaEmptyTone.alert,
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(
+                child: _MessageCard(
+                  title: 'Matchs indisponibles',
+                  icon: Icons.wifi_off_rounded,
+                  message: state.error!,
+                  tone: GrintaEmptyTone.alert,
+                ),
+              ),
             )
           else if (state.matches.isEmpty)
-            const _MessageCard(
-              title: 'Aucun match',
-              message: 'Le premier match apparaîtra ici dès qu’il sera créé.',
+            const SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(
+                child: _MessageCard(
+                  title: 'Aucun match',
+                  message:
+                      'Le premier match apparaîtra ici dès qu’il sera créé.',
+                ),
+              ),
             )
           else ...[
-            if (laterUpcoming.isNotEmpty) ...[
-              const _SectionHeader(
-                icon: Icons.calendar_month_outlined,
-                title: 'Matchs à venir',
+            if (laterUpcoming.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  const SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SectionHeaderDelegate(
+                      icon: Icons.calendar_month_outlined,
+                      title: 'Matchs à venir',
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _UpcomingMatchCard(
+                            match: laterUpcoming[index],
+                            isAdmin: isAdmin,
+                          ),
+                        ),
+                        childCount: laterUpcoming.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                ],
               ),
-              for (final match in laterUpcoming) ...[
-                _UpcomingMatchCard(match: match, isAdmin: isAdmin),
-                const SizedBox(height: 12),
-              ],
-              const SizedBox(height: 10),
-            ],
-            KeyedSubtree(
-              key: _nextMatchKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _SectionHeader(
+            SliverMainAxisGroup(
+              slivers: [
+                SliverPersistentHeader(
+                  key: _nextMatchKey,
+                  pinned: true,
+                  delegate: const _SectionHeaderDelegate(
                     icon: Icons.event_rounded,
                     title: 'Prochain match',
                   ),
-                  dashboard.when(
-                    loading: () => const _LoadingCard(),
-                    error: (_, __) => const _MessageCard(
-                      title: 'Prochain match indisponible',
-                      icon: Icons.wifi_off_rounded,
-                      message: 'Tire pour rafraîchir.',
-                      tone: GrintaEmptyTone.alert,
-                    ),
-                    data: (data) {
-                      final next = data.nextMatch;
-                      if (next == null || next.id != nextMatchId) {
-                        return const _MessageCard(
-                          title: 'Pas de match programmé',
-                          message:
-                              'Le prochain match apparaîtra ici dès qu’il sera créé.',
-                        );
-                      }
-                      return HomeNextMatchCard(
-                        match: next,
-                        predicted: data.nextMatchPredicted,
-                        prediction: data.nextMatchPrediction,
-                        isAdmin: isAdmin,
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            if (isAdmin) ...[
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: '👑 Ajouter un match',
-                      iconSize: 30,
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints.tightFor(
-                        width: 38,
-                        height: 38,
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: dashboard.when(
+                      loading: () => const _LoadingCard(),
+                      error: (_, __) => const _MessageCard(
+                        title: 'Prochain match indisponible',
+                        icon: Icons.wifi_off_rounded,
+                        message: 'Tire pour rafraîchir.',
+                        tone: GrintaEmptyTone.alert,
                       ),
-                      onPressed: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const MatchFormPage(),
-                          ),
+                      data: (data) {
+                        final next = data.nextMatch;
+                        if (next == null || next.id != nextMatchId) {
+                          return const _MessageCard(
+                            title: 'Pas de match programmé',
+                            message:
+                                'Le prochain match apparaîtra ici dès qu’il sera créé.',
+                          );
+                        }
+                        return HomeNextMatchCard(
+                          match: next,
+                          predicted: data.nextMatchPredicted,
+                          prediction: data.nextMatchPrediction,
+                          isAdmin: isAdmin,
                         );
-                        if (!context.mounted) return;
-                        await _refresh();
                       },
-                      icon: const Icon(Icons.add_circle),
                     ),
-                    Text(
-                      '👑 Ajouter un match',
-                      style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+              ],
+            ),
+            if (isAdmin)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: '👑 Ajouter un match',
+                            iconSize: 30,
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 38,
+                              height: 38,
+                            ),
+                            onPressed: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const MatchFormPage(),
+                                ),
+                              );
+                              if (!context.mounted) return;
+                              await _refresh();
+                            },
+                            icon: const Icon(Icons.add_circle),
+                          ),
+                          Text(
+                            '👑 Ajouter un match',
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-            ],
-            const _SectionHeader(
-              icon: Icons.history_rounded,
-              title: 'Matchs passés',
-            ),
-            if (finished.isEmpty)
-              const _MessageCard(
-                title: 'Aucun match joué',
-                message:
-                    'Les résultats, buteurs, HDM et points de prono apparaîtront ici.',
-              )
-            else
-              for (final match in finished) ...[
-                MatchHistoryCard(match: match),
-                const SizedBox(height: 12),
+            SliverMainAxisGroup(
+              slivers: [
+                const SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SectionHeaderDelegate(
+                    icon: Icons.history_rounded,
+                    title: 'Matchs passés',
+                  ),
+                ),
+                if (finished.isEmpty)
+                  const SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverToBoxAdapter(
+                      child: _MessageCard(
+                        title: 'Aucun match joué',
+                        message:
+                            'Les résultats, buteurs, HDM et points de prono apparaîtront ici.',
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: MatchHistoryCard(match: finished[index]),
+                        ),
+                        childCount: finished.length,
+                      ),
+                    ),
+                  ),
               ],
+            ),
           ],
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.icon, required this.title});
+class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _SectionHeaderDelegate({required this.icon, required this.title});
+
+  static const double _height = 44;
 
   final IconData icon;
   final String title;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-        ],
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      color:
+          overlapsContent ? const Color(0xF2071738) : const Color(0xB3071738),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SectionHeaderDelegate oldDelegate) {
+    return oldDelegate.icon != icon || oldDelegate.title != title;
   }
 }
 
@@ -334,10 +413,7 @@ class _UpcomingMatchCard extends StatelessWidget {
         ),
         if (isAdmin) ...[
           const SizedBox(width: 2),
-          SizedBox(
-            width: 38,
-            child: AdminMatchOptionsButton(match: match),
-          ),
+          SizedBox(width: 38, child: AdminMatchOptionsButton(match: match)),
         ],
         const Icon(Icons.chevron_right, size: 22, color: Color(0xFFD7C8FF)),
       ],
