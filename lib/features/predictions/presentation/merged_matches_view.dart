@@ -150,34 +150,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
-          if (isAdmin) ...[
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: '👑 Ajouter un match',
-                    iconSize: 46,
-                    onPressed: () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const MatchFormPage(),
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      await _refresh();
-                    },
-                    icon: const Icon(Icons.add_circle),
-                  ),
-                  Text(
-                    '👑 Ajouter un match',
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
           if (state.isLoading)
             const _LoadingCard()
           else if (state.error != null)
@@ -241,7 +213,41 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ],
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
+            if (isAdmin) ...[
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: '👑 Ajouter un match',
+                      iconSize: 30,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 38,
+                        height: 38,
+                      ),
+                      onPressed: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const MatchFormPage(),
+                          ),
+                        );
+                        if (!context.mounted) return;
+                        await _refresh();
+                      },
+                      icon: const Icon(Icons.add_circle),
+                    ),
+                    Text(
+                      '👑 Ajouter un match',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             const _SectionHeader(
               icon: Icons.history_rounded,
               title: 'Matchs passés',
