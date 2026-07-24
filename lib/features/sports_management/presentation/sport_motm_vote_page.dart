@@ -354,11 +354,16 @@ class _VoteHeader extends StatelessWidget {
               finished: vote.hasScore,
               nameStyle: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
-            Text(status),
-            if (date != null) ...[
-              const SizedBox(height: 4),
-              Text(date, style: Theme.of(context).textTheme.bodySmall),
+            // Une fois le scrutin clos, la couronne, le score et le vainqueur
+            // suffisent : on n'affiche « Résultats définitifs · Clôturé … »
+            // que tant que le vote n'est pas terminé.
+            if (vote.state != SportMotmVoteState.closed) ...[
+              const SizedBox(height: 8),
+              Text(status),
+              if (date != null) ...[
+                const SizedBox(height: 4),
+                Text(date, style: Theme.of(context).textTheme.bodySmall),
+              ],
             ],
           ],
         ),
