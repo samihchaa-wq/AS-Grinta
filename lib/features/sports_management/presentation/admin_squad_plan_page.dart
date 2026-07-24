@@ -7,10 +7,10 @@ import 'package:as_grinta/features/sports_management/data/guest_players_reposito
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
+import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
-import 'package:as_grinta/features/sports_management/presentation/admin_convocations_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
@@ -41,6 +41,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   MatchConvocations? _convocations;
   MatchComposition? _composition;
   Set<String> _desiredConvoked = {};
+  AvailabilityReminderSummary? _reminders;
   late _AdminStep _step;
   late final TextEditingController _limitController;
   bool _loading = true;
@@ -123,9 +124,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final results = await Future.wait<Object?>([
         waitlistRepository.fetchMatchConvocations(matchId),
         compositionRepository.fetchAdminComposition(matchId),
+        waitlistRepository.fetchReminderSummary(matchId),
       ]);
       final convocations = results[0] as MatchConvocations;
       final saved = results[1] as MatchComposition?;
+      final reminders = results[2] as AvailabilityReminderSummary;
       final goalkeeperIds =
           await compositionRepository.fetchGoalkeeperSeasonPlayerIds([
         for (final player in convocations.players)
@@ -140,6 +143,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       setState(() {
         _convocations = convocations;
         _composition = composition;
+        _reminders = reminders;
         _desiredConvoked = {
           for (final player in convocations.players)
             if ((player.isAvailable || player.isGuest) && player.isConvoked)
@@ -151,6 +155,83 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       });
     } catch (error) {
       if (mounted) setState(() => _error = humanizeError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Relance de disponibilité : collective (player == null) ou individuelle sur
+  /// un joueur sans réponse.
+  Future<void> _sendReminder({ConvocationPlayer? player}) async {
+    final matchId = _selectedMatchId;
+    final reminders = _reminders;
+    if (matchId == null || reminders == null || !reminders.canRemind) return;
+
+    final isCollective = player == null;
+    if (isCollective && reminders.noResponseCount == 0) {
+      _showMessage('Tous les joueurs ont déjà répondu.');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(
+              isCollective
+                  ? 'Relancer les sans réponse ?'
+                  : 'Relancer ${player.displayName} ?',
+            ),
+            content: Text(
+              isCollective
+                  ? '${reminders.noResponseCount} joueur'
+                      '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                      'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une '
+                      'notification.'
+                  : 'Une notification de disponibilité sera envoyée. Un second '
+                      'envoi est bloqué pendant dix minutes.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Relancer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    setState(() => _busy = true);
+    try {
+      final repository = ref.read(sportWaitlistRepositoryProvider);
+      final result = await repository.sendAvailabilityReminder(
+        matchId: matchId,
+        seasonPlayerId: player?.seasonPlayerId,
+        reason: isCollective
+            ? 'Relance collective depuis l’effectif'
+            : 'Relance individuelle depuis l’effectif',
+      );
+      final updated = await repository.fetchReminderSummary(matchId);
+      if (!mounted) return;
+      setState(() => _reminders = updated);
+      if (result.createdCount > 0) {
+        _showMessage(
+          '${result.createdCount} notification'
+          '${result.createdCount > 1 ? 's' : ''} envoyée'
+          '${result.createdCount > 1 ? 's' : ''}.',
+        );
+      } else if (result.skippedRecentCount > 0) {
+        _showMessage('Relance déjà effectuée il y a moins de dix minutes.');
+      } else {
+        _showMessage('Aucun joueur à relancer.');
+      }
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -784,7 +865,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 color: const Color(0xFF6B7280),
                 icon: Icons.schedule_outlined,
                 players: _unansweredPlayers,
-                locked: true,
+                locked: _busy || _locked,
+                onRelance: (player) => _sendReminder(player: player),
+                onRelanceAll: (_reminders?.canRemind ?? false)
+                    ? () => _sendReminder()
+                    : null,
               ),
             ];
             if (constraints.maxWidth >= 900) {
@@ -951,6 +1036,8 @@ class _EffectifColumn extends StatelessWidget {
     this.onAccept,
     this.onToggle,
     this.onRemoveGuest,
+    this.onRelance,
+    this.onRelanceAll,
   });
 
   final String title;
@@ -962,6 +1049,11 @@ class _EffectifColumn extends StatelessWidget {
   final ValueChanged<ConvocationPlayer>? onAccept;
   final ValueChanged<ConvocationPlayer>? onToggle;
   final ValueChanged<ConvocationPlayer>? onRemoveGuest;
+
+  /// Relance de disponibilité : individuelle (touche un joueur) et collective
+  /// (bouton d'en-tête). Utilisé pour la colonne « Sans réponse ».
+  final ValueChanged<ConvocationPlayer>? onRelance;
+  final VoidCallback? onRelanceAll;
 
   @override
   Widget build(BuildContext context) {
@@ -998,8 +1090,26 @@ class _EffectifColumn extends StatelessWidget {
                         ),
                   ),
                 ),
+                if (onRelanceAll != null && players.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: locked ? null : onRelanceAll,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    icon: const Icon(Icons.notifications_active_outlined,
+                        size: 16),
+                    label: const Text('Relancer tous'),
+                  ),
               ],
             ),
+            if (onRelance != null && players.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Touche un joueur pour le relancer.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 9),
             if (players.isEmpty)
               Text(
@@ -1020,7 +1130,11 @@ class _EffectifColumn extends StatelessWidget {
                           ? (onRemoveGuest == null
                               ? null
                               : () => onRemoveGuest!(player))
-                          : (onToggle == null ? null : () => onToggle!(player)),
+                          : onToggle != null
+                              ? () => onToggle!(player)
+                              : (onRelance == null || locked
+                                  ? null
+                                  : () => onRelance!(player)),
                     ),
                 ],
               ),
@@ -1159,12 +1273,6 @@ class _AdminMatchTools extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton.icon(
-                onPressed: () =>
-                    open(AdminConvocationsPage(initialMatchId: matchId)),
-                icon: const Icon(Icons.how_to_reg_outlined, size: 18),
-                label: const Text('Convocations'),
-              ),
               OutlinedButton.icon(
                 onPressed: () => open(AdminGuestsPage(initialMatchId: matchId)),
                 icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
