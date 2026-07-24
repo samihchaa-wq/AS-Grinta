@@ -395,8 +395,6 @@ class _Results extends StatelessWidget {
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 6),
-                Text('${vote.totalVotes ?? 0} vote(s) exprimé(s)'),
               ],
             ),
           ),
@@ -408,14 +406,9 @@ class _Results extends StatelessWidget {
             in vote.candidates.where((c) => (c.votesCount ?? 0) > 0))
           Card(
             child: ListTile(
-              leading: Text(
-                candidate.isWinner
-                    ? '👑'
-                    : candidate.isGoalkeeper
-                        ? '🧤'
-                        : '⚽',
-                style: const TextStyle(fontSize: 22),
-              ),
+              leading: candidate.isWinner
+                  ? const Text('👑', style: TextStyle(fontSize: 22))
+                  : null,
               title: Text(candidate.displayName),
               trailing: Text(
                 '${candidate.votesCount ?? 0}',
