@@ -70,8 +70,8 @@ abstract final class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
       splashFactory: InkSparkle.splashFactory,
-      // Toutes les pages apparaissent immédiatement : aucun glissement,
-      // fondu ou déplacement de la page précédente pendant la navigation.
+      // Toutes les pages apparaissent immédiatement, sans animation
+      // intermédiaire ni déplacement de la page précédente.
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: _InstantPageTransitionsBuilder(),
