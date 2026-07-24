@@ -12,6 +12,7 @@ import 'package:as_grinta/features/matches/presentation/widgets/admin_match_opti
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -67,30 +68,47 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     });
   }
 
-  Future<void> _positionNextMatch(String signature) async {
+  Future<void> _positionNextMatch(
+    String signature, {
+    int attempt = 0,
+  }) async {
     if (!mounted || _lastFocusSignature != signature) return;
+
     final targetContext = _nextMatchKey.currentContext;
     if (targetContext == null) {
-      _lastFocusSignature = null;
+      if (attempt >= 8) {
+        _lastFocusSignature = null;
+        return;
+      }
+
+      await Future<void>.delayed(
+        Duration(milliseconds: 20 + (attempt * 15)),
+      );
+      if (!mounted || _lastFocusSignature != signature) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _positionNextMatch(signature, attempt: attempt + 1);
+      });
       return;
     }
 
     await Scrollable.ensureVisible(
       targetContext,
       alignment: 0,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
       duration: Duration.zero,
     );
 
-    // La carte complète remplace parfois le squelette après le premier cadre.
-    // Un second positionnement garantit que son titre reste collé en haut et
-    // que toute la carte tient dans la zone visible.
-    await Future<void>.delayed(const Duration(milliseconds: 80));
+    // La liste construit ses enfants à la demande. Un second positionnement
+    // après stabilisation empêche le premier accès depuis un autre module de
+    // rester en haut de la liste lorsque les cartes précédentes apparaissent.
+    await Future<void>.delayed(const Duration(milliseconds: 120));
     if (!mounted || _lastFocusSignature != signature) return;
     final settledContext = _nextMatchKey.currentContext;
     if (settledContext == null || !settledContext.mounted) return;
     await Scrollable.ensureVisible(
       settledContext,
       alignment: 0,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
       duration: Duration.zero,
     );
   }
@@ -109,6 +127,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final laterUpcoming = upcoming.length > 1
         ? upcoming.sublist(0, upcoming.length - 1)
         : <MatchModel>[];
+
     final focusRequest = GoRouterState.of(
       context,
     ).uri.queryParameters['focusRequest'];
@@ -120,9 +139,15 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       requestToken: focusRequest ?? 'initial',
     );
 
+    // Le prochain match se trouve après toutes les rencontres plus lointaines.
+    // Ce cache ciblé force la création de son ancre dès le premier affichage,
+    // sans construire inutilement tout l'historique situé en dessous.
+    final nextMatchCacheExtent = 1200.0 + (laterUpcoming.length * 520.0);
+
     return RefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
+        scrollCacheExtent: ScrollCacheExtent.pixels(nextMatchCacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
