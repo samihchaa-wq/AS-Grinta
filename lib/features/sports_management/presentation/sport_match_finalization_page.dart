@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
@@ -366,6 +367,9 @@ class _SummaryCard extends StatelessWidget {
   final ValueChanged<int> onScoreAsGrintaChanged;
   final ValueChanged<int> onScoreAdverseChanged;
 
+  Color get _scoreColor =>
+      MatchFixture.resultColor(value.scoreAsGrinta, value.scoreAdverse);
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -374,49 +378,30 @@ class _SummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    value.opponentName,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                ),
-                Chip(
-                  label: Text(
-                    value.isValidated
-                        ? 'Version ${value.version}'
-                        : 'À valider',
-                  ),
-                ),
-              ],
+            Text(
+              'Score final',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _ScoreStepper(
-                    label: 'AS Grinta',
-                    value: value.scoreAsGrinta,
-                    enabled: !saving,
-                    onChanged: onScoreAsGrintaChanged,
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('–', style: TextStyle(fontSize: 26)),
-                ),
-                Expanded(
-                  child: _ScoreStepper(
-                    label: 'Adversaire',
-                    value: value.scoreAdverse,
-                    enabled: !saving,
-                    onChanged: onScoreAdverseChanged,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            _ScoreLine(
+              name: value.isHome ? 'AS Grinta' : value.opponentName,
+              score: value.isHome ? value.scoreAsGrinta : value.scoreAdverse,
+              color: _scoreColor,
+              enabled: !saving,
+              onChanged:
+                  value.isHome ? onScoreAsGrintaChanged : onScoreAdverseChanged,
+            ),
+            const SizedBox(height: 8),
+            _ScoreLine(
+              name: value.isHome ? value.opponentName : 'AS Grinta',
+              score: value.isHome ? value.scoreAdverse : value.scoreAsGrinta,
+              color: _scoreColor,
+              enabled: !saving,
+              onChanged:
+                  value.isHome ? onScoreAdverseChanged : onScoreAsGrintaChanged,
             ),
             const SizedBox(height: 14),
             Wrap(
@@ -442,47 +427,56 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _ScoreStepper extends StatelessWidget {
-  const _ScoreStepper({
-    required this.label,
-    required this.value,
+/// Une ligne de score éditable : nom de l'équipe à gauche, boutons − / + et le
+/// score (coloré selon le résultat d'AS Grinta) à droite.
+class _ScoreLine extends StatelessWidget {
+  const _ScoreLine({
+    required this.name,
+    required this.score,
+    required this.color,
     required this.enabled,
     required this.onChanged,
   });
 
-  final String label;
-  final int value;
+  final String name;
+  final int score;
+  final Color color;
   final bool enabled;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        Text(label, textAlign: TextAlign.center),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton.filledTonal(
-              onPressed:
-                  enabled && value > 0 ? () => onChanged(value - 1) : null,
-              icon: const Icon(Icons.remove),
-            ),
-            SizedBox(
-              width: 42,
-              child: Text(
-                '$value',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-            IconButton.filledTonal(
-              onPressed:
-                  enabled && value < 30 ? () => onChanged(value + 1) : null,
-              icon: const Icon(Icons.add),
-            ),
-          ],
+        Expanded(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: enabled && score > 0 ? () => onChanged(score - 1) : null,
+          icon: const Icon(Icons.remove),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text(
+            '$score',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+        IconButton.filledTonal(
+          onPressed: enabled && score < 30 ? () => onChanged(score + 1) : null,
+          icon: const Icon(Icons.add),
         ),
       ],
     );

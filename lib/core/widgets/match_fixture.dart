@@ -40,15 +40,21 @@ class MatchFixture extends StatelessWidget {
   static const Color _lost = Color(0xFFE5555A);
   static const Color _draw = Color(0xFFE9963C);
 
+  /// Couleur du résultat vu par AS Grinta : vert si elle mène, rouge si elle
+  /// est menée, orange à égalité.
+  static Color resultColor(int grintaScore, int opponentScore) {
+    if (grintaScore > opponentScore) return _won;
+    if (grintaScore < opponentScore) return _lost;
+    return _draw;
+  }
+
   bool get _hasScores => finished && homeScore != null && awayScore != null;
 
   Color? get _scoreColor {
     if (!_hasScores) return null;
     final grinta = grintaIsHome ? homeScore! : awayScore!;
     final opponent = grintaIsHome ? awayScore! : homeScore!;
-    if (grinta > opponent) return _won;
-    if (grinta < opponent) return _lost;
-    return _draw;
+    return resultColor(grinta, opponent);
   }
 
   @override
