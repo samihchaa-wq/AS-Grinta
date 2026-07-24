@@ -295,100 +295,110 @@ class _CalendarMatchCard extends ConsumerWidget {
   }
 }
 
+/// Actions admin d'un match regroupées dans un unique bouton « ✏️ » :
+/// Modifier, Stats et Supprimer.
 class _AdminMatchActions extends ConsumerWidget {
   const _AdminMatchActions({required this.match});
 
   final MatchModel match;
 
+  Future<void> _edit(BuildContext context, WidgetRef ref) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
+    );
+    if (!context.mounted) return;
+    ref
+      ..invalidate(_calendarPredictionProvider)
+      ..invalidate(inlineMatchPredictionProvider)
+      ..invalidate(matchDetailsProvider(match.id));
+    await ref.read(predictionsControllerProvider.notifier).load();
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Supprimer ce match ?'),
+            content: const Text(
+              'Le match, ses pronostics, ses buteurs et ses statistiques '
+              'seront définitivement supprimés. Les classements seront recalculés.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+
+    await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
+    ref
+      ..invalidate(_calendarPredictionProvider)
+      ..invalidate(inlineMatchPredictionProvider)
+      ..invalidate(leaderboardProvider)
+      ..invalidate(enhancedSeasonGaugesProvider)
+      ..invalidate(enhancedSeasonCompletedMatchesProvider)
+      ..invalidate(matchDetailsProvider(match.id));
+    await ref.read(predictionsControllerProvider.notifier).load();
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.tonalIcon(
-                onPressed: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => MatchFormPage(match: match),
-                    ),
-                  );
-                  if (!context.mounted) return;
-                  ref
-                    ..invalidate(_calendarPredictionProvider)
-                    ..invalidate(inlineMatchPredictionProvider)
-                    ..invalidate(matchDetailsProvider(match.id));
-                  await ref.read(predictionsControllerProvider.notifier).load();
-                },
-                icon: const Text('⚙️', style: TextStyle(fontSize: 18)),
-                label: const Text('Modifier'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.tonalIcon(
-                onPressed: () => context.push('/matches/${match.id}/finalize'),
-                icon: const Text('📈', style: TextStyle(fontSize: 18)),
-                label: const Text('Stats'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: _DeleteMatchButton(matchId: match.id),
-        ),
-      ],
+    return Align(
+      alignment: Alignment.centerRight,
+      child: PopupMenuButton<String>(
+        tooltip: 'Options du match',
+        icon: const Text('✏️', style: TextStyle(fontSize: 22)),
+        onSelected: (value) {
+          switch (value) {
+            case 'edit':
+              _edit(context, ref);
+            case 'stats':
+              context.push('/matches/${match.id}/finalize');
+            case 'delete':
+              _delete(context, ref);
+          }
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem<String>(
+            value: 'edit',
+            child: _ActionRow(emoji: '⚙️', label: 'Modifier'),
+          ),
+          PopupMenuItem<String>(
+            value: 'stats',
+            child: _ActionRow(emoji: '📈', label: 'Stats'),
+          ),
+          PopupMenuItem<String>(
+            value: 'delete',
+            child: _ActionRow(emoji: '🚫', label: 'Supprimer'),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _DeleteMatchButton extends ConsumerWidget {
-  const _DeleteMatchButton({required this.matchId});
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({required this.emoji, required this.label});
 
-  final String matchId;
+  final String emoji;
+  final String label;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return OutlinedButton.icon(
-      onPressed: () async {
-        final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('Supprimer ce match ?'),
-                content: const Text(
-                  'Le match, ses pronostics, ses buteurs et ses statistiques '
-                  'seront définitivement supprimés. Les classements seront recalculés.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('Annuler'),
-                  ),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    child: const Text('Supprimer'),
-                  ),
-                ],
-              ),
-            ) ??
-            false;
-        if (!confirmed || !context.mounted) return;
-
-        await ref.read(matchesControllerProvider.notifier).deleteMatch(matchId);
-        ref
-          ..invalidate(_calendarPredictionProvider)
-          ..invalidate(inlineMatchPredictionProvider)
-          ..invalidate(leaderboardProvider)
-          ..invalidate(enhancedSeasonGaugesProvider)
-          ..invalidate(enhancedSeasonCompletedMatchesProvider)
-          ..invalidate(matchDetailsProvider(matchId));
-        await ref.read(predictionsControllerProvider.notifier).load();
-      },
-      icon: const Text('🚫', style: TextStyle(fontSize: 18)),
-      label: const Text('Supprimer'),
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 12),
+        Text(label),
+      ],
     );
   }
 }

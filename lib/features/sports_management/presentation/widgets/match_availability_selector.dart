@@ -67,10 +67,10 @@ class _MatchAvailabilitySelectorState
             onAbsent: () => _save(value, MatchAvailabilityStatus.absent),
             showManageShortcut: widget.showManageShortcut,
             onOpenEffectif: () => context.push(
-              '/matches/${widget.matchId}/composition?step=effectif',
+              '/matches/${widget.matchId}/lineup?section=effectif',
             ),
             onOpenComposition: () => context.push(
-              '/matches/${widget.matchId}/composition?step=composition',
+              '/matches/${widget.matchId}/lineup?section=composition',
             ),
           ),
         );
