@@ -82,10 +82,15 @@ class ArmoireBadge {
     this.target,
     this.awardedAt,
     this.stars = 1,
+    this.isNew = false,
   });
 
   final BadgeDef def;
   final BadgeState state;
+
+  /// Vrai si le badge est gagné mais pas encore consulté (affiche une pastille
+  /// qui disparaît au clic).
+  final bool isNew;
 
   /// Pour « en cours » : valeur actuelle et seuil visé.
   final int? current;
@@ -161,6 +166,19 @@ class BadgeRepository {
     }
     final byCode = {for (final b in catalog) b.code: b};
 
+    // Badges déjà consultés : ceux gagnés mais absents d'ici affichent la
+    // pastille « nouveau ».
+    final seenRows = await _client
+        .from('profile_badge_seen')
+        .select('badge_code')
+        .eq('profile_id', profileId);
+    final seenCodes = {
+      for (final r in seenRows as List)
+        Map<String, dynamic>.from(r as Map)['badge_code'].toString(),
+    };
+    bool isNewBadge(String code) =>
+        earnedAt.containsKey(code) && !seenCodes.contains(code);
+
     // Valeurs de stats courantes (pour la progression).
     final metricsRes = await _client
         .rpc('profile_badge_metrics', params: {'p_profile_id': profileId});
@@ -226,6 +244,7 @@ class BadgeRepository {
           state: BadgeState.validated,
           awardedAt: earnedAt[highestOwned.code],
           stars: starCounts[highestOwned.code] ?? 1,
+          isNew: isNewBadge(highestOwned.code),
         ));
       }
       if (nextUnowned != null) {
@@ -252,6 +271,7 @@ class BadgeRepository {
           state: BadgeState.validated,
           awardedAt: earnedAt[b.code],
           stars: starCounts[b.code] ?? 1,
+          isNew: isNewBadge(b.code),
         ));
       } else {
         locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
@@ -271,6 +291,7 @@ class BadgeRepository {
         state: BadgeState.validated,
         awardedAt: earnedAt[code],
         stars: starCounts[code] ?? 1,
+        isNew: isNewBadge(code),
       ));
     }
 
@@ -280,6 +301,15 @@ class BadgeRepository {
 
     return Armoire(
         validated: validated, inProgress: inProgress, locked: locked);
+  }
+
+  /// Marque un badge comme consulté (fait disparaître sa pastille « nouveau »).
+  Future<void> markBadgeSeen(String profileId, String code) async {
+    await _client.from('profile_badge_seen').upsert(
+      {'profile_id': profileId, 'badge_code': code},
+      onConflict: 'profile_id,badge_code',
+      ignoreDuplicates: true,
+    );
   }
 }
 
