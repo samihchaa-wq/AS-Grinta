@@ -60,8 +60,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+    final isAdmin = ref.watch(isAdminViewProvider);
 
     final matches = state.matches.toList();
     final orderedMatches = matches.toList()

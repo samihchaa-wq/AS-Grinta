@@ -162,7 +162,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ],
-          if (profile?.role.isStaff == true) ...[
+          if (ref.watch(isAdminViewProvider)) ...[
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: () => context.push('/admin'),

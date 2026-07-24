@@ -108,9 +108,7 @@ class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
 
   @override
   Widget build(BuildContext context) {
-    final isStaff =
-        ref.watch(authControllerProvider).profile?.role.isStaff == true;
-    if (!isStaff) return const SizedBox.shrink();
+    if (!ref.watch(isAdminViewProvider)) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Column(

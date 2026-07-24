@@ -24,8 +24,7 @@ class MatchDetailsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
-    final isAdmin =
-        ref.watch(authControllerProvider).profile?.role == AuthRole.admin;
+    final isAdmin = ref.watch(isAdminViewProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(

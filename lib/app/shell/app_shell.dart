@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,8 +29,18 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final viewingAsUser = ref.watch(viewAsUserProvider);
     return Scaffold(
-      body: child,
+      body: Column(
+        children: [
+          if (viewingAsUser)
+            _PreviewBanner(
+              onExit: () =>
+                  ref.read(viewAsUserProvider.notifier).state = false,
+            ),
+          Expanded(child: child),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         height: 76,
         selectedIndex: _selectedIndex,
@@ -64,6 +76,54 @@ class AppShell extends ConsumerWidget {
             label: 'Stats',
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Bandeau permanent affiché en mode « aperçu utilisateur » : rappelle à
+/// l'admin qu'il voit l'app comme un joueur et permet de revenir en un geste.
+class _PreviewBanner extends StatelessWidget {
+  const _PreviewBanner({required this.onExit});
+
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.accent,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+          child: Row(
+            children: [
+              const Icon(Icons.visibility_outlined,
+                  size: 18, color: Colors.white),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Aperçu utilisateur',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onExit,
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: const Text(
+                  'Revenir en admin',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

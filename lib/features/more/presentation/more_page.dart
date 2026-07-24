@@ -12,7 +12,8 @@ class MorePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authControllerProvider).profile;
-    final isStaff = profile?.role.isStaff == true;
+    final isRealAdmin = ref.watch(isRealAdminProvider);
+    final viewingAsUser = ref.watch(viewAsUserProvider);
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Paramètres')),
@@ -43,19 +44,49 @@ class MorePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: isStaff
-                  ? const Text('👑', style: TextStyle(fontSize: 22))
-                  : const Icon(Icons.admin_panel_settings_outlined),
-              title: const Text(
-                'Admin',
-                style: TextStyle(fontWeight: FontWeight.w800),
+          if (isRealAdmin && !viewingAsUser)
+            Card(
+              child: ListTile(
+                leading: const Text('👑', style: TextStyle(fontSize: 22)),
+                title: const Text(
+                  'Admin',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/admin'),
               ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push(isStaff ? '/admin' : '/admin-access'),
             ),
-          ),
+          if (!isRealAdmin)
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.admin_panel_settings_outlined),
+                title: const Text(
+                  'Admin',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/admin-access'),
+              ),
+            ),
+          if (isRealAdmin) ...[
+            const SizedBox(height: 10),
+            Card(
+              child: SwitchListTile(
+                secondary: const Icon(Icons.visibility_outlined),
+                title: const Text(
+                  'Aperçu utilisateur',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: const Text(
+                  'Vois l’app comme un joueur : tous les contrôles admin '
+                  'sont masqués. Tes droits ne changent pas.',
+                ),
+                value: viewingAsUser,
+                onChanged: (value) =>
+                    ref.read(viewAsUserProvider.notifier).state = value,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Center(
             child: Text(
