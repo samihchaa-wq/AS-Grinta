@@ -11,6 +11,7 @@ class RosterPlayer {
     required this.firstName,
     required this.lastName,
     required this.isGoalkeeper,
+    required this.isCoach,
     required this.isActive,
     required this.linkedProfileId,
     required this.linkedProfileName,
@@ -22,6 +23,7 @@ class RosterPlayer {
   final String firstName;
   final String lastName;
   final bool isGoalkeeper;
+  final bool isCoach;
   final bool isActive;
   final String? linkedProfileId;
   final String? linkedProfileName;
@@ -87,6 +89,7 @@ class RosterRepository {
       first_name,
       last_name,
       is_goalkeeper,
+      is_coach,
       is_active,
       profile_id,
       photo_url,
@@ -114,6 +117,7 @@ class RosterRepository {
         firstName: (map['first_name'] ?? '').toString(),
         lastName: (map['last_name'] ?? '').toString(),
         isGoalkeeper: map['is_goalkeeper'] == true,
+        isCoach: map['is_coach'] == true,
         isActive: map['is_active'] != false,
         linkedProfileId: map['profile_id']?.toString(),
         linkedProfileName: profile?['first_name']?.toString(),
@@ -168,6 +172,7 @@ class RosterRepository {
     required String seasonId,
     required String firstName,
     required bool isGoalkeeper,
+    bool isCoach = false,
   }) async {
     final f = firstName.trim();
     if (f.isEmpty) {
@@ -187,6 +192,7 @@ class RosterRepository {
       'first_name': f,
       'last_name': '',
       'is_goalkeeper': isGoalkeeper,
+      'is_coach': isCoach,
       'is_active': true,
       'position': maxPos + 1,
     });
@@ -196,6 +202,7 @@ class RosterRepository {
     required String id,
     required String firstName,
     required bool isGoalkeeper,
+    bool isCoach = false,
   }) async {
     final f = firstName.trim();
     if (f.isEmpty) {
@@ -204,6 +211,7 @@ class RosterRepository {
     await _client.from('season_players').update({
       'first_name': f,
       'is_goalkeeper': isGoalkeeper,
+      'is_coach': isCoach,
     }).eq('id', id);
   }
 

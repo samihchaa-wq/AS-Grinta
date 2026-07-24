@@ -93,6 +93,7 @@ class _RosterList extends ConsumerWidget {
                     title: Text(player.displayName),
                     subtitle: Text(
                       [
+                        if (player.isCoach) 'Coach',
                         if (player.isGoalkeeper) 'Gardien',
                         player.linkedProfileId == null
                             ? 'Aucun pronostiqueur lié'
@@ -470,6 +471,7 @@ Future<void> _showPlayerDialog(
 }) async {
   final firstName = TextEditingController(text: existing?.firstName ?? '');
   var isGoalkeeper = existing?.isGoalkeeper ?? false;
+  var isCoach = existing?.isCoach ?? false;
   var saving = false;
   String? error;
 
@@ -491,9 +493,24 @@ Future<void> _showPlayerDialog(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Gardien'),
                 value: isGoalkeeper,
-                onChanged: saving
+                onChanged: saving || isCoach
                     ? null
                     : (value) => setState(() => isGoalkeeper = value),
+              ),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Coach'),
+                subtitle: const Text(
+                  'Hors effectif, compo et convoqués. Peut se déclarer '
+                  'présent/absent, parier et voter comme les autres.',
+                ),
+                value: isCoach,
+                onChanged: saving
+                    ? null
+                    : (value) => setState(() {
+                          isCoach = value;
+                          if (value) isGoalkeeper = false;
+                        }),
               ),
               if (error != null)
                 Text(
@@ -525,12 +542,14 @@ Future<void> _showPlayerDialog(
                           seasonId: seasonId,
                           firstName: firstName.text,
                           isGoalkeeper: isGoalkeeper,
+                          isCoach: isCoach,
                         );
                       } else {
                         await repo.updatePlayer(
                           id: existing.id,
                           firstName: firstName.text,
                           isGoalkeeper: isGoalkeeper,
+                          isCoach: isCoach,
                         );
                       }
                       ref.invalidate(rosterProvider(seasonId));
