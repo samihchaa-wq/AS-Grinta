@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +22,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Flutter
@@ -41,7 +42,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Format changed Dart files for export
+      - name: Format changed Dart files
         shell: bash
         run: |
           set -euo pipefail
@@ -52,23 +53,24 @@ jobs:
             range="HEAD^...HEAD"
           fi
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          mkdir -p formatted
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No changed Dart files to format."
-            exit 0
+          if [ "${#files[@]}" -gt 0 ]; then
+            dart format "${files[@]}"
           fi
-          dart format "${files[@]}"
-          for file in "${files[@]}"; do
-            mkdir -p "formatted/$(dirname "$file")"
-            cp "$file" "formatted/$file"
-          done
 
-      - name: Upload formatted Dart files
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-dart-files
-          path: formatted
-          if-no-files-found: warn
+      - name: Commit formatted files and restore CI workflow
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout "origin/${{ github.base_ref }}" -- .github/workflows/flutter_ci.yml
+          rm -f .github/workflows/format_codex_branch.yml .format-trigger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: format fusion files"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
 
       - name: Analyze
         shell: bash
