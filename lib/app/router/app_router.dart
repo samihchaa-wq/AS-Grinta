@@ -56,127 +56,155 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', redirect: (_, __) => '/matches'),
       GoRoute(path: '/home', redirect: (_, __) => '/matches'),
       GoRoute(path: '/accueil', redirect: (_, __) => '/matches'),
-      ShellRoute(
-        builder: (context, state, child) =>
-            AppShell(location: state.uri.toString(), child: child),
-        routes: [
-          GoRoute(path: '/admin', builder: (_, __) => const AdminMenuPage()),
-          GoRoute(
-            path: '/admin/administration',
-            builder: (_, __) => const AdminPage(),
-          ),
-          GoRoute(
-            path: '/admin/matches',
-            builder: (_, __) => const MatchesPage(),
-          ),
-          GoRoute(
-            path: '/admin/composition',
-            builder: (_, __) => const AdminSquadPlanPage(),
-          ),
-          GoRoute(
-            path: '/admin/guests',
-            builder: (_, __) => const AdminGuestsPage(),
-          ),
-          GoRoute(
-            path: '/admin/waitlist',
-            builder: (_, __) => const AdminWaitlistPage(),
-          ),
-          GoRoute(
-            path: '/admin/badges',
-            builder: (_, __) => const BadgeAdminPage(),
-          ),
-          GoRoute(path: '/more', builder: (_, __) => const MorePage()),
-          GoRoute(
-            path: '/players',
-            builder: (_, __) => const PlayersRegistryPage(),
-          ),
-          GoRoute(
-            path: '/matches',
-            pageBuilder: (_, __) => const NoTransitionPage(
-              child: PronosHubPage(initialCategory: 'matches'),
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId',
-            builder: (context, state) => MatchDetailsPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/lineup',
-            builder: (context, state) =>
-                MatchLineupPage(matchId: state.pathParameters['matchId'] ?? ''),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/vote',
-            builder: (context, state) => SportMotmVotePage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/finalize',
-            builder: (context, state) {
-              final matchId = state.pathParameters['matchId'] ?? '';
-              return ref.read(sportsManagementEnabledProvider)
-                  ? SportMatchFinalizationPage(matchId: matchId)
-                  : MatchFinalizationPage(matchId: matchId);
-            },
-          ),
-          GoRoute(
-            path: '/matches/:matchId/prediction',
-            builder: (context, state) => UpcomingMatchPredictionPage(
-              matchId: state.pathParameters['matchId'] ?? '',
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/composition',
-            builder: (context, state) => AdminSquadPlanPage(
-              initialMatchId: state.pathParameters['matchId'],
-              initialStep: state.uri.queryParameters['step'],
-            ),
-          ),
-          GoRoute(
-            path: '/matches/:matchId/guests',
-            builder: (context, state) => AdminGuestsPage(
-              initialMatchId: state.pathParameters['matchId'],
-            ),
-          ),
-          GoRoute(
-            path: '/stats',
-            pageBuilder: (context, state) => NoTransitionPage(
-              child: StatsHubPage(
-                initialSection: state.uri.queryParameters['section'],
-                initialRankingView: state.uri.queryParameters['view'],
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(
+          location: state.uri.toString(),
+          navigationShell: navigationShell,
+        ),
+        branches: [
+          StatefulShellBranch(
+            initialLocation: '/matches',
+            routes: [
+              GoRoute(
+                path: '/matches',
+                pageBuilder: (_, __) => const NoTransitionPage(
+                  key: ValueKey<String>('matches-root'),
+                  child: PronosHubPage(initialCategory: 'matches'),
+                ),
               ),
-            ),
+              GoRoute(
+                path: '/matches/:matchId',
+                builder: (context, state) => MatchDetailsPage(
+                  matchId: state.pathParameters['matchId'] ?? '',
+                ),
+              ),
+              GoRoute(
+                path: '/matches/:matchId/lineup',
+                builder: (context, state) => MatchLineupPage(
+                  matchId: state.pathParameters['matchId'] ?? '',
+                ),
+              ),
+              GoRoute(
+                path: '/matches/:matchId/vote',
+                builder: (context, state) => SportMotmVotePage(
+                  matchId: state.pathParameters['matchId'] ?? '',
+                ),
+              ),
+              GoRoute(
+                path: '/matches/:matchId/finalize',
+                builder: (context, state) {
+                  final matchId = state.pathParameters['matchId'] ?? '';
+                  return ref.read(sportsManagementEnabledProvider)
+                      ? SportMatchFinalizationPage(matchId: matchId)
+                      : MatchFinalizationPage(matchId: matchId);
+                },
+              ),
+              GoRoute(
+                path: '/matches/:matchId/prediction',
+                builder: (context, state) => UpcomingMatchPredictionPage(
+                  matchId: state.pathParameters['matchId'] ?? '',
+                ),
+              ),
+              GoRoute(
+                path: '/matches/:matchId/composition',
+                builder: (context, state) => AdminSquadPlanPage(
+                  initialMatchId: state.pathParameters['matchId'],
+                  initialStep: state.uri.queryParameters['step'],
+                ),
+              ),
+              GoRoute(
+                path: '/matches/:matchId/guests',
+                builder: (context, state) => AdminGuestsPage(
+                  initialMatchId: state.pathParameters['matchId'],
+                ),
+              ),
+              GoRoute(
+                path: '/admin',
+                builder: (_, __) => const AdminMenuPage(),
+              ),
+              GoRoute(
+                path: '/admin/administration',
+                builder: (_, __) => const AdminPage(),
+              ),
+              GoRoute(
+                path: '/admin/matches',
+                builder: (_, __) => const MatchesPage(),
+              ),
+              GoRoute(
+                path: '/admin/composition',
+                builder: (_, __) => const AdminSquadPlanPage(),
+              ),
+              GoRoute(
+                path: '/admin/guests',
+                builder: (_, __) => const AdminGuestsPage(),
+              ),
+              GoRoute(
+                path: '/admin/waitlist',
+                builder: (_, __) => const AdminWaitlistPage(),
+              ),
+              GoRoute(
+                path: '/admin/badges',
+                builder: (_, __) => const BadgeAdminPage(),
+              ),
+              GoRoute(path: '/more', builder: (_, __) => const MorePage()),
+              GoRoute(
+                path: '/players',
+                builder: (_, __) => const PlayersRegistryPage(),
+              ),
+              GoRoute(
+                path: '/profile',
+                builder: (_, __) => const ProfilePage(),
+              ),
+              GoRoute(
+                path: '/armoire',
+                builder: (_, __) => const ArmoirePage(),
+              ),
+              GoRoute(
+                path: '/notifications',
+                builder: (_, __) => const NotificationsPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/pronos',
-            redirect: (context, state) {
-              final category = state.uri.queryParameters['category'];
-              if (category == 'matches' || category == null) return '/matches';
-              final view = category == 'scorers'
-                  ? 'scorers'
-                  : state.uri.queryParameters['view'] ?? 'matches';
-              return '/stats?section=rankings&view=$view';
-            },
-          ),
-          GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
-          GoRoute(
-            path: '/predictions/leaderboard',
-            redirect: (_, __) => '/stats?section=rankings&view=matches',
-          ),
-          GoRoute(
-            path: '/statistics',
-            redirect: (_, __) => '/stats?section=players',
-          ),
-          GoRoute(path: '/profile', builder: (_, __) => const ProfilePage()),
-          GoRoute(path: '/armoire', builder: (_, __) => const ArmoirePage()),
-          GoRoute(
-            path: '/notifications',
-            builder: (_, __) => const NotificationsPage(),
+          StatefulShellBranch(
+            initialLocation: '/stats',
+            routes: [
+              GoRoute(
+                path: '/stats',
+                pageBuilder: (context, state) {
+                  final section = state.uri.queryParameters['section'];
+                  final view = state.uri.queryParameters['view'];
+                  return NoTransitionPage(
+                    key: ValueKey<String>('stats:$section:$view'),
+                    child: StatsHubPage(
+                      initialSection: section,
+                      initialRankingView: view,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/pronos',
+        redirect: (context, state) {
+          final category = state.uri.queryParameters['category'];
+          if (category == 'matches' || category == null) return '/matches';
+          final view = category == 'scorers'
+              ? 'scorers'
+              : state.uri.queryParameters['view'] ?? 'matches';
+          return '/stats?section=rankings&view=$view';
+        },
+      ),
+      GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
+      GoRoute(
+        path: '/predictions/leaderboard',
+        redirect: (_, __) => '/stats?section=rankings&view=matches',
+      ),
+      GoRoute(
+        path: '/statistics',
+        redirect: (_, __) => '/stats?section=players',
       ),
       GoRoute(
         path: '/admin-access',
