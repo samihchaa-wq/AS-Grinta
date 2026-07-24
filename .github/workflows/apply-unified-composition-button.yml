@@ -1,3 +1,4 @@
+# One-shot workflow: it removes itself after applying the UI change.
 name: Apply unified composition publish button
 
 on:
