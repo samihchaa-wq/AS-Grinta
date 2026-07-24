@@ -4,7 +4,6 @@ import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
@@ -41,16 +40,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
   Future<void> _refresh() async {
     final state = ref.read(matchesControllerProvider);
-    ref
-      ..invalidate(homeDashboardProvider)
-      ..invalidate(myLastPronoProvider)
-      ..invalidate(historyMatchPredictionProvider);
-    await Future.wait([
-      ref
-          .read(matchesControllerProvider.notifier)
-          .load(seasonId: state.selectedSeasonId, allSeasons: true),
-      ref.read(homeDashboardProvider.future),
-    ]);
+    await ref
+        .read(matchesControllerProvider.notifier)
+        .load(seasonId: state.selectedSeasonId, allSeasons: true);
   }
 
   void _focusNextMatch({
@@ -112,20 +104,20 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
-    final dashboard = ref.watch(homeDashboardProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
 
     final upcoming = state.matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
     final finished = state.matches.where((match) => match.isFinished).toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final nextMatchId = upcoming.isEmpty ? null : upcoming.last.id;
+    final nextMatch = upcoming.isEmpty ? null : upcoming.last;
+    final nextMatchId = nextMatch?.id;
     final laterUpcoming = upcoming.length > 1
         ? upcoming.sublist(0, upcoming.length - 1)
         : <MatchModel>[];
 
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    final nextCardIsReady = dashboard.valueOrNull?.nextMatch?.id == nextMatchId;
+    final nextCardIsReady = nextMatch != null && !state.isLoading;
 
     _focusNextMatch(
       matchId: nextMatchId,
@@ -215,31 +207,16 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverToBoxAdapter(
-                    child: dashboard.when(
-                      loading: () => const _LoadingCard(),
-                      error: (_, __) => const _MessageCard(
-                        title: 'Prochain match indisponible',
-                        icon: Icons.wifi_off_rounded,
-                        message: 'Tire pour rafraîchir.',
-                        tone: GrintaEmptyTone.alert,
-                      ),
-                      data: (data) {
-                        final next = data.nextMatch;
-                        if (next == null || next.id != nextMatchId) {
-                          return const _MessageCard(
+                    child: nextMatch == null
+                        ? const _MessageCard(
                             title: 'Pas de match programmé',
                             message:
                                 'Le prochain match apparaîtra ici dès qu’il sera créé.',
-                          );
-                        }
-                        return HomeNextMatchCard(
-                          match: next,
-                          predicted: data.nextMatchPredicted,
-                          prediction: data.nextMatchPrediction,
-                          isAdmin: isAdmin,
-                        );
-                      },
-                    ),
+                          )
+                        : HomeNextMatchCard(
+                            match: nextMatch,
+                            isAdmin: isAdmin,
+                          ),
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 18)),
