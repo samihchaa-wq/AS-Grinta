@@ -1208,23 +1208,12 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           ),
         ),
         const SizedBox(height: 16),
-        FilledButton.tonalIcon(
-          onPressed:
-              _busy || _locked ? null : () => _saveComposition(publish: false),
-          icon: const Icon(Icons.save_outlined),
-          label: Text(
-            _compositionDirty
-                ? 'Enregistrer le brouillon'
-                : 'Brouillon enregistré',
-          ),
-        ),
-        const SizedBox(height: 10),
         FilledButton.icon(
           onPressed:
               _busy || _locked ? null : () => _saveComposition(publish: true),
           icon: const Icon(Icons.campaign_outlined),
           label: Text(
-            composition.isPublished ? 'Republier' : 'Publier la composition',
+            composition.isPublished ? 'Mettre à jour' : 'Publier',
           ),
         ),
         if (_locked)
