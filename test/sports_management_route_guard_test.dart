@@ -22,7 +22,7 @@ void main() {
             uri: Uri.parse(route),
             matchedLocation: route,
           ),
-          '/pronos',
+          '/matches',
         );
       }
     });
@@ -82,7 +82,7 @@ void main() {
               matchedLocation: route,
               sportsManagementEnabled: true,
             ),
-            '/pronos',
+            '/matches',
           );
           expect(
             resolveAuthRedirect(
