@@ -234,39 +234,36 @@ class _CalendarMatchCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: MatchFixture(
-                  homeName: homeName,
-                  awayName: awayName,
-                  grintaIsHome: match.isHome,
-                  homeScore: homeScore,
-                  awayScore: awayScore,
-                  finished: match.isFinished,
+          MatchDateHeader(
+            kickoffAt: match.kickoffAt,
+            secondary: dateColor,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: MatchFixture(
+                    homeName: homeName,
+                    awayName: awayName,
+                    grintaIsHome: match.isHome,
+                    homeScore: homeScore,
+                    awayScore: awayScore,
+                    finished: match.isFinished,
+                  ),
                 ),
-              ),
-              // Le score suffit à indiquer qu'un match est terminé : on ne
-              // montre l'étiquette de statut que pour les matchs à venir.
-              if (!match.isFinished) ...[
-                const SizedBox(width: 12),
-                Text(
-                  statusLabel,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: statusColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
+                // Le score suffit à indiquer qu'un match est terminé : on ne
+                // montre l'étiquette de statut que pour les matchs à venir.
+                if (!match.isFinished) ...[
+                  const SizedBox(width: 12),
+                  Text(
+                    statusLabel,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ],
               ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            AppFormats.dateTime(match.kickoffAt),
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: dateColor),
+            ),
           ),
           if (isAdmin) ...[
             const SizedBox(height: 14),
