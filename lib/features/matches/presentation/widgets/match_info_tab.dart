@@ -29,14 +29,53 @@ class MatchInfoTab extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (info.kickoffAt != null)
+              if (info.kickoffAt != null) ...[
                 _InfoRow(
-                  icon: Icons.schedule_rounded,
-                  child: Text(
-                    AppFormats.dateTime(info.kickoffAt!),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  icon: Icons.sports_soccer_rounded,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Coup d’envoi  ',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        TextSpan(
+                          text: AppFormats.dateTime(info.kickoffAt!),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                _InfoRow(
+                  icon: Icons.groups_rounded,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Rendez-vous  ',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        TextSpan(
+                          text: AppFormats.time(
+                            info.kickoffAt!
+                                .subtract(const Duration(minutes: 30)),
+                          ),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const TextSpan(
+                          text: '  (30 min avant)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               if (info.address != null)
                 InkWell(
