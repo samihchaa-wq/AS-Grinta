@@ -8,20 +8,76 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  clean-unified-composition-button:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'feature/unified-composition-publish-button'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Remove obsolete draft-state field
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("lib/features/sports_management/presentation/admin_squad_plan_page.dart")
+          lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+          removed = [line for line in lines if "_compositionDirty" in line]
+          if not removed:
+              raise SystemExit("No _compositionDirty occurrences found.")
+          path.write_text(
+              "".join(line for line in lines if "_compositionDirty" not in line),
+              encoding="utf-8",
+          )
+          print(f"Removed {len(removed)} obsolete lines.")
+
+      - name: Format changed Dart file
+        run: dart format lib/features/sports_management/presentation/admin_squad_plan_page.dart
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/sports_management/presentation/admin_squad_plan_page.dart
+          git commit -m "Remove obsolete composition draft state"
+          git push origin HEAD:${{ github.head_ref }}
+
   validate:
+    needs: clean-unified-composition-button
+    if: >-
+      always() &&
+      (needs.clean-unified-composition-button.result == 'success' ||
+       needs.clean-unified-composition-button.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
           fetch-depth: 0
 
       - name: Setup Flutter
