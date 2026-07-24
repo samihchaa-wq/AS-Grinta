@@ -26,17 +26,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   static const _statsBackground = AssetImage(
     'assets/images/module_backgrounds/stats.webp',
   );
-  static const _settingsBackground = AssetImage(
-    'assets/images/module_backgrounds/settings.webp',
-  );
-  static const _badgesBackground = AssetImage(
-    'assets/images/module_backgrounds/badges.webp',
-  );
   static const _backgrounds = <ImageProvider<Object>>[
     _matchesBackground,
     _statsBackground,
-    _settingsBackground,
-    _badgesBackground,
   ];
 
   bool _precacheScheduled = false;
@@ -54,12 +46,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
     if (path == '/stats' || path == '/statistics') {
       return _statsBackground;
-    }
-    if (path == '/more' || path == '/profile' || path == '/notifications') {
-      return _settingsBackground;
-    }
-    if (path == '/armoire' || path == '/admin/badges') {
-      return _badgesBackground;
     }
     return null;
   }
