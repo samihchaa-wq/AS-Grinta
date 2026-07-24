@@ -85,6 +85,31 @@ jobs:
           fetch_binary_blob 5dd0b12dac8bee1f4f3554f1335214fa25cb84b2 assets/images/module_backgrounds/settings.webp
           fetch_binary_blob c3c65e5c15b53c99b3534b627321f462ca73ead6 assets/images/module_backgrounds/badges.webp
 
+      - name: Build image diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          : > hd-diagnostics.txt
+          for asset in assets/images/module_backgrounds/*.webp; do
+            echo "=== ${asset} ===" | tee -a hd-diagnostics.txt
+            stat -c 'bytes=%s' "${asset}" 2>&1 | tee -a hd-diagnostics.txt
+            file "${asset}" 2>&1 | tee -a hd-diagnostics.txt
+            identify -format 'dimensions=%wx%h\n' "${asset}" 2>&1 | tee -a hd-diagnostics.txt
+            sha256sum "${asset}" 2>&1 | tee -a hd-diagnostics.txt
+          done
+
+      - name: Upload reconstructed assets and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reconstructed-hd-backgrounds
+          path: |
+            assets/images/module_backgrounds/*.webp
+            hd-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Verify image quality
         shell: bash
         run: |
@@ -125,6 +150,7 @@ jobs:
           rm -f .github/workflows/assemble_hd_module_backgrounds_v3.yml
           rm -f .github/workflows/assemble_hd_module_backgrounds_v4.yml
           rm -f .github/workflows/finalize_hd_module_backgrounds.yml
+          rm -f hd-diagnostics.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
