@@ -139,8 +139,10 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
-        _VoteHeader(vote: vote),
-        const SizedBox(height: 16),
+        if (!vote.isClosed) ...[
+          _VoteHeader(vote: vote),
+          const SizedBox(height: 16),
+        ],
         if (vote.isOpen) ...[
           if (vote.hasVoted)
             const _MessageCard(
@@ -223,14 +225,14 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
             title: 'Scrutin annulé',
             message:
                 'Aucun Homme du match collectif n’est attribué pour le moment.',
-          ),
+          )
         ] else ...[
           const _MessageCard(
             icon: Icons.schedule_outlined,
             title: 'Scrutin bientôt ouvert',
             message: 'Le vote s’ouvre 1 h 45 après le coup d’envoi '
                 '(ou dès la validation du résultat).',
-          ),
+          )
         ],
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -379,35 +381,9 @@ class _Results extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final winners = vote.winners;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const Text('🏆', style: TextStyle(fontSize: 44)),
-                const SizedBox(height: 8),
-                Text(
-                  winners.isEmpty
-                      ? 'Aucun vote exprimé'
-                      : winners.length == 1
-                          ? winners.first.displayName
-                          : winners
-                              .map((winner) => winner.displayName)
-                              .join(' · '),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         Text('Résultats', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         for (final candidate
