@@ -404,7 +404,8 @@ class _Results extends StatelessWidget {
         const SizedBox(height: 16),
         Text('Résultats', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        for (final candidate in vote.candidates)
+        for (final candidate
+            in vote.candidates.where((c) => (c.votesCount ?? 0) > 0))
           Card(
             child: ListTile(
               leading: Text(
