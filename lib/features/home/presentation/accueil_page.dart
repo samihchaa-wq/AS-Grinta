@@ -2,6 +2,7 @@ import 'package:as_grinta/core/local/local_flags.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
@@ -230,11 +231,12 @@ class _NextMatchCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      '$homeName  vs  $awayName',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                    child: MatchFixture(
+                      homeName: homeName,
+                      awayName: awayName,
+                      grintaIsHome: match.isHome,
+                      nameStyle: Theme.of(context).textTheme.titleLarge,
+                      foreground: Colors.white,
                     ),
                   ),
                   const Icon(Icons.chevron_right, color: Color(0xFFD7C8FF)),

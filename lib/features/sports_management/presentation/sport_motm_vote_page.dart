@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart';
 import 'package:flutter/material.dart';
@@ -344,12 +345,14 @@ class _VoteHeader extends StatelessWidget {
           children: [
             const Text('👑', style: TextStyle(fontSize: 42)),
             const SizedBox(height: 8),
-            Text(
-              vote.matchTitle,
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            MatchFixture(
+              homeName: vote.isHome ? 'AS Grinta' : vote.opponentName,
+              awayName: vote.isHome ? vote.opponentName : 'AS Grinta',
+              grintaIsHome: vote.isHome,
+              homeScore: vote.isHome ? vote.scoreAsGrinta : vote.scoreAdverse,
+              awayScore: vote.isHome ? vote.scoreAdverse : vote.scoreAsGrinta,
+              finished: vote.hasScore,
+              nameStyle: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(status),

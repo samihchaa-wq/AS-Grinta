@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
@@ -125,13 +126,13 @@ class _UpcomingHeader extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              '$homeName vs $awayName',
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            MatchFixture(
+              homeName: homeName,
+              awayName: awayName,
+              grintaIsHome: home,
+              nameStyle: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),
@@ -258,21 +259,21 @@ class _MatchHeader extends StatelessWidget {
     final home = details.location == 'domicile';
     final grinta = details.scoreGrinta ?? 0;
     final opponent = details.scoreOpponent ?? 0;
-    final title = home
-        ? 'AS Grinta $grinta – $opponent ${details.opponentName}'
-        : '${details.opponentName} $opponent – $grinta AS Grinta';
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            MatchFixture(
+              homeName: home ? 'AS Grinta' : details.opponentName,
+              awayName: home ? details.opponentName : 'AS Grinta',
+              grintaIsHome: home,
+              homeScore: home ? grinta : opponent,
+              awayScore: home ? opponent : grinta,
+              finished: true,
+              nameStyle: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(AppFormats.dateTime(details.kickoffAt)),

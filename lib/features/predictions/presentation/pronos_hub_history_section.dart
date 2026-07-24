@@ -235,17 +235,16 @@ class _CalendarMatchCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  match.isFinished
-                      ? '$homeName $homeScore–$awayScore $awayName'
-                      : '$homeName vs $awayName',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                child: MatchFixture(
+                  homeName: homeName,
+                  awayName: awayName,
+                  grintaIsHome: match.isHome,
+                  homeScore: homeScore,
+                  awayScore: awayScore,
+                  finished: match.isFinished,
                 ),
               ),
               const SizedBox(width: 12),
