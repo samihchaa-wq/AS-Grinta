@@ -1,0 +1,26 @@
+name: Trigger post-match patch
+
+on:
+  push:
+    branches:
+      - fix/compositionless-scorers-list
+    paths:
+      - .github/workflows/trigger-postmatch-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/compositionless-scorers-list
+      - run: |
+          echo "# trigger $(date +%s)" >> .github/workflows/postmatch-composition-patch.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/postmatch-composition-patch.yml
+          git commit -m "Déclencher le patch de composition après match"
+          git push origin HEAD:fix/compositionless-scorers-list
