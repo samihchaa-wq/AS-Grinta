@@ -5,7 +5,7 @@ enum _LbCol { name, first, second, points }
 const _leaderboardNameFlex = 5;
 const _leaderboardValueFlex = 2;
 
-class _LeaderboardCard extends StatefulWidget {
+class _LeaderboardCard extends ConsumerStatefulWidget {
   const _LeaderboardCard({
     required this.entries,
     required this.points,
@@ -19,10 +19,10 @@ class _LeaderboardCard extends StatefulWidget {
   final bool showMatchStats;
 
   @override
-  State<_LeaderboardCard> createState() => _LeaderboardCardState();
+  ConsumerState<_LeaderboardCard> createState() => _LeaderboardCardState();
 }
 
-class _LeaderboardCardState extends State<_LeaderboardCard> {
+class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
   _LbCol _sort = _LbCol.points;
   bool _desc = true;
 
@@ -51,6 +51,9 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
       );
     }
 
+    final currentProfileId = ref.watch(
+      authControllerProvider.select((state) => state.profile?.id),
+    );
     final sorted = [...widget.entries]..sort((a, b) {
         int cmp;
         switch (_sort) {
@@ -129,6 +132,8 @@ class _LeaderboardCardState extends State<_LeaderboardCard> {
             firstValue: '${_first(sorted[index]).round()}',
             secondValue: '${_second(sorted[index]).round()}',
             points: '${widget.points(sorted[index]).round()}',
+            isCurrentUser: currentProfileId != null &&
+                sorted[index].profileId == currentProfileId,
           ),
       ],
     );
@@ -142,6 +147,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
     required this.firstValue,
     required this.secondValue,
     required this.points,
+    required this.isCurrentUser,
     this.profileId,
   });
 
@@ -151,12 +157,12 @@ class _LeaderboardRowLayout extends StatelessWidget {
   final String firstValue;
   final String secondValue;
   final String points;
+  final bool isCurrentUser;
 
   @override
   Widget build(BuildContext context) {
     final valueStyle = grintaTableCellTextStyle(context);
-
-    return Padding(
+    final row = Padding(
       padding: grintaTableRowPadding,
       child: Row(
         children: [
@@ -215,6 +221,16 @@ class _LeaderboardRowLayout extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (!isCurrentUser) return row;
+    final accent = Theme.of(context).colorScheme.secondary;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: .14),
+        border: Border(left: BorderSide(color: accent, width: 4)),
+      ),
+      child: row,
     );
   }
 }
