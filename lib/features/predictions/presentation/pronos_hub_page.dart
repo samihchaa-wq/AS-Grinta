@@ -47,9 +47,9 @@ class PronosHubPage extends ConsumerStatefulWidget {
 }
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
-  static const _matchesBackground = AssetImage(
-    'assets/images/module_backgrounds/matches_blue.webp',
-  );
+  static const _matchesBackgroundPath =
+      'assets/images/module_backgrounds/matches_blue.webp';
+  static const _matchesBackground = AssetImage(_matchesBackgroundPath);
 
   late _PronosCategory _category;
 
@@ -101,20 +101,20 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         }),
         actions: grintaHomeActions(context),
       ),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: _matchesBackground,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            _matchesBackgroundPath,
             fit: BoxFit.fill,
             alignment: Alignment.center,
             filterQuality: FilterQuality.high,
             isAntiAlias: true,
+            gaplessPlayback: true,
+            excludeFromSemantics: true,
           ),
-        ),
-        child: ColoredBox(
-          color: Color(0x08000000),
-          child: content,
-        ),
+          Material(type: MaterialType.transparency, child: content),
+        ],
       ),
     );
   }
