@@ -33,8 +33,10 @@ String? _clean(Object? value) {
   return text == null || text.isEmpty ? null : text;
 }
 
-final matchInfoProvider =
-    FutureProvider.family<MatchInfo, String>((ref, matchId) async {
+final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
+  ref,
+  matchId,
+) async {
   final client = ref.watch(supabaseClientProvider);
 
   final match = await client
@@ -47,11 +49,7 @@ final matchInfoProvider =
       .maybeSingle();
 
   if (match == null) {
-    return const MatchInfo(
-      kickoffAt: null,
-      address: null,
-      lastEncounters: [],
-    );
+    return const MatchInfo(kickoffAt: null, address: null, lastEncounters: []);
   }
 
   final opponentId = match['opponent_id']?.toString();
@@ -61,11 +59,11 @@ final matchInfoProvider =
       : null;
   // L'adresse est celle de l'équipe à domicile : repli sur l'adversaire
   // uniquement pour un match à l'extérieur.
-  final address =
-      _clean(match['address']) ?? (isHome ? null : opponentAddress);
+  final address = _clean(match['address']) ?? (isHome ? null : opponentAddress);
 
-  final serverKickoff =
-      DateTime.tryParse('${match['kickoff_at'] ?? ''}')?.toLocal();
+  final serverKickoff = DateTime.tryParse(
+    '${match['kickoff_at'] ?? ''}',
+  )?.toLocal();
   final date = match['match_date']?.toString() ?? '';
   final time = match['match_time']?.toString() ?? '00:00:00';
   final kickoffAt = serverKickoff ?? DateTime.tryParse('${date}T$time');
@@ -82,9 +80,7 @@ final matchInfoProvider =
         MatchEncounter(
           grintaScore: (map['grinta_score'] as num?)?.toInt() ?? 0,
           opponentScore: (map['opponent_score'] as num?)?.toInt() ?? 0,
-          date: DateTime.tryParse(
-            '${map['encounter_date'] ?? ''}',
-          )?.toLocal(),
+          date: DateTime.tryParse('${map['encounter_date'] ?? ''}')?.toLocal(),
         ),
       );
     }
