@@ -105,14 +105,14 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: _matchesBackground,
-            fit: BoxFit.cover,
+            fit: BoxFit.fill,
             alignment: Alignment.center,
             filterQuality: FilterQuality.high,
             isAntiAlias: true,
           ),
         ),
         child: ColoredBox(
-          color: Color(0x14000000),
+          color: Color(0x08000000),
           child: content,
         ),
       ),
