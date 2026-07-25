@@ -54,7 +54,8 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
     final currentProfileId = ref.watch(
       authControllerProvider.select((state) => state.profile?.id),
     );
-    final sorted = [...widget.entries]..sort((a, b) {
+    final sorted = [...widget.entries]
+      ..sort((a, b) {
         int cmp;
         switch (_sort) {
           case _LbCol.name:
@@ -132,7 +133,8 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
             firstValue: '${_first(sorted[index]).round()}',
             secondValue: '${_second(sorted[index]).round()}',
             points: '${widget.points(sorted[index]).round()}',
-            isCurrentUser: currentProfileId != null &&
+            isCurrentUser:
+                currentProfileId != null &&
                 sorted[index].profileId == currentProfileId,
           ),
       ],
@@ -213,11 +215,7 @@ class _LeaderboardRowLayout extends StatelessWidget {
           ),
           Expanded(
             flex: _leaderboardValueFlex,
-            child: Text(
-              points,
-              textAlign: TextAlign.end,
-              style: valueStyle,
-            ),
+            child: Text(points, textAlign: TextAlign.end, style: valueStyle),
           ),
         ],
       ),

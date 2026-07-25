@@ -96,8 +96,8 @@ class _StatsHubPageState extends State<StatsHubPage> {
           Expanded(
             child: switch (_section) {
               _StatsSection.rankings => RankingsPanel(
-                  initialView: widget.initialRankingView,
-                ),
+                initialView: widget.initialRankingView,
+              ),
               _StatsSection.players => _PlayersPanel(period: _period),
               _StatsSection.team => TeamStatisticsPanel(period: _period),
             },
@@ -182,14 +182,14 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
         if (sort != null) {
           players.sort((a, b) {
             final comparison = sort == _PlayerStatCol.name
-                ? a.playerName
-                    .toLowerCase()
-                    .compareTo(b.playerName.toLowerCase())
+                ? a.playerName.toLowerCase().compareTo(
+                    b.playerName.toLowerCase(),
+                  )
                 : _value(sort, a).compareTo(_value(sort, b));
             if (comparison == 0) {
-              return a.playerName
-                  .toLowerCase()
-                  .compareTo(b.playerName.toLowerCase());
+              return a.playerName.toLowerCase().compareTo(
+                b.playerName.toLowerCase(),
+              );
             }
             return _descending ? -comparison : comparison;
           });
@@ -210,7 +210,8 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
                 _PlayersDataRow(
                   rank: index + 1,
                   player: players[index],
-                  isCurrentUser: currentProfileId != null &&
+                  isCurrentUser:
+                      currentProfileId != null &&
                       players[index].profileId == currentProfileId,
                 ),
             ],

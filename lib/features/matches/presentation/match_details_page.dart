@@ -235,10 +235,9 @@ class _MatchModule extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 subtitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppTheme.textSecondary),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 12),
               const Align(
@@ -301,8 +300,9 @@ class _CompletedCompositionCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Priorité au rendu MPG (photos, couronne 👑, ballons ⚽) dès qu'une
     // composition publiée existe : même visuel avant et après le match.
-    final composition =
-        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
+    final composition = ref
+        .watch(publishedMatchCompositionProvider(matchId))
+        .valueOrNull;
     final fieldEntries =
         composition?.entriesFor(MatchCompositionZone.field) ?? const [];
     if (fieldEntries.isNotEmpty) {
@@ -362,19 +362,17 @@ class _MpgCompletedCard extends StatelessWidget {
           children: [
             Text(
               'Composition et résumé',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
               'Les buts ⚽ et l’homme du match 👑 sont affichés directement '
               'sur les joueurs.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppTheme.textSecondary),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 16),
             Center(
@@ -389,17 +387,17 @@ class _MpgCompletedCard extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Remplaçants (${bench.length})',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  for (final entry in bench) CompositionPlayerTile(entry: entry),
+                  for (final entry in bench)
+                    CompositionPlayerTile(entry: entry),
                 ],
               ),
             ],
@@ -456,12 +454,13 @@ class _PredictionsTable extends StatelessWidget {
 
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
-    final exact = prediction.scoreGrinta == actualGrinta &&
+    final exact =
+        prediction.scoreGrinta == actualGrinta &&
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
     final correctWinner =
         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
-            _result(actualGrinta, actualOpponent);
+        _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
     return const Color(0xFF39E784);
   }
@@ -471,8 +470,8 @@ class _PredictionsTable extends StatelessWidget {
     MatchPredictionResult prediction,
   ) {
     final resultColor = _colorFor(prediction);
-    final isCurrentUser = currentProfileId != null &&
-        prediction.profileId == currentProfileId;
+    final isCurrentUser =
+        currentProfileId != null && prediction.profileId == currentProfileId;
     final highlightColor = isCurrentUser ? AppTheme.accent : resultColor;
 
     return Container(
