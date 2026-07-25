@@ -1,4 +1,4 @@
-name: Temporary format PR merge
+name: Temporary sync and format
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  format-merge:
+  sync-format:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -24,26 +24,21 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Format the PR merge result
+      - name: Merge main and format changed files
         run: |
-          git fetch origin refs/pull/482/merge:refs/remotes/origin/pr-482-merge
-          git checkout --detach refs/remotes/origin/pr-482-merge
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-edit origin/main
           dart format \
             lib/features/matches/presentation/match_details_page.dart \
             lib/features/predictions/presentation/pronos_hub_components.dart \
             lib/features/statistics/presentation/stats_hub_page.dart
-          git diff --binary > /tmp/format.patch
-          git checkout feature/highlight-current-user-rows
-          if [ ! -s /tmp/format.patch ]; then
-            echo "PR merge result already formatted."
-            exit 0
+          if ! git diff --quiet; then
+            git add \
+              lib/features/matches/presentation/match_details_page.dart \
+              lib/features/predictions/presentation/pronos_hub_components.dart \
+              lib/features/statistics/presentation/stats_hub_page.dart
+            git commit -m "Format current user row highlighting after main sync"
           fi
-          git apply /tmp/format.patch
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            lib/features/matches/presentation/match_details_page.dart \
-            lib/features/predictions/presentation/pronos_hub_components.dart \
-            lib/features/statistics/presentation/stats_hub_page.dart
-          git commit -m "Format PR merge result"
           git push origin HEAD:feature/highlight-current-user-rows
