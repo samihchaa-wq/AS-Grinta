@@ -27,6 +27,9 @@ class MatchDetailsPage extends ConsumerWidget {
     final detailsAsync = ref.watch(matchDetailsProvider(matchId));
     final isAdmin = ref.watch(isAdminViewProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
+    final currentProfileId = ref.watch(
+      authControllerProvider.select((state) => state.profile?.id),
+    );
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Match')),
@@ -93,6 +96,7 @@ class MatchDetailsPage extends ConsumerWidget {
                     actualGrinta: details.scoreGrinta ?? 0,
                     actualOpponent: details.scoreOpponent ?? 0,
                     isHome: details.location == 'domicile',
+                    currentProfileId: currentProfileId,
                   ),
                 ],
                 if (isAdmin) ...[
@@ -439,12 +443,14 @@ class _PredictionsTable extends StatelessWidget {
     required this.actualGrinta,
     required this.actualOpponent,
     required this.isHome,
+    required this.currentProfileId,
   });
 
   final List<MatchPredictionResult> predictions;
   final int actualGrinta;
   final int actualOpponent;
   final bool isHome;
+  final String? currentProfileId;
 
   int _result(int home, int away) => home == away ? 0 : (home > away ? 1 : -1);
 
@@ -460,6 +466,67 @@ class _PredictionsTable extends StatelessWidget {
     return const Color(0xFF39E784);
   }
 
+  Widget _predictionRow(
+    BuildContext context,
+    MatchPredictionResult prediction,
+  ) {
+    final resultColor = _colorFor(prediction);
+    final isCurrentUser = currentProfileId != null &&
+        prediction.profileId == currentProfileId;
+    final highlightColor = isCurrentUser ? AppTheme.accent : resultColor;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: highlightColor == null
+            ? null
+            : Border.all(
+                color: highlightColor,
+                width: isCurrentUser ? 2.2 : 1.7,
+              ),
+        color: highlightColor?.withValues(alpha: isCurrentUser ? .16 : .08),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: NameWithBadges(
+              profileId: prediction.profileId,
+              name: prediction.name,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              isHome
+                  ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
+                  : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(
+            width: 30,
+            child: prediction.usedX2
+                ? const Align(
+                    alignment: Alignment.centerRight,
+                    child: _X2Badge(),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              prediction.points.round().toString(),
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -471,54 +538,7 @@ class _PredictionsTable extends StatelessWidget {
             Text('Pronostics', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             for (final prediction in predictions)
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: _colorFor(prediction) == null
-                      ? null
-                      : Border.all(color: _colorFor(prediction)!, width: 1.7),
-                  color: _colorFor(prediction)?.withValues(alpha: .08),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: NameWithBadges(
-                        profileId: prediction.profileId,
-                        name: prediction.name,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        isHome
-                            ? '${prediction.scoreGrinta}–${prediction.scoreOpponent}'
-                            : '${prediction.scoreOpponent}–${prediction.scoreGrinta}',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 30,
-                      child: prediction.usedX2
-                          ? const Align(
-                              alignment: Alignment.centerRight,
-                              child: _X2Badge(),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        prediction.points.round().toString(),
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _predictionRow(context, prediction),
           ],
         ),
       ),
