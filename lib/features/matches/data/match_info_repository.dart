@@ -72,20 +72,17 @@ final matchInfoProvider =
 
   final encounters = <MatchEncounter>[];
   if (opponentId != null && opponentId.isNotEmpty) {
-    final rows = await client
-        .from('matches')
-        .select('kickoff_at, match_date, score_as_grinta, score_adverse')
-        .eq('opponent_id', opponentId)
-        .inFilter('status', const ['termine', 'archive'])
-        .order('kickoff_at', ascending: false)
-        .limit(5);
+    final rows = await client.rpc(
+      'get_last_opponent_encounters',
+      params: {'p_match_id': matchId},
+    );
     for (final row in rows as List) {
       final map = Map<String, dynamic>.from(row as Map);
       encounters.add(
         MatchEncounter(
-          grintaScore: (map['score_as_grinta'] as num?)?.toInt() ?? 0,
-          opponentScore: (map['score_adverse'] as num?)?.toInt() ?? 0,
-          date: DateTime.tryParse('${map['kickoff_at'] ?? ''}')?.toLocal(),
+          grintaScore: (map['grinta_score'] as num?)?.toInt() ?? 0,
+          opponentScore: (map['opponent_score'] as num?)?.toInt() ?? 0,
+          date: DateTime.tryParse('${map['encounter_date'] ?? ''}')?.toLocal(),
         ),
       );
     }
