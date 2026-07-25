@@ -54,8 +54,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
     final currentProfileId = ref.watch(
       authControllerProvider.select((state) => state.profile?.id),
     );
-    final sorted = [...widget.entries]
-      ..sort((a, b) {
+    final sorted = [...widget.entries]..sort((a, b) {
         int cmp;
         switch (_sort) {
           case _LbCol.name:
@@ -133,8 +132,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
             firstValue: '${_first(sorted[index]).round()}',
             secondValue: '${_second(sorted[index]).round()}',
             points: '${widget.points(sorted[index]).round()}',
-            isCurrentUser:
-                currentProfileId != null &&
+            isCurrentUser: currentProfileId != null &&
                 sorted[index].profileId == currentProfileId,
           ),
       ],

@@ -300,9 +300,8 @@ class _CompletedCompositionCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Priorité au rendu MPG (photos, couronne 👑, ballons ⚽) dès qu'une
     // composition publiée existe : même visuel avant et après le match.
-    final composition = ref
-        .watch(publishedMatchCompositionProvider(matchId))
-        .valueOrNull;
+    final composition =
+        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
     final fieldEntries =
         composition?.entriesFor(MatchCompositionZone.field) ?? const [];
     if (fieldEntries.isNotEmpty) {
@@ -454,13 +453,12 @@ class _PredictionsTable extends StatelessWidget {
 
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
-    final exact =
-        prediction.scoreGrinta == actualGrinta &&
+    final exact = prediction.scoreGrinta == actualGrinta &&
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
     final correctWinner =
         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
-        _result(actualGrinta, actualOpponent);
+            _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
     return const Color(0xFF39E784);
   }
