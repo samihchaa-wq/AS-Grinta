@@ -1,0 +1,40 @@
+name: Format PR 475
+
+on:
+  push:
+    branches:
+      - agent/resume-match-joueurs-presents
+    paths:
+      - .github/workflows/format-pr-475.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/resume-match-joueurs-presents
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format changed Dart file
+        run: dart format lib/features/matches/data/match_details_repository.dart
+
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            exit 0
+          fi
+          git add lib/features/matches/data/match_details_repository.dart
+          git commit -m "Formater le résumé des joueurs présents"
+          git push origin HEAD:agent/resume-match-joueurs-presents
