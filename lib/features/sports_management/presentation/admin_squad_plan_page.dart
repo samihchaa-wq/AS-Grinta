@@ -18,6 +18,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/compos
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 enum _AdminStep { info, effectif, composition, prediction }
 
@@ -547,6 +548,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   bool get _compositionLocked =>
       _busy || (_postMatch ? _compositionExisted : _locked);
+
+  bool get _canConsultWaitlist {
+    final convocations = _convocations;
+    if (convocations == null || !convocations.isPublished) return false;
+    final untilKickoff = convocations.kickoffAt.difference(DateTime.now());
+    return !untilKickoff.isNegative && untilKickoff <= const Duration(days: 6);
+  }
 
   List<ConvocationPlayer> get _convokedPlayers {
     final players = (_convocations?.players ?? const <ConvocationPlayer>[])
@@ -1129,6 +1137,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           ),
         ),
         const SizedBox(height: 14),
+        if (_canConsultWaitlist) ...[
+          OutlinedButton.icon(
+            onPressed: _busy ? null : () => context.push('/admin/waitlist'),
+            icon: const Icon(Icons.format_list_numbered_rounded),
+            label: const Text('Consulter la liste d’attente'),
+          ),
+          const SizedBox(height: 14),
+        ],
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = [
