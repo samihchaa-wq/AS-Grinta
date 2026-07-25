@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -17,11 +17,12 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
-      - name: Checkout
+      - name: Checkout branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Flutter
@@ -29,6 +30,16 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Format all changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="origin/${{ github.base_ref }}"
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.dart')
+          if [ "${#files[@]}" -gt 0 ]; then
+            dart format "${files[@]}"
+          fi
 
       - name: Install dependencies
         run: flutter pub get
@@ -40,23 +51,6 @@ jobs:
           version=$(awk '/^version:/{print $2}' pubspec.yaml)
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
-
-      - name: Check formatting of changed Dart files
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            base="origin/${{ github.base_ref }}"
-            range="$base...HEAD"
-          else
-            range="HEAD^...HEAD"
-          fi
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No changed Dart files to format."
-            exit 0
-          fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
@@ -82,6 +76,21 @@ jobs:
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee build-web.log
+
+      - name: Commit formatting
+        if: success() && github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- '*.dart'
+          if git diff --cached --quiet; then
+            echo "No formatting changes to commit."
+          else
+            git commit -m "Formater les fichiers Dart modifiés"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
 
       - name: Upload validation logs
         if: always()
