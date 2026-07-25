@@ -7,10 +7,12 @@ import 'package:as_grinta/features/predictions/presentation/widgets/inline_match
 import 'package:as_grinta/features/sports_management/data/guest_players_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
+import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
@@ -41,6 +43,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   MatchConvocations? _convocations;
   MatchComposition? _composition;
   Set<String> _desiredConvoked = {};
+  Set<String> _actualPresent = {};
+  bool _postMatch = false;
+  bool _compositionExisted = false;
   AvailabilityReminderSummary? _reminders;
   late _AdminStep _step;
   late final TextEditingController _limitController;
@@ -92,7 +97,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           .read(sportWaitlistRepositoryProvider)
           .fetchUpcomingMatches();
       if (!mounted) return;
-      final selected = _selectedMatchId != null &&
+      final selected =
+          _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
           : (matches.isEmpty ? null : matches.first.id);
@@ -129,26 +135,46 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final convocations = results[0] as MatchConvocations;
       final saved = results[1] as MatchComposition?;
       final reminders = results[2] as AvailabilityReminderSummary;
-      final goalkeeperIds =
-          await compositionRepository.fetchGoalkeeperSeasonPlayerIds([
-        for (final player in convocations.players)
-          if (player.seasonPlayerId.isNotEmpty) player.seasonPlayerId,
-      ]);
-      final composition = _normalizeComposition(
-        convocations,
-        saved,
-        goalkeeperIds,
-      );
+      final kickoffPassed = !DateTime.now().isBefore(convocations.kickoffAt);
+      final finalization = kickoffPassed
+          ? await ref
+                .read(sportMatchFinalizationRepositoryProvider)
+                .fetchAdminContext(matchId)
+          : null;
+      final postMatch =
+          finalization != null &&
+          finalization.isValidated &&
+          (finalization.matchStatus == 'termine' ||
+              finalization.matchStatus == 'archive');
+      final actualPresent = <String>{
+        for (final participant in finalization?.participants ?? const [])
+          if (participant.present) participant.participantId,
+      };
+      final goalkeeperIds = postMatch
+          ? const <String>{}
+          : await compositionRepository.fetchGoalkeeperSeasonPlayerIds([
+              for (final player in convocations.players)
+                if (player.seasonPlayerId.isNotEmpty) player.seasonPlayerId,
+            ]);
+      final composition = postMatch
+          ? _normalizePostMatchComposition(finalization, saved)
+          : _normalizeComposition(convocations, saved, goalkeeperIds);
       if (!mounted || _selectedMatchId != matchId) return;
       setState(() {
         _convocations = convocations;
         _composition = composition;
+        _postMatch = postMatch;
+        _compositionExisted = saved != null;
+        _actualPresent = actualPresent;
         _reminders = reminders;
-        _desiredConvoked = {
-          for (final player in convocations.players)
-            if ((player.isAvailable || player.isGuest) && player.isConvoked)
-              player.participantId,
-        };
+        _desiredConvoked = postMatch
+            ? actualPresent
+            : {
+                for (final player in convocations.players)
+                  if ((player.isAvailable || player.isGuest) &&
+                      player.isConvoked)
+                    player.participantId,
+              };
         _limitController.text = '${convocations.squadSizeLimit}';
         _effectifDirty = false;
       });
@@ -172,7 +198,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(
@@ -183,11 +210,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             content: Text(
               isCollective
                   ? '${reminders.noResponseCount} joueur'
-                      '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                      'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une '
-                      'notification.'
+                        '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                        'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une '
+                        'notification.'
                   : 'Une notification de disponibilité sera envoyée. Un second '
-                      'envoi est bloqué pendant dix minutes.',
+                        'envoi est bloqué pendant dix minutes.',
             ),
             actions: [
               TextButton(
@@ -257,14 +284,15 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final availabilityDetail = player.isGuest
         ? 'Invité ajouté manuellement.'
         : hasResponded && updatedAt != null
-            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
-            : 'Aucune réponse enregistrée pour l’instant.';
+        ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+        : 'Aucune réponse enregistrée pour l’instant.';
 
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
 
-    final canRelance = !player.isGuest &&
+    final canRelance =
+        !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
         (_reminders?.canRemind ?? false);
@@ -368,6 +396,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                     ? previous.y
                     : null,
                 slotLabel: previous.slotLabel,
+                photoUrl: previous.photoUrl ?? base.photoUrl,
+                goals: previous.goals,
+                isMotm: previous.isMotm,
                 sortOrder: previous.sortOrder,
                 availabilityStatus: base.availabilityStatus,
                 convocationStatus: base.convocationStatus,
@@ -377,6 +408,64 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               )
             else
               base.moveTo(MatchCompositionZone.bench),
+        ],
+      ),
+    );
+  }
+
+  MatchComposition _normalizePostMatchComposition(
+    SportMatchFinalization finalization,
+    MatchComposition? saved,
+  ) {
+    final baseline = MatchComposition.initialFromFinalization(
+      finalization: finalization,
+    );
+    if (saved == null) return baseline;
+    final savedById = {
+      for (final entry in saved.entries) entry.participantId: entry,
+    };
+    return _rescueOrphans(
+      saved.copyWith(
+        entries: [
+          for (final base in baseline.entries)
+            if (savedById[base.participantId] case final previous?)
+              MatchCompositionEntry(
+                participantId: base.participantId,
+                seasonPlayerId: base.seasonPlayerId,
+                guestPlayerId: base.guestPlayerId,
+                displayName: base.displayName,
+                isGuest: base.isGuest,
+                isGoalkeeper: base.isGoalkeeper,
+                zone: base.canBeSelected
+                    ? previous.zone == MatchCompositionZone.field
+                          ? MatchCompositionZone.field
+                          : MatchCompositionZone.bench
+                    : MatchCompositionZone.notSelected,
+                x:
+                    base.canBeSelected &&
+                        previous.zone == MatchCompositionZone.field
+                    ? previous.x
+                    : null,
+                y:
+                    base.canBeSelected &&
+                        previous.zone == MatchCompositionZone.field
+                    ? previous.y
+                    : null,
+                slotLabel: previous.slotLabel,
+                photoUrl: base.photoUrl ?? previous.photoUrl,
+                goals: base.goals,
+                isMotm: base.isMotm,
+                sortOrder: previous.sortOrder,
+                availabilityStatus: base.availabilityStatus,
+                convocationStatus: base.convocationStatus,
+                selectionStatus: base.canBeSelected
+                    ? previous.zone == MatchCompositionZone.field
+                          ? 'starter'
+                          : 'substitute'
+                    : 'not_selected',
+              )
+            else
+              base,
         ],
       ),
     );
@@ -462,12 +551,16 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     return kickoff != null && !DateTime.now().isBefore(kickoff);
   }
 
+  bool get _compositionLocked =>
+      _busy || (_postMatch ? _compositionExisted : _locked);
+
   List<ConvocationPlayer> get _convokedPlayers {
     final players = (_convocations?.players ?? const <ConvocationPlayer>[])
         .where(
-          (player) =>
-              (player.isAvailable || player.isGuest) &&
-              _desiredConvoked.contains(player.participantId),
+          (player) => _postMatch
+              ? _actualPresent.contains(player.participantId)
+              : (player.isAvailable || player.isGuest) &&
+                    _desiredConvoked.contains(player.participantId),
         )
         .toList();
     players.sort(_playerOrder);
@@ -545,8 +638,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 player.seasonPlayerId.isNotEmpty)
               player.seasonPlayerId:
                   _desiredConvoked.contains(player.participantId)
-                      ? ConvocationStatus.convoked
-                      : ConvocationStatus.notConvoked,
+                  ? ConvocationStatus.convoked
+                  : ConvocationStatus.notConvoked,
         },
         reason: 'Effectif enregistré depuis le match',
       );
@@ -584,6 +677,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       x: zone == MatchCompositionZone.field ? x : null,
       y: zone == MatchCompositionZone.field ? y : null,
       slotLabel: entry.slotLabel,
+      photoUrl: entry.photoUrl,
+      goals: entry.goals,
+      isMotm: entry.isMotm,
       sortOrder: sortOrder ?? entry.sortOrder,
       availabilityStatus: entry.availabilityStatus,
       convocationStatus: entry.convocationStatus,
@@ -601,7 +697,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   /// banc, les postes en surplus restent vides.
   void _applyFormation(String code) {
     final composition = _composition;
-    if (composition == null || _busy || _locked) return;
+    if (composition == null || _compositionLocked) return;
     if (formationForCode(composition.formationCode).code == code) return;
     final slots = formationForCode(code).slots;
     final field = composition.entriesFor(MatchCompositionZone.field);
@@ -648,7 +744,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   void _dropOnSlot(MatchCompositionEntry moving, FootballFormationSlot slot) {
     final composition = _composition;
-    if (composition == null || _busy || _locked) return;
+    if (composition == null || _compositionLocked) return;
     final currentAtSlot = composition.entries
         .where((entry) => entry.zone == MatchCompositionZone.field)
         .cast<MatchCompositionEntry?>()
@@ -693,9 +789,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   void _moveToBench(MatchCompositionEntry moving) {
     final composition = _composition;
-    if (composition == null || _busy || _locked) return;
-    final benchCount =
-        composition.entriesFor(MatchCompositionZone.bench).length;
+    if (composition == null || _compositionLocked) return;
+    final benchCount = composition
+        .entriesFor(MatchCompositionZone.bench)
+        .length;
     setState(() {
       _composition = composition.copyWith(
         hasUnpublishedChanges: true,
@@ -738,34 +835,46 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   }
 
   Future<MatchComposition?> _saveComposition({required bool publish}) async {
-    if (_composition == null || _busy || _locked) return null;
+    if (_composition == null || _compositionLocked) return null;
     setState(() => _busy = true);
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
       final ready = _compositionReadyToSave();
-      final saved = await repository.saveComposition(
-        composition: ready,
-        allowSquadSizeException: true,
-        reason: publish
-            ? 'Préparation de la publication'
-            : 'Brouillon de composition',
-      );
-      if (publish) {
-        await ref.read(sportWaitlistRepositoryProvider).publishMatch(
-              matchId: ready.matchId,
-              reason: 'Effectif confirmé avant publication de la composition',
-            );
+      late final MatchComposition result;
+      if (_postMatch) {
+        result = await repository.createPostMatchComposition(
+          composition: ready,
+          allowSquadSizeException: true,
+          reason: 'Composition réelle publiée après finalisation du match',
+        );
+      } else {
+        final saved = await repository.saveComposition(
+          composition: ready,
+          allowSquadSizeException: true,
+          reason: publish
+              ? 'Préparation de la publication'
+              : 'Brouillon de composition',
+        );
+        if (publish) {
+          await ref
+              .read(sportWaitlistRepositoryProvider)
+              .publishMatch(
+                matchId: ready.matchId,
+                reason: 'Effectif confirmé avant publication de la composition',
+              );
+          result = await repository.publishComposition(
+            matchId: ready.matchId,
+            allowSquadSizeException: true,
+            reason: 'Composition publiée depuis le match',
+          );
+        } else {
+          result = saved;
+        }
       }
-      final result = publish
-          ? await repository.publishComposition(
-              matchId: ready.matchId,
-              allowSquadSizeException: true,
-              reason: 'Composition publiée depuis le match',
-            )
-          : saved;
       if (!mounted) return result;
       setState(() {
         _composition = result;
+        if (_postMatch) _compositionExisted = true;
       });
       ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
       _showMessage(publish ? 'Composition publiée.' : 'Brouillon enregistré.');
@@ -839,7 +948,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (input == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .createAndAddGuest(
             matchId: matchId,
             firstName: input.firstName,
             lastName: input.lastName,
@@ -877,7 +988,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (confirmed != true) return;
     setState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).removeGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .removeGuest(
             matchId: matchId,
             participantId: player.participantId,
             reason: 'Retrait depuis Effectif',
@@ -920,8 +1033,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       return const Center(
         child: GrintaEmptyState(
           icon: Icons.event_busy_rounded,
-          title: 'Aucun match à venir',
-          message: 'Crée un match depuis l’onglet Matchs pour préparer '
+          title: 'Aucun match disponible',
+          message:
+              'Crée un match depuis l’onglet Matchs pour préparer '
               'l’effectif et la composition.',
         ),
       );
@@ -951,8 +1065,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
             ],
             selected: {_step},
-            onSelectionChanged:
-                _busy ? null : (value) => setState(() => _step = value.first),
+            onSelectionChanged: _busy
+                ? null
+                : (value) => setState(() => _step = value.first),
           ),
           if (_busy) ...[
             const SizedBox(height: 10),
@@ -1134,14 +1249,15 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
-                const Text(
-                  'Choisis un dispositif, puis glisse les convoqués sur les '
-                  'postes affichés.',
+                Text(
+                  _postMatch
+                      ? 'Choisis un dispositif, puis glisse les joueurs réellement présents sur les postes affichés.'
+                      : 'Choisis un dispositif, puis glisse les convoqués sur les postes affichés.',
                 ),
                 const SizedBox(height: 14),
                 _FormationDropdown(
                   value: formationForCode(composition.formationCode).code,
-                  onChanged: (_busy || _locked) ? null : _applyFormation,
+                  onChanged: _compositionLocked ? null : _applyFormation,
                 ),
               ],
             ),
@@ -1152,14 +1268,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           child: FormationPitchEditor(
             slots: formationForCode(composition.formationCode).slots,
             entries: field,
-            editable: !_busy && !_locked,
+            editable: !_compositionLocked,
             onDroppedOnSlot: _dropOnSlot,
             onRemoveFromField: _moveToBench,
           ),
         ),
         const SizedBox(height: 14),
         DragTarget<MatchCompositionEntry>(
-          onWillAcceptWithDetails: (details) => !_busy && !_locked,
+          onWillAcceptWithDetails: (details) => !_compositionLocked,
           onAcceptWithDetails: (details) => _moveToBench(details.data),
           builder: (context, candidates, rejected) => Card(
             color: candidates.isNotEmpty
@@ -1173,8 +1289,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                   Text(
                     'Remplaçants (${bench.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)
@@ -1187,7 +1303,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                         for (final entry in bench)
                           _BenchBox(
                             entry: entry,
-                            draggable: !_busy && !_locked,
+                            draggable: !_compositionLocked,
                           ),
                       ],
                     ),
@@ -1198,15 +1314,31 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed:
-              _busy || _locked ? null : () => _saveComposition(publish: true),
+          onPressed: _compositionLocked
+              ? null
+              : () => _saveComposition(publish: true),
           icon: const Icon(Icons.campaign_outlined),
-          label: Text(composition.isPublished ? 'Mettre à jour' : 'Publier'),
+          label: Text(
+            _postMatch && _compositionExisted
+                ? 'Composition publiée'
+                : composition.isPublished
+                ? 'Mettre à jour'
+                : 'Publier',
+          ),
         ),
-        if (_locked)
+        if (_postMatch && _compositionExisted)
           const Padding(
             padding: EdgeInsets.only(top: 10),
-            child: Text('Composition verrouillée au coup d’envoi.'),
+            child: Text(
+              'Composition verrouillée : une composition existe déjà pour ce match.',
+            ),
+          )
+        else if (_locked && !_postMatch)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text(
+              'Finalise d’abord le match pour utiliser les joueurs réellement présents.',
+            ),
           ),
       ],
     );
@@ -1274,9 +1406,9 @@ class _EffectifColumn extends StatelessWidget {
                   child: Text(
                     '$title (${players.length})',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 if (onRelanceAll != null && players.isNotEmpty)
@@ -1312,11 +1444,11 @@ class _EffectifColumn extends StatelessWidget {
                       draggable: !locked && onToggle != null && !player.isGuest,
                       onTap: player.isGuest
                           ? (onRemoveGuest == null
-                              ? null
-                              : () => onRemoveGuest!(player))
+                                ? null
+                                : () => onRemoveGuest!(player))
                           : (onShowInfo == null
-                              ? null
-                              : () => onShowInfo!(player)),
+                                ? null
+                                : () => onShowInfo!(player)),
                     ),
                 ],
               ),
@@ -1433,10 +1565,10 @@ class _FormationDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Colors.white54,
-          fontWeight: FontWeight.w900,
-          letterSpacing: .4,
-        );
+      color: Colors.white54,
+      fontWeight: FontWeight.w900,
+      letterSpacing: .4,
+    );
     final items = <DropdownMenuItem<String>>[];
     int? lastLine;
     for (final formation in footballFormations) {
