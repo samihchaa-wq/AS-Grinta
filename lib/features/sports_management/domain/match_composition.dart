@@ -17,18 +17,18 @@ enum MatchCompositionZone {
   }
 
   String get wireValue => switch (this) {
-    MatchCompositionZone.available => 'available',
-    MatchCompositionZone.field => 'field',
-    MatchCompositionZone.bench => 'bench',
-    MatchCompositionZone.notSelected => 'not_selected',
-  };
+        MatchCompositionZone.available => 'available',
+        MatchCompositionZone.field => 'field',
+        MatchCompositionZone.bench => 'bench',
+        MatchCompositionZone.notSelected => 'not_selected',
+      };
 
   String get label => switch (this) {
-    MatchCompositionZone.available => 'À placer',
-    MatchCompositionZone.field => 'Titulaire',
-    MatchCompositionZone.bench => 'Banc',
-    MatchCompositionZone.notSelected => 'Non convoqué',
-  };
+        MatchCompositionZone.available => 'À placer',
+        MatchCompositionZone.field => 'Titulaire',
+        MatchCompositionZone.bench => 'Banc',
+        MatchCompositionZone.notSelected => 'Non convoqué',
+      };
 }
 
 class MatchCompositionEntry {
@@ -69,10 +69,10 @@ class MatchCompositionEntry {
       goals: (json['goals'] as num?)?.toInt() ?? 0,
       isMotm: json['is_motm'] == true,
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
-      availabilityStatus: (json['availability_status'] ?? 'no_response')
-          .toString(),
-      convocationStatus: (json['convocation_status'] ?? 'not_applicable')
-          .toString(),
+      availabilityStatus:
+          (json['availability_status'] ?? 'no_response').toString(),
+      convocationStatus:
+          (json['convocation_status'] ?? 'not_applicable').toString(),
       selectionStatus: (json['selection_status'] ?? 'undecided').toString(),
     );
   }
@@ -173,8 +173,8 @@ class MatchComposition {
       lastModifiedAt: _dateOrNull(json['last_modified_at']),
       entries: entriesRaw is List
           ? entriesRaw
-                .map((row) => MatchCompositionEntry.fromJson(_map(row)))
-                .toList()
+              .map((row) => MatchCompositionEntry.fromJson(_map(row)))
+              .toList()
           : const [],
     );
   }
@@ -212,11 +212,9 @@ class MatchComposition {
       hasUnpublishedChanges: true,
       squadSizeExceptionApproved: false,
       entries: [
-        for (
-          var index = 0;
-          index < finalization.participants.length;
-          index += 1
-        )
+        for (var index = 0;
+            index < finalization.participants.length;
+            index += 1)
           _initialPostMatchEntry(finalization.participants[index], index),
       ],
     );
@@ -250,8 +248,9 @@ class MatchComposition {
   int get selectedCount => fieldCount + benchCount;
   bool get isPublished => version > 0;
   bool get hasGoalkeeperWarning => !entries.any(
-    (entry) => entry.zone == MatchCompositionZone.field && entry.isGoalkeeper,
-  );
+        (entry) =>
+            entry.zone == MatchCompositionZone.field && entry.isGoalkeeper,
+      );
 
   String get publicationLabel {
     if (!isPublished) return 'Brouillon';
@@ -297,8 +296,7 @@ MatchCompositionEntry _initialEntry(
     guestPlayerId: player.guestPlayerId,
     displayName: player.displayName.trim(),
     isGuest: player.isGuest,
-    isGoalkeeper:
-        player.isGoalkeeper ||
+    isGoalkeeper: player.isGoalkeeper ||
         goalkeeperSeasonPlayerIds.contains(player.seasonPlayerId),
     zone: selectable
         ? MatchCompositionZone.available
