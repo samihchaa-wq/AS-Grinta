@@ -1,9 +1,9 @@
 name: Format probe
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/opponent-match-history
+      - main
 
 permissions:
   contents: read
