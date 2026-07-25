@@ -813,9 +813,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   MatchComposition _compositionReadyToSave() {
     final composition = _composition!;
-    final currentConvoked = {
-      for (final player in _convokedPlayers) player.participantId,
-    };
+    final currentConvoked = _postMatch
+        ? _actualPresent
+        : {for (final player in _convokedPlayers) player.participantId};
     var benchOrder = 0;
     return composition.copyWith(
       entries: [
