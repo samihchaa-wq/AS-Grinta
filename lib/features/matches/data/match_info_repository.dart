@@ -82,7 +82,9 @@ final matchInfoProvider =
         MatchEncounter(
           grintaScore: (map['grinta_score'] as num?)?.toInt() ?? 0,
           opponentScore: (map['opponent_score'] as num?)?.toInt() ?? 0,
-          date: DateTime.tryParse('${map['encounter_date'] ?? ''}')?.toLocal(),
+          date: DateTime.tryParse(
+            '${map['encounter_date'] ?? ''}',
+          )?.toLocal(),
         ),
       );
     }
