@@ -47,12 +47,22 @@ class PronosHubPage extends ConsumerStatefulWidget {
 }
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
+  static const _matchesBackground = AssetImage(
+    'assets/images/module_backgrounds/matches_blue.webp',
+  );
+
   late _PronosCategory _category;
 
   @override
   void initState() {
     super.initState();
     _category = _categoryFrom(widget.initialCategory);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(_matchesBackground, context);
   }
 
   @override
@@ -73,6 +83,14 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = switch (_category) {
+      _PronosCategory.matches => const MergedMatchesView(),
+      _PronosCategory.scorers => const _ScorerRankingView(),
+      _PronosCategory.general => _GeneralRankingsSection(
+          initialView: widget.initialView,
+        ),
+    };
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: GrintaAppBar(
@@ -83,13 +101,21 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         }),
         actions: grintaHomeActions(context),
       ),
-      body: switch (_category) {
-        _PronosCategory.matches => const MergedMatchesView(),
-        _PronosCategory.scorers => const _ScorerRankingView(),
-        _PronosCategory.general => _GeneralRankingsSection(
-            initialView: widget.initialView,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: _matchesBackground,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+            isAntiAlias: true,
           ),
-      },
+        ),
+        child: ColoredBox(
+          color: Color(0x14000000),
+          child: content,
+        ),
+      ),
     );
   }
 }
