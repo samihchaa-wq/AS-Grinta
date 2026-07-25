@@ -81,7 +81,19 @@ jobs:
               "                  OutlinedButton.icon(\n                    onPressed: () => context.push('/matches/$matchId/composition?step=composition'),\n                    icon: const Icon(Icons.dashboard_customize_outlined),\n                    label: const Text('Créer ou corriger la composition réelle'),\n                  ),\n                  const SizedBox(height: 10),\n                  FilledButton.icon(\n                    onPressed: () => context.push('/matches/$matchId/finalize'),")
 
           migration=Path('supabase/migrations/20260725202130_allow_postmatch_composition_editor.sql')
-          migration.write_text("""-- Autorise l’administrateur à enregistrer et publier la composition réelle\n-- d’un match terminé avec le même éditeur que la composition d’avant-match.\n-- Cette migration a été appliquée en production avant son ajout au dépôt.\n\ndo $$\nbegin\n  if to_regprocedure('public.admin_save_match_composition(uuid,text,jsonb,boolean,text)') is null\n     or to_regprocedure('public.admin_publish_match_composition(uuid,boolean,text)') is null then\n    raise exception 'Les RPC de composition sportive sont absents';\n  end if;\nend\n$$;\n""")
+          migration.write_text("""-- Autorise l’administrateur à enregistrer et publier la composition réelle
+-- d’un match terminé avec le même éditeur que la composition d’avant-match.
+-- Cette migration a été appliquée en production avant son ajout au dépôt.
+
+do $$
+begin
+  if to_regprocedure('public.admin_save_match_composition(uuid,text,jsonb,boolean,text)') is null
+     or to_regprocedure('public.admin_publish_match_composition(uuid,boolean,text)') is null then
+    raise exception 'Les RPC de composition sportive sont absents';
+  end if;
+end
+$$;
+""")
           PY
           dart format lib/features/sports_management/presentation/admin_squad_plan_page.dart lib/features/matches/presentation/match_details_page.dart lib/features/sports_management/data/sport_waitlist_repository.dart
       - name: Commit changes
@@ -91,3 +103,4 @@ jobs:
           git add lib supabase/migrations/20260725202130_allow_postmatch_composition_editor.sql
           git commit -m "Finaliser la composition réelle après-match [postmatch-finalized]"
           git push
+
