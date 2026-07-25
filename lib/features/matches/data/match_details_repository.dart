@@ -181,7 +181,7 @@ class MatchDetailsRepository {
         season_players(first_name,last_name,profiles(surnom))
       ''').eq('match_id', matchId);
       final statsByPlayerId = <String, MatchStatLine>{};
-      playerStats = (statRows as List).map((row) {
+      playerStats = _sortPlayerStats((statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final player = map['season_players'] is Map
             ? Map<String, dynamic>.from(map['season_players'] as Map)
@@ -203,8 +203,18 @@ class MatchDetailsRepository {
           statsByPlayerId[seasonPlayerId] = stat;
         }
         return stat;
-      }).toList()
-        ..sort((a, b) => b.goals.compareTo(a.goals));
+      }).toList());
+
+      // Sans composition publiée, la page utilise playerStats comme résumé.
+      // Cette liste doit donc provenir des présences réelles, et non de la
+      // totalité de l'effectif ou uniquement des joueurs ayant une statistique.
+      final presentPlayers = await _fetchPresentPlayers(
+        matchId,
+        statsByPlayerId,
+      );
+      if (presentPlayers.isNotEmpty) {
+        playerStats = presentPlayers;
+      }
 
       final publication = await _client
           .from('match_composition_publications')
@@ -311,6 +321,85 @@ class MatchDetailsRepository {
       startingLineup: startingLineup,
       predictions: predictions,
     );
+  }
+
+  Future<List<MatchStatLine>> _fetchPresentPlayers(
+    String matchId,
+    Map<String, MatchStatLine> statsByPlayerId,
+  ) async {
+    // Parcours Gestion sportive : inclut les joueurs permanents et les invités.
+    try {
+      final result = await _client.rpc(
+        'get_match_sport_result',
+        params: {'p_match_id': matchId},
+      );
+      if (result is Map) {
+        final participants = result['participants'];
+        if (participants is List) {
+          final present = participants
+              .whereType<Map>()
+              .map((raw) => Map<String, dynamic>.from(raw))
+              .where((participant) => participant['present'] == true)
+              .map((participant) {
+            final rawName = (participant['display_name'] ?? '').toString().trim();
+            return MatchStatLine(
+              name: rawName.isEmpty ? 'Joueur' : rawName,
+              goals: (participant['goals'] as num?)?.toInt() ?? 0,
+              cleanSheet: participant['clean_sheet'] == true,
+            );
+          }).toList();
+          if (present.isNotEmpty) return _sortPlayerStats(present);
+        }
+      }
+    } on PostgrestException {
+      // Gestion sportive désactivée ou résultat non publié : repli historique.
+    }
+
+    // Parcours historique : la table de présence reste la source de vérité.
+    try {
+      final attendanceRows = await _client.from('match_attendance').select('''
+        season_player_id,
+        season_players(first_name,last_name,profiles(surnom))
+      ''').eq('match_id', matchId);
+      final present = (attendanceRows as List).map((row) {
+        final map = Map<String, dynamic>.from(row);
+        final seasonPlayerId = map['season_player_id']?.toString();
+        final stat = seasonPlayerId == null
+            ? null
+            : statsByPlayerId[seasonPlayerId];
+        final player = map['season_players'] is Map
+            ? Map<String, dynamic>.from(map['season_players'] as Map)
+            : const <String, dynamic>{};
+        final profile = player['profiles'] is Map
+            ? Map<String, dynamic>.from(player['profiles'] as Map)
+            : const <String, dynamic>{};
+        return MatchStatLine(
+          name: stat?.name ??
+              _resolveName(
+                profile['surnom'],
+                player['first_name'],
+                player['last_name'],
+              ),
+          goals: stat?.goals ?? 0,
+          cleanSheet: stat?.cleanSheet ?? false,
+        );
+      }).toList();
+      if (present.isNotEmpty) return _sortPlayerStats(present);
+    } on PostgrestException {
+      // Compatibilité avec les anciens environnements sans table de présence.
+    }
+
+    // Dernier repli : une statistique implique au minimum la présence du joueur.
+    return _sortPlayerStats(statsByPlayerId.values.toList());
+  }
+
+  static List<MatchStatLine> _sortPlayerStats(List<MatchStatLine> players) {
+    players.sort((a, b) {
+      final goals = b.goals.compareTo(a.goals);
+      if (goals != 0) return goals;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return players;
   }
 
   /// Nom court unifié : surnom s'il est renseigné, sinon prénom (repli sur
