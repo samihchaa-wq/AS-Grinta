@@ -101,6 +101,14 @@ class MatchDetailsPage extends ConsumerWidget {
                 ],
                 if (isAdmin) ...[
                   const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push(
+                      '/matches/$matchId/composition?step=composition',
+                    ),
+                    icon: const Icon(Icons.dashboard_customize_outlined),
+                    label: const Text('Gérer la composition'),
+                  ),
+                  const SizedBox(height: 10),
                   FilledButton.icon(
                     onPressed: () => context.push('/matches/$matchId/finalize'),
                     icon: const Icon(Icons.edit_note_outlined),

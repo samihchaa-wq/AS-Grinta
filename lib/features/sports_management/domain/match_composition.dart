@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 
 enum MatchCompositionZone {
@@ -116,6 +117,9 @@ class MatchCompositionEntry {
       x: isField ? x : null,
       y: isField ? y : null,
       slotLabel: slotLabel,
+      photoUrl: photoUrl,
+      goals: goals,
+      isMotm: isMotm,
       sortOrder: sortOrder ?? this.sortOrder,
       availabilityStatus: availabilityStatus,
       convocationStatus: convocationStatus,
@@ -193,6 +197,25 @@ class MatchComposition {
             index,
             goalkeeperSeasonPlayerIds,
           ),
+      ],
+    );
+  }
+
+  factory MatchComposition.initialFromFinalization({
+    required SportMatchFinalization finalization,
+  }) {
+    return MatchComposition(
+      matchId: finalization.matchId,
+      formationCode: null,
+      status: 'draft',
+      version: 0,
+      hasUnpublishedChanges: true,
+      squadSizeExceptionApproved: false,
+      entries: [
+        for (var index = 0;
+            index < finalization.participants.length;
+            index += 1)
+          _initialPostMatchEntry(finalization.participants[index], index),
       ],
     );
   }
@@ -282,6 +305,31 @@ MatchCompositionEntry _initialEntry(
     availabilityStatus: player.availabilityStatus,
     convocationStatus: player.convocationStatus.wireValue,
     selectionStatus: selectable ? 'undecided' : 'not_selected',
+  );
+}
+
+MatchCompositionEntry _initialPostMatchEntry(
+  SportFinalParticipant participant,
+  int index,
+) {
+  final selected = participant.present;
+  return MatchCompositionEntry(
+    participantId: participant.participantId,
+    seasonPlayerId: participant.seasonPlayerId ?? '',
+    guestPlayerId: participant.guestPlayerId,
+    displayName: participant.displayName.trim(),
+    isGuest: participant.isGuest,
+    isGoalkeeper: participant.isGoalkeeper,
+    zone: selected
+        ? MatchCompositionZone.bench
+        : MatchCompositionZone.notSelected,
+    photoUrl: participant.photoUrl,
+    goals: participant.goals,
+    isMotm: participant.isMotm,
+    sortOrder: index,
+    availabilityStatus: selected ? 'available' : 'absent',
+    convocationStatus: selected ? 'convoked' : 'not_convoked',
+    selectionStatus: selected ? 'substitute' : 'not_selected',
   );
 }
 

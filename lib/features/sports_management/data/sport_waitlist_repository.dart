@@ -94,8 +94,8 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
     final rows = await _client
         .from('matches')
         .select('id, kickoff_at, opponents(name)')
-        .eq('status', 'a_venir')
-        .order('kickoff_at');
+        .inFilter('status', const ['a_venir', 'termine']).order('kickoff_at',
+            ascending: false);
     return (rows as List)
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map(

@@ -37,6 +37,8 @@ class SportFinalParticipant {
     required this.cleanSheet,
     this.seasonPlayerId,
     this.guestPlayerId,
+    this.photoUrl,
+    this.isMotm = false,
   });
 
   factory SportFinalParticipant.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,8 @@ class SportFinalParticipant {
       ),
       goals: (json['goals'] as num?)?.toInt() ?? 0,
       cleanSheet: json['clean_sheet'] == true,
+      photoUrl: _nullableText(json['photo_url']),
+      isMotm: json['is_motm'] == true,
     );
   }
 
@@ -68,6 +72,8 @@ class SportFinalParticipant {
   final SportFinalSelectionStatus selectionStatus;
   final int goals;
   final bool cleanSheet;
+  final String? photoUrl;
+  final bool isMotm;
 
   SportFinalParticipant copyWith({
     bool? present,
@@ -90,6 +96,8 @@ class SportFinalParticipant {
           : SportFinalSelectionStatus.notSelected,
       goals: nextPresent ? (goals ?? this.goals) : 0,
       cleanSheet: nextPresent ? (cleanSheet ?? this.cleanSheet) : false,
+      photoUrl: photoUrl,
+      isMotm: isMotm,
     );
   }
 
@@ -179,8 +187,7 @@ class SportMatchFinalization {
   int get substituteCount => participants
       .where(
         (p) =>
-            p.present &&
-            p.selectionStatus != SportFinalSelectionStatus.starter,
+            p.present && p.selectionStatus != SportFinalSelectionStatus.starter,
       )
       .length;
   int get guestPresentCount =>

@@ -100,6 +100,15 @@ class _FakeCompositionRepository implements MatchCompositionRepository {
   }
 
   @override
+  Future<MatchComposition> createPostMatchComposition({
+    required MatchComposition composition,
+    required bool allowSquadSizeException,
+    String? reason,
+  }) async {
+    return composition;
+  }
+
+  @override
   Future<MatchComposition> publishComposition({
     required String matchId,
     required bool allowSquadSizeException,

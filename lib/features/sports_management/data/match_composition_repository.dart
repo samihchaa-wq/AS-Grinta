@@ -14,6 +14,11 @@ abstract interface class MatchCompositionRepository {
     required bool allowSquadSizeException,
     String? reason,
   });
+  Future<MatchComposition> createPostMatchComposition({
+    required MatchComposition composition,
+    required bool allowSquadSizeException,
+    String? reason,
+  });
   Future<MatchComposition> publishComposition({
     required String matchId,
     required bool allowSquadSizeException,
@@ -88,6 +93,31 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
       throw const FormatException('Réponse de composition invalide.');
     }
     return saved;
+  }
+
+  @override
+  Future<MatchComposition> createPostMatchComposition({
+    required MatchComposition composition,
+    required bool allowSquadSizeException,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_create_postmatch_composition',
+      params: {
+        'p_match_id': composition.matchId,
+        'p_formation_code': _clean(composition.formationCode),
+        'p_entries': [
+          for (final entry in composition.entries) entry.toRpcJson(),
+        ],
+        'p_allow_squad_size_exception': allowSquadSizeException,
+        'p_reason': _clean(reason),
+      },
+    );
+    final published = MatchComposition.tryFromRpc(response);
+    if (published == null) {
+      throw const FormatException('Composition post-match invalide.');
+    }
+    return published;
   }
 
   @override
