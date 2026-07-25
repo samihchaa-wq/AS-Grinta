@@ -73,8 +73,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   @override
   Widget build(BuildContext context) {
-    final page = Scaffold(
-      backgroundColor: Colors.transparent,
+    return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: GrintaAppBar(
         title: Text(switch (_category) {
           _PronosCategory.matches => 'Matchs',
@@ -90,38 +90,6 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
             initialView: widget.initialView,
           ),
       },
-    );
-
-    if (_category != _PronosCategory.matches) return page;
-    return _MatchesPageBackground(child: page);
-  }
-}
-
-class _MatchesPageBackground extends StatelessWidget {
-  const _MatchesPageBackground({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const ColoredBox(color: AppTheme.background),
-        const Image(
-          image: AssetImage(
-            'assets/images/module_backgrounds/matches.webp',
-          ),
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
-          filterQuality: FilterQuality.high,
-          isAntiAlias: true,
-          gaplessPlayback: true,
-          excludeFromSemantics: true,
-        ),
-        const ColoredBox(color: Color(0x24000000)),
-        child,
-      ],
     );
   }
 }
