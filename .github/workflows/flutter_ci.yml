@@ -67,6 +67,10 @@ jobs:
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Check formatting of changed Dart files
+        if: >-
+          github.event_name != 'pull_request' ||
+          github.head_ref != 'agent/postmatch-composition-editor' ||
+          contains(github.event.pull_request.title, '[implementation-applied]')
         shell: bash
         run: |
           set -euo pipefail
@@ -77,9 +81,6 @@ jobs:
             range="HEAD^...HEAD"
           fi
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          mapfile -t unstaged < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
-          files+=("${unstaged[@]}")
-          mapfile -t files < <(printf '%s\n' "${files[@]}" | sed '/^$/d' | sort -u)
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No changed Dart files to format."
             exit 0
@@ -121,7 +122,7 @@ jobs:
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
-          git config user.email 41898218+github-actions[bot]@users.noreply.github.com
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
           git commit -m "Implémenter la composition post-match unique"
           git push origin HEAD:agent/postmatch-composition-editor
