@@ -1,0 +1,295 @@
+name: Post-match composition patch
+
+on:
+  push:
+    branches:
+      - fix/compositionless-scorers-list
+    paths:
+      - .github/workflows/postmatch-composition-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[postmatch-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/compositionless-scorers-list
+          fetch-depth: 0
+      - name: Patch Flutter files
+        shell: python
+        run: |
+          from pathlib import Path
+
+          finalization = Path('lib/features/sports_management/presentation/sport_match_finalization_page.dart')
+          text = finalization.read_text()
+          text = text.replace(
+              """            onGoalsChanged: (goals) => _updateParticipant(
+              participant,
+              participant.copyWith(goals: goals),
+            ),
+            onCleanSheetChanged: (enabled) =>
+                _setCleanSheet(participant, enabled),
+""",
+              """            onSelectionStatusChanged: (status) => _updateParticipant(
+              participant,
+              participant.copyWith(selectionStatus: status),
+            ),
+            onGoalsChanged: (goals) => _updateParticipant(
+              participant,
+              participant.copyWith(goals: goals),
+            ),
+            onCleanSheetChanged: (enabled) =>
+                _setCleanSheet(participant, enabled),
+""",
+          )
+          text = text.replace(
+              """    required this.onPresentChanged,
+    required this.onGoalsChanged,
+    required this.onCleanSheetChanged,
+""",
+              """    required this.onPresentChanged,
+    required this.onSelectionStatusChanged,
+    required this.onGoalsChanged,
+    required this.onCleanSheetChanged,
+""",
+          )
+          text = text.replace(
+              """  final ValueChanged<bool> onPresentChanged;
+  final ValueChanged<int> onGoalsChanged;
+""",
+              """  final ValueChanged<bool> onPresentChanged;
+  final ValueChanged<SportFinalSelectionStatus> onSelectionStatusChanged;
+  final ValueChanged<int> onGoalsChanged;
+""",
+          )
+          marker = """            if (participant.present) ...[
+              const Divider(),
+              Row(
+                children: [
+                  const Expanded(child: Text('Buts inscrits')),
+"""
+          replacement = """            if (participant.present) ...[
+              const Divider(),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Composition réelle',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<SportFinalSelectionStatus>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(
+                    value: SportFinalSelectionStatus.starter,
+                    label: Text('Titulaire'),
+                  ),
+                  ButtonSegment(
+                    value: SportFinalSelectionStatus.substitute,
+                    label: Text('Remplaçant'),
+                  ),
+                ],
+                selected: {
+                  participant.selectionStatus == SportFinalSelectionStatus.starter
+                      ? SportFinalSelectionStatus.starter
+                      : SportFinalSelectionStatus.substitute,
+                },
+                onSelectionChanged: saving
+                    ? null
+                    : (selection) =>
+                        onSelectionStatusChanged(selection.first),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Expanded(child: Text('Buts inscrits')),
+"""
+          if marker not in text:
+              raise SystemExit('Participant marker not found')
+          text = text.replace(marker, replacement)
+          text = text.replace(
+              """          'La composition publiée sert uniquement de préremplissage. Corrige ici '
+          'ce qui s’est réellement passé.',
+""",
+              """          'La composition publiée sert de préremplissage. Si elle n’existe pas, '
+          'compose ici l’équipe réelle avec les joueurs présents.',
+""",
+          )
+          finalization.write_text(text)
+
+          repository = Path('lib/features/matches/data/match_details_repository.dart')
+          text = repository.read_text()
+          marker = """      }
+
+      final pointRows = await _client
+"""
+          insertion = """      }
+
+      if (startingLineup.isEmpty) {
+        final finalRows = await _client
+            .from('match_sport_participants')
+            .select('''
+              season_player_id, guest_player_id, final_selection_status,
+              final_goals,
+              season_players(first_name,last_name,profiles(surnom)),
+              guest_players(first_name,last_name)
+            ''')
+            .eq('match_id', matchId)
+            .eq('final_presence_status', 'present')
+            .inFilter('final_selection_status', const ['starter', 'substitute']);
+        startingLineup = (finalRows as List).asMap().entries.map((indexed) {
+          final map = Map<String, dynamic>.from(indexed.value as Map);
+          final player = map['season_players'] is Map
+              ? Map<String, dynamic>.from(map['season_players'] as Map)
+              : const <String, dynamic>{};
+          final profile = player['profiles'] is Map
+              ? Map<String, dynamic>.from(player['profiles'] as Map)
+              : const <String, dynamic>{};
+          final guest = map['guest_players'] is Map
+              ? Map<String, dynamic>.from(map['guest_players'] as Map)
+              : const <String, dynamic>{};
+          final isStarter = map['final_selection_status'] == 'starter';
+          final name = player.isNotEmpty
+              ? _resolveName(
+                  profile['surnom'],
+                  player['first_name'],
+                  player['last_name'],
+                )
+              : _resolveName(null, guest['first_name'], guest['last_name']);
+          return MatchStartingPlayer(
+            seasonPlayerId: map['season_player_id']?.toString(),
+            name: name,
+            goals: (map['final_goals'] as num?)?.toInt() ?? 0,
+            isManOfTheMatch: map['season_player_id'] != null &&
+                manOfMatchIds.contains(map['season_player_id'].toString()),
+            sortOrder: indexed.key,
+            isStarter: isStarter,
+            x: null,
+            y: null,
+          );
+        }).toList()
+          ..sort((a, b) {
+            if (a.isStarter != b.isStarter) return a.isStarter ? -1 : 1;
+            return a.sortOrder.compareTo(b.sortOrder);
+          });
+      }
+
+      final pointRows = await _client
+"""
+          if marker not in text:
+              raise SystemExit('Repository marker not found')
+          text = text.replace(marker, insertion, 1)
+          repository.write_text(text)
+
+          details = Path('lib/features/matches/presentation/match_details_page.dart')
+          text = details.read_text()
+          start = text.index("    final scorers = details.playerStats")
+          end = text.index("class _MpgCompletedCard", start)
+          replacement = """    final lineup = details.startingLineup;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              lineup.isEmpty ? 'Composition réelle' : 'Composition réelle',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            if (lineup.isEmpty)
+              const Text(
+                'Aucune composition renseignée. Utilise « Modifier les statistiques » '
+                'pour choisir les titulaires et remplaçants parmi les présents.',
+              )
+            else
+              _CompletedLineupList(players: lineup),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+"""
+          text = text[:start] + replacement + text[end:]
+          old_start = text.index('class _CompletedScorersList')
+          old_end = text.index('class _PredictionsTable', old_start)
+          new_widget = """class _CompletedLineupList extends StatelessWidget {
+  const _CompletedLineupList({required this.players});
+
+  final List<MatchStartingPlayer> players;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < players.length; index += 1) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        players[index].name,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      Text(
+                        players[index].isStarter ? 'Titulaire' : 'Remplaçant',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (players[index].goals > 0)
+                  Text(
+                    '×${players[index].goals}',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+              ],
+            ),
+          ),
+          if (index < players.length - 1) const Divider(height: 1),
+        ],
+      ],
+    );
+  }
+}
+
+"""
+          text = text[:old_start] + new_widget + text[old_end:]
+          details.write_text(text)
+      - name: Format and commit
+        run: |
+          dart format \
+            lib/features/sports_management/presentation/sport_match_finalization_page.dart \
+            lib/features/matches/data/match_details_repository.dart \
+            lib/features/matches/presentation/match_details_page.dart
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/sports_management/presentation/sport_match_finalization_page.dart \
+            lib/features/matches/data/match_details_repository.dart \
+            lib/features/matches/presentation/match_details_page.dart
+          git commit -m "Permettre la composition réelle après match [postmatch-patched]"
+          git push origin HEAD:fix/compositionless-scorers-list
