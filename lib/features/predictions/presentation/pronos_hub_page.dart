@@ -47,9 +47,9 @@ class PronosHubPage extends ConsumerStatefulWidget {
 }
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
-  static const _matchesBackgroundPath =
-      'assets/images/module_backgrounds/matches_blue_original.jpeg';
-  static const _matchesBackground = AssetImage(_matchesBackgroundPath);
+  static const _matchesBackgroundUrl =
+      'https://ovzijmqrnsgcmryinkfa.supabase.co/storage/v1/object/public/app-assets/module-backgrounds/matches-source-full.png?v=2';
+  static const _matchesBackground = NetworkImage(_matchesBackgroundUrl);
 
   late _PronosCategory _category;
 
@@ -104,14 +104,17 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            _matchesBackgroundPath,
+          Image.network(
+            _matchesBackgroundUrl,
             fit: BoxFit.fill,
             alignment: Alignment.center,
             filterQuality: FilterQuality.high,
             isAntiAlias: true,
             gaplessPlayback: true,
             excludeFromSemantics: true,
+            errorBuilder: (_, __, ___) => const ColoredBox(
+              color: AppTheme.background,
+            ),
           ),
           Material(type: MaterialType.transparency, child: content),
         ],
