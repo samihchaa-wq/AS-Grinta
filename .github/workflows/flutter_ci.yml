@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -41,7 +41,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Apply CI formatting to changed Dart files
+      - name: Check formatting of changed Dart files
         shell: bash
         run: |
           set -euo pipefail
@@ -56,18 +56,7 @@ jobs:
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format "${files[@]}"
-          if git diff --quiet -- "${files[@]}"; then
-            exit 0
-          fi
-          cp lib/features/matches/data/match_details_repository.dart /tmp/match_details_repository.dart
-          git checkout -B "${{ github.head_ref }}" "origin/${{ github.head_ref }}"
-          cp /tmp/match_details_repository.dart lib/features/matches/data/match_details_repository.dart
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/matches/data/match_details_repository.dart
-          git commit -m "Appliquer le formatage exact de la CI"
-          git push origin "HEAD:${{ github.head_ref }}"
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
