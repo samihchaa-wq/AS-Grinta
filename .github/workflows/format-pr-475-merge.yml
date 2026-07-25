@@ -1,0 +1,45 @@
+name: Format PR 475 merge result
+
+on:
+  push:
+    branches:
+      - agent/resume-match-joueurs-presents
+    paths:
+      - .github/workflows/format-pr-475-merge.yml
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR merge result
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/475/merge
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format merge result
+        run: |
+          dart format lib/features/matches/data/match_details_repository.dart
+          cp lib/features/matches/data/match_details_repository.dart /tmp/match_details_repository.dart
+
+      - name: Apply formatting to branch
+        run: |
+          git checkout agent/resume-match-joueurs-presents
+          cp /tmp/match_details_repository.dart lib/features/matches/data/match_details_repository.dart
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            exit 0
+          fi
+          git add lib/features/matches/data/match_details_repository.dart
+          git commit -m "Aligner le formatage sur la fusion de la PR 475"
+          git push origin HEAD:agent/resume-match-joueurs-presents
