@@ -1,0 +1,24 @@
+name: Format probe
+
+on:
+  push:
+    branches:
+      - fix/opponent-match-history
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: dart format lib/features/matches/data/match_info_repository.dart
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatted-match-info
+          path: lib/features/matches/data/match_info_repository.dart
