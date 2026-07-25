@@ -1,4 +1,4 @@
-name: Temporary sync and format
+name: Temporary sync and format diagnostic
 
 on:
   push:
@@ -24,21 +24,47 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Merge main and format changed files
+      - name: Merge main, format and publish diagnostic
+        shell: bash
         run: |
+          set +e
+          status_file=.github/tmp_sync_format_status.txt
+          log_file=/tmp/sync-format.log
+          : > "$log_file"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git merge --no-edit origin/main
-          dart format \
+
+          git fetch origin main >> "$log_file" 2>&1
+          fetch_status=$?
+          echo "fetch_status=$fetch_status" >> "$log_file"
+
+          merge_status=99
+          format_status=99
+          if [ "$fetch_status" -eq 0 ]; then
+            git merge --no-edit origin/main >> "$log_file" 2>&1
+            merge_status=$?
+            echo "merge_status=$merge_status" >> "$log_file"
+          fi
+
+          if [ "$merge_status" -eq 0 ]; then
+            dart format \
+              lib/features/matches/presentation/match_details_page.dart \
+              lib/features/predictions/presentation/pronos_hub_components.dart \
+              lib/features/statistics/presentation/stats_hub_page.dart \
+              >> "$log_file" 2>&1
+            format_status=$?
+            echo "format_status=$format_status" >> "$log_file"
+          else
+            git merge --abort >> "$log_file" 2>&1 || true
+          fi
+
+          cp "$log_file" "$status_file"
+          git add "$status_file" \
             lib/features/matches/presentation/match_details_page.dart \
             lib/features/predictions/presentation/pronos_hub_components.dart \
             lib/features/statistics/presentation/stats_hub_page.dart
-          if ! git diff --quiet; then
-            git add \
-              lib/features/matches/presentation/match_details_page.dart \
-              lib/features/predictions/presentation/pronos_hub_components.dart \
-              lib/features/statistics/presentation/stats_hub_page.dart
-            git commit -m "Format current user row highlighting after main sync"
+          if ! git diff --cached --quiet; then
+            git commit -m "Sync main and format current user highlighting"
           fi
-          git push origin HEAD:feature/highlight-current-user-rows
+          git push origin HEAD:feature/highlight-current-user-rows >> "$log_file" 2>&1
+          exit 0
