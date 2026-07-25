@@ -48,7 +48,7 @@ class PronosHubPage extends ConsumerStatefulWidget {
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
   static const _matchesBackgroundPath =
-      'assets/images/module_backgrounds/matches_blue.webp';
+      'assets/images/module_backgrounds/matches_blue_original.jpeg';
   static const _matchesBackground = AssetImage(_matchesBackgroundPath);
 
   late _PronosCategory _category;
