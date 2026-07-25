@@ -1,0 +1,99 @@
+diff --git a/lib/features/matches/presentation/match_details_page.dart b/lib/features/matches/presentation/match_details_page.dart
+index 62c19ab..c21935e 100644
+--- a/lib/features/matches/presentation/match_details_page.dart
++++ b/lib/features/matches/presentation/match_details_page.dart
+@@ -300,9 +300,8 @@ class _CompletedCompositionCard extends ConsumerWidget {
+   Widget build(BuildContext context, WidgetRef ref) {
+     // Priorité au rendu MPG (photos, couronne 👑, ballons ⚽) dès qu'une
+     // composition publiée existe : même visuel avant et après le match.
+-    final composition = ref
+-        .watch(publishedMatchCompositionProvider(matchId))
+-        .valueOrNull;
++    final composition =
++        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
+     final fieldEntries =
+         composition?.entriesFor(MatchCompositionZone.field) ?? const [];
+     if (fieldEntries.isNotEmpty) {
+@@ -454,13 +453,12 @@ class _PredictionsTable extends StatelessWidget {
+ 
+   Color? _colorFor(MatchPredictionResult prediction) {
+     if (prediction.points <= 0) return null;
+-    final exact =
+-        prediction.scoreGrinta == actualGrinta &&
++    final exact = prediction.scoreGrinta == actualGrinta &&
+         prediction.scoreOpponent == actualOpponent;
+     if (exact) return const Color(0xFF9B6CFF);
+     final correctWinner =
+         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
+-        _result(actualGrinta, actualOpponent);
++            _result(actualGrinta, actualOpponent);
+     if (!correctWinner) return null;
+     return const Color(0xFF39E784);
+   }
+diff --git a/lib/features/predictions/presentation/pronos_hub_components.dart b/lib/features/predictions/presentation/pronos_hub_components.dart
+index c482186..4cb45da 100644
+--- a/lib/features/predictions/presentation/pronos_hub_components.dart
++++ b/lib/features/predictions/presentation/pronos_hub_components.dart
+@@ -54,8 +54,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
+     final currentProfileId = ref.watch(
+       authControllerProvider.select((state) => state.profile?.id),
+     );
+-    final sorted = [...widget.entries]
+-      ..sort((a, b) {
++    final sorted = [...widget.entries]..sort((a, b) {
+         int cmp;
+         switch (_sort) {
+           case _LbCol.name:
+@@ -133,8 +132,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
+             firstValue: '${_first(sorted[index]).round()}',
+             secondValue: '${_second(sorted[index]).round()}',
+             points: '${widget.points(sorted[index]).round()}',
+-            isCurrentUser:
+-                currentProfileId != null &&
++            isCurrentUser: currentProfileId != null &&
+                 sorted[index].profileId == currentProfileId,
+           ),
+       ],
+diff --git a/lib/features/statistics/presentation/stats_hub_page.dart b/lib/features/statistics/presentation/stats_hub_page.dart
+index e3f388f..0481037 100644
+--- a/lib/features/statistics/presentation/stats_hub_page.dart
++++ b/lib/features/statistics/presentation/stats_hub_page.dart
+@@ -96,8 +96,8 @@ class _StatsHubPageState extends State<StatsHubPage> {
+           Expanded(
+             child: switch (_section) {
+               _StatsSection.rankings => RankingsPanel(
+-                initialView: widget.initialRankingView,
+-              ),
++                  initialView: widget.initialRankingView,
++                ),
+               _StatsSection.players => _PlayersPanel(period: _period),
+               _StatsSection.team => TeamStatisticsPanel(period: _period),
+             },
+@@ -183,13 +183,13 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
+           players.sort((a, b) {
+             final comparison = sort == _PlayerStatCol.name
+                 ? a.playerName.toLowerCase().compareTo(
+-                    b.playerName.toLowerCase(),
+-                  )
++                      b.playerName.toLowerCase(),
++                    )
+                 : _value(sort, a).compareTo(_value(sort, b));
+             if (comparison == 0) {
+               return a.playerName.toLowerCase().compareTo(
+-                b.playerName.toLowerCase(),
+-              );
++                    b.playerName.toLowerCase(),
++                  );
+             }
+             return _descending ? -comparison : comparison;
+           });
+@@ -210,8 +210,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
+                 _PlayersDataRow(
+                   rank: index + 1,
+                   player: players[index],
+-                  isCurrentUser:
+-                      currentProfileId != null &&
++                  isCurrentUser: currentProfileId != null &&
+                       players[index].profileId == currentProfileId,
+                 ),
+             ],
