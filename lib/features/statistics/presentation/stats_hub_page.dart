@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
@@ -156,6 +157,9 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(statisticsPeriodProvider(widget.period));
+    final currentProfileId = ref.watch(
+      authControllerProvider.select((state) => state.profile?.id),
+    );
 
     return async.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -206,6 +210,8 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
                 _PlayersDataRow(
                   rank: index + 1,
                   player: players[index],
+                  isCurrentUser: currentProfileId != null &&
+                      players[index].profileId == currentProfileId,
                 ),
             ],
           ),
@@ -267,10 +273,15 @@ class _PlayersHeaderRow extends StatelessWidget {
 }
 
 class _PlayersDataRow extends StatelessWidget {
-  const _PlayersDataRow({required this.rank, required this.player});
+  const _PlayersDataRow({
+    required this.rank,
+    required this.player,
+    required this.isCurrentUser,
+  });
 
   final int rank;
   final PlayerStatistics player;
+  final bool isCurrentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +296,7 @@ class _PlayersDataRow extends StatelessWidget {
       );
     }
 
-    return Padding(
+    final row = Padding(
       padding: grintaTableRowPadding,
       child: Row(
         children: [
@@ -323,6 +334,16 @@ class _PlayersDataRow extends StatelessWidget {
           value(player.hdm ?? 0),
         ],
       ),
+    );
+
+    if (!isCurrentUser) return row;
+    final accent = Theme.of(context).colorScheme.secondary;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: .14),
+        border: Border(left: BorderSide(color: accent, width: 4)),
+      ),
+      child: row,
     );
   }
 }
