@@ -5,7 +5,7 @@ import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Onglet « Info » d'une fiche de match : heure, adresse cliquable et les 5
+/// Onglet « Info » d'une fiche de match : heure, adresse cliquable et les
 /// dernières rencontres contre l'adversaire.
 class MatchInfoTab extends ConsumerWidget {
   const MatchInfoTab({super.key, required this.matchId});
@@ -108,7 +108,9 @@ class MatchInfoTab extends ConsumerWidget {
                 ),
               const SizedBox(height: 20),
               Text(
-                '5 dernières rencontres',
+                info.lastEncounters.length > 1
+                    ? 'Dernières rencontres'
+                    : 'Dernière rencontre',
                 style: Theme.of(context)
                     .textTheme
                     .titleSmall
