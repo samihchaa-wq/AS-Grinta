@@ -74,7 +74,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: Colors.transparent,
       appBar: GrintaAppBar(
         title: Text(switch (_category) {
           _PronosCategory.matches => 'Matchs',
