@@ -1,0 +1,49 @@
+name: Temporary format PR merge
+
+on:
+  push:
+    branches:
+      - feature/highlight-current-user-rows
+
+permissions:
+  contents: write
+
+jobs:
+  format-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/highlight-current-user-rows
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format the PR merge result
+        run: |
+          git fetch origin refs/pull/482/merge:refs/remotes/origin/pr-482-merge
+          git checkout --detach refs/remotes/origin/pr-482-merge
+          dart format \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/predictions/presentation/pronos_hub_components.dart \
+            lib/features/statistics/presentation/stats_hub_page.dart
+          git diff --binary > /tmp/format.patch
+          git checkout feature/highlight-current-user-rows
+          if [ ! -s /tmp/format.patch ]; then
+            echo "PR merge result already formatted."
+            exit 0
+          fi
+          git apply /tmp/format.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/predictions/presentation/pronos_hub_components.dart \
+            lib/features/statistics/presentation/stats_hub_page.dart
+          git commit -m "Format PR merge result"
+          git push origin HEAD:feature/highlight-current-user-rows
