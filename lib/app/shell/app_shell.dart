@@ -34,7 +34,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     'assets/images/module_backgrounds/stats_black.webp.b64.03',
     'assets/images/module_backgrounds/stats_black.webp.b64.04',
     'assets/images/module_backgrounds/stats_black.webp.b64.05',
-    'assets/images/module_backgrounds/stats_black.webp.b64.06',
   ];
 
   bool _matchFocusScheduled = false;
