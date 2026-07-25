@@ -298,8 +298,6 @@ class _CompletedCompositionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Priorité au rendu MPG (photos, couronne 👑, ballons ⚽) dès qu'une
-    // composition publiée existe : même visuel avant et après le match.
     final composition =
         ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
     final fieldEntries =
@@ -308,16 +306,11 @@ class _CompletedCompositionCard extends ConsumerWidget {
       return _MpgCompletedCard(composition: composition!);
     }
 
-    final playerNames = <String>[];
-    final sourceNames = details.startingLineup.isNotEmpty
-        ? details.startingLineup.map((player) => player.name)
-        : details.playerStats.map((player) => player.name);
-    for (final rawName in sourceNames) {
-      final name = rawName.trim();
-      if (name.isNotEmpty && !playerNames.contains(name)) {
-        playerNames.add(name);
-      }
-    }
+    final scorers = details.playerStats.where((player) => player.goals > 0).toList()
+      ..sort((a, b) {
+        final byGoals = b.goals.compareTo(a.goals);
+        return byGoals != 0 ? byGoals : a.name.compareTo(b.name);
+      });
 
     return Card(
       child: Padding(
@@ -326,16 +319,16 @@ class _CompletedCompositionCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Joueurs',
+              'Buteurs',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
-            if (playerNames.isEmpty)
-              const Text('Aucun joueur renseigné.')
+            if (scorers.isEmpty)
+              const Text('Aucun buteur renseigné.')
             else
-              _CompletedPlayersList(playerNames: playerNames),
+              _CompletedScorersList(scorers: scorers),
           ],
         ),
       ),
@@ -343,8 +336,6 @@ class _CompletedCompositionCard extends ConsumerWidget {
   }
 }
 
-/// Rendu MPG d'une composition publiée (photos, couronne, ballons) pour un
-/// match terminé — identique à l'affichage d'avant-match.
 class _MpgCompletedCard extends StatelessWidget {
   const _MpgCompletedCard({required this.composition});
 
@@ -407,27 +398,39 @@ class _MpgCompletedCard extends StatelessWidget {
   }
 }
 
-class _CompletedPlayersList extends StatelessWidget {
-  const _CompletedPlayersList({required this.playerNames});
+class _CompletedScorersList extends StatelessWidget {
+  const _CompletedScorersList({required this.scorers});
 
-  final List<String> playerNames;
+  final List<MatchStatLine> scorers;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var index = 0; index < playerNames.length; index += 1) ...[
+        for (var index = 0; index < scorers.length; index += 1) ...[
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              playerNames[index],
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    scorers[index].name,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                Text(
+                  '×${scorers[index].goals}',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ],
             ),
           ),
-          if (index < playerNames.length - 1) const Divider(height: 1),
+          if (index < scorers.length - 1) const Divider(height: 1),
         ],
       ],
     );
@@ -543,8 +546,6 @@ class _PredictionsTable extends StatelessWidget {
   }
 }
 
-/// Pastille « ×2 » indiquant qu'un joueur a utilisé son bonus double sur ce
-/// pronostic (ses points sont doublés).
 class _X2Badge extends StatelessWidget {
   const _X2Badge();
 
