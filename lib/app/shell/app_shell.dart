@@ -23,8 +23,8 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> {
-  static const _matchesBackground = NetworkImage(
-    'https://ovzijmqrnsgcmryinkfa.supabase.co/storage/v1/object/public/app-assets/module-backgrounds/matches-source-full.png',
+  static const _matchesBackground = AssetImage(
+    'assets/images/module_backgrounds/matches_blue.webp',
   );
 
   static const _statsBackgroundParts = <String>[
