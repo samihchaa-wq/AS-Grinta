@@ -1,4 +1,4 @@
-name: Temporary CI format diagnostic
+name: Temporary CI-compatible Dart format
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  diagnose:
+  format:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
@@ -27,33 +27,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Reproduce PR formatting check
+      - name: Format and commit
         shell: bash
         run: |
-          set +e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main refs/pull/482/merge:refs/remotes/origin/pr-482-merge
-          git checkout --detach refs/remotes/origin/pr-482-merge
-          range="origin/main...HEAD"
-          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
-          status_file=/tmp/ci-format-status.txt
-          patch_file=/tmp/ci-format.patch
-          {
-            echo "head=$(git rev-parse HEAD)"
-            echo "main=$(git rev-parse origin/main)"
-            echo "range=$range"
-            printf 'file=%s\n' "${files[@]}"
-          } > "$status_file"
-          dart format --output=none --set-exit-if-changed "${files[@]}" >> "$status_file" 2>&1
-          check_status=$?
-          echo "check_status=$check_status" >> "$status_file"
-          dart format "${files[@]}" >> "$status_file" 2>&1
-          echo "format_status=$?" >> "$status_file"
-          git diff -- "${files[@]}" > "$patch_file"
-          git checkout feature/highlight-current-user-rows
-          cp "$status_file" .github/tmp_ci_format_status.txt
-          cp "$patch_file" .github/tmp_ci_format.patch
-          git add .github/tmp_ci_format_status.txt .github/tmp_ci_format.patch
-          git commit -m "Record CI format diagnostic"
+          dart format \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/predictions/presentation/pronos_hub_components.dart \
+            lib/features/statistics/presentation/stats_hub_page.dart
+          if git diff --quiet; then
+            echo "Files already match CI formatting."
+            exit 0
+          fi
+          git add \
+            lib/features/matches/presentation/match_details_page.dart \
+            lib/features/predictions/presentation/pronos_hub_components.dart \
+            lib/features/statistics/presentation/stats_hub_page.dart
+          git commit -m "Apply CI-compatible Dart formatting"
           git push origin HEAD:feature/highlight-current-user-rows
