@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -17,12 +17,11 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Flutter
@@ -30,34 +29,6 @@ jobs:
         with:
           channel: stable
           cache: true
-
-      - name: Use finalization snapshot as post-match source of truth
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.head_ref == 'agent/postmatch-composition-editor'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('lib/features/sports_management/presentation/admin_squad_plan_page.dart')
-          text = path.read_text()
-          old = """    final currentConvoked = {
-                for (final player in _convokedPlayers) player.participantId,
-              };
-          """
-          new = """    final currentConvoked = _postMatch
-                ? _actualPresent
-                : {
-                    for (final player in _convokedPlayers) player.participantId,
-                  };
-          """
-          if old not in text:
-              raise SystemExit('Post-match source-of-truth block not found')
-          path.write_text(text.replace(old, new, 1))
-          PY
-          dart format lib/features/sports_management/presentation/admin_squad_plan_page.dart
 
       - name: Install dependencies
         run: flutter pub get
@@ -69,6 +40,23 @@ jobs:
           version=$(awk '/^version:/{print $2}' pubspec.yaml)
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check formatting of changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            range="$base...HEAD"
+          else
+            range="HEAD^...HEAD"
+          fi
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No changed Dart files to format."
+            exit 0
+          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}"
 
       - name: Analyze
         shell: bash
@@ -94,24 +82,6 @@ jobs:
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee build-web.log
-
-      - name: Commit finalization-source fix
-        if: >-
-          success() &&
-          github.event_name == 'pull_request' &&
-          github.head_ref == 'agent/postmatch-composition-editor'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add lib/features/sports_management/presentation/admin_squad_plan_page.dart
-          if git diff --cached --quiet; then
-            echo "No application change to commit."
-          else
-            git commit -m "Utiliser le snapshot final des joueurs présents"
-            git push origin HEAD:agent/postmatch-composition-editor
-          fi
 
       - name: Upload validation logs
         if: always()
