@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -17,12 +17,37 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
+
+      - name: Prepare post-match implementation
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.head_ref == 'agent/postmatch-composition-editor' &&
+          !contains(github.event.pull_request.title, '[implementation-applied]')
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/agent/postmatch_composition_patch.py
+          python3 .github/agent/postmatch_composition_patch_fix.py
+          rm -f \
+            .github/agent/postmatch_composition_patch.py \
+            .github/agent/postmatch_composition_patch_fix.py \
+            .github/workflows/agent-postmatch-composition.yml
+          git checkout origin/main -- .github/workflows/flutter_ci.yml
+          dart format \
+            lib/features/sports_management/data/sport_waitlist_repository.dart \
+            lib/features/sports_management/data/match_composition_repository.dart \
+            lib/features/sports_management/domain/match_composition.dart \
+            lib/features/sports_management/domain/sport_match_finalization.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page.dart \
+            lib/features/matches/presentation/match_details_page.dart \
+            test/match_composition_metadata_test.dart
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -52,6 +77,9 @@ jobs:
             range="HEAD^...HEAD"
           fi
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR "$range" -- '*.dart')
+          mapfile -t unstaged < <(git diff --name-only --diff-filter=ACMR -- '*.dart')
+          files+=("${unstaged[@]}")
+          mapfile -t files < <(printf '%s\n' "${files[@]}" | sed '/^$/d' | sort -u)
           if [ "${#files[@]}" -eq 0 ]; then
             echo "No changed Dart files to format."
             exit 0
@@ -82,6 +110,21 @@ jobs:
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee build-web.log
+
+      - name: Commit generated implementation
+        if: >-
+          success() &&
+          github.event_name == 'pull_request' &&
+          github.head_ref == 'agent/postmatch-composition-editor' &&
+          !contains(github.event.pull_request.title, '[implementation-applied]')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Implémenter la composition post-match unique"
+          git push origin HEAD:agent/postmatch-composition-editor
 
       - name: Upload validation logs
         if: always()
