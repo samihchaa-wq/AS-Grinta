@@ -157,16 +157,16 @@ jobs:
               serviceWorkers: 'allow',
             });
             const page = await context.newPage();
-            const errors = [];
-            page.on('pageerror', error => errors.push(error.stack || error.message));
-            page.on('console', message => {
-              if (message.type() === 'error') errors.push(message.text());
-            });
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.stack || error.message));
 
-            await page.goto('http://127.0.0.1:8080/', {
+            const initialResponse = await page.goto('http://127.0.0.1:8080/', {
               waitUntil: 'networkidle',
               timeout: 90000,
             });
+            if (!initialResponse || initialResponse.status() >= 400) {
+              throw new Error(`chargement initial HTTP ${initialResponse?.status() ?? 'sans réponse'}`);
+            }
             await page.evaluate(async () => {
               if (!('serviceWorker' in navigator)) {
                 throw new Error('Service worker non pris en charge');
@@ -192,10 +192,15 @@ jobs:
             }, null, { timeout: 45000 });
 
             await context.setOffline(true);
-            await page.goto('http://127.0.0.1:8080/stats?offline=1', {
-              waitUntil: 'domcontentloaded',
-              timeout: 45000,
-            });
+            const offlineResponse = await page.goto(
+              'http://127.0.0.1:8080/stats?offline=1',
+              { waitUntil: 'domcontentloaded', timeout: 45000 },
+            );
+            if (!offlineResponse || offlineResponse.status() >= 400) {
+              throw new Error(
+                `lien profond hors ligne HTTP ${offlineResponse?.status() ?? 'sans réponse'}`,
+              );
+            }
             await page.waitForFunction(() => {
               return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
             }, null, { timeout: 45000 });
@@ -204,7 +209,7 @@ jobs:
             if (fs.statSync('runtime-pwa-offline.png').size < 4000) {
               throw new Error('capture PWA hors ligne anormalement vide');
             }
-            if (errors.length > 0) throw new Error(errors.join(' | '));
+            if (pageErrors.length > 0) throw new Error(pageErrors.join(' | '));
 
             await browser.close();
           })().catch(error => {
