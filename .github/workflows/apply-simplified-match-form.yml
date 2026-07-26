@@ -1,16 +1,15 @@
 name: Apply simplified match form
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/simplify-match-form
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: ${{ !contains(github.event.head_commit.message, '[match-form-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -156,6 +155,9 @@ jobs:
 
           path.write_text(text)
           Path('.github/workflows/apply-simplified-match-form.yml').unlink()
+          trigger = Path('.github/agent/simplify-match-form.trigger')
+          if trigger.exists():
+              trigger.unlink()
           PY
       - name: Validate
         shell: bash
