@@ -1,7 +1,7 @@
 name: Apply PR 493 simplified match form
 
 on:
-  pull_request:
+  push:
     branches:
       - main
 
@@ -10,12 +10,12 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ github.event.pull_request.number == 493 }}
+    if: ${{ !contains(github.event.head_commit.message, '[match-form-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/simplify-match-form
+          ref: main
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
@@ -156,8 +156,8 @@ jobs:
 
           path.write_text(text)
           for extra in (
-              Path('.github/workflows/apply-simplified-match-form.yml'),
-              Path('.github/agent/simplify-match-form.trigger'),
+              Path('.github/workflows/apply-pr493-simplified-match-form.yml'),
+              Path('.github/agent/apply-pr493-simplified-match-form.trigger'),
           ):
               if extra.exists():
                   extra.unlink()
@@ -178,4 +178,4 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
           git commit -m "Simplifier le formulaire de match [match-form-applied]"
-          git push origin HEAD:agent/simplify-match-form
+          git push origin HEAD:main
