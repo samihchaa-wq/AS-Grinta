@@ -290,6 +290,12 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      const { error: prepareError } = await admin.schema("private").rpc(
+        "prepare_profile_for_hard_deletion",
+        { p_profile_id: userId },
+      );
+      if (prepareError) throw prepareError;
+
       const { error } = await admin.auth.admin.deleteUser(userId, false);
       if (error) throw error;
       return jsonResponse({ deleted: true });
