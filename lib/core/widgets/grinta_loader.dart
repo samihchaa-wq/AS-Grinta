@@ -149,7 +149,8 @@ class _SpinningBallPainter extends CustomPainter {
     canvas.translate(center.dx, center.dy);
     canvas.rotate(rotation);
 
-    final darkPaint = Paint()..color = AppTheme.background.withValues(alpha: 0.9);
+    final darkPaint = Paint()
+      ..color = AppTheme.background.withValues(alpha: 0.9);
     final bluePaint = Paint()..color = AppTheme.primary;
     final pinkPaint = Paint()..color = AppTheme.accent;
     final seamPaint = Paint()
