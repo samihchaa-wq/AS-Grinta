@@ -47,8 +47,8 @@ final upcomingMatchFixtureProvider =
   return UpcomingMatchFixtureData.fromJson(Map<String, dynamic>.from(row));
 });
 
-/// Affiche l'affiche domicile/extérieur d'un match à venir au-dessus des
-/// onglets de sa fiche. Les matchs terminés ou archivés ne rendent rien.
+/// Affiche les équipes d'un match à venir au-dessus des onglets de sa fiche.
+/// Les matchs terminés ou archivés ne rendent rien.
 class UpcomingMatchFixtureHeader extends ConsumerWidget {
   const UpcomingMatchFixtureHeader({
     super.key,
@@ -79,10 +79,8 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: _FixtureTeam(
-                        label: 'Domicile',
                         name: data.homeName,
                         isGrinta: data.grintaIsHome,
-                        alignment: CrossAxisAlignment.end,
                         textAlign: TextAlign.end,
                       ),
                     ),
@@ -98,10 +96,8 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                     ),
                     Expanded(
                       child: _FixtureTeam(
-                        label: 'Extérieur',
                         name: data.awayName,
                         isGrinta: !data.grintaIsHome,
-                        alignment: CrossAxisAlignment.start,
                         textAlign: TextAlign.start,
                       ),
                     ),
@@ -119,44 +115,26 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
 
 class _FixtureTeam extends StatelessWidget {
   const _FixtureTeam({
-    required this.label,
     required this.name,
     required this.isGrinta,
-    required this.alignment,
     required this.textAlign,
   });
 
-  final String label;
   final String name;
   final bool isGrinta;
-  final CrossAxisAlignment alignment;
   final TextAlign textAlign;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: alignment,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          textAlign: textAlign,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: isGrinta ? FontWeight.w900 : FontWeight.w800,
-          ),
-        ),
-      ],
+    return Text(
+      name,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: textAlign,
+      style: theme.textTheme.titleMedium?.copyWith(
+        fontWeight: isGrinta ? FontWeight.w900 : FontWeight.w800,
+      ),
     );
   }
 }
