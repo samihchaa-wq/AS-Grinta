@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
@@ -53,8 +54,9 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       );
       return;
     }
-    if (password.length < 8) {
-      _showError('Le mot de passe doit contenir au moins 8 caractères.');
+    final passwordError = PasswordPolicy.validate(password);
+    if (passwordError != null) {
+      _showError(passwordError);
       return;
     }
     if (password != _confirmController.text) {
@@ -78,6 +80,8 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
       _showError(message ?? 'La création du compte a échoué.');
     } on StateError catch (error) {
       _showError(error.message);
+    } on ArgumentError catch (error) {
+      _showError(error.message?.toString() ?? PasswordPolicy.helperText);
     } catch (_) {
       _showError('La création du compte a échoué.');
     } finally {
@@ -183,10 +187,16 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        autofillHints: const [AutofillHints.newPassword],
                         decoration: InputDecoration(
-                          labelText: 'Mot de passe (8 caractères min.)',
+                          labelText: 'Mot de passe',
+                          helperText: PasswordPolicy.helperText,
+                          helperMaxLines: 2,
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
+                            tooltip: _obscurePassword
+                                ? 'Afficher le mot de passe'
+                                : 'Masquer le mot de passe',
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_outlined
@@ -204,6 +214,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                       TextField(
                         controller: _confirmController,
                         obscureText: _obscurePassword,
+                        autofillHints: const [AutofillHints.newPassword],
                         decoration: const InputDecoration(
                           labelText: 'Confirme ton mot de passe',
                           prefixIcon: Icon(Icons.lock_outline),
@@ -216,8 +227,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.sports_soccer),
                         label: const Text('Créer mon compte'),
