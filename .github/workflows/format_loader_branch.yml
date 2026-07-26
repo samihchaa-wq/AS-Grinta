@@ -1,0 +1,40 @@
+name: Format loader branch
+
+on:
+  push:
+    branches: [feat/grinta-loading-system]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/grinta-loading-system
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format the exact pull-request Dart diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart')
+          printf 'Formatting %s\n' "${files[@]}"
+          dart format "${files[@]}"
+          git add -- "${files[@]}"
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git diff --cached --quiet && exit 0
+          git commit -m "style: format exact PR Dart diff"
+          git push
