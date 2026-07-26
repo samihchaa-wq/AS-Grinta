@@ -75,7 +75,13 @@ jobs:
             echo "No changed Dart files to format."
             exit 0
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}"
+          dart format "${files[@]}"
+          git diff --binary -- "${files[@]}" > format.patch
+          if [ -s format.patch ]; then
+            cat format.patch
+            echo "::error::Des fichiers Dart ne sont pas formatés. Le correctif est disponible dans l’artefact format.patch."
+            exit 1
+          fi
 
       - name: Analyze
         shell: bash
@@ -108,6 +114,7 @@ jobs:
         with:
           name: flutter-validation-logs
           path: |
+            format.patch
             analyze.log
             test.log
             build-web.log
