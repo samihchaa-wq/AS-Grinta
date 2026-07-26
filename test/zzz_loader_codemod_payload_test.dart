@@ -37,11 +37,12 @@ void main() {
         for (var index = 0; index < lines.length; index++) {
           if (lines[index].startsWith('import ')) lastImport = index;
         }
-        if (lastImport < 0) {
+        if (lastImport >= 0) {
+          lines.insert(lastImport + 1, loaderImport);
+          updated = lines.join('\n');
+        } else if (!updated.trimLeft().startsWith('part of ')) {
           fail('Aucun import trouvé dans $path');
         }
-        lines.insert(lastImport + 1, loaderImport);
-        updated = lines.join('\n');
       }
 
       entity.writeAsStringSync(updated);
