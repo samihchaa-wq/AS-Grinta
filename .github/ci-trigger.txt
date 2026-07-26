@@ -1,1 +1,0 @@
-Trigger validation after synchronizing and formatting the feature branch.
