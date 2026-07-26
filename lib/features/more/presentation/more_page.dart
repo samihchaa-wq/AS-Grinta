@@ -43,6 +43,16 @@ class MorePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: const Text('Données personnelles'),
+              subtitle: const Text('Comprendre, exporter ou faire supprimer'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/privacy'),
+            ),
+          ),
+          const SizedBox(height: 10),
           if (isRealAdmin && !viewingAsUser)
             Card(
               child: ListTile(

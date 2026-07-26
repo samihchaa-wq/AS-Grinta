@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,11 +26,10 @@ class _ForcedPasswordChangePageState
 
   Future<void> _submit() async {
     final password = _passwordController.text;
-    if (password.length < 8) {
+    final passwordError = PasswordPolicy.validate(password);
+    if (passwordError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Le mot de passe doit contenir au moins 8 caractères.'),
-        ),
+        SnackBar(content: Text(passwordError)),
       );
       return;
     }
@@ -87,11 +87,18 @@ class _ForcedPasswordChangePageState
                         controller: _passwordController,
                         obscureText: _obscure,
                         autofocus: true,
+                        autofillHints: const [AutofillHints.newPassword],
                         decoration: InputDecoration(
                           labelText: 'Nouveau mot de passe',
+                          helperText: PasswordPolicy.helperText,
+                          helperMaxLines: 2,
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
-                            onPressed: () => setState(() => _obscure = !_obscure),
+                            tooltip: _obscure
+                                ? 'Afficher le mot de passe'
+                                : 'Masquer le mot de passe',
+                            onPressed: () =>
+                                setState(() => _obscure = !_obscure),
                             icon: Icon(
                               _obscure
                                   ? Icons.visibility_outlined
@@ -104,6 +111,7 @@ class _ForcedPasswordChangePageState
                       TextField(
                         controller: _confirmController,
                         obscureText: _obscure,
+                        autofillHints: const [AutofillHints.newPassword],
                         decoration: const InputDecoration(
                           labelText: 'Confirmer le mot de passe',
                           prefixIcon: Icon(Icons.lock_outline),
@@ -117,7 +125,8 @@ class _ForcedPasswordChangePageState
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check_circle_outline),
                         label: const Text('Enregistrer mon mot de passe'),

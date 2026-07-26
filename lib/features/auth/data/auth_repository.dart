@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +37,9 @@ class AuthRepository {
     required String lastName,
     required String password,
   }) async {
+    final passwordError = PasswordPolicy.validate(password);
+    if (passwordError != null) throw ArgumentError(passwordError);
+
     final response = await _client.functions.invoke(
       'register-account',
       body: {
@@ -52,11 +56,9 @@ class AuthRepository {
   }
 
   Future<void> updatePassword(String password) async {
-    if (password.length < 8) {
-      throw ArgumentError(
-        'Le mot de passe doit contenir au moins 8 caractères.',
-      );
-    }
+    final passwordError = PasswordPolicy.validate(password);
+    if (passwordError != null) throw ArgumentError(passwordError);
+
     await _client.auth.updateUser(UserAttributes(password: password));
 
     final result = await _client.rpc('complete_password_change');

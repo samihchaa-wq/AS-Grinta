@@ -36,6 +36,7 @@ class _BootstrapApp extends StatefulWidget {
 
 class _BootstrapAppState extends State<_BootstrapApp> {
   late Future<void> _initialization;
+  String? _incidentReference;
 
   @override
   void initState() {
@@ -51,13 +52,15 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         publishableKey: AppConfig.supabaseAnonKey,
       ).timeout(const Duration(seconds: 20));
     } catch (error, stackTrace) {
-      AppLogger.error('bootstrap.supabase', error, stackTrace);
+      _incidentReference =
+          AppLogger.error('bootstrap.supabase', error, stackTrace);
       rethrow;
     }
   }
 
   void _retry() {
     setState(() {
+      _incidentReference = null;
       _initialization = _initialize();
     });
   }
@@ -108,6 +111,14 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                           'indisponible. Réessaie dans un instant.',
                           textAlign: TextAlign.center,
                         ),
+                        if (_incidentReference != null) ...[
+                          const SizedBox(height: 10),
+                          SelectableText(
+                            'Référence : $_incidentReference',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                         const SizedBox(height: 20),
                         FilledButton.icon(
                           onPressed: _retry,
