@@ -1,0 +1,1 @@
+Trigger validation for the merge-formatted feature branch.
