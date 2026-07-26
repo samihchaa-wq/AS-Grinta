@@ -33,7 +33,8 @@ abstract final class AppLogger {
     String two(int value) => value.toString().padLeft(2, '0');
     String three(int value) => value.toString().padLeft(3, '0');
     final date = '${instant.year}${two(instant.month)}${two(instant.day)}';
-    final time = '${two(instant.hour)}${two(instant.minute)}${two(instant.second)}';
+    final time =
+        '${two(instant.hour)}${two(instant.minute)}${two(instant.second)}';
     return 'MPG-$date-$time-${three(_sequence)}';
   }
 
