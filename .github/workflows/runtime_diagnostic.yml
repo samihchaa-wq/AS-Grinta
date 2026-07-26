@@ -27,13 +27,16 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
       - name: Build debug web with source maps
+        shell: bash
         run: |
+          set -o pipefail
           flutter build web \
             --debug \
             --source-maps \
             --base-href "/" \
             --dart-define-from-file=config/production.json \
-            --dart-define=APP_VERSION="$APP_VERSION"
+            --dart-define=APP_VERSION="$APP_VERSION" \
+            2>&1 | tee runtime-build.log
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -198,6 +201,7 @@ jobs:
         with:
           name: runtime-diagnostic
           path: |
+            runtime-build.log
             runtime-*.png
             runtime-*.html
             runtime.log
