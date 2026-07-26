@@ -1,0 +1,44 @@
+name: Diagnose merge formatting
+
+on:
+  push:
+    branches: [feat/grinta-loading-system]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/grinta-loading-system
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Capture formatter diff from pull-request merge ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/pull/497/merge:refs/remotes/origin/pr-497-merge
+          git checkout --detach refs/remotes/origin/pr-497-merge
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart')
+          dart format "${files[@]}"
+          git diff -- "${files[@]}" > /tmp/merge-format.patch
+          git checkout feat/grinta-loading-system
+          cp /tmp/merge-format.patch .merge-format.patch
+          printf '%s\n' "${files[@]}" > .merge-format-files
+          git add .merge-format.patch .merge-format-files
+
+      - name: Commit diagnostic
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: capture merge formatter diff"
+          git push
