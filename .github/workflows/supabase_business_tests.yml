@@ -140,6 +140,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727024500_revoke_anon_public_definer_execution.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727030000_export_personal_data.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
 
