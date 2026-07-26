@@ -105,8 +105,9 @@ class _AppShellState extends ConsumerState<AppShell> {
   }
 
   void _openStats() {
-    if (widget.navigationShell.currentIndex == 1) return;
-    widget.navigationShell.goBranch(1);
+    if (widget.navigationShell.currentIndex != 1 || _uri.path != '/stats') {
+      widget.navigationShell.goBranch(1, initialLocation: true);
+    }
   }
 
   @override
