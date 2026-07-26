@@ -69,7 +69,8 @@ class MatchesController extends StateNotifier<MatchesState> {
       }
 
       final seasons = await _repository.fetchSeasons();
-      final resolvedSeasonId = seasonId ??
+      final resolvedSeasonId =
+          seasonId ??
           state.selectedSeasonId ??
           _currentSeasonId(seasons) ??
           (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
@@ -135,6 +136,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsLoss,
     int? squadSizeLimit,
     String? address,
+    bool rememberAddressAsDefault = false,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -173,7 +175,11 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
       );
-      await _repository.setMatchAddress(matchId: matchId, address: address);
+      await _repository.setMatchAddress(
+        matchId: matchId,
+        address: address,
+        rememberAsDefault: rememberAddressAsDefault,
+      );
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
@@ -196,6 +202,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsLoss,
     int? squadSizeLimit,
     String? address,
+    bool rememberAddressAsDefault = false,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -236,7 +243,11 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
       );
-      await _repository.setMatchAddress(matchId: id, address: address);
+      await _repository.setMatchAddress(
+        matchId: id,
+        address: address,
+        rememberAsDefault: rememberAddressAsDefault,
+      );
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
@@ -272,5 +283,5 @@ class MatchesController extends StateNotifier<MatchesState> {
 
 final matchesControllerProvider =
     StateNotifierProvider<MatchesController, MatchesState>((ref) {
-  return MatchesController(ref.watch(matchesRepositoryProvider), ref);
-});
+      return MatchesController(ref.watch(matchesRepositoryProvider), ref);
+    });
