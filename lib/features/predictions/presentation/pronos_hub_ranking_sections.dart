@@ -45,9 +45,9 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
           child: switch (_view) {
             _GeneralRankingView.matches => const _MatchRankingView(),
             _GeneralRankingView.scorers => const ColorfulSeasonPredictionsPage(
-              embedded: true,
-              showRanking: false,
-            ),
+                embedded: true,
+                showRanking: false,
+              ),
             _GeneralRankingView.general => const _GeneralRankingViewWidget(),
           },
         ),
