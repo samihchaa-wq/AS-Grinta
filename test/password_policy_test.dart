@@ -13,10 +13,8 @@ void main() {
     });
 
     test('refuse plus de soixante-douze caractères', () {
-      expect(
-        PasswordPolicy.validate('${'A' * 72}1a'),
-        contains('72'),
-      );
+      final oversized = '${List.filled(72, 'A').join()}1a';
+      expect(PasswordPolicy.validate(oversized), contains('72'));
     });
 
     test('refuse un mot de passe sans majuscule', () {
