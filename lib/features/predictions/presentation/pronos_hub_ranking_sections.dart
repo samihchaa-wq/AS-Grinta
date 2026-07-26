@@ -68,7 +68,12 @@ class _MatchRankingView extends ConsumerWidget {
     }
 
     return leaderboard.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: GrintaLoader.page(
+          message: 'Le classement se met en place…',
+          semanticLabel: 'Chargement du classement des matchs',
+        ),
+      ),
       error: (_, __) => const _MessageCard(
         title: 'Classement indisponible',
         icon: Icons.wifi_off_rounded,
@@ -117,7 +122,12 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
     }
 
     return leaderboard.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: GrintaLoader.page(
+          message: 'Le classement se met en place…',
+          semanticLabel: 'Chargement du classement général',
+        ),
+      ),
       error: (_, __) => const _MessageCard(
         title: 'Classement indisponible',
         icon: Icons.wifi_off_rounded,

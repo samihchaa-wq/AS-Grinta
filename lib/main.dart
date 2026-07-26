@@ -4,29 +4,27 @@ import 'dart:ui';
 import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
-  runZonedGuarded(
-    () {
-      WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
 
-      FlutterError.onError = (details) {
-        FlutterError.presentError(details);
-        AppLogger.error('flutter.framework', details.exception, details.stack);
-      };
-      PlatformDispatcher.instance.onError = (error, stackTrace) {
-        AppLogger.error('flutter.platform', error, stackTrace);
-        return true;
-      };
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      AppLogger.error('flutter.framework', details.exception, details.stack);
+    };
+    PlatformDispatcher.instance.onError = (error, stackTrace) {
+      AppLogger.error('flutter.platform', error, stackTrace);
+      return true;
+    };
 
-      runApp(const _BootstrapApp());
-    },
-    (error, stackTrace) => AppLogger.error('flutter.zone', error, stackTrace),
-  );
+    runApp(const _BootstrapApp());
+  }, (error, stackTrace) => AppLogger.error('flutter.zone', error, stackTrace));
 }
 
 class _BootstrapApp extends StatefulWidget {
@@ -150,8 +148,11 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const CircularProgressIndicator(),
+                      const SizedBox(height: 26),
+                      const GrintaLoader.inline(
+                        message: 'Échauffement en cours…',
+                        semanticLabel: 'Démarrage de Ma Petite Grinta',
+                      ),
                     ],
                   ),
                 ),

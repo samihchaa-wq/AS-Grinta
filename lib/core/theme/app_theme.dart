@@ -243,7 +243,14 @@ abstract final class AppTheme {
         contentTextStyle: TextStyle(color: textPrimary),
         behavior: SnackBarBehavior.floating,
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(color: accent),
+      // Filet de sécurité pour les anciens indicateurs qui restent encore dans
+      // des actions très locales : plus aucun loader rose par défaut.
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: primaryBright,
+        circularTrackColor: surfaceHigh,
+        linearTrackColor: surfaceHigh,
+        linearMinHeight: 4,
+      ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: accent,
         foregroundColor: Colors.white,

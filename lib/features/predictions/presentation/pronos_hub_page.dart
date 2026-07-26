@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
@@ -112,9 +113,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
             isAntiAlias: true,
             gaplessPlayback: true,
             excludeFromSemantics: true,
-            errorBuilder: (_, __, ___) => const ColoredBox(
-              color: AppTheme.background,
-            ),
+            errorBuilder: (_, __, ___) =>
+                const ColoredBox(color: AppTheme.background),
           ),
           Material(type: MaterialType.transparency, child: content),
         ],

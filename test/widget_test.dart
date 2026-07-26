@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +8,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: AuthLoadingPage()));
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('Chargement de votre espace...'), findsOneWidget);
+    expect(find.byType(GrintaLoader), findsOneWidget);
+    expect(find.text('Préparation de ton espace…'), findsOneWidget);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -162,7 +163,12 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
     );
 
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: GrintaLoader.page(
+          message: 'Les stats entrent sur le terrain…',
+          semanticLabel: 'Chargement des statistiques joueurs',
+        ),
+      ),
       error: (error, _) => _Message(
         title: 'Statistiques indisponibles',
         message: humanizeError(error),
