@@ -6,7 +6,7 @@ select no_plan();
 select ok(
   not has_function_privilege(
     'anon',
-    'public.admin_set_match_address(uuid,text)',
+    'public.admin_set_match_address(uuid,text,boolean)',
     'EXECUTE'
   ),
   'un visiteur anonyme ne peut pas modifier une adresse de match'
@@ -14,7 +14,7 @@ select ok(
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.admin_set_match_address(uuid,text)',
+    'public.admin_set_match_address(uuid,text,boolean)',
     'EXECUTE'
   ),
   'le client authentifié conserve la RPC, protégée par le contrôle admin interne'
@@ -22,7 +22,7 @@ select ok(
 select ok(
   has_function_privilege(
     'service_role',
-    'public.admin_set_match_address(uuid,text)',
+    'public.admin_set_match_address(uuid,text,boolean)',
     'EXECUTE'
   ),
   'le service interne conserve la mise à jour des adresses'
