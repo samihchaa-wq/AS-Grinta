@@ -114,6 +114,10 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260724130000_match_address_home_team_memory.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/player_photo_cleanup_schema.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260724060000_cleanup_replaced_photos_trigger.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260725220000_complete_postmatch_composition_once.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260725221500_grant_postmatch_composition_private_rpc.sql
