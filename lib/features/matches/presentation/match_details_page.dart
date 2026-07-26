@@ -8,6 +8,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
+import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -38,6 +39,7 @@ class MatchDetailsPage extends ConsumerWidget {
           await ref.read(featureFlagsControllerProvider.notifier).refresh();
           ref
             ..invalidate(matchDetailsProvider(matchId))
+            ..invalidate(matchFinalizationContextProvider(matchId))
             ..invalidate(sportMotmVoteProvider(matchId));
           await ref.read(matchDetailsProvider(matchId).future);
         },
@@ -88,7 +90,11 @@ class MatchDetailsPage extends ConsumerWidget {
                   MatchMotmVoteCard(matchId: matchId),
                 ],
                 const SizedBox(height: 16),
-                _CompletedCompositionCard(details: details, matchId: matchId),
+                _CompletedCompositionCard(
+                  details: details,
+                  matchId: matchId,
+                  sportsEnabled: sportsEnabled,
+                ),
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
@@ -101,14 +107,16 @@ class MatchDetailsPage extends ConsumerWidget {
                 ],
                 if (isAdmin) ...[
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => context.push(
-                      '/matches/$matchId/composition?step=composition',
+                  if (sportsEnabled) ...[
+                    OutlinedButton.icon(
+                      onPressed: () => context.push(
+                        '/matches/$matchId/composition?step=composition',
+                      ),
+                      icon: const Icon(Icons.dashboard_customize_outlined),
+                      label: const Text('Gérer la composition'),
                     ),
-                    icon: const Icon(Icons.dashboard_customize_outlined),
-                    label: const Text('Gérer la composition'),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
+                  ],
                   FilledButton.icon(
                     onPressed: () => context.push('/matches/$matchId/finalize'),
                     icon: const Icon(Icons.edit_note_outlined),
@@ -295,37 +303,109 @@ class _MatchHeader extends StatelessWidget {
   }
 }
 
+class _CompletedPlayerSummary {
+  const _CompletedPlayerSummary({required this.name, required this.goals});
+
+  final String name;
+  final int goals;
+}
+
 class _CompletedCompositionCard extends ConsumerWidget {
   const _CompletedCompositionCard({
     required this.details,
     required this.matchId,
+    required this.sportsEnabled,
   });
 
   final MatchDetailsData details;
   final String matchId;
+  final bool sportsEnabled;
+
+  List<_CompletedPlayerSummary> _playersFromMatchDetails() {
+    final playersByName = <String, _CompletedPlayerSummary>{};
+
+    void addPlayer(String rawName, int goals) {
+      final name = rawName.trim();
+      if (name.isEmpty) return;
+      final key = name.toLowerCase();
+      final existing = playersByName[key];
+      if (existing == null || goals > existing.goals) {
+        playersByName[key] = _CompletedPlayerSummary(name: name, goals: goals);
+      }
+    }
+
+    for (final player in details.playerStats) {
+      addPlayer(player.name, player.goals);
+    }
+    for (final player in details.startingLineup) {
+      addPlayer(player.name, player.goals);
+    }
+
+    return playersByName.values.toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  }
+
+  List<_CompletedPlayerSummary> _fullSquadPlayers(
+    MatchFinalizationContext? finalization,
+  ) {
+    final fallbackPlayers = _playersFromMatchDetails();
+    if (finalization == null || finalization.squad.isEmpty) {
+      return fallbackPlayers;
+    }
+
+    final goalsByPlayerId = <String, int>{};
+    for (final scorerId in finalization.scorerGoalLines) {
+      goalsByPlayerId.update(
+        scorerId,
+        (goals) => goals + 1,
+        ifAbsent: () => 1,
+      );
+    }
+
+    final players = [
+      for (final player in finalization.squad)
+        _CompletedPlayerSummary(
+          name: player.name,
+          goals: goalsByPlayerId[player.id] ?? 0,
+        ),
+    ];
+
+    for (final fallback in fallbackPlayers) {
+      final index = players.indexWhere(
+        (player) => player.name.toLowerCase() == fallback.name.toLowerCase(),
+      );
+      if (index == -1) {
+        players.add(fallback);
+      } else if (fallback.goals > players[index].goals) {
+        players[index] = fallback;
+      }
+    }
+
+    players.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    return players;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Priorité au rendu MPG (photos, couronne 👑, ballons ⚽) dès qu'une
-    // composition publiée existe : même visuel avant et après le match.
-    final composition =
-        ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
-    final fieldEntries =
-        composition?.entriesFor(MatchCompositionZone.field) ?? const [];
-    if (fieldEntries.isNotEmpty) {
-      return _MpgCompletedCard(composition: composition!);
-    }
-
-    final playerNames = <String>[];
-    final sourceNames = details.startingLineup.isNotEmpty
-        ? details.startingLineup.map((player) => player.name)
-        : details.playerStats.map((player) => player.name);
-    for (final rawName in sourceNames) {
-      final name = rawName.trim();
-      if (name.isNotEmpty && !playerNames.contains(name)) {
-        playerNames.add(name);
+    if (sportsEnabled) {
+      // Priorité au rendu MPG dès qu'une composition publiée existe.
+      final composition =
+          ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
+      final fieldEntries =
+          composition?.entriesFor(MatchCompositionZone.field) ?? const [];
+      if (fieldEntries.isNotEmpty) {
+        return _MpgCompletedCard(composition: composition!);
       }
     }
+
+    final finalization = sportsEnabled
+        ? null
+        : ref.watch(matchFinalizationContextProvider(matchId)).valueOrNull;
+    final players = sportsEnabled
+        ? _playersFromMatchDetails()
+        : _fullSquadPlayers(finalization);
 
     return Card(
       child: Padding(
@@ -334,16 +414,16 @@ class _CompletedCompositionCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Joueurs',
+              players.isEmpty ? 'Joueurs' : 'Joueurs (${players.length})',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
-            if (playerNames.isEmpty)
+            if (players.isEmpty)
               const Text('Aucun joueur renseigné.')
             else
-              _CompletedPlayersList(playerNames: playerNames),
+              _CompletedPlayersList(players: players),
           ],
         ),
       ),
@@ -351,7 +431,7 @@ class _CompletedCompositionCard extends ConsumerWidget {
   }
 }
 
-/// Rendu MPG d'une composition publiée (photos, couronne, ballons) pour un
+/// Rendu MPG d'une composition publiée (photos, couronne 👑, ballons) pour un
 /// match terminé — identique à l'affichage d'avant-match.
 class _MpgCompletedCard extends StatelessWidget {
   const _MpgCompletedCard({required this.composition});
@@ -416,26 +496,49 @@ class _MpgCompletedCard extends StatelessWidget {
 }
 
 class _CompletedPlayersList extends StatelessWidget {
-  const _CompletedPlayersList({required this.playerNames});
+  const _CompletedPlayersList({required this.players});
 
-  final List<String> playerNames;
+  final List<_CompletedPlayerSummary> players;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var index = 0; index < playerNames.length; index += 1) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              playerNames[index],
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+        for (var index = 0; index < players.length; index += 1) ...[
+          Semantics(
+            label: players[index].goals == 0
+                ? players[index].name
+                : '${players[index].name}, ${players[index].goals} '
+                    '${players[index].goals == 1 ? 'but' : 'buts'}',
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      players[index].name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  if (players[index].goals > 0) ...[
+                    const SizedBox(width: 12),
+                    Text(
+                      players[index].goals == 1
+                          ? '⚽'
+                          : '⚽ ×${players[index].goals}',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-          if (index < playerNames.length - 1) const Divider(height: 1),
+          if (index < players.length - 1) const Divider(height: 1),
         ],
       ],
     );
