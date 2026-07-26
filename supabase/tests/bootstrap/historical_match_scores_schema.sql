@@ -9,3 +9,4 @@ create table if not exists public.historical_match_scores (
 );
 
 revoke all on public.historical_match_scores from anon, authenticated;
+grant all on public.historical_match_scores to service_role;
