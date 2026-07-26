@@ -149,24 +149,30 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
     required Uint8List bytes,
     required String fileExt,
   }) async {
-    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
+    final image = validateImageUpload(bytes, fileExt: fileExt);
     final path =
-        'guest/$guestPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    await _client.storage.from('profile-photos').uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(
-            contentType: imageMimeForExt(ext),
-            upsert: true,
-          ),
-        );
-    final url = _client.storage.from('profile-photos').getPublicUrl(path);
-    // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
-    // guest_players.photo_url), via admin_set_guest_photo.
-    await _client.rpc(
-      'admin_set_guest_photo',
-      params: {'p_guest_player_id': guestPlayerId, 'p_photo_url': url},
+        'guest/$guestPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.${image.extension}';
+    final bucket = _client.storage.from('profile-photos');
+    await bucket.uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(
+        contentType: image.mimeType,
+        upsert: false,
+      ),
     );
+    final url = bucket.getPublicUrl(path);
+    try {
+      // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
+      // guest_players.photo_url), via admin_set_guest_photo.
+      await _client.rpc(
+        'admin_set_guest_photo',
+        params: {'p_guest_player_id': guestPlayerId, 'p_photo_url': url},
+      );
+    } catch (_) {
+      await bucket.remove([path]);
+      rethrow;
+    }
   }
 
   String? _clean(String? value) {
