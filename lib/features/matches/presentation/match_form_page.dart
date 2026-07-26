@@ -36,6 +36,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadDefaultApplied = false;
   bool _squadLimitLoading = false;
   bool _squadLimitLoaded = false;
+  bool _rememberAddressAsDefault = false;
 
   /// Adresse du terrain d'AS Grinta (matchs à domicile), mémorisée globalement.
   String? _clubHomeAddress;
@@ -65,7 +66,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _kickoffAt = match?.kickoffAt ??
+    _kickoffAt =
+        match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
     _oddsWin = match?.oddsWin;
@@ -74,8 +76,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _addressController.text = match?.address ?? '';
     // Adresse du terrain d'AS Grinta, pour préremplir un match à domicile.
     Future.microtask(() async {
-      final home =
-          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
+      final home = await ref
+          .read(matchesRepositoryProvider)
+          .fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       _prefillAddress();
@@ -98,7 +101,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+      final opponent = ref
+          .read(matchesControllerProvider)
+          .opponents
+          .firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -131,12 +137,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role == AuthRole.admin;
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature =
-        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
+    final feature = ref
+        .watch(featureFlagsControllerProvider)
+        .valueOrNull
+        ?.sportsManagement;
     final seasons = widget.match == null
         ? state.seasons
-            .where((season) => season['status']?.toString() == 'open')
-            .toList()
+              .where((season) => season['status']?.toString() == 'open')
+              .toList()
         : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -248,10 +256,26 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               decoration: const InputDecoration(
                 labelText: 'Adresse (facultatif)',
                 hintText: 'Terrain, rue, ville…',
-                helperText: 'Terrain de l’équipe qui reçoit. Mémorisée et '
-                    'préremplie aux prochains matchs.',
+                helperText:
+                    'Préremplie depuis l’équipe qui reçoit. La modification '
+                    'reste propre à ce match sauf option ci-dessous.',
                 prefixIcon: Icon(Icons.place_outlined),
               ),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _rememberAddressAsDefault,
+              onChanged: (value) =>
+                  setState(() => _rememberAddressAsDefault = value ?? false),
+              title: const Text(
+                'Utiliser cette adresse par défaut pour les prochains matchs',
+              ),
+              subtitle: Text(
+                _isHome
+                    ? 'Met à jour le terrain par défaut d’AS Grinta.'
+                    : 'Met à jour le terrain par défaut de l’adversaire.',
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<bool>(
@@ -399,7 +423,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Future<void> _confirmDelete() async {
     final match = widget.match;
     if (match == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
@@ -481,8 +506,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-    final squadSizeLimit =
-        sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+    final squadSizeLimit = sportsEnabled
+        ? int.parse(_squadSizeController.text.trim())
+        : null;
     final notifier = ref.read(matchesControllerProvider.notifier);
     final address = _addressController.text.trim();
     if (widget.match == null) {
@@ -496,6 +522,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
         address: address.isEmpty ? null : address,
+        rememberAddressAsDefault: _rememberAddressAsDefault,
       );
     } else {
       await notifier.updateMatch(
@@ -510,6 +537,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
         address: address.isEmpty ? null : address,
+        rememberAddressAsDefault: _rememberAddressAsDefault,
       );
     }
     if (!mounted) return;

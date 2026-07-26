@@ -48,8 +48,10 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response =
-        await _client.from('seasons').select('id, name, status').order('name');
+    final response = await _client
+        .from('seasons')
+        .select('id, name, status')
+        .order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
@@ -80,10 +82,15 @@ class MatchesRepository {
   Future<void> setMatchAddress({
     required String matchId,
     required String? address,
+    required bool rememberAsDefault,
   }) async {
     await _client.rpc(
       'admin_set_match_address',
-      params: {'p_match_id': matchId, 'p_address': address},
+      params: {
+        'p_match_id': matchId,
+        'p_address': address,
+        'p_remember_as_default': rememberAsDefault,
+      },
     );
   }
 
