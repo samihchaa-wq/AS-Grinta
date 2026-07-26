@@ -21,20 +21,21 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Format the exact pull-request Dart diff
+      - name: Format and verify exact pull-request Dart diff
         shell: bash
         run: |
           set -euo pipefail
           mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart')
-          printf 'Formatting %s\n' "${files[@]}"
+          printf '%s\n' "${files[@]}" > .format-loader-status
           dart format "${files[@]}"
-          git add -- "${files[@]}"
+          dart format --output=none --set-exit-if-changed "${files[@]}"
+          printf 'clean\n' >> .format-loader-status
+          git add -- "${files[@]}" .format-loader-status
 
-      - name: Commit formatting
+      - name: Commit verified formatting
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git diff --cached --quiet && exit 0
-          git commit -m "style: format exact PR Dart diff"
+          git commit -m "style: verify exact PR Dart formatting"
           git push
