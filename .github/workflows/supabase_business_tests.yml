@@ -23,7 +23,7 @@ concurrency:
 jobs:
   database-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -108,52 +108,40 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720220000_sports_management_release_readiness.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260721170424_unified_match_squad_plan.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260725220000_complete_postmatch_composition_once.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260725221500_grant_postmatch_composition_private_rpc.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260725222000_allow_postmatch_publication_kind.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260726200000_opponent_default_addresses.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727000100_restrict_public_definer_execution.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727002000_explicit_deny_rls_policies.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
 
-      - name: Run pgTAP business and RLS tests
+      - name: Run every pgTAP business and RLS test
         shell: bash
         run: |
-          set -o pipefail
-          supabase test db \
-            supabase/tests/database/business_rls.test.sql \
-            2>&1 | tee supabase-tests.log
-          supabase test db \
-            supabase/tests/database/security_hardening_pass_2.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_feature_flag.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_availability_workflow.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_waitlist_rotation.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_waitlist_rotation_fixes.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_availability_notifications.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_composition_server.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_guests.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_final_attendance_statistics.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_motm_vote.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_motm_notifications.test.sql \
-            2>&1 | tee -a supabase-tests.log
-          supabase test db \
-            supabase/tests/database/sports_management_release_readiness.test.sql \
-            2>&1 | tee -a supabase-tests.log
+          set -euo pipefail
+          : > supabase-tests.log
+          test_count=0
+          while IFS= read -r test_file; do
+            echo "::group::$test_file"
+            supabase test db "$test_file" 2>&1 | tee -a supabase-tests.log
+            echo "::endgroup::"
+            test_count=$((test_count + 1))
+          done < <(find supabase/tests/database -maxdepth 1 -type f -name '*.test.sql' -print | sort)
+          if [ "$test_count" -eq 0 ]; then
+            echo 'Aucun test Supabase trouvé.' >&2
+            exit 1
+          fi
+          echo "Tests Supabase exécutés : $test_count"
 
       - name: Lint database functions
         shell: bash
