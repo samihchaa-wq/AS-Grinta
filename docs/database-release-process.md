@@ -12,8 +12,34 @@ Aucune migration ne doit être appliquée directement en production avant que so
 2. Utiliser un nom au format `YYYYMMDDHHMMSS_description.sql`.
 3. Utiliser un timestamp unique.
 4. Ne jamais modifier ou supprimer une migration déjà fusionnée.
-5. Ouvrir une pull request et attendre les validations.
-6. Déployer uniquement depuis le commit fusionné dans `main`.
+5. Ajouter un test SQL pour les permissions ou invariants modifiés.
+6. Préparer un script de retour arrière dans `supabase/rollbacks/` lorsqu’un retour est techniquement possible.
+7. Ouvrir une pull request et attendre toutes les validations.
+8. Déployer uniquement depuis le commit fusionné dans `main`.
+
+## Contrôle avant production
+
+Avant toute migration qui supprime, renomme ou transforme des données :
+
+1. vérifier qu’une sauvegarde Supabase récente est disponible ;
+2. noter l’heure de la sauvegarde et le commit GitHub à déployer ;
+3. exécuter la migration sur un environnement temporaire ou dans une transaction annulée ;
+4. exécuter les tests pgTAP et les requêtes d’intégrité concernées ;
+5. relire le script de retour arrière ;
+6. prévoir une fenêtre pendant laquelle aucun administrateur ne modifie les mêmes données.
+
+Une sauvegarde n’est considérée comme fiable qu’après un test périodique de restauration sur un environnement non productif.
+
+## Déploiement
+
+1. relever les indicateurs d’intégrité avant le changement ;
+2. appliquer une seule migration ou un lot cohérent ;
+3. vérifier immédiatement les droits, contraintes, triggers et données touchés ;
+4. relancer les conseillers de sécurité et de performance Supabase ;
+5. effectuer un test fonctionnel avec les rôles `anon`, `authenticated` et administrateur ;
+6. surveiller les erreurs de l’application et des fonctions Edge.
+
+En cas d’anomalie, arrêter les autres déploiements. Utiliser le rollback seulement si son effet a été validé ; sinon restaurer la sauvegarde dans un environnement isolé avant toute action destructive.
 
 ## Historique existant
 
@@ -44,6 +70,6 @@ La baseline ne doit être modifiée qu’après :
 1. fusion de la migration dans `main` ;
 2. déploiement réussi depuis `main` ;
 3. vérification de l’historique distant ;
-4. mise à jour dédiée de `production_migrations.lock`.
+4. mise à jour dédiée de `production_migrations.lock` depuis la branche `ci/supabase-migration-drift-guard`.
 
 Une dérive détectée doit être traitée avant toute nouvelle modification de schéma.
