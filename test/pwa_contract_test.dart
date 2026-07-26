@@ -7,6 +7,7 @@ void main() {
     final pubspec = File('pubspec.yaml').readAsStringSync();
     final index = File('web/index.html').readAsStringSync();
     final worker = File('web/sw.js').readAsStringSync();
+    final bootstrap = File('web/flutter_bootstrap.js').readAsStringSync();
     final versionScript = File('web/build_version.js').readAsStringSync();
 
     test('la version web correspond à la version de l’application', () {
@@ -28,6 +29,12 @@ void main() {
       expect(index, isNot(matches(RegExp(r'\?v=\d+'))));
       expect(worker, contains("importScripts('build_version.js')"));
       expect(worker, contains('AS_GRINTA_WEB_VERSION'));
+    });
+
+    test('un seul service worker est enregistré', () {
+      expect(bootstrap, contains('_flutter.loader.load();'));
+      expect(bootstrap, isNot(contains('serviceWorkerSettings')));
+      expect(index, contains("'sw.js?v='"));
     });
 
     test('le socle minimal et la navigation sont prévus hors ligne', () {
