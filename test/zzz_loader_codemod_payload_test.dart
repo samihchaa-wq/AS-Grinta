@@ -67,12 +67,12 @@ void main() {
 
     final payload = base64Encode(utf8.encode(jsonEncode(encodedFiles)));
     const chunkSize = 4000;
-    print('GRINTA_CODEMOD_PAYLOAD_BEGIN');
+    stdout.writeln('GRINTA_CODEMOD_PAYLOAD_BEGIN');
     for (var offset = 0; offset < payload.length; offset += chunkSize) {
       final end = (offset + chunkSize).clamp(0, payload.length);
-      print(payload.substring(offset, end));
+      stdout.writeln(payload.substring(offset, end));
     }
-    print('GRINTA_CODEMOD_PAYLOAD_END');
+    stdout.writeln('GRINTA_CODEMOD_PAYLOAD_END');
 
     expect(changedPaths.length, greaterThan(20));
   });
