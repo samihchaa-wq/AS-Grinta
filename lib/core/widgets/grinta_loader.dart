@@ -19,22 +19,20 @@ class GrintaLoader extends StatefulWidget {
     super.key,
     this.message,
     this.semanticLabel = 'Chargement de la page',
-  })  : size = 92,
-        showPlayers = true;
+  }) : size = 92,
+       showPlayers = true;
 
   const GrintaLoader.inline({
     super.key,
     this.message,
     this.semanticLabel = 'Chargement en cours',
-  })  : size = 58,
-        showPlayers = true;
+  }) : size = 58,
+       showPlayers = true;
 
-  const GrintaLoader.button({
-    super.key,
-    this.semanticLabel = 'Action en cours',
-  })  : size = 32,
-        showPlayers = false,
-        message = null;
+  const GrintaLoader.button({super.key, this.semanticLabel = 'Action en cours'})
+    : size = 32,
+      showPlayers = false,
+      message = null;
 
   final double size;
   final bool showPlayers;
@@ -60,7 +58,8 @@ class _GrintaLoaderState extends State<GrintaLoader>
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final mark = RepaintBoundary(
       child: SizedBox.square(
         dimension: widget.size,
@@ -91,9 +90,9 @@ class _GrintaLoaderState extends State<GrintaLoader>
                     widget.message!,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -123,11 +122,7 @@ class _PassingDrillPainter extends CustomPainter {
       ..strokeWidth = math.max(1.5, size.width * 0.025)
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(
-      Offset(startX, centerY),
-      Offset(endX, centerY),
-      linePaint,
-    );
+    canvas.drawLine(Offset(startX, centerY), Offset(endX, centerY), linePaint);
 
     if (showPlayers) {
       final playerRadius = size.width * 0.07;

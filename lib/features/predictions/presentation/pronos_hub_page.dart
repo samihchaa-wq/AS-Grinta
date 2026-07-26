@@ -88,8 +88,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       _PronosCategory.matches => const MergedMatchesView(),
       _PronosCategory.scorers => const _ScorerRankingView(),
       _PronosCategory.general => _GeneralRankingsSection(
-          initialView: widget.initialView,
-        ),
+        initialView: widget.initialView,
+      ),
     };
 
     return Scaffold(
@@ -113,9 +113,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
             isAntiAlias: true,
             gaplessPlayback: true,
             excludeFromSemantics: true,
-            errorBuilder: (_, __, ___) => const ColoredBox(
-              color: AppTheme.background,
-            ),
+            errorBuilder: (_, __, ___) =>
+                const ColoredBox(color: AppTheme.background),
           ),
           Material(type: MaterialType.transparency, child: content),
         ],

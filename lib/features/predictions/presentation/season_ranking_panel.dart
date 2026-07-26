@@ -66,7 +66,8 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
           );
         }
 
-        final sorted = [...entries]..sort((a, b) {
+        final sorted = [...entries]
+          ..sort((a, b) {
             int cmp;
             switch (_sort) {
               case _SrCol.name:
@@ -210,11 +211,7 @@ class _SeasonRankingRow extends StatelessWidget {
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              points,
-              textAlign: TextAlign.end,
-              style: valueStyle,
-            ),
+            child: Text(points, textAlign: TextAlign.end, style: valueStyle),
           ),
         ],
       ),
