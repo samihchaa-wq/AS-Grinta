@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:flutter/material.dart';
 
 class AuthLoadingPage extends StatelessWidget {
@@ -7,13 +8,9 @@ class AuthLoadingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Chargement de votre espace...'),
-          ],
+        child: GrintaLoader.page(
+          message: 'Préparation de ton espace…',
+          semanticLabel: 'Préparation de ton espace',
         ),
       ),
     );
