@@ -1,16 +1,15 @@
 name: Apply simplified match form trigger
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/simplify-match-form
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: ${{ !contains(github.event.head_commit.message, '[match-form-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
