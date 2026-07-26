@@ -75,6 +75,17 @@ void main() {
     }
     stdout.writeln('GRINTA_CODEMOD_PAYLOAD_END');
 
-    expect(changedPaths.length, greaterThan(20));
+    final treeResult = Process.runSync(
+      'git',
+      ['rev-parse', r'origin/main^{tree}'],
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    );
+    if (treeResult.exitCode != 0) {
+      fail('Impossible de lire l’arbre Git : ${treeResult.stderr}');
+    }
+    stdout.writeln('GRINTA_BASE_TREE_SHA:${treeResult.stdout.toString().trim()}');
+
+    fail('Arrêt temporaire après extraction de l’arbre Git.');
   });
 }
