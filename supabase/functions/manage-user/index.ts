@@ -243,7 +243,18 @@ Deno.serve(async (req: Request) => {
         userId,
         { password: temporaryPassword },
       );
-      if (passwordError) throw passwordError;
+      if (passwordError) {
+        if (isUserNotFound(passwordError)) {
+          return jsonResponse(
+            {
+              error:
+                "Ce profil n’a plus de compte de connexion. Supprime-le puis recrée son accès.",
+            },
+            409,
+          );
+        }
+        throw passwordError;
+      }
 
       const { error: flagError } = await admin
         .from("profiles")
