@@ -20,12 +20,12 @@ select ok(
   'le client authentifié conserve la RPC, protégée par le contrôle admin interne'
 );
 select ok(
-  has_function_privilege(
+  not has_function_privilege(
     'service_role',
     'public.admin_set_match_address(uuid,text,boolean)',
     'EXECUTE'
   ),
-  'le service interne conserve la mise à jour des adresses'
+  'le service interne ne reçoit pas une RPC administrative qu’il n’utilise pas'
 );
 
 select ok(
