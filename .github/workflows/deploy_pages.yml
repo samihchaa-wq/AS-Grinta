@@ -1,9 +1,10 @@
 name: Deploy Flutter Web to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: [Flutter CI]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,17 +12,23 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: Checkout validated revision
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -89,13 +96,15 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout configuration
+      - name: Checkout validated configuration
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
       - name: Verify public application files
         run: |
           set -euo pipefail
           base=$(jq -r '.PUBLIC_APP_URL' config/production.json)
-          token="${GITHUB_SHA}-$(date +%s)"
+          token="${TARGET_SHA}-$(date +%s)"
           curl --retry 5 --retry-delay 5 -LfsS "${base}?audit=${token}" -o /tmp/index.html
           curl --retry 5 --retry-delay 5 -LfsS "${base}flutter_bootstrap.js?audit=${token}" -o /tmp/flutter_bootstrap.js
           curl --retry 5 --retry-delay 5 -LfsS "${base}main.dart.js?audit=${token}" -o /tmp/main.dart.js
@@ -218,7 +227,7 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${TARGET_SHA}" \
               -d "{\"state\":\"$state\",\"context\":\"$context\",\"description\":\"$result\"}"
           }
 
@@ -237,8 +246,5 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${TARGET_SHA}" \
             -d "{\"state\":\"$state\",\"context\":\"pages/public-smoke\",\"description\":\"$description\"}"
-
-# redeploy exact player card v2 — 2026-07-15
-# redeploy prediction six-day window — 2026-07-26
