@@ -54,6 +54,16 @@ function generateTemporaryPassword(): string {
   return characters.join("");
 }
 
+function isUserNotFound(error: {
+  status?: number;
+  code?: string;
+  message?: string;
+}): boolean {
+  return error.status === 404 ||
+    error.code === "user_not_found" ||
+    error.message?.toLowerCase().includes("user not found") === true;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -290,14 +300,26 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const { error: prepareError } = await admin.schema("private").rpc(
+      const { error: prepareError } = await admin.rpc(
         "prepare_profile_for_hard_deletion",
         { p_profile_id: userId },
       );
       if (prepareError) throw prepareError;
 
-      const { error } = await admin.auth.admin.deleteUser(userId, false);
-      if (error) throw error;
+      const { error: authDeleteError } = await admin.auth.admin.deleteUser(
+        userId,
+        false,
+      );
+      if (authDeleteError && !isUserNotFound(authDeleteError)) {
+        throw authDeleteError;
+      }
+
+      const { error: profileDeleteError } = await admin
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+      if (profileDeleteError) throw profileDeleteError;
+
       return jsonResponse({ deleted: true });
     }
 
