@@ -227,7 +227,8 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.sports_soccer),
                         label: const Text('Créer mon compte'),
