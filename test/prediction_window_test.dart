@@ -3,61 +3,67 @@ import 'package:as_grinta/features/predictions/presentation/predictions_controll
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('first open prediction window', () {
+  group('six-day prediction window', () {
     final now = DateTime.utc(2026, 8, 1, 12);
-    final kickoff = now.add(const Duration(days: 1));
+    final kickoff = now.add(const Duration(days: 6));
 
-    test('the first open match remains editable', () {
-      final item = _item(kickoffAt: kickoff, isFirstOpenMatch: true);
+    test('opens exactly six days before kickoff', () {
+      final item = _item(kickoffAt: kickoff);
 
-      expect(item.isWaitingForPreviousMatchAt(now), isFalse);
-      expect(item.isClosedAt(now), isFalse);
+      expect(item.opensAt, now);
+      expect(
+        item.canEditAt(now.subtract(const Duration(milliseconds: 1))),
+        isFalse,
+      );
       expect(item.canEditAt(now), isTrue);
     });
 
-    test('a later time-open match waits for the previous match', () {
-      final item = _item(kickoffAt: kickoff, isFirstOpenMatch: false);
+    test('every match inside the window is editable independently', () {
+      final first = _item(
+        matchId: 'match-1',
+        kickoffAt: now.add(const Duration(days: 1)),
+      );
+      final second = _item(
+        matchId: 'match-2',
+        kickoffAt: now.add(const Duration(days: 3)),
+      );
 
-      expect(item.isWaitingForPreviousMatchAt(now), isTrue);
-      expect(item.isClosedAt(now), isTrue);
+      expect(first.canEditAt(now), isTrue);
+      expect(second.canEditAt(now), isTrue);
+    });
+
+    test('a match more than six days away remains closed', () {
+      final item = _item(
+        kickoffAt: now.add(const Duration(days: 6, milliseconds: 1)),
+      );
+
       expect(item.canEditAt(now), isFalse);
     });
 
-    test('a manually closed match is not reported as waiting', () {
+    test('the controller saves any match whose window is open', () async {
       final item = _item(
-        kickoffAt: kickoff,
-        isFirstOpenMatch: false,
-        predictionsClosedAt: now.subtract(const Duration(seconds: 1)),
+        matchId: 'match-2',
+        kickoffAt: DateTime.now().add(const Duration(days: 3)),
       );
-
-      expect(item.isWaitingForPreviousMatchAt(now), isFalse);
-      expect(item.isClosedAt(now), isTrue);
-    });
-
-    test('the controller never saves a later match', () async {
-      final locked = _item(
-        kickoffAt: DateTime.now().add(const Duration(days: 1)),
-        isFirstOpenMatch: false,
-      );
-      final repository = _FakePredictionsRepository(locked);
+      final repository = _FakePredictionsRepository(item);
       final controller = PredictionsController(repository);
       addTearDown(controller.dispose);
 
       await controller.load();
-      await controller.save(locked.matchId);
+      await controller.save(item.matchId);
 
-      expect(repository.saveCalls, 0);
+      expect(repository.saveCalls, 1);
+      expect(repository.savedMatchId, item.matchId);
     });
   });
 }
 
 MatchPredictionItem _item({
+  String matchId = 'match',
   required DateTime kickoffAt,
-  required bool isFirstOpenMatch,
-  DateTime? predictionsClosedAt,
 }) {
   return MatchPredictionItem(
-    matchId: 'match-2',
+    matchId: matchId,
     opponentName: 'Opponent',
     kickoffAt: kickoffAt,
     status: 'a_venir',
@@ -71,8 +77,6 @@ MatchPredictionItem _item({
     oddsLoss: 4,
     actualScoreGrinta: null,
     actualScoreOpponent: null,
-    predictionsClosedAt: predictionsClosedAt,
-    isFirstOpenMatch: isFirstOpenMatch,
   );
 }
 
@@ -81,6 +85,7 @@ class _FakePredictionsRepository implements PredictionsRepository {
 
   final MatchPredictionItem item;
   int saveCalls = 0;
+  String? savedMatchId;
 
   @override
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async => [item];
@@ -97,5 +102,6 @@ class _FakePredictionsRepository implements PredictionsRepository {
     required bool useX2,
   }) async {
     saveCalls += 1;
+    savedMatchId = matchId;
   }
 }
