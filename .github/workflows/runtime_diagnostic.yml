@@ -33,10 +33,12 @@ jobs:
           flutter build web \
             --debug \
             --source-maps \
+            --pwa-strategy=none \
             --base-href "/" \
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee runtime-build.log
+          test ! -f build/web/flutter_service_worker.js
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -155,22 +157,33 @@ jobs:
               viewport: { width: 390, height: 844 },
               serviceWorkers: 'allow',
             });
-            const page = await context.newPage();
+            let page = await context.newPage();
             const errors = [];
-            page.on('pageerror', error => errors.push(error.stack || error.message));
-            page.on('console', message => {
-              if (message.type() === 'error') errors.push(message.text());
-            });
+            const bindDiagnostics = currentPage => {
+              currentPage.on('pageerror', error => errors.push(error.stack || error.message));
+              currentPage.on('console', message => {
+                if (message.type() === 'error') errors.push(message.text());
+              });
+            };
+            bindDiagnostics(page);
 
             await page.goto('http://127.0.0.1:8080/', {
               waitUntil: 'networkidle',
               timeout: 90000,
             });
-            await page.waitForFunction(async () => {
-              if (!('serviceWorker' in navigator)) return false;
+            await page.evaluate(async () => {
+              if (!('serviceWorker' in navigator)) {
+                throw new Error('Service worker non pris en charge');
+              }
               await navigator.serviceWorker.ready;
-              return navigator.serviceWorker.controller !== null;
-            }, null, { timeout: 45000 });
+            });
+
+            // Une première navigation ne peut pas être contrôlée par le worker
+            // qui vient d’être installé. Une recharge en ligne est donc requise.
+            await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
+            await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
+              timeout: 45000,
+            });
             await page.waitForFunction(() => {
               return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
             }, null, { timeout: 45000 });
