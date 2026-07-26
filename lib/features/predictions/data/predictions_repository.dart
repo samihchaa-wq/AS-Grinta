@@ -21,7 +21,6 @@ class MatchPredictionItem {
     required this.actualScoreGrinta,
     required this.actualScoreOpponent,
     this.predictionsClosedAt,
-    this.isFirstOpenMatch = true,
   });
 
   final String matchId;
@@ -44,26 +43,17 @@ class MatchPredictionItem {
   final int? actualScoreOpponent;
   final DateTime? predictionsClosedAt;
 
-  /// Le serveur n’autorise qu’un seul match à la fois : le premier match dont
-  /// la fenêtre temporelle est encore ouverte.
-  final bool isFirstOpenMatch;
-
+  DateTime get opensAt => kickoffAt.subtract(const Duration(days: 6));
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
 
-  bool isTimeClosedAt(DateTime now) =>
+  bool isClosedAt(DateTime now) =>
       status != 'a_venir' ||
+      now.isBefore(opensAt) ||
       !now.isBefore(closesAt) ||
       (predictionsClosedAt != null && !now.isBefore(predictionsClosedAt!));
 
-  bool isClosedAt(DateTime now) => !isFirstOpenMatch || isTimeClosedAt(now);
-
-  bool isWaitingForPreviousMatchAt(DateTime now) =>
-      !isFirstOpenMatch && !isTimeClosedAt(now);
-
   bool canEditAt(DateTime now) => !isClosedAt(now);
   bool get isClosed => isClosedAt(DateTime.now());
-  bool get isWaitingForPreviousMatch =>
-      isWaitingForPreviousMatchAt(DateTime.now());
   bool get canEdit => canEditAt(DateTime.now());
   bool get hasResult =>
       actualScoreGrinta != null && actualScoreOpponent != null;
@@ -91,7 +81,6 @@ class MatchPredictionItem {
       actualScoreGrinta: actualScoreGrinta,
       actualScoreOpponent: actualScoreOpponent,
       predictionsClosedAt: predictionsClosedAt,
-      isFirstOpenMatch: isFirstOpenMatch,
     );
   }
 
@@ -154,7 +143,6 @@ class PredictionsRepository {
     final matches = (response as List)
         .map((match) => Map<String, dynamic>.from(match as Map))
         .toList();
-    final firstOpenMatchId = _firstOpenMatchId(matches, DateTime.now());
     final matchIds = [for (final match in matches) match['id'].toString()];
 
     // Portefeuille ×2 : identique pour tous les matchs, lu une seule fois.
@@ -180,7 +168,6 @@ class PredictionsRepository {
           match,
           prediction: predictionsById[match['id'].toString()],
           x2Available: x2Available,
-          isFirstOpenMatch: match['id']?.toString() == firstOpenMatchId,
         ),
     ];
   }
@@ -192,16 +179,6 @@ class PredictionsRepository {
         .eq('id', matchId)
         .maybeSingle();
     if (match == null) return null;
-
-    final openResponse = await _client
-        .from('matches')
-        .select('id, kickoff_at, status, predictions_closed_at')
-        .eq('status', 'a_venir')
-        .order('kickoff_at', ascending: true);
-    final openMatches = (openResponse as List)
-        .map((row) => Map<String, dynamic>.from(row as Map))
-        .toList();
-    final firstOpenMatchId = _firstOpenMatchId(openMatches, DateTime.now());
 
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
@@ -215,11 +192,9 @@ class PredictionsRepository {
 
     return _buildItem(
       Map<String, dynamic>.from(match),
-      prediction: prediction == null
-          ? null
-          : Map<String, dynamic>.from(prediction),
+      prediction:
+          prediction == null ? null : Map<String, dynamic>.from(prediction),
       x2Available: x2Available,
-      isFirstOpenMatch: matchId == firstOpenMatchId,
     );
   }
 
@@ -232,25 +207,6 @@ class PredictionsRepository {
     return (wallet?['available_count'] as num?)?.toInt() ?? 0;
   }
 
-  String? _firstOpenMatchId(List<Map<String, dynamic>> matches, DateTime now) {
-    for (final match in matches) {
-      if (match['status']?.toString() != 'a_venir') continue;
-      final kickoffAt = DateTime.tryParse(
-        '${match['kickoff_at'] ?? ''}',
-      )?.toLocal();
-      if (kickoffAt == null ||
-          !now.isBefore(kickoffAt.subtract(const Duration(minutes: 5)))) {
-        continue;
-      }
-      final closedAt = DateTime.tryParse(
-        '${match['predictions_closed_at'] ?? ''}',
-      )?.toLocal();
-      if (closedAt != null && !now.isBefore(closedAt)) continue;
-      return match['id']?.toString();
-    }
-    return null;
-  }
-
   static const _predictionSelect =
       'match_id, predicted_score_as_grinta, predicted_score_adverse, '
       'is_filled, use_x2';
@@ -259,7 +215,6 @@ class PredictionsRepository {
     Map<String, dynamic> matchMap, {
     required Map<String, dynamic>? prediction,
     required int x2Available,
-    required bool isFirstOpenMatch,
   }) {
     final matchId = matchMap['id'].toString();
     final serverKickoff = DateTime.tryParse(
@@ -304,7 +259,6 @@ class PredictionsRepository {
       predictionsClosedAt: DateTime.tryParse(
         '${matchMap['predictions_closed_at'] ?? ''}',
       )?.toLocal(),
-      isFirstOpenMatch: isFirstOpenMatch,
     );
   }
 
