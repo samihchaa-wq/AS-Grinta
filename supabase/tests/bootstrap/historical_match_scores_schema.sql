@@ -1,4 +1,6 @@
 -- Pré-requis minimal pour les politiques RLS explicites et leur matrice de test.
+-- La base locale est créée par postgres ; on aligne également les privilèges du
+-- service interne sur ceux du projet Supabase hébergé.
 
 create table if not exists public.historical_match_scores (
   id uuid primary key,
@@ -9,4 +11,18 @@ create table if not exists public.historical_match_scores (
 );
 
 revoke all on public.historical_match_scores from anon, authenticated;
-grant all on public.historical_match_scores to service_role;
+
+grant all on table
+  private.app_feature_flag_audit,
+  private.app_feature_flags,
+  private.sport_admin_audit_log,
+  public.historical_match_scores,
+  public.match_composition_entries,
+  public.match_compositions,
+  public.match_sport_finalization_versions,
+  public.match_sport_finalizations,
+  public.match_sport_motm_elections,
+  public.match_sport_motm_results,
+  public.match_sport_motm_votes,
+  public.sport_availability_notification_events
+to service_role;
