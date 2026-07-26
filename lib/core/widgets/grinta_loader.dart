@@ -5,30 +5,30 @@ import 'package:flutter/material.dart';
 
 /// Loader animé et unifié pour toute l'application.
 ///
-/// L'animation représente une passe entre trois joueurs : elle remplace les
-/// roues Material génériques par un signal visuel propre à Ma Petite Grinta.
+/// L'animation affiche un ballon stylisé qui tourne sur lui-même. Elle reste
+/// lisible dans les formats page, inline et bouton.
 class GrintaLoader extends StatefulWidget {
   const GrintaLoader.page({
     super.key,
     this.message,
     this.semanticLabel = 'Chargement de la page',
   })  : size = 92,
-        showPlayers = true;
+        showShadow = true;
 
   const GrintaLoader.inline({
     super.key,
     this.message,
     this.semanticLabel = 'Chargement en cours',
   })  : size = 58,
-        showPlayers = true;
+        showShadow = true;
 
   const GrintaLoader.button({super.key, this.semanticLabel = 'Action en cours'})
       : size = 32,
-        showPlayers = false,
+        showShadow = false,
         message = null;
 
   final double size;
-  final bool showPlayers;
+  final bool showShadow;
   final String? message;
   final String semanticLabel;
 
@@ -40,7 +40,7 @@ class _GrintaLoaderState extends State<GrintaLoader>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1450),
+    duration: const Duration(milliseconds: 1350),
   )..repeat();
 
   @override
@@ -59,9 +59,9 @@ class _GrintaLoaderState extends State<GrintaLoader>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) => CustomPaint(
-            painter: _PassingDrillPainter(
-              progress: reduceMotion ? 0.35 : _controller.value,
-              showPlayers: widget.showPlayers,
+            painter: _SpinningBallPainter(
+              progress: reduceMotion ? 0.16 : _controller.value,
+              showShadow: widget.showShadow,
             ),
           ),
         ),
@@ -94,82 +94,122 @@ class _GrintaLoaderState extends State<GrintaLoader>
   }
 }
 
-class _PassingDrillPainter extends CustomPainter {
-  const _PassingDrillPainter({
+class _SpinningBallPainter extends CustomPainter {
+  const _SpinningBallPainter({
     required this.progress,
-    required this.showPlayers,
+    required this.showShadow,
   });
 
   final double progress;
-  final bool showPlayers;
+  final bool showShadow;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centerY = size.height * 0.54;
-    final startX = size.width * 0.18;
-    final endX = size.width * 0.82;
-    final route = endX - startX;
+    final center = Offset(size.width / 2, size.height * 0.46);
+    final radius = size.width * 0.29;
+    final rotation = progress * math.pi * 2;
 
-    final linePaint = Paint()
-      ..color = AppTheme.primaryBright.withValues(alpha: 0.24)
-      ..strokeWidth = math.max(1.5, size.width * 0.025)
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawLine(Offset(startX, centerY), Offset(endX, centerY), linePaint);
-
-    if (showPlayers) {
-      final playerRadius = size.width * 0.07;
-      final playerPaint = Paint()..color = AppTheme.primary;
-      final accentPaint = Paint()..color = AppTheme.accent;
-      final whitePaint = Paint()..color = AppTheme.textPrimary;
-
-      canvas.drawCircle(Offset(startX, centerY), playerRadius, playerPaint);
-      canvas.drawCircle(
-        Offset(size.width * 0.5, centerY),
-        playerRadius,
-        whitePaint,
+    if (showShadow) {
+      final pulse = 0.88 + (math.sin(progress * math.pi * 2) * 0.08);
+      final shadowRect = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height * 0.84),
+        width: radius * 1.45 * pulse,
+        height: radius * 0.34,
       );
-      canvas.drawCircle(Offset(endX, centerY), playerRadius, accentPaint);
+      canvas.drawOval(
+        shadowRect,
+        Paint()
+          ..color = AppTheme.background.withValues(alpha: 0.45)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.045),
+      );
     }
 
-    final eased = Curves.easeInOutCubic.transform(progress);
-    final x = startX + route * eased;
-    final jump = math.sin(progress * math.pi) * size.height * 0.28;
-    final ballCenter = Offset(x, centerY - jump);
-    final ballRadius = size.width * (showPlayers ? 0.105 : 0.14);
+    canvas.drawCircle(
+      center,
+      radius * 1.18,
+      Paint()
+        ..color = AppTheme.primaryBright.withValues(alpha: 0.12)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.075),
+    );
 
-    final glowPaint = Paint()
-      ..color = AppTheme.accent.withValues(alpha: 0.18)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.08);
-    canvas.drawCircle(ballCenter, ballRadius * 1.55, glowPaint);
+    final ballPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-0.35, -0.45),
+        radius: 1.05,
+        colors: [
+          AppTheme.textPrimary,
+          AppTheme.textPrimary.withValues(alpha: 0.96),
+          AppTheme.primaryBright.withValues(alpha: 0.9),
+        ],
+        stops: const [0, 0.58, 1],
+      ).createShader(Rect.fromCircle(center: center, radius: radius));
+    canvas.drawCircle(center, radius, ballPaint);
 
-    final ballPaint = Paint()..color = AppTheme.textPrimary;
-    canvas.drawCircle(ballCenter, ballRadius, ballPaint);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(rotation);
 
+    final darkPaint = Paint()..color = AppTheme.background.withValues(alpha: 0.9);
+    final bluePaint = Paint()..color = AppTheme.primary;
+    final pinkPaint = Paint()..color = AppTheme.accent;
     final seamPaint = Paint()
-      ..color = AppTheme.background.withValues(alpha: 0.75)
+      ..color = AppTheme.background.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(1, size.width * 0.018)
       ..strokeCap = StrokeCap.round;
 
-    final rotation = progress * math.pi * 4;
-    for (var i = 0; i < 3; i++) {
-      final angle = rotation + (i * math.pi * 2 / 3);
-      final inner = Offset(
-        ballCenter.dx + math.cos(angle) * ballRadius * 0.25,
-        ballCenter.dy + math.sin(angle) * ballRadius * 0.25,
+    final pentagon = Path();
+    for (var i = 0; i < 5; i++) {
+      final angle = -math.pi / 2 + (i * math.pi * 2 / 5);
+      final point = Offset(
+        math.cos(angle) * radius * 0.31,
+        math.sin(angle) * radius * 0.31,
       );
-      final outer = Offset(
-        ballCenter.dx + math.cos(angle) * ballRadius * 0.7,
-        ballCenter.dy + math.sin(angle) * ballRadius * 0.7,
-      );
-      canvas.drawLine(inner, outer, seamPaint);
+      if (i == 0) {
+        pentagon.moveTo(point.dx, point.dy);
+      } else {
+        pentagon.lineTo(point.dx, point.dy);
+      }
     }
+    pentagon.close();
+    canvas.drawPath(pentagon, darkPaint);
+
+    for (var i = 0; i < 5; i++) {
+      final angle = -math.pi / 2 + (i * math.pi * 2 / 5);
+      final start = Offset(
+        math.cos(angle) * radius * 0.31,
+        math.sin(angle) * radius * 0.31,
+      );
+      final end = Offset(
+        math.cos(angle) * radius * 0.78,
+        math.sin(angle) * radius * 0.78,
+      );
+      canvas.drawLine(start, end, seamPaint);
+      canvas.drawCircle(
+        end,
+        radius * 0.13,
+        i.isEven ? bluePaint : pinkPaint,
+      );
+    }
+
+    canvas.restore();
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius * 0.84),
+      -2.35,
+      0.95,
+      false,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.52)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1.5, size.width * 0.028)
+        ..strokeCap = StrokeCap.round,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _PassingDrillPainter oldDelegate) {
+  bool shouldRepaint(covariant _SpinningBallPainter oldDelegate) {
     return oldDelegate.progress != progress ||
-        oldDelegate.showPlayers != showPlayers;
+        oldDelegate.showShadow != showShadow;
   }
 }
