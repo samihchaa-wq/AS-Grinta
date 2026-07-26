@@ -124,8 +124,7 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260725222000_allow_postmatch_publication_kind.sql
             # Cette migration durcit encore la signature historique à deux
-            # paramètres. Elle doit donc être appliquée avant son remplacement
-            # par la signature à trois paramètres de 20260726200000.
+            # paramètres. Elle doit donc être appliquée avant son remplacement.
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727000100_restrict_public_definer_execution.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
@@ -134,6 +133,8 @@ jobs:
               -f supabase/tests/bootstrap/historical_match_scores_schema.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727002000_explicit_deny_rls_policies.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727024000_ensure_opponent_default_address_rpc.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
