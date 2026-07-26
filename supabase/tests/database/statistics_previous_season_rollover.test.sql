@@ -39,7 +39,7 @@ values
   (
     '71000000-0000-0000-0000-000000000001',
     '2025-2026',
-    'closed',
+    'archived',
     '2025-07-01T00:00:00Z'
   ),
   (
@@ -113,7 +113,7 @@ select is(
 );
 
 update public.seasons
-set status = 'closed'
+set status = 'archived'
 where id = '71000000-0000-0000-0000-000000000002';
 
 insert into public.season_players(
