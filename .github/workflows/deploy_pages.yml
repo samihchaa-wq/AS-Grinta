@@ -221,3 +221,4 @@ jobs:
             -d "{\"state\":\"$state\",\"context\":\"pages/public-smoke\",\"description\":\"$description\"}"
 
 # redeploy exact player card v2 — 2026-07-15
+# redeploy prediction six-day window — 2026-07-26
