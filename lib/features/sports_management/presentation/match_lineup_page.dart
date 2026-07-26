@@ -5,6 +5,7 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -63,11 +64,13 @@ class MatchLineupPage extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref
+            ..invalidate(upcomingMatchFixtureProvider(matchId))
             ..invalidate(publishedMatchCompositionProvider(matchId))
             ..invalidate(matchAvailabilityBoardProvider(matchId))
             ..invalidate(matchInfoProvider(matchId))
             ..invalidate(inlineMatchPredictionProvider(matchId));
           await Future.wait([
+            ref.read(upcomingMatchFixtureProvider(matchId).future),
             if (showComposition)
               ref.read(publishedMatchCompositionProvider(matchId).future),
             if (showEffectif)
@@ -81,6 +84,7 @@ class MatchLineupPage extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
+            UpcomingMatchFixtureHeader(matchId: matchId),
             SegmentedButton<String>(
               showSelectedIcon: false,
               segments: const [
@@ -220,8 +224,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               ),
             );
           }
-          final board =
-              ref.watch(matchAvailabilityBoardProvider(matchId)).valueOrNull;
+          final board = ref
+              .watch(matchAvailabilityBoardProvider(matchId))
+              .valueOrNull;
           final beforeKickoff =
               board == null || DateTime.now().isBefore(board.kickoffAt);
           final foreground = embeddedOnDark ? Colors.white : null;
@@ -237,18 +242,18 @@ class PublishedLineupPreview extends ConsumerWidget {
                     child: Text(
                       'Composition',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: foreground,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: foreground,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   if (composition.formationCode != null)
                     Text(
                       composition.formationCode!,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: secondary,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: secondary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                 ],
               ),
@@ -256,9 +261,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               Text(
                 'Composition publiée',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: secondary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: secondary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               Center(
@@ -273,9 +278,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               Text(
                 'Remplaçants (${composition.benchCount})',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: foreground,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: foreground,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 8),
               if (composition.benchCount == 0)
