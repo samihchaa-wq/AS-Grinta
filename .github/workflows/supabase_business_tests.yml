@@ -123,6 +123,10 @@ jobs:
               -f supabase/migrations/20260725221500_grant_postmatch_composition_private_rpc.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260725222000_allow_postmatch_publication_kind.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/statistics_rollover_schema.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260726214500_fix_previous_season_rollover.sql
             # Cette migration durcit encore la signature historique à deux
             # paramètres. Elle doit donc être appliquée avant son remplacement.
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
