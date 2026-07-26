@@ -222,23 +222,29 @@ class RosterRepository {
     required Uint8List bytes,
     required String fileExt,
   }) async {
-    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
+    final image = validateImageUpload(bytes, fileExt: fileExt);
     final path =
-        'season/$seasonPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    await _client.storage.from('profile-photos').uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(
-            contentType: imageMimeForExt(ext),
-            upsert: true,
-          ),
-        );
-    final url = _client.storage.from('profile-photos').getPublicUrl(path);
-    // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
-    // season_players.photo_url).
-    await _client
-        .from('season_players')
-        .update({'photo_url': url}).eq('id', seasonPlayerId);
+        'season/$seasonPlayerId/avatar_${DateTime.now().millisecondsSinceEpoch}.${image.extension}';
+    final bucket = _client.storage.from('profile-photos');
+    await bucket.uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(
+        contentType: image.mimeType,
+        upsert: false,
+      ),
+    );
+    final url = bucket.getPublicUrl(path);
+    try {
+      // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
+      // season_players.photo_url).
+      await _client
+          .from('season_players')
+          .update({'photo_url': url}).eq('id', seasonPlayerId);
+    } catch (_) {
+      await bucket.remove([path]);
+      rethrow;
+    }
   }
 
   Future<void> setActive({required String id, required bool active}) async {
@@ -258,9 +264,4 @@ final rosterRepositoryProvider = Provider<RosterRepository>((ref) {
 
 final openSeasonIdProvider = FutureProvider<String?>((ref) {
   return ref.watch(rosterRepositoryProvider).openSeasonId();
-});
-
-final rosterProvider =
-    FutureProvider.family<List<RosterPlayer>, String>((ref, seasonId) {
-  return ref.watch(rosterRepositoryProvider).fetchRoster(seasonId);
 });
