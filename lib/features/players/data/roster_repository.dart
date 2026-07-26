@@ -265,3 +265,8 @@ final rosterRepositoryProvider = Provider<RosterRepository>((ref) {
 final openSeasonIdProvider = FutureProvider<String?>((ref) {
   return ref.watch(rosterRepositoryProvider).openSeasonId();
 });
+
+final rosterProvider =
+    FutureProvider.family<List<RosterPlayer>, String>((ref, seasonId) {
+  return ref.watch(rosterRepositoryProvider).fetchRoster(seasonId);
+});
