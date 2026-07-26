@@ -8,8 +8,7 @@ void main() {
     const loaderPath = 'lib/core/widgets/grinta_loader.dart';
     const loaderImport =
         "import 'package:as_grinta/core/widgets/grinta_loader.dart';";
-    final circularPattern =
-        RegExp(r'(?<![.\w])CircularProgressIndicator\b');
+    final circularPattern = RegExp(r'(?<![.\w])CircularProgressIndicator\b');
     final linearPattern = RegExp(r'(?<![.\w])LinearProgressIndicator\b');
 
     final loaderTemplate =
