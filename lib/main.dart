@@ -122,25 +122,25 @@ class _BootstrapAppState extends State<_BootstrapApp> {
             );
           }
 
-          return const Scaffold(
-            backgroundColor: Color(0xFF07142E),
+          return Scaffold(
+            backgroundColor: const Color(0xFF07142E),
             body: SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.all(32),
+                  padding: const EdgeInsets.all(32),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 320),
-                        child: Image(
-                          image: AssetImage('assets/images/mpg_logo.png'),
+                        constraints: const BoxConstraints(maxWidth: 320),
+                        child: Image.asset(
+                          'assets/images/mpg_logo.png',
                           width: double.infinity,
                           fit: BoxFit.fitWidth,
                         ),
                       ),
-                      SizedBox(height: 24),
-                      Text(
+                      const SizedBox(height: 24),
+                      const Text(
                         'Ma Petite Grinta',
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -148,8 +148,8 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 26),
-                      GrintaLoader.inline(
+                      const SizedBox(height: 26),
+                      const GrintaLoader.inline(
                         message: 'Échauffement en cours…',
                         semanticLabel: 'Démarrage de Ma Petite Grinta',
                       ),
