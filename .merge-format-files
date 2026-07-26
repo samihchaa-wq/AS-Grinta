@@ -1,8 +1,0 @@
-lib/core/theme/app_theme.dart
-lib/core/widgets/grinta_loader.dart
-lib/features/auth/presentation/auth_loading_page.dart
-lib/features/predictions/presentation/pronos_hub_page.dart
-lib/features/predictions/presentation/pronos_hub_ranking_sections.dart
-lib/features/predictions/presentation/season_ranking_panel.dart
-lib/features/statistics/presentation/stats_hub_page.dart
-lib/main.dart
