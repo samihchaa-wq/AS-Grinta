@@ -11,9 +11,8 @@ class UpcomingMatchFixtureData {
 
   factory UpcomingMatchFixtureData.fromJson(Map<String, dynamic> json) {
     final opponent = json['opponents'];
-    final opponentName = opponent is Map
-        ? opponent['name']?.toString().trim()
-        : null;
+    final opponentName =
+        opponent is Map ? opponent['name']?.toString().trim() : null;
     return UpcomingMatchFixtureData(
       status: (json['status'] ?? '').toString(),
       location: (json['location'] ?? 'domicile').toString(),
@@ -35,18 +34,18 @@ class UpcomingMatchFixtureData {
 
 final upcomingMatchFixtureProvider =
     FutureProvider.family<UpcomingMatchFixtureData?, String>((
-      ref,
-      matchId,
-    ) async {
-      final client = ref.watch(supabaseClientProvider);
-      final row = await client
-          .from('matches')
-          .select('status, location, opponents(name)')
-          .eq('id', matchId)
-          .maybeSingle();
-      if (row == null) return null;
-      return UpcomingMatchFixtureData.fromJson(Map<String, dynamic>.from(row));
-    });
+  ref,
+  matchId,
+) async {
+  final client = ref.watch(supabaseClientProvider);
+  final row = await client
+      .from('matches')
+      .select('status, location, opponents(name)')
+      .eq('id', matchId)
+      .maybeSingle();
+  if (row == null) return null;
+  return UpcomingMatchFixtureData.fromJson(Map<String, dynamic>.from(row));
+});
 
 /// Affiche l'affiche domicile/extérieur d'un match à venir au-dessus des
 /// onglets de sa fiche. Les matchs terminés ou archivés ne rendent rien.
@@ -73,8 +72,7 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
               child: Semantics(
-                label:
-                    '${data.homeName}, domicile, contre '
+                label: '${data.homeName}, domicile, contre '
                     '${data.awayName}, extérieur',
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -93,9 +91,9 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                       child: Text(
                         'VS',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                              fontWeight: FontWeight.w900,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                       ),
                     ),
                     Expanded(

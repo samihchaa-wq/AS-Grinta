@@ -99,8 +99,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           .read(sportWaitlistRepositoryProvider)
           .fetchUpcomingMatches();
       if (!mounted) return;
-      final selected =
-          _selectedMatchId != null &&
+      final selected = _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
           : (matches.isEmpty ? null : matches.first.id);
@@ -143,11 +142,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final kickoffPassed = !DateTime.now().isBefore(convocations.kickoffAt);
       final finalization = kickoffPassed
           ? await ref
-                .read(sportMatchFinalizationRepositoryProvider)
-                .fetchAdminContext(matchId)
+              .read(sportMatchFinalizationRepositoryProvider)
+              .fetchAdminContext(matchId)
           : null;
-      final postMatch =
-          finalization != null &&
+      final postMatch = finalization != null &&
           finalization.isValidated &&
           (finalization.matchStatus == 'termine' ||
               finalization.matchStatus == 'archive');
@@ -203,8 +201,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       return;
     }
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(
@@ -215,11 +212,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             content: Text(
               isCollective
                   ? '${reminders.noResponseCount} joueur'
-                        '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                        'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une '
-                        'notification.'
+                      '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                      'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une '
+                      'notification.'
                   : 'Une notification de disponibilité sera envoyée. Un second '
-                        'envoi est bloqué pendant dix minutes.',
+                      'envoi est bloqué pendant dix minutes.',
             ),
             actions: [
               TextButton(
@@ -289,15 +286,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final availabilityDetail = player.isGuest
         ? 'Invité ajouté manuellement.'
         : hasResponded && updatedAt != null
-        ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
-        : 'Aucune réponse enregistrée pour l’instant.';
+            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+            : 'Aucune réponse enregistrée pour l’instant.';
 
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
 
-    final canRelance =
-        !player.isGuest &&
+    final canRelance = !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
         (_reminders?.canRemind ?? false);
@@ -443,16 +439,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 isGoalkeeper: base.isGoalkeeper,
                 zone: base.canBeSelected
                     ? previous.zone == MatchCompositionZone.field
-                          ? MatchCompositionZone.field
-                          : MatchCompositionZone.bench
+                        ? MatchCompositionZone.field
+                        : MatchCompositionZone.bench
                     : MatchCompositionZone.notSelected,
-                x:
-                    base.canBeSelected &&
+                x: base.canBeSelected &&
                         previous.zone == MatchCompositionZone.field
                     ? previous.x
                     : null,
-                y:
-                    base.canBeSelected &&
+                y: base.canBeSelected &&
                         previous.zone == MatchCompositionZone.field
                     ? previous.y
                     : null,
@@ -465,8 +459,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 convocationStatus: base.convocationStatus,
                 selectionStatus: base.canBeSelected
                     ? previous.zone == MatchCompositionZone.field
-                          ? 'starter'
-                          : 'substitute'
+                        ? 'starter'
+                        : 'substitute'
                     : 'not_selected',
               )
             else
@@ -572,7 +566,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           (player) => _postMatch
               ? _actualPresent.contains(player.participantId)
               : (player.isAvailable || player.isGuest) &&
-                    _desiredConvoked.contains(player.participantId),
+                  _desiredConvoked.contains(player.participantId),
         )
         .toList();
     players.sort(_playerOrder);
@@ -650,8 +644,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 player.seasonPlayerId.isNotEmpty)
               player.seasonPlayerId:
                   _desiredConvoked.contains(player.participantId)
-                  ? ConvocationStatus.convoked
-                  : ConvocationStatus.notConvoked,
+                      ? ConvocationStatus.convoked
+                      : ConvocationStatus.notConvoked,
         },
         reason: 'Effectif enregistré depuis le match',
       );
@@ -802,9 +796,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   void _moveToBench(MatchCompositionEntry moving) {
     final composition = _composition;
     if (composition == null || _compositionLocked) return;
-    final benchCount = composition
-        .entriesFor(MatchCompositionZone.bench)
-        .length;
+    final benchCount =
+        composition.entriesFor(MatchCompositionZone.bench).length;
     setState(() {
       _composition = composition.copyWith(
         hasUnpublishedChanges: true,
@@ -868,9 +861,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               : 'Brouillon de composition',
         );
         if (publish) {
-          await ref
-              .read(sportWaitlistRepositoryProvider)
-              .publishMatch(
+          await ref.read(sportWaitlistRepositoryProvider).publishMatch(
                 matchId: ready.matchId,
                 reason: 'Effectif confirmé avant publication de la composition',
               );
@@ -960,9 +951,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (input == null) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(guestPlayersRepositoryProvider)
-          .createAndAddGuest(
+      await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
             matchId: matchId,
             firstName: input.firstName,
             lastName: input.lastName,
@@ -1000,9 +989,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     if (confirmed != true) return;
     setState(() => _busy = true);
     try {
-      await ref
-          .read(guestPlayersRepositoryProvider)
-          .removeGuest(
+      await ref.read(guestPlayersRepositoryProvider).removeGuest(
             matchId: matchId,
             participantId: player.participantId,
             reason: 'Retrait depuis Effectif',
@@ -1046,8 +1033,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         child: GrintaEmptyState(
           icon: Icons.event_busy_rounded,
           title: 'Aucun match disponible',
-          message:
-              'Crée un match depuis l’onglet Matchs pour préparer '
+          message: 'Crée un match depuis l’onglet Matchs pour préparer '
               'l’effectif et la composition.',
         ),
       );
@@ -1079,9 +1065,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
             ],
             selected: {_step},
-            onSelectionChanged: _busy
-                ? null
-                : (value) => setState(() => _step = value.first),
+            onSelectionChanged:
+                _busy ? null : (value) => setState(() => _step = value.first),
           ),
           if (_busy) ...[
             const SizedBox(height: 10),
@@ -1311,8 +1296,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                   Text(
                     'Remplaçants (${bench.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)
@@ -1336,16 +1321,15 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: _compositionLocked
-              ? null
-              : () => _saveComposition(publish: true),
+          onPressed:
+              _compositionLocked ? null : () => _saveComposition(publish: true),
           icon: const Icon(Icons.campaign_outlined),
           label: Text(
             _postMatch && _compositionExisted
                 ? 'Composition publiée'
                 : composition.isPublished
-                ? 'Mettre à jour'
-                : 'Publier',
+                    ? 'Mettre à jour'
+                    : 'Publier',
           ),
         ),
         if (_postMatch && _compositionExisted)
@@ -1428,9 +1412,9 @@ class _EffectifColumn extends StatelessWidget {
                   child: Text(
                     '$title (${players.length})',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                    ),
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
                 if (onRelanceAll != null && players.isNotEmpty)
@@ -1466,11 +1450,11 @@ class _EffectifColumn extends StatelessWidget {
                       draggable: !locked && onToggle != null && !player.isGuest,
                       onTap: player.isGuest
                           ? (onRemoveGuest == null
-                                ? null
-                                : () => onRemoveGuest!(player))
+                              ? null
+                              : () => onRemoveGuest!(player))
                           : (onShowInfo == null
-                                ? null
-                                : () => onShowInfo!(player)),
+                              ? null
+                              : () => onShowInfo!(player)),
                     ),
                 ],
               ),
@@ -1587,10 +1571,10 @@ class _FormationDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white54,
-      fontWeight: FontWeight.w900,
-      letterSpacing: .4,
-    );
+          color: Colors.white54,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .4,
+        );
     final items = <DropdownMenuItem<String>>[];
     int? lastLine;
     for (final formation in footballFormations) {
