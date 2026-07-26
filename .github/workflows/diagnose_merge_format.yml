@@ -1,4 +1,4 @@
-name: Diagnose merge formatting
+name: Format loader with CI SDK
 
 on:
   push:
@@ -6,10 +6,9 @@ on:
 
 permissions:
   contents: write
-  actions: read
 
 jobs:
-  diagnose:
+  format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,21 +16,24 @@ jobs:
           ref: feat/grinta-loading-system
           fetch-depth: 0
 
-      - name: Capture failed Flutter CI log
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          cache: true
+
+      - name: Format changed Dart files
         shell: bash
         run: |
           set -euo pipefail
-          gh run view 30199419570 \
-            --repo samihchaa-wq/AS-Grinta \
-            --log-failed > .ci-format-log.txt
-          git add .ci-format-log.txt
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- '*.dart')
+          dart format "${files[@]}"
+          git add -- "${files[@]}"
 
-      - name: Commit diagnostic
+      - name: Commit formatting
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: capture failed formatter log"
+          git diff --cached --quiet && exit 0
+          git commit -m "style: format loaders with Flutter 3.44.8"
           git push
