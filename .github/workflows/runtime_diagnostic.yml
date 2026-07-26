@@ -38,7 +38,6 @@ jobs:
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee runtime-build.log
-          test ! -f build/web/flutter_service_worker.js
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -157,15 +156,12 @@ jobs:
               viewport: { width: 390, height: 844 },
               serviceWorkers: 'allow',
             });
-            let page = await context.newPage();
+            const page = await context.newPage();
             const errors = [];
-            const bindDiagnostics = currentPage => {
-              currentPage.on('pageerror', error => errors.push(error.stack || error.message));
-              currentPage.on('console', message => {
-                if (message.type() === 'error') errors.push(message.text());
-              });
-            };
-            bindDiagnostics(page);
+            page.on('pageerror', error => errors.push(error.stack || error.message));
+            page.on('console', message => {
+              if (message.type() === 'error') errors.push(message.text());
+            });
 
             await page.goto('http://127.0.0.1:8080/', {
               waitUntil: 'networkidle',
@@ -184,6 +180,13 @@ jobs:
             await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
               timeout: 45000,
             });
+            const activeWorker = await page.evaluate(async () => {
+              const registration = await navigator.serviceWorker.ready;
+              return registration.active?.scriptURL ?? '';
+            });
+            if (!activeWorker.includes('/sw.js')) {
+              throw new Error(`service worker inattendu: ${activeWorker}`);
+            }
             await page.waitForFunction(() => {
               return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
             }, null, { timeout: 45000 });
