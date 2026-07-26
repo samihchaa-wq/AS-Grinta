@@ -53,12 +53,12 @@ select is(
     select count(*)
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
-    cross join lateral unnest(coalesce(p.proallargtypes, p.proargtypes::oid[]))
-      with ordinality as argument(type_oid, position)
+    cross join lateral unnest(p.proargnames)
+      with ordinality as argument(argument_name, position)
     where n.nspname = 'public'
       and p.proname = 'profile_badge_metrics'
       and argument.position > p.pronargs
-      and coalesce(p.proargnames[argument.position], '') ~*
+      and coalesce(argument.argument_name, '') ~*
         '(email|username|password|token|endpoint|first_name|last_name|photo_url)'
   ),
   0::bigint,
