@@ -50,8 +50,8 @@ select is(
       and policy.permissive = 'RESTRICTIVE'
       and policy.cmd = 'ALL'
       and policy.roles @> array['anon', 'authenticated']::name[]
-      and replace(coalesce(policy.qual, ''), '(', '') = 'false)'
-      and replace(coalesce(policy.with_check, ''), '(', '') = 'false)'
+      and regexp_replace(coalesce(policy.qual, ''), '[()[:space:]]', '', 'g') = 'false'
+      and regexp_replace(coalesce(policy.with_check, ''), '[()[:space:]]', '', 'g') = 'false'
   ),
   12::bigint,
   'chaque table possède une politique restrictive de refus client'
