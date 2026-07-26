@@ -362,12 +362,15 @@ class _CompletedCompositionCard extends ConsumerWidget {
       );
     }
 
+    final selectedPlayerIds = finalization.presentPlayerIds;
     final players = [
       for (final player in finalization.squad)
-        _CompletedPlayerSummary(
-          name: player.name,
-          goals: goalsByPlayerId[player.id] ?? 0,
-        ),
+        if (selectedPlayerIds.contains(player.id) ||
+            goalsByPlayerId.containsKey(player.id))
+          _CompletedPlayerSummary(
+            name: player.name,
+            goals: goalsByPlayerId[player.id] ?? 0,
+          ),
     ];
 
     for (final fallback in fallbackPlayers) {
