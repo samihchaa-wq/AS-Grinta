@@ -119,10 +119,13 @@ jobs:
               -f supabase/migrations/20260725221500_grant_postmatch_composition_private_rpc.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260725222000_allow_postmatch_publication_kind.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260726200000_opponent_default_addresses.sql
+            # Cette migration durcit encore la signature historique à deux
+            # paramètres. Elle doit donc être appliquée avant son remplacement
+            # par la signature à trois paramètres de 20260726200000.
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727000100_restrict_public_definer_execution.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260726200000_opponent_default_addresses.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727002000_explicit_deny_rls_policies.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
