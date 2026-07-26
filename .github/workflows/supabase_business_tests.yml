@@ -136,6 +136,10 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727024000_ensure_opponent_default_address_rpc.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/profile_badge_metrics_security_contract.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727024500_revoke_anon_public_definer_execution.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
           } 2>&1 | tee supabase-schema.log
 
