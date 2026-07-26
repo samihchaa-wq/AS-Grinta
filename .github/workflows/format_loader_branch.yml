@@ -1,0 +1,42 @@
+name: Format loader branch
+
+on:
+  push:
+    branches: [feat/grinta-loading-system]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/grinta-loading-system
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/core/theme/app_theme.dart \
+            lib/core/widgets/grinta_loader.dart \
+            lib/features/auth/presentation/auth_loading_page.dart \
+            lib/features/predictions/presentation/pronos_hub_page.dart \
+            lib/features/predictions/presentation/pronos_hub_ranking_sections.dart \
+            lib/features/predictions/presentation/season_ranking_panel.dart \
+            lib/features/statistics/presentation/stats_hub_page.dart \
+            lib/main.dart
+
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '*.dart'
+          git diff --cached --quiet && exit 0
+          git commit -m "style: format Grinta loader changes"
+          git push
