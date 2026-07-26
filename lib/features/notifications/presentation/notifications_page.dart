@@ -1,7 +1,6 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
