@@ -137,23 +137,32 @@ class AuthRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
 
-    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
-    final path = '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
-    await _client.storage.from('profile-photos').uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(
-            contentType: imageMimeForExt(ext),
-            upsert: true,
-          ),
-        );
-    final publicUrl = _client.storage.from('profile-photos').getPublicUrl(path);
+    final image = validateImageUpload(bytes, fileExt: fileExt);
+    final path =
+        '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.${image.extension}';
+    final bucket = _client.storage.from('profile-photos');
+    await bucket.uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(
+        contentType: image.mimeType,
+        upsert: false,
+      ),
+    );
+    final publicUrl = bucket.getPublicUrl(path);
 
-    // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
-    // profiles.photo_url).
-    await _client.from('profiles').update({
-      'photo_url': publicUrl,
-    }).eq('id', userId);
+    try {
+      // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
+      // profiles.photo_url).
+      await _client.from('profiles').update({
+        'photo_url': publicUrl,
+      }).eq('id', userId);
+    } catch (_) {
+      // Une erreur entre l'upload et la mise à jour ne doit pas laisser un
+      // fichier orphelin dans le bucket.
+      await bucket.remove([path]);
+      rethrow;
+    }
 
     final profile = await fetchProfile();
     if (profile == null) {
