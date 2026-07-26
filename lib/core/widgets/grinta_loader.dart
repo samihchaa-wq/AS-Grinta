@@ -8,13 +8,6 @@ import 'package:flutter/material.dart';
 /// L'animation représente une passe entre trois joueurs : elle remplace les
 /// roues Material génériques par un signal visuel propre à Ma Petite Grinta.
 class GrintaLoader extends StatefulWidget {
-  const GrintaLoader._({
-    required this.size,
-    required this.showPlayers,
-    this.message,
-    this.semanticLabel = 'Chargement en cours',
-  });
-
   const GrintaLoader.page({
     super.key,
     this.message,
@@ -122,7 +115,11 @@ class _PassingDrillPainter extends CustomPainter {
       ..strokeWidth = math.max(1.5, size.width * 0.025)
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(startX, centerY), Offset(endX, centerY), linePaint);
+    canvas.drawLine(
+      Offset(startX, centerY),
+      Offset(endX, centerY),
+      linePaint,
+    );
 
     if (showPlayers) {
       final playerRadius = size.width * 0.07;
