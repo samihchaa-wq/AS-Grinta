@@ -19,6 +19,7 @@ import 'package:as_grinta/features/more/presentation/more_page.dart';
 import 'package:as_grinta/features/notifications/presentation/notifications_page.dart';
 import 'package:as_grinta/features/players/presentation/players_registry_page.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
+import 'package:as_grinta/features/privacy/presentation/privacy_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
@@ -154,6 +155,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 builder: (_, __) => const ProfilePage(),
+              ),
+              GoRoute(
+                path: '/privacy',
+                builder: (_, __) => const PrivacyPage(),
               ),
               GoRoute(
                 path: '/armoire',
