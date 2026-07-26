@@ -122,7 +122,10 @@ with ranked as (
   where participant.match_id = current_setting('test.unified_squad_match')::uuid
 )
 update public.match_sport_participants participant
-set availability_status = case when ranked.number <= 3 then 'available' else 'absent' end,
+set availability_status = case
+      when ranked.number <= 3 then 'available'::public.sport_availability_status
+      else 'absent'::public.sport_availability_status
+    end,
     availability_updated_at = now(),
     availability_updated_by = 'a1000000-0000-0000-0000-000000000001',
     updated_at = now()

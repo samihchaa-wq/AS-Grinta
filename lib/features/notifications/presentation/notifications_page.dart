@@ -1,7 +1,6 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
@@ -53,11 +52,15 @@ class _NotificationsInfoCard extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
-            _line('📅', 'La demande de disponibilité, avec un rappel de '
-                'pronostiquer.'),
+            _line(
+                '📅',
+                'La demande de disponibilité, avec un rappel de '
+                    'pronostiquer.'),
             _line('🏁', 'Le score final de chaque match.'),
-            _line('👑', 'L’invitation à voter pour l’Homme du match, si tu '
-                'étais présent.'),
+            _line(
+                '👑',
+                'L’invitation à voter pour l’Homme du match, si tu '
+                    'étais présent.'),
             _line('🎉', 'Le résultat du vote, si tu as voté.'),
           ],
         ),

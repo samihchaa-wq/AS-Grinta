@@ -1,10 +1,27 @@
-// Service worker Ma Petite Grinta : cache réseau-d'abord (jamais de bundle périmé)
-// et réception des notifications push Web Push. Cache v152 — cartes de match alignées.
-const CACHE_NAME = 'as-grinta-v152';
+// Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour choisie
+// par l’utilisateur et réception des notifications Web Push.
+importScripts('build_version.js');
 
-self.addEventListener('install', () => {
-  // On n'active plus la nouvelle version en douce : elle reste « en attente »
-  // jusqu'à ce que l'utilisateur appuie sur le bandeau « mettre à jour ».
+const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
+const CACHE_NAME = `as-grinta-${WEB_VERSION.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+const APP_SHELL = [
+  './',
+  'index.html',
+  'build_version.js',
+  'flutter_bootstrap.js',
+  'manifest.json',
+  'favicon.png',
+  'icons/Icon-192.png',
+  'icons/Icon-512.png',
+];
+
+self.addEventListener('install', (event) => {
+  // Le socle minimal est disponible hors ligne après une première installation
+  // réussie. Lors d’une mise à jour, le worker reste en attente jusqu’au clic
+  // de l’utilisateur sur le bandeau de mise à jour.
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
+  );
 });
 
 // Feu vert de l'utilisateur : on active la nouvelle version.
@@ -19,12 +36,16 @@ self.addEventListener('activate', (event) => {
     (async () => {
       const names = await caches.keys();
       await Promise.all(
-        names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)),
+        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name)),
       );
       await self.clients.claim();
     })(),
   );
 });
+
+async function cachedNavigationFallback(cache) {
+  return (await cache.match('index.html')) || (await cache.match('./'));
+}
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
@@ -38,16 +59,22 @@ self.addEventListener('fetch', (event) => {
       try {
         const response = await fetch(request, { cache: 'no-store' });
         if (response && response.ok) {
-          cache.put(request, response.clone());
+          await cache.put(request, response.clone());
+          return response;
+        }
+        // Un serveur statique renvoie souvent 404 pour une URL Flutter profonde.
+        // Dans ce cas la navigation doit recevoir l’index, même si le réseau
+        // répond techniquement au lieu de lever une erreur.
+        if (request.mode === 'navigate') {
+          const index = await cachedNavigationFallback(cache);
+          if (index) return index;
         }
         return response;
       } catch (error) {
         const cached = await cache.match(request);
         if (cached) return cached;
         if (request.mode === 'navigate') {
-          const index = await cache.match(
-            new URL('index.html', self.registration.scope).href,
-          );
+          const index = await cachedNavigationFallback(cache);
           if (index) return index;
         }
         throw error;
