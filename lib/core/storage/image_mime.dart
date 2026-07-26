@@ -62,8 +62,7 @@ ValidatedImageUpload validateImageUpload(
       mimeType: 'image/png',
     );
   }
-  if (
-      bytes.lengthInBytes >= 12 &&
+  if (bytes.lengthInBytes >= 12 &&
       _asciiAt(bytes, 0, 'RIFF') &&
       _asciiAt(bytes, 8, 'WEBP')) {
     return const ValidatedImageUpload(
