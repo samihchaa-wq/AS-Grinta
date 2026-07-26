@@ -43,6 +43,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+async function cachedNavigationFallback(cache) {
+  return (await cache.match('index.html')) || (await cache.match('./'));
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -56,13 +60,21 @@ self.addEventListener('fetch', (event) => {
         const response = await fetch(request, { cache: 'no-store' });
         if (response && response.ok) {
           await cache.put(request, response.clone());
+          return response;
+        }
+        // Un serveur statique renvoie souvent 404 pour une URL Flutter profonde.
+        // Dans ce cas la navigation doit recevoir l’index, même si le réseau
+        // répond techniquement au lieu de lever une erreur.
+        if (request.mode === 'navigate') {
+          const index = await cachedNavigationFallback(cache);
+          if (index) return index;
         }
         return response;
       } catch (error) {
         const cached = await cache.match(request);
         if (cached) return cached;
         if (request.mode === 'navigate') {
-          const index = await cache.match('index.html') || await cache.match('./');
+          const index = await cachedNavigationFallback(cache);
           if (index) return index;
         }
         throw error;
