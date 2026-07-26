@@ -3,6 +3,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/guest_players_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -107,7 +108,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _selectedMatchId = selected;
         _loading = false;
       });
-      if (selected != null) await _loadWorkspace(selected);
+      if (selected != null) {
+        ref.invalidate(upcomingMatchFixtureProvider(selected));
+        await _loadWorkspace(selected);
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -1040,6 +1044,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
+          if (_selectedMatchId != null)
+            UpcomingMatchFixtureHeader(matchId: _selectedMatchId!),
           SegmentedButton<_AdminStep>(
             showSelectedIcon: false,
             segments: [

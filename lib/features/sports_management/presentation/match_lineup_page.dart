@@ -5,6 +5,7 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -63,11 +64,13 @@ class MatchLineupPage extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref
+            ..invalidate(upcomingMatchFixtureProvider(matchId))
             ..invalidate(publishedMatchCompositionProvider(matchId))
             ..invalidate(matchAvailabilityBoardProvider(matchId))
             ..invalidate(matchInfoProvider(matchId))
             ..invalidate(inlineMatchPredictionProvider(matchId));
           await Future.wait([
+            ref.read(upcomingMatchFixtureProvider(matchId).future),
             if (showComposition)
               ref.read(publishedMatchCompositionProvider(matchId).future),
             if (showEffectif)
@@ -81,6 +84,7 @@ class MatchLineupPage extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           children: [
+            UpcomingMatchFixtureHeader(matchId: matchId),
             SegmentedButton<String>(
               showSelectedIcon: false,
               segments: const [
