@@ -32,74 +32,84 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(text: str, old: str, new: str, label: str) -> str:
-              if text.count(old) != 1:
-                  raise SystemExit(f"Expected one occurrence for {label}, found {text.count(old)}")
-              return text.replace(old, new, 1)
+          def insert_after(lines: list[str], anchor: str, value: str, label: str) -> None:
+              if value in lines:
+                  return
+              try:
+                  index = lines.index(anchor)
+              except ValueError as exc:
+                  raise SystemExit(f'Missing anchor for {label}: {anchor!r}') from exc
+              lines.insert(index + 1, value)
+
+          def insert_before_first(lines: list[str], anchor: str, values: list[str], label: str) -> None:
+              if any(value in lines for value in values):
+                  return
+              try:
+                  index = lines.index(anchor)
+              except ValueError as exc:
+                  raise SystemExit(f'Missing anchor for {label}: {anchor!r}') from exc
+              lines[index:index] = values
 
           admin_path = Path('lib/features/sports_management/presentation/admin_squad_plan_page.dart')
-          admin = admin_path.read_text()
-          admin = replace_once(
+          admin = admin_path.read_text().splitlines()
+          insert_after(
               admin,
-              "import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';\n",
-              "import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';\n"
-              "import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';\n",
+              "import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';",
+              "import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';",
               'admin import',
           )
-          admin = replace_once(
+          refresh_line = '      if (selected != null) await _loadWorkspace(selected);'
+          if '        ref.invalidate(upcomingMatchFixtureProvider(selected));' not in admin:
+              try:
+                  refresh_index = admin.index(refresh_line)
+              except ValueError as exc:
+                  raise SystemExit('Missing admin refresh anchor') from exc
+              admin[refresh_index:refresh_index + 1] = [
+                  '      if (selected != null) {',
+                  '        ref.invalidate(upcomingMatchFixtureProvider(selected));',
+                  '        await _loadWorkspace(selected);',
+                  '      }',
+              ]
+          insert_before_first(
               admin,
-              "      if (selected != null) await _loadWorkspace(selected);\n",
-              "      if (selected != null) {\n"
-              "        ref.invalidate(upcomingMatchFixtureProvider(selected));\n"
-              "        await _loadWorkspace(selected);\n"
-              "      }\n",
-              'admin refresh',
-          )
-          admin = replace_once(
-              admin,
-              "        children: [\n          SegmentedButton<_AdminStep>(\n",
-              "        children: [\n"
-              "          if (_selectedMatchId != null)\n"
-              "            UpcomingMatchFixtureHeader(matchId: _selectedMatchId!),\n"
-              "          SegmentedButton<_AdminStep>(\n",
+              '          SegmentedButton<_AdminStep>(',
+              [
+                  '          if (_selectedMatchId != null)',
+                  '            UpcomingMatchFixtureHeader(matchId: _selectedMatchId!),',
+              ],
               'admin fixture placement',
           )
-          admin_path.write_text(admin)
+          admin_path.write_text('\n'.join(admin) + '\n')
 
           player_path = Path('lib/features/sports_management/presentation/match_lineup_page.dart')
-          player = player_path.read_text()
-          player = replace_once(
+          player = player_path.read_text().splitlines()
+          insert_after(
               player,
-              "import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';\n",
-              "import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';\n"
-              "import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';\n",
+              "import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';",
+              "import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';",
               'player import',
           )
-          player = replace_once(
+          invalidation = '            ..invalidate(upcomingMatchFixtureProvider(matchId))'
+          insert_before_first(
               player,
-              "          ref\n            ..invalidate(publishedMatchCompositionProvider(matchId))\n",
-              "          ref\n"
-              "            ..invalidate(upcomingMatchFixtureProvider(matchId))\n"
-              "            ..invalidate(publishedMatchCompositionProvider(matchId))\n",
+              '            ..invalidate(publishedMatchCompositionProvider(matchId))',
+              [invalidation],
               'player refresh invalidation',
           )
-          player = replace_once(
+          provider_read = '            ref.read(upcomingMatchFixtureProvider(matchId).future),'
+          if provider_read not in player:
+              try:
+                  wait_index = player.index('          await Future.wait([')
+              except ValueError as exc:
+                  raise SystemExit('Missing player refresh wait anchor') from exc
+              player.insert(wait_index + 1, provider_read)
+          insert_before_first(
               player,
-              "          await Future.wait([\n            if (showComposition)\n",
-              "          await Future.wait([\n"
-              "            ref.read(upcomingMatchFixtureProvider(matchId).future),\n"
-              "            if (showComposition)\n",
-              'player refresh wait',
-          )
-          player = replace_once(
-              player,
-              "          children: [\n            SegmentedButton<String>(\n",
-              "          children: [\n"
-              "            UpcomingMatchFixtureHeader(matchId: matchId),\n"
-              "            SegmentedButton<String>(\n",
+              '            SegmentedButton<String>(',
+              ['            UpcomingMatchFixtureHeader(matchId: matchId),'],
               'player fixture placement',
           )
-          player_path.write_text(player)
+          player_path.write_text('\n'.join(player) + '\n')
           PY
       - name: Format the changed Dart files
         run: |
