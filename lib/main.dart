@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,25 +125,25 @@ class _BootstrapAppState extends State<_BootstrapApp> {
             );
           }
 
-          return Scaffold(
-            backgroundColor: const Color(0xFF07142E),
+          return const Scaffold(
+            backgroundColor: Color(0xFF07142E),
             body: SafeArea(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
+                  padding: EdgeInsets.all(32),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 320),
-                        child: Image.asset(
-                          'assets/images/mpg_logo.png',
+                        constraints: BoxConstraints(maxWidth: 320),
+                        child: Image(
+                          image: AssetImage('assets/images/mpg_logo.png'),
                           width: double.infinity,
                           fit: BoxFit.fitWidth,
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const Text(
+                      SizedBox(height: 24),
+                      Text(
                         'Ma Petite Grinta',
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -150,8 +151,11 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const CircularProgressIndicator(),
+                      SizedBox(height: 26),
+                      GrintaLoader.inline(
+                        message: 'Échauffement en cours…',
+                        semanticLabel: 'Démarrage de Ma Petite Grinta',
+                      ),
                     ],
                   ),
                 ),
