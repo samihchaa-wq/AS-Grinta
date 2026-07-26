@@ -84,7 +84,8 @@ void main() {
     if (treeResult.exitCode != 0) {
       fail('Impossible de lire l’arbre Git : ${treeResult.stderr}');
     }
-    stdout.writeln('GRINTA_BASE_TREE_SHA:${treeResult.stdout.toString().trim()}');
+    stdout
+        .writeln('GRINTA_BASE_TREE_SHA:${treeResult.stdout.toString().trim()}');
 
     fail('Arrêt temporaire après extraction de l’arbre Git.');
   });
