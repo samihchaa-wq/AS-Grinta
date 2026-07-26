@@ -131,6 +131,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260726200000_opponent_default_addresses.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/historical_match_scores_schema.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727002000_explicit_deny_rls_policies.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
