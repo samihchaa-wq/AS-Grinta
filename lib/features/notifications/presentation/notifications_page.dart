@@ -52,11 +52,15 @@ class _NotificationsInfoCard extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
-            _line('📅', 'La demande de disponibilité, avec un rappel de '
-                'pronostiquer.'),
+            _line(
+                '📅',
+                'La demande de disponibilité, avec un rappel de '
+                    'pronostiquer.'),
             _line('🏁', 'Le score final de chaque match.'),
-            _line('👑', 'L’invitation à voter pour l’Homme du match, si tu '
-                'étais présent.'),
+            _line(
+                '👑',
+                'L’invitation à voter pour l’Homme du match, si tu '
+                    'étais présent.'),
             _line('🎉', 'Le résultat du vote, si tu as voté.'),
           ],
         ),
