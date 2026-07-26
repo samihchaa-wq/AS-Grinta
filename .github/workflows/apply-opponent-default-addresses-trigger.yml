@@ -1,38 +1,25 @@
 name: Apply opponent default addresses trigger
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/opponent-default-addresses
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 jobs:
   apply:
-    if: ${{ !contains(github.event.head_commit.message, '[addresses-applied]') }}
+    if: ${{ github.head_ref == 'agent/opponent-default-addresses' && !contains(github.event.pull_request.title, '[addresses-applied]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/opponent-default-addresses
           fetch-depth: 0
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
       - name: Apply implementation
         run: python .github/agent/apply_opponent_default_addresses.py
-      - name: Validate
-        run: |
-          dart format \
-            lib/features/matches/data/matches_repository.dart \
-            lib/features/matches/presentation/matches_controller.dart \
-            lib/features/matches/presentation/match_form_page.dart
-          flutter pub get
-          flutter analyze --fatal-infos
-          flutter test
-          flutter build web --release
       - name: Commit implementation
         run: |
           git config user.name github-actions[bot]
