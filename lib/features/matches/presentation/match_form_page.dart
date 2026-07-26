@@ -181,23 +181,25 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: _seasonId.isEmpty ? null : _seasonId,
-              decoration: const InputDecoration(labelText: 'Saison'),
-              items: seasons
-                  .map(
-                    (season) => DropdownMenuItem<String>(
-                      value: season['id'].toString(),
-                      child: Text(season['name'].toString()),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _seasonId = value ?? ''),
-              validator: (value) => value == null || value.isEmpty
-                  ? 'Sélectionnez une saison'
-                  : null,
-            ),
-            const SizedBox(height: 12),
+            if (widget.match != null) ...[
+              DropdownButtonFormField<String>(
+                initialValue: _seasonId.isEmpty ? null : _seasonId,
+                decoration: const InputDecoration(labelText: 'Saison'),
+                items: seasons
+                    .map(
+                      (season) => DropdownMenuItem<String>(
+                        value: season['id'].toString(),
+                        child: Text(season['name'].toString()),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() => _seasonId = value ?? ''),
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Sélectionnez une saison'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+            ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -256,9 +258,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               decoration: const InputDecoration(
                 labelText: 'Adresse (facultatif)',
                 hintText: 'Terrain, rue, ville…',
-                helperText:
-                    'Préremplie depuis l’équipe qui reçoit. La modification '
-                    'reste propre à ce match sauf option ci-dessous.',
                 prefixIcon: Icon(Icons.place_outlined),
               ),
             ),
@@ -301,8 +300,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Nombre de joueurs convoqués',
-                  helperText:
-                      '14 est proposé habituellement, mais la limite est libre pour ce match.',
                   suffixIcon: _squadLimitLoading
                       ? const Padding(
                           padding: EdgeInsets.all(12),
@@ -324,34 +321,29 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             Row(
               children: [
                 Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'd’après les précédentes rencontres',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                if (_suggestingOdds)
+                if (_suggestingOdds) ...[
+                  const Spacer(),
                   const SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: _OddsDisplay(label: 'Victoire (1)', value: _oddsWin),
+                  child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _OddsDisplay(label: 'Nul (N)', value: _oddsDraw),
+                  child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _OddsDisplay(label: 'Défaite (2)', value: _oddsLoss),
+                  child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
                 ),
               ],
             ),
@@ -493,6 +485,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   }
 
   Future<void> _submit() async {
+    if (_seasonId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune saison ouverte disponible.')),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     final oddsWin = _oddsWin;
     final oddsDraw = _oddsDraw;
