@@ -70,7 +70,7 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
           child: Card(
             margin: EdgeInsets.zero,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               child: Semantics(
                 label: '${data.homeName}, domicile, contre '
                     '${data.awayName}, extérieur',
@@ -79,7 +79,6 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: _FixtureTeam(
-                        label: 'Domicile',
                         name: data.homeName,
                         isGrinta: data.grintaIsHome,
                         alignment: CrossAxisAlignment.end,
@@ -98,7 +97,6 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
                     ),
                     Expanded(
                       child: _FixtureTeam(
-                        label: 'Extérieur',
                         name: data.awayName,
                         isGrinta: !data.grintaIsHome,
                         alignment: CrossAxisAlignment.start,
@@ -119,14 +117,12 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
 
 class _FixtureTeam extends StatelessWidget {
   const _FixtureTeam({
-    required this.label,
     required this.name,
     required this.isGrinta,
     required this.alignment,
     required this.textAlign,
   });
 
-  final String label;
   final String name;
   final bool isGrinta;
   final CrossAxisAlignment alignment;
@@ -134,27 +130,18 @@ class _FixtureTeam extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: alignment,
       children: [
         Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
           name,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: textAlign,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: isGrinta ? FontWeight.w900 : FontWeight.w800,
-          ),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: isGrinta ? FontWeight.w900 : FontWeight.w800,
+              ),
         ),
       ],
     );
