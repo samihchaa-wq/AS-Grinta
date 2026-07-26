@@ -1,8 +1,9 @@
+import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/photo_crop_preview.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -240,43 +241,67 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final confirmationController = TextEditingController();
     final result = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Changer le mot de passe'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration:
-                  const InputDecoration(labelText: 'Nouveau mot de passe'),
+      builder: (dialogContext) {
+        String? validationError;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Changer le mot de passe'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: const InputDecoration(
+                    labelText: 'Nouveau mot de passe',
+                    helperText: PasswordPolicy.helperText,
+                    helperMaxLines: 2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmationController,
+                  obscureText: true,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: const InputDecoration(labelText: 'Confirmation'),
+                ),
+                if (validationError != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    validationError!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: confirmationController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirmation'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final password = passwordController.text;
+                  final policyError = PasswordPolicy.validate(password);
+                  final error = policyError ??
+                      (password != confirmationController.text
+                          ? 'Les deux mots de passe ne correspondent pas.'
+                          : null);
+                  if (error != null) {
+                    setDialogState(() => validationError = error);
+                    return;
+                  }
+                  Navigator.pop(dialogContext, password);
+                },
+                child: const Text('Modifier'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () {
-              final password = passwordController.text;
-              if (password.length < 8 ||
-                  password != confirmationController.text) {
-                return;
-              }
-              Navigator.pop(dialogContext, password);
-            },
-            child: const Text('Modifier'),
-          ),
-        ],
-      ),
+        );
+      },
     );
     passwordController.dispose();
     confirmationController.dispose();
