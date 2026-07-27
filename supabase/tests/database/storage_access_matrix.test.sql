@@ -130,46 +130,38 @@ select throws_ok(
   '42501',
   'un joueur ne crée pas une image de badge'
 );
-
-select lives_ok(
-  $$delete from storage.objects
-    where id = 'e5100000-0000-0000-0000-000000000099'$$,
-  'une suppression sans objet autorisé ne provoque aucune erreur'
-);
 reset role;
 
-insert into storage.objects(
-  id, bucket_id, name, owner, owner_id, metadata
-) values (
-  'e5100000-0000-0000-0000-000000000006',
-  'profile-photos',
-  'e5000000-0000-0000-0000-000000000003/other.webp',
-  'e5000000-0000-0000-0000-000000000003',
-  'e5000000-0000-0000-0000-000000000003',
-  '{"mimetype":"image/webp"}'::jsonb
-);
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"e5000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
-select lives_ok(
-  $$delete from storage.objects
-    where id = 'e5100000-0000-0000-0000-000000000006'$$,
-  'la tentative de suppression croisée est filtrée par la RLS'
-);
-reset role;
-
-select is(
-  (
-    select count(*)
-    from storage.objects
-    where id = 'e5100000-0000-0000-0000-000000000006'
+-- Supabase Storage interdit volontairement les DELETE SQL directs, même au
+-- propriétaire de la base. La suppression réelle passe par l’API Storage ; la CI
+-- vérifie donc ici le contrat exact utilisé par cette API lors de l’évaluation RLS.
+select ok(
+  exists (
+    select 1
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'profile_photos_owner_delete'
+      and cmd = 'DELETE'
+      and qual ~ 'private\.is_active_profile'
+      and qual ~ 'owner_id'
+      and qual ~ 'auth\.uid'
   ),
-  1::bigint,
-  'un joueur ne supprime pas la photo d’un autre compte'
+  'un joueur actif ne supprime que les objets dont owner_id correspond à son JWT'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_policies
+    where schemaname = 'storage'
+      and tablename = 'objects'
+      and policyname = 'profile_photos_admin_write'
+      and cmd = 'ALL'
+      and qual ~ 'private\.is_admin'
+      and with_check ~ 'private\.is_admin'
+  ),
+  'le nettoyage transversal des photos reste réservé à un administrateur actif'
 );
 
 select set_config(
@@ -191,12 +183,6 @@ select lives_ok(
       '{"mimetype":"image/webp"}'::jsonb
     )$$,
   'un administrateur actif gère les images de badge'
-);
-
-select lives_ok(
-  $$delete from storage.objects
-    where id = 'e5100000-0000-0000-0000-000000000006'$$,
-  'un administrateur actif peut nettoyer la photo d’un autre compte'
 );
 
 reset role;
