@@ -1,13 +1,11 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-/// État vide (ou message plein écran) soigné et cohérent dans toute l'app :
-/// une icône dans une pastille douce, un titre, un message secondaire
-/// optionnel, et une action optionnelle.
+/// Message vide, informatif ou d'erreur cohérent dans toute l'application.
 ///
-/// À utiliser partout où une liste ou une section n'a rien à afficher
-/// (« pas encore de match », classement vide, aucun badge, etc.) plutôt
-/// qu'un simple `Text('Aucun…')`.
+/// Le contenu reste volontairement court : une illustration symbolique, un
+/// titre lisible immédiatement, une explication secondaire et, si nécessaire,
+/// une seule action claire.
 class GrintaEmptyState extends StatelessWidget {
   const GrintaEmptyState({
     super.key,
@@ -23,65 +21,96 @@ class GrintaEmptyState extends StatelessWidget {
   final String title;
   final String? message;
   final Widget? action;
-
-  /// Version resserrée pour une carte ou une petite section (moins d'espace).
   final bool compact;
-
-  /// Teinte de la pastille : neutre (rose de marque) ou alerte (erreur).
   final GrintaEmptyTone tone;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final accent = tone == GrintaEmptyTone.alert
-        ? AppTheme.accent
+        ? theme.colorScheme.error
         : AppTheme.primaryBright;
-    final badge = compact ? 56.0 : 76.0;
+    final badge = compact ? 56.0 : 80.0;
     final iconSize = compact ? 28.0 : 38.0;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: compact ? 22 : 40,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: badge,
-            width: badge,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-              border: Border.all(color: accent.withValues(alpha: 0.35)),
+    final content = Semantics(
+      container: true,
+      label: [title, if (message case final value?) value].join('. '),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 18 : 24,
+          vertical: compact ? 22 : 44,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox.square(
+                  dimension: badge,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: .12),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: .1),
+                          blurRadius: 28,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(icon, size: iconSize, color: accent),
+                  ),
+                ),
+                SizedBox(height: compact ? 14 : 20),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: (compact
+                          ? theme.textTheme.titleMedium
+                          : theme.textTheme.titleLarge)
+                      ?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (message case final value? when value.trim().isNotEmpty) ...[
+                  SizedBox(height: compact ? 6 : 8),
+                  Text(
+                    value,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textFaint,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+                if (action != null) ...[
+                  SizedBox(height: compact ? 18 : 24),
+                  action!,
+                ],
+              ],
             ),
-            child: Icon(icon, size: iconSize, color: accent),
           ),
-          SizedBox(height: compact ? 12 : 18),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          if (message != null && message!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              message!,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ],
-          if (action != null) ...[
-            SizedBox(height: compact ? 16 : 22),
-            action!,
-          ],
-        ],
+        ),
       ),
+    );
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: reduceMotion ? 1 : 0, end: 1),
+      duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 10),
+          child: child,
+        ),
+      ),
+      child: content,
     );
   }
 }
