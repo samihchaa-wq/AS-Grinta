@@ -52,5 +52,42 @@ begin
       $function$
     $sql$;
   end if;
+
+  if to_regprocedure('public.get_my_profile()') is null then
+    execute $sql$
+      create function public.get_my_profile()
+      returns jsonb
+      language plpgsql
+      stable
+      security definer
+      set search_path to ''
+      as $function$
+      declare
+        actor_id uuid := (select auth.uid());
+        result jsonb;
+      begin
+        if actor_id is null then
+          raise exception 'Authentication required' using errcode = '42501';
+        end if;
+
+        select to_jsonb(profile)
+        into result
+        from public.profiles profile
+        where profile.id = actor_id
+          and profile.status = 'active';
+
+        if result is null then
+          raise exception 'Active profile not found' using errcode = '42501';
+        end if;
+
+        return result;
+      end;
+      $function$
+    $sql$;
+  end if;
 end;
 $block$;
+
+revoke all on function public.get_my_profile() from public, anon;
+grant execute on function public.get_my_profile()
+  to authenticated, service_role;
