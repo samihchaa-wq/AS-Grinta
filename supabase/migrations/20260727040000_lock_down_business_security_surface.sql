@@ -21,9 +21,8 @@ grant execute on function public.admin_save_match_effectif(
 ) to authenticated, service_role;
 
 -- Un JWT Supabase valide ne suffit pas : toutes les tables applicatives imposent
--- désormais un profil actif. Les fonctions SECURITY DEFINER nécessaires au
--- chargement de l'état du compte (notamment get_my_profile) restent utilisables
--- pour qu'un compte en attente puisse être identifié puis déconnecté proprement.
+-- désormais un profil actif. Les objets appartenant à une extension PostgreSQL
+-- restent gérés par leur extension et ne font pas partie de la surface métier.
 do $block$
 declare
   relation record;
@@ -34,7 +33,19 @@ begin
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
       and c.relkind in ('r', 'p')
+      and not exists (
+        select 1
+        from pg_depend dependency
+        where dependency.classid = 'pg_class'::regclass
+          and dependency.objid = c.oid
+          and dependency.deptype = 'e'
+      )
   loop
+    execute format(
+      'alter table %I.%I enable row level security',
+      relation.schema_name,
+      relation.table_name
+    );
     execute format(
       'drop policy if exists active_authenticated_profile_only on %I.%I',
       relation.schema_name,
