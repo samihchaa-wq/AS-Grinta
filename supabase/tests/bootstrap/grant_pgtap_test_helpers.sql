@@ -5,14 +5,13 @@ grant usage on schema extensions to anon, authenticated;
 grant execute on all functions in schema extensions to anon, authenticated;
 
 -- Selon la version de l’image locale, certaines aides peuvent rester dans public.
--- On accorde uniquement les noms d’assertions pgTAP réellement utilisés et on les
--- marque pour que le contrat ACL puisse les distinguer des fonctions applicatives.
+-- On accorde uniquement les noms d’assertions pgTAP réellement utilisés.
 do $block$
 declare
   helper record;
 begin
   for helper in
-    select p.oid::regprocedure as signature, n.nspname as schema_name
+    select p.oid::regprocedure as signature
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname in ('public', 'extensions')
@@ -29,11 +28,6 @@ begin
     execute format(
       'grant execute on function %s to anon, authenticated',
       helper.signature
-    );
-    execute format(
-      'comment on function %s is %L',
-      helper.signature,
-      'test-only pgtap role assertion helper'
     );
   end loop;
 end;
