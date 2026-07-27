@@ -86,6 +86,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260711101000_register_push_subscription_rpc.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260713222000_harden_personal_rpcs.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720033749_integrity_backfill_and_staff_audit.sql
@@ -125,6 +127,8 @@ jobs:
               -f supabase/migrations/20260720220000_sports_management_release_readiness.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260721170424_unified_match_squad_plan.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260724000000_admin_send_test_push.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260724120000_match_address_and_opponent_memory.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
@@ -175,6 +179,8 @@ jobs:
               -f supabase/migrations/20260727050000_live_feature_flag_session_refresh.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727060000_push_delivery_resilience.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727070000_harden_admin_send_test_push_search_path.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
           } 2>&1 | tee supabase-schema.log
