@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if ! flutter pub outdated --json --transitive \
+          if ! flutter pub outdated --json \
             > dependency-outdated.json \
             2> dependency-outdated.stderr.log; then
             cat dependency-outdated.stderr.log >&2
