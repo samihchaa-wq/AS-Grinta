@@ -92,7 +92,6 @@ class GrintaProgressIndicator extends StatelessWidget {
         strokeCap: strokeCap,
         constraints: constraints,
         padding: padding,
-        year2023: year2023,
       );
     }
 
