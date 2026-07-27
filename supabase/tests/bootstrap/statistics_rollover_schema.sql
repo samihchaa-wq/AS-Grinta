@@ -37,3 +37,9 @@ create table if not exists public.historical_player_statistics (
 alter table public.historical_player_statistics enable row level security;
 revoke all on public.historical_player_statistics from anon;
 grant select on public.historical_player_statistics to authenticated;
+
+-- Le chantier multi-saison valide aussi les statistiques collectives. Ces deux
+-- migrations constituent leur socle de production et sont rejouées dans la base
+-- isolée avant les migrations de durcissement globales.
+\ir ../../migrations/20260721103216_team_statistics_sporteasy_history.sql
+\ir ../../migrations/20260726222000_previous_team_statistics_rollover.sql
