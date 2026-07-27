@@ -4,10 +4,6 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 /// Loader animé et unifié pour toute l'application.
-///
-/// Le ballon illustré rebondit naturellement, tourne pendant sa phase aérienne
-/// et produit une onde bleue et rose à chaque impact. Les trois formats gardent
-/// le même mouvement afin que tous les chargements partagent la même identité.
 class GrintaLoader extends StatelessWidget {
   const GrintaLoader.page({
     super.key,
@@ -46,10 +42,11 @@ class GrintaLoader extends StatelessWidget {
   }
 }
 
-/// Remplacement compact des anciens [CircularProgressIndicator].
+/// Remplacement des anciens [CircularProgressIndicator].
 ///
-/// Il accepte leur API courante pour permettre une migration mécanique sans
-/// modifier les contraintes déjà posées par les pages et les boutons.
+/// Une valeur non nulle reste un indicateur circulaire déterminé. Le ballon
+/// animé est réservé aux vrais chargements indéterminés, afin d'éviter que les
+/// anneaux de statistiques deviennent plusieurs loaders simultanés.
 class GrintaProgressIndicator extends StatelessWidget {
   const GrintaProgressIndicator({
     super.key,
@@ -82,11 +79,28 @@ class GrintaProgressIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (value != null) {
+      return CircularProgressIndicator(
+        value: value,
+        backgroundColor: backgroundColor,
+        color: color,
+        valueColor: valueColor,
+        strokeWidth: strokeWidth,
+        strokeAlign: strokeAlign,
+        semanticsLabel: semanticsLabel,
+        semanticsValue: semanticsValue,
+        strokeCap: strokeCap,
+        constraints: constraints,
+        padding: padding,
+        year2023: year2023,
+      );
+    }
+
     final effectiveConstraints = constraints ?? const BoxConstraints();
     return Semantics(
       label: semanticsLabel ?? 'Chargement en cours',
       value: semanticsValue,
-      liveRegion: value == null,
+      liveRegion: true,
       child: ExcludeSemantics(
         child: Padding(
           padding: padding ?? EdgeInsets.zero,
@@ -100,7 +114,9 @@ class GrintaProgressIndicator extends StatelessWidget {
                 ];
                 final available =
                     candidates.isEmpty ? 32.0 : candidates.reduce(math.min);
-                final size = available.clamp(16.0, 32.0).toDouble();
+                final size = available >= 160
+                    ? 92.0
+                    : available.clamp(16.0, 32.0).toDouble();
                 return Center(child: _BouncingBallMark(size: size));
               },
             ),
@@ -111,8 +127,8 @@ class GrintaProgressIndicator extends StatelessWidget {
   }
 }
 
-/// Préserve les barres déterminées (statistiques, jauges) et remplace seulement
-/// leur état indéterminé par le même ballon rebondissant.
+/// Préserve les barres déterminées et remplace seulement leur état
+/// indéterminé par le ballon rebondissant.
 class GrintaLinearProgressIndicator extends StatelessWidget {
   const GrintaLinearProgressIndicator({
     super.key,
@@ -182,10 +198,34 @@ class _BouncingBallMark extends StatefulWidget {
 
 class _BouncingBallMarkState extends State<_BouncingBallMark>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  )..repeat();
+  late final AnimationController _controller;
+  bool _reduceMotion = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (reduceMotion == _reduceMotion && _controller.isAnimating) return;
+
+    _reduceMotion = reduceMotion;
+    if (_reduceMotion) {
+      _controller
+        ..stop()
+        ..value = 0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
 
   @override
   void dispose() {
@@ -195,17 +235,16 @@ class _BouncingBallMarkState extends State<_BouncingBallMark>
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-
     return RepaintBoundary(
       child: SizedBox.square(
         dimension: widget.size,
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) => CustomPaint(
+            isComplex: false,
+            willChange: !_reduceMotion,
             painter: _BouncingBallPainter(
-              progress: reduceMotion ? 0 : _controller.value,
+              progress: _reduceMotion ? 0 : _controller.value,
             ),
           ),
         ),
@@ -225,10 +264,9 @@ class _BouncingBallPainter extends CustomPainter {
     final radius = shortestSide * 0.205;
     final groundY = size.height * 0.78;
     final bounce = 4 * progress * (1 - progress);
-    final bounceHeight = size.height * 0.42;
     final center = Offset(
       size.width / 2,
-      groundY - radius - bounceHeight * bounce,
+      groundY - radius - size.height * 0.42 * bounce,
     );
 
     _drawImpactRipple(canvas, size, groundY, radius);
@@ -246,14 +284,11 @@ class _BouncingBallPainter extends CustomPainter {
     if (progress > rippleDuration) return;
 
     final phase = Curves.easeOut.transform(progress / rippleDuration);
-    final opacity = (1 - phase) * 0.72;
-    final center = Offset(size.width / 2, groundY + radius * 0.08);
-    final width = radius * (2.05 + phase * 2.35);
-    final height = radius * (0.38 + phase * 0.42);
+    final opacity = (1 - phase) * 0.68;
     final rect = Rect.fromCenter(
-      center: center,
-      width: width,
-      height: height,
+      center: Offset(size.width / 2, groundY + radius * 0.08),
+      width: radius * (2.05 + phase * 2.35),
+      height: radius * (0.38 + phase * 0.42),
     );
 
     canvas.drawOval(
@@ -263,7 +298,6 @@ class _BouncingBallPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = math.max(1, size.width * 0.018),
     );
-
     canvas.drawArc(
       rect,
       math.pi * 0.96,
@@ -284,22 +318,13 @@ class _BouncingBallPainter extends CustomPainter {
     double radius,
     double bounce,
   ) {
-    final width = radius * (2.25 - bounce * 0.72);
-    final height = radius * (0.38 - bounce * 0.1);
-    final shadowRect = Rect.fromCenter(
-      center: Offset(size.width / 2, groundY + radius * 0.08),
-      width: width,
-      height: height,
-    );
-
     canvas.drawOval(
-      shadowRect,
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.34 - bounce * 0.17)
-        ..maskFilter = MaskFilter.blur(
-          BlurStyle.normal,
-          math.max(1, size.width * 0.035),
-        ),
+      Rect.fromCenter(
+        center: Offset(size.width / 2, groundY + radius * 0.08),
+        width: radius * (2.25 - bounce * 0.72),
+        height: radius * (0.38 - bounce * 0.1),
+      ),
+      Paint()..color = Colors.black.withValues(alpha: 0.25 - bounce * 0.12),
     );
   }
 
@@ -310,29 +335,21 @@ class _BouncingBallPainter extends CustomPainter {
     double progress,
   ) {
     final distanceFromImpact = math.min(progress, 1 - progress);
-    final impact = (1 - (distanceFromImpact / 0.13)).clamp(0.0, 1.0).toDouble();
+    final impact =
+        (1 - (distanceFromImpact / 0.13)).clamp(0.0, 1.0).toDouble();
     final easedImpact = Curves.easeOut.transform(impact);
-    final scaleX = 1 + easedImpact * 0.14;
-    final scaleY = 1 - easedImpact * 0.18;
-    final rotation = progress * math.pi * 2;
 
     canvas.save();
     canvas.translate(center.dx, center.dy);
-    canvas.scale(scaleX, scaleY);
-    canvas.rotate(rotation);
-
-    canvas.drawCircle(
-      Offset.zero,
-      radius * 1.12,
-      Paint()
-        ..color = AppTheme.primaryBright.withValues(alpha: 0.13)
-        ..maskFilter = MaskFilter.blur(
-          BlurStyle.normal,
-          radius * 0.26,
-        ),
-    );
+    canvas.scale(1 + easedImpact * 0.14, 1 - easedImpact * 0.18);
+    canvas.rotate(progress * math.pi * 2);
 
     final ballRect = Rect.fromCircle(center: Offset.zero, radius: radius);
+    canvas.drawCircle(
+      Offset.zero,
+      radius * 1.08,
+      Paint()..color = AppTheme.primaryBright.withValues(alpha: 0.1),
+    );
     canvas.drawCircle(
       Offset.zero,
       radius,
