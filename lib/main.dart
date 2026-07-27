@@ -65,8 +65,11 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         publishableKey: AppConfig.supabaseAnonKey,
       ).timeout(const Duration(seconds: 20));
     } catch (error, stackTrace) {
-      _incidentReference =
-          AppLogger.error('bootstrap.supabase', error, stackTrace);
+      _incidentReference = AppLogger.error(
+        'bootstrap.supabase',
+        error,
+        stackTrace,
+      );
       rethrow;
     }
   }
@@ -103,8 +106,8 @@ class _BootstrapAppState extends State<_BootstrapApp> {
               title: 'Impossible de démarrer Ma Petite Grinta',
               message: 'La configuration ou le service est momentanément '
                   'indisponible. Réessaie dans un instant.',
-              incidentReference: _incidentReference ??
-                  AppLogger.createIncidentReference(),
+              incidentReference:
+                  _incidentReference ?? AppLogger.createIncidentReference(),
               onRetry: _retry,
             );
           }
