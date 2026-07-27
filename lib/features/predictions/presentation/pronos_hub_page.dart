@@ -82,7 +82,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final content = switch (_category) {
       _PronosCategory.matches => const MergedMatchesView(),
       _PronosCategory.scorers => const _ScorerRankingView(),
