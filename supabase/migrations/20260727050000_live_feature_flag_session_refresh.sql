@@ -22,6 +22,15 @@ revoke all on table public.feature_flag_change_signals
 grant select on table public.feature_flag_change_signals
   to authenticated, service_role;
 
+drop policy if exists feature_flag_change_signals_read
+  on public.feature_flag_change_signals;
+create policy feature_flag_change_signals_read
+on public.feature_flag_change_signals
+as permissive
+for select
+to authenticated
+using (true);
+
 drop policy if exists active_authenticated_profile_only
   on public.feature_flag_change_signals;
 create policy active_authenticated_profile_only
