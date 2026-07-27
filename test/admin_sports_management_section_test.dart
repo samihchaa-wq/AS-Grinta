@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/features/admin/presentation/admin_sports_management_section.dart';
 import 'package:as_grinta/features/feature_flags/data/feature_flags_repository.dart';
 import 'package:as_grinta/features/feature_flags/domain/feature_flags.dart';
@@ -59,6 +61,11 @@ class _WidgetFeatureFlagsRepository implements FeatureFlagsRepository {
   @override
   Future<FeatureFlagsSnapshot> fetchFeatureFlags() async {
     return _snapshot(initialEnabled);
+  }
+
+  @override
+  Stream<FeatureFlagChangeSignal> watchSportsManagementChanges() {
+    return const Stream<FeatureFlagChangeSignal>.empty();
   }
 
   @override
