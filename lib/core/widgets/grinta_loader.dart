@@ -335,8 +335,7 @@ class _BouncingBallPainter extends CustomPainter {
     double progress,
   ) {
     final distanceFromImpact = math.min(progress, 1 - progress);
-    final impact =
-        (1 - (distanceFromImpact / 0.13)).clamp(0.0, 1.0).toDouble();
+    final impact = (1 - (distanceFromImpact / 0.13)).clamp(0.0, 1.0).toDouble();
     final easedImpact = Curves.easeOut.transform(impact);
 
     canvas.save();
