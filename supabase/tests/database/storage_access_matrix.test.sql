@@ -131,17 +131,10 @@ select throws_ok(
   'un joueur ne crée pas une image de badge'
 );
 
-select is(
-  (
-    with deleted as (
-      delete from storage.objects
-      where id = 'e5100000-0000-0000-0000-000000000099'
-      returning id
-    )
-    select count(*) from deleted
-  ),
-  0::bigint,
-  'une suppression sans objet autorisé ne touche aucune ligne'
+select lives_ok(
+  $$delete from storage.objects
+    where id = 'e5100000-0000-0000-0000-000000000099'$$,
+  'une suppression sans objet autorisé ne provoque aucune erreur'
 );
 reset role;
 
@@ -162,19 +155,22 @@ select set_config(
   true
 );
 set local role authenticated;
-select is(
-  (
-    with deleted as (
-      delete from storage.objects
-      where id = 'e5100000-0000-0000-0000-000000000006'
-      returning id
-    )
-    select count(*) from deleted
-  ),
-  0::bigint,
-  'un joueur ne supprime pas la photo d’un autre compte'
+select lives_ok(
+  $$delete from storage.objects
+    where id = 'e5100000-0000-0000-0000-000000000006'$$,
+  'la tentative de suppression croisée est filtrée par la RLS'
 );
 reset role;
+
+select is(
+  (
+    select count(*)
+    from storage.objects
+    where id = 'e5100000-0000-0000-0000-000000000006'
+  ),
+  1::bigint,
+  'un joueur ne supprime pas la photo d’un autre compte'
+);
 
 select set_config(
   'request.jwt.claims',
