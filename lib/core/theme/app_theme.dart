@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class _InstantPageTransitionsBuilder extends PageTransitionsBuilder {
-  const _InstantPageTransitionsBuilder();
+class _GrintaPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _GrintaPageTransitionsBuilder();
 
   @override
   Widget buildTransitions<T>(
@@ -11,33 +11,33 @@ class _InstantPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    return child;
+    if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) return child;
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(.025, .015),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
   }
 }
 
-/// Identité visuelle unique : bleu nuit + rose flamant.
-///
-/// Règle de lisibilité : le bleu plein ([primary]) ne sert QUE de remplissage
-/// (boutons, indicateur de nav) avec du texte blanc dessus — jamais comme
-/// couleur de texte/icône sur fond sombre (c'était le fameux « bleu sur bleu »).
-/// Pour une icône ou un texte bleu sur fond sombre, utiliser [primaryBright] ;
-/// pour un point fort coloré, le rose [accent].
 abstract final class AppTheme {
-  // Fonds (du plus sombre au plus clair).
   static const Color background = Color(0xFF07142E);
   static const Color surface = Color(0xFF0F2148);
   static const Color surfaceHigh = Color(0xFF172C58);
   static const Color outline = Color(0xFF2A4574);
-
-  // Bleu de marque : remplissage de boutons (texte blanc dessus).
   static const Color primary = Color(0xFF2E6BF2);
-  // Bleu clair lisible sur fond sombre (icônes, liens, texte bleu).
   static const Color primaryBright = Color(0xFF6BA0FF);
-
-  // Rose flamant : accent, points forts, éléments actifs.
   static const Color accent = Color(0xFFFF3F8E);
-
-  // Textes.
   static const Color textPrimary = Color(0xFFEFF3FC);
   static const Color textSecondary = Color(0xFFC7CDD8);
   static const Color textFaint = Color(0xFF9299A5);
@@ -53,7 +53,7 @@ abstract final class AppTheme {
       secondaryContainer: Color(0xFF3A1430),
       onSecondaryContainer: Color(0xFFFFD9E8),
       tertiary: primaryBright,
-      onTertiary: Color(0xFF07142E),
+      onTertiary: background,
       surface: surface,
       onSurface: textPrimary,
       onSurfaceVariant: textSecondary,
@@ -70,16 +70,14 @@ abstract final class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
       splashFactory: InkSparkle.splashFactory,
-      // Toutes les pages apparaissent immédiatement, sans animation
-      // intermédiaire ni déplacement de la page précédente.
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: _InstantPageTransitionsBuilder(),
-          TargetPlatform.iOS: _InstantPageTransitionsBuilder(),
-          TargetPlatform.macOS: _InstantPageTransitionsBuilder(),
-          TargetPlatform.windows: _InstantPageTransitionsBuilder(),
-          TargetPlatform.linux: _InstantPageTransitionsBuilder(),
-          TargetPlatform.fuchsia: _InstantPageTransitionsBuilder(),
+          TargetPlatform.android: _GrintaPageTransitionsBuilder(),
+          TargetPlatform.iOS: _GrintaPageTransitionsBuilder(),
+          TargetPlatform.macOS: _GrintaPageTransitionsBuilder(),
+          TargetPlatform.windows: _GrintaPageTransitionsBuilder(),
+          TargetPlatform.linux: _GrintaPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: _GrintaPageTransitionsBuilder(),
         },
       ),
     );
@@ -94,7 +92,7 @@ abstract final class AppTheme {
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w800,
-          letterSpacing: -0.8,
+          letterSpacing: -.8,
         ),
         headlineSmall: base.textTheme.headlineSmall?.copyWith(
           color: textPrimary,
@@ -102,8 +100,8 @@ abstract final class AppTheme {
         ),
         titleLarge: base.textTheme.titleLarge?.copyWith(
           color: textPrimary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.3,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -.3,
         ),
         titleMedium: base.textTheme.titleMedium?.copyWith(
           color: textPrimary,
@@ -111,13 +109,16 @@ abstract final class AppTheme {
         ),
         bodyLarge: base.textTheme.bodyLarge?.copyWith(
           color: textPrimary,
-          height: 1.4,
+          height: 1.45,
         ),
         bodyMedium: base.textTheme.bodyMedium?.copyWith(
           color: textSecondary,
-          height: 1.4,
+          height: 1.45,
         ),
-        bodySmall: base.textTheme.bodySmall?.copyWith(color: textSecondary),
+        bodySmall: base.textTheme.bodySmall?.copyWith(
+          color: textFaint,
+          height: 1.35,
+        ),
         labelLarge: base.textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w800,
         ),
@@ -132,17 +133,15 @@ abstract final class AppTheme {
           color: textPrimary,
           fontSize: 22,
           fontWeight: FontWeight.w800,
-          letterSpacing: -0.5,
+          letterSpacing: -.5,
         ),
-        iconTheme: IconThemeData(color: textPrimary),
       ),
       cardTheme: CardThemeData(
-        color: surface,
+        color: surface.withValues(alpha: .94),
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: outline),
+          borderRadius: BorderRadius.circular(22),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -162,7 +161,7 @@ abstract final class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: textPrimary,
           minimumSize: const Size(64, 52),
-          side: const BorderSide(color: outline),
+          side: BorderSide(color: outline.withValues(alpha: .7)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),
@@ -175,20 +174,22 @@ abstract final class AppTheme {
       iconTheme: const IconThemeData(color: textSecondary),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceHigh,
+        fillColor: surfaceHigh.withValues(alpha: .9),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         hintStyle: const TextStyle(color: textFaint),
         labelStyle: const TextStyle(color: textSecondary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: outline),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: outline),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: accent, width: 1.6),
+          borderSide: const BorderSide(color: accent, width: 1.5),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
@@ -196,19 +197,22 @@ abstract final class AppTheme {
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
                 ? primary
-                : Colors.transparent;
+                : surfaceHigh.withValues(alpha: .65);
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
                 ? Colors.white
                 : textSecondary;
           }),
-          side: WidgetStateProperty.all(const BorderSide(color: outline)),
+          side: WidgetStateProperty.all(BorderSide.none),
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: surfaceHigh,
-        side: const BorderSide(color: outline),
+        backgroundColor: surfaceHigh.withValues(alpha: .85),
+        side: BorderSide.none,
         labelStyle: const TextStyle(
           color: textPrimary,
           fontWeight: FontWeight.w800,
@@ -243,8 +247,6 @@ abstract final class AppTheme {
         contentTextStyle: TextStyle(color: textPrimary),
         behavior: SnackBarBehavior.floating,
       ),
-      // Filet de sécurité pour les anciens indicateurs qui restent encore dans
-      // des actions très locales : plus aucun loader rose par défaut.
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: primaryBright,
         circularTrackColor: surfaceHigh,
@@ -255,8 +257,11 @@ abstract final class AppTheme {
         backgroundColor: accent,
         foregroundColor: Colors.white,
       ),
-      dividerTheme: const DividerThemeData(color: Color(0xFF203760)),
-      dividerColor: const Color(0xFF203760),
+      dividerTheme: DividerThemeData(
+        color: const Color(0xFF203760).withValues(alpha: .55),
+        space: 28,
+      ),
+      dividerColor: const Color(0xFF203760).withValues(alpha: .55),
     );
   }
 }

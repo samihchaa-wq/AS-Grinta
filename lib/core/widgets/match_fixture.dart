@@ -23,16 +23,10 @@ class MatchFixture extends StatelessWidget {
 
   final String homeName;
   final String awayName;
-
-  /// Vrai si AS Grinta joue à domicile (détermine la couleur du résultat).
   final bool grintaIsHome;
   final int? homeScore;
   final int? awayScore;
-
-  /// Le match est terminé : on affiche les scores colorés.
   final bool finished;
-
-  /// Couleur des noms d'équipe (par défaut la couleur du texte du thème).
   final Color? foreground;
   final TextStyle? nameStyle;
   final double scoreFontSize;
@@ -42,8 +36,6 @@ class MatchFixture extends StatelessWidget {
   static const Color _lost = Color(0xFFE5555A);
   static const Color _draw = Color(0xFFE9963C);
 
-  /// Couleur du résultat vu par AS Grinta : vert si elle mène, rouge si elle
-  /// est menée, orange à égalité.
   static Color resultColor(int grintaScore, int opponentScore) {
     if (grintaScore > opponentScore) return _won;
     if (grintaScore < opponentScore) return _lost;
@@ -61,6 +53,8 @@ class MatchFixture extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final baseName = (nameStyle ??
             Theme.of(context).textTheme.titleMedium ??
             const TextStyle())
@@ -68,6 +62,7 @@ class MatchFixture extends StatelessWidget {
     final scoreColor = _scoreColor;
 
     Widget line(String name, int? score) {
+      final scoreText = '$score';
       return Row(
         children: [
           Expanded(
@@ -80,14 +75,28 @@ class MatchFixture extends StatelessWidget {
             ),
           ),
           if (_hasScores) ...[
-            const SizedBox(width: 8),
-            Text(
-              '$score',
-              style: baseName.copyWith(
-                color: scoreColor,
-                fontWeight: FontWeight.w900,
-                fontSize: scoreFontSize,
-                height: 1,
+            const SizedBox(width: 10),
+            AnimatedSwitcher(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: .9, end: 1).animate(animation),
+                  child: child,
+                ),
+              ),
+              child: Text(
+                scoreText,
+                key: ValueKey(scoreText),
+                style: baseName.copyWith(
+                  color: scoreColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: scoreFontSize,
+                  height: 1,
+                ),
               ),
             ),
           ],
@@ -101,7 +110,7 @@ class MatchFixture extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         line(homeName, homeScore),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         line(awayName, awayScore),
       ],
     );
