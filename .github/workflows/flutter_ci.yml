@@ -89,11 +89,31 @@ jobs:
           set -o pipefail
           flutter analyze --fatal-infos 2>&1 | tee analyze.log
 
-      - name: Test
+      - name: Test with coverage
         shell: bash
         run: |
           set -o pipefail
-          flutter test 2>&1 | tee test.log
+          flutter test --coverage 2>&1 | tee test.log
+
+      - name: Summarize coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s coverage/lcov.info
+          found=$(awk -F: '/^LF:/{sum+=$2} END{print sum+0}' coverage/lcov.info)
+          hit=$(awk -F: '/^LH:/{sum+=$2} END{print sum+0}' coverage/lcov.info)
+          if [ "$found" -eq 0 ]; then
+            percent='0.00'
+          else
+            percent=$(awk -v hit="$hit" -v found="$found" 'BEGIN { printf "%.2f", (100 * hit / found) }')
+          fi
+          printf 'Lignes couvertes : %s/%s (%s%%)\n' "$hit" "$found" "$percent" | tee coverage-summary.txt
+          {
+            echo '### Couverture Flutter'
+            echo
+            echo "- Lignes couvertes : **$hit / $found ($percent %)**"
+            echo '- Aucun seuil bloquant n’est fixé pendant l’établissement de la référence initiale.'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build web
         shell: bash
@@ -117,5 +137,7 @@ jobs:
             format.patch
             analyze.log
             test.log
+            coverage/lcov.info
+            coverage-summary.txt
             build-web.log
           if-no-files-found: warn
