@@ -159,10 +159,14 @@ begin
     select 1
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
+    cross join lateral aclexplode(
+      coalesce(p.proacl, acldefault('f', p.proowner))
+    ) acl
     where n.nspname in ('public', 'private')
+      and acl.privilege_type = 'EXECUTE'
       and (
-        has_function_privilege('anon', p.oid, 'EXECUTE')
-        or has_function_privilege('public', p.oid, 'EXECUTE')
+        acl.grantee = 0
+        or acl.grantee = (select oid from pg_roles where rolname = 'anon')
       )
   ) then
     raise exception 'Anonymous or PUBLIC function execution remains exposed';
