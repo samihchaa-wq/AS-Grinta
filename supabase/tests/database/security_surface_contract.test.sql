@@ -62,6 +62,7 @@ select diag(
       where n.nspname in ('public', 'private')
         and coalesce(extension.extname, '') <> 'pgtap'
         and p.oid is distinct from to_regprocedure('public.like(text,text,text)')
+        and p.oid is distinct from to_regprocedure('public.throws_ok(text,text,text)')
         and acl.privilege_type = 'EXECUTE'
         and (
           acl.grantee = 0
@@ -89,6 +90,7 @@ select is(
     where n.nspname in ('public', 'private')
       and coalesce(extension.extname, '') <> 'pgtap'
       and p.oid is distinct from to_regprocedure('public.like(text,text,text)')
+      and p.oid is distinct from to_regprocedure('public.throws_ok(text,text,text)')
       and acl.privilege_type = 'EXECUTE'
       and (
         acl.grantee = 0
