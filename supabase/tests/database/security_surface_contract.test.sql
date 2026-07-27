@@ -11,9 +11,16 @@ select is(
     where n.nspname = 'public'
       and c.relkind in ('r', 'p')
       and not c.relrowsecurity
+      and not exists (
+        select 1
+        from pg_depend dependency
+        where dependency.classid = 'pg_class'::regclass
+          and dependency.objid = c.oid
+          and dependency.deptype = 'e'
+      )
   ),
   0::bigint,
-  'toutes les tables publiques ont la RLS active'
+  'toutes les tables applicatives publiques ont la RLS active'
 );
 
 select is(
@@ -32,6 +39,37 @@ select is(
   ),
   0::bigint,
   'le rôle anon ne possède aucun droit de données dans public'
+);
+
+select diag(
+  'fonctions encore exposées dans le schéma isolé: ' || coalesce(
+    (
+      select string_agg(
+        format('%I.%I(%s)', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid)),
+        ', ' order by n.nspname, p.proname, pg_get_function_identity_arguments(p.oid)
+      )
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      left join pg_depend dependency
+        on dependency.classid = 'pg_proc'::regclass
+       and dependency.objid = p.oid
+       and dependency.deptype = 'e'
+      left join pg_extension extension
+        on extension.oid = dependency.refobjid
+      cross join lateral aclexplode(
+        coalesce(p.proacl, acldefault('f', p.proowner))
+      ) acl
+      where n.nspname in ('public', 'private')
+        and coalesce(extension.extname, '') <> 'pgtap'
+        and p.oid is distinct from to_regprocedure('public.like(text,text,text)')
+        and acl.privilege_type = 'EXECUTE'
+        and (
+          acl.grantee = 0
+          or acl.grantee = (select oid from pg_roles where rolname = 'anon')
+        )
+    ),
+    '<aucune>'
+  )
 );
 
 select is(
@@ -86,6 +124,13 @@ select is(
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
       and c.relkind in ('r', 'p')
+      and not exists (
+        select 1
+        from pg_depend dependency
+        where dependency.classid = 'pg_class'::regclass
+          and dependency.objid = c.oid
+          and dependency.deptype = 'e'
+      )
   ),
   (
     select count(distinct policy.tablename)
@@ -96,7 +141,7 @@ select is(
       and policy.cmd = 'ALL'
       and policy.roles = array['authenticated']::name[]
   ),
-  'chaque table publique exige un profil authentifié actif'
+  'chaque table applicative publique exige un profil authentifié actif'
 );
 
 select ok(
