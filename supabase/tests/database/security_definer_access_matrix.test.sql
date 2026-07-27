@@ -34,6 +34,21 @@ select is(
   'toute fonction privilégiée accessible aux connectés possède un garde approuvé'
 );
 
+select is(
+  (
+    select count(*)
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prosecdef
+      and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+      and not coalesce(p.proconfig, '{}'::text[])
+        @> array['search_path=""']
+  ),
+  0::bigint,
+  'toute fonction SECURITY DEFINER exposée utilise un search_path vide'
+);
+
 select ok(
   has_function_privilege(
     'authenticated',
