@@ -76,6 +76,12 @@ values ('e3100000-0000-0000-0000-000000000001', '2098-2099', 'open');
 insert into public.opponents (id, name)
 values ('e3200000-0000-0000-0000-000000000001', 'Push Resilience FC');
 
+update private.app_feature_flags
+set enabled = true,
+    updated_at = now(),
+    updated_by = 'e3000000-0000-0000-0000-000000000001'
+where key = 'sports_management';
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"e3000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
