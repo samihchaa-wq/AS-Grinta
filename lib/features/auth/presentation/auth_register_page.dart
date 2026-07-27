@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Page publique d'auto-inscription : le lien est partagé dans la
 /// conversation du club. Le compte créé reste « en attente de validation »
@@ -227,8 +228,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: GrintaProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.sports_soccer),
                         label: const Text('Créer mon compte'),

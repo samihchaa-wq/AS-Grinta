@@ -8,7 +8,12 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: AuthLoadingPage()));
 
-    expect(find.byType(GrintaLoader), findsOneWidget);
-    expect(find.text('Préparation de ton espace…'), findsOneWidget);
+    final loader = find.byType(GrintaLoader);
+    expect(loader, findsOneWidget);
+    expect(
+      find.descendant(of: loader, matching: find.byType(CustomPaint)),
+      findsOneWidget,
+    );
+    expect(find.text('Préparation de ton espace…'), findsNothing);
   });
 }

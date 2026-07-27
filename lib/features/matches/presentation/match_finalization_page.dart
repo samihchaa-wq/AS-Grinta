@@ -7,6 +7,7 @@ import 'package:as_grinta/features/matches/presentation/match_finalization_contr
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Une ligne de but : un buteur (facultatif) et un nombre de buts pour ce
 /// joueur sur cette ligne (case vide = 1).
@@ -192,7 +193,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Saisie du match'), admin: true),
       body: contextAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: GrintaProgressIndicator()),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -351,7 +352,7 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: GrintaProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.check_circle_outline),
                 label: Text(

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class AdminGuestsPage extends ConsumerStatefulWidget {
   const AdminGuestsPage({super.key, this.initialMatchId});
@@ -337,7 +338,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
   }
 
   Widget _buildBody() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const Center(child: GrintaProgressIndicator());
     if (_error != null && _matches.isEmpty) {
       return ListView(
         padding: const EdgeInsets.all(20),
@@ -390,7 +391,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
           ),
           if (_busy) ...[
             const SizedBox(height: 10),
-            const LinearProgressIndicator(),
+            const GrintaLinearProgressIndicator(),
           ],
           if (_error != null) ...[const SizedBox(height: 12), Text(_error!)],
           const SizedBox(height: 14),

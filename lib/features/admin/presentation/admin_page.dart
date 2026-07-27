@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 part 'admin_season_section.dart';
 part 'admin_profiles_section.dart';
@@ -38,7 +39,7 @@ class AdminPage extends ConsumerWidget {
           ]);
         },
         child: dashboardAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: GrintaProgressIndicator()),
           error: (error, _) => ListView(
             padding: const EdgeInsets.all(20),
             children: [

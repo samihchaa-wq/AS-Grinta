@@ -4,6 +4,7 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 const _teamGreen = Color(0xFF3BD10D);
 const _teamYellow = Color(0xFFFFCA1A);
@@ -24,7 +25,7 @@ class TeamStatisticsPanel extends ConsumerWidget {
     }
 
     return dataAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: GrintaProgressIndicator()),
       error: (error, _) => _ScrollableMessage(
         message: humanizeError(error),
         onRefresh: refresh,
@@ -202,7 +203,7 @@ class _ResultRing extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              CircularProgressIndicator(
+              GrintaProgressIndicator(
                 value: progress,
                 strokeWidth: strokeWidth,
                 strokeCap: StrokeCap.butt,
@@ -813,7 +814,7 @@ class _StreakRow extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: LinearProgressIndicator(
+              child: GrintaLinearProgressIndicator(
                 value: ratio.clamp(0.0, 1.0).toDouble(),
                 minHeight: 10,
                 borderRadius: BorderRadius.circular(99),

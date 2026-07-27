@@ -5,6 +5,7 @@ import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart'
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 enum _LeaderboardMode { cumulative, season, match }
 
@@ -81,7 +82,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                 loading: () => ListView(
                   children: const [
                     SizedBox(height: 220),
-                    Center(child: CircularProgressIndicator()),
+                    Center(child: GrintaProgressIndicator()),
                   ],
                 ),
                 error: (error, _) => ListView(

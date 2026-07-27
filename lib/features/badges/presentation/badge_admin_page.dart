@@ -6,6 +6,7 @@ import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Écran admin : créer un badge (nom + emoji) et le décerner manuellement.
 class BadgeAdminPage extends ConsumerStatefulWidget {
@@ -127,7 +128,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           badgesAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
+              child: Center(child: GrintaProgressIndicator()),
             ),
             error: (e, _) => Text(humanizeError(e)),
             data: (badges) {
@@ -311,7 +312,7 @@ class _CreateBadgeCard extends StatelessWidget {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: GrintaProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add),
                 label: const Text('Créer le badge'),
@@ -439,7 +440,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
               padding: const EdgeInsets.all(20),
               child: _error != null
                   ? Text(_error!)
-                  : const Center(child: CircularProgressIndicator()),
+                  : const Center(child: GrintaProgressIndicator()),
             )
           else
             ConstrainedBox(
@@ -447,7 +448,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                 maxHeight: MediaQuery.of(context).size.height * 0.5,
               ),
               child: peopleAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: GrintaProgressIndicator()),
                 error: (e, _) => Text(humanizeError(e)),
                 data: (people) {
                   final filtered = _query.isEmpty
@@ -467,7 +468,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                                   width: 20,
                                   height: 20,
                                   child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                                      GrintaProgressIndicator(strokeWidth: 2),
                                 )
                               : null,
                           onChanged:

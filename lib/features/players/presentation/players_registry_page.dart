@@ -7,6 +7,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/compos
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Effectif de la saison. Chaque joueur peut être relié à un compte de
 /// pronostiqueur, sans que cette liaison soit obligatoire.
@@ -20,7 +21,7 @@ class PlayersRegistryPage extends ConsumerWidget {
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Effectif'), admin: true),
       body: seasonAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: GrintaProgressIndicator()),
         error: (error, _) => Center(child: Text(humanizeError(error))),
         data: (seasonId) {
           if (seasonId == null) {
@@ -58,7 +59,7 @@ class _RosterList extends ConsumerWidget {
     final rosterAsync = ref.watch(rosterProvider(seasonId));
 
     return rosterAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: GrintaProgressIndicator()),
       error: (error, _) => Center(child: Text(humanizeError(error))),
       data: (players) => RefreshIndicator(
         onRefresh: () async {
@@ -396,7 +397,7 @@ Future<void> _showProfileLinkDialog(
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: GrintaProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Enregistrer'),
           ),
@@ -565,7 +566,7 @@ Future<void> _showPlayerDialog(
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: GrintaProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Enregistrer'),
           ),

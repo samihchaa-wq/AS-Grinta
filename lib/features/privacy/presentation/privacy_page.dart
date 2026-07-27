@@ -4,6 +4,7 @@ import 'package:as_grinta/features/privacy/data/personal_data_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class PrivacyPage extends ConsumerStatefulWidget {
   const PrivacyPage({super.key});
@@ -80,7 +81,7 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: GrintaProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.download_outlined),
                     label: const Text('Préparer mon export'),

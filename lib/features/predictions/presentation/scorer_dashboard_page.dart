@@ -8,6 +8,7 @@ import 'package:as_grinta/features/predictions/presentation/widgets/player_predi
 import 'package:as_grinta/features/predictions/presentation/widgets/reference_player_gauge_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class ScorerDashboardPage extends ConsumerWidget {
   const ScorerDashboardPage({super.key, this.embedded = false});
@@ -18,7 +19,7 @@ class ScorerDashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final locked = ref.watch(enhancedSeasonLockedProvider);
     return locked.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: GrintaProgressIndicator()),
       error: (error, _) => Center(child: Text('$error')),
       data: (isLocked) {
         if (!isLocked) {
@@ -42,7 +43,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
         ref.read(seasonPredictionsRepositoryProvider).currentUserId;
 
     return gaugesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: GrintaProgressIndicator()),
       error: (error, _) => Center(child: Text('$error')),
       data: (gauges) {
         final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()

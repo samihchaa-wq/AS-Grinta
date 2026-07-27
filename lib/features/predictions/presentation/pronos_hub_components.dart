@@ -239,7 +239,7 @@ class _LoadingCard extends StatelessWidget {
     return const Card(
       child: Padding(
         padding: EdgeInsets.all(28),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: GrintaProgressIndicator()),
       ),
     );
   }
