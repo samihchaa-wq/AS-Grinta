@@ -43,6 +43,11 @@ jobs:
           supabase test db --help > /dev/null
           supabase db lint --help > /dev/null
           psql --version
+          python3 --version
+
+      - name: Verify Edge Function security contract
+        shell: bash
+        run: python3 supabase/tests/edge/verify_edge_security_contract.py
 
       - name: Start isolated Supabase database
         shell: bash
@@ -147,6 +152,16 @@ jobs:
               -f supabase/migrations/20260727030000_export_personal_data.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/live_effectif_security_contract.sql
+            # Le verrou global doit être appliqué en dernier afin de couvrir aussi
+            # les tables et fonctions créées par les bootstraps de test.
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727040000_lock_down_business_security_surface.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727040500_lock_down_future_object_defaults.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
           } 2>&1 | tee supabase-schema.log
 
       - name: Run every pgTAP business and RLS test
