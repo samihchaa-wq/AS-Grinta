@@ -220,6 +220,7 @@ class MatchConvocations {
     required this.convokedCount,
     required this.notConvokedCount,
     required this.players,
+    this.hasUnpublishedChanges = false,
   });
 
   factory MatchConvocations.fromRpc(Object? raw) {
@@ -233,6 +234,7 @@ class MatchConvocations {
       squadSizeLimit: (json['squad_size_limit'] as num?)?.toInt() ?? 14,
       convocationState: (json['convocation_state'] ?? 'draft').toString(),
       convocationVersion: (json['convocation_version'] as num?)?.toInt() ?? 0,
+      hasUnpublishedChanges: json['has_unpublished_changes'] == true,
       lateWithdrawalCutoffAt: _dateOrNull(json['late_withdrawal_cutoff_at']),
       availableCount: (json['available_count'] as num?)?.toInt() ?? 0,
       convokedCount: (json['convoked_count'] as num?)?.toInt() ?? 0,
@@ -252,6 +254,7 @@ class MatchConvocations {
   final int squadSizeLimit;
   final String convocationState;
   final int convocationVersion;
+  final bool hasUnpublishedChanges;
   final DateTime? lateWithdrawalCutoffAt;
   final int availableCount;
   final int convokedCount;
@@ -259,6 +262,7 @@ class MatchConvocations {
   final List<ConvocationPlayer> players;
 
   bool get isPublished => convocationState == 'published';
+  bool get canPublish => !isPublished || hasUnpublishedChanges;
   bool get isOverLimit => convokedCount > squadSizeLimit;
 }
 
