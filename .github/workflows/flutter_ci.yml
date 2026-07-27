@@ -63,8 +63,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dart pub outdated --json --transitive --up-to-date > dependency-outdated.json
-          dart pub deps --json > dependency-graph.json
+          if ! flutter pub outdated --json --transitive \
+            > dependency-outdated.json \
+            2> dependency-outdated.stderr.log; then
+            cat dependency-outdated.stderr.log >&2
+            exit 1
+          fi
+          if ! flutter pub deps --json \
+            > dependency-graph.json \
+            2> dependency-graph.stderr.log; then
+            cat dependency-graph.stderr.log >&2
+            exit 1
+          fi
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -96,7 +106,7 @@ jobs:
                   constrained.append((name, resolvable, latest, kind))
 
           lines = [
-              f'Dépendances analysées : {len(packages)}',
+              f'Dépendances obsolètes analysées : {len(packages)}',
               f'Versions verrouillées pouvant être mises à jour : {len(locked)}',
               f'Versions plus récentes non résolubles actuellement : {len(constrained)}',
               f'Paquets abandonnés : {len(discontinued)}',
@@ -251,7 +261,9 @@ jobs:
           path: |
             pub-get.log
             dependency-outdated.json
+            dependency-outdated.stderr.log
             dependency-graph.json
+            dependency-graph.stderr.log
             dependency-summary.txt
             format.log
             analyze.log
