@@ -9,6 +9,7 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Armoire à badges : Validés · En cours · À débloquer.
 class ArmoirePage extends ConsumerWidget {
@@ -62,7 +63,7 @@ class ArmoirePage extends ConsumerWidget {
           await ref.read(myArmoireProvider.future);
         },
         child: armoireAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: GrintaProgressIndicator()),
           error: (e, _) => ListView(
             padding: const EdgeInsets.all(16),
             children: [Text(humanizeError(e))],
@@ -414,7 +415,7 @@ class _InProgressTile extends StatelessWidget {
                     const SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
+                      child: GrintaLinearProgressIndicator(
                         value: badge.progress ?? 0,
                         minHeight: 7,
                         backgroundColor: scheme.surfaceContainerHighest,

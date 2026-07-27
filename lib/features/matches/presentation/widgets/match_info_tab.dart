@@ -4,6 +4,7 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Onglet « Info » d'une fiche de match : heure, adresse cliquable et les
 /// dernières rencontres contre l'adversaire.
@@ -16,7 +17,7 @@ class MatchInfoTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final infoAsync = ref.watch(matchInfoProvider(matchId));
     return infoAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: GrintaProgressIndicator()),
       error: (_, __) => const Card(
         child: Padding(
           padding: EdgeInsets.all(18),

@@ -7,6 +7,7 @@ import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:as_grinta/features/statistics/presentation/team_statistics_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 enum _StatisticsSection { players, team }
 
@@ -140,7 +141,7 @@ class _PlayerStatisticsPeriodViewState
     final dataAsync = ref.watch(statisticsPeriodProvider(widget.period));
 
     return dataAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: GrintaProgressIndicator()),
       error: (error, _) => _ScrollableMessage(
         icon: Icons.wifi_off_rounded,
         title: 'Statistiques indisponibles',

@@ -10,6 +10,7 @@ import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class HomeLastMatchCard extends ConsumerWidget {
   const HomeLastMatchCard({super.key});
@@ -297,7 +298,7 @@ class _LoadingCard extends StatelessWidget {
     return const Card(
       child: Padding(
         padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: GrintaProgressIndicator()),
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -146,7 +147,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: GrintaProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.save_outlined),
             label: const Text('Enregistrer'),

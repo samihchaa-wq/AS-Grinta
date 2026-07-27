@@ -6,6 +6,7 @@ import 'package:as_grinta/features/predictions/presentation/season_prono_help_sh
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final seasonPredictionsProvider =
     FutureProvider.autoDispose<List<SeasonPredictionItem>>((ref) {
@@ -48,7 +49,7 @@ class _SeasonPredictionEntryPageState
         loading: () => ListView(
           children: const [
             SizedBox(height: 220),
-            Center(child: CircularProgressIndicator()),
+            Center(child: GrintaProgressIndicator()),
           ],
         ),
         error: (error, _) => ListView(
@@ -117,7 +118,7 @@ class _SeasonPredictionEntryPageState
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: GrintaProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.check_circle_outline),
                     label: Text(

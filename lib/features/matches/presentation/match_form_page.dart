@@ -8,6 +8,7 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class MatchFormPage extends ConsumerStatefulWidget {
   const MatchFormPage({super.key, this.match});
@@ -66,8 +67,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _kickoffAt =
-        match?.kickoffAt ??
+    _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
     _oddsWin = match?.oddsWin;
@@ -76,9 +76,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _addressController.text = match?.address ?? '';
     // Adresse du terrain d'AS Grinta, pour préremplir un match à domicile.
     Future.microtask(() async {
-      final home = await ref
-          .read(matchesRepositoryProvider)
-          .fetchClubHomeAddress();
+      final home =
+          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       _prefillAddress();
@@ -101,10 +100,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref
-          .read(matchesControllerProvider)
-          .opponents
-          .firstWhere(
+      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -137,14 +133,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role == AuthRole.admin;
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature = ref
-        .watch(featureFlagsControllerProvider)
-        .valueOrNull
-        ?.sportsManagement;
+    final feature =
+        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
     final seasons = widget.match == null
         ? state.seasons
-              .where((season) => season['status']?.toString() == 'open')
-              .toList()
+            .where((season) => season['status']?.toString() == 'open')
+            .toList()
         : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -303,7 +297,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   suffixIcon: _squadLimitLoading
                       ? const Padding(
                           padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: GrintaProgressIndicator(strokeWidth: 2),
                         )
                       : null,
                 ),
@@ -326,7 +320,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: GrintaProgressIndicator(strokeWidth: 2),
                   ),
                 ],
               ],
@@ -415,8 +409,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Future<void> _confirmDelete() async {
     final match = widget.match;
     if (match == null) return;
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
@@ -504,9 +497,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-    final squadSizeLimit = sportsEnabled
-        ? int.parse(_squadSizeController.text.trim())
-        : null;
+    final squadSizeLimit =
+        sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
     final notifier = ref.read(matchesControllerProvider.notifier);
     final address = _addressController.text.trim();
     if (widget.match == null) {

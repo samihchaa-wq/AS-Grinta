@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 const _green = Color(0xFF39E784);
 const _personalPrediction = Color(0xFFFFBE3D);
@@ -540,7 +541,7 @@ class _PredictionRow extends StatelessWidget {
             flex: 3,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
+              child: GrintaLinearProgressIndicator(
                 value: progress,
                 minHeight: 6,
                 backgroundColor: Colors.white.withValues(alpha: .06),

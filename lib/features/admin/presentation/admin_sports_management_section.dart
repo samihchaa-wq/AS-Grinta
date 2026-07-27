@@ -3,6 +3,7 @@ import 'package:as_grinta/features/feature_flags/domain/feature_flags.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class AdminSportsManagementSection extends ConsumerWidget {
   const AdminSportsManagementSection({super.key});
@@ -35,7 +36,7 @@ class AdminSportsManagementSection extends ConsumerWidget {
                   : null,
             ),
             if (busy) ...[
-              const LinearProgressIndicator(),
+              const GrintaLinearProgressIndicator(),
               const SizedBox(height: 12),
             ],
             if (!snapshot.sourceAvailable && !busy) ...[

@@ -2,6 +2,7 @@ import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class ForcedPasswordChangePage extends ConsumerStatefulWidget {
   const ForcedPasswordChangePage({super.key});
@@ -125,8 +126,7 @@ class _ForcedPasswordChangePageState
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: GrintaProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.check_circle_outline),
                         label: const Text('Enregistrer mon mot de passe'),

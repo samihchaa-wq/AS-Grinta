@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Contenu du nouvel onglet Matchs : le prochain match reprend toutes les
 /// fonctions de l'ancien accueil et chaque match passé reprend la carte
@@ -474,7 +475,7 @@ class _LoadingCard extends StatelessWidget {
     return const Card(
       child: Padding(
         padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+        child: Center(child: GrintaProgressIndicator()),
       ),
     );
   }

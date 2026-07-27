@@ -7,6 +7,7 @@ import 'package:as_grinta/features/matches/presentation/matches_controller.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class MatchesPage extends ConsumerStatefulWidget {
   const MatchesPage({super.key});
@@ -126,7 +127,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 ),
               const SizedBox(height: 16),
               if (state.isLoading)
-                const Center(child: CircularProgressIndicator())
+                const Center(child: GrintaProgressIndicator())
               else if (state.error != null)
                 Card(
                   child: Padding(
