@@ -152,6 +152,8 @@ jobs:
               -f supabase/migrations/20260727030000_export_personal_data.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/live_effectif_security_contract.sql
             # Le verrou global doit être appliqué en dernier afin de couvrir aussi
             # les tables et fonctions créées par les bootstraps de test.
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
