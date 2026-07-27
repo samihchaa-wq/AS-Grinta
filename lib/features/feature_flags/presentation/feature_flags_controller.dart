@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/data/feature_flags_repository.dart';
@@ -10,12 +12,74 @@ final featureFlagsSessionReadyProvider = Provider<bool>((ref) {
 });
 
 class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
+  StreamSubscription<FeatureFlagChangeSignal>? _changeSubscription;
+  FeatureFlagChangeSignal? _lastSignal;
+  bool _signalRefreshInProgress = false;
+  bool _signalRefreshRequested = false;
+
   @override
   Future<FeatureFlagsSnapshot> build() async {
-    if (!ref.watch(featureFlagsSessionReadyProvider)) {
+    final sessionReady = ref.watch(featureFlagsSessionReadyProvider);
+    await _changeSubscription?.cancel();
+    _changeSubscription = null;
+    _lastSignal = null;
+
+    ref.onDispose(() {
+      unawaited(_changeSubscription?.cancel() ?? Future<void>.value());
+    });
+
+    if (!sessionReady) {
       return const FeatureFlagsSnapshot.unavailable();
     }
-    return _loadFailClosed();
+
+    final snapshot = await _loadFailClosed();
+    _watchServerChanges();
+    return snapshot;
+  }
+
+  void _watchServerChanges() {
+    _changeSubscription = ref
+        .read(featureFlagsRepositoryProvider)
+        .watchSportsManagementChanges()
+        .listen(
+      _handleServerSignal,
+      onError: (Object error, StackTrace stackTrace) {
+        AppLogger.error('feature_flags.watch', error, stackTrace);
+      },
+    );
+  }
+
+  void _handleServerSignal(FeatureFlagChangeSignal signal) {
+    if (_lastSignal?.revision == signal.revision) return;
+    _lastSignal = signal;
+
+    final currentUpdatedAt =
+        state.valueOrNull?.sportsManagement.updatedAt?.toUtc();
+    if (currentUpdatedAt != null &&
+        !signal.updatedAt.isAfter(currentUpdatedAt)) {
+      return;
+    }
+
+    _signalRefreshRequested = true;
+    if (!_signalRefreshInProgress) {
+      unawaited(_refreshFromSignals());
+    }
+  }
+
+  Future<void> _refreshFromSignals() async {
+    _signalRefreshInProgress = true;
+    try {
+      while (_signalRefreshRequested) {
+        _signalRefreshRequested = false;
+        if (!ref.read(featureFlagsSessionReadyProvider)) return;
+
+        final next = await _loadFailClosed();
+        if (!ref.read(featureFlagsSessionReadyProvider)) return;
+        state = AsyncData(next);
+      }
+    } finally {
+      _signalRefreshInProgress = false;
+    }
   }
 
   Future<FeatureFlagsSnapshot> _loadFailClosed() async {
