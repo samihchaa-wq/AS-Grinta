@@ -2,6 +2,30 @@
 
 Toutes les évolutions notables de Ma Petite Grinta sont documentées ici.
 
+## 0.2.2+4 — 2026-07-27
+
+### Sécurité et données
+
+- verrouillage complet des permissions visiteur, compte en attente, joueur et administrateur ;
+- couverture transactionnelle des politiques RLS, des RPC sensibles et des buckets Storage ;
+- export personnel et documentation de confidentialité déployés ;
+- propagation en temps réel des changements de feature flags aux sessions actives.
+
+### Notifications et exploitation
+
+- gestion reproductible de plusieurs appareils et des endpoints partagés ;
+- nettoyage ciblé des abonnements expirés ;
+- relance unique des échecs Web Push temporaires et journalisation du nombre d’essais ;
+- indicateurs agrégés de santé du pipeline de notifications ;
+- retrait du dépôt de l’ancienne fonction `import-match-background`.
+
+### Tests et qualité
+
+- scénario de charge automatisé sur huit saisons, 480 matchs et plus de 46 000 lignes métier ;
+- mesure de la couverture Flutter avec un plancher initial de non-régression à 15 % ;
+- installation verrouillée des dépendances et audit des paquets abandonnés, vulnérables ou retirés ;
+- formatage de tous les fichiers Dart et analyse avec avertissements et informations bloquants.
+
 ## 0.2.1+3 — 2026-07-26
 
 ### Fiabilité et sécurité
