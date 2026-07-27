@@ -37,6 +37,13 @@ abstract interface class SportWaitlistRepository {
     String? reason,
   });
 
+  Future<MatchConvocations> publishEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  });
+
   Future<MatchConvocations> recomputeMatch({
     required String matchId,
     bool resetOverrides = false,
@@ -166,18 +173,31 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   }) async {
     final response = await _client.rpc(
       'admin_save_match_effectif',
-      params: {
-        'p_match_id': matchId,
-        'p_squad_size_limit': squadSizeLimit,
-        'p_decisions': [
-          for (final decision in decisions.entries)
-            {
-              'season_player_id': decision.key,
-              'status': decision.value.wireValue,
-            },
-        ],
-        'p_reason': _clean(reason),
-      },
+      params: _effectifParams(
+        matchId: matchId,
+        squadSizeLimit: squadSizeLimit,
+        decisions: decisions,
+        reason: reason,
+      ),
+    );
+    return MatchConvocations.fromRpc(response);
+  }
+
+  @override
+  Future<MatchConvocations> publishEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'admin_publish_match_effectif',
+      params: _effectifParams(
+        matchId: matchId,
+        squadSizeLimit: squadSizeLimit,
+        decisions: decisions,
+        reason: reason,
+      ),
     );
     return MatchConvocations.fromRpc(response);
   }
@@ -234,6 +254,26 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       params: {'p_match_id': matchId},
     );
     return (response as num?)?.toInt() ?? 0;
+  }
+
+  Map<String, Object?> _effectifParams({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  }) {
+    return {
+      'p_match_id': matchId,
+      'p_squad_size_limit': squadSizeLimit,
+      'p_decisions': [
+        for (final decision in decisions.entries)
+          {
+            'season_player_id': decision.key,
+            'status': decision.value.wireValue,
+          },
+      ],
+      'p_reason': _clean(reason),
+    };
   }
 
   String? _clean(String? value) {
