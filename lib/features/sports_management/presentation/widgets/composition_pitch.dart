@@ -450,8 +450,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
-    final border =
-        widget.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
+    final border = widget.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
     final url = widget.photoUrl;
     final hasPhoto = url != null && url.isNotEmpty;
     // Avec une photo : pas de cadre ni de fond, pour que la photo occupe tout
