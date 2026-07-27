@@ -1,11 +1,11 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
-import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
@@ -16,8 +16,8 @@ import 'package:as_grinta/features/matches/presentation/matches_controller.dart'
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
-import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
+import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +38,7 @@ class PronosHubPage extends ConsumerStatefulWidget {
   final String? initialCategory;
 
   /// Sous-onglet préselectionné du classement général : 'matches', 'scorers'
-  /// ou 'general'. Utilisé pour les raccourcis depuis l'accueil.
+  /// ou 'general'. Utilisé pour les liens directs vers un classement.
   final String? initialView;
 
   @override
@@ -82,6 +82,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final content = switch (_category) {
       _PronosCategory.matches => const MergedMatchesView(),
       _PronosCategory.scorers => const _ScorerRankingView(),
@@ -114,14 +115,40 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
             errorBuilder: (_, __, ___) =>
                 const ColoredBox(color: AppTheme.background),
           ),
-          Material(type: MaterialType.transparency, child: content),
+          Material(
+            type: MaterialType.transparency,
+            child: AnimatedSwitcher(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 240),
+              reverseDuration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offset = Tween<Offset>(
+                  begin: const Offset(.025, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(position: offset, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(_category),
+                child: content,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Panneau de classement réutilisable dans le nouvel onglet Stats.
+/// Panneau de classement réutilisable dans l'onglet Stats.
 class RankingsPanel extends StatelessWidget {
   const RankingsPanel({super.key, this.initialView});
 
