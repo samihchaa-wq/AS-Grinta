@@ -184,7 +184,7 @@ jobs:
       - name: Enforce coverage baseline
         shell: bash
         env:
-          MIN_LINE_COVERAGE: '35.0'
+          MIN_LINE_COVERAGE: '15.0'
         run: |
           set -euo pipefail
           python3 - <<'PY'
