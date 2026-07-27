@@ -4,6 +4,11 @@
 grant usage on schema extensions to anon, authenticated;
 grant execute on all functions in schema extensions to anon, authenticated;
 
+-- Certains scénarios créent une fonction pg_temp avant de basculer vers le rôle
+-- authenticated. Le droit par défaut est rétabli uniquement dans cette base de
+-- test éphémère ; la migration de production conserve le défaut sécurisé.
+alter default privileges grant execute on functions to authenticated;
+
 -- Selon la version de l’image locale, certaines aides peuvent rester dans public.
 -- On accorde uniquement les noms d’assertions pgTAP réellement utilisés.
 do $block$
