@@ -13,6 +13,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/match_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class AccueilPage extends ConsumerStatefulWidget {
   const AccueilPage({super.key});
@@ -109,7 +110,7 @@ class _MiniLoader extends StatelessWidget {
           child: SizedBox(
             width: 22,
             height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.4),
+            child: GrintaProgressIndicator(strokeWidth: 2.4),
           ),
         ),
       ),

@@ -7,6 +7,7 @@ import 'package:as_grinta/features/sports_management/domain/sport_motm_vote.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class SportMotmVotePage extends ConsumerStatefulWidget {
   const SportMotmVotePage({super.key, required this.matchId});
@@ -95,7 +96,7 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
           loading: () => ListView(
             children: const [
               SizedBox(height: 240),
-              Center(child: CircularProgressIndicator()),
+              Center(child: GrintaProgressIndicator()),
             ],
           ),
           error: (error, _) => ListView(
@@ -134,8 +135,7 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
   }
 
   Widget _buildVote(BuildContext context, SportMotmVote vote) {
-    final choosable =
-        vote.candidates.where((item) => item.canChoose).toList();
+    final choosable = vote.candidates.where((item) => item.canChoose).toList();
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
@@ -211,7 +211,7 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: GrintaProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.how_to_vote_outlined),
               label: const Text('Valider définitivement mon vote'),

@@ -8,6 +8,7 @@ import 'package:as_grinta/features/sports_management/presentation/match_availabi
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class MatchAvailabilitySelector extends ConsumerStatefulWidget {
   const MatchAvailabilitySelector({
@@ -213,7 +214,7 @@ class _AvailabilityPanel extends StatelessWidget {
           ),
           if (saving) ...[
             const SizedBox(height: 8),
-            const LinearProgressIndicator(minHeight: 2),
+            const GrintaLinearProgressIndicator(minHeight: 2),
           ],
           if (showManageShortcut) ...[
             const SizedBox(height: 14),

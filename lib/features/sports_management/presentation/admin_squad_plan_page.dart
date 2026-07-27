@@ -20,6 +20,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/format
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 enum _AdminStep { info, effectif, composition, prediction }
 
@@ -1027,7 +1028,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   }
 
   Widget _buildBody() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const Center(child: GrintaProgressIndicator());
     if (_matches.isEmpty) {
       return const Center(
         child: GrintaEmptyState(
@@ -1070,7 +1071,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           ),
           if (_busy) ...[
             const SizedBox(height: 10),
-            const LinearProgressIndicator(),
+            const GrintaLinearProgressIndicator(),
           ],
           if (_error != null) ...[const SizedBox(height: 12), Text(_error!)],
           const SizedBox(height: 16),

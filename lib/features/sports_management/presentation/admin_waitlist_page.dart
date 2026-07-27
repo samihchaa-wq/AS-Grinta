@@ -5,6 +5,7 @@ import 'package:as_grinta/features/sports_management/data/sport_waitlist_reposit
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class AdminWaitlistPage extends ConsumerStatefulWidget {
   const AdminWaitlistPage({super.key});
@@ -117,7 +118,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: GrintaProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.save_outlined),
           label: const Text('Enregistrer l’ordre'),
@@ -128,7 +129,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
   Widget _body(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: GrintaProgressIndicator());
     }
     if (_error != null) {
       return ListView(

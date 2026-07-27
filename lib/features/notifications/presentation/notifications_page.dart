@@ -5,6 +5,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
@@ -125,7 +126,7 @@ class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: GrintaProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send_outlined),
             label: const Text('M’envoyer un test'),
@@ -151,7 +152,7 @@ class _PushActivationCard extends ConsumerWidget {
           trailing: SizedBox(
             width: 20,
             height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: GrintaProgressIndicator(strokeWidth: 2),
           ),
         ),
         error: (_, __) => const ListTile(

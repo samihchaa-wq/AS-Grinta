@@ -6,6 +6,7 @@ import 'package:as_grinta/features/predictions/data/predictions_repository.dart'
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
@@ -41,7 +42,7 @@ class _InlineMatchPredictionCardState
       loading: () => const Card(
         child: Padding(
           padding: EdgeInsets.all(28),
-          child: Center(child: CircularProgressIndicator()),
+          child: Center(child: GrintaProgressIndicator()),
         ),
       ),
       error: (error, _) => Card(
@@ -112,7 +113,7 @@ class _InlineMatchPredictionCardState
                 loading: () => const Center(
                   child: SizedBox.square(
                     dimension: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: GrintaProgressIndicator(strokeWidth: 2),
                   ),
                 ),
                 error: (_, __) => const SizedBox.shrink(),
@@ -230,7 +231,7 @@ class _InlineMatchPredictionCardState
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: GrintaProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.save_outlined),
                   label: const Text('Enregistrer'),

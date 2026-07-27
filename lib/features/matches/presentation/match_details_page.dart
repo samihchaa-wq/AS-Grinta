@@ -16,6 +16,7 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/compos
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class MatchDetailsPage extends ConsumerWidget {
   const MatchDetailsPage({super.key, required this.matchId});
@@ -46,7 +47,7 @@ class MatchDetailsPage extends ConsumerWidget {
           loading: () => ListView(
             children: const [
               SizedBox(height: 220),
-              Center(child: CircularProgressIndicator()),
+              Center(child: GrintaProgressIndicator()),
             ],
           ),
           error: (error, _) => ListView(

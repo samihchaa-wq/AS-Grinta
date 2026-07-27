@@ -7,6 +7,7 @@ import 'package:as_grinta/features/sports_management/data/sport_match_finalizati
 import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class SportMatchFinalizationPage extends ConsumerStatefulWidget {
   const SportMatchFinalizationPage({super.key, required this.matchId});
@@ -248,7 +249,7 @@ class _SportMatchFinalizationPageState
   }
 
   Widget _buildBody() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const Center(child: GrintaProgressIndicator());
     if (_error != null && _finalization == null) {
       return Center(
         child: Padding(
@@ -335,7 +336,7 @@ class _SportMatchFinalizationPageState
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: GrintaProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.verified_outlined),
           label: Text(
