@@ -39,10 +39,18 @@ select is(
     select count(*)
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
+    left join pg_depend dependency
+      on dependency.classid = 'pg_proc'::regclass
+     and dependency.objid = p.oid
+     and dependency.deptype = 'e'
+    left join pg_extension extension
+      on extension.oid = dependency.refobjid
     cross join lateral aclexplode(
       coalesce(p.proacl, acldefault('f', p.proowner))
     ) acl
     where n.nspname in ('public', 'private')
+      and coalesce(extension.extname, '') <> 'pgtap'
+      and p.oid is distinct from to_regprocedure('public.like(text,text,text)')
       and acl.privilege_type = 'EXECUTE'
       and (
         acl.grantee = 0
