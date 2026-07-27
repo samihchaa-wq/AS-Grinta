@@ -27,7 +27,8 @@ class GrintaEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final accent = tone == GrintaEmptyTone.alert
         ? theme.colorScheme.error
         : AppTheme.primaryBright;
@@ -101,7 +102,8 @@ class GrintaEmptyState extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: reduceMotion ? 1 : 0, end: 1),
-      duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 320),
+      duration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) => Opacity(
         opacity: value,
