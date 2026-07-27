@@ -1,11 +1,18 @@
 begin;
 
--- Empêche les futures migrations de réintroduire silencieusement les droits
--- PostgreSQL par défaut qui ont été retirés de la surface existante.
+-- Le droit EXECUTE de PUBLIC est un défaut global PostgreSQL : une règle limitée
+-- à un schéma ne peut pas le soustraire. Il doit donc être retiré au niveau global
+-- pour le rôle qui exécute les migrations.
+alter default privileges
+  revoke execute on functions from public;
+
+-- Supabase ajoute aussi des privilèges client explicites dans public. On retire
+-- uniquement anon ; authenticated et service_role restent accordés lorsque la
+-- plateforme ou une migration les déclare explicitement.
 alter default privileges in schema public
-  revoke execute on functions from public, anon;
+  revoke execute on functions from anon;
 alter default privileges in schema private
-  revoke execute on functions from public, anon;
+  revoke execute on functions from anon;
 alter default privileges in schema public
   revoke all on tables from anon;
 alter default privileges in schema public
