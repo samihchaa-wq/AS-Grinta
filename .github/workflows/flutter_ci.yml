@@ -91,6 +91,8 @@ jobs:
           discontinued = []
           constrained = []
           locked = []
+          affected = []
+          retracted = []
           for package in packages:
               name = package.get('package', '<inconnu>')
               current = version(package, 'current')
@@ -100,6 +102,10 @@ jobs:
               kind = package.get('kind', 'unknown')
               if package.get('isDiscontinued') or package.get('discontinued'):
                   discontinued.append(name)
+              if package.get('isCurrentAffectedByAdvisory'):
+                  affected.append(name)
+              if package.get('isCurrentRetracted'):
+                  retracted.append(name)
               if current and upgradable and current != upgradable:
                   locked.append((name, current, upgradable, kind))
               if resolvable and latest and resolvable != latest:
@@ -110,6 +116,8 @@ jobs:
               f'Versions verrouillées pouvant être mises à jour : {len(locked)}',
               f'Versions plus récentes non résolubles actuellement : {len(constrained)}',
               f'Paquets abandonnés : {len(discontinued)}',
+              f'Paquets affectés par un avis : {len(affected)}',
+              f'Versions retirées : {len(retracted)}',
           ]
           if locked:
               lines.append('')
@@ -128,11 +136,17 @@ jobs:
           if discontinued:
               lines.append('')
               lines.append('Paquets abandonnés : ' + ', '.join(sorted(discontinued)))
+          if affected:
+              lines.append('Paquets affectés : ' + ', '.join(sorted(affected)))
+          if retracted:
+              lines.append('Versions retirées : ' + ', '.join(sorted(retracted)))
 
           Path('dependency-summary.txt').write_text('\n'.join(lines) + '\n')
           print('\n'.join(lines))
-          if discontinued:
-              raise SystemExit('Un paquet abandonné est présent dans le graphe de dépendances.')
+          if discontinued or affected or retracted:
+              raise SystemExit(
+                  'Le graphe contient un paquet abandonné, vulnérable ou retiré.'
+              )
           PY
 
       - name: Read application version
@@ -152,8 +166,13 @@ jobs:
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}" \
-            2>&1 | tee format.log
+          dart format "${files[@]}" 2>&1 | tee format.log
+          git diff --binary -- "${files[@]}" > format.patch
+          if [ -s format.patch ]; then
+            cat format.patch
+            echo "::error::Des fichiers Dart ne sont pas formatés. Le correctif est disponible dans l’artefact format.patch."
+            exit 1
+          fi
 
       - name: Analyze with fatal warnings and infos
         shell: bash
@@ -266,6 +285,7 @@ jobs:
             dependency-graph.stderr.log
             dependency-summary.txt
             format.log
+            format.patch
             analyze.log
             test.log
             coverage/lcov.info
