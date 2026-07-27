@@ -154,12 +154,14 @@ jobs:
               -f supabase/tests/bootstrap/enable_prediction_guard.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/live_effectif_security_contract.sql
-            # Le verrou global doit être appliqué en dernier afin de couvrir aussi
-            # les tables et fonctions créées par les bootstraps de test.
+            # Le verrou global couvre tout l'historique et sécurise les privilèges
+            # par défaut. Les migrations suivantes doivent rester explicites.
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727040000_lock_down_business_security_surface.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727040500_lock_down_future_object_defaults.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727050000_live_feature_flag_session_refresh.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
           } 2>&1 | tee supabase-schema.log
