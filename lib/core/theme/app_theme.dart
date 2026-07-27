@@ -175,7 +175,8 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceHigh.withValues(alpha: .9),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         hintStyle: const TextStyle(color: textFaint),
         labelStyle: const TextStyle(color: textSecondary),
         border: OutlineInputBorder(
