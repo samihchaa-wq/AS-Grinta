@@ -31,7 +31,8 @@ void main() {
       );
       return IncidentErrorView(
         title: 'Une erreur est survenue',
-        message: 'Cette partie de l’application est momentanément indisponible.',
+        message:
+            'Cette partie de l’application est momentanément indisponible.',
         incidentReference: reference,
       );
     };
