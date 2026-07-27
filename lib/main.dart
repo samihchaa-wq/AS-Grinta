@@ -5,6 +5,7 @@ import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/core/widgets/incident_error_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,6 +22,19 @@ void main() {
     PlatformDispatcher.instance.onError = (error, stackTrace) {
       AppLogger.error('flutter.platform', error, stackTrace);
       return true;
+    };
+    ErrorWidget.builder = (details) {
+      final reference = AppLogger.error(
+        'flutter.render',
+        details.exception,
+        details.stack,
+      );
+      return IncidentErrorView(
+        title: 'Une erreur est survenue',
+        message:
+            'Cette partie de l’application est momentanément indisponible.',
+        incidentReference: reference,
+      );
     };
 
     runApp(const _BootstrapApp());
@@ -52,8 +66,11 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         publishableKey: AppConfig.supabaseAnonKey,
       ).timeout(const Duration(seconds: 20));
     } catch (error, stackTrace) {
-      _incidentReference =
-          AppLogger.error('bootstrap.supabase', error, stackTrace);
+      _incidentReference = AppLogger.error(
+        'bootstrap.supabase',
+        error,
+        stackTrace,
+      );
       rethrow;
     }
   }
@@ -86,50 +103,13 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           }
 
           if (snapshot.hasError) {
-            return Scaffold(
-              backgroundColor: const Color(0xFF07142E),
-              body: SafeArea(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Impossible de démarrer Ma Petite Grinta',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'La configuration ou le service est momentanément '
-                          'indisponible. Réessaie dans un instant.',
-                          textAlign: TextAlign.center,
-                        ),
-                        if (_incidentReference != null) ...[
-                          const SizedBox(height: 10),
-                          SelectableText(
-                            'Référence : $_incidentReference',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        FilledButton.icon(
-                          onPressed: _retry,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Réessayer'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            return IncidentErrorView(
+              title: 'Impossible de démarrer Ma Petite Grinta',
+              message: 'La configuration ou le service est momentanément '
+                  'indisponible. Réessaie dans un instant.',
+              incidentReference:
+                  _incidentReference ?? AppLogger.createIncidentReference(),
+              onRetry: _retry,
             );
           }
 
