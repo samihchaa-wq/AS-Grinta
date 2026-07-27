@@ -16,6 +16,8 @@ class IncidentErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final headlineStyle = Theme.of(context).textTheme.headlineSmall;
+
     return Material(
       color: const Color(0xFF07142E),
       child: SafeArea(
@@ -36,9 +38,7 @@ class IncidentErrorView extends StatelessWidget {
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall?.copyWith(
+                      style: headlineStyle?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
