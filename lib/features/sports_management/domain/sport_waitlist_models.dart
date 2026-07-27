@@ -130,6 +130,7 @@ class ConvocationPlayer {
     required this.lastName,
     required this.availabilityStatus,
     required this.convocationStatus,
+    required this.publishedConvocationStatus,
     required this.manualOverride,
     required this.waitlistPosition,
     required this.recommendedNotConvoked,
@@ -145,6 +146,8 @@ class ConvocationPlayer {
 
   factory ConvocationPlayer.fromJson(Map<String, dynamic> json) {
     final guestPlayerId = _nullableText(json['guest_player_id']);
+    final convocationStatus =
+        ConvocationStatus.fromWire(json['convocation_status']);
     return ConvocationPlayer(
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString() ?? '',
@@ -157,7 +160,10 @@ class ConvocationPlayer {
       availabilityStatus:
           (json['availability_status'] ?? 'no_response').toString(),
       availabilityUpdatedAt: _dateOrNull(json['availability_updated_at']),
-      convocationStatus: ConvocationStatus.fromWire(json['convocation_status']),
+      convocationStatus: convocationStatus,
+      publishedConvocationStatus: ConvocationStatus.fromWire(
+        json['published_convocation_status'] ?? json['convocation_status'],
+      ),
       manualOverride: json['manual_override'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
       recommendedNotConvoked: json['recommended_not_convoked'] == true,
@@ -181,6 +187,7 @@ class ConvocationPlayer {
   /// Date/heure de la dernière indication (ou modification) de disponibilité.
   final DateTime? availabilityUpdatedAt;
   final ConvocationStatus convocationStatus;
+  final ConvocationStatus publishedConvocationStatus;
   final bool manualOverride;
   final int? waitlistPosition;
   final bool recommendedNotConvoked;
@@ -203,6 +210,8 @@ class ConvocationPlayer {
   bool get isAbsent => availabilityStatus == 'absent';
   bool get isConvoked => convocationStatus == ConvocationStatus.convoked;
   bool get isNotConvoked => convocationStatus == ConvocationStatus.notConvoked;
+  bool get hasUnpublishedConvocationChange =>
+      convocationStatus != publishedConvocationStatus;
   bool get canBeSelected => isConvoked && (isGuest || isAvailable);
 }
 
@@ -213,25 +222,30 @@ class MatchConvocations {
     required this.kickoffAt,
     required this.seasonId,
     required this.squadSizeLimit,
+    required this.publishedSquadSizeLimit,
     required this.convocationState,
     required this.convocationVersion,
+    required this.hasUnpublishedChanges,
     required this.lateWithdrawalCutoffAt,
     required this.availableCount,
     required this.convokedCount,
     required this.notConvokedCount,
     required this.players,
-    this.hasUnpublishedChanges = false,
   });
 
   factory MatchConvocations.fromRpc(Object? raw) {
     final json = _map(raw);
     final playersRaw = json['players'];
+    final squadSizeLimit = (json['squad_size_limit'] as num?)?.toInt() ?? 14;
     return MatchConvocations(
       matchId: json['match_id'].toString(),
       opponentName: (json['opponent_name'] ?? 'Adversaire').toString(),
       kickoffAt: DateTime.parse(json['kickoff_at'].toString()).toLocal(),
       seasonId: json['season_id'].toString(),
-      squadSizeLimit: (json['squad_size_limit'] as num?)?.toInt() ?? 14,
+      squadSizeLimit: squadSizeLimit,
+      publishedSquadSizeLimit:
+          (json['published_squad_size_limit'] as num?)?.toInt() ??
+              squadSizeLimit,
       convocationState: (json['convocation_state'] ?? 'draft').toString(),
       convocationVersion: (json['convocation_version'] as num?)?.toInt() ?? 0,
       hasUnpublishedChanges: json['has_unpublished_changes'] == true,
@@ -252,6 +266,7 @@ class MatchConvocations {
   final DateTime kickoffAt;
   final String seasonId;
   final int squadSizeLimit;
+  final int publishedSquadSizeLimit;
   final String convocationState;
   final int convocationVersion;
   final bool hasUnpublishedChanges;
@@ -262,8 +277,8 @@ class MatchConvocations {
   final List<ConvocationPlayer> players;
 
   bool get isPublished => convocationState == 'published';
-  bool get canPublish => !isPublished || hasUnpublishedChanges;
   bool get isOverLimit => convokedCount > squadSizeLimit;
+  bool get isReadyForComposition => isPublished && !hasUnpublishedChanges;
 }
 
 Map<String, dynamic> _map(Object? raw) {
