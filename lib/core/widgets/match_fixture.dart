@@ -53,7 +53,8 @@ class MatchFixture extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final baseName = (nameStyle ??
             Theme.of(context).textTheme.titleMedium ??
             const TextStyle())
