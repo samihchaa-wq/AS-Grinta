@@ -38,9 +38,7 @@ class IncidentErrorView extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: Theme.of(
                         context,
-                      ).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     Text(message, textAlign: TextAlign.center),
