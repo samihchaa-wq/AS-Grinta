@@ -2,6 +2,7 @@
 // Appelée par la base via pg_net avec le jeton interne x-push-token.
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
+import { executePushDelivery } from "./delivery_policy.ts";
 
 type SubscriptionRow = {
   profile_id?: string;
@@ -18,6 +19,7 @@ type DeliveryLogRow = {
   success: boolean;
   status_code: number | null;
   error_message: string | null;
+  attempts: number;
 };
 
 type PushRequestBody = {
@@ -111,16 +113,17 @@ Deno.serve(async (req: Request) => {
     const testDead: string[] = [];
     let testSent = 0;
     await Promise.all(testSubs.map(async (sub) => {
-      try {
-        await webpush.sendNotification(
+      const outcome = await executePushDelivery(() =>
+        webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           testPayload,
           { TTL: 600, urgency: "high" },
-        );
+        )
+      );
+      if (outcome.success) {
         testSent += 1;
-      } catch (error) {
-        const statusCode = (error as { statusCode?: number }).statusCode ?? null;
-        if (statusCode === 404 || statusCode === 410) testDead.push(sub.endpoint);
+      } else if (outcome.failureClass === "expired") {
+        testDead.push(sub.endpoint);
       }
     }));
     if (testDead.length > 0) {
@@ -201,16 +204,18 @@ Deno.serve(async (req: Request) => {
 
   await Promise.all(
     subscriptions.map(async (sub) => {
-      try {
-        const response = await webpush.sendNotification(
+      const outcome = await executePushDelivery(() =>
+        webpush.sendNotification(
           {
             endpoint: sub.endpoint,
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
           payload,
           { TTL: 3600, urgency: "high" },
-        ) as { statusCode?: number };
+        )
+      );
 
+      if (outcome.success) {
         sent += 1;
         deliveries.push({
           match_id: body.match_id!,
@@ -218,32 +223,36 @@ Deno.serve(async (req: Request) => {
           profile_id: sub.profile_id ?? null,
           endpoint_host: endpointHost(sub.endpoint),
           success: true,
-          status_code: response?.statusCode ?? 201,
+          status_code: outcome.statusCode ?? 201,
           error_message: null,
+          attempts: outcome.attempts,
         });
-      } catch (error) {
-        const statusCode = (error as { statusCode?: number }).statusCode ?? null;
-        if (statusCode === 404 || statusCode === 410) {
-          dead.push(sub.endpoint);
-        }
-
-        const message = errorMessage(error);
-        deliveries.push({
-          match_id: body.match_id!,
-          kind: body.kind!,
-          profile_id: sub.profile_id ?? null,
-          endpoint_host: endpointHost(sub.endpoint),
-          success: false,
-          status_code: statusCode,
-          error_message: message,
-        });
-        console.error("send-push delivery failure", {
-          profileId: sub.profile_id ?? null,
-          endpointHost: endpointHost(sub.endpoint),
-          statusCode,
-          message,
-        });
+        return;
       }
+
+      if (outcome.failureClass === "expired") {
+        dead.push(sub.endpoint);
+      }
+
+      const message = errorMessage(outcome.error);
+      deliveries.push({
+        match_id: body.match_id!,
+        kind: body.kind!,
+        profile_id: sub.profile_id ?? null,
+        endpoint_host: endpointHost(sub.endpoint),
+        success: false,
+        status_code: outcome.statusCode,
+        error_message: message,
+        attempts: outcome.attempts,
+      });
+      console.error("send-push delivery failure", {
+        profileId: sub.profile_id ?? null,
+        endpointHost: endpointHost(sub.endpoint),
+        statusCode: outcome.statusCode,
+        failureClass: outcome.failureClass,
+        attempts: outcome.attempts,
+        message,
+      });
     }),
   );
 

@@ -49,6 +49,15 @@ jobs:
         shell: bash
         run: python3 supabase/tests/edge/verify_edge_security_contract.py
 
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Test push delivery resilience
+        shell: bash
+        run: deno test supabase/functions/send-push/delivery_policy_test.ts
+
       - name: Start isolated Supabase database
         shell: bash
         run: |
@@ -74,6 +83,8 @@ jobs:
               -f supabase/tests/bootstrap/pgtap_like_compat.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/sports_notifications_push_schema.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260711101000_register_push_subscription_rpc.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
@@ -162,6 +173,8 @@ jobs:
               -f supabase/migrations/20260727040500_lock_down_future_object_defaults.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260727050000_live_feature_flag_session_refresh.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260727060000_push_delivery_resilience.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
           } 2>&1 | tee supabase-schema.log
