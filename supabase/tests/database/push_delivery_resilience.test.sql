@@ -210,6 +210,7 @@ select is(
 );
 
 insert into public.push_delivery_log (
+  id,
   match_id,
   kind,
   profile_id,
@@ -222,6 +223,7 @@ insert into public.push_delivery_log (
 )
 values
   (
+    9001,
     current_setting('test.push_resilience_match')::uuid,
     'result_validated',
     'e3000000-0000-0000-0000-000000000001',
@@ -233,6 +235,7 @@ values
     now()
   ),
   (
+    9002,
     current_setting('test.push_resilience_match')::uuid,
     'result_validated',
     'e3000000-0000-0000-0000-000000000001',
@@ -244,6 +247,7 @@ values
     now()
   ),
   (
+    9003,
     current_setting('test.push_resilience_match')::uuid,
     'result_validated',
     'e3000000-0000-0000-0000-000000000002',
@@ -255,6 +259,7 @@ values
     now()
   ),
   (
+    9004,
     current_setting('test.push_resilience_match')::uuid,
     'result_validated',
     'e3000000-0000-0000-0000-000000000002',
