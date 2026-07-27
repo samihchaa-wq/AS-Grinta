@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: read
 
 concurrency:
@@ -166,23 +166,8 @@ jobs:
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
-          dart format "${files[@]}" 2>&1 | tee format.log
-          git diff --binary -- "${files[@]}" > format.patch
-          if [ -s format.patch ]; then
-            if [ "$GITHUB_EVENT_NAME" = 'pull_request' ] \
-              && [ "$GITHUB_HEAD_REF" = 'quality/coverage-dependency-audit' ]; then
-              git config user.name 'github-actions[bot]'
-              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-              git add -- "${files[@]}"
-              git commit -m 'style: formater tous les fichiers Dart'
-              git push origin "HEAD:$GITHUB_HEAD_REF"
-              echo 'Le formatage global a été enregistré sur la branche de la PR.'
-            else
-              cat format.patch
-              echo "::error::Des fichiers Dart ne sont pas formatés. Le correctif est disponible dans l’artefact format.patch."
-              exit 1
-            fi
-          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}" \
+            2>&1 | tee format.log
 
       - name: Analyze with fatal warnings and infos
         shell: bash
@@ -295,7 +280,6 @@ jobs:
             dependency-graph.stderr.log
             dependency-summary.txt
             format.log
-            format.patch
             analyze.log
             test.log
             coverage/lcov.info
