@@ -42,7 +42,9 @@ L’indicateur `idx_scan = 0` ne suffit pas à prouver qu’un index est inutile
 
 ## Fonctions Edge temporaires
 
-`import-match-background` et `tmp-match-form-merge-493` sont neutralisées et répondent `410 Gone`. Leur présence active ne donne plus accès à une opération de maintenance, mais elles pourront être supprimées depuis le tableau de bord Supabase lorsque la suppression de fonctions sera disponible dans le processus de livraison.
+Le code source de `import-match-background` a été retiré du dépôt et `tmp-match-form-merge-493` n’y est pas versionnée. Les deux fonctions déployées restent neutralisées et répondent `410 Gone` en attendant leur suppression physique depuis le tableau de bord Supabase.
+
+La suppression manuelle et sa vérification sont suivies dans l’issue #522. Elles ne doivent pas être considérées comme terminées tant que les deux slugs apparaissent dans la liste des fonctions du projet.
 
 ## Contrôle après déploiement
 

@@ -46,8 +46,23 @@ def main() -> int:
         "send-push": False,
         "send-prediction-reminders": True,
     }
+    versioned_functions = {
+        path.name
+        for path in FUNCTIONS_DIR.iterdir()
+        if path.is_dir() and (path / "index.ts").is_file()
+    }
+    require(
+        versioned_functions == set(expected_jwt),
+        "inventaire Edge inattendu: "
+        f"présent={sorted(versioned_functions)}, "
+        f"attendu={sorted(expected_jwt)}",
+    )
+    require(
+        set(functions) == set(expected_jwt),
+        "configuration Edge inattendue: "
+        f"présent={sorted(functions)}, attendu={sorted(expected_jwt)}",
+    )
     for slug, expected in expected_jwt.items():
-        require(slug in functions, f"configuration Edge absente: {slug}")
         actual = functions[slug].get("verify_jwt")
         require(
             actual is expected,
