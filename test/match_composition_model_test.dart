@@ -53,15 +53,17 @@ void main() {
     );
   });
 
-  test('creates a complete initial draft from convocations', () {
+  test('creates a complete initial draft from published convocations', () {
     final convocations = MatchConvocations(
       matchId: 'match-1',
       opponentName: 'Test FC',
       kickoffAt: DateTime.utc(2026, 7, 26, 18),
       seasonId: 'season-1',
       squadSizeLimit: 14,
+      publishedSquadSizeLimit: 14,
       convocationState: 'published',
       convocationVersion: 1,
+      hasUnpublishedChanges: false,
       lateWithdrawalCutoffAt: null,
       availableCount: 1,
       convokedCount: 1,
@@ -74,6 +76,7 @@ void main() {
           lastName: 'Gardien',
           availabilityStatus: 'available',
           convocationStatus: ConvocationStatus.convoked,
+          publishedConvocationStatus: ConvocationStatus.convoked,
           manualOverride: false,
           waitlistPosition: 1,
           recommendedNotConvoked: false,
@@ -88,6 +91,7 @@ void main() {
           lastName: 'Absent',
           availabilityStatus: 'absent',
           convocationStatus: ConvocationStatus.notApplicable,
+          publishedConvocationStatus: ConvocationStatus.notApplicable,
           manualOverride: false,
           waitlistPosition: 2,
           recommendedNotConvoked: false,
@@ -103,6 +107,7 @@ void main() {
       goalkeeperSeasonPlayerIds: const {'player-1'},
     );
 
+    expect(convocations.isReadyForComposition, isTrue);
     expect(composition.entries.length, 2);
     expect(composition.availableCount, 1);
     expect(composition.notSelectedCount, 1);
@@ -111,6 +116,47 @@ void main() {
           .entriesFor(MatchCompositionZone.available)
           .single
           .isGoalkeeper,
+      isTrue,
+    );
+  });
+
+  test('a saved effectif draft is not ready for composition', () {
+    final convocations = MatchConvocations.fromRpc({
+      'match_id': 'match-draft',
+      'opponent_name': 'Brouillon FC',
+      'kickoff_at': '2026-07-26T18:00:00Z',
+      'season_id': 'season-1',
+      'squad_size_limit': 14,
+      'published_squad_size_limit': 12,
+      'convocation_state': 'published',
+      'convocation_version': 2,
+      'has_unpublished_changes': true,
+      'available_count': 1,
+      'convoked_count': 1,
+      'not_convoked_count': 0,
+      'players': [
+        {
+          'participant_id': 'participant-1',
+          'season_player_id': 'player-1',
+          'first_name': 'Alex',
+          'last_name': 'Test',
+          'availability_status': 'available',
+          'convocation_status': 'convoked',
+          'published_convocation_status': 'not_convoked',
+          'manual_override': true,
+          'recommended_not_convoked': false,
+          'turn_should_consume': false,
+          'turn_state': 'waived',
+        },
+      ],
+    });
+
+    expect(convocations.isPublished, isTrue);
+    expect(convocations.hasUnpublishedChanges, isTrue);
+    expect(convocations.isReadyForComposition, isFalse);
+    expect(convocations.publishedSquadSizeLimit, 12);
+    expect(
+      convocations.players.single.hasUnpublishedConvocationChange,
       isTrue,
     );
   });
@@ -144,8 +190,10 @@ void main() {
       kickoffAt: DateTime.utc(2026, 7, 26, 18),
       seasonId: 'season-1',
       squadSizeLimit: 14,
-      convocationState: 'draft',
-      convocationVersion: 0,
+      publishedSquadSizeLimit: 14,
+      convocationState: 'published',
+      convocationVersion: 1,
+      hasUnpublishedChanges: false,
       lateWithdrawalCutoffAt: null,
       availableCount: 1,
       convokedCount: 1,
@@ -161,6 +209,7 @@ void main() {
           isGoalkeeper: true,
           availabilityStatus: 'not_applicable',
           convocationStatus: ConvocationStatus.convoked,
+          publishedConvocationStatus: ConvocationStatus.convoked,
           manualOverride: true,
           waitlistPosition: null,
           recommendedNotConvoked: false,
