@@ -214,12 +214,32 @@ select is(
 reset role;
 select is(
   (
+    select extract(epoch from (opens_at - match.kickoff_at))::integer
+    from public.match_sport_motm_elections election
+    join public.matches match on match.id = election.match_id
+    where election.match_id = current_setting('test.motm_match')::uuid
+  ),
+  6300,
+  'le scrutin automatique ouvre une heure quarante-cinq après le coup d’envoi'
+);
+select is(
+  (
+    select extract(epoch from (closes_at - match.kickoff_at))::integer
+    from public.match_sport_motm_elections election
+    join public.matches match on match.id = election.match_id
+    where election.match_id = current_setting('test.motm_match')::uuid
+  ),
+  86400,
+  'le scrutin automatique clôture vingt-quatre heures après le coup d’envoi'
+);
+select is(
+  (
     select extract(epoch from (closes_at - opens_at))::integer
     from public.match_sport_motm_elections
     where match_id = current_setting('test.motm_match')::uuid
   ),
-  86400,
-  'la fenêtre de vote dure exactement vingt-quatre heures'
+  80100,
+  'la fenêtre utile automatique dure vingt-deux heures et quinze minutes'
 );
 
 select set_config(
@@ -234,8 +254,8 @@ select throws_ok(
     current_setting('test.motm_player_one_participant')::uuid
   )$$,
   '42501',
-  'Only a permanently registered present player can vote',
-  'un joueur réellement absent ne peut pas voter'
+  'Only a registered player from the lineup can vote',
+  'un joueur absent de la composition ne peut pas voter'
 );
 
 reset role;
@@ -389,28 +409,38 @@ select is(
     pg_temp.motm_final_payload(false),
     'Correction sans invité présent'
   ) #>> '{vote_state}',
-  'open',
-  'une correction ouvre un nouveau scrutin de vingt-quatre heures'
+  'closed',
+  'une correction conserve le scrutin fermé'
 );
 
 reset role;
 select is(
+  (
+    select election.state::text || ':' || workflow.vote_state::text
+    from public.match_sport_motm_elections election
+    join public.match_sport_workflows workflow using (match_id)
+    where election.match_id = current_setting('test.motm_match')::uuid
+  ),
+  'closed:closed',
+  'la correction resynchronise l’élection et le workflow'
+);
+select is(
   (select count(*) from public.match_sport_motm_votes
    where match_id = current_setting('test.motm_match')::uuid),
-  0::bigint,
-  'la correction supprime les anciens bulletins'
+  2::bigint,
+  'la correction conserve les anciens bulletins'
 );
 select is(
   (select count(*) from public.match_sport_motm_results
    where match_id = current_setting('test.motm_match')::uuid),
-  0::bigint,
-  'la correction supprime les anciens résultats'
+  3::bigint,
+  'la correction conserve les anciens résultats'
 );
 select is(
   (select count(*) from public.match_man_of_match
    where match_id = current_setting('test.motm_match')::uuid),
-  0::bigint,
-  'la correction retire les anciens HDM des statistiques'
+  1::bigint,
+  'la correction conserve le HDM permanent déjà calculé'
 );
 
 set local role authenticated;
@@ -432,6 +462,43 @@ select is(
 );
 
 reset role;
+select is(
+  (select count(*) from public.match_sport_motm_votes
+   where match_id = current_setting('test.motm_match')::uuid),
+  0::bigint,
+  'la relance administrateur supprime les anciens bulletins'
+);
+select is(
+  (select count(*) from public.match_sport_motm_results
+   where match_id = current_setting('test.motm_match')::uuid),
+  0::bigint,
+  'la relance administrateur supprime les anciens résultats'
+);
+select is(
+  (select count(*) from public.match_man_of_match
+   where match_id = current_setting('test.motm_match')::uuid),
+  0::bigint,
+  'la relance administrateur retire les anciens HDM des statistiques'
+);
+select is(
+  (
+    select extract(epoch from (closes_at - opens_at))::integer
+    from public.match_sport_motm_elections
+    where match_id = current_setting('test.motm_match')::uuid
+  ),
+  86400,
+  'la relance administrateur ouvre une fenêtre complète de vingt-quatre heures'
+);
+select is(
+  (
+    select election.state::text || ':' || workflow.vote_state::text
+    from public.match_sport_motm_elections election
+    join public.match_sport_workflows workflow using (match_id)
+    where election.match_id = current_setting('test.motm_match')::uuid
+  ),
+  'open:open',
+  'la relance administrateur garde l’élection et le workflow synchronisés'
+);
 select ok(
   exists (
     select 1
