@@ -1,0 +1,72 @@
+name: Temporary apply merge format
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout tested merge commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Generate the exact CI formatting patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files '*.dart')
+          dart format "${files[@]}"
+          dart format --output=none --set-exit-if-changed "${files[@]}"
+          mapfile -t changed < <(git diff --name-only -- '*.dart')
+          if [ "${#changed[@]}" -eq 0 ]; then
+            : > /tmp/ci-format.patch
+            exit 0
+          fi
+          allowed='^(lib/features/sports_management/presentation/admin_squad_plan_page_(composition|effectif)\.dart|test/effectif_publication_contract_test\.dart)$'
+          for path in "${changed[@]}"; do
+            if [[ ! "$path" =~ $allowed ]]; then
+              echo "Fichier inattendu modifié : $path" >&2
+              exit 1
+            fi
+          done
+          git diff --binary -- "${changed[@]}" > /tmp/ci-format.patch
+
+      - name: Apply patch to PR branch
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/ci-format.patch ]; then
+            echo 'Le commit de fusion est déjà formaté.'
+            exit 0
+          fi
+          git fetch origin "$HEAD_BRANCH"
+          git checkout -B "$HEAD_BRANCH" "origin/$HEAD_BRANCH"
+          git apply /tmp/ci-format.patch
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart \
+            test/effectif_publication_contract_test.dart
+          git commit -m 'Appliquer le formatage exact du commit de fusion'
+          git push origin "HEAD:$HEAD_BRANCH"
