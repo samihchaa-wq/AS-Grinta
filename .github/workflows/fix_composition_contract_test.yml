@@ -1,0 +1,80 @@
+name: Fix composition contract test
+
+on:
+  push:
+    branches:
+      - agent/clarify-effectif-publication
+
+permissions:
+  contents: write
+
+jobs:
+  fix-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clarify-effectif-publication
+          fetch-depth: 0
+
+      - name: Insert effectif draft setup
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/sports_management_composition_server.test.sql')
+          text = path.read_text()
+          marker = """set local role authenticated;
+
+select throws_ok(
+  $$select public.admin_save_match_composition(
+    current_setting('test.composition_match')::uuid,
+    '4-3-3',
+    pg_temp.composition_payload('twelve_field'),
+"""
+          replacement = """set local role authenticated;
+
+select is(
+  public.admin_save_match_effectif(
+    current_setting('test.composition_match')::uuid,
+    14,
+    pg_temp.effectif_payload(),
+    'Brouillon préalable des convocations'
+  ) #>> '{has_unpublished_changes}',
+  'true',
+  'un brouillon d’effectif prépare la composition sans publier'
+);
+
+select throws_ok(
+  $$select public.admin_save_match_composition(
+    current_setting('test.composition_match')::uuid,
+    '4-3-3',
+    pg_temp.composition_payload('twelve_field'),
+"""
+          if replacement in text:
+              raise SystemExit(0)
+          if text.count(marker) != 1:
+              raise SystemExit('Insertion marker missing or ambiguous')
+          path.write_text(text.replace(marker, replacement, 1))
+          PY
+
+      - name: Commit when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='supabase/tests/database/sports_management_composition_server.test.sql'
+          if git diff --quiet -- "$target"; then
+            echo 'Le test est déjà corrigé.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$target"
+          git commit -m 'Adapter le test de composition au brouillon effectif'
+          git fetch origin agent/clarify-effectif-publication
+          git rebase origin/agent/clarify-effectif-publication
+          git push origin HEAD:agent/clarify-effectif-publication
