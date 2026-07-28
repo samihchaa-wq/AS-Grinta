@@ -18,7 +18,7 @@ set role = case
     updated_at = now()
 where id between
   'b6100000-0000-0000-0000-000000000001'
-  and 'b6100000-0000-0000-000000000003';
+  and 'b6100000-0000-0000-0000-000000000003';
 
 insert into public.seasons(id, name, status, season_predictions_locked_at)
 values
