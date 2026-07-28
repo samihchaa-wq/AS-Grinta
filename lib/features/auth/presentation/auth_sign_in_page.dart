@@ -28,7 +28,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Renseigne ton e-mail et ton mot de passe.')),
+        const SnackBar(
+          content: Text('Renseigne ton e-mail et ton mot de passe.'),
+        ),
       );
       return;
     }
@@ -40,7 +42,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
   }
 
   Future<void> _forgotPassword() async {
-    final controller = TextEditingController(text: _emailController.text.trim());
+    final controller = TextEditingController(
+      text: _emailController.text.trim(),
+    );
     final email = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -61,7 +65,10 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+            onPressed: () => Navigator.pop(
+              dialogContext,
+              controller.text.trim(),
+            ),
             child: const Text('Envoyer le lien'),
           ),
         ],
@@ -150,7 +157,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         autofillHints: const [AutofillHints.password],
-                        onSubmitted: (_) => authState.isLoading ? null : _submit(),
+                        onSubmitted: (_) =>
+                            authState.isLoading ? null : _submit(),
                         decoration: InputDecoration(
                           labelText: 'Mot de passe',
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -169,7 +177,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: authState.isLoading ? null : _forgotPassword,
+                          onPressed: authState.isLoading
+                              ? null
+                              : _forgotPassword,
                           child: const Text('Mot de passe oublié ?'),
                         ),
                       ),
