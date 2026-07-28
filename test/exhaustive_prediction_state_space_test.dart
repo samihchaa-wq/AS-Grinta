@@ -341,7 +341,10 @@ class _ScenarioPredictionsRepository implements PredictionsRepository {
 
   @override
   Future<MatchPredictionItem?> fetchMatchPrediction(String matchId) async {
-    return items.where((item) => item.matchId == matchId).firstOrNull;
+    for (final item in items) {
+      if (item.matchId == matchId) return item;
+    }
+    return null;
   }
 
   @override
@@ -358,8 +361,4 @@ class _ScenarioPredictionsRepository implements PredictionsRepository {
     if (gate == null) return;
     await gate.future;
   }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
