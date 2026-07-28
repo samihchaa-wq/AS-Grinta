@@ -423,6 +423,29 @@ select is(
 );
 
 select is(
+  public.admin_publish_match_effectif(
+    current_setting('test.guest_match')::uuid,
+    14,
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'season_player_id', participant.season_player_id,
+          'status', 'convoked'
+        ) order by participant.season_player_id
+      )
+      from public.match_sport_participants participant
+      where participant.match_id = current_setting('test.guest_match')::uuid
+        and participant.season_player_id is not null
+        and participant.availability_status = 'available'
+        and participant.is_eligible
+    ),
+    'Publication préalable des convocations avec invité'
+  ) #>> '{convocation_version}',
+  '1',
+  'les convocations sont publiées explicitement avant la composition avec invité'
+);
+
+select is(
   public.admin_publish_match_composition(
     current_setting('test.guest_match')::uuid,
     false,
@@ -538,4 +561,3 @@ select throws_ok(
 
 reset role;
 select * from finish();
-rollback;
