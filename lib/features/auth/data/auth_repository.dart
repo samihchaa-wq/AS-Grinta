@@ -15,12 +15,12 @@ class AuthRepository {
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
-  Future<void> signInWithEmail({
-    required String email,
+  Future<void> signInWithUsername({
+    required String username,
     required String password,
   }) async {
     final response = await _client.auth.signInWithPassword(
-      email: email.trim().toLowerCase(),
+      email: username.trim().toLowerCase(),
       password: password,
     );
     if (response.session == null || response.user == null) {
@@ -37,9 +37,8 @@ class AuthRepository {
     final passwordError = PasswordPolicy.validate(password);
     if (passwordError != null) throw ArgumentError(passwordError);
 
-    final normalizedEmail = email.trim().toLowerCase();
     final response = await _client.auth.signUp(
-      email: normalizedEmail,
+      email: email.trim().toLowerCase(),
       password: password,
       emailRedirectTo: Uri.base.resolve('/auth/sign-in').toString(),
       data: {
@@ -55,7 +54,7 @@ class AuthRepository {
   Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(
       email.trim().toLowerCase(),
-      redirectTo: Uri.base.resolve('/auth/new-password').toString(),
+      redirectTo: Uri.base.resolve('/auth/new-password?recovery=1').toString(),
     );
   }
 
