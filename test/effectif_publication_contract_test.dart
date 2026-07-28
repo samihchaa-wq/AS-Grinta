@@ -39,6 +39,11 @@ void main() {
     expect(convocations.publishedSquadSizeLimit, 14);
     expect(convocations.hasUnpublishedChanges, isTrue);
     expect(convocations.isReadyForComposition, isFalse);
+    expect(convocations.players.single.isConvoked, isTrue);
+    expect(
+      convocations.players.single.publishedConvocationStatus,
+      ConvocationStatus.notConvoked,
+    );
     expect(convocations.players.single.hasUnpublishedConvocationChange, isTrue);
   });
 
