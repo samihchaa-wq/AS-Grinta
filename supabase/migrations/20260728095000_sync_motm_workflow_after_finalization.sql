@@ -37,6 +37,26 @@ begin
       and workflow.vote_state is distinct from v_vote_state;
   end if;
 
+  -- La finalisation efface préventivement les anciens MVP avant le calcul du
+  -- scrutin. Lors d'une correction postérieure à sa clôture, les résultats sont
+  -- volontairement conservés : on restaure donc uniquement leurs gagnants
+  -- permanents dans la table statistique historique.
+  if v_vote_state = 'closed' then
+    delete from public.match_man_of_match
+    where match_id = new.match_id;
+
+    insert into public.match_man_of_match(match_id, season_player_id)
+    select result.match_id, participant.season_player_id
+    from public.match_sport_motm_results result
+    join public.match_sport_participants participant
+      on participant.id = result.participant_id
+     and participant.match_id = result.match_id
+    where result.match_id = new.match_id
+      and result.is_winner
+      and participant.season_player_id is not null
+    on conflict do nothing;
+  end if;
+
   return new;
 end;
 $function$;
