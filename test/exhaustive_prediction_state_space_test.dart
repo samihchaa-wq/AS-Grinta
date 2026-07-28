@@ -321,7 +321,6 @@ class _ScenarioPredictionsRepository implements PredictionsRepository {
   _ScenarioPredictionsRepository({
     required this.items,
     this.saveGate,
-    this.fetchError,
     this.saveError,
   });
 
@@ -356,7 +355,8 @@ class _ScenarioPredictionsRepository implements PredictionsRepository {
     final error = saveError;
     if (error != null) throw error;
     final gate = saveGate;
-    if (gate != null) await gate.future;
+    if (gate == null) return;
+    await gate.future;
   }
 }
 
