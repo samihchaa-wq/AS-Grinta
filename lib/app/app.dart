@@ -60,7 +60,9 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: AppTheme.dark,
+      theme: AppTheme.dark.copyWith(
+        scaffoldBackgroundColor: Colors.transparent,
+      ),
       routerConfig: router,
       builder: (context, child) {
         return Column(
