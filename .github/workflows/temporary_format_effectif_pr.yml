@@ -1,9 +1,9 @@
 name: Temporary format effectif PR
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/clarify-effectif-publication
+      - main
 
 permissions:
   contents: read
