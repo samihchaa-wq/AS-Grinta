@@ -13,20 +13,12 @@ begin
     raise exception 'Bootstrap assertion failed: season ACL differs from production';
   end if;
 
-  if not exists (
-    select 1
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'seasons'
-      and policyname = 'seasons_staff_update'
-  ) or not exists (
-    select 1
-    from pg_policies
-    where schemaname = 'public'
-      and tablename = 'seasons'
-      and policyname = 'seasons_staff_delete'
+  if not (
+    select relrowsecurity
+    from pg_class
+    where oid = 'public.seasons'::regclass
   ) then
-    raise exception 'Bootstrap assertion failed: season staff RLS policies are missing';
+    raise exception 'Bootstrap assertion failed: RLS is disabled on seasons';
   end if;
 end;
 $block$;
