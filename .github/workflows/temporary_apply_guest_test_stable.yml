@@ -1,0 +1,91 @@
+name: Temporary apply guest test stable
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-apply-guest-test-stable
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Patch guest publication flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/sports_management_guests.test.sql')
+          text = path.read_text()
+          marker = """select is(
+            public.admin_publish_match_composition(
+              current_setting('test.guest_match')::uuid,
+              false,
+              'Publication avec invité'
+            ) #>> '{version}',
+          """
+          replacement = """select is(
+            public.admin_publish_match_effectif(
+              current_setting('test.guest_match')::uuid,
+              14,
+              (
+                select jsonb_agg(
+                  jsonb_build_object(
+                    'season_player_id', participant.season_player_id,
+                    'status', 'convoked'
+                  ) order by participant.season_player_id
+                )
+                from public.match_sport_participants participant
+                where participant.match_id = current_setting('test.guest_match')::uuid
+                  and participant.season_player_id is not null
+                  and participant.availability_status = 'available'
+              ),
+              'Publication des convocations avec invité'
+            ) #>> '{convocation_version}',
+            '1',
+            'les convocations sont publiées avant la composition avec invité'
+          );
+
+          select is(
+            public.admin_publish_match_composition(
+              current_setting('test.guest_match')::uuid,
+              false,
+              'Publication avec invité'
+            ) #>> '{version}',
+          """
+          if replacement not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('Guest publication marker missing or ambiguous')
+              path.write_text(text.replace(marker, replacement, 1))
+          PY
+          git rm -- .github/workflows/temporary_apply_guest_test_stable.yml
+
+      - name: Commit and push safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- \
+            supabase/tests/database/sports_management_guests.test.sql \
+            .github/workflows/temporary_apply_guest_test_stable.yml
+          git commit -m 'Adapter le scénario invité à la publication explicite'
+          git fetch origin "${{ github.event.pull_request.head.ref }}"
+          git rebase "origin/${{ github.event.pull_request.head.ref }}"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
