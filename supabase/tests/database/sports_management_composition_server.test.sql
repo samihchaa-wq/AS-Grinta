@@ -147,6 +147,10 @@ update public.match_sport_participants
 set availability_status = 'available',
     availability_updated_at = now(),
     availability_updated_by = '91000000-0000-0000-0000-000000000001',
+    convocation_status = 'convoked',
+    convocation_manual_override = true,
+    waitlist_turn_should_consume = false,
+    waitlist_turn_state = 'waived',
     updated_at = now()
 where match_id = current_setting('test.composition_match')::uuid;
 
