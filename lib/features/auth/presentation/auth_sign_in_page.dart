@@ -35,10 +35,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
       return;
     }
 
-    await ref.read(authControllerProvider.notifier).signIn(
-          username: email,
-          password: password,
-        );
+    await ref
+        .read(authControllerProvider.notifier)
+        .signIn(username: email, password: password);
   }
 
   Future<void> _forgotPassword() async {
@@ -65,10 +64,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              controller.text.trim(),
-            ),
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
             child: const Text('Envoyer le lien'),
           ),
         ],
@@ -104,9 +101,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if ((next.error ?? '').isNotEmpty &&
           (previous?.error ?? '') != next.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.error!)));
       }
     });
 
