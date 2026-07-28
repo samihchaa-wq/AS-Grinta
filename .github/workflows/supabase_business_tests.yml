@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: supabase-business-tests-${{ github.workflow }}-${{ github.ref }}
@@ -28,62 +28,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          fetch-depth: 0
-
-      - name: Apply guest-test contract patch and restore CI
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('supabase/tests/database/sports_management_guests.test.sql')
-          text = path.read_text()
-          marker = """select is(
-  public.admin_publish_match_composition(
-    current_setting('test.guest_match')::uuid,
-"""
-          insertion = """select is(
-  public.admin_publish_match_effectif(
-    current_setting('test.guest_match')::uuid,
-    14,
-    (
-      select jsonb_agg(
-        jsonb_build_object(
-          'season_player_id', participant.season_player_id,
-          'status', 'convoked'
-        ) order by participant.season_player_id
-      )
-      from public.match_sport_participants participant
-      where participant.match_id = current_setting('test.guest_match')::uuid
-        and participant.season_player_id is not null
-        and participant.availability_status = 'available'
-        and participant.is_eligible
-    ),
-    'Publication préalable des convocations avec invité'
-  ) #>> '{convocation_version}',
-  '1',
-  'les convocations sont publiées explicitement avant la composition avec invité'
-);
-
-""" + marker
-          if insertion not in text:
-              if text.count(marker) != 1:
-                  raise SystemExit('Guest publication marker missing or ambiguous')
-              path.write_text(text.replace(marker, insertion, 1))
-          PY
-          git show HEAD^:.github/workflows/supabase_business_tests.yml \
-            > .github/workflows/supabase_business_tests.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add \
-            supabase/tests/database/sports_management_guests.test.sql \
-            .github/workflows/supabase_business_tests.yml
-          git commit -m 'Adapter le test invité à la publication explicite'
-          git push origin HEAD:agent/clarify-effectif-publication
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
