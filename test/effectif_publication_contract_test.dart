@@ -39,33 +39,33 @@ void main() {
     expect(convocations.publishedSquadSizeLimit, 14);
     expect(convocations.hasUnpublishedChanges, isTrue);
     expect(convocations.isReadyForComposition, isFalse);
-    expect(
-      convocations.players.single.hasUnpublishedConvocationChange,
-      isTrue,
-    );
+    expect(convocations.players.single.hasUnpublishedConvocationChange, isTrue);
   });
 
-  test('the admin flow keeps effectif and composition publications separate', () {
-    final effectifSource = File(
-      'lib/features/sports_management/presentation/'
-      'admin_squad_plan_page_effectif.dart',
-    ).readAsStringSync();
-    final compositionSource = File(
-      'lib/features/sports_management/presentation/'
-      'admin_squad_plan_page_composition.dart',
-    ).readAsStringSync();
-    final repositorySource = File(
-      'lib/features/sports_management/data/sport_waitlist_repository.dart',
-    ).readAsStringSync();
+  test(
+    'the admin flow keeps effectif and composition publications separate',
+    () {
+      final effectifSource = File(
+        'lib/features/sports_management/presentation/'
+        'admin_squad_plan_page_effectif.dart',
+      ).readAsStringSync();
+      final compositionSource = File(
+        'lib/features/sports_management/presentation/'
+        'admin_squad_plan_page_composition.dart',
+      ).readAsStringSync();
+      final repositorySource = File(
+        'lib/features/sports_management/data/sport_waitlist_repository.dart',
+      ).readAsStringSync();
 
-    expect(effectifSource, contains('Enregistrer le brouillon'));
-    expect(effectifSource, contains('Publier les convocations'));
-    expect(effectifSource, contains('.publishEffectif('));
-    expect(repositorySource, contains("'admin_publish_match_effectif'"));
-    expect(compositionSource, isNot(contains('.publishMatch(')));
-    expect(
-      compositionSource,
-      contains('Les convocations ne seront pas modifiées par cette action.'),
-    );
-  });
+      expect(effectifSource, contains('Enregistrer le brouillon'));
+      expect(effectifSource, contains('Publier les convocations'));
+      expect(effectifSource, contains('.publishEffectif('));
+      expect(repositorySource, contains("'admin_publish_match_effectif'"));
+      expect(compositionSource, isNot(contains('.publishMatch(')));
+      expect(
+        compositionSource,
+        contains('Les convocations ne seront pas modifiées par cette action.'),
+      );
+    },
+  );
 }
