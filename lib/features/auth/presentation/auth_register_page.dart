@@ -69,9 +69,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
 
     setState(() => _submitting = true);
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .registerAccount(
+      await ref.read(authRepositoryProvider).registerAccount(
             firstName: firstName,
             lastName: lastName,
             email: email,
