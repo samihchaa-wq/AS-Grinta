@@ -39,14 +39,13 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   final PredictionsRepository _repository;
 
   Future<void> load() async {
-    state = state.copyWith(isLoading: true, items: const [], clearError: true);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final items = await _repository.fetchMyMatchPredictions();
       state = state.copyWith(items: items, isLoading: false, clearError: true);
     } catch (error, stackTrace) {
       AppLogger.error('predictions.load', error, stackTrace);
       state = state.copyWith(
-        items: const [],
         isLoading: false,
         error: humanizeError(error),
       );
@@ -83,6 +82,8 @@ class PredictionsController extends StateNotifier<PredictionsState> {
   }
 
   Future<void> save(String matchId) async {
+    if (state.savingMatchId != null) return;
+
     final item =
         state.items.where((value) => value.matchId == matchId).firstOrNull;
     if (item == null || !item.canEdit) return;
