@@ -128,6 +128,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260721170424_unified_match_squad_plan.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260723120000_motm_open_from_kickoff_and_ballot_detail.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260723130000_fix_motm_enum_cast_and_match_delete.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260724000000_admin_send_test_push.sql
