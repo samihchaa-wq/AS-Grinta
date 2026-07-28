@@ -16,12 +16,8 @@ class GrintaBackground extends StatefulWidget {
 }
 
 class _GrintaBackgroundState extends State<GrintaBackground> {
-  static const _backgroundParts = <String>[
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.00',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.01',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.02',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.03',
-  ];
+  static const _backgroundAsset =
+      'assets/images/module_backgrounds/as_grinta_global_small.webp.b64';
 
   MemoryImage? _background;
 
@@ -33,12 +29,8 @@ class _GrintaBackgroundState extends State<GrintaBackground> {
 
   Future<void> _loadBackground() async {
     try {
-      final encoded = StringBuffer();
-      for (final assetPath in _backgroundParts) {
-        encoded.write(await rootBundle.loadString(assetPath));
-      }
-
-      final image = MemoryImage(base64Decode(encoded.toString()));
+      final encoded = await rootBundle.loadString(_backgroundAsset);
+      final image = MemoryImage(base64Decode(encoded));
       if (!mounted) return;
       setState(() => _background = image);
 
