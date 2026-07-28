@@ -59,7 +59,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       _effectifDirty || (_convocations?.hasUnpublishedChanges ?? false);
 
   bool get _effectifReadyForComposition =>
-      _postMatch || (_convocations?.isReadyForComposition ?? false);
+      _postMatch ||
+      (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));
 
   bool get _compositionLocked =>
       _busy ||
