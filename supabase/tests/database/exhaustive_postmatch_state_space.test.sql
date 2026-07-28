@@ -192,6 +192,7 @@ select is(public.admin_create_postmatch_composition(
   current_setting('test.postmatch_match')::uuid,'4-3-3',
   pg_temp.postmatch_composition_payload(),false,'composition après match')#>>'{status}',
   'published','la composition post-match est publiée');
+reset role;
 select ok(
   (
     select composition.status='published'
@@ -202,6 +203,7 @@ select ok(
   ),
   'la composition post-match est verrouillée après sa publication'
 );
+set local role authenticated;
 select throws_ok($$select public.admin_create_postmatch_composition(
   current_setting('test.postmatch_match')::uuid,'4-3-3',
   pg_temp.postmatch_composition_payload(),false,'deuxième tentative')$$,
