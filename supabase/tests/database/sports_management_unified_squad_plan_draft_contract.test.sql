@@ -26,12 +26,18 @@ select ok(
 
 select ok(
   position(
-    'update public.match_sport_participants' in
+    'unified_convocation_snapshot' in
     lower(pg_get_functiondef(
       'private.save_match_squad_plan(uuid,text,jsonb,text)'::regprocedure
     ))
-  ) = 0,
-  'l’enregistrement unifié ne publie plus directement les convocations'
+  ) > 0
+  and position(
+    'snapshot.convocation_status' in
+    lower(pg_get_functiondef(
+      'private.save_match_squad_plan(uuid,text,jsonb,text)'::regprocedure
+    ))
+  ) > 0,
+  'le brouillon restaure la dernière publication après validation interne'
 );
 
 select ok(
