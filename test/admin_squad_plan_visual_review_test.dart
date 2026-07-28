@@ -171,14 +171,16 @@ Future<void> _capture(WidgetTester tester, String fileName) async {
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(_captureKey),
   );
-  final image = await boundary.toImage(pixelRatio: 1.5);
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (bytes == null) throw StateError('Capture PNG impossible.');
-  final directory = Directory('build/visual-review');
-  await directory.create(recursive: true);
-  await File('${directory.path}/$fileName').writeAsBytes(
-    bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
-  );
+  await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: 1.5);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (bytes == null) throw StateError('Capture PNG impossible.');
+    final directory = Directory('build/visual-review');
+    await directory.create(recursive: true);
+    await File('${directory.path}/$fileName').writeAsBytes(
+      bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+    );
+  });
 }
 
 MatchConvocations _pendingConvocations() {
