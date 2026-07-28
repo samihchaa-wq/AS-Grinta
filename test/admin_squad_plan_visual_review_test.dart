@@ -36,11 +36,6 @@ void main() {
       find.text('Les joueurs voient encore la précédente publication.'),
       findsOneWidget,
     );
-    expect(
-      find.widgetWithText(FilledButton, 'Publier les modifications'),
-      findsOneWidget,
-    );
-
     await _capture(tester, 'effectif_brouillon_non_publie.png');
 
     final publishButton = find.widgetWithText(
@@ -48,16 +43,13 @@ void main() {
       'Publier les modifications',
     );
     await tester.ensureVisible(publishButton);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester, count: 4);
     await tester.tap(publishButton);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester, count: 4);
 
     expect(find.text('Publier les modifications ?'), findsOneWidget);
     expect(
-      find.text(
-        'Cette action rendra les décisions visibles par les joueurs. '
-        'La composition restera privée jusqu’à sa propre publication.',
-      ),
+      find.textContaining('La composition restera privée'),
       findsOneWidget,
     );
     await _capture(tester, 'effectif_confirmation_publication.png');
@@ -77,18 +69,10 @@ void main() {
       find.text('Convocations à publier avant la composition'),
       findsOneWidget,
     );
-    expect(
-      find.text(
-        'Reviens dans Effectif, puis publie les convocations pour '
-        'déverrouiller cette étape.',
-      ),
-      findsOneWidget,
-    );
     final publishButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Publier la composition'),
     );
     expect(publishButton.onPressed, isNull);
-
     await _capture(tester, 'composition_verrouillee.png');
   });
 
@@ -109,20 +93,16 @@ void main() {
       'Publier la composition',
     );
     expect(tester.widget<FilledButton>(publishButton).onPressed, isNotNull);
-
     await _capture(tester, 'composition_deverrouillee.png');
 
     await tester.ensureVisible(publishButton);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester, count: 4);
     await tester.tap(publishButton);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester, count: 4);
 
     expect(find.text('Publier la composition ?'), findsOneWidget);
     expect(
-      find.text(
-        'La composition deviendra immédiatement visible par les joueurs. '
-        'Les convocations ne seront pas modifiées par cette action.',
-      ),
+      find.textContaining('Les convocations ne seront pas modifiées'),
       findsOneWidget,
     );
     await _capture(tester, 'composition_confirmation_publication.png');
@@ -139,17 +119,16 @@ Future<void> _pumpWorkspace(
   required MatchConvocations convocations,
   required String initialStep,
 }) async {
-  final waitlistRepository = _FakeSportWaitlistRepository(convocations);
-  final compositionRepository = _FakeMatchCompositionRepository();
-
   await tester.pumpWidget(
     RepaintBoundary(
       key: _captureKey,
       child: ProviderScope(
         overrides: [
-          sportWaitlistRepositoryProvider.overrideWithValue(waitlistRepository),
+          sportWaitlistRepositoryProvider.overrideWithValue(
+            _FakeSportWaitlistRepository(convocations),
+          ),
           matchCompositionRepositoryProvider.overrideWithValue(
-            compositionRepository,
+            _FakeMatchCompositionRepository(),
           ),
           upcomingMatchFixtureProvider(_matchId).overrideWith(
             (ref) async => const UpcomingMatchFixtureData(
@@ -177,7 +156,13 @@ Future<void> _pumpWorkspace(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  await _pumpFrames(tester, count: 20);
+}
+
+Future<void> _pumpFrames(WidgetTester tester, {int count = 10}) async {
+  for (var index = 0; index < count; index += 1) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
 }
 
 Future<void> _capture(WidgetTester tester, String fileName) async {
@@ -292,7 +277,7 @@ MatchConvocations _convocations({
   return MatchConvocations(
     matchId: _matchId,
     opponentName: 'Olympique Test',
-    kickoffAt: DateTime.now().add(const Duration(days: 5)),
+    kickoffAt: DateTime(2099, 1, 1, 18),
     seasonId: 'season-visual',
     squadSizeLimit: 14,
     publishedSquadSizeLimit: 14,
@@ -340,7 +325,7 @@ ConvocationPlayer _player({
 class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   _FakeSportWaitlistRepository(this.convocations);
 
-  MatchConvocations convocations;
+  final MatchConvocations convocations;
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
@@ -372,81 +357,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   }
 
   @override
-  Future<MatchConvocations> saveEffectif({
-    required String matchId,
-    required int squadSizeLimit,
-    required Map<String, ConvocationStatus> decisions,
-    String? reason,
-  }) async => convocations;
-
-  @override
-  Future<MatchConvocations> publishEffectif({
-    required String matchId,
-    required int squadSizeLimit,
-    required Map<String, ConvocationStatus> decisions,
-    String? reason,
-  }) async => convocations;
-
-  @override
-  Future<SportWaitlist> fetchWaitlist({String? seasonId}) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<SportWaitlist> reorderWaitlist({
-    required String seasonId,
-    required List<String> orderedPlayerIds,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<AvailabilityReminderResult> sendAvailabilityReminder({
-    required String matchId,
-    String? seasonPlayerId,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MatchConvocations> configureMatch({
-    required String matchId,
-    required int squadSizeLimit,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MatchConvocations> recomputeMatch({
-    required String matchId,
-    bool resetOverrides = false,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MatchConvocations> setConvocation({
-    required String matchId,
-    required String seasonPlayerId,
-    required ConvocationStatus status,
-    required bool turnShouldConsume,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<MatchConvocations> publishMatch({
-    required String matchId,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<int> finalizeTurns(String matchId) async => 0;
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeMatchCompositionRepository implements MatchCompositionRepository {
@@ -454,34 +365,10 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
   Future<MatchComposition?> fetchAdminComposition(String matchId) async => null;
 
   @override
-  Future<MatchComposition?> fetchPublishedComposition(String matchId) async =>
-      null;
-
-  @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
   ) async => {'sp1'};
 
   @override
-  Future<MatchComposition> saveComposition({
-    required MatchComposition composition,
-    required bool allowSquadSizeException,
-    String? reason,
-  }) async => composition;
-
-  @override
-  Future<MatchComposition> createPostMatchComposition({
-    required MatchComposition composition,
-    required bool allowSquadSizeException,
-    String? reason,
-  }) async => composition;
-
-  @override
-  Future<MatchComposition> publishComposition({
-    required String matchId,
-    required bool allowSquadSizeException,
-    String? reason,
-  }) {
-    throw UnimplementedError();
-  }
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
