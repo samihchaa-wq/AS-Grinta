@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/widgets/grinta_background.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/incident_error_view.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +94,12 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData.dark(),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: Colors.transparent,
+      ),
+      builder: (context, child) => GrintaBackground(
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: FutureBuilder<void>(
         future: _initialization,
         builder: (context, snapshot) {
@@ -114,7 +120,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           }
 
           return Scaffold(
-            backgroundColor: const Color(0xFF07142E),
+            backgroundColor: Colors.transparent,
             body: SafeArea(
               child: Center(
                 child: SingleChildScrollView(

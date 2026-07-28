@@ -46,22 +46,12 @@ class PronosHubPage extends ConsumerStatefulWidget {
 }
 
 class _PronosHubPageState extends ConsumerState<PronosHubPage> {
-  static const _matchesBackgroundUrl =
-      'https://ovzijmqrnsgcmryinkfa.supabase.co/storage/v1/object/public/app-assets/module-backgrounds/matches-source-full.png?v=2';
-  static const _matchesBackground = NetworkImage(_matchesBackgroundUrl);
-
   late _PronosCategory _category;
 
   @override
   void initState() {
     super.initState();
     _category = _categoryFrom(widget.initialCategory);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    precacheImage(_matchesBackground, context);
   }
 
   @override
@@ -102,48 +92,30 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
         }),
         actions: grintaHomeActions(context),
       ),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(
-            _matchesBackgroundUrl,
-            fit: BoxFit.fill,
-            alignment: Alignment.center,
-            filterQuality: FilterQuality.high,
-            isAntiAlias: true,
-            gaplessPlayback: true,
-            excludeFromSemantics: true,
-            errorBuilder: (_, __, ___) =>
-                const ColoredBox(color: AppTheme.background),
+      body: Material(
+        type: MaterialType.transparency,
+        child: AnimatedSwitcher(
+          duration:
+              reduceMotion ? Duration.zero : const Duration(milliseconds: 240),
+          reverseDuration:
+              reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            final offset = Tween<Offset>(
+              begin: const Offset(.025, 0),
+              end: Offset.zero,
+            ).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: offset, child: child),
+            );
+          },
+          child: KeyedSubtree(
+            key: ValueKey(_category),
+            child: content,
           ),
-          Material(
-            type: MaterialType.transparency,
-            child: AnimatedSwitcher(
-              duration: reduceMotion
-                  ? Duration.zero
-                  : const Duration(milliseconds: 240),
-              reverseDuration: reduceMotion
-                  ? Duration.zero
-                  : const Duration(milliseconds: 180),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                final offset = Tween<Offset>(
-                  begin: const Offset(.025, 0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(position: offset, child: child),
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey(_category),
-                child: content,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
