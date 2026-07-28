@@ -88,6 +88,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260713222000_harden_personal_rpcs.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260713225500_harden_staff_season_rpcs.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720033749_integrity_backfill_and_staff_audit.sql
