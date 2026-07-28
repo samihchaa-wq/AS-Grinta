@@ -53,13 +53,18 @@ String? resolveAuthRedirect({
   final role = authState.profile?.role;
   final isAdmin = role == AuthRole.admin;
   final isStaff = role?.isStaff == true;
+  final segments =
+      uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
+  final isMatchAdminRoute = segments.length == 3 &&
+      segments.first == 'matches' &&
+      const {'composition', 'guests'}.contains(segments.last);
   final isPlayersRoute = location == '/players';
 
   if (isFinalizationRoute && !isAdmin) return '/matches';
-  if (isAdminRoute && !isStaff) return '/matches';
+  if ((isAdminRoute || isMatchAdminRoute) && !isStaff) return '/matches';
   if (isPlayersRoute && !isStaff) return '/matches';
   return null;
 }
@@ -70,7 +75,13 @@ bool _isSportsManagementRoute(Uri uri) {
 
   final isPlayerMatchRoute = segments.length == 3 &&
       segments.first == 'matches' &&
-      const {'availability', 'lineup', 'vote'}.contains(segments.last);
+      const {
+        'availability',
+        'lineup',
+        'vote',
+        'composition',
+        'guests',
+      }.contains(segments.last);
   final isAdminMatchRoute = segments.length == 4 &&
       segments[0] == 'admin' &&
       segments[1] == 'matches' &&
