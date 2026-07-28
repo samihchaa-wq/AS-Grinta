@@ -212,7 +212,6 @@ select throws_ok(
   'une heure nulle est refusée'
 );
 
--- Un joueur ne peut jamais créer, modifier, archiver ou supprimer.
 reset role;
 select set_config(
   'request.jwt.claims',
@@ -248,7 +247,6 @@ select set_config(
 );
 set local role authenticated;
 
--- Collision : la règle actuelle autorise un seul match par date, même à une autre heure.
 select set_config(
   'test.lifecycle_collision_match',
   public.create_match_with_odds_and_sport_limit(
@@ -278,7 +276,6 @@ select throws_ok(
   'un second match le même jour est aussi refusé quelle que soit l’heure'
 );
 
--- Un report par modification conserve l’identité et les données liées.
 reset role;
 insert into public.match_predictions(
   match_id, profile_id, predicted_score_as_grinta,
@@ -358,7 +355,6 @@ select is(
   'le workflow sportif est conservé lors du report'
 );
 
--- La date libérée peut recevoir un nouveau match.
 set local role authenticated;
 select set_config(
   'test.lifecycle_replacement_match',
@@ -374,7 +370,6 @@ select ok(
   'un nouveau match peut occuper la date libérée'
 );
 
--- Tous les statuts proposés sont testés par le RPC de modification.
 create temporary table pg_temp.match_status_state_space (
   proposed_status text primary key,
   expected_success boolean not null,
@@ -446,8 +441,7 @@ select is(
   'le contrat des sept statuts proposés est stable'
 );
 
--- Archivage idempotent explicitement vérifié.
-perform public.update_match_with_odds(
+select public.update_match_with_odds(
   current_setting('test.lifecycle_replacement_match')::uuid,
   'e2000000-0000-0000-0000-000000000001',
   'e3000000-0000-0000-0000-000000000002',
@@ -467,7 +461,6 @@ select throws_ok(
   'archiver deux fois est explicitement refusé'
 );
 
--- Suppression complète de toutes les dépendances créées dans ce scénario.
 select ok(
   public.delete_match(current_setting('test.lifecycle_collision_match')::uuid),
   'la suppression du match reporté réussit'
