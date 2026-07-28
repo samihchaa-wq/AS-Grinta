@@ -88,6 +88,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260713222000_harden_personal_rpcs.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260713225500_harden_staff_season_rpcs.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260720033749_integrity_backfill_and_staff_audit.sql
@@ -127,6 +129,10 @@ jobs:
               -f supabase/migrations/20260720220000_sports_management_release_readiness.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260721170424_unified_match_squad_plan.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260723120000_motm_open_from_kickoff_and_ballot_detail.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260723130000_fix_motm_enum_cast_and_match_delete.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260724000000_admin_send_test_push.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
@@ -185,6 +191,12 @@ jobs:
               -f supabase/migrations/20260728090000_effectif_draft_publication_contract.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260728091000_unified_squad_plan_draft_contract.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260728095000_sync_motm_workflow_after_finalization.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/season_lifecycle_acl.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/match_delete_rpc_grants.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
           } 2>&1 | tee supabase-schema.log

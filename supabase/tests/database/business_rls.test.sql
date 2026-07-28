@@ -42,22 +42,20 @@ values
   ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Gardien', 'Tests', true, true, 1),
   ('40000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 'Buteur', 'Tests', false, true, 2);
 
-insert into public.season_predictions (
-  season_id, predictor_profile_id, season_player_id,
-  category, predicted_value_30, is_filled
-)
-select
-  sp.season_id,
-  p.id,
-  sp.id,
-  case when sp.is_goalkeeper then 'clean_sheets' else 'buts' end,
-  0,
-  false
-from public.season_players sp
-cross join public.profiles p
-where sp.season_id = '20000000-0000-0000-0000-000000000001'
-  and sp.is_active
-  and p.status = 'active';
+select is(
+  (
+    select count(*)
+    from public.season_predictions
+    where season_id = '20000000-0000-0000-0000-000000000001'
+      and predictor_profile_id in (
+        '10000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000002',
+        '10000000-0000-0000-0000-000000000003'
+      )
+  ),
+  6::bigint,
+  'les pronostics saisonniers sont préremplis automatiquement'
+);
 
 -- Match d'abord ouvert : les pronostics historiques sont donc acceptés par le
 -- garde serveur. Il est ensuite marqué terminé pour créditer un x2 à Alice.
