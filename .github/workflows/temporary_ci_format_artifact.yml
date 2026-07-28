@@ -1,22 +1,23 @@
 name: Temporary CI format artifact
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/clarify-effectif-publication
+      - main
 
 permissions:
   contents: read
 
 jobs:
   format-artifact:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout branch
+      - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: agent/clarify-effectif-publication
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
