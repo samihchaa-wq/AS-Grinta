@@ -1,0 +1,72 @@
+name: Once align guest test
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Insert explicit convocation publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/sports_management_guests.test.sql')
+          text = path.read_text()
+          marker = """select is(
+  public.admin_publish_match_composition(
+    current_setting('test.guest_match')::uuid,
+"""
+          block = """select is(
+  public.admin_publish_match_effectif(
+    current_setting('test.guest_match')::uuid,
+    14,
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'season_player_id', participant.season_player_id,
+          'status', 'convoked'
+        ) order by participant.season_player_id
+      )
+      from public.match_sport_participants participant
+      where participant.match_id = current_setting('test.guest_match')::uuid
+        and participant.season_player_id is not null
+        and participant.availability_status = 'available'
+        and participant.is_eligible
+    ),
+    'Publication préalable des convocations avec invité'
+  ) #>> '{convocation_version}',
+  '1',
+  'les convocations sont publiées explicitement avant la composition avec invité'
+);
+
+"""
+          if block not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('Guest publication marker missing or ambiguous')
+              path.write_text(text.replace(marker, block + marker, 1))
+          PY
+          git rm .github/workflows/zz_once_align_guest_test.yml
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Aligner le test invités sur le contrat de publication'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
