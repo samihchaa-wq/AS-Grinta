@@ -53,7 +53,7 @@ void main() {
     );
   });
 
-  test('creates a complete initial draft from published convocations', () {
+  test('creates a complete initial draft from convocations', () {
     final convocations = MatchConvocations(
       matchId: 'match-1',
       opponentName: 'Test FC',
@@ -107,7 +107,6 @@ void main() {
       goalkeeperSeasonPlayerIds: const {'player-1'},
     );
 
-    expect(convocations.isReadyForComposition, isTrue);
     expect(composition.entries.length, 2);
     expect(composition.availableCount, 1);
     expect(composition.notSelectedCount, 1);
@@ -116,47 +115,6 @@ void main() {
           .entriesFor(MatchCompositionZone.available)
           .single
           .isGoalkeeper,
-      isTrue,
-    );
-  });
-
-  test('a saved effectif draft is not ready for composition', () {
-    final convocations = MatchConvocations.fromRpc({
-      'match_id': 'match-draft',
-      'opponent_name': 'Brouillon FC',
-      'kickoff_at': '2026-07-26T18:00:00Z',
-      'season_id': 'season-1',
-      'squad_size_limit': 14,
-      'published_squad_size_limit': 12,
-      'convocation_state': 'published',
-      'convocation_version': 2,
-      'has_unpublished_changes': true,
-      'available_count': 1,
-      'convoked_count': 1,
-      'not_convoked_count': 0,
-      'players': [
-        {
-          'participant_id': 'participant-1',
-          'season_player_id': 'player-1',
-          'first_name': 'Alex',
-          'last_name': 'Test',
-          'availability_status': 'available',
-          'convocation_status': 'convoked',
-          'published_convocation_status': 'not_convoked',
-          'manual_override': true,
-          'recommended_not_convoked': false,
-          'turn_should_consume': false,
-          'turn_state': 'waived',
-        },
-      ],
-    });
-
-    expect(convocations.isPublished, isTrue);
-    expect(convocations.hasUnpublishedChanges, isTrue);
-    expect(convocations.isReadyForComposition, isFalse);
-    expect(convocations.publishedSquadSizeLimit, 12);
-    expect(
-      convocations.players.single.hasUnpublishedConvocationChange,
       isTrue,
     );
   });
@@ -191,8 +149,8 @@ void main() {
       seasonId: 'season-1',
       squadSizeLimit: 14,
       publishedSquadSizeLimit: 14,
-      convocationState: 'published',
-      convocationVersion: 1,
+      convocationState: 'draft',
+      convocationVersion: 0,
       hasUnpublishedChanges: false,
       lateWithdrawalCutoffAt: null,
       availableCount: 1,
@@ -209,7 +167,7 @@ void main() {
           isGoalkeeper: true,
           availabilityStatus: 'not_applicable',
           convocationStatus: ConvocationStatus.convoked,
-          publishedConvocationStatus: ConvocationStatus.convoked,
+          publishedConvocationStatus: ConvocationStatus.notApplicable,
           manualOverride: true,
           waitlistPosition: null,
           recommendedNotConvoked: false,
