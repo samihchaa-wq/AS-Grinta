@@ -104,13 +104,18 @@ select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000
 select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',date '2099-03-01',time '21:00','exterieur',2,3,4)$$,'23505','second match du même jour refusé');
 
 reset role;
-update public.match_predictions
-set predicted_score_as_grinta=2,
-    predicted_score_adverse=1,
-    is_filled=true,
-    use_x2=false
-where match_id=current_setting('test.lifecycle_collision_match')::uuid
-  and profile_id='e1000000-0000-0000-0000-000000000002';
+insert into public.match_predictions(
+  match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,
+  is_filled,use_x2
+) values(
+  current_setting('test.lifecycle_collision_match')::uuid,
+  'e1000000-0000-0000-0000-000000000002',2,1,true,false
+)
+on conflict(match_id,profile_id) do update
+set predicted_score_as_grinta=excluded.predicted_score_as_grinta,
+    predicted_score_adverse=excluded.predicted_score_adverse,
+    is_filled=excluded.is_filled,
+    use_x2=excluded.use_x2;
 select set_config('test.lifecycle_participant_count',(select count(*)::text from public.match_sport_participants where match_id=current_setting('test.lifecycle_collision_match')::uuid),true);
 set local role authenticated;
 select ok(public.update_match_with_odds(
