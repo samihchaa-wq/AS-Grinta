@@ -1,0 +1,76 @@
+name: Temporary align guest publication test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Align guest test with explicit publication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/sports_management_guests.test.sql')
+          text = path.read_text()
+          marker = """select is(
+  public.admin_publish_match_composition(
+    current_setting('test.guest_match')::uuid,
+"""
+          insertion = """select is(
+  public.admin_publish_match_effectif(
+    current_setting('test.guest_match')::uuid,
+    14,
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'season_player_id', participant.season_player_id,
+          'status', 'convoked'
+        ) order by participant.season_player_id
+      )
+      from public.match_sport_participants participant
+      where participant.match_id = current_setting('test.guest_match')::uuid
+        and participant.season_player_id is not null
+        and participant.availability_status = 'available'
+        and participant.is_eligible
+    ),
+    'Publication préalable des convocations avec invité'
+  ) #>> '{convocation_version}',
+  '1',
+  'les convocations sont publiées explicitement avant la composition avec invité'
+);
+
+""" + marker
+          if insertion in text:
+              raise SystemExit(0)
+          if text.count(marker) != 1:
+              raise SystemExit('Guest composition publication marker missing or ambiguous')
+          path.write_text(text.replace(marker, insertion, 1))
+          PY
+          git rm .github/workflows/temporary_align_guest_publication_test.yml
+
+      - name: Commit aligned test
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Aligner le test invités sur la publication explicite'
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
