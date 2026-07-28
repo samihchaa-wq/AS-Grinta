@@ -10,43 +10,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
-  test('keeps the same GoRouter instance across authentication changes',
-      () async {
-    final controller = _TestAuthController();
-    final container = ProviderContainer(
-      overrides: [
-        authControllerProvider.overrideWith((ref) => controller),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'keeps the same GoRouter instance across authentication changes',
+    () async {
+      final controller = _TestAuthController();
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith((ref) => controller),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    await Future<void>.delayed(Duration.zero);
-    final initialRouter = container.read(appRouterProvider);
+      await Future<void>.delayed(Duration.zero);
+      final initialRouter = container.read(appRouterProvider);
 
-    controller.emit(
-      const AuthState(
-        isLoading: false,
-        isAuthenticated: true,
-        profile: AuthProfile(
-          id: 'admin',
-          firstName: 'Admin',
-          lastName: 'User',
-          role: AuthRole.admin,
-          isGoalkeeper: false,
-          isActive: true,
-          mustChangePassword: false,
+      controller.emit(
+        const AuthState(
+          isLoading: false,
+          isAuthenticated: true,
+          profile: AuthProfile(
+            id: 'admin',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: AuthRole.admin,
+            isGoalkeeper: false,
+            isActive: true,
+            mustChangePassword: false,
+          ),
         ),
-      ),
-    );
-    await Future<void>.delayed(Duration.zero);
+      );
+      await Future<void>.delayed(Duration.zero);
 
-    expect(container.read(appRouterProvider), same(initialRouter));
+      expect(container.read(appRouterProvider), same(initialRouter));
 
-    controller.emit(const AuthState(isLoading: false));
-    await Future<void>.delayed(Duration.zero);
+      controller.emit(const AuthState(isLoading: false));
+      await Future<void>.delayed(Duration.zero);
 
-    expect(container.read(appRouterProvider), same(initialRouter));
-  });
+      expect(container.read(appRouterProvider), same(initialRouter));
+    },
+  );
 }
 
 class _TestAuthController extends AuthController {
@@ -79,6 +81,9 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> updatePassword(String password) async {}
 
   @override
+  Future<void> sendPasswordResetEmail(String email) async {}
+
+  @override
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
@@ -96,11 +101,10 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String> registerAccount({
+  Future<void> registerAccount({
     required String firstName,
     required String lastName,
+    required String email,
     required String password,
-  }) async {
-    return 'test';
-  }
+  }) async {}
 }
