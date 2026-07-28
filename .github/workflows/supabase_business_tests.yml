@@ -188,6 +188,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260728091000_unified_squad_plan_draft_contract.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/tests/bootstrap/match_delete_rpc_grants.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
           } 2>&1 | tee supabase-schema.log
 
