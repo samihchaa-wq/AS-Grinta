@@ -1,0 +1,50 @@
+name: Admin squad plan visual review
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/features/sports_management/presentation/admin_squad_plan_page*.dart'
+      - 'lib/features/sports_management/domain/sport_waitlist_models.dart'
+      - 'lib/features/sports_management/domain/match_composition.dart'
+      - 'test/admin_squad_plan_visual_review_test.dart'
+      - '.github/workflows/admin_squad_plan_visual_review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-squad-plan-visual-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Check visual test formatting
+        run: dart format --output=none --set-exit-if-changed test/admin_squad_plan_visual_review_test.dart
+
+      - name: Render admin squad plan states
+        run: flutter test test/admin_squad_plan_visual_review_test.dart
+
+      - name: Upload visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-squad-plan-visual-review
+          path: build/visual-review/*.png
+          if-no-files-found: error
