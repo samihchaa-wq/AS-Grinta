@@ -441,17 +441,16 @@ declare
 begin
   foreach v_status in array array['a_venir', 'en_cours', 'termine', 'archive']
   loop
-    update public.matches
-    set status = v_status
-    where id = 'b5000000-0000-0000-0000-000000000001';
-    update public.match_compositions
-    set has_unpublished_changes = true
-    where match_id = 'b5000000-0000-0000-0000-000000000001';
-
     v_success := true;
     v_sqlstate := null;
     v_message := null;
     begin
+      update public.matches
+      set status = v_status
+      where id = 'b5000000-0000-0000-0000-000000000001';
+      update public.match_compositions
+      set has_unpublished_changes = true
+      where match_id = 'b5000000-0000-0000-0000-000000000001';
       perform private.publish_match_composition(
         'b5000000-0000-0000-0000-000000000001',
         false,
