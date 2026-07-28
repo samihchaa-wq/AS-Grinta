@@ -35,19 +35,14 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
 
-      - name: Prepare visual review artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          dart format test/admin_squad_plan_visual_review_test.dart
-          mkdir -p build/visual-review
-          cp test/admin_squad_plan_visual_review_test.dart \
-            build/visual-review/admin_squad_plan_visual_review_test.formatted.dart
+      - name: Check visual test formatting
+        run: dart format --output=none --set-exit-if-changed test/admin_squad_plan_visual_review_test.dart
 
       - name: Render admin squad plan states
         shell: bash
         run: |
           set -o pipefail
+          mkdir -p build/visual-review
           timeout --signal=TERM 180s flutter test \
             --reporter expanded \
             --timeout 30s \
@@ -59,5 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: admin-squad-plan-visual-review
-          path: build/visual-review/*
+          path: |
+            build/visual-review/*.png
+            build/visual-review/visual-test.log
           if-no-files-found: error
