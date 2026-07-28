@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          flutter test \
+          timeout --signal=TERM 180s flutter test \
             --reporter expanded \
             --timeout 30s \
             test/admin_squad_plan_visual_review_test.dart \
