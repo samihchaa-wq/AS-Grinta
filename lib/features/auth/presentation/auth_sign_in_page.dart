@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,33 +12,88 @@ class AuthSignInPage extends ConsumerStatefulWidget {
 }
 
 class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final username = _usernameController.text.trim().toLowerCase();
+    final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text;
-    if (username.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Renseigne ton identifiant et ton mot de passe.'),
+          content: Text('Renseigne ton e-mail et ton mot de passe.'),
         ),
       );
       return;
     }
 
-    await ref.read(authControllerProvider.notifier).signIn(
-          username: username,
-          password: password,
-        );
+    await ref
+        .read(authControllerProvider.notifier)
+        .signIn(username: email, password: password);
+  }
+
+  Future<void> _forgotPassword() async {
+    final controller = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Mot de passe oublié'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          autocorrect: false,
+          autofillHints: const [AutofillHints.email],
+          decoration: const InputDecoration(
+            labelText: 'Adresse e-mail',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Envoyer le lien'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (email == null || email.isEmpty || !mounted) return;
+
+    try {
+      await ref.read(authRepositoryProvider).sendPasswordResetEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Si un compte correspond à cette adresse, un e-mail a été envoyé.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Si un compte correspond à cette adresse, un e-mail a été envoyé.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -45,9 +101,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if ((next.error ?? '').isNotEmpty &&
           (previous?.error ?? '') != next.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(next.error!)));
       }
     });
 
@@ -84,18 +140,20 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       ),
                       const SizedBox(height: 24),
                       TextField(
-                        controller: _usernameController,
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
                         autocorrect: false,
+                        autofillHints: const [AutofillHints.email],
                         decoration: const InputDecoration(
-                          labelText: 'Identifiant',
-                          hintText: 'prénom + initiale du nom, ex. samihc',
-                          prefixIcon: Icon(Icons.person_outline),
+                          labelText: 'Adresse e-mail',
+                          prefixIcon: Icon(Icons.email_outlined),
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        autofillHints: const [AutofillHints.password],
                         onSubmitted: (_) =>
                             authState.isLoading ? null : _submit(),
                         decoration: InputDecoration(
@@ -107,15 +165,20 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                                   ? Icons.visibility_outlined
                                   : Icons.visibility_off_outlined,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed:
+                              authState.isLoading ? null : _forgotPassword,
+                          child: const Text('Mot de passe oublié ?'),
+                        ),
+                      ),
                       FilledButton.icon(
                         onPressed: authState.isLoading ? null : _submit,
                         icon: const Icon(Icons.login_rounded),
@@ -126,14 +189,6 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                         onPressed: () => context.go('/auth/register'),
                         icon: const Icon(Icons.person_add_alt_outlined),
                         label: const Text('Créer mon compte'),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Mot de passe oublié ? Demande à l’admin de le '
-                        'réinitialiser. Il te transmettra un mot de passe '
-                        'temporaire à remplacer après connexion.',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),

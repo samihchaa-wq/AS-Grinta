@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
@@ -16,15 +15,12 @@ class AuthRepository {
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
-  static String usernameToEmail(String username) =>
-      '${username.trim().toLowerCase()}@${AppConfig.usernameDomain}';
-
   Future<void> signInWithUsername({
     required String username,
     required String password,
   }) async {
     final response = await _client.auth.signInWithPassword(
-      email: usernameToEmail(username),
+      email: username.trim().toLowerCase(),
       password: password,
     );
     if (response.session == null || response.user == null) {
@@ -32,27 +28,34 @@ class AuthRepository {
     }
   }
 
-  Future<String> registerAccount({
+  Future<void> registerAccount({
     required String firstName,
     required String lastName,
+    required String email,
     required String password,
   }) async {
     final passwordError = PasswordPolicy.validate(password);
     if (passwordError != null) throw ArgumentError(passwordError);
 
-    final response = await _client.functions.invoke(
-      'register-account',
-      body: {
-        'firstName': firstName.trim(),
-        'lastName': lastName.trim(),
-        'password': password,
+    final response = await _client.auth.signUp(
+      email: email.trim().toLowerCase(),
+      password: password,
+      emailRedirectTo: Uri.base.resolve('/auth/sign-in').toString(),
+      data: {
+        'first_name': firstName.trim(),
+        'last_name': lastName.trim(),
       },
     );
-    final data = response.data;
-    final username = data is Map ? data['username']?.toString() : null;
-    if (username != null && username.isNotEmpty) return username;
-    final message = data is Map ? data['error']?.toString() : null;
-    throw StateError(message ?? 'La création du compte a échoué.');
+    if (response.user == null) {
+      throw StateError('La création du compte a échoué.');
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _client.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      redirectTo: Uri.base.resolve('/auth/new-password?recovery=1').toString(),
+    );
   }
 
   Future<void> updatePassword(String password) async {
@@ -61,9 +64,12 @@ class AuthRepository {
 
     await _client.auth.updateUser(UserAttributes(password: password));
 
-    final result = await _client.rpc('complete_password_change');
-    if (result != true) {
-      throw StateError('Le changement de mot de passe n’a pas été finalisé.');
+    final profile = await fetchProfile();
+    if (profile?.mustChangePassword == true) {
+      final result = await _client.rpc('complete_password_change');
+      if (result != true) {
+        throw StateError('Le changement de mot de passe n’a pas été finalisé.');
+      }
     }
   }
 
@@ -78,9 +84,6 @@ class AuthRepository {
     Object? lastError;
     for (var attempt = 0; attempt < attempts; attempt++) {
       try {
-        // Timeout de sécurité : si l'appel réseau reste en attente (blip
-        // réseau…), on échoue proprement au lieu de bloquer l'écran de
-        // chargement indéfiniment.
         final response = await _client
             .rpc('get_my_profile')
             .timeout(const Duration(seconds: 12));
@@ -130,8 +133,6 @@ class AuthRepository {
     return profile;
   }
 
-  /// Téléverse la photo de profil de l'utilisateur courant et met à jour
-  /// `profiles.photo_url`. Renvoie le profil rafraîchi.
   Future<AuthProfile> uploadProfilePhoto({
     required Uint8List bytes,
     required String fileExt,
@@ -154,14 +155,10 @@ class AuthRepository {
     final publicUrl = bucket.getPublicUrl(path);
 
     try {
-      // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
-      // profiles.photo_url).
       await _client.from('profiles').update({
         'photo_url': publicUrl,
       }).eq('id', userId);
     } catch (_) {
-      // Une erreur entre l'upload et la mise à jour ne doit pas laisser un
-      // fichier orphelin dans le bucket.
       await bucket.remove([path]);
       rethrow;
     }

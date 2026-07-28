@@ -18,19 +18,23 @@ String? resolveAuthRedirect({
   }
 
   final isPasswordChangeRoute = location == '/auth/new-password';
+  final isRecoveryRoute =
+      isPasswordChangeRoute && uri.queryParameters['recovery'] == '1';
   final mustChangePassword = authState.profile?.mustChangePassword == true;
 
   if (authState.isAuthenticated && mustChangePassword) {
     return isPasswordChangeRoute ? null : '/auth/new-password';
   }
-  if (isPasswordChangeRoute && !mustChangePassword) return '/matches';
+  if (isPasswordChangeRoute && !mustChangePassword && !isRecoveryRoute) {
+    return '/matches';
+  }
 
   final isAuthRoute = location.startsWith('/auth');
   if (!authState.isAuthenticated && !isAuthRoute && location != '/') {
     return '/auth/sign-in?redirect=${Uri.encodeComponent(uri.toString())}';
   }
 
-  if (authState.isAuthenticated && isAuthRoute) {
+  if (authState.isAuthenticated && isAuthRoute && !isRecoveryRoute) {
     final redirect = _safeLocalRedirect(uri.queryParameters['redirect']);
     return redirect ?? '/matches';
   }
