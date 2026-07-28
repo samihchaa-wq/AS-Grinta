@@ -50,6 +50,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     super.dispose();
   }
 
+  void _updateState(VoidCallback callback) => setState(callback);
+
   bool get _locked {
     final kickoff = _convocations?.kickoffAt;
     return kickoff != null && !DateTime.now().isBefore(kickoff);

@@ -54,7 +54,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   void _setConvoked(ConvocationPlayer player, bool value) {
     if (_busy || _locked || player.isGuest) return;
-    setState(() {
+    _updateState(() {
       if (value) {
         _desiredConvoked.add(player.participantId);
       } else {
@@ -92,7 +92,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (convocations == null || _busy || _locked) return false;
     final limit = _validatedSquadLimit();
     if (limit == null) return false;
-    setState(() => _busy = true);
+    _updateState(() => _busy = true);
     try {
       await ref.read(sportWaitlistRepositoryProvider).saveEffectif(
             matchId: convocations.matchId,
@@ -114,7 +114,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       if (mounted) _showMessage(humanizeError(error));
       return false;
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) _updateState(() => _busy = false);
     }
   }
 
@@ -159,7 +159,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     );
     if (!confirmed || !mounted) return;
 
-    setState(() => _busy = true);
+    _updateState(() => _busy = true);
     try {
       await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
             matchId: convocations.matchId,
@@ -173,7 +173,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) _updateState(() => _busy = false);
     }
   }
 
@@ -204,7 +204,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     );
     if (!confirmed || !mounted) return;
 
-    setState(() => _busy = true);
+    _updateState(() => _busy = true);
     try {
       final repository = ref.read(sportWaitlistRepositoryProvider);
       final result = await repository.sendAvailabilityReminder(
@@ -216,7 +216,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       );
       final updated = await repository.fetchReminderSummary(matchId);
       if (!mounted) return;
-      setState(() => _reminders = updated);
+      _updateState(() => _reminders = updated);
       if (result.createdCount > 0) {
         _showMessage(
           '${result.createdCount} notification'
@@ -231,7 +231,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) _updateState(() => _busy = false);
     }
   }
 
@@ -388,7 +388,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     firstName.dispose();
     lastName.dispose();
     if (input == null) return;
-    setState(() => _busy = true);
+    _updateState(() => _busy = true);
     try {
       await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
             matchId: matchId,
@@ -401,7 +401,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) _updateState(() => _busy = false);
     }
   }
 
@@ -415,7 +415,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text('${player.displayName} sera retiré de ce match.'),
     );
     if (!confirmed || !mounted) return;
-    setState(() => _busy = true);
+    _updateState(() => _busy = true);
     try {
       await ref.read(guestPlayersRepositoryProvider).removeGuest(
             matchId: matchId,
@@ -426,7 +426,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) _updateState(() => _busy = false);
     }
   }
 
@@ -486,7 +486,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     labelText: 'Nombre de joueurs souhaité',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (_) => setState(() => _effectifDirty = true),
+                  onChanged: (_) => _updateState(() => _effectifDirty = true),
                 ),
                 if (over) ...[
                   const SizedBox(height: 10),

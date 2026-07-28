@@ -248,7 +248,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     }
     final benchBase = composition.entriesFor(MatchCompositionZone.bench).length;
     var benchExtra = 0;
-    setState(() {
+    _updateState(() {
       _composition = composition.copyWith(
         formationCode: code,
         hasUnpublishedChanges: true,
@@ -290,7 +290,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final oldPosition = moving.zone == MatchCompositionZone.field
         ? Offset(moving.x ?? .5, moving.y ?? .5)
         : null;
-    setState(() {
+    _updateState(() {
       _composition = composition.copyWith(
         hasUnpublishedChanges: true,
         entries: [
@@ -324,7 +324,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     if (composition == null || _compositionLocked) return;
     final benchCount =
         composition.entriesFor(MatchCompositionZone.bench).length;
-    setState(() {
+    _updateState(() {
       _composition = composition.copyWith(
         hasUnpublishedChanges: true,
         entries: [
@@ -419,7 +419,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       if (!confirmed || !mounted) return null;
     }
 
-    setState(() => _busy = true);
+    _updateState(() => _busy = true);
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
       final limit = int.tryParse(_limitController.text) ??
@@ -453,7 +453,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             : saved;
       }
       if (!mounted) return result;
-      setState(() {
+      _updateState(() {
         _composition = result;
         if (_postMatch) _compositionExisted = true;
       });
@@ -468,7 +468,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       if (mounted) _showMessage(humanizeError(error));
       return null;
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) _updateState(() => _busy = false);
     }
   }
 
