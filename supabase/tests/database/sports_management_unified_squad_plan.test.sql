@@ -31,7 +31,7 @@ select ok(
   'le plan unifié est réservé aux utilisateurs authentifiés'
 );
 
-insert into auth.users (id, email, raw_user_meta_data)
+insert into auth.users(id, email, raw_user_meta_data)
 values
   (
     'a1000000-0000-0000-0000-000000000001',
@@ -128,21 +128,13 @@ set availability_status = case
     end,
     availability_updated_at = now(),
     availability_updated_by = 'a1000000-0000-0000-0000-000000000001',
+    convocation_status = 'not_applicable',
+    convocation_manual_override = false,
+    waitlist_turn_should_consume = false,
+    waitlist_turn_state = 'not_applicable',
     updated_at = now()
 from ranked
 where participant.id = ranked.id;
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-select public.admin_recompute_match_convocations(
-  current_setting('test.unified_squad_match')::uuid,
-  false
-);
 
 create or replace function pg_temp.unified_squad_payload()
 returns jsonb
@@ -173,7 +165,6 @@ as $function$
   from ranked;
 $function$;
 
-reset role;
 select set_config(
   'request.jwt.claims',
   '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
@@ -214,14 +205,12 @@ select is(
 
 select is(
   (
-    select count(*)
-    from public.match_sport_participants
+    select convocation_state::text || '/' || convocation_version::text
+    from public.match_sport_workflows
     where match_id = current_setting('test.unified_squad_match')::uuid
-      and availability_status = 'available'
-      and convocation_status = 'convoked'
   ),
-  2::bigint,
-  'les deux joueurs placés sont sélectionnés'
+  'draft/0',
+  'enregistrer le plan ne publie pas les convocations'
 );
 
 select is(
@@ -230,24 +219,34 @@ select is(
     from public.match_sport_participants
     where match_id = current_setting('test.unified_squad_match')::uuid
       and availability_status = 'available'
-      and convocation_status = 'not_convoked'
-      and waitlist_turn_should_consume
+      and convocation_status <> 'not_applicable'
   ),
-  1::bigint,
-  'le joueur présent laissé hors groupe consomme son tour'
+  0::bigint,
+  'les colonnes visibles par les joueurs sont restaurées après le brouillon'
 );
 
 select is(
-  (
-    select count(*)
-    from public.match_sport_participants
-    where match_id = current_setting('test.unified_squad_match')::uuid
-      and availability_status = 'absent'
-      and convocation_status = 'not_applicable'
-      and selection_status = 'not_selected'
-  ),
-  1::bigint,
-  'le joueur absent reste automatiquement hors groupe'
+  public.admin_get_match_convocations(
+    current_setting('test.unified_squad_match')::uuid
+  ) #>> '{convoked_count}',
+  '2',
+  'l’administration relit les deux joueurs du brouillon comme convoqués'
+);
+
+select is(
+  public.admin_get_match_convocations(
+    current_setting('test.unified_squad_match')::uuid
+  ) #>> '{not_convoked_count}',
+  '1',
+  'le joueur disponible laissé hors groupe reste dans le brouillon'
+);
+
+select is(
+  public.admin_get_match_convocations(
+    current_setting('test.unified_squad_match')::uuid
+  ) #>> '{has_unpublished_changes}',
+  'true',
+  'le plan unifié signale les modifications non publiées'
 );
 
 select is(
@@ -268,7 +267,45 @@ select is(
     where match_id = current_setting('test.unified_squad_match')::uuid
   ),
   'published/published',
-  'la sélection et la composition sont publiées ensemble'
+  'la sélection et la composition sont publiées ensemble explicitement'
+);
+
+select is(
+  (
+    select count(*)
+    from public.match_sport_participants
+    where match_id = current_setting('test.unified_squad_match')::uuid
+      and availability_status = 'available'
+      and convocation_status = 'convoked'
+  ),
+  2::bigint,
+  'les deux joueurs placés deviennent visibles comme convoqués'
+);
+
+select is(
+  (
+    select count(*)
+    from public.match_sport_participants
+    where match_id = current_setting('test.unified_squad_match')::uuid
+      and availability_status = 'available'
+      and convocation_status = 'not_convoked'
+      and waitlist_turn_should_consume
+  ),
+  1::bigint,
+  'le joueur laissé hors groupe consomme son tour après publication'
+);
+
+select is(
+  (
+    select count(*)
+    from public.match_sport_participants
+    where match_id = current_setting('test.unified_squad_match')::uuid
+      and availability_status = 'absent'
+      and convocation_status = 'not_applicable'
+      and selection_status = 'not_selected'
+  ),
+  1::bigint,
+  'le joueur absent reste automatiquement hors groupe'
 );
 
 reset role;

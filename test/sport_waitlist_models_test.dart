@@ -25,15 +25,17 @@ void main() {
     expect(waitlist.entries.single.previousSeasonMatchCount, 12);
   });
 
-  test('keeps convocation and turn consumption independent', () {
+  test('keeps published convocations separate from a private draft', () {
     final snapshot = MatchConvocations.fromRpc({
       'match_id': 'match-1',
       'opponent_name': 'Positive',
       'kickoff_at': '2026-07-25T19:00:00Z',
       'season_id': 'season-1',
-      'squad_size_limit': 14,
+      'squad_size_limit': 15,
+      'published_squad_size_limit': 14,
       'convocation_state': 'published',
       'convocation_version': 3,
+      'has_unpublished_changes': true,
       'late_withdrawal_cutoff_at': '2026-07-24T10:00:00Z',
       'available_count': 15,
       'convoked_count': 14,
@@ -45,7 +47,8 @@ void main() {
           'first_name': 'Samih',
           'last_name': 'Grinta',
           'availability_status': 'available',
-          'convocation_status': 'convoked',
+          'convocation_status': 'not_convoked',
+          'published_convocation_status': 'convoked',
           'manual_override': true,
           'waitlist_position': 1,
           'recommended_not_convoked': false,
@@ -57,11 +60,16 @@ void main() {
     });
 
     final player = snapshot.players.single;
-    expect(player.isConvoked, isTrue);
+    expect(player.isNotConvoked, isTrue);
+    expect(player.publishedConvocationStatus, ConvocationStatus.convoked);
+    expect(player.hasUnpublishedConvocationChange, isTrue);
     expect(player.turnShouldConsume, isTrue);
     expect(player.turnState, WaitlistTurnState.pending);
     expect(snapshot.isPublished, isTrue);
-    expect(snapshot.isOverLimit, isFalse);
+    expect(snapshot.hasUnpublishedChanges, isTrue);
+    expect(snapshot.isReadyForComposition, isFalse);
+    expect(snapshot.squadSizeLimit, 15);
+    expect(snapshot.publishedSquadSizeLimit, 14);
   });
 
   test('parses an early promoted player with a waived turn', () {
@@ -72,6 +80,7 @@ void main() {
       'last_name': 'Grinta',
       'availability_status': 'available',
       'convocation_status': 'convoked',
+      'published_convocation_status': 'convoked',
       'manual_override': true,
       'waitlist_position': 2,
       'recommended_not_convoked': false,
@@ -81,6 +90,7 @@ void main() {
     });
 
     expect(player.isConvoked, isTrue);
+    expect(player.hasUnpublishedConvocationChange, isFalse);
     expect(player.turnShouldConsume, isFalse);
     expect(player.turnState, WaitlistTurnState.waived);
     expect(player.promotedAfterWithdrawalAt, isNotNull);
