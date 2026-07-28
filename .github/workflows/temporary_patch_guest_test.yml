@@ -1,0 +1,79 @@
+name: Temporary patch guest test
+
+on:
+  push:
+    branches:
+      - agent/clarify-effectif-publication
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/clarify-effectif-publication
+          fetch-depth: 0
+
+      - name: Patch guest test and remove this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/sports_management_guests.test.sql')
+          text = path.read_text()
+          marker = """set local role authenticated;
+
+select is(
+  public.admin_save_match_composition(
+    current_setting('test.guest_match')::uuid,
+"""
+          replacement = """set local role authenticated;
+
+select is(
+  public.admin_publish_match_effectif(
+    current_setting('test.guest_match')::uuid,
+    14,
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'season_player_id', participant.season_player_id,
+          'status', 'convoked'
+        ) order by participant.season_player_id
+      )
+      from public.match_sport_participants participant
+      where participant.match_id = current_setting('test.guest_match')::uuid
+        and participant.season_player_id is not null
+        and participant.availability_status = 'available'
+    ),
+    'Publication préalable des convocations avec invité'
+  ) #>> '{convocation_version}',
+  '1',
+  'les convocations sont publiées explicitement avant la composition invitée'
+);
+
+select is(
+  public.admin_save_match_composition(
+    current_setting('test.guest_match')::uuid,
+"""
+          if text.count(marker) != 1:
+              raise SystemExit('Point d’insertion introuvable ou ambigu')
+          path.write_text(text.replace(marker, replacement, 1))
+          PY
+          git rm .github/workflows/temporary_patch_guest_test.yml
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/tests/database/sports_management_guests.test.sql
+          git commit -m 'Adapter le test des invités au parcours explicite'
+          git push origin HEAD:agent/clarify-effectif-publication
