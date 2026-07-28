@@ -70,7 +70,10 @@ void main() {
         '/auth/sign-in?redirect=%2Fpronos%3Fcategory%3Dmatches',
         matched: '/auth/sign-in',
       ),
-      _route('/auth/sign-in?redirect=%2F%2Fevil.test', matched: '/auth/sign-in'),
+      _route(
+        '/auth/sign-in?redirect=%2F%2Fevil.test',
+        matched: '/auth/sign-in',
+      ),
       _route(
         '/auth/sign-in?redirect=https%3A%2F%2Fevil.test',
         matched: '/auth/sign-in',
@@ -101,7 +104,8 @@ void main() {
           expect(
             observed,
             expected,
-            reason: 'scenario=${scenario.name} route=${route.uri} '
+            reason:
+                'scenario=${scenario.name} route=${route.uri} '
                 'matched=${route.matchedLocation} sports=$sportsEnabled',
           );
         }
@@ -151,7 +155,8 @@ String? _expectedRedirect({
 
   final segments = uri.pathSegments.where((value) => value.isNotEmpty).toList();
   final suffix = segments.isEmpty ? '' : segments.last;
-  final playerSportRoute = segments.length == 3 &&
+  final playerSportRoute =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {
         'availability',
@@ -160,11 +165,13 @@ String? _expectedRedirect({
         'composition',
         'guests',
       }.contains(suffix);
-  final adminSportMatchRoute = segments.length == 4 &&
+  final adminSportMatchRoute =
+      segments.length == 4 &&
       segments[0] == 'admin' &&
       segments[1] == 'matches' &&
       suffix == 'sport-management';
-  final adminSportRootRoute = segments.length == 2 &&
+  final adminSportRootRoute =
+      segments.length == 2 &&
       segments.first == 'admin' &&
       const {'composition', 'guests', 'motm', 'waitlist'}.contains(suffix);
   final sportRoute =
@@ -181,11 +188,13 @@ String? _expectedRedirect({
 
   final role = authState.profile?.role;
   final admin = role == AuthRole.admin;
-  final finalization = matchedLocation.startsWith('/matches/') &&
+  final finalization =
+      matchedLocation.startsWith('/matches/') &&
       matchedLocation.endsWith('/finalize');
   final adminRoot =
       matchedLocation == '/admin' || matchedLocation.startsWith('/admin/');
-  final matchAdmin = segments.length == 3 &&
+  final matchAdmin =
+      segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(suffix);
 
@@ -208,11 +217,8 @@ String? _safeRedirect(String? value) {
   return uri.toString();
 }
 
-AuthState _authenticated(AuthProfile profile) => AuthState(
-      isLoading: false,
-      isAuthenticated: true,
-      profile: profile,
-    );
+AuthState _authenticated(AuthProfile profile) =>
+    AuthState(isLoading: false, isAuthenticated: true, profile: profile);
 
 AuthProfile _profile(
   AuthRole role, {
@@ -230,10 +236,8 @@ AuthProfile _profile(
   );
 }
 
-_RouteCase _route(String location, {String? matched}) => _RouteCase(
-      Uri.parse(location),
-      matched ?? Uri.parse(location).path,
-    );
+_RouteCase _route(String location, {String? matched}) =>
+    _RouteCase(Uri.parse(location), matched ?? Uri.parse(location).path);
 
 class _AuthScenario {
   const _AuthScenario(this.name, this.state);
