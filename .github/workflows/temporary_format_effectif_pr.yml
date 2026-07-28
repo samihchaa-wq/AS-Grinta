@@ -1,0 +1,46 @@
+name: Temporary format effectif PR
+
+on:
+  push:
+    branches:
+      - agent/clarify-effectif-publication
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart \
+            test/effectif_publication_contract_test.dart
+
+      - name: Collect formatted files
+        run: |
+          mkdir -p formatted/lib/features/sports_management/presentation formatted/test
+          cp lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart \
+            formatted/lib/features/sports_management/presentation/
+          cp lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart \
+            formatted/lib/features/sports_management/presentation/
+          cp test/effectif_publication_contract_test.dart formatted/test/
+
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-effectif-pr-files
+          path: formatted
+          if-no-files-found: error
