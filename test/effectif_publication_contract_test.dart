@@ -42,6 +42,7 @@ void main() {
     expect(convocations.players.single.hasUnpublishedConvocationChange, isTrue);
   });
 
+  // Garde le contrat d’interface séparé du détail d’implémentation Supabase.
   test(
     'the admin flow keeps effectif and composition publications separate',
     () {
