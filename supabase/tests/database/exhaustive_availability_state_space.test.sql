@@ -5,16 +5,8 @@ select no_plan();
 
 insert into auth.users(id, email, raw_user_meta_data)
 values
-  (
-    'a1000000-0000-0000-0000-000000000001',
-    'state-space-admin@example.invalid',
-    '{"first_name":"Admin","last_name":"StateSpace"}'::jsonb
-  ),
-  (
-    'a1000000-0000-0000-0000-000000000002',
-    'state-space-player@example.invalid',
-    '{"first_name":"Player","last_name":"StateSpace"}'::jsonb
-  );
+  ('a1000000-0000-0000-0000-000000000001', 'state-space-admin@example.invalid', '{"first_name":"Admin"}'::jsonb),
+  ('a1000000-0000-0000-0000-000000000002', 'state-space-player@example.invalid', '{"first_name":"Player"}'::jsonb);
 
 update public.profiles
 set role = case
@@ -136,11 +128,7 @@ begin
         v_message := sqlerrm;
       end;
 
-      insert into pg_temp.availability_state_space(
-        actor_kind, initial_status, target_status, reason_kind,
-        expected_success, observed_success, observed_sqlstate,
-        observed_message, observed_final_status, observed_private_comment
-      )
+      insert into pg_temp.availability_state_space
       select
         'player', v_initial::text, v_target, 'not_applicable',
         v_target in ('available', 'absent'),
@@ -211,11 +199,7 @@ begin
           v_message := sqlerrm;
         end;
 
-        insert into pg_temp.availability_state_space(
-          actor_kind, initial_status, target_status, reason_kind,
-          expected_success, observed_success, observed_sqlstate,
-          observed_message, observed_final_status, observed_private_comment
-        )
+        insert into pg_temp.availability_state_space
         select
           'admin', v_initial::text, v_target, v_reason_kind,
           v_target in ('available', 'absent', 'no_response')
@@ -248,67 +232,52 @@ select is(
   20::bigint,
   'les 20 transitions joueur sont exécutées'
 );
-
 select is(
   (select count(*) from pg_temp.availability_state_space where actor_kind = 'admin'),
   60::bigint,
   'les 60 transitions administrateur sont exécutées'
 );
-
 select is(
-  (
-    select count(*)
-    from pg_temp.availability_state_space
-    where observed_success is distinct from expected_success
-  ),
+  (select count(*) from pg_temp.availability_state_space
+   where observed_success is distinct from expected_success),
   0::bigint,
-  'toutes les transitions de disponibilité suivent le contrat attendu'
+  'toutes les transitions suivent le contrat attendu'
+);
+select is(
+  (select count(*) from pg_temp.availability_state_space
+   where not observed_success and observed_sqlstate <> '22023'),
+  0::bigint,
+  'les entrées invalides utilisent une erreur de validation stable'
+);
+select is(
+  (select count(*) from pg_temp.availability_state_space
+   where observed_success and target_status = 'available'
+     and observed_private_comment is not null),
+  0::bigint,
+  'disponible efface toujours le commentaire privé'
+);
+select is(
+  (select count(*) from pg_temp.availability_state_space
+   where observed_success and target_status = 'absent'
+     and observed_private_comment is null),
+  0::bigint,
+  'absent conserve toujours le commentaire fourni'
 );
 
-select is(
-  (
-    select count(*)
-    from pg_temp.availability_state_space
-    where not observed_success and observed_sqlstate <> '22023'
-  ),
-  0::bigint,
-  'toutes les entrées invalides échouent avec une erreur de validation stable'
+-- Frontières : l'administrateur prépare l'état, le joueur tente l'action.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
 );
-
-select is(
-  (
-    select count(*)
-    from pg_temp.availability_state_space
-    where observed_success
-      and target_status = 'available'
-      and observed_private_comment is not null
-  ),
-  0::bigint,
-  'le statut disponible efface toujours le commentaire privé'
-);
-
-select is(
-  (
-    select count(*)
-    from pg_temp.availability_state_space
-    where observed_success
-      and target_status = 'absent'
-      and observed_private_comment is null
-  ),
-  0::bigint,
-  'le statut absent conserve toujours le commentaire fourni'
-);
-
--- Frontières temporelles et opérationnelles.
+update public.match_sport_workflows
+set availability_state = 'open', availability_opens_at = now() + interval '1 hour'
+where match_id = 'a5000000-0000-0000-0000-000000000001';
 select set_config(
   'request.jwt.claims',
   '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
   true
 );
-
-update public.match_sport_workflows
-set availability_state = 'open', availability_opens_at = now() + interval '1 hour'
-where match_id = 'a5000000-0000-0000-0000-000000000001';
 select throws_ok(
   $$select private.set_my_match_availability(
     'a5000000-0000-0000-0000-000000000001','available',null
@@ -317,9 +286,19 @@ select throws_ok(
   'la réponse avant ouverture est refusée'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
 update public.match_sport_workflows
 set availability_state = 'closed', availability_opens_at = now() - interval '1 hour'
 where match_id = 'a5000000-0000-0000-0000-000000000001';
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
 select throws_ok(
   $$select private.set_my_match_availability(
     'a5000000-0000-0000-0000-000000000001','available',null
@@ -328,12 +307,24 @@ select throws_ok(
   'un workflow fermé refuse la réponse'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
 update public.match_sport_workflows
 set availability_state = 'open', availability_opens_at = now() - interval '1 hour'
 where match_id = 'a5000000-0000-0000-0000-000000000001';
 update public.matches
-set kickoff_at = now() - interval '1 second'
+set match_date = ((now() - interval '1 minute') at time zone 'Europe/Paris')::date,
+    match_time = ((now() - interval '1 minute') at time zone 'Europe/Paris')::time,
+    kickoff_at = now() - interval '1 minute'
 where id = 'a5000000-0000-0000-0000-000000000001';
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
 select throws_ok(
   $$select private.set_my_match_availability(
     'a5000000-0000-0000-0000-000000000001','available',null
@@ -342,12 +333,24 @@ select throws_ok(
   'une réponse après le coup d’envoi est refusée'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
 update public.matches
-set kickoff_at = now() + interval '2 days'
+set match_date = ((now() + interval '2 days') at time zone 'Europe/Paris')::date,
+    match_time = ((now() + interval '2 days') at time zone 'Europe/Paris')::time,
+    kickoff_at = now() + interval '2 days'
 where id = 'a5000000-0000-0000-0000-000000000001';
 update public.profiles
 set status = 'pending'
 where id = 'a1000000-0000-0000-0000-000000000002';
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
 select throws_ok(
   $$select private.set_my_match_availability(
     'a5000000-0000-0000-0000-000000000001','available',null
@@ -356,12 +359,22 @@ select throws_ok(
   'un profil inactif ne peut pas répondre'
 );
 
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
 update public.profiles
 set status = 'active'
 where id = 'a1000000-0000-0000-0000-000000000002';
 update private.app_feature_flags
 set enabled = false, updated_at = now()
 where key = 'sports_management';
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
 select throws_ok(
   $$select private.set_my_match_availability(
     'a5000000-0000-0000-0000-000000000001','available',null
