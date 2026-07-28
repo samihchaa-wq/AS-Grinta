@@ -43,7 +43,14 @@ jobs:
             build/visual-review/admin_squad_plan_visual_review_test.formatted.dart
 
       - name: Render admin squad plan states
-        run: flutter test test/admin_squad_plan_visual_review_test.dart
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test \
+            --reporter expanded \
+            --timeout 30s \
+            test/admin_squad_plan_visual_review_test.dart \
+            2>&1 | tee build/visual-review/visual-test.log
 
       - name: Upload visual review
         if: always()
