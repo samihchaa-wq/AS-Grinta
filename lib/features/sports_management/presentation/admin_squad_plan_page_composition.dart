@@ -91,14 +91,16 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 isGoalkeeper: base.isGoalkeeper,
                 zone: base.canBeSelected
                     ? previous.zone == MatchCompositionZone.field
-                        ? MatchCompositionZone.field
-                        : MatchCompositionZone.bench
+                          ? MatchCompositionZone.field
+                          : MatchCompositionZone.bench
                     : MatchCompositionZone.notSelected,
-                x: base.canBeSelected &&
+                x:
+                    base.canBeSelected &&
                         previous.zone == MatchCompositionZone.field
                     ? previous.x
                     : null,
-                y: base.canBeSelected &&
+                y:
+                    base.canBeSelected &&
                         previous.zone == MatchCompositionZone.field
                     ? previous.y
                     : null,
@@ -111,8 +113,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 convocationStatus: base.convocationStatus,
                 selectionStatus: base.canBeSelected
                     ? previous.zone == MatchCompositionZone.field
-                        ? 'starter'
-                        : 'substitute'
+                          ? 'starter'
+                          : 'substitute'
                     : 'not_selected',
               )
             else
@@ -322,8 +324,9 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
   void _moveToBench(MatchCompositionEntry moving) {
     final composition = _composition;
     if (composition == null || _compositionLocked) return;
-    final benchCount =
-        composition.entriesFor(MatchCompositionZone.bench).length;
+    final benchCount = composition
+        .entriesFor(MatchCompositionZone.bench)
+        .length;
     setState(() {
       _composition = composition.copyWith(
         hasUnpublishedChanges: true,
@@ -368,7 +371,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
   Future<bool> _confirmCompositionPublication(MatchComposition ready) {
     final fieldCount = ready.entriesFor(MatchCompositionZone.field).length;
     final benchCount = ready.entriesFor(MatchCompositionZone.bench).length;
-    final limit = int.tryParse(_limitController.text) ??
+    final limit =
+        int.tryParse(_limitController.text) ??
         _convocations?.squadSizeLimit ??
         14;
     final selectedCount = fieldCount + benchCount;
@@ -422,12 +426,13 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     setState(() => _busy = true);
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
-      final limit = int.tryParse(_limitController.text) ??
+      final limit =
+          int.tryParse(_limitController.text) ??
           _convocations?.squadSizeLimit ??
           14;
       final selectedCount =
           ready.entriesFor(MatchCompositionZone.field).length +
-              ready.entriesFor(MatchCompositionZone.bench).length;
+          ready.entriesFor(MatchCompositionZone.bench).length;
       final allowException = selectedCount > limit;
       late final MatchComposition result;
       if (_postMatch) {
@@ -479,23 +484,24 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       ..removeWhere((entry) => !_desiredConvoked.contains(entry.participantId));
     final effectifReady = _effectifReadyForComposition;
     final hasPendingComposition = composition.hasUnpublishedChanges;
-    final canPublish = !_compositionLocked &&
+    final canPublish =
+        !_compositionLocked &&
         (!composition.isPublished || hasPendingComposition);
 
     final statusTitle = !effectifReady
         ? 'Convocations à publier avant la composition'
         : hasPendingComposition
-            ? 'Brouillon de composition non publié'
-            : composition.isPublished
-                ? 'Composition publiée'
-                : 'Composition non publiée';
+        ? 'Brouillon de composition non publié'
+        : composition.isPublished
+        ? 'Composition publiée'
+        : 'Composition non publiée';
     final statusDetail = !effectifReady
         ? 'Reviens dans Effectif, puis publie les convocations pour déverrouiller cette étape.'
         : hasPendingComposition
-            ? 'Les joueurs voient encore la précédente composition.'
-            : composition.isPublished
-                ? 'Version ${composition.version} visible par les joueurs.'
-                : 'Prépare le terrain et le banc avant publication.';
+        ? 'Les joueurs voient encore la précédente composition.'
+        : composition.isPublished
+        ? 'Version ${composition.version} visible par les joueurs.'
+        : 'Prépare le terrain et le banc avant publication.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -503,7 +509,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         _PublicationStatusCard(
           title: statusTitle,
           detail: statusDetail,
-          pending: !effectifReady ||
+          pending:
+              !effectifReady ||
               hasPendingComposition ||
               !composition.isPublished,
         ),
@@ -561,8 +568,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                   Text(
                     'Remplaçants (${bench.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)
@@ -606,10 +613,10 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             _postMatch && _compositionExisted
                 ? 'Composition publiée'
                 : composition.isPublished
-                    ? hasPendingComposition
-                        ? 'Publier les modifications'
-                        : 'Composition publiée'
-                    : 'Publier la composition',
+                ? hasPendingComposition
+                      ? 'Publier les modifications'
+                      : 'Composition publiée'
+                : 'Publier la composition',
           ),
         ),
         if (_postMatch && _compositionExisted)

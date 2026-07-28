@@ -7,7 +7,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           (player) => _postMatch
               ? _actualPresent.contains(player.participantId)
               : (player.isAvailable || player.isGuest) &&
-                  _desiredConvoked.contains(player.participantId),
+                    _desiredConvoked.contains(player.participantId),
         )
         .toList();
     players.sort(_playerOrder);
@@ -94,7 +94,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (limit == null) return false;
     setState(() => _busy = true);
     try {
-      await ref.read(sportWaitlistRepositoryProvider).saveEffectif(
+      await ref
+          .read(sportWaitlistRepositoryProvider)
+          .saveEffectif(
             matchId: convocations.matchId,
             squadSizeLimit: limit,
             decisions: _effectifDecisions(convocations),
@@ -161,7 +163,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
     setState(() => _busy = true);
     try {
-      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
+      await ref
+          .read(sportWaitlistRepositoryProvider)
+          .publishEffectif(
             matchId: convocations.matchId,
             squadSizeLimit: limit,
             decisions: _effectifDecisions(convocations),
@@ -197,8 +201,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text(
         isCollective
             ? '${reminders.noResponseCount} joueur'
-                '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
+                  '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                  'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
             : 'Une notification de disponibilité sera envoyée. Un second envoi est bloqué pendant dix minutes.',
       ),
     );
@@ -251,8 +255,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final availabilityDetail = player.isGuest
         ? 'Invité ajouté manuellement.'
         : hasResponded && updatedAt != null
-            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
-            : 'Aucune réponse enregistrée pour l’instant.';
+        ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+        : 'Aucune réponse enregistrée pour l’instant.';
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
@@ -262,7 +266,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         'Non convoqué dans la publication actuelle',
       ConvocationStatus.notApplicable => 'Aucune décision publiée',
     };
-    final canRelance = !player.isGuest &&
+    final canRelance =
+        !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
         (_reminders?.canRemind ?? false);
@@ -390,7 +395,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (input == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .createAndAddGuest(
             matchId: matchId,
             firstName: input.firstName,
             lastName: input.lastName,
@@ -417,7 +424,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!confirmed || !mounted) return;
     setState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).removeGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .removeGuest(
             matchId: matchId,
             participantId: player.participantId,
             reason: 'Retrait depuis Effectif',
@@ -438,17 +447,17 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final statusTitle = _effectifDirty
         ? 'Modifications non enregistrées'
         : convocations.hasUnpublishedChanges
-            ? 'Brouillon enregistré, non publié'
-            : convocations.isPublished
-                ? 'Convocations publiées'
-                : 'Aucune convocation publiée';
+        ? 'Brouillon enregistré, non publié'
+        : convocations.isPublished
+        ? 'Convocations publiées'
+        : 'Aucune convocation publiée';
     final statusDetail = _effectifDirty
         ? 'Enregistre le brouillon ou publie directement les décisions actuelles.'
         : convocations.hasUnpublishedChanges
-            ? 'Les joueurs voient encore la précédente publication.'
-            : convocations.isPublished
-                ? 'Version ${convocations.convocationVersion} visible par les joueurs.'
-                : 'Les joueurs ne voient encore aucune décision de convocation.';
+        ? 'Les joueurs voient encore la précédente publication.'
+        : convocations.isPublished
+        ? 'Version ${convocations.convocationVersion} visible par les joueurs.'
+        : 'Les joueurs ne voient encore aucune décision de convocation.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -598,14 +607,14 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         FilledButton.icon(
           onPressed:
               _busy || _locked || (!hasPending && convocations.isPublished)
-                  ? null
-                  : _publishEffectif,
+              ? null
+              : _publishEffectif,
           icon: const Icon(Icons.campaign_outlined),
           label: Text(
             convocations.isPublished
                 ? hasPending
-                    ? 'Publier les modifications'
-                    : 'Convocations publiées'
+                      ? 'Publier les modifications'
+                      : 'Convocations publiées'
                 : 'Publier les convocations',
           ),
         ),
