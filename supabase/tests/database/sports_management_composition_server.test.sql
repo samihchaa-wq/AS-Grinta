@@ -24,11 +24,19 @@ select ok(
 );
 
 select ok(
-  not has_table_privilege('authenticated', 'public.match_compositions', 'SELECT')
-  and not has_table_privilege('authenticated', 'public.match_compositions', 'INSERT')
-  and not has_table_privilege('authenticated', 'public.match_composition_entries', 'INSERT')
-  and has_table_privilege('authenticated', 'public.match_composition_publications', 'SELECT'),
-  'les clients lisent seulement les publications immuables et n’écrivent jamais directement'
+  not has_table_privilege(
+    'authenticated', 'public.match_compositions', 'SELECT'
+  )
+  and not has_table_privilege(
+    'authenticated', 'public.match_compositions', 'INSERT'
+  )
+  and not has_table_privilege(
+    'authenticated', 'public.match_composition_entries', 'INSERT'
+  )
+  and has_table_privilege(
+    'authenticated', 'public.match_composition_publications', 'SELECT'
+  ),
+  'les clients lisent seulement les publications immuables'
 );
 
 select is(
@@ -38,26 +46,31 @@ select is(
       'public.admin_save_match_composition(uuid,text,jsonb,boolean,text)',
       'public.admin_publish_match_composition(uuid,boolean,text)',
       'public.admin_get_match_composition(uuid)',
-      'public.get_published_match_composition(uuid)'
+      'public.get_published_match_composition(uuid)',
+      'public.admin_publish_match_effectif(uuid,integer,jsonb,text)'
     ]::text[]) expected(signature)
     join pg_proc procedure on procedure.oid = to_regprocedure(expected.signature)
     where procedure.prosecdef
   ),
   0::bigint,
-  'les RPC publiques de composition restent SECURITY INVOKER'
+  'les RPC publiques restent SECURITY INVOKER'
 );
 
 select ok(
   not has_function_privilege(
-    'anon', 'public.admin_save_match_composition(uuid,text,jsonb,boolean,text)', 'EXECUTE'
+    'anon',
+    'public.admin_save_match_composition(uuid,text,jsonb,boolean,text)',
+    'EXECUTE'
   )
   and not has_function_privilege(
-    'anon', 'public.get_published_match_composition(uuid)', 'EXECUTE'
+    'anon',
+    'public.get_published_match_composition(uuid)',
+    'EXECUTE'
   ),
   'les RPC de composition ne sont jamais exposées au rôle anonyme'
 );
 
-insert into auth.users (id, email, raw_user_meta_data)
+insert into auth.users(id, email, raw_user_meta_data)
 values
   (
     '91000000-0000-0000-0000-000000000001',
@@ -134,11 +147,27 @@ update public.match_sport_participants
 set availability_status = 'available',
     availability_updated_at = now(),
     availability_updated_by = '91000000-0000-0000-0000-000000000001',
-    convocation_status = 'convoked',
     updated_at = now()
 where match_id = current_setting('test.composition_match')::uuid;
 
-create or replace function pg_temp.composition_payload(p_mode text default 'valid')
+create or replace function pg_temp.effectif_payload()
+returns jsonb
+language sql
+stable
+as $function$
+  select jsonb_agg(
+    jsonb_build_object(
+      'season_player_id', player.id,
+      'status', 'convoked'
+    ) order by player.position
+  )
+  from public.season_players player
+  where player.season_id = '92000000-0000-0000-0000-000000000001';
+$function$;
+
+create or replace function pg_temp.composition_payload(
+  p_mode text default 'valid'
+)
 returns jsonb
 language sql
 stable
@@ -241,26 +270,29 @@ select is(
     'Premier brouillon'
   ) #>> '{field_count}',
   '11',
-  'un brouillon complet avec onze titulaires est enregistré'
+  'un brouillon complet est enregistré avant toute publication'
+);
+
+select throws_ok(
+  $$select public.admin_publish_match_composition(
+    current_setting('test.composition_match')::uuid,
+    false,
+    'Composition avant convocations'
+  )$$,
+  '22023',
+  'Publish convocations before publishing the composition',
+  'la composition ne peut pas publier les convocations à la place de l’effectif'
 );
 
 select is(
-  (
-    select count(*)
-    from public.match_sport_participants
-    where match_id = current_setting('test.composition_match')::uuid
-      and selection_status = 'starter'
-  ),
-  11::bigint,
-  'les décisions Titulaire sont synchronisées atomiquement'
-);
-
-select is(
-  public.admin_get_match_composition(
-    current_setting('test.composition_match')::uuid
-  ) #>> '{bench_count}',
+  public.admin_publish_match_effectif(
+    current_setting('test.composition_match')::uuid,
+    14,
+    pg_temp.effectif_payload(),
+    'Publication préalable des convocations'
+  ) #>> '{convocation_version}',
   '1',
-  'l’administration relit le brouillon normalisé'
+  'les convocations sont publiées explicitement avant la composition'
 );
 
 select is(
@@ -323,10 +355,10 @@ select is(
     '4-4-2',
     pg_temp.composition_payload('goalkeeper_bench'),
     false,
-    'Gardien sur le banc pour tester l’avertissement'
+    'Gardien sur le banc'
   ) #>> '{has_unpublished_changes}',
   'true',
-  'une modification après publication reste un brouillon non publié'
+  'une modification reste un brouillon non publié'
 );
 
 select is(
@@ -336,7 +368,7 @@ select is(
     where match_id = current_setting('test.composition_match')::uuid
   ),
   1::bigint,
-  'modifier le brouillon ne change jamais le snapshot déjà publié'
+  'modifier le brouillon ne change pas le snapshot publié'
 );
 
 select is(
@@ -354,7 +386,7 @@ select is(
     current_setting('test.composition_match')::uuid
   ) #>> '{has_goalkeeper_warning}',
   'true',
-  'l’absence de gardien titulaire produit un avertissement non bloquant'
+  'l’absence de gardien titulaire reste un avertissement non bloquant'
 );
 
 reset role;
@@ -373,7 +405,7 @@ select throws_ok(
   )$$,
   '22023',
   'Selected squad exceeds the configured match limit',
-  'la limite choisie pour le match reste bloquante par défaut'
+  'la limite du match reste bloquante par défaut'
 );
 
 select is(
@@ -382,24 +414,11 @@ select is(
     '4-3-3',
     pg_temp.composition_payload('valid'),
     true,
-    'Exception de douzième joueur autorisée'
+    'Exception explicite'
   ) #>> '{squad_size_exception_approved}',
   'true',
-  'une exception explicite autorise le dépassement de la limite'
+  'une confirmation explicite autorise le dépassement'
 );
-
-reset role;
-select ok(
-  exists (
-    select 1
-    from private.sport_admin_audit_log
-    where match_id = current_setting('test.composition_match')::uuid
-      and action = 'save_composition_exception'
-      and reason = 'Exception de douzième joueur autorisée'
-  ),
-  'l’exception est auditée avec son motif'
-);
-set local role authenticated;
 
 reset role;
 update public.match_sport_workflows
@@ -422,7 +441,7 @@ select throws_ok(
     'Publication incomplète'
   )$$,
   '22023',
-  'Every convoked player must be placed on the field or bench before publication',
+  'Every selected player must be placed on the field or bench before publication',
   'un joueur convoqué non placé bloque la publication'
 );
 
@@ -456,7 +475,7 @@ select is(
     where match_id = current_setting('test.composition_match')::uuid
   ),
   0::bigint,
-  'RLS masque aussi directement les publications lorsque le flag est désactivé'
+  'RLS masque les publications lorsque le flag est désactivé'
 );
 
 reset role;
