@@ -1,0 +1,122 @@
+name: Fetch exact HD background
+
+on:
+  push:
+    branches:
+      - feat/exact-hd-global-background
+    paths:
+      - .github/workflows/fetch_exact_background.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-background:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/exact-hd-global-background
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download and verify exact source pixels
+        env:
+          EXPECTED_PIXEL_SHA256: 8fb5cd9ba7041a6f0ced3f92ab761e79aa9148d51c7bde1dcaab8f46e38149db
+        run: |
+          python -m pip install --quiet pillow requests
+          python <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import io
+          import os
+          from pathlib import Path
+
+          import requests
+          from PIL import Image
+
+          source_id = '4d576225-1f03-4863-b251-1f98e0cad6cb'
+          csig = 'AAAAAAAAAAAAAAAAAAAAAL3k5bpjycji4YI_3DxJeSOC_1KsEImI9v8C4DjyPlsP'
+          osig = 'AAAAAAAAAAAAAAAAAAAAANevZCth0Ls4bXmzBRNLMQOHGLAjf9PQtO3Fja7D-LQZ'
+          exp = '1785261659'
+          encoded_source = f'ifs%3A%2F%2FM%2F{source_id}'
+          resized = (
+              'https://media.canva.com/v2/image-resize/format:PNG/'
+              f'height:1672/quality:100/uri:{encoded_source}/watermark:F/width:941'
+          )
+          query_full = (
+              f'csig={csig}&exp={exp}&osig={osig}&signer=media-rpc'
+              '&x-canva-quality=screen_3x'
+          )
+          query_origin = (
+              f'exp={exp}&osig={osig}&signer=media-rpc'
+              '&x-canva-quality=screen_3x'
+          )
+          original_thumb = (
+              'https://media.canva.com/v2/image-resize/format:PNG/'
+              f'height:200/quality:100/uri:{encoded_source}/watermark:F/width:112?'
+              f'csig={csig}&exp={exp}&osig={osig}&signer=media-rpc'
+              '&x-canva-quality=thumbnail'
+          )
+
+          candidates = [
+              ('resized_same_signatures', f'{resized}?{query_full}'),
+              ('resized_origin_signature', f'{resized}?{query_origin}'),
+              ('resized_origin_signature_screen', f'{resized}?exp={exp}&osig={osig}&signer=media-rpc&x-canva-quality=screen'),
+              ('resized_origin_signature_no_quality', f'{resized}?exp={exp}&osig={osig}&signer=media-rpc'),
+              ('no_dimensions_origin_signature', 'https://media.canva.com/v2/image-resize/format:PNG/quality:100/' + f'uri:{encoded_source}/watermark:F?exp={exp}&osig={osig}&signer=media-rpc'),
+              ('direct_ifs', f'https://media.canva.com/ifs/M/{source_id}?exp={exp}&osig={osig}&signer=media-rpc'),
+              ('direct_v2_ifs', f'https://media.canva.com/v2/ifs/M/{source_id}?exp={exp}&osig={osig}&signer=media-rpc'),
+              ('original_thumbnail_control', original_thumb),
+          ]
+
+          headers = {
+              'Accept': 'image/png,image/webp,image/*,*/*;q=0.8',
+              'Origin': 'https://www.canva.com',
+              'Referer': 'https://www.canva.com/',
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/145 Safari/537.36',
+          }
+          expected = os.environ['EXPECTED_PIXEL_SHA256']
+          destination = Path('assets/images/module_backgrounds/as_grinta_global_hd.webp')
+          destination.parent.mkdir(parents=True, exist_ok=True)
+
+          for name, url in candidates:
+              try:
+                  response = requests.get(url, headers=headers, timeout=30)
+                  print(name, 'status=', response.status_code, 'bytes=', len(response.content), 'type=', response.headers.get('content-type'))
+                  if response.status_code != 200:
+                      print(response.text[:300])
+                      continue
+                  image = Image.open(io.BytesIO(response.content)).convert('RGB')
+                  pixel_sha = hashlib.sha256(image.tobytes()).hexdigest()
+                  print(name, 'dimensions=', image.size, 'pixel_sha256=', pixel_sha)
+                  if image.size != (941, 1672) or pixel_sha != expected:
+                      continue
+                  image.save(destination, format='WEBP', lossless=True, quality=100, method=6)
+                  check = Image.open(destination).convert('RGB')
+                  check_sha = hashlib.sha256(check.tobytes()).hexdigest()
+                  if check.size != (941, 1672) or check_sha != expected:
+                      raise RuntimeError('Lossless WebP verification failed')
+                  print('Exact source recovered and verified:', destination)
+                  break
+              except Exception as error:
+                  print(name, 'error=', repr(error))
+          else:
+              raise SystemExit('No candidate returned the exact original pixels')
+          PY
+
+      - name: Commit verified lossless asset
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add assets/images/module_backgrounds/as_grinta_global_hd.webp
+          if git diff --cached --quiet; then
+            echo 'Asset already present.'
+            exit 0
+          fi
+          git commit -m 'Ajouter le fond global HD exact sans perte'
+          git push origin HEAD:feat/exact-hd-global-background
