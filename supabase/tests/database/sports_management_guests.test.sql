@@ -561,3 +561,4 @@ select throws_ok(
 
 reset role;
 select * from finish();
+rollback;
