@@ -26,7 +26,6 @@ part 'admin_squad_plan_page_state.dart';
 part 'admin_squad_plan_page_effectif.dart';
 part 'admin_squad_plan_page_composition.dart';
 part 'admin_squad_plan_page_widgets.dart';
-part 'admin_squad_plan_page_composition_widgets.dart';
 
 enum _AdminStep { info, effectif, composition, prediction }
 
