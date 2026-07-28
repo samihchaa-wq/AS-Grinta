@@ -32,6 +32,8 @@ create temporary table pg_temp.match_creation_state_space(
   expected_success boolean, observed_success boolean,
   observed_sqlstate text, observed_message text
 ) on commit drop;
+grant select, insert, update, delete
+on pg_temp.match_creation_state_space to authenticated;
 
 select set_config('request.jwt.claims',
   '{"sub":"e1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
