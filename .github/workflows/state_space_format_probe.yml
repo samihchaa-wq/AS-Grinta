@@ -1,0 +1,46 @@
+name: State-space format probe
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'test/exhaustive_*_state_space_test.dart'
+      - '.github/workflows/state_space_format_probe.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: state-space-format-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Record and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/state-space-format
+          dart --version 2>&1 | tee build/state-space-format/dart-version.txt
+          sha256sum test/exhaustive_auth_router_state_space_test.dart test/exhaustive_prediction_state_space_test.dart | tee build/state-space-format/before.sha256
+          cp test/exhaustive_auth_router_state_space_test.dart build/state-space-format/auth.before.dart
+          cp test/exhaustive_prediction_state_space_test.dart build/state-space-format/prediction.before.dart
+          dart format test/exhaustive_auth_router_state_space_test.dart test/exhaustive_prediction_state_space_test.dart | tee build/state-space-format/format.log
+          sha256sum test/exhaustive_auth_router_state_space_test.dart test/exhaustive_prediction_state_space_test.dart | tee build/state-space-format/after.sha256
+          cp test/exhaustive_auth_router_state_space_test.dart build/state-space-format/auth.after.dart
+          cp test/exhaustive_prediction_state_space_test.dart build/state-space-format/prediction.after.dart
+          git diff -- test/exhaustive_auth_router_state_space_test.dart test/exhaustive_prediction_state_space_test.dart > build/state-space-format/diff.patch || true
+      - name: Upload probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: state-space-format-probe
+          path: build/state-space-format/*
+          if-no-files-found: error
