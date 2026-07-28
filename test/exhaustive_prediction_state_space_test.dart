@@ -31,12 +31,17 @@ void main() {
                   actualAway: actualAway,
                   baseOdds: odds,
                 );
-                final context = 'prediction=$predictedHome-$predictedAway '
+                final context =
+                    'prediction=$predictedHome-$predictedAway '
                     'result=$actualHome-$actualAway odds=$odds';
                 if (expected == null) {
                   expect(observed, isNull, reason: context);
                 } else {
-                  expect(observed, closeTo(expected, 0.0000001), reason: context);
+                  expect(
+                    observed,
+                    closeTo(expected, 0.0000001),
+                    reason: context,
+                  );
                 }
               }
             }
@@ -90,7 +95,8 @@ void main() {
               status: status,
               predictionsClosedAt: closedEntry.value,
             );
-            final expected = status == 'a_venir' &&
+            final expected =
+                status == 'a_venir' &&
                 !instantEntry.value.isBefore(open) &&
                 instantEntry.value.isBefore(close) &&
                 (closedEntry.value == null ||
@@ -98,7 +104,8 @@ void main() {
             expect(
               item.canEditAt(instantEntry.value),
               expected,
-              reason: 'status=$status instant=${instantEntry.key} '
+              reason:
+                  'status=$status instant=${instantEntry.key} '
                   'server=${closedEntry.key}',
             );
           }
@@ -205,32 +212,35 @@ void main() {
       print('STATE_SPACE prediction_double_submit cases=1 status=passed');
     });
 
-    test('save failure preserves the complete form and permits retry', () async {
-      final repository = _ScenarioPredictionsRepository(
-        items: [_item(scoreGrinta: 4, scoreOpponent: 3, useX2: true)],
-        saveError: StateError('network unavailable'),
-      );
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-      await controller.load();
+    test(
+      'save failure preserves the complete form and permits retry',
+      () async {
+        final repository = _ScenarioPredictionsRepository(
+          items: [_item(scoreGrinta: 4, scoreOpponent: 3, useX2: true)],
+          saveError: StateError('network unavailable'),
+        );
+        final controller = PredictionsController(repository);
+        addTearDown(controller.dispose);
+        await controller.load();
 
-      await controller.save('match');
-      final afterFailure = controller.state.items.single;
-      expect(afterFailure.scoreGrinta, 4);
-      expect(afterFailure.scoreOpponent, 3);
-      expect(afterFailure.useX2, isTrue);
-      expect(afterFailure.isFilled, isFalse);
-      expect(controller.state.error, isNotNull);
-      expect(controller.state.savingMatchId, isNull);
+        await controller.save('match');
+        final afterFailure = controller.state.items.single;
+        expect(afterFailure.scoreGrinta, 4);
+        expect(afterFailure.scoreOpponent, 3);
+        expect(afterFailure.useX2, isTrue);
+        expect(afterFailure.isFilled, isFalse);
+        expect(controller.state.error, isNotNull);
+        expect(controller.state.savingMatchId, isNull);
 
-      repository.saveError = null;
-      await controller.save('match');
-      expect(repository.saveCalls, 2);
-      expect(controller.state.items.single.isFilled, isTrue);
-      expect(controller.state.error, isNull);
-      // ignore: avoid_print
-      print('STATE_SPACE prediction_retry cases=2 status=passed');
-    });
+        repository.saveError = null;
+        await controller.save('match');
+        expect(repository.saveCalls, 2);
+        expect(controller.state.items.single.isFilled, isTrue);
+        expect(controller.state.error, isNull);
+        // ignore: avoid_print
+        print('STATE_SPACE prediction_retry cases=2 status=passed');
+      },
+    );
 
     test('failed refresh keeps existing edited values', () async {
       final repository = _ScenarioPredictionsRepository(
