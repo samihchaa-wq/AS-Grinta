@@ -191,7 +191,17 @@ select throws_ok($$select public.admin_finalize_match_sport_postgame(
 select is(public.admin_create_postmatch_composition(
   current_setting('test.postmatch_match')::uuid,'4-3-3',
   pg_temp.postmatch_composition_payload(),false,'composition après match')#>>'{status}',
-  'closed','composition post-match créée et fermée');
+  'published','la composition post-match est publiée');
+select ok(
+  (
+    select composition.status='published'
+      and composition.closed_at is not null
+      and not composition.has_unpublished_changes
+    from public.match_compositions composition
+    where composition.match_id=current_setting('test.postmatch_match')::uuid
+  ),
+  'la composition post-match est verrouillée après sa publication'
+);
 select throws_ok($$select public.admin_create_postmatch_composition(
   current_setting('test.postmatch_match')::uuid,'4-3-3',
   pg_temp.postmatch_composition_payload(),false,'deuxième tentative')$$,
