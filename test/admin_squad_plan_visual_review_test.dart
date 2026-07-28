@@ -76,7 +76,8 @@ void main() {
     await _capture(tester, 'composition_verrouillee.png');
   });
 
-  testWidgets('captures the unlocked composition and publication confirmation', (
+  testWidgets('captures the unlocked composition and publication confirmation',
+      (
     tester,
   ) async {
     await _setPhoneViewport(tester);
@@ -367,7 +368,8 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
   @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
-  ) async => {'sp1'};
+  ) async =>
+      {'sp1'};
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
