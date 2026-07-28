@@ -29,11 +29,13 @@ jobs:
           python-version: '3.12'
 
       - name: Download and verify exact source pixels
+        continue-on-error: true
         env:
           EXPECTED_PIXEL_SHA256: 8fb5cd9ba7041a6f0ced3f92ab761e79aa9148d51c7bde1dcaab8f46e38149db
         run: |
+          set -o pipefail
           python -m pip install --quiet pillow requests
-          python <<'PY'
+          python <<'PY' 2>&1 | tee background_fetch_diagnostics.txt
           from __future__ import annotations
 
           import hashlib
@@ -89,6 +91,7 @@ jobs:
           destination = Path('assets/images/module_backgrounds/as_grinta_global_hd.webp')
           destination.parent.mkdir(parents=True, exist_ok=True)
 
+          recovered = False
           for name, url in candidates:
               try:
                   response = requests.get(url, headers=headers, timeout=30)
@@ -107,21 +110,27 @@ jobs:
                   if check.size != (941, 1672) or check_sha != expected:
                       raise RuntimeError('Lossless WebP verification failed')
                   print('Exact source recovered and verified:', destination)
+                  recovered = True
                   break
               except Exception as error:
                   print(name, 'error=', repr(error))
-          else:
+
+          if not recovered:
               raise SystemExit('No candidate returned the exact original pixels')
           PY
 
-      - name: Commit verified lossless asset
+      - name: Commit verified asset or diagnostics
+        if: always()
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add assets/images/module_backgrounds/as_grinta_global_hd.webp
+          git add background_fetch_diagnostics.txt
+          if [ -f assets/images/module_backgrounds/as_grinta_global_hd.webp ]; then
+            git add assets/images/module_backgrounds/as_grinta_global_hd.webp
+          fi
           if git diff --cached --quiet; then
-            echo 'Asset already present.'
+            echo 'Nothing new to commit.'
             exit 0
           fi
-          git commit -m 'Ajouter le fond global HD exact sans perte'
+          git commit -m 'Diagnostiquer la récupération du fond HD exact'
           git push origin HEAD:feat/exact-hd-global-background
