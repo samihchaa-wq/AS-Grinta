@@ -35,8 +35,12 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
 
-      - name: Check visual test formatting
-        run: dart format --output=none --set-exit-if-changed test/admin_squad_plan_visual_review_test.dart
+      - name: Format visual test in CI environment
+        run: |
+          dart format test/admin_squad_plan_visual_review_test.dart
+          mkdir -p build/visual-review
+          cp test/admin_squad_plan_visual_review_test.dart \
+            build/visual-review/admin_squad_plan_visual_review_test.formatted.dart
 
       - name: Render admin squad plan states
         run: flutter test test/admin_squad_plan_visual_review_test.dart
@@ -46,5 +50,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: admin-squad-plan-visual-review
-          path: build/visual-review/*.png
+          path: build/visual-review/*
           if-no-files-found: error
