@@ -21,10 +21,6 @@ class _GrintaBackgroundState extends State<GrintaBackground> {
     'assets/images/module_backgrounds/as_grinta_global.webp.b64.01',
     'assets/images/module_backgrounds/as_grinta_global.webp.b64.02',
     'assets/images/module_backgrounds/as_grinta_global.webp.b64.03',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.04',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.05',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.06',
-    'assets/images/module_backgrounds/as_grinta_global.webp.b64.07',
   ];
 
   MemoryImage? _background;
