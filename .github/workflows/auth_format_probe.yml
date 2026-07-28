@@ -1,0 +1,30 @@
+name: Auth format probe
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format and print auth files
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format \
+            lib/features/auth/presentation/auth_register_page.dart \
+            lib/features/auth/presentation/auth_sign_in_page.dart
+          echo '--- AUTH REGISTER PAGE ---'
+          cat lib/features/auth/presentation/auth_register_page.dart
+          echo '--- AUTH SIGN IN PAGE ---'
+          cat lib/features/auth/presentation/auth_sign_in_page.dart
