@@ -104,6 +104,7 @@ select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000
 select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',date '2099-03-01',time '21:00','exterieur',2,3,4)$$,'23505','second match du même jour refusé');
 
 reset role;
+select set_config('request.jwt.claims','{}',true);
 insert into public.match_predictions(
   match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,
   is_filled,use_x2
@@ -116,6 +117,17 @@ set predicted_score_as_grinta=excluded.predicted_score_as_grinta,
     predicted_score_adverse=excluded.predicted_score_adverse,
     is_filled=excluded.is_filled,
     use_x2=excluded.use_x2;
+select is(
+  (
+    select profile_id::text
+    from public.match_predictions
+    where match_id=current_setting('test.lifecycle_collision_match')::uuid
+      and is_filled
+  ),
+  'e1000000-0000-0000-0000-000000000002',
+  'la fixture attribue le pronostic au joueur attendu'
+);
+select set_config('request.jwt.claims','{"sub":"e1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 select set_config('test.lifecycle_participant_count',(select count(*)::text from public.match_sport_participants where match_id=current_setting('test.lifecycle_collision_match')::uuid),true);
 set local role authenticated;
 select ok(public.update_match_with_odds(
