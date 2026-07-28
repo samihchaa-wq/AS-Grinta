@@ -46,7 +46,7 @@ void main() {
       addTearDown(controller.dispose);
 
       final signInFuture = controller.signIn(
-        username: 'samih',
+        username: 'samih@example.com',
         password: 'password123',
       );
       initialRefresh.complete(null);
@@ -88,7 +88,7 @@ void main() {
       await _flushAsync();
 
       await controller.signIn(
-        username: 'samih',
+        username: 'samih@example.com',
         password: 'wrong-password',
       );
 
@@ -118,23 +118,25 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('ignores a refresh result that became stale after signedOut',
-        () async {
-      final pendingRefresh = Completer<AuthProfile?>();
-      final repository = _FakeAuthRepository(
-        fetchResults: [pendingRefresh.future],
-      );
-      final controller = AuthController(repository);
-      addTearDown(controller.dispose);
+    test(
+      'ignores a refresh result that became stale after signedOut',
+      () async {
+        final pendingRefresh = Completer<AuthProfile?>();
+        final repository = _FakeAuthRepository(
+          fetchResults: [pendingRefresh.future],
+        );
+        final controller = AuthController(repository);
+        addTearDown(controller.dispose);
 
-      repository.emit(supabase.AuthChangeEvent.signedOut);
-      pendingRefresh.complete(_activeProfile);
-      await _flushAsync();
+        repository.emit(supabase.AuthChangeEvent.signedOut);
+        pendingRefresh.complete(_activeProfile);
+        await _flushAsync();
 
-      expect(controller.state.isLoading, isFalse);
-      expect(controller.state.isAuthenticated, isFalse);
-      expect(controller.state.profile, isNull);
-    });
+        expect(controller.state.isLoading, isFalse);
+        expect(controller.state.isAuthenticated, isFalse);
+        expect(controller.state.profile, isNull);
+      },
+    );
   });
 }
 
@@ -215,6 +217,9 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> updatePassword(String password) async {}
 
   @override
+  Future<void> sendPasswordResetEmail(String email) async {}
+
+  @override
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
@@ -232,11 +237,10 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String> registerAccount({
+  Future<void> registerAccount({
     required String firstName,
     required String lastName,
+    required String email,
     required String password,
-  }) async {
-    return 'samihc';
-  }
+  }) async {}
 }
