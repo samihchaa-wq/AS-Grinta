@@ -37,7 +37,7 @@ class _StatsHubPageState extends State<StatsHubPage> {
     final hasPeriod = _section != _StatsSection.rankings;
     return Scaffold(
       appBar: GrintaAppBar(
-        title: const Text('Stats'),
+        title: const Text('Statistiques'),
         actions: grintaHomeActions(context),
       ),
       body: Column(
