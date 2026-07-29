@@ -5,20 +5,21 @@ import 'package:flutter/material.dart';
 
 const grintaTableMinWidth = 620.0;
 const grintaTableHeaderFontSize = 11.5;
-const grintaTableCellFontSize = 13.0;
-const grintaTableRankFontSize = 12.0;
-const grintaTableHeaderPadding = EdgeInsets.fromLTRB(14, 13, 14, 13);
-const grintaTableRowPadding = EdgeInsets.fromLTRB(14, 15, 14, 15);
+const grintaTableCellFontSize = 13.5;
+const grintaTableRankFontSize = 12.5;
+const grintaTableHeaderPadding = EdgeInsets.fromLTRB(16, 12, 16, 12);
+const grintaTableRowPadding = EdgeInsets.fromLTRB(16, 17, 16, 17);
 
 TextStyle grintaTableHeaderTextStyle(
   BuildContext context, {
   Color? color,
 }) {
   return TextStyle(
-    color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+    color: color ?? AppTheme.textSecondary,
     fontSize: grintaTableHeaderFontSize,
     fontWeight: FontWeight.w800,
-    letterSpacing: .35,
+    letterSpacing: .55,
+    height: 1,
   );
 }
 
@@ -32,6 +33,7 @@ TextStyle grintaTableCellTextStyle(
     fontSize: grintaTableCellFontSize,
     fontWeight: fontWeight,
     height: 1.15,
+    fontFeatures: const [FontFeature.tabularFigures()],
   );
 }
 
@@ -40,9 +42,10 @@ TextStyle grintaTableRankTextStyle(
   Color? color,
 }) {
   return TextStyle(
-    color: color ?? AppTheme.primaryBright,
+    color: color ?? AppTheme.textFaint,
     fontSize: grintaTableRankFontSize,
     fontWeight: FontWeight.w900,
+    fontFeatures: const [FontFeature.tabularFigures()],
   );
 }
 
@@ -63,23 +66,16 @@ class StickyHeaderTableCard extends StatelessWidget {
     super.key,
   });
 
-  /// Ligne d'en-tête, épinglée en haut.
   final Widget header;
-
-  /// Lignes de données, séparées automatiquement par un filet.
   final List<Widget> rows;
-
-  /// Rafraîchissement par tirer-lâcher (optionnel).
   final Future<void> Function()? onRefresh;
-
-  /// Largeur minimale commune avant activation du défilement horizontal.
   final double minWidth;
 
   @override
   Widget build(BuildContext context) {
     Widget list = ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 6),
       itemCount: rows.length,
       itemBuilder: (context, index) {
         final row = rows[index];
@@ -87,10 +83,10 @@ class StickyHeaderTableCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: index.isEven
                 ? Colors.transparent
-                : AppTheme.surfaceHigh.withValues(alpha: .16),
+                : AppTheme.surfaceHigh.withValues(alpha: .10),
             border: Border(
               bottom: BorderSide(
-                color: AppTheme.outline.withValues(alpha: .28),
+                color: AppTheme.outline.withValues(alpha: .16),
               ),
             ),
           ),
@@ -104,11 +100,12 @@ class StickyHeaderTableCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      color: AppTheme.surface.withValues(alpha: .86),
+      color: AppTheme.surface.withValues(alpha: .64),
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         side: BorderSide(
-          color: AppTheme.outline.withValues(alpha: .52),
+          color: AppTheme.outline.withValues(alpha: .24),
         ),
       ),
       child: LayoutBuilder(
@@ -123,12 +120,12 @@ class StickyHeaderTableCard extends StatelessWidget {
               child: Column(
                 children: [
                   ColoredBox(
-                    color: AppTheme.surfaceHigh.withValues(alpha: .88),
+                    color: AppTheme.surfaceHigh.withValues(alpha: .52),
                     child: header,
                   ),
                   Divider(
                     height: 1,
-                    color: AppTheme.primaryBright.withValues(alpha: .30),
+                    color: AppTheme.outline.withValues(alpha: .22),
                   ),
                   Expanded(child: list),
                 ],
@@ -186,10 +183,10 @@ class SortableHeaderCell extends StatelessWidget {
           ),
         ),
         if (active) ...[
-          const SizedBox(width: 2),
+          const SizedBox(width: 3),
           Icon(
             descending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-            size: 16,
+            size: 15,
             color: AppTheme.primaryBright,
           ),
         ],
