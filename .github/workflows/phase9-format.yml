@@ -1,0 +1,30 @@
+name: Phase 9 format
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.head_ref == 'visual/ui-overhaul-phase-9'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: visual/ui-overhaul-phase-9
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format lib/core/widgets/grinta_adaptive_form.dart lib/features/auth/presentation/auth_register_page.dart
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/core/widgets/grinta_adaptive_form.dart lib/features/auth/presentation/auth_register_page.dart
+          git diff --cached --quiet || git commit -m "style: formater la phase 9"
+          git push origin HEAD:visual/ui-overhaul-phase-9
