@@ -123,9 +123,10 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         upcoming.where((match) => !match.isCancelled).toList();
     final nextMatch = activeUpcoming.isEmpty ? null : activeUpcoming.last;
     final nextMatchId = nextMatch?.id;
-    final laterUpcoming =
-        upcoming.where((match) => match.id != nextMatchId).toList()
-          ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    final laterUpcoming = upcoming
+        .where((match) => match.id != nextMatchId)
+        .toList()
+      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
 
     final focusRequest = ref.watch(matchesFocusRequestProvider);
     final nextCardIsReady = nextMatch != null && !state.isLoading;
