@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,8 @@ void showBadgeDetailSheet(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
+    backgroundColor: AppTheme.surface,
+    barrierColor: Colors.black.withValues(alpha: .62),
     builder: (_) => BadgeDetailSheet(
       badge: badge,
       onAward: onAward,
@@ -35,32 +38,25 @@ class BadgeDetailSheet extends ConsumerWidget {
   });
 
   final BadgeDef badge;
-
-  /// Si non nul, affiche un bouton « Attribuer / Retirer » (admin).
   final VoidCallback? onAward;
-
-  /// Le badge est-il actuellement arboré ?
   final bool isFeatured;
-
-  /// Si non nul, affiche un bouton pour arborer / ne plus arborer ce badge.
   final VoidCallback? onToggleFeatured;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final catalog = ref.watch(badgeCatalogProvider).maybeWhen(
-          data: (c) => c,
-          orElse: () => const <BadgeDef>[],
-        );
+    final catalog = ref
+        .watch(badgeCatalogProvider)
+        .maybeWhen(data: (c) => c, orElse: () => const <BadgeDef>[]);
 
-    // Tous les paliers de la même sous-famille, du plus petit au plus grand.
-    // Un badge « standalone » (exploit autonome) reste seul, sans barème gradué.
     final tiers = (badge.metric == null || badge.standalone)
         ? <BadgeDef>[badge]
         : (catalog
-            .where((b) =>
-                b.metric == badge.metric &&
-                b.kind == badge.kind &&
-                !b.standalone)
+            .where(
+              (b) =>
+                  b.metric == badge.metric &&
+                  b.kind == badge.kind &&
+                  !b.standalone,
+            )
             .toList()
           ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
     final ladder = tiers.isEmpty ? <BadgeDef>[badge] : tiers;
@@ -70,69 +66,89 @@ class BadgeDetailSheet extends ConsumerWidget {
         padding: EdgeInsets.only(
           left: 16,
           right: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
         ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  BadgeEmblem(
-                    emoji: badge.emoji,
-                    imageUrl: badge.imageUrl,
-                    color: badge.color,
-                    baremeLabel: baremeLabelFor(badge.metric, badge.threshold),
-                    showStar: badge.hasStar,
-                    size: 78,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.surfaceHero.withValues(alpha: .94),
+                      AppTheme.surfaceHigh.withValues(alpha: .84),
+                    ],
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          badge.name,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                        if (badge.description.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            badge.description,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ],
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                  border: Border.all(
+                    color: AppTheme.reward.withValues(alpha: .22),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    BadgeEmblem(
+                      emoji: badge.emoji,
+                      imageUrl: badge.imageUrl,
+                      color: badge.color,
+                      baremeLabel: baremeLabelFor(
+                        badge.metric,
+                        badge.threshold,
+                      ),
+                      showStar: badge.hasStar,
+                      size: 82,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            badge.name,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w900),
+                          ),
+                          if (badge.description.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              badge.description,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: AppTheme.textSecondary),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               if (ladder.length > 1) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Text(
-                  'Barème',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w800),
+                  'BARÈME',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: AppTheme.textSecondary,
+                        letterSpacing: .8,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Chaque palier et ce qu’il récompense.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 for (final tier in ladder)
-                  _TierRow(
-                    tier: tier,
-                    highlighted: tier.code == badge.code,
-                  ),
+                  _TierRow(tier: tier, highlighted: tier.code == badge.code),
               ],
               if (onToggleFeatured != null) ...[
                 const SizedBox(height: 20),
@@ -158,13 +174,15 @@ class BadgeDetailSheet extends ConsumerWidget {
                 ),
               ],
               if (onAward != null) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: onAward,
-                    icon:
-                        const Icon(Icons.workspace_premium_outlined, size: 18),
+                    icon: const Icon(
+                      Icons.workspace_premium_outlined,
+                      size: 18,
+                    ),
                     label: const Text('Attribuer / Retirer ce badge'),
                   ),
                 ),
@@ -186,18 +204,19 @@ class _TierRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: highlighted
-            ? scheme.secondary.withValues(alpha: 0.12)
-            : scheme.surface,
-        borderRadius: BorderRadius.circular(14),
+            ? AppTheme.reward.withValues(alpha: .10)
+            : AppTheme.surfaceHigh.withValues(alpha: .46),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         border: Border.all(
-          color: highlighted ? scheme.secondary : scheme.outline,
-          width: highlighted ? 2 : 1,
+          color: highlighted
+              ? AppTheme.reward.withValues(alpha: .46)
+              : AppTheme.outline.withValues(alpha: .28),
+          width: highlighted ? 1.4 : 1,
         ),
       ),
       child: Row(
@@ -209,7 +228,7 @@ class _TierRow extends StatelessWidget {
             color: tier.color,
             baremeLabel: baremeLabelFor(tier.metric, tier.threshold),
             showStar: tier.hasStar,
-            size: 58,
+            size: 56,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -218,13 +237,15 @@ class _TierRow extends StatelessWidget {
               children: [
                 Text(
                   tier.name,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: highlighted
+                            ? AppTheme.reward
+                            : AppTheme.textPrimary,
+                      ),
                 ),
                 if (tier.description.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     tier.description,
                     style: Theme.of(context).textTheme.bodySmall,

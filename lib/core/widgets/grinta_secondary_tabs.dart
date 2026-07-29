@@ -13,7 +13,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
     super.key,
   });
 
-  static const double height = 40;
+  static const double height = 36;
 
   final List<ButtonSegment<T>> segments;
   final Set<T> selected;
@@ -22,14 +22,12 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: .62),
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          border: Border.all(
-            color: AppTheme.outline.withValues(alpha: .42),
-          ),
+          color: AppTheme.surface.withValues(alpha: .38),
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          border: Border.all(color: AppTheme.outline.withValues(alpha: .24)),
         ),
         child: SizedBox(
           width: double.infinity,
@@ -50,25 +48,29 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
               ),
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 return states.contains(WidgetState.selected)
-                    ? AppTheme.primary.withValues(alpha: .92)
+                    ? AppTheme.primary.withValues(alpha: .18)
                     : Colors.transparent;
               }),
               foregroundColor: WidgetStateProperty.resolveWith((states) {
                 return states.contains(WidgetState.selected)
-                    ? Colors.white
-                    : AppTheme.textSecondary;
+                    ? AppTheme.primaryBright
+                    : AppTheme.textFaint;
               }),
+              overlayColor: WidgetStatePropertyAll(
+                AppTheme.primary.withValues(alpha: .08),
+              ),
               side: const WidgetStatePropertyAll(BorderSide.none),
               shape: WidgetStatePropertyAll(
                 RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm - 2),
                 ),
               ),
               textStyle: const WidgetStatePropertyAll(
                 TextStyle(
-                  fontSize: 13,
+                  fontSize: 12.5,
                   height: 1,
                   fontWeight: FontWeight.w800,
+                  letterSpacing: .05,
                 ),
               ),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
