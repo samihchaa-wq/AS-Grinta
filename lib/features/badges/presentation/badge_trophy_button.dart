@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/badges/data/badge_inbox_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,30 +21,37 @@ class BadgeTrophyButton extends ConsumerWidget {
         height: 38,
         child: Stack(
           clipBehavior: Clip.none,
+          alignment: Alignment.center,
           children: [
-            const Center(
-              child: Text('🏆', style: TextStyle(fontSize: 28)),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: AppTheme.reward.withValues(alpha: .12),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.reward.withValues(alpha: .38),
+                ),
+              ),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                size: 21,
+                color: AppTheme.reward,
+              ),
             ),
             if (hasUnseen)
               Positioned(
-                top: -2,
-                right: -1,
+                top: 0,
+                right: 0,
                 child: Container(
-                  width: 18,
-                  height: 18,
-                  alignment: Alignment.center,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: AppTheme.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
-                  ),
-                  child: const Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
+                    border: Border.all(
+                      color: AppTheme.background,
+                      width: 2,
                     ),
                   ),
                 ),
