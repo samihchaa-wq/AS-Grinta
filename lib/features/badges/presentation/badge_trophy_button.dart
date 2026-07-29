@@ -44,6 +44,7 @@ class BadgeTrophyButton extends ConsumerWidget {
                 top: 0,
                 right: 0,
                 child: Container(
+                  key: const ValueKey('badge-unseen-indicator'),
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
