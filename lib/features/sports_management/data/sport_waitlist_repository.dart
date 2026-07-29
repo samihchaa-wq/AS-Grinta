@@ -13,6 +13,11 @@ abstract interface class SportWaitlistRepository {
     String? reason,
   });
 
+  Future<void> setWaitlistManualCount({
+    required String seasonPlayerId,
+    required int count,
+  });
+
   Future<List<AdminSportMatch>> fetchUpcomingMatches();
 
   Future<MatchConvocations> fetchMatchConvocations(String matchId);
@@ -94,6 +99,17 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
       },
     );
     return SportWaitlist.fromRpc(response);
+  }
+
+  @override
+  Future<void> setWaitlistManualCount({
+    required String seasonPlayerId,
+    required int count,
+  }) async {
+    await _client.rpc(
+      'admin_set_waitlist_manual_count',
+      params: {'p_season_player_id': seasonPlayerId, 'p_count': count},
+    );
   }
 
   @override

@@ -65,6 +65,62 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     });
   }
 
+  Future<void> _editWaitlistCount(SportWaitlistEntry entry) async {
+    final controller = TextEditingController(
+      text: '${entry.currentSeasonWaitlistCount}',
+    );
+    final newCount = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Liste d’attente de ${entry.displayName}'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Nombre de fois en liste d’attente cette saison',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text.trim());
+              Navigator.pop(dialogContext, value);
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newCount == null || newCount < 0) return;
+    try {
+      await ref.read(sportWaitlistRepositoryProvider).setWaitlistManualCount(
+            seasonPlayerId: entry.seasonPlayerId,
+            count: newCount,
+          );
+      if (!mounted) return;
+      setState(() {
+        _entries = [
+          for (final current in _entries)
+            if (current.seasonPlayerId == entry.seasonPlayerId)
+              current.copyWith(currentSeasonWaitlistCount: newCount)
+            else
+              current,
+        ];
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    }
+  }
+
   Future<void> _save() async {
     final waitlist = _waitlist;
     if (waitlist == null || !_dirty) return;
@@ -195,6 +251,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
             canMoveDown: index < _entries.length - 1,
             onMoveUp: () => _move(index, -1),
             onMoveDown: () => _move(index, 1),
+            onEditWaitlistCount: () => _editWaitlistCount(_entries[index]),
           ),
       ],
     );
@@ -209,6 +266,7 @@ class _WaitlistTile extends StatelessWidget {
     required this.canMoveDown,
     required this.onMoveUp,
     required this.onMoveDown,
+    required this.onEditWaitlistCount,
   });
 
   final int index;
@@ -217,13 +275,13 @@ class _WaitlistTile extends StatelessWidget {
   final bool canMoveDown;
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
+  final VoidCallback onEditWaitlistCount;
 
   @override
   Widget build(BuildContext context) {
     final total = entry.previousSeasonMatchCount;
     final attendance = entry.previousSeasonAttendanceCount;
-    final previousSeasonPresence =
-        total > 0 ? '$attendance sur $total' : 'Aucune donnée';
+    final previousSeasonPresence = total > 0 ? '$attendance' : 'Aucune donnée';
     final waitlistCount = entry.currentSeasonWaitlistCount;
     return Card(
       key: ValueKey(entry.seasonPlayerId),
@@ -239,8 +297,20 @@ class _WaitlistTile extends StatelessWidget {
           children: [
             const SizedBox(height: 3),
             Text('Présence saison précédente : $previousSeasonPresence'),
-            Text(
-              'Liste d’attente cette saison : $waitlistCount fois',
+            InkWell(
+              onTap: onEditWaitlistCount,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Liste d’attente cette saison : $waitlistCount fois'),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.edit_outlined,
+                    size: 15,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -23,7 +23,7 @@ void main() {
 
     expect(find.text('Alice'), findsOneWidget);
     expect(find.text('Bruno'), findsOneWidget);
-    expect(find.text('Présence saison précédente : 2 sur 10'), findsOneWidget);
+    expect(find.text('Présence saison précédente : 2'), findsOneWidget);
     expect(find.text('Liste d’attente cette saison : 3 fois'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.keyboard_arrow_up).first);
@@ -100,6 +100,12 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
       ],
     );
   }
+
+  @override
+  Future<void> setWaitlistManualCount({
+    required String seasonPlayerId,
+    required int count,
+  }) async {}
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => const [];

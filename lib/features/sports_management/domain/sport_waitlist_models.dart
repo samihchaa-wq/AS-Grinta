@@ -78,6 +78,21 @@ class SportWaitlistEntry {
   final String? serverName;
 
   String get displayName => serverName ?? firstName.trim();
+
+  SportWaitlistEntry copyWith({int? currentSeasonWaitlistCount}) {
+    return SportWaitlistEntry(
+      seasonPlayerId: seasonPlayerId,
+      firstName: firstName,
+      lastName: lastName,
+      position: position,
+      previousSeasonAttendanceCount: previousSeasonAttendanceCount,
+      previousSeasonMatchCount: previousSeasonMatchCount,
+      currentSeasonWaitlistCount:
+          currentSeasonWaitlistCount ?? this.currentSeasonWaitlistCount,
+      source: source,
+      serverName: serverName,
+    );
+  }
 }
 
 class SportWaitlist {
