@@ -35,20 +35,17 @@ class HomeNextMatchCard extends StatelessWidget {
             awayName: awayName,
             grintaIsHome: match.isHome,
             nameStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 20,
-                  height: 1.08,
-                  fontWeight: FontWeight.w900,
-                ),
+              fontSize: 20,
+              height: 1.08,
+              fontWeight: FontWeight.w900,
+            ),
             foreground: AppTheme.textPrimary,
             textAlign: TextAlign.center,
           ),
         ),
         if (isAdmin) ...[
           const SizedBox(width: 4),
-          SizedBox(
-            width: 40,
-            child: AdminMatchOptionsButton(match: match),
-          ),
+          SizedBox(width: 40, child: AdminMatchOptionsButton(match: match)),
         ],
         const SizedBox(width: 2),
         Icon(
@@ -66,9 +63,7 @@ class HomeNextMatchCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        side: BorderSide(
-          color: AppTheme.primaryBright.withValues(alpha: .3),
-        ),
+        side: BorderSide(color: AppTheme.primaryBright.withValues(alpha: .3)),
       ),
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -104,7 +99,8 @@ class HomeNextMatchCard extends StatelessWidget {
               ),
             ),
             InkWell(
-              onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
+              onTap: () =>
+                  context.push('/matches/${match.id}/lineup?section=info'),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                 child: Column(
@@ -121,7 +117,9 @@ class HomeNextMatchCard extends StatelessWidget {
                             color: AppTheme.primary.withValues(alpha: .14),
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: AppTheme.primaryBright.withValues(alpha: .24),
+                              color: AppTheme.primaryBright.withValues(
+                                alpha: .24,
+                              ),
                             ),
                           ),
                           child: const Text(
@@ -159,9 +157,7 @@ class HomeNextMatchCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Text(
                                 match.isHome ? 'Domicile' : 'Extérieur',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
+                                style: Theme.of(context).textTheme.labelMedium
                                     ?.copyWith(
                                       color: AppTheme.textSecondary,
                                       fontWeight: FontWeight.w800,

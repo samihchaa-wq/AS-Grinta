@@ -85,17 +85,17 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   MaterialPageRoute(builder: (_) => const MatchFormPage()),
                 );
                 if (!mounted) return;
-                await ref.read(matchesControllerProvider.notifier).load(
-                      seasonId: state.selectedSeasonId,
-                    );
+                await ref
+                    .read(matchesControllerProvider.notifier)
+                    .load(seasonId: state.selectedSeasonId);
               },
             ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(matchesControllerProvider.notifier).load(
-              seasonId: state.selectedSeasonId,
-            ),
+        onRefresh: () => ref
+            .read(matchesControllerProvider.notifier)
+            .load(seasonId: state.selectedSeasonId),
         child: SingleChildScrollView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
@@ -116,7 +116,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                       )
                       .toList(),
                   onChanged: (value) async {
-                    if (value == null || value == state.selectedSeasonId) return;
+                    if (value == null || value == state.selectedSeasonId)
+                      return;
                     await ref
                         .read(matchesControllerProvider.notifier)
                         .load(seasonId: value);
@@ -137,7 +138,8 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   child: GrintaEmptyState(
                     icon: Icons.stadium_rounded,
                     title: 'Aucun match cette saison',
-                    message: 'Les matchs de la saison apparaîtront ici dès '
+                    message:
+                        'Les matchs de la saison apparaîtront ici dès '
                         'qu\'ils seront programmés.',
                     compact: true,
                   ),
@@ -261,8 +263,8 @@ class _MatchCard extends StatelessWidget {
     final cardColor = isNext
         ? AppTheme.surfaceHero.withValues(alpha: .96)
         : isFinished
-            ? AppTheme.surface.withValues(alpha: .72)
-            : AppTheme.surfaceHigh.withValues(alpha: .7);
+        ? AppTheme.surface.withValues(alpha: .72)
+        : AppTheme.surfaceHigh.withValues(alpha: .7);
 
     return Card(
       color: cardColor,
@@ -280,10 +282,8 @@ class _MatchCard extends StatelessWidget {
         onTap: isFinished
             ? () => context.push('/matches/${match.id}')
             : isNext
-                ? () => context.push(
-                      '/matches/${match.id}/lineup?section=info',
-                    )
-                : null,
+            ? () => context.push('/matches/${match.id}/lineup?section=info')
+            : null,
         child: Padding(
           padding: EdgeInsets.all(isNext ? 18 : 14),
           child: Column(
@@ -296,10 +296,10 @@ class _MatchCard extends StatelessWidget {
                     child: Text(
                       _scoreLine(),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontSize: isFinished ? 18 : 17,
-                            fontWeight: FontWeight.w900,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
+                        fontSize: isFinished ? 18 : 17,
+                        fontWeight: FontWeight.w900,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -311,17 +311,21 @@ class _MatchCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isFinished
                           ? resultColor.withValues(alpha: .12)
-                          : AppTheme.primary.withValues(alpha: isNext ? .16 : .09),
+                          : AppTheme.primary.withValues(
+                              alpha: isNext ? .16 : .09,
+                            ),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
                       isFinished
                           ? 'Terminé'
                           : isNext
-                              ? 'Prochain'
-                              : 'À venir',
+                          ? 'Prochain'
+                          : 'À venir',
                       style: TextStyle(
-                        color: isFinished ? resultColor : AppTheme.primaryBright,
+                        color: isFinished
+                            ? resultColor
+                            : AppTheme.primaryBright,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
@@ -340,7 +344,10 @@ class _MatchCard extends StatelessWidget {
               ),
               if (canEdit || canFinalize || canDelete) ...[
                 const SizedBox(height: 12),
-                Divider(height: 1, color: AppTheme.outline.withValues(alpha: .26)),
+                Divider(
+                  height: 1,
+                  color: AppTheme.outline.withValues(alpha: .26),
+                ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
@@ -366,7 +373,8 @@ class _MatchCard extends StatelessWidget {
                     if (canDelete)
                       TextButton.icon(
                         onPressed: () async {
-                          final confirmed = await showDialog<bool>(
+                          final confirmed =
+                              await showDialog<bool>(
                                 context: context,
                                 builder: (dialogContext) => AlertDialog(
                                   title: const Text('Supprimer ce match ?'),
@@ -394,7 +402,10 @@ class _MatchCard extends StatelessWidget {
                               .read(matchesControllerProvider.notifier)
                               .deleteMatch(match.id);
                         },
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
                         label: const Text('Supprimer'),
                         style: TextButton.styleFrom(
                           foregroundColor: AppTheme.error,

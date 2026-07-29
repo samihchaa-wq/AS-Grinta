@@ -183,9 +183,13 @@ abstract final class AppTheme {
             return primary;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
-            return states.contains(WidgetState.disabled) ? textFaint : Colors.white;
+            return states.contains(WidgetState.disabled)
+                ? textFaint
+                : Colors.white;
           }),
-          overlayColor: WidgetStateProperty.all(Colors.white.withValues(alpha: .06)),
+          overlayColor: WidgetStateProperty.all(
+            Colors.white.withValues(alpha: .06),
+          ),
           shape: WidgetStateProperty.all(
             RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(radiusMd),
@@ -219,10 +223,17 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceHigh.withValues(alpha: .62),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 13,
+        ),
         hintStyle: const TextStyle(color: textFaint),
         labelStyle: const TextStyle(color: textSecondary),
-        helperStyle: const TextStyle(color: textFaint, fontSize: 12, height: 1.35),
+        helperStyle: const TextStyle(
+          color: textFaint,
+          fontSize: 12,
+          height: 1.35,
+        ),
         errorStyle: const TextStyle(color: error, fontSize: 12, height: 1.35),
         prefixIconColor: textSecondary,
         suffixIconColor: textSecondary,

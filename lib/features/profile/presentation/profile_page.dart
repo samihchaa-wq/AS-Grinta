@@ -28,7 +28,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     final profile = ref.read(authControllerProvider).profile;
-    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
+    _firstNameController = TextEditingController(
+      text: profile?.firstName ?? '',
+    );
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _surnomController = TextEditingController(text: profile?.surnom ?? '');
   }
@@ -111,9 +113,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   displayName,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -.25,
-                      ),
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.25,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -128,7 +130,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                     _ProfileMetaChip(
                       icon: Icons.shield_outlined,
-                      label: profile?.role.label ?? 'Rôle inconnu',
+                      label: profile == null
+                          ? 'Rôle inconnu'
+                          : switch (profile.role) {
+                              AuthRole.admin => 'Admin',
+                              AuthRole.pronostiqueur => 'Joueur',
+                            },
                     ),
                   ],
                 ),
@@ -136,9 +143,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 Text(
                   'Ta photo apparaît sur les compositions.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textFaint,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
               ],
             ),
@@ -211,10 +218,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error.withValues(alpha: .1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.error.withValues(alpha: .3),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.error.withValues(alpha: .3),
                 ),
               ),
               child: Row(
@@ -276,9 +287,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         .uploadPhoto(bytes: bytes, fileExt: ext);
     if (!mounted) return;
     final error = ref.read(authControllerProvider).error;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error ?? 'Photo mise à jour.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error ?? 'Photo mise à jour.')));
   }
 
   Future<void> _saveProfile() async {
@@ -306,16 +317,18 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return;
     }
     setState(() => _localError = null);
-    await ref.read(authControllerProvider.notifier).updateProfile(
+    await ref
+        .read(authControllerProvider.notifier)
+        .updateProfile(
           firstName: firstName,
           lastName: lastName,
           surnom: surnom,
         );
     if (!mounted) return;
     if (ref.read(authControllerProvider).error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil enregistré.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profil enregistré.')));
     }
   }
 
@@ -369,7 +382,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 onPressed: () {
                   final password = passwordController.text;
                   final policyError = PasswordPolicy.validate(password);
-                  final error = policyError ??
+                  final error =
+                      policyError ??
                       (password != confirmationController.text
                           ? 'Les deux mots de passe ne correspondent pas.'
                           : null);
@@ -407,9 +421,9 @@ class _SectionHeading extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
       ],
     );
@@ -439,9 +453,9 @@ class _ProfileMetaChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

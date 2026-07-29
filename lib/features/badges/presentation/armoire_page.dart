@@ -30,19 +30,18 @@ class ArmoirePage extends ConsumerWidget {
       ref.invalidate(featuredBadgesProvider);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final armoireAsync = ref.watch(myArmoireProvider);
-    final featured = ref.watch(myFeaturedCodesProvider).maybeWhen(
-          data: (codes) => codes,
-          orElse: () => const <String>{},
-        );
+    final featured = ref
+        .watch(myFeaturedCodesProvider)
+        .maybeWhen(data: (codes) => codes, orElse: () => const <String>{});
     final isAdmin = ref.watch(isAdminViewProvider);
 
     return Scaffold(
@@ -92,7 +91,8 @@ class ArmoirePage extends ConsumerWidget {
                   child: GrintaEmptyState(
                     icon: Icons.emoji_events_outlined,
                     title: 'Ta collection est vide',
-                    message: 'Joue, pronostique et gagne des matchs pour '
+                    message:
+                        'Joue, pronostique et gagne des matchs pour '
                         'débloquer tes premiers badges.',
                   ),
                 ),
@@ -105,9 +105,9 @@ class ArmoirePage extends ConsumerWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Sélectionne jusqu’à 2 badges à afficher près de ton prénom.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textFaint,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
                 const SizedBox(height: 14),
                 _BadgeGrid(
@@ -137,9 +137,9 @@ class ArmoirePage extends ConsumerWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Continue à jouer pour révéler ces récompenses.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textFaint,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
                 const SizedBox(height: 14),
                 _BadgeGrid(badges: armoire.locked, locked: true),
@@ -176,9 +176,7 @@ class _Header extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppTheme.reward.withValues(alpha: .12),
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(
-                color: AppTheme.reward.withValues(alpha: .34),
-              ),
+              border: Border.all(color: AppTheme.reward.withValues(alpha: .34)),
             ),
             child: const Icon(
               Icons.emoji_events_rounded,
@@ -193,17 +191,17 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   'Ma collection',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '$validated débloqué${validated > 1 ? 's' : ''} · '
                   '$inProgress en progression',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textFaint,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
               ],
             ),
@@ -233,9 +231,9 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
         const Spacer(),
         Container(
@@ -243,16 +241,14 @@ class _SectionTitle extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.surfaceHigh,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: AppTheme.outline.withValues(alpha: .46),
-            ),
+            border: Border.all(color: AppTheme.outline.withValues(alpha: .46)),
           ),
           child: Text(
             '$count',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: AppTheme.textSecondary,
-                ),
+              fontWeight: FontWeight.w900,
+              color: AppTheme.textSecondary,
+            ),
           ),
         ),
       ],
@@ -341,9 +337,9 @@ class _BadgeTile extends ConsumerWidget {
               'Mystère',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textFaint.withValues(alpha: .72),
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: AppTheme.textFaint.withValues(alpha: .72),
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -359,8 +355,11 @@ class _BadgeTile extends ConsumerWidget {
           GestureDetector(
             onTap: () {
               if (badge.isNew) {
-                final uid =
-                    ref.read(supabaseClientProvider).auth.currentUser?.id;
+                final uid = ref
+                    .read(supabaseClientProvider)
+                    .auth
+                    .currentUser
+                    ?.id;
                 if (uid != null) {
                   ref
                       .read(badgeRepositoryProvider)
@@ -387,8 +386,9 @@ class _BadgeTile extends ConsumerWidget {
                   baremeLabel: bareme,
                   showStar: badge.def.hasStar,
                   starCount: badge.stars,
-                  starsMultiplyBareme:
-                      isCareerBadgeCategory(badge.def.category),
+                  starsMultiplyBareme: isCareerBadgeCategory(
+                    badge.def.category,
+                  ),
                   size: emblem,
                 ),
                 if (badge.isNew)
@@ -401,7 +401,10 @@ class _BadgeTile extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.accent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.background, width: 2),
+                        border: Border.all(
+                          color: AppTheme.background,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -414,7 +417,10 @@ class _BadgeTile extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.reward,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.background, width: 2),
+                        border: Border.all(
+                          color: AppTheme.background,
+                          width: 2,
+                        ),
                       ),
                       child: const Icon(
                         Icons.star_rounded,
@@ -433,9 +439,9 @@ class _BadgeTile extends ConsumerWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
           ),
         ],
       ),
@@ -481,8 +487,8 @@ class _InProgressTile extends StatelessWidget {
                   Text(
                     badge.def.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   if (badge.def.description.isNotEmpty) ...[
                     const SizedBox(height: 3),
@@ -491,8 +497,8 @@ class _InProgressTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textFaint,
-                          ),
+                        color: AppTheme.textFaint,
+                      ),
                     ),
                   ],
                   if (showProgress) ...[
@@ -515,7 +521,8 @@ class _InProgressTile extends StatelessWidget {
                         const SizedBox(width: 10),
                         Text(
                           '${badge.current}/${badge.target}',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
                                 color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -527,10 +534,7 @@ class _InProgressTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppTheme.textFaint,
-            ),
+            const Icon(Icons.chevron_right_rounded, color: AppTheme.textFaint),
           ],
         ),
       ),
