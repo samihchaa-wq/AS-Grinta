@@ -159,6 +159,47 @@ class MatchesRepository {
     return result.toString();
   }
 
+  /// Crée un « match entre nous » (sans adversaire réel, sans cotes, sans
+  /// limite convocable) et renvoie son identifiant.
+  Future<String> createInternalMatch({
+    required String seasonId,
+    required DateTime kickoffAt,
+    String? address,
+  }) async {
+    final result = await _client.rpc(
+      'create_internal_match',
+      params: {
+        'p_season_id': seasonId,
+        'p_match_date': kickoffAt.toIso8601String().split('T').first,
+        'p_match_time': _formatTime(kickoffAt),
+        'p_address': address,
+      },
+    );
+    if (result == null || result.toString().isEmpty) {
+      throw StateError('Le match n’a pas pu être créé.');
+    }
+    return result.toString();
+  }
+
+  Future<void> updateInternalMatch({
+    required String id,
+    required String seasonId,
+    required DateTime kickoffAt,
+  }) async {
+    final result = await _client.rpc(
+      'update_internal_match',
+      params: {
+        'p_match_id': id,
+        'p_season_id': seasonId,
+        'p_match_date': kickoffAt.toIso8601String().split('T').first,
+        'p_match_time': _formatTime(kickoffAt),
+      },
+    );
+    if (result != true) {
+      throw StateError('Le match n’a pas pu être enregistré.');
+    }
+  }
+
   /// Cotes suggérées par le modèle historique (V2.1) pour un adversaire et
   /// un lieu donnés. Retourne null si le calcul échoue.
   Future<({double win, double draw, double loss})?> previewMatchOdds({

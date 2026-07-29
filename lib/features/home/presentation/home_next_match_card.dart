@@ -30,18 +30,28 @@ class HomeNextMatchCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: MatchFixture(
-            homeName: homeName,
-            awayName: awayName,
-            grintaIsHome: match.isHome,
-            nameStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 20,
-                  height: 1.08,
-                  fontWeight: FontWeight.w900,
+          child: match.isInternal
+              ? Text(
+                  '⚽ Match entre nous',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textPrimary,
+                      ),
+                )
+              : MatchFixture(
+                  homeName: homeName,
+                  awayName: awayName,
+                  grintaIsHome: match.isHome,
+                  nameStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 20,
+                        height: 1.08,
+                        fontWeight: FontWeight.w900,
+                      ),
+                  foreground: AppTheme.textPrimary,
+                  textAlign: TextAlign.center,
                 ),
-            foreground: AppTheme.textPrimary,
-            textAlign: TextAlign.center,
-          ),
         ),
         if (isAdmin) ...[
           const SizedBox(width: 4),

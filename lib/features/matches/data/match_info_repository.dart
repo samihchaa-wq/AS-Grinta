@@ -32,7 +32,11 @@ class MatchInfo {
   final String? jerseyNote;
 
   bool get isFriendly => matchType == 'amical';
-  String get matchTypeLabel => isFriendly ? 'Match amical' : 'Championnat';
+  bool get isInternal => matchType == 'entre_nous';
+  String get matchTypeLabel {
+    if (isInternal) return 'Match entre nous';
+    return isFriendly ? 'Match amical' : 'Championnat';
+  }
 }
 
 String? _clean(Object? value) {

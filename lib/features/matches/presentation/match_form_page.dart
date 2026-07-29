@@ -10,6 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
+/// Valeur factice utilisée dans le menu déroulant « Adversaire » pour
+/// représenter le choix « Match entre nous » (pas d'adversaire réel).
+const _internalMatchSentinel = '__entre_nous__';
+
 class MatchFormPage extends ConsumerStatefulWidget {
   const MatchFormPage({super.key, this.match});
 
@@ -34,6 +38,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   late DateTime _kickoffAt;
   late bool _isHome;
   late String _matchType;
+  late bool _isInternal;
 
   bool _suggestingOdds = false;
   bool _squadDefaultApplied = false;
@@ -73,6 +78,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
     _matchType = match?.matchType ?? 'championnat';
+    _isInternal = match?.isInternal ?? false;
+    if (_isInternal) _isHome = true;
     _oddsWin = match?.oddsWin;
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
@@ -199,41 +206,66 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               ),
               const SizedBox(height: 12),
             ],
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _opponentId.isEmpty ? null : _opponentId,
-                    decoration: const InputDecoration(labelText: 'Adversaire'),
-                    items: opponents
-                        .map(
-                          (opponent) => DropdownMenuItem<String>(
+            if (widget.match != null && widget.match!.isInternal)
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.groups_outlined),
+                title: Text('Match entre nous'),
+                subtitle: Text(
+                  'Le type d’un match ne peut pas être modifié après sa '
+                  'création.',
+                ),
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _isInternal
+                          ? _internalMatchSentinel
+                          : (_opponentId.isEmpty ? null : _opponentId),
+                      decoration:
+                          const InputDecoration(labelText: 'Adversaire'),
+                      items: [
+                        if (widget.match == null)
+                          const DropdownMenuItem<String>(
+                            value: _internalMatchSentinel,
+                            child: Text('⚽ Match entre nous'),
+                          ),
+                        for (final opponent in opponents)
+                          DropdownMenuItem<String>(
                             value: opponent['id'].toString(),
                             child: Text(opponent['name'].toString()),
                           ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _opponentId = value ?? '';
-                        _prefillAddress();
-                      });
-                      _suggestOdds();
-                    },
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Sélectionnez un adversaire'
-                        : null,
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          if (value == _internalMatchSentinel) {
+                            _isInternal = true;
+                            _opponentId = '';
+                            _isHome = true;
+                          } else {
+                            _isInternal = false;
+                            _opponentId = value ?? '';
+                            _prefillAddress();
+                          }
+                        });
+                        if (!_isInternal) _suggestOdds();
+                      },
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Sélectionnez un adversaire'
+                          : null,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filledTonal(
-                  tooltip: 'Ajouter un adversaire',
-                  onPressed: _createOpponent,
-                  icon: const Icon(Icons.add),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Ajouter un adversaire',
+                    onPressed: _createOpponent,
+                    icon: const Icon(Icons.add),
+                  ),
+                ],
+              ),
             const SizedBox(height: 12),
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -275,47 +307,52 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
               ),
               controlAffinity: ListTileControlAffinity.leading,
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<bool>(
-              initialValue: _isHome,
-              decoration: const InputDecoration(labelText: 'Lieu'),
-              items: const [
-                DropdownMenuItem(value: true, child: Text('Domicile')),
-                DropdownMenuItem(value: false, child: Text('Extérieur')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _isHome = value ?? true;
-                  _prefillAddress();
-                });
-                _suggestOdds();
-              },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _matchType,
-              decoration: const InputDecoration(labelText: 'Type de match'),
-              items: const [
-                DropdownMenuItem(
-                  value: 'championnat',
-                  child: Text('Championnat'),
-                ),
-                DropdownMenuItem(value: 'amical', child: Text('Match amical')),
-              ],
-              onChanged: (value) =>
-                  setState(() => _matchType = value ?? 'championnat'),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _jerseyNoteController,
-              maxLength: 300,
-              decoration: const InputDecoration(
-                labelText: 'Maillot (facultatif)',
-                hintText: 'Ex. Maillot domicile bleu nuit',
-                prefixIcon: Icon(Icons.checkroom_outlined),
+            if (!_isInternal) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<bool>(
+                initialValue: _isHome,
+                decoration: const InputDecoration(labelText: 'Lieu'),
+                items: const [
+                  DropdownMenuItem(value: true, child: Text('Domicile')),
+                  DropdownMenuItem(value: false, child: Text('Extérieur')),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _isHome = value ?? true;
+                    _prefillAddress();
+                  });
+                  _suggestOdds();
+                },
               ),
-            ),
-            if (sportsEnabled) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _matchType,
+                decoration: const InputDecoration(labelText: 'Type de match'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'championnat',
+                    child: Text('Championnat'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'amical',
+                    child: Text('Match amical'),
+                  ),
+                ],
+                onChanged: (value) =>
+                    setState(() => _matchType = value ?? 'championnat'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _jerseyNoteController,
+                maxLength: 300,
+                decoration: const InputDecoration(
+                  labelText: 'Maillot (facultatif)',
+                  hintText: 'Ex. Maillot domicile bleu nuit',
+                  prefixIcon: Icon(Icons.checkroom_outlined),
+                ),
+              ),
+            ],
+            if (sportsEnabled && !_isInternal) ...[
               const SizedBox(height: 12),
               TextFormField(
                 controller: _squadSizeController,
@@ -340,36 +377,41 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 },
               ),
             ],
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Text('Cotes', style: Theme.of(context).textTheme.titleMedium),
-                if (_suggestingOdds) ...[
-                  const Spacer(),
-                  const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: GrintaProgressIndicator(strokeWidth: 2),
+            if (!_isInternal) ...[
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Text(
+                    'Cotes',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (_suggestingOdds) ...[
+                    const Spacer(),
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: GrintaProgressIndicator(strokeWidth: 2),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
                   ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
-                ),
-              ],
-            ),
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: canManage && !state.isLoading && !_squadLimitLoading
@@ -514,6 +556,30 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
+    final notifier = ref.read(matchesControllerProvider.notifier);
+    final address = _addressController.text.trim();
+    if (_isInternal) {
+      if (widget.match == null) {
+        await notifier.createInternalMatch(
+          seasonId: _seasonId,
+          kickoffAt: _kickoffAt,
+          address: address.isEmpty ? null : address,
+        );
+      } else {
+        await notifier.updateInternalMatch(
+          id: widget.match!.id,
+          seasonId: _seasonId,
+          kickoffAt: _kickoffAt,
+          address: address.isEmpty ? null : address,
+          rememberAddressAsDefault: _rememberAddressAsDefault,
+        );
+      }
+      if (!mounted) return;
+      if (ref.read(matchesControllerProvider).error == null) {
+        Navigator.pop(context);
+      }
+      return;
+    }
     final oddsWin = _oddsWin;
     final oddsDraw = _oddsDraw;
     final oddsLoss = _oddsLoss;
@@ -528,8 +594,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
     final squadSizeLimit =
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-    final notifier = ref.read(matchesControllerProvider.notifier);
-    final address = _addressController.text.trim();
     final jerseyNote = _jerseyNoteController.text.trim();
     if (widget.match == null) {
       await notifier.createMatch(

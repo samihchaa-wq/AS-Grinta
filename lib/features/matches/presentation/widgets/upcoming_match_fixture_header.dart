@@ -7,6 +7,7 @@ class UpcomingMatchFixtureData {
     required this.status,
     required this.location,
     required this.opponentName,
+    this.isInternal = false,
   });
 
   factory UpcomingMatchFixtureData.fromJson(Map<String, dynamic> json) {
@@ -19,12 +20,14 @@ class UpcomingMatchFixtureData {
       opponentName: opponentName == null || opponentName.isEmpty
           ? 'Adversaire'
           : opponentName,
+      isInternal: json['match_type'] == 'entre_nous',
     );
   }
 
   final String status;
   final String location;
   final String opponentName;
+  final bool isInternal;
 
   bool get isUpcoming => status == 'a_venir';
   bool get grintaIsHome => location == 'domicile';
@@ -40,7 +43,7 @@ final upcomingMatchFixtureProvider =
   final client = ref.watch(supabaseClientProvider);
   final row = await client
       .from('matches')
-      .select('status, location, opponents(name)')
+      .select('status, location, match_type, opponents(name)')
       .eq('id', matchId)
       .maybeSingle();
   if (row == null) return null;
@@ -65,6 +68,26 @@ class UpcomingMatchFixtureHeader extends ConsumerWidget {
     return fixture.maybeWhen(
       data: (data) {
         if (data == null || !data.isUpcoming) return const SizedBox.shrink();
+        if (data.isInternal) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: bottomSpacing),
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                child: Center(
+                  child: Text(
+                    '⚽ Match entre nous',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
         return Padding(
           padding: EdgeInsets.only(bottom: bottomSpacing),
           child: Card(

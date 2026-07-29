@@ -11,6 +11,7 @@ import 'package:as_grinta/features/sports_management/data/match_composition_repo
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/internal_team_composition_view.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_board_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
@@ -44,19 +45,21 @@ class MatchLineupPage extends ConsumerWidget {
       _ => 'effectif',
     };
     final isAdmin = ref.watch(isAdminViewProvider);
+    final isInternal =
+        ref.watch(matchInfoProvider(matchId)).valueOrNull?.isInternal ?? false;
 
     if (isAdmin) {
       return AdminSquadPlanPage(
         initialMatchId: matchId,
         initialStep: section,
-        showPredictionStep: true,
+        showPredictionStep: !isInternal,
       );
     }
 
     final showInfo = section == 'info';
     final showEffectif = section == 'effectif';
     final showComposition = section == 'composition';
-    final showPrediction = section == 'prediction';
+    final showPrediction = section == 'prediction' && !isInternal;
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Fiche du match')),
@@ -86,13 +89,28 @@ class MatchLineupPage extends ConsumerWidget {
             UpcomingMatchFixtureHeader(matchId: matchId),
             SegmentedButton<String>(
               showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 'info', label: Text('Info')),
-                ButtonSegment(value: 'effectif', label: Text('Effectif')),
-                ButtonSegment(value: 'composition', label: Text('Compo')),
-                ButtonSegment(value: 'prediction', label: Text('Prono')),
+              segments: [
+                const ButtonSegment(value: 'info', label: Text('Info')),
+                const ButtonSegment(
+                  value: 'effectif',
+                  label: Text('Effectif'),
+                ),
+                const ButtonSegment(
+                  value: 'composition',
+                  label: Text('Compo'),
+                ),
+                if (!isInternal)
+                  const ButtonSegment(
+                    value: 'prediction',
+                    label: Text('Prono'),
+                  ),
               ],
-              selected: {section},
+              selected: {
+                if (isInternal && section == 'prediction')
+                  'effectif'
+                else
+                  section,
+              },
               onSelectionChanged: (selection) => context.go(
                 '/matches/$matchId/lineup?section=${selection.first}',
               ),
@@ -104,7 +122,9 @@ class MatchLineupPage extends ConsumerWidget {
                 matchId: matchId,
                 showAfterComposition: true,
               ),
-            if (showComposition)
+            if (showComposition && isInternal)
+              InternalTeamCompositionView(matchId: matchId, editable: false)
+            else if (showComposition)
               PublishedLineupPreview(
                 matchId: matchId,
                 expanded: true,

@@ -226,7 +226,7 @@ class _MatchesTimeline extends StatelessWidget {
                         match: match,
                         isNext: match.id == target?.id && !match.isFinished,
                         canEdit: isAdmin,
-                        canFinalize: isAdmin,
+                        canFinalize: isAdmin && !match.isInternal,
                         canDelete: isAdmin,
                       ),
                     ),

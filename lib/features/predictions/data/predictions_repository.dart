@@ -139,6 +139,7 @@ class PredictionsRepository {
         .from('matches')
         .select(_matchSelect)
         .eq('status', 'a_venir')
+        .neq('match_type', 'entre_nous')
         .order('kickoff_at', ascending: true);
     final matches = (response as List)
         .map((match) => Map<String, dynamic>.from(match as Map))

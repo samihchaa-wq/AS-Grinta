@@ -268,6 +268,81 @@ class MatchesController extends StateNotifier<MatchesState> {
     }
   }
 
+  /// Crée un « match entre nous » : pas d'adversaire, pas de cotes, pas de
+  /// limite convocable.
+  Future<void> createInternalMatch({
+    required String seasonId,
+    required DateTime kickoffAt,
+    String? address,
+  }) async {
+    if (!_canManageMatches) {
+      state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
+      return;
+    }
+    if (seasonId.isEmpty) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Saison obligatoire.',
+      );
+      return;
+    }
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.createInternalMatch(
+        seasonId: seasonId,
+        kickoffAt: kickoffAt,
+        address: address,
+      );
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
+      _ref.invalidate(homeDashboardProvider);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
+    }
+  }
+
+  Future<void> updateInternalMatch({
+    required String id,
+    required String seasonId,
+    required DateTime kickoffAt,
+    String? address,
+    bool rememberAddressAsDefault = false,
+  }) async {
+    if (!_canManageMatches) {
+      state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
+      return;
+    }
+    if (id.isEmpty || seasonId.isEmpty) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Match et saison obligatoires.',
+      );
+      return;
+    }
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.updateInternalMatch(
+        id: id,
+        seasonId: seasonId,
+        kickoffAt: kickoffAt,
+      );
+      await _repository.setMatchAddress(
+        matchId: id,
+        address: address,
+        rememberAsDefault: rememberAddressAsDefault,
+      );
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
+      _ref.invalidate(homeDashboardProvider);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
+    }
+  }
+
   bool _validOdds(double win, double draw, double loss) {
     return [win, draw, loss].every((value) => value >= 1.01 && value <= 100);
   }
