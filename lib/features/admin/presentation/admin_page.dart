@@ -102,7 +102,8 @@ class AdminPage extends ConsumerWidget {
                     child: GrintaEmptyState(
                       icon: Icons.group_add_rounded,
                       title: 'Aucun compte pour l’instant',
-                      message: 'Partage le lien d’inscription ci-dessus : les '
+                      message:
+                          'Partage le lien d’inscription ci-dessus : les '
                           'comptes créés apparaîtront ici pour validation.',
                       compact: true,
                     ),

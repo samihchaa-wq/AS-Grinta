@@ -63,7 +63,9 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
       _error = null;
     });
     try {
-      await ref.read(sportMotmVoteRepositoryProvider).castVote(
+      await ref
+          .read(sportMotmVoteRepositoryProvider)
+          .castVote(
             matchId: widget.matchId,
             candidateParticipantId: candidateId,
           );
@@ -184,9 +186,8 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
                   onTap: _isSubmitting
                       ? null
                       : () => setState(
-                            () =>
-                                _selectedCandidateId = candidate.participantId,
-                          ),
+                          () => _selectedCandidateId = candidate.participantId,
+                        ),
                   leading: Icon(
                     _selectedCandidateId == candidate.participantId
                         ? Icons.check_circle
@@ -225,14 +226,15 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
             title: 'Scrutin annulé',
             message:
                 'Aucun Homme du match collectif n’est attribué pour le moment.',
-          )
+          ),
         ] else ...[
           const _MessageCard(
             icon: Icons.schedule_outlined,
             title: 'Scrutin bientôt ouvert',
-            message: 'Le vote s’ouvre 1 h 45 après le coup d’envoi '
+            message:
+                'Le vote s’ouvre 1 h 45 après le coup d’envoi '
                 '(ou dès la validation du résultat).',
-          )
+          ),
         ],
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -271,36 +273,34 @@ class MatchMotmVoteCard extends ConsumerWidget {
         }
         final (icon, title, subtitle) = switch (vote.state) {
           SportMotmVoteState.open when vote.hasVoted => (
-              Icons.lock_outline,
-              'Vote HDM enregistré',
-              'Résultats révélés après la clôture.',
-            ),
+            Icons.lock_outline,
+            'Vote HDM enregistré',
+            'Résultats révélés après la clôture.',
+          ),
           SportMotmVoteState.open => (
-              Icons.how_to_vote_outlined,
-              'Vote Homme du match ouvert',
-              vote.canVote
-                  ? 'Ton vote est attendu avant la clôture.'
-                  : 'Consulte le scrutin en cours.',
-            ),
+            Icons.how_to_vote_outlined,
+            'Vote Homme du match ouvert',
+            vote.canVote
+                ? 'Ton vote est attendu avant la clôture.'
+                : 'Consulte le scrutin en cours.',
+          ),
           SportMotmVoteState.closed => (
-              Icons.emoji_events_outlined,
-              vote.winners.length > 1 ? 'Co-Hommes du match' : 'Homme du match',
-              vote.winners.isEmpty
-                  ? 'Aucun vote exprimé.'
-                  : vote.winners
-                      .map((winner) => winner.displayName)
-                      .join(' · '),
-            ),
+            Icons.emoji_events_outlined,
+            vote.winners.length > 1 ? 'Co-Hommes du match' : 'Homme du match',
+            vote.winners.isEmpty
+                ? 'Aucun vote exprimé.'
+                : vote.winners.map((winner) => winner.displayName).join(' · '),
+          ),
           SportMotmVoteState.cancelled => (
-              Icons.cancel_outlined,
-              'Vote HDM annulé',
-              'Aucun résultat collectif.',
-            ),
+            Icons.cancel_outlined,
+            'Vote HDM annulé',
+            'Aucun résultat collectif.',
+          ),
           _ => (
-              Icons.schedule_outlined,
-              'Vote HDM en préparation',
-              'Le scrutin sera disponible prochainement.',
-            ),
+            Icons.schedule_outlined,
+            'Vote HDM en préparation',
+            'Le scrutin sera disponible prochainement.',
+          ),
         };
         return Padding(
           padding: EdgeInsets.only(bottom: bottomSpacing),
@@ -386,8 +386,9 @@ class _Results extends StatelessWidget {
       children: [
         Text('Résultats', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        for (final candidate
-            in vote.candidates.where((c) => (c.votesCount ?? 0) > 0))
+        for (final candidate in vote.candidates.where(
+          (c) => (c.votesCount ?? 0) > 0,
+        ))
           Card(
             child: ListTile(
               leading: candidate.isWinner
@@ -433,8 +434,8 @@ class _MessageCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(message),

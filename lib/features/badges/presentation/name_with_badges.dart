@@ -29,7 +29,9 @@ class NameWithBadges extends ConsumerWidget {
     );
     if (profileId == null) return nameText;
 
-    final badges = ref.watch(featuredBadgesProvider).maybeWhen(
+    final badges = ref
+        .watch(featuredBadgesProvider)
+        .maybeWhen(
           data: (map) => map[profileId] ?? const <FeaturedBadge>[],
           orElse: () => const <FeaturedBadge>[],
         );

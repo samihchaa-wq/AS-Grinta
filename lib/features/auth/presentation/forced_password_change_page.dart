@@ -29,9 +29,9 @@ class _ForcedPasswordChangePageState
     final password = _passwordController.text;
     final passwordError = PasswordPolicy.validate(password);
     if (passwordError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(passwordError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(passwordError)));
       return;
     }
     if (password != _confirmController.text) {

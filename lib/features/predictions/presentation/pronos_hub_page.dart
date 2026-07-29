@@ -78,8 +78,8 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       _PronosCategory.matches => const MergedMatchesView(),
       _PronosCategory.scorers => const _ScorerRankingView(),
       _PronosCategory.general => _GeneralRankingsSection(
-          initialView: widget.initialView,
-        ),
+        initialView: widget.initialView,
+      ),
     };
 
     return Scaffold(
@@ -95,10 +95,12 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       body: Material(
         type: MaterialType.transparency,
         child: AnimatedSwitcher(
-          duration:
-              reduceMotion ? Duration.zero : const Duration(milliseconds: 240),
-          reverseDuration:
-              reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 240),
+          reverseDuration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           transitionBuilder: (child, animation) {
@@ -111,10 +113,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
               child: SlideTransition(position: offset, child: child),
             );
           },
-          child: KeyedSubtree(
-            key: ValueKey(_category),
-            child: content,
-          ),
+          child: KeyedSubtree(key: ValueKey(_category), child: content),
         ),
       ),
     );

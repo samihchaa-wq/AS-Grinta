@@ -42,19 +42,19 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
         .read(featureFlagsRepositoryProvider)
         .watchSportsManagementChanges()
         .listen(
-      _handleServerSignal,
-      onError: (Object error, StackTrace stackTrace) {
-        AppLogger.error('feature_flags.watch', error, stackTrace);
-      },
-    );
+          _handleServerSignal,
+          onError: (Object error, StackTrace stackTrace) {
+            AppLogger.error('feature_flags.watch', error, stackTrace);
+          },
+        );
   }
 
   void _handleServerSignal(FeatureFlagChangeSignal signal) {
     if (_lastSignal?.revision == signal.revision) return;
     _lastSignal = signal;
 
-    final currentUpdatedAt =
-        state.valueOrNull?.sportsManagement.updatedAt?.toUtc();
+    final currentUpdatedAt = state.valueOrNull?.sportsManagement.updatedAt
+        ?.toUtc();
     if (currentUpdatedAt != null &&
         !signal.updatedAt.isAfter(currentUpdatedAt)) {
       return;
@@ -127,8 +127,8 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
 
 final featureFlagsControllerProvider =
     AsyncNotifierProvider<FeatureFlagsController, FeatureFlagsSnapshot>(
-  FeatureFlagsController.new,
-);
+      FeatureFlagsController.new,
+    );
 
 final sportsManagementEnabledProvider = Provider<bool>((ref) {
   return ref

@@ -201,10 +201,7 @@ class AdminRepository {
   }) async {
     final result = await _client.rpc(
       'staff_validate_profile',
-      params: {
-        'p_profile_id': profileId,
-        'p_season_player_id': seasonPlayerId,
-      },
+      params: {'p_profile_id': profileId, 'p_season_player_id': seasonPlayerId},
     );
     if (result != true) {
       throw StateError('Le compte n’a pas pu être validé.');
@@ -236,10 +233,7 @@ class AdminRepository {
   }) async {
     final result = await _client.rpc(
       'staff_set_historical_profile',
-      params: {
-        'p_profile_id': profileId,
-        'p_historical_id': historicalId,
-      },
+      params: {'p_profile_id': profileId, 'p_historical_id': historicalId},
     );
     if (result != true) {
       throw StateError("L'historique n'a pas pu être rattaché.");

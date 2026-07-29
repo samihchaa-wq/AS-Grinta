@@ -15,16 +15,16 @@ class GrintaAppBar extends AppBar {
     bool admin = false,
     super.bottom,
   }) : super(
-          toolbarHeight: 60,
-          titleSpacing: 0,
-          centerTitle: false,
-          flexibleSpace: const _HeaderBackdrop(),
-          title: _GrintaTitleBar(
-            pageName: title,
-            actions: actions,
-            admin: admin,
-          ),
-        );
+         toolbarHeight: 60,
+         titleSpacing: 0,
+         centerTitle: false,
+         flexibleSpace: const _HeaderBackdrop(),
+         title: _GrintaTitleBar(
+           pageName: title,
+           actions: actions,
+           admin: admin,
+         ),
+       );
 }
 
 class _HeaderBackdrop extends StatelessWidget {
@@ -93,9 +93,9 @@ class _GrintaTitleBar extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.left,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.3,
-                  ),
+                fontWeight: FontWeight.w900,
+                letterSpacing: -.3,
+              ),
               child: pageName,
             ),
           ),
@@ -123,19 +123,19 @@ class _GrintaTitleBar extends StatelessWidget {
 }
 
 List<Widget> grintaHomeActions(BuildContext context) => [
-      const BadgeTrophyButton(),
-      const SizedBox(width: 2),
-      IconButton(
-        tooltip: 'Paramètres',
-        iconSize: 22,
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.all(7),
-        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-        style: IconButton.styleFrom(
-          foregroundColor: AppTheme.textSecondary,
-          backgroundColor: AppTheme.surfaceHigh.withValues(alpha: .46),
-        ),
-        icon: const Icon(Icons.settings_outlined),
-        onPressed: () => context.push('/more'),
-      ),
-    ];
+  const BadgeTrophyButton(),
+  const SizedBox(width: 2),
+  IconButton(
+    tooltip: 'Paramètres',
+    iconSize: 22,
+    visualDensity: VisualDensity.compact,
+    padding: const EdgeInsets.all(7),
+    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+    style: IconButton.styleFrom(
+      foregroundColor: AppTheme.textSecondary,
+      backgroundColor: AppTheme.surfaceHigh.withValues(alpha: .46),
+    ),
+    icon: const Icon(Icons.settings_outlined),
+    onPressed: () => context.push('/more'),
+  ),
+];

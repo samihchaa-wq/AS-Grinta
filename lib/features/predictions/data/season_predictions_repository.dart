@@ -183,7 +183,8 @@ class SeasonPredictionsRepository {
     final players = await _client
         .from('season_players')
         .select(
-            'id,profile_id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)')
+          'id,profile_id,first_name,last_name,is_goalkeeper,profiles!season_players_profile_id_fkey(surnom)',
+        )
         .eq('season_id', seasonId)
         .eq('is_active', true);
     final predictions = await _client
@@ -220,15 +221,15 @@ class SeasonPredictionsRepository {
       byKey['${map['season_player_id']}:${map['category']}'] = map;
     }
 
-    final rows = [
-      for (final row in players as List) Map<String, dynamic>.from(row),
-    ]..sort((a, b) {
-        final byGoals = prevGoalsFor(b).compareTo(prevGoalsFor(a));
-        if (byGoals != 0) return byGoals;
-        return _playerDisplayName(a)
-            .toLowerCase()
-            .compareTo(_playerDisplayName(b).toLowerCase());
-      });
+    final rows =
+        [for (final row in players as List) Map<String, dynamic>.from(row)]
+          ..sort((a, b) {
+            final byGoals = prevGoalsFor(b).compareTo(prevGoalsFor(a));
+            if (byGoals != 0) return byGoals;
+            return _playerDisplayName(
+              a,
+            ).toLowerCase().compareTo(_playerDisplayName(b).toLowerCase());
+          });
 
     final result = <SeasonPredictionItem>[];
     for (final map in rows) {
@@ -282,13 +283,17 @@ class SeasonPredictionsRepository {
       }
     }
 
-    final predictions = await _client.from('season_predictions').select('''
+    final predictions = await _client
+        .from('season_predictions')
+        .select('''
       season_player_id, predictor_profile_id, category,
       predicted_value_30, is_filled,
       predictor:profiles!season_predictions_predictor_profile_id_fkey(
         first_name,surnom,status
       )
-    ''').eq('season_id', seasonId).eq('is_filled', true);
+    ''')
+        .eq('season_id', seasonId)
+        .eq('is_filled', true);
 
     final predictionsByPlayer = <String, List<GaugePrediction>>{};
     for (final row in predictions as List) {
@@ -320,34 +325,37 @@ class SeasonPredictionsRepository {
           ? (int.tryParse('${map['clean_sheets'] ?? 0}') ?? 0)
           : (int.tryParse('${map['goals'] ?? 0}') ?? 0);
 
-      final playerPredictions = [
-        ...predictionsByPlayer[playerId] ?? const <GaugePrediction>[],
-      ]..sort((a, b) {
-          final byValue = b.value.compareTo(a.value);
-          if (byValue != 0) return byValue;
-          return a.predictorName
-              .toLowerCase()
-              .compareTo(b.predictorName.toLowerCase());
-        });
+      final playerPredictions =
+          [...predictionsByPlayer[playerId] ?? const <GaugePrediction>[]]
+            ..sort((a, b) {
+              final byValue = b.value.compareTo(a.value);
+              if (byValue != 0) return byValue;
+              return a.predictorName.toLowerCase().compareTo(
+                b.predictorName.toLowerCase(),
+              );
+            });
 
       final markersByValue = <int, List<GaugePrediction>>{};
       for (final prediction in playerPredictions) {
         markersByValue.putIfAbsent(prediction.value, () => []).add(prediction);
       }
-      final markers = markersByValue.entries
-          .map(
-            (entry) => GaugeMarker(
-              value: entry.key,
-              predictions: entry.value,
-            ),
-          )
-          .toList()
-        ..sort((a, b) => a.value.compareTo(b.value));
+      final markers =
+          markersByValue.entries
+              .map(
+                (entry) =>
+                    GaugeMarker(value: entry.key, predictions: entry.value),
+              )
+              .toList()
+            ..sort((a, b) => a.value.compareTo(b.value));
 
-      final maxMarker =
-          playerPredictions.isEmpty ? 0 : playerPredictions.first.value;
-      final maxValue = [actual, maxMarker, isGoalkeeper ? 15 : 20]
-          .reduce((a, b) => a > b ? a : b);
+      final maxMarker = playerPredictions.isEmpty
+          ? 0
+          : playerPredictions.first.value;
+      final maxValue = [
+        actual,
+        maxMarker,
+        isGoalkeeper ? 15 : 20,
+      ].reduce((a, b) => a > b ? a : b);
 
       gauges.add(
         PlayerGauge(
@@ -365,8 +373,9 @@ class SeasonPredictionsRepository {
     }
 
     gauges.sort((a, b) {
-      final byGoalkeeper =
-          (a.isGoalkeeper ? 1 : 0).compareTo(b.isGoalkeeper ? 1 : 0);
+      final byGoalkeeper = (a.isGoalkeeper ? 1 : 0).compareTo(
+        b.isGoalkeeper ? 1 : 0,
+      );
       if (byGoalkeeper != 0) return byGoalkeeper;
       final byActual = b.actual.compareTo(a.actual);
       if (byActual != 0) return byActual;
@@ -380,22 +389,19 @@ class SeasonPredictionsRepository {
     if (userId == null) throw StateError('Utilisateur non authentifié.');
     if (item.value < 0) throw ArgumentError('La valeur doit être positive.');
 
-    await _client.from('season_predictions').upsert(
-      {
-        'season_id': item.seasonId,
-        'predictor_profile_id': userId,
-        'season_player_id': item.playerId,
-        'category': item.category,
-        'predicted_value_30': item.value,
-        'is_filled': true,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      },
-      onConflict: 'season_id,predictor_profile_id,season_player_id,category',
-    );
+    await _client.from('season_predictions').upsert({
+      'season_id': item.seasonId,
+      'predictor_profile_id': userId,
+      'season_player_id': item.playerId,
+      'category': item.category,
+      'predicted_value_30': item.value,
+      'is_filled': true,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'season_id,predictor_profile_id,season_player_id,category');
   }
 }
 
 final seasonPredictionsRepositoryProvider =
     Provider<SeasonPredictionsRepository>((ref) {
-  return SeasonPredictionsRepository(ref.watch(supabaseClientProvider));
-});
+      return SeasonPredictionsRepository(ref.watch(supabaseClientProvider));
+    });

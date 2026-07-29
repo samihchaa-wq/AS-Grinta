@@ -49,7 +49,8 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
           .read(sportWaitlistRepositoryProvider)
           .fetchUpcomingMatches();
       if (!mounted) return;
-      final selected = _selectedMatchId != null &&
+      final selected =
+          _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
           : (matches.isEmpty ? null : matches.first.id);
@@ -96,12 +97,13 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
     if (matchId == null || _busy) return;
     setState(() => _busy = true);
     try {
-      final matchGuests =
-          await ref.read(guestPlayersRepositoryProvider).addExistingGuest(
-                matchId: matchId,
-                guestPlayerId: guest.id,
-                reason: 'Ajout depuis le catalogue Flutter',
-              );
+      final matchGuests = await ref
+          .read(guestPlayersRepositoryProvider)
+          .addExistingGuest(
+            matchId: matchId,
+            guestPlayerId: guest.id,
+            reason: 'Ajout depuis le catalogue Flutter',
+          );
       if (!mounted) return;
       setState(() => _matchGuests = matchGuests);
       _showMessage('${guest.displayName} ajouté au match.');
@@ -216,7 +218,8 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
   Future<void> _remove(MatchGuestParticipant guest) async {
     final matchId = _selectedMatchId;
     if (matchId == null || _busy) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Retirer cet invité du match ?'),
@@ -241,12 +244,13 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
 
     setState(() => _busy = true);
     try {
-      final matchGuests =
-          await ref.read(guestPlayersRepositoryProvider).removeGuest(
-                matchId: matchId,
-                participantId: guest.participantId,
-                reason: 'Retrait depuis Flutter',
-              );
+      final matchGuests = await ref
+          .read(guestPlayersRepositoryProvider)
+          .removeGuest(
+            matchId: matchId,
+            participantId: guest.participantId,
+            reason: 'Retrait depuis Flutter',
+          );
       if (!mounted) return;
       setState(() => _matchGuests = matchGuests);
       _showMessage('${guest.displayName} retiré du match.');
@@ -261,14 +265,15 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final catalog =
-          await ref.read(guestPlayersRepositoryProvider).setArchived(
-                guestPlayerId: guest.id,
-                archived: archived,
-                reason: archived
-                    ? 'Archivage depuis Flutter'
-                    : 'Restauration depuis Flutter',
-              );
+      final catalog = await ref
+          .read(guestPlayersRepositoryProvider)
+          .setArchived(
+            guestPlayerId: guest.id,
+            archived: archived,
+            reason: archived
+                ? 'Archivage depuis Flutter'
+                : 'Restauration depuis Flutter',
+          );
       if (!mounted) return;
       setState(() => _catalog = catalog);
       _showMessage(
@@ -431,8 +436,8 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                           guest.selectionStatus == 'starter'
                               ? 'Titulaire'
                               : guest.selectionStatus == 'substitute'
-                                  ? 'Banc'
-                                  : 'À placer dans la composition',
+                              ? 'Banc'
+                              : 'À placer dans la composition',
                         ),
                         trailing: IconButton(
                           tooltip: 'Retirer du match',
@@ -448,8 +453,9 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed:
-                        _busy ? null : () => context.push('/admin/composition'),
+                    onPressed: _busy
+                        ? null
+                        : () => context.push('/admin/composition'),
                     icon: const Icon(Icons.dashboard_customize_outlined),
                     label: const Text('Ouvrir la composition'),
                   ),
@@ -495,8 +501,8 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                         subtitle: Text(
                           guest.isReusable
                               ? guest.isGoalkeeper
-                                  ? 'Actif · Gardien'
-                                  : 'Actif'
+                                    ? 'Actif · Gardien'
+                                    : 'Actif'
                               : 'Archivé',
                         ),
                         trailing: guest.isReusable
@@ -518,8 +524,8 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                                         : 'Ajouter au match',
                                     onPressed:
                                         _busy || assignedIds.contains(guest.id)
-                                            ? null
-                                            : () => _addExisting(guest),
+                                        ? null
+                                        : () => _addExisting(guest),
                                     icon: const Icon(Icons.add_circle_outline),
                                   ),
                                   IconButton(

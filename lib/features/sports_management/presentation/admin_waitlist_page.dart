@@ -34,8 +34,9 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       _error = null;
     });
     try {
-      final value =
-          await ref.read(sportWaitlistRepositoryProvider).fetchWaitlist();
+      final value = await ref
+          .read(sportWaitlistRepositoryProvider)
+          .fetchWaitlist();
       if (!mounted) return;
       setState(() {
         _waitlist = value;
@@ -69,13 +70,15 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     if (waitlist == null || !_dirty) return;
     setState(() => _saving = true);
     try {
-      final saved =
-          await ref.read(sportWaitlistRepositoryProvider).reorderWaitlist(
-                seasonId: waitlist.seasonId,
-                orderedPlayerIds:
-                    _entries.map((entry) => entry.seasonPlayerId).toList(),
-                reason: 'Ordre modifié depuis les paramètres',
-              );
+      final saved = await ref
+          .read(sportWaitlistRepositoryProvider)
+          .reorderWaitlist(
+            seasonId: waitlist.seasonId,
+            orderedPlayerIds: _entries
+                .map((entry) => entry.seasonPlayerId)
+                .toList(),
+            reason: 'Ordre modifié depuis les paramètres',
+          );
       if (!mounted) return;
       setState(() {
         _waitlist = saved;
@@ -148,7 +151,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         child: GrintaEmptyState(
           icon: Icons.format_list_numbered_rounded,
           title: 'Aucun joueur dans la saison',
-          message: 'Ajoute des joueurs à l’effectif pour construire l’ordre '
+          message:
+              'Ajoute des joueurs à l’effectif pour construire l’ordre '
               'de la liste d’attente.',
         ),
       );
@@ -166,8 +170,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
                 Text(
                   'Saison ${waitlist.seasonName}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -233,7 +237,7 @@ class _WaitlistTile extends StatelessWidget {
         subtitle: Text(
           total > 0
               ? '$attendance présence${attendance > 1 ? 's' : ''} sur '
-                  '$total match${total > 1 ? 's' : ''} la saison dernière'
+                    '$total match${total > 1 ? 's' : ''} la saison dernière'
               : 'Aucune référence de présence la saison dernière',
         ),
         trailing: Column(

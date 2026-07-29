@@ -27,9 +27,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.surface.withValues(alpha: .38),
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-          border: Border.all(
-            color: AppTheme.outline.withValues(alpha: .24),
-          ),
+          border: Border.all(color: AppTheme.outline.withValues(alpha: .24)),
         ),
         child: SizedBox(
           width: double.infinity,

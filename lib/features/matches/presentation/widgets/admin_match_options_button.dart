@@ -13,9 +13,9 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   final MatchModel match;
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref
       ..invalidate(homeDashboardProvider)
@@ -24,7 +24,8 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),

@@ -17,11 +17,9 @@ class GrintaLoader extends StatelessWidget {
     this.semanticLabel = 'Chargement en cours',
   }) : size = 58;
 
-  const GrintaLoader.button({
-    super.key,
-    this.semanticLabel = 'Action en cours',
-  })  : size = 32,
-        message = null;
+  const GrintaLoader.button({super.key, this.semanticLabel = 'Action en cours'})
+    : size = 32,
+      message = null;
 
   final double size;
 
@@ -35,9 +33,7 @@ class GrintaLoader extends StatelessWidget {
     return Semantics(
       label: semanticLabel,
       liveRegion: true,
-      child: ExcludeSemantics(
-        child: _BouncingBallMark(size: size),
-      ),
+      child: ExcludeSemantics(child: _BouncingBallMark(size: size)),
     );
   }
 }
@@ -111,8 +107,9 @@ class GrintaProgressIndicator extends StatelessWidget {
                   if (box.hasBoundedWidth) box.maxWidth,
                   if (box.hasBoundedHeight) box.maxHeight,
                 ];
-                final available =
-                    candidates.isEmpty ? 32.0 : candidates.reduce(math.min);
+                final available = candidates.isEmpty
+                    ? 32.0
+                    : candidates.reduce(math.min);
                 final size = available >= 160
                     ? 92.0
                     : available.clamp(16.0, 32.0).toDouble();
@@ -327,12 +324,7 @@ class _BouncingBallPainter extends CustomPainter {
     );
   }
 
-  void _drawBall(
-    Canvas canvas,
-    Offset center,
-    double radius,
-    double progress,
-  ) {
+  void _drawBall(Canvas canvas, Offset center, double radius, double progress) {
     final distanceFromImpact = math.min(progress, 1 - progress);
     final impact = (1 - (distanceFromImpact / 0.13)).clamp(0.0, 1.0).toDouble();
     final easedImpact = Curves.easeOut.transform(impact);
@@ -355,11 +347,7 @@ class _BouncingBallPainter extends CustomPainter {
         ..shader = const RadialGradient(
           center: Alignment(-0.38, -0.44),
           radius: 1.05,
-          colors: [
-            Colors.white,
-            Color(0xFFF3F6FC),
-            AppTheme.primaryBright,
-          ],
+          colors: [Colors.white, Color(0xFFF3F6FC), AppTheme.primaryBright],
           stops: [0, 0.68, 1],
         ).createShader(ballRect),
     );

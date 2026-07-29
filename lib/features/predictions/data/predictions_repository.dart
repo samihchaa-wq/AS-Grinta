@@ -192,8 +192,9 @@ class PredictionsRepository {
 
     return _buildItem(
       Map<String, dynamic>.from(match),
-      prediction:
-          prediction == null ? null : Map<String, dynamic>.from(prediction),
+      prediction: prediction == null
+          ? null
+          : Map<String, dynamic>.from(prediction),
       x2Available: x2Available,
     );
   }
@@ -231,8 +232,8 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
 
     return MatchPredictionItem(
       matchId: matchId,

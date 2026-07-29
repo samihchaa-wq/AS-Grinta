@@ -39,8 +39,9 @@ class _LockedScorerDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gaugesAsync = ref.watch(enhancedSeasonGaugesProvider);
-    final currentUserId =
-        ref.read(seasonPredictionsRepositoryProvider).currentUserId;
+    final currentUserId = ref
+        .read(seasonPredictionsRepositoryProvider)
+        .currentUserId;
 
     return gaugesAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
@@ -77,11 +78,8 @@ class _LockedScorerDashboard extends ConsumerWidget {
                   gauges: scorers,
                   scaleMax: _scale(scorers, 20),
                   currentUserId: currentUserId,
-                  onOpen: (gauge) => _openPlayerDetails(
-                    context,
-                    gauge,
-                    currentUserId,
-                  ),
+                  onOpen: (gauge) =>
+                      _openPlayerDetails(context, gauge, currentUserId),
                 ),
               if (scorers.isNotEmpty && keepers.isNotEmpty)
                 const SizedBox(height: 20),
@@ -92,11 +90,8 @@ class _LockedScorerDashboard extends ConsumerWidget {
                   gauges: keepers,
                   scaleMax: _scale(keepers, 15),
                   currentUserId: currentUserId,
-                  onOpen: (gauge) => _openPlayerDetails(
-                    context,
-                    gauge,
-                    currentUserId,
-                  ),
+                  onOpen: (gauge) =>
+                      _openPlayerDetails(context, gauge, currentUserId),
                 ),
             ],
           ),
@@ -194,9 +189,9 @@ class _GaugeSection extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
             ],
           ),

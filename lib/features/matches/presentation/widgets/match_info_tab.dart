@@ -60,8 +60,9 @@ class MatchInfoTab extends ConsumerWidget {
                         ),
                         TextSpan(
                           text: AppFormats.time(
-                            info.kickoffAt!
-                                .subtract(const Duration(minutes: 30)),
+                            info.kickoffAt!.subtract(
+                              const Duration(minutes: 30),
+                            ),
                           ),
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
@@ -112,10 +113,9 @@ class MatchInfoTab extends ConsumerWidget {
                 info.lastEncounters.length > 1
                     ? 'Dernières rencontres'
                     : 'Dernière rencontre',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 10),
               if (info.lastEncounters.isEmpty)

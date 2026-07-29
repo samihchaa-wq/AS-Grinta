@@ -40,8 +40,9 @@ class AdminAccessDeniedPage extends StatelessWidget {
                                   center: const Alignment(0, .1),
                                   radius: .72,
                                   colors: [
-                                    const Color(0xFF183566)
-                                        .withValues(alpha: .34),
+                                    const Color(
+                                      0xFF183566,
+                                    ).withValues(alpha: .34),
                                     Colors.transparent,
                                   ],
                                 ),
@@ -78,29 +79,27 @@ class AdminAccessDeniedPage extends StatelessWidget {
                     Text(
                       'Tu n’as pas les droits',
                       textAlign: TextAlign.center,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       'pour accéder à cette page.',
                       textAlign: TextAlign.center,
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w400,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w400,
+                          ),
                     ),
                     const SizedBox(height: 46),
                     Text(
                       'Seuls les administrateurs peuvent\naccéder à cette section.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white60,
-                            height: 1.5,
-                          ),
+                        color: Colors.white60,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),

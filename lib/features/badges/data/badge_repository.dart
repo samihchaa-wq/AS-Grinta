@@ -55,22 +55,22 @@ class BadgeDef {
   final bool secret;
 
   factory BadgeDef.fromMap(Map<String, dynamic> m) => BadgeDef(
-        code: m['code'].toString(),
-        name: (m['name'] ?? '').toString(),
-        description: (m['description'] ?? '').toString(),
-        emoji: (m['emoji'] ?? '🏅').toString(),
-        imageUrl: m['image_url']?.toString(),
-        color: m['color']?.toString(),
-        family: (m['family'] ?? 'joueur').toString(),
-        kind: (m['kind'] ?? 'tier').toString(),
-        category: (m['category'] ?? 'all_time').toString(),
-        metric: m['metric']?.toString(),
-        threshold: (m['threshold'] as num?)?.toInt(),
-        sortOrder: (m['sort_order'] as num?)?.toInt() ?? 0,
-        hasStar: m['has_star'] == true,
-        standalone: m['standalone'] == true,
-        secret: m['secret'] == true,
-      );
+    code: m['code'].toString(),
+    name: (m['name'] ?? '').toString(),
+    description: (m['description'] ?? '').toString(),
+    emoji: (m['emoji'] ?? '🏅').toString(),
+    imageUrl: m['image_url']?.toString(),
+    color: m['color']?.toString(),
+    family: (m['family'] ?? 'joueur').toString(),
+    kind: (m['kind'] ?? 'tier').toString(),
+    category: (m['category'] ?? 'all_time').toString(),
+    metric: m['metric']?.toString(),
+    threshold: (m['threshold'] as num?)?.toInt(),
+    sortOrder: (m['sort_order'] as num?)?.toInt() ?? 0,
+    hasStar: m['has_star'] == true,
+    standalone: m['standalone'] == true,
+    secret: m['secret'] == true,
+  );
 }
 
 /// Une entrée de l'armoire : un badge + son état pour la personne.
@@ -122,8 +122,11 @@ class Armoire {
 
   /// Aperçu pour l'accueil : les badges validés les plus récents.
   List<ArmoireBadge> get recent {
-    final sorted = [...validated]..sort((a, b) =>
-        (b.awardedAt ?? DateTime(0)).compareTo(a.awardedAt ?? DateTime(0)));
+    final sorted = [...validated]
+      ..sort(
+        (a, b) =>
+            (b.awardedAt ?? DateTime(0)).compareTo(a.awardedAt ?? DateTime(0)),
+      );
     return sorted;
   }
 }
@@ -137,7 +140,8 @@ class BadgeRepository {
     final rows = await _client
         .from('badges')
         .select(
-            'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone,secret')
+          'code,name,description,emoji,image_url,color,family,kind,category,metric,threshold,sort_order,has_star,standalone,secret',
+        )
         .order('sort_order');
     return (rows as List)
         .map((r) => BadgeDef.fromMap(Map<String, dynamic>.from(r as Map)))
@@ -180,8 +184,10 @@ class BadgeRepository {
         earnedAt.containsKey(code) && !seenCodes.contains(code);
 
     // Valeurs de stats courantes (pour la progression).
-    final metricsRes = await _client
-        .rpc('profile_badge_metrics', params: {'p_profile_id': profileId});
+    final metricsRes = await _client.rpc(
+      'profile_badge_metrics',
+      params: {'p_profile_id': profileId},
+    );
     final metrics = <String, int>{};
     if (metricsRes is List && metricsRes.isNotEmpty) {
       final m = Map<String, dynamic>.from(metricsRes.first as Map);
@@ -192,8 +198,10 @@ class BadgeRepository {
 
     // Nombre d'étoiles par badge : un palier étoilé ré-atteint (nouvelle saison,
     // titre regagné) ajoute une étoile. 1 par défaut pour les paliers carrière.
-    final starsRes = await _client
-        .rpc('profile_badge_stars', params: {'p_profile_id': profileId});
+    final starsRes = await _client.rpc(
+      'profile_badge_stars',
+      params: {'p_profile_id': profileId},
+    );
     final starCounts = <String, int>{};
     if (starsRes is List) {
       for (final r in starsRes) {
@@ -213,8 +221,9 @@ class BadgeRepository {
     // Les badges « standalone » (exploits autonomes) forment chacun leur propre
     // groupe (clé = code), donc ils s'affichent séparément, sans barème gradué.
     final byMetric = <String, List<BadgeDef>>{};
-    for (final b
-        in catalog.where((b) => b.kind == 'tier' && b.metric != null)) {
+    for (final b in catalog.where(
+      (b) => b.kind == 'tier' && b.metric != null,
+    )) {
       final key = b.standalone ? 'code:${b.code}' : b.metric!;
       byMetric.putIfAbsent(key, () => []).add(b);
     }
@@ -239,13 +248,15 @@ class BadgeRepository {
         }
       }
       if (highestOwned != null) {
-        validated.add(ArmoireBadge(
-          def: highestOwned,
-          state: BadgeState.validated,
-          awardedAt: earnedAt[highestOwned.code],
-          stars: starCounts[highestOwned.code] ?? 1,
-          isNew: isNewBadge(highestOwned.code),
-        ));
+        validated.add(
+          ArmoireBadge(
+            def: highestOwned,
+            state: BadgeState.validated,
+            awardedAt: earnedAt[highestOwned.code],
+            stars: starCounts[highestOwned.code] ?? 1,
+            isNew: isNewBadge(highestOwned.code),
+          ),
+        );
       }
       if (nextUnowned != null) {
         if (nextUnowned.secret) {
@@ -253,12 +264,14 @@ class BadgeRepository {
           // section « À débloquer », sans dévoiler son nom ni sa condition.
           locked.add(ArmoireBadge(def: nextUnowned, state: BadgeState.locked));
         } else {
-          inProgress.add(ArmoireBadge(
-            def: nextUnowned,
-            state: BadgeState.inProgress,
-            current: singleTier ? null : value,
-            target: singleTier ? null : nextUnowned.threshold,
-          ));
+          inProgress.add(
+            ArmoireBadge(
+              def: nextUnowned,
+              state: BadgeState.inProgress,
+              current: singleTier ? null : value,
+              target: singleTier ? null : nextUnowned.threshold,
+            ),
+          );
         }
       }
     });
@@ -266,13 +279,15 @@ class BadgeRepository {
     // Titres et badges custom : acquis une seule fois, à vie.
     for (final b in catalog.where((b) => b.kind != 'tier')) {
       if (earnedAt.containsKey(b.code)) {
-        validated.add(ArmoireBadge(
-          def: b,
-          state: BadgeState.validated,
-          awardedAt: earnedAt[b.code],
-          stars: starCounts[b.code] ?? 1,
-          isNew: isNewBadge(b.code),
-        ));
+        validated.add(
+          ArmoireBadge(
+            def: b,
+            state: BadgeState.validated,
+            awardedAt: earnedAt[b.code],
+            stars: starCounts[b.code] ?? 1,
+            isNew: isNewBadge(b.code),
+          ),
+        );
       } else {
         locked.add(ArmoireBadge(def: b, state: BadgeState.locked));
       }
@@ -286,13 +301,15 @@ class BadgeRepository {
       if (shownCodes.contains(code)) continue;
       final def = byCode[code];
       if (def == null) continue;
-      validated.add(ArmoireBadge(
-        def: def,
-        state: BadgeState.validated,
-        awardedAt: earnedAt[code],
-        stars: starCounts[code] ?? 1,
-        isNew: isNewBadge(code),
-      ));
+      validated.add(
+        ArmoireBadge(
+          def: def,
+          state: BadgeState.validated,
+          awardedAt: earnedAt[code],
+          stars: starCounts[code] ?? 1,
+          isNew: isNewBadge(code),
+        ),
+      );
     }
 
     validated.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
@@ -300,16 +317,21 @@ class BadgeRepository {
     locked.sort((a, b) => a.def.sortOrder.compareTo(b.def.sortOrder));
 
     return Armoire(
-        validated: validated, inProgress: inProgress, locked: locked);
+      validated: validated,
+      inProgress: inProgress,
+      locked: locked,
+    );
   }
 
   /// Marque un badge comme consulté (fait disparaître sa pastille « nouveau »).
   Future<void> markBadgeSeen(String profileId, String code) async {
-    await _client.from('profile_badge_seen').upsert(
-      {'profile_id': profileId, 'badge_code': code},
-      onConflict: 'profile_id,badge_code',
-      ignoreDuplicates: true,
-    );
+    await _client
+        .from('profile_badge_seen')
+        .upsert(
+          {'profile_id': profileId, 'badge_code': code},
+          onConflict: 'profile_id,badge_code',
+          ignoreDuplicates: true,
+        );
   }
 }
 
@@ -318,8 +340,9 @@ final badgeRepositoryProvider = Provider<BadgeRepository>((ref) {
 });
 
 /// Catalogue complet des badges (tous les paliers, titres, exploits).
-final badgeCatalogProvider =
-    FutureProvider.autoDispose<List<BadgeDef>>((ref) async {
+final badgeCatalogProvider = FutureProvider.autoDispose<List<BadgeDef>>((
+  ref,
+) async {
   return ref.watch(badgeRepositoryProvider).fetchCatalog();
 });
 

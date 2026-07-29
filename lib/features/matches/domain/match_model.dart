@@ -78,8 +78,8 @@ class MatchModel {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
 
     return MatchModel(
       id: json['id']?.toString() ?? '',
@@ -108,8 +108,9 @@ class MatchModel {
       opponentName: json['opponents'] is Map
           ? json['opponents']['name']?.toString()
           : null,
-      seasonName:
-          json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
+      seasonName: json['seasons'] is Map
+          ? json['seasons']['name']?.toString()
+          : null,
       address: (json['address']?.toString().trim().isNotEmpty ?? false)
           ? json['address'].toString()
           : null,

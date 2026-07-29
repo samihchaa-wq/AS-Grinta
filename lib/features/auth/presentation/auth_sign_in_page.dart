@@ -136,9 +136,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
                 ),
-                onPressed: () => setState(
-                  () => _obscurePassword = !_obscurePassword,
-                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
           ),
@@ -161,8 +160,9 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed:
-                authState.isLoading ? null : () => context.go('/auth/register'),
+            onPressed: authState.isLoading
+                ? null
+                : () => context.go('/auth/register'),
             icon: const Icon(Icons.person_add_alt_outlined),
             label: const Text('Créer mon compte'),
           ),

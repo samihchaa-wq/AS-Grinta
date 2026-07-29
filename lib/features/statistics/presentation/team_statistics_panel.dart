@@ -26,10 +26,8 @@ class TeamStatisticsPanel extends ConsumerWidget {
 
     return dataAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
-      error: (error, _) => _ScrollableMessage(
-        message: humanizeError(error),
-        onRefresh: refresh,
-      ),
+      error: (error, _) =>
+          _ScrollableMessage(message: humanizeError(error), onRefresh: refresh),
       data: (statistics) => RefreshIndicator(
         onRefresh: refresh,
         child: ListView(
@@ -83,9 +81,9 @@ class _TeamSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w900,
-          ),
+      style: Theme.of(
+        context,
+      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
     );
   }
 }
@@ -124,10 +122,7 @@ class _TeamResultsCard extends StatelessWidget {
                 const gap = 8.0;
                 final ringSize = math.min(
                   96.0,
-                  math.max(
-                    0.0,
-                    (constraints.maxWidth - gap * 2) / 3,
-                  ),
+                  math.max(0.0, (constraints.maxWidth - gap * 2) / 3),
                 );
 
                 return Row(
@@ -208,8 +203,9 @@ class _ResultRing extends StatelessWidget {
                 strokeWidth: strokeWidth,
                 strokeCap: StrokeCap.butt,
                 color: color,
-                backgroundColor:
-                    theme.colorScheme.onSurface.withValues(alpha: .12),
+                backgroundColor: theme.colorScheme.onSurface.withValues(
+                  alpha: .12,
+                ),
               ),
               Center(
                 child: Padding(
@@ -285,8 +281,9 @@ class _TeamGoalsCard extends StatelessWidget {
                   child: CustomPaint(
                     painter: _GoalsDonutPainter(
                       scoredRatio: scoredRatio,
-                      backgroundColor:
-                          theme.colorScheme.onSurface.withValues(alpha: .1),
+                      backgroundColor: theme.colorScheme.onSurface.withValues(
+                        alpha: .1,
+                      ),
                     ),
                   ),
                 ),
@@ -370,8 +367,12 @@ class _GoalsDonutPainter extends CustomPainter {
     final side = math.min(size.width, size.height);
     final left = (size.width - side) / 2;
     final top = (size.height - side) / 2;
-    final arcRect =
-        Rect.fromLTWH(left, top, side, side).deflate(strokeWidth / 2);
+    final arcRect = Rect.fromLTWH(
+      left,
+      top,
+      side,
+      side,
+    ).deflate(strokeWidth / 2);
 
     final basePaint = Paint()
       ..style = PaintingStyle.stroke
@@ -438,10 +439,7 @@ class _RecentResultsCard extends StatelessWidget {
               runSpacing: gap,
               children: [
                 for (final result in results)
-                  _ResultBubble(
-                    result: result,
-                    dimension: bubbleSize,
-                  ),
+                  _ResultBubble(result: result, dimension: bubbleSize),
               ],
             );
           },
@@ -452,10 +450,7 @@ class _RecentResultsCard extends StatelessWidget {
 }
 
 class _ResultBubble extends StatelessWidget {
-  const _ResultBubble({
-    required this.result,
-    required this.dimension,
-  });
+  const _ResultBubble({required this.result, required this.dimension});
 
   final String result;
   final double dimension;
@@ -471,10 +466,7 @@ class _ResultBubble extends StatelessWidget {
     return SizedBox.square(
       dimension: dimension,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         child: Center(
           child: FittedBox(
             fit: BoxFit.scaleDown,
@@ -520,10 +512,9 @@ class _AverageScoreCard extends StatelessWidget {
             Container(
               width: 1,
               height: 58,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withValues(alpha: .12),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: .12),
             ),
             Expanded(
               child: _AverageValue(
@@ -557,17 +548,17 @@ class _AverageValue extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w900,
-              ),
+            color: color,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -637,8 +628,8 @@ class _MarginBar extends StatelessWidget {
     final color = margin < 0
         ? _teamRed
         : margin == 0
-            ? _teamYellow
-            : _teamGreen;
+        ? _teamYellow
+        : _teamGreen;
     final label = margin > 0 ? '+$margin' : '$margin';
 
     return Padding(
@@ -649,9 +640,9 @@ class _MarginBar extends StatelessWidget {
             height: 18,
             child: Text(
               count == 0 ? '' : '$count',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
           ),
           const SizedBox(height: 4),
@@ -676,9 +667,9 @@ class _MarginBar extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -698,10 +689,7 @@ class _TeamStreaksSection extends StatelessWidget {
       statistics.bestUnbeatenStreak.length,
       statistics.worstLossStreak.length,
       statistics.worstWinlessStreak.length,
-    ].fold<int>(
-      1,
-      (maximum, value) => math.max(maximum, value),
-    );
+    ].fold<int>(1, (maximum, value) => math.max(maximum, value));
     final scale = statistics.period == StatisticsPeriod.allTime
         ? math.max(1, statistics.matchesPlayed)
         : periodMaximum;
@@ -751,10 +739,7 @@ class _TeamStreaksSection extends StatelessWidget {
 }
 
 class _StreakGroupCard extends StatelessWidget {
-  const _StreakGroupCard({
-    required this.title,
-    required this.children,
-  });
+  const _StreakGroupCard({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -770,9 +755,9 @@ class _StreakGroupCard extends StatelessWidget {
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 18),
             ...children,
@@ -819,8 +804,9 @@ class _StreakRow extends StatelessWidget {
                 minHeight: 10,
                 borderRadius: BorderRadius.circular(99),
                 color: color,
-                backgroundColor:
-                    theme.colorScheme.onSurface.withValues(alpha: .13),
+                backgroundColor: theme.colorScheme.onSurface.withValues(
+                  alpha: .13,
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -855,10 +841,7 @@ String _formatDate(String value) {
 }
 
 class _ScrollableMessage extends StatelessWidget {
-  const _ScrollableMessage({
-    required this.message,
-    required this.onRefresh,
-  });
+  const _ScrollableMessage({required this.message, required this.onRefresh});
 
   final String message;
   final Future<void> Function() onRefresh;

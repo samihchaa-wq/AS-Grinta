@@ -10,9 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 void main() {
   group('AuthController', () {
     test('loads an active profile on startup', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_activeProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -60,9 +58,7 @@ void main() {
     });
 
     test('inactive profiles are signed out and rejected', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_inactiveProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_inactiveProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -102,9 +98,7 @@ void main() {
     });
 
     test('signOut clears the authenticated state', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_activeProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
       await _flushAsync();
@@ -168,10 +162,8 @@ Future<void> _flushAsync() async {
 }
 
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({
-    required List<Object?> fetchResults,
-    this.signInError,
-  }) : _fetchResults = List<Object?>.from(fetchResults);
+  _FakeAuthRepository({required List<Object?> fetchResults, this.signInError})
+    : _fetchResults = List<Object?>.from(fetchResults);
 
   final List<Object?> _fetchResults;
   final Object? signInError;

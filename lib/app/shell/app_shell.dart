@@ -62,18 +62,15 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
-    final moduleTheme = Theme.of(context).copyWith(
-      scaffoldBackgroundColor: Colors.transparent,
-    );
+    final moduleTheme = Theme.of(
+      context,
+    ).copyWith(scaffoldBackgroundColor: Colors.transparent);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final useRail = constraints.maxWidth >= 840;
         final extendRail = constraints.maxWidth >= 1180;
-        final content = Theme(
-          data: moduleTheme,
-          child: widget.navigationShell,
-        );
+        final content = Theme(data: moduleTheme, child: widget.navigationShell);
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -161,8 +158,9 @@ class _DesktopNavigation extends StatelessWidget {
       minWidth: 72,
       minExtendedWidth: 200,
       groupAlignment: -.7,
-      labelType:
-          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      labelType: extended
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.all,
       onDestinationSelected: onSelected,
       leading: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 22),

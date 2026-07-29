@@ -157,7 +157,7 @@ final matchCompositionRepositoryProvider = Provider<MatchCompositionRepository>(
 
 final publishedMatchCompositionProvider = FutureProvider.autoDispose
     .family<MatchComposition?, String>((ref, matchId) {
-  return ref
-      .watch(matchCompositionRepositoryProvider)
-      .fetchPublishedComposition(matchId);
-});
+      return ref
+          .watch(matchCompositionRepositoryProvider)
+          .fetchPublishedComposition(matchId);
+    });

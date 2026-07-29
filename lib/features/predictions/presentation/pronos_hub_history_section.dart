@@ -2,8 +2,10 @@ part of 'pronos_hub_page.dart';
 
 final _calendarPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
-});
+      return ref
+          .watch(predictionsRepositoryProvider)
+          .fetchMatchPrediction(matchId);
+    });
 
 class _CalendarSection extends ConsumerStatefulWidget {
   const _CalendarSection();
@@ -152,7 +154,8 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 child: _MessageCard(
                   title: 'Aucun match joué',
                   icon: Icons.history_rounded,
-                  message: 'Les matchs terminés et leurs pronos s\'afficheront '
+                  message:
+                      'Les matchs terminés et leurs pronos s\'afficheront '
                       'ici.',
                 ),
               ),
@@ -257,9 +260,9 @@ class _CalendarMatchCard extends ConsumerWidget {
                   Text(
                     statusLabel,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: statusColor,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ],
               ],
@@ -302,9 +305,9 @@ class _AdminMatchActions extends ConsumerWidget {
   final MatchModel match;
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref
       ..invalidate(_calendarPredictionProvider)
@@ -314,7 +317,8 @@ class _AdminMatchActions extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),

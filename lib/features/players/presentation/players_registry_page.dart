@@ -29,7 +29,8 @@ class PlayersRegistryPage extends ConsumerWidget {
               child: GrintaEmptyState(
                 icon: Icons.calendar_month_rounded,
                 title: 'Aucune saison ouverte',
-                message: 'Crée une saison dans Administration pour définir '
+                message:
+                    'Crée une saison dans Administration pour définir '
                     'ton effectif.',
               ),
             );
@@ -75,7 +76,8 @@ class _RosterList extends ConsumerWidget {
                 child: GrintaEmptyState(
                   icon: Icons.groups_rounded,
                   title: 'Effectif vide',
-                  message: 'Ajoute tes joueurs avec le bouton « Ajouter » '
+                  message:
+                      'Ajoute tes joueurs avec le bouton « Ajouter » '
                       'en bas de l\'écran.',
                   compact: true,
                 ),
@@ -154,8 +156,10 @@ class _RosterList extends ConsumerWidget {
                             return;
                           }
                           if (action == 'delete') {
-                            final confirmed =
-                                await _confirmDelete(context, player);
+                            final confirmed = await _confirmDelete(
+                              context,
+                              player,
+                            );
                             if (!confirmed) return;
                             await repo.deletePlayer(player.id);
                           } else if (action == 'archive') {
@@ -196,8 +200,9 @@ class _RosterList extends ConsumerWidget {
                           ),
                         PopupMenuItem(
                           value: player.isActive ? 'archive' : 'restore',
-                          child:
-                              Text(player.isActive ? 'Archiver' : 'Réactiver'),
+                          child: Text(
+                            player.isActive ? 'Archiver' : 'Réactiver',
+                          ),
                         ),
                         const PopupMenuItem(
                           value: 'delete',
@@ -234,7 +239,9 @@ Future<void> _pickAndUploadRosterPhoto(
   if (!confirmed) return;
   final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
   try {
-    await ref.read(rosterRepositoryProvider).uploadPlayerPhoto(
+    await ref
+        .read(rosterRepositoryProvider)
+        .uploadPlayerPhoto(
           seasonPlayerId: player.id,
           bytes: bytes,
           fileExt: ext,
@@ -247,9 +254,9 @@ Future<void> _pickAndUploadRosterPhoto(
     }
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
   }
 }
@@ -267,9 +274,9 @@ Future<void> _showProfileLinkDialog(
     profiles = await repo.fetchLinkableProfiles();
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
     return;
   }
@@ -278,8 +285,9 @@ Future<void> _showProfileLinkDialog(
   final currentIsAvailable = profiles.any(
     (profile) => profile.id == player.linkedProfileId,
   );
-  var selectedProfileId =
-      currentIsAvailable ? player.linkedProfileId ?? '' : '';
+  var selectedProfileId = currentIsAvailable
+      ? player.linkedProfileId ?? ''
+      : '';
   var saving = false;
   String? error;
   final linkedPlayerByProfileId = <String, String>{
@@ -310,9 +318,7 @@ Future<void> _showProfileLinkDialog(
                 DropdownButtonFormField<String>(
                   initialValue: selectedProfileId,
                   isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Pronostiqueur',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Pronostiqueur'),
                   items: [
                     const DropdownMenuItem(
                       value: '',
@@ -320,7 +326,8 @@ Future<void> _showProfileLinkDialog(
                     ),
                     ...profiles.map((profile) {
                       final linkedPlayer = linkedPlayerByProfileId[profile.id];
-                      final suffix = linkedPlayer == null ||
+                      final suffix =
+                          linkedPlayer == null ||
                               linkedPlayer == player.displayName
                           ? ''
                           : ' · actuellement lié à $linkedPlayer';
@@ -343,9 +350,7 @@ Future<void> _showProfileLinkDialog(
                 const SizedBox(height: 12),
                 Text(
                   error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
             ],
@@ -407,10 +412,7 @@ Future<void> _showProfileLinkDialog(
   );
 }
 
-Future<bool> _confirmUnlink(
-  BuildContext context,
-  RosterPlayer player,
-) async {
+Future<bool> _confirmUnlink(BuildContext context, RosterPlayer player) async {
   return await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -509,16 +511,14 @@ Future<void> _showPlayerDialog(
                 onChanged: saving
                     ? null
                     : (value) => setState(() {
-                          isCoach = value;
-                          if (value) isGoalkeeper = false;
-                        }),
+                        isCoach = value;
+                        if (value) isGoalkeeper = false;
+                      }),
               ),
               if (error != null)
                 Text(
                   error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
             ],
           ),

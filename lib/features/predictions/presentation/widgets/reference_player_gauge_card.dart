@@ -129,10 +129,12 @@ class _PlayerIdentity extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final badges = profileId == null
         ? const <FeaturedBadge>[]
-        : ref.watch(featuredBadgesProvider).maybeWhen(
-              data: (map) => map[profileId] ?? const <FeaturedBadge>[],
-              orElse: () => const <FeaturedBadge>[],
-            );
+        : ref
+              .watch(featuredBadgesProvider)
+              .maybeWhen(
+                data: (map) => map[profileId] ?? const <FeaturedBadge>[],
+                orElse: () => const <FeaturedBadge>[],
+              );
 
     return Row(
       children: [
@@ -254,10 +256,7 @@ class _ReferenceGaugeLine extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFF20253F),
                   borderRadius: BorderRadius.circular(99),
-                  border: Border.all(
-                    color: const Color(0xFF3B4060),
-                    width: 2,
-                  ),
+                  border: Border.all(color: const Color(0xFF3B4060), width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: const Color(0xFF4B43FF).withValues(alpha: .08),
@@ -490,17 +489,13 @@ class _FootballPainter extends CustomPainter {
 
     for (var index = 0; index < 5; index++) {
       final angle = -math.pi / 2 + index * math.pi * 2 / 5;
-      final patchCenter = center +
+      final patchCenter =
+          center +
           Offset(
             math.cos(angle) * radius * .77,
             math.sin(angle) * radius * .77,
           );
-      final patch = _polygon(
-        patchCenter,
-        radius * .27,
-        5,
-        angle + math.pi,
-      );
+      final patch = _polygon(patchCenter, radius * .27, 5, angle + math.pi);
       canvas.drawPath(patch, black);
       canvas.drawLine(
         center +
@@ -519,12 +514,14 @@ class _FootballPainter extends CustomPainter {
 
     for (var index = 0; index < 5; index++) {
       final angle = -math.pi / 2 + (index + .5) * math.pi * 2 / 5;
-      final start = center +
+      final start =
+          center +
           Offset(
             math.cos(angle) * radius * .42,
             math.sin(angle) * radius * .42,
           );
-      final end = center +
+      final end =
+          center +
           Offset(
             math.cos(angle) * radius * .95,
             math.sin(angle) * radius * .95,
@@ -543,20 +540,12 @@ class _FootballPainter extends CustomPainter {
     );
   }
 
-  Path _polygon(
-    Offset center,
-    double radius,
-    int sides,
-    double rotation,
-  ) {
+  Path _polygon(Offset center, double radius, int sides, double rotation) {
     final path = Path();
     for (var index = 0; index < sides; index++) {
       final angle = rotation + index * math.pi * 2 / sides;
-      final point = center +
-          Offset(
-            math.cos(angle) * radius,
-            math.sin(angle) * radius,
-          );
+      final point =
+          center + Offset(math.cos(angle) * radius, math.sin(angle) * radius);
       if (index == 0) {
         path.moveTo(point.dx, point.dy);
       } else {

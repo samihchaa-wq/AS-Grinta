@@ -69,7 +69,8 @@ class MatchesController extends StateNotifier<MatchesState> {
       }
 
       final seasons = await _repository.fetchSeasons();
-      final resolvedSeasonId = seasonId ??
+      final resolvedSeasonId =
+          seasonId ??
           state.selectedSeasonId ??
           _currentSeasonId(seasons) ??
           (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
@@ -282,5 +283,5 @@ class MatchesController extends StateNotifier<MatchesState> {
 
 final matchesControllerProvider =
     StateNotifierProvider<MatchesController, MatchesState>((ref) {
-  return MatchesController(ref.watch(matchesRepositoryProvider), ref);
-});
+      return MatchesController(ref.watch(matchesRepositoryProvider), ref);
+    });

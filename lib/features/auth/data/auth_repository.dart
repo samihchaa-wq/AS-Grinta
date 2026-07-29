@@ -41,10 +41,7 @@ class AuthRepository {
       email: email.trim().toLowerCase(),
       password: password,
       emailRedirectTo: Uri.base.resolve('/auth/sign-in').toString(),
-      data: {
-        'first_name': firstName.trim(),
-        'last_name': lastName.trim(),
-      },
+      data: {'first_name': firstName.trim(), 'last_name': lastName.trim()},
     );
     if (response.user == null) {
       throw StateError('La création du compte a échoué.');
@@ -88,9 +85,7 @@ class AuthRepository {
             .rpc('get_my_profile')
             .timeout(const Duration(seconds: 12));
         if (response == null) return null;
-        return AuthProfile.fromJson(
-          Map<String, dynamic>.from(response as Map),
-        );
+        return AuthProfile.fromJson(Map<String, dynamic>.from(response as Map));
       } catch (error) {
         lastError = error;
         if (attempt + 1 < attempts) {
@@ -111,18 +106,18 @@ class AuthRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
 
-    await _client.from('profiles').update({
-      'first_name': firstName.trim(),
-      'last_name': lastName.trim(),
-      'surnom': (surnom ?? '').trim(),
-    }).eq('id', userId);
+    await _client
+        .from('profiles')
+        .update({
+          'first_name': firstName.trim(),
+          'last_name': lastName.trim(),
+          'surnom': (surnom ?? '').trim(),
+        })
+        .eq('id', userId);
 
     await _client.auth.updateUser(
       UserAttributes(
-        data: {
-          'first_name': firstName.trim(),
-          'last_name': lastName.trim(),
-        },
+        data: {'first_name': firstName.trim(), 'last_name': lastName.trim()},
       ),
     );
 
@@ -147,17 +142,15 @@ class AuthRepository {
     await bucket.uploadBinary(
       path,
       bytes,
-      fileOptions: FileOptions(
-        contentType: image.mimeType,
-        upsert: false,
-      ),
+      fileOptions: FileOptions(contentType: image.mimeType, upsert: false),
     );
     final publicUrl = bucket.getPublicUrl(path);
 
     try {
-      await _client.from('profiles').update({
-        'photo_url': publicUrl,
-      }).eq('id', userId);
+      await _client
+          .from('profiles')
+          .update({'photo_url': publicUrl})
+          .eq('id', userId);
     } catch (_) {
       await bucket.remove([path]);
       rethrow;

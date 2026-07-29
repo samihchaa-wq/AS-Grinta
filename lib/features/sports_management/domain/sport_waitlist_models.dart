@@ -12,10 +12,10 @@ enum ConvocationStatus {
   }
 
   String get wireValue => switch (this) {
-        ConvocationStatus.notApplicable => 'not_applicable',
-        ConvocationStatus.convoked => 'convoked',
-        ConvocationStatus.notConvoked => 'not_convoked',
-      };
+    ConvocationStatus.notApplicable => 'not_applicable',
+    ConvocationStatus.convoked => 'convoked',
+    ConvocationStatus.notConvoked => 'not_convoked',
+  };
 }
 
 enum WaitlistTurnState {
@@ -91,8 +91,8 @@ class SportWaitlist {
       seasonName: (json['season_name'] ?? '').toString(),
       entries: entriesRaw is List
           ? entriesRaw
-              .map((row) => SportWaitlistEntry.fromJson(_map(row)))
-              .toList()
+                .map((row) => SportWaitlistEntry.fromJson(_map(row)))
+                .toList()
           : const [],
     );
   }
@@ -146,8 +146,9 @@ class ConvocationPlayer {
 
   factory ConvocationPlayer.fromJson(Map<String, dynamic> json) {
     final guestPlayerId = _nullableText(json['guest_player_id']);
-    final convocationStatus =
-        ConvocationStatus.fromWire(json['convocation_status']);
+    final convocationStatus = ConvocationStatus.fromWire(
+      json['convocation_status'],
+    );
     return ConvocationPlayer(
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString() ?? '',
@@ -157,8 +158,8 @@ class ConvocationPlayer {
       serverName: _nullableText(json['display_name']),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
-      availabilityStatus:
-          (json['availability_status'] ?? 'no_response').toString(),
+      availabilityStatus: (json['availability_status'] ?? 'no_response')
+          .toString(),
       availabilityUpdatedAt: _dateOrNull(json['availability_updated_at']),
       convocationStatus: convocationStatus,
       publishedConvocationStatus: ConvocationStatus.fromWire(
@@ -245,7 +246,7 @@ class MatchConvocations {
       squadSizeLimit: squadSizeLimit,
       publishedSquadSizeLimit:
           (json['published_squad_size_limit'] as num?)?.toInt() ??
-              squadSizeLimit,
+          squadSizeLimit,
       convocationState: (json['convocation_state'] ?? 'draft').toString(),
       convocationVersion: (json['convocation_version'] as num?)?.toInt() ?? 0,
       hasUnpublishedChanges: json['has_unpublished_changes'] == true,
@@ -255,8 +256,8 @@ class MatchConvocations {
       notConvokedCount: (json['not_convoked_count'] as num?)?.toInt() ?? 0,
       players: playersRaw is List
           ? playersRaw
-              .map((row) => ConvocationPlayer.fromJson(_map(row)))
-              .toList()
+                .map((row) => ConvocationPlayer.fromJson(_map(row)))
+                .toList()
           : const [],
     );
   }

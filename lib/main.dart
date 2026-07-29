@@ -97,9 +97,8 @@ class _BootstrapAppState extends State<_BootstrapApp> {
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.transparent,
       ),
-      builder: (context, child) => GrintaBackground(
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) =>
+          GrintaBackground(child: child ?? const SizedBox.shrink()),
       home: FutureBuilder<void>(
         future: _initialization,
         builder: (context, snapshot) {
@@ -111,7 +110,8 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           if (snapshot.hasError) {
             return IncidentErrorView(
               title: 'Impossible de démarrer Ma Petite Grinta',
-              message: 'La configuration ou le service est momentanément '
+              message:
+                  'La configuration ou le service est momentanément '
                   'indisponible. Réessaie dans un instant.',
               incidentReference:
                   _incidentReference ?? AppLogger.createIncidentReference(),

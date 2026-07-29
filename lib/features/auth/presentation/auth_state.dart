@@ -121,7 +121,8 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           isAuthenticated: false,
           clearProfile: true,
-          error: 'Ton compte doit être validé par l’admin avant de pouvoir '
+          error:
+              'Ton compte doit être validé par l’admin avant de pouvoir '
               'te connecter.',
         );
       }
@@ -243,11 +244,12 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, AuthState>((ref) {
-  final repository = ref.watch(authRepositoryProvider);
-  return AuthController(repository);
-});
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) {
+    final repository = ref.watch(authRepositoryProvider);
+    return AuthController(repository);
+  },
+);
 
 /// Aperçu « utilisateur lambda » : quand actif, l'admin voit l'application
 /// sans aucun contrôle réservé à l'admin, pour vérifier ce que voient les

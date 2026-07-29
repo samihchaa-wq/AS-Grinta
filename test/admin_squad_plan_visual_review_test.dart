@@ -76,38 +76,38 @@ void main() {
     await _capture(tester, 'composition_verrouillee.png');
   });
 
-  testWidgets('captures the unlocked composition and publication confirmation',
-      (
-    tester,
-  ) async {
-    await _setPhoneViewport(tester);
-    await _pumpWorkspace(
-      tester,
-      convocations: _publishedConvocations(),
-      initialStep: 'composition',
-    );
+  testWidgets(
+    'captures the unlocked composition and publication confirmation',
+    (tester) async {
+      await _setPhoneViewport(tester);
+      await _pumpWorkspace(
+        tester,
+        convocations: _publishedConvocations(),
+        initialStep: 'composition',
+      );
 
-    expect(find.text('Brouillon de composition non publié'), findsOneWidget);
-    expect(find.text('Remplaçants (3)'), findsOneWidget);
-    final publishButton = find.widgetWithText(
-      FilledButton,
-      'Publier la composition',
-    );
-    expect(tester.widget<FilledButton>(publishButton).onPressed, isNotNull);
-    await _capture(tester, 'composition_deverrouillee.png');
+      expect(find.text('Brouillon de composition non publié'), findsOneWidget);
+      expect(find.text('Remplaçants (3)'), findsOneWidget);
+      final publishButton = find.widgetWithText(
+        FilledButton,
+        'Publier la composition',
+      );
+      expect(tester.widget<FilledButton>(publishButton).onPressed, isNotNull);
+      await _capture(tester, 'composition_deverrouillee.png');
 
-    await tester.ensureVisible(publishButton);
-    await _pumpFrames(tester, count: 4);
-    await tester.tap(publishButton);
-    await _pumpFrames(tester, count: 4);
+      await tester.ensureVisible(publishButton);
+      await _pumpFrames(tester, count: 4);
+      await tester.tap(publishButton);
+      await _pumpFrames(tester, count: 4);
 
-    expect(find.text('Publier la composition ?'), findsOneWidget);
-    expect(
-      find.textContaining('Les convocations ne seront pas modifiées'),
-      findsOneWidget,
-    );
-    await _capture(tester, 'composition_confirmation_publication.png');
-  });
+      expect(find.text('Publier la composition ?'), findsOneWidget);
+      expect(
+        find.textContaining('Les convocations ne seront pas modifiées'),
+        findsOneWidget,
+      );
+      await _capture(tester, 'composition_confirmation_publication.png');
+    },
+  );
 }
 
 Future<void> _setPhoneViewport(WidgetTester tester) async {
@@ -332,12 +332,12 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
-        AdminSportMatch(
-          id: _matchId,
-          opponentName: 'Olympique Test',
-          kickoffAt: convocations.kickoffAt,
-        ),
-      ];
+    AdminSportMatch(
+      id: _matchId,
+      opponentName: 'Olympique Test',
+      kickoffAt: convocations.kickoffAt,
+    ),
+  ];
 
   @override
   Future<MatchConvocations> fetchMatchConvocations(String matchId) async =>
@@ -370,8 +370,7 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
   @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
-  ) async =>
-      {'sp1'};
+  ) async => {'sp1'};
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

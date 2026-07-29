@@ -15,9 +15,7 @@ void main() {
     () async {
       final controller = _TestAuthController();
       final container = ProviderContainer(
-        overrides: [
-          authControllerProvider.overrideWith((ref) => controller),
-        ],
+        overrides: [authControllerProvider.overrideWith((ref) => controller)],
       );
       addTearDown(container.dispose);
 

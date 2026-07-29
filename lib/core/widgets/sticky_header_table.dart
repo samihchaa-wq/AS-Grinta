@@ -10,10 +10,7 @@ const grintaTableRankFontSize = 12.5;
 const grintaTableHeaderPadding = EdgeInsets.fromLTRB(16, 12, 16, 12);
 const grintaTableRowPadding = EdgeInsets.fromLTRB(16, 17, 16, 17);
 
-TextStyle grintaTableHeaderTextStyle(
-  BuildContext context, {
-  Color? color,
-}) {
+TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
   return TextStyle(
     color: color ?? AppTheme.textSecondary,
     fontSize: grintaTableHeaderFontSize,
@@ -37,10 +34,7 @@ TextStyle grintaTableCellTextStyle(
   );
 }
 
-TextStyle grintaTableRankTextStyle(
-  BuildContext context, {
-  Color? color,
-}) {
+TextStyle grintaTableRankTextStyle(BuildContext context, {Color? color}) {
   return TextStyle(
     color: color ?? AppTheme.textFaint,
     fontSize: grintaTableRankFontSize,
@@ -104,9 +98,7 @@ class StickyHeaderTableCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        side: BorderSide(
-          color: AppTheme.outline.withValues(alpha: .24),
-        ),
+        side: BorderSide(color: AppTheme.outline.withValues(alpha: .24)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {

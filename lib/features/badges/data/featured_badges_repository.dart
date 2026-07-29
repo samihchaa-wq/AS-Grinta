@@ -43,44 +43,49 @@ class FeaturedBadgesRepository {
     for (final r in (rows as List? ?? const [])) {
       final m = Map<String, dynamic>.from(r as Map);
       final pid = m['profile_id'].toString();
-      (map[pid] ??= []).add(FeaturedBadge(
-        emoji: (m['emoji'] ?? '🏅').toString(),
-        imageUrl: m['image_url']?.toString(),
-        color: m['color']?.toString(),
-        baremeLabel: baremeLabelFor(
-          m['metric']?.toString(),
-          (m['threshold'] as num?)?.toInt(),
+      (map[pid] ??= []).add(
+        FeaturedBadge(
+          emoji: (m['emoji'] ?? '🏅').toString(),
+          imageUrl: m['image_url']?.toString(),
+          color: m['color']?.toString(),
+          baremeLabel: baremeLabelFor(
+            m['metric']?.toString(),
+            (m['threshold'] as num?)?.toInt(),
+          ),
+          hasStar: m['has_star'] == true,
+          stars: (m['stars'] as num?)?.toInt() ?? 1,
+          category: m['category']?.toString(),
         ),
-        hasStar: m['has_star'] == true,
-        stars: (m['stars'] as num?)?.toInt() ?? 1,
-        category: m['category']?.toString(),
-      ));
+      );
     }
     return map;
   }
 
   Future<void> setFeatured(String badgeCode, bool featured) async {
-    await _client.rpc('set_badge_featured', params: {
-      'p_badge_code': badgeCode,
-      'p_featured': featured,
-    });
+    await _client.rpc(
+      'set_badge_featured',
+      params: {'p_badge_code': badgeCode, 'p_featured': featured},
+    );
   }
 }
 
-final featuredBadgesRepositoryProvider =
-    Provider<FeaturedBadgesRepository>((ref) {
+final featuredBadgesRepositoryProvider = Provider<FeaturedBadgesRepository>((
+  ref,
+) {
   return FeaturedBadgesRepository(ref.watch(supabaseClientProvider));
 });
 
 /// Cache global des badges arborés (invalidé quand quelqu'un change son choix).
-final featuredBadgesProvider =
-    FutureProvider<Map<String, List<FeaturedBadge>>>((ref) {
-  return ref.watch(featuredBadgesRepositoryProvider).fetchAll();
-});
+final featuredBadgesProvider = FutureProvider<Map<String, List<FeaturedBadge>>>(
+  (ref) {
+    return ref.watch(featuredBadgesRepositoryProvider).fetchAll();
+  },
+);
 
 /// Les codes des badges que la personne connectée arbore (pour l'armoire).
-final myFeaturedCodesProvider =
-    FutureProvider.autoDispose<Set<String>>((ref) async {
+final myFeaturedCodesProvider = FutureProvider.autoDispose<Set<String>>((
+  ref,
+) async {
   final client = ref.watch(supabaseClientProvider);
   final uid = client.auth.currentUser?.id;
   if (uid == null) return <String>{};

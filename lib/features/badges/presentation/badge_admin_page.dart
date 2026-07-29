@@ -52,9 +52,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   Future<void> _createBadge() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Donne un nom au badge.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Donne un nom au badge.')));
       return;
     }
     setState(() => _creating = true);
@@ -71,15 +71,15 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
         _nameController.clear();
         _descController.clear();
         setState(() => _emojiController.text = '🏅');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Badge « $name » créé.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Badge « $name » créé.')));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _creating = false);
@@ -107,8 +107,10 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
             onCreate: _createBadge,
           ),
           const SizedBox(height: 24),
-          Text('Tous les badges',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Tous les badges',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 4),
           Text(
             'Touche un badge pour voir son barème complet et sa description, '
@@ -135,8 +137,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
               final filtered = _query.isEmpty
                   ? badges
                   : badges
-                      .where((b) => b.name.toLowerCase().contains(_query))
-                      .toList();
+                        .where((b) => b.name.toLowerCase().contains(_query))
+                        .toList();
               if (filtered.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
@@ -165,8 +167,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                 overflow: TextOverflow.ellipsis,
                               )
                             : (b.kind == 'custom'
-                                ? const Text('Custom')
-                                : null),
+                                  ? const Text('Custom')
+                                  : null),
                         isThreeLine: b.description.isNotEmpty,
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => showBadgeDetailSheet(
@@ -227,8 +229,10 @@ class _CreateBadgeCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Créer un badge',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  'Créer un badge',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const Spacer(),
                 BadgeEmblem(
                   emoji: emojiController.text.trim().isEmpty
@@ -240,8 +244,10 @@ class _CreateBadgeCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text('Couleur de l\'emblème',
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              'Couleur de l\'emblème',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 10,
@@ -382,9 +388,9 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(e))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
       }
     } finally {
       if (mounted) setState(() => _busy.remove(person.id));
@@ -454,8 +460,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   final filtered = _query.isEmpty
                       ? people
                       : people
-                          .where((p) => p.name.toLowerCase().contains(_query))
-                          .toList();
+                            .where((p) => p.name.toLowerCase().contains(_query))
+                            .toList();
                   return ListView(
                     shrinkWrap: true,
                     children: [
@@ -467,12 +473,14 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child:
-                                      GrintaProgressIndicator(strokeWidth: 2),
+                                  child: GrintaProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : null,
-                          onChanged:
-                              _busy.contains(p.id) ? null : (_) => _toggle(p),
+                          onChanged: _busy.contains(p.id)
+                              ? null
+                              : (_) => _toggle(p),
                         ),
                       if (filtered.isEmpty)
                         const Padding(
