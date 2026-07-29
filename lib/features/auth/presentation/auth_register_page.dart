@@ -36,7 +36,8 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _submit() async {
@@ -112,7 +113,8 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
     return GrintaAuthSurface(
       maxWidth: 760,
       title: 'Créer mon compte',
-      subtitle: 'Le compte sera accessible après confirmation de l’e-mail et validation par un admin.',
+      subtitle:
+          'Le compte sera accessible après confirmation de l’e-mail et validation par un admin.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -164,7 +166,9 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
               helperMaxLines: 2,
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(
-                tooltip: _obscurePassword ? 'Afficher le mot de passe' : 'Masquer le mot de passe',
+                tooltip: _obscurePassword
+                    ? 'Afficher le mot de passe'
+                    : 'Masquer le mot de passe',
                 icon: Icon(
                   _obscurePassword
                       ? Icons.visibility_outlined
@@ -198,7 +202,8 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                     child: GrintaProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.sports_soccer),
-            label: Text(_submitting ? 'Création en cours…' : 'Créer mon compte'),
+            label:
+                Text(_submitting ? 'Création en cours…' : 'Créer mon compte'),
           ),
           const SizedBox(height: 12),
           TextButton(
