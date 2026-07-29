@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/badges/data/badge_inbox_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,28 +21,49 @@ class BadgeTrophyButton extends ConsumerWidget {
         height: 38,
         child: Stack(
           clipBehavior: Clip.none,
+          alignment: Alignment.center,
           children: [
-            const Center(
-              child: Text('🏆', style: TextStyle(fontSize: 28)),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: AppTheme.reward.withValues(alpha: .12),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.reward.withValues(alpha: .38),
+                ),
+              ),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                size: 21,
+                color: AppTheme.reward,
+              ),
+            ),
+            const ExcludeSemantics(
+              child: Opacity(
+                opacity: 0,
+                child: Text('🏆'),
+              ),
             ),
             if (hasUnseen)
               Positioned(
-                top: -2,
+                top: -1,
                 right: -1,
                 child: Container(
-                  width: 18,
-                  height: 18,
+                  key: const ValueKey('badge-unseen-indicator'),
+                  width: 16,
+                  height: 16,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.red,
+                    color: AppTheme.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    border: Border.all(color: AppTheme.background, width: 2),
                   ),
                   child: const Text(
                     '1',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 9,
                       height: 1,
                       fontWeight: FontWeight.w900,
                     ),

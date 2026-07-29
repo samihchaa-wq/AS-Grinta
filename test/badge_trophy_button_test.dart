@@ -5,24 +5,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('affiche 1 lorsqu’un badge est nouveau', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          hasUnseenBadgeProvider.overrideWith((ref) async => true),
-        ],
-        child: const MaterialApp(
-          home: Scaffold(body: BadgeTrophyButton()),
+  testWidgets(
+    'affiche un indicateur lorsqu’un badge est nouveau',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            hasUnseenBadgeProvider.overrideWith((ref) async => true),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: BadgeTrophyButton()),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('🏆'), findsOneWidget);
-    expect(find.text('1'), findsOneWidget);
-  });
+      expect(find.byIcon(Icons.emoji_events_rounded), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('badge-unseen-indicator')),
+        findsOneWidget,
+      );
+    },
+  );
 
-  testWidgets('masque la pastille lorsque tout est vu', (tester) async {
+  testWidgets('masque l’indicateur lorsque tout est vu', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -35,7 +41,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('🏆'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.byIcon(Icons.emoji_events_rounded), findsOneWidget);
+    expect(find.byKey(const ValueKey('badge-unseen-indicator')), findsNothing);
   });
 }
