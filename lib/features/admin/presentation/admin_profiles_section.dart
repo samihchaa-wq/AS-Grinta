@@ -201,21 +201,21 @@ class _ProfileCard extends ConsumerWidget {
                         final confirmed = await _confirm(
                           context,
                           'Réinitialiser le mot de passe ?',
-                          'Un code temporaire sera généré. Donne-le à '
-                              '${profile.displayName} : à sa prochaine '
-                              'connexion, il devra créer un nouveau mot de '
-                              'passe.',
+                          'Un lien à usage unique sera généré. Donne-le à '
+                              '${profile.displayName} : en l’ouvrant, il '
+                              'pourra choisir directement son nouveau mot '
+                              'de passe.',
                         );
                         if (!confirmed) return;
                         try {
-                          final code =
+                          final link =
                               await repository.resetAccountPassword(profile.id);
                           ref.invalidate(adminDashboardProvider);
                           if (context.mounted) {
-                            await _showResetCodeDialog(
+                            await _showResetLinkDialog(
                               context,
                               profile.displayName,
-                              code,
+                              link,
                             );
                           }
                         } catch (error) {
@@ -522,21 +522,22 @@ class _ProfileCard extends ConsumerWidget {
         false;
   }
 
-  Future<void> _showResetCodeDialog(
+  Future<void> _showResetLinkDialog(
     BuildContext context,
     String displayName,
-    String code,
+    String link,
   ) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Code temporaire'),
+        title: const Text('Lien de réinitialisation'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Donne ce code à $displayName. À sa prochaine connexion, il '
-                'devra choisir un nouveau mot de passe.'),
+            Text('Donne ce lien à $displayName, par exemple par SMS ou '
+                'WhatsApp. En l’ouvrant, il choisit directement son nouveau '
+                'mot de passe.'),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -549,20 +550,14 @@ class _ProfileCard extends ConsumerWidget {
                 ),
               ),
               child: SelectableText(
-                code,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                  fontFamily: 'monospace',
-                ),
+                link,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Note-le maintenant : appuie sur « Copier », ou sélectionne le '
-              'code à la main. Il ne sera plus affiché ensuite.',
+              'Copie-le maintenant : appuie sur « Copier ». Il n’est valable '
+              'qu’une seule fois.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -573,11 +568,11 @@ class _ProfileCard extends ConsumerWidget {
               // La copie se fait sur ce geste explicite (indispensable sur iOS
               // Safari/PWA). Si le navigateur la refuse, on invite à copier à
               // la main plutôt que de laisser l'erreur remonter.
-              String message = 'Code copié.';
+              String message = 'Lien copié.';
               try {
-                await Clipboard.setData(ClipboardData(text: code));
+                await Clipboard.setData(ClipboardData(text: link));
               } catch (_) {
-                message = 'Copie automatique impossible : sélectionne le code '
+                message = 'Copie automatique impossible : sélectionne le lien '
                     'à la main.';
               }
               if (dialogContext.mounted) {

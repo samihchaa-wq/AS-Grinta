@@ -1,9 +1,10 @@
 // Gestion des comptes par le staff : invitation par identifiant,
-// réinitialisation sécurisée par mot de passe temporaire et suppression.
+// réinitialisation par lien à usage unique et suppression.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.95.0";
 
 const USERNAME_DOMAIN = "pronos.as-grinta.local";
+const PUBLIC_APP_URL = "https://samihchaa-wq.github.io/AS-Grinta/";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -238,13 +239,10 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "Réactive d’abord ce compte." }, 409);
       }
 
-      const temporaryPassword = generateTemporaryPassword();
-      const { error: passwordError } = await admin.auth.admin.updateUserById(
-        userId,
-        { password: temporaryPassword },
-      );
-      if (passwordError) {
-        if (isUserNotFound(passwordError)) {
+      const { data: targetUser, error: targetUserError } =
+        await admin.auth.admin.getUserById(userId);
+      if (targetUserError || !targetUser.user?.email) {
+        if (targetUserError && isUserNotFound(targetUserError)) {
           return jsonResponse(
             {
               error:
@@ -253,20 +251,20 @@ Deno.serve(async (req: Request) => {
             409,
           );
         }
-        throw passwordError;
+        throw targetUserError ?? new Error("Target account has no email");
       }
 
-      const { error: flagError } = await admin
-        .from("profiles")
-        .update({
-          password_set: true,
-          must_change_password: true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", userId);
-      if (flagError) throw flagError;
+      const { data: linkData, error: linkError } =
+        await admin.auth.admin.generateLink({
+          type: "recovery",
+          email: targetUser.user.email,
+          options: {
+            redirectTo: `${PUBLIC_APP_URL}auth/new-password?recovery=1`,
+          },
+        });
+      if (linkError) throw linkError;
 
-      return jsonResponse({ reset: true, temporaryPassword });
+      return jsonResponse({ reset: true, resetLink: linkData.properties.action_link });
     }
 
     if (action === "delete") {

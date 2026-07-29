@@ -1,6 +1,5 @@
 import 'package:as_grinta/core/widgets/grinta_auth_surface.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,75 +13,49 @@ class AuthSignInPage extends ConsumerStatefulWidget {
 }
 
 class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    final email = _emailController.text.trim().toLowerCase();
+    final username = _usernameController.text.trim();
     final password = _passwordController.text;
-    if (email.isEmpty || password.isEmpty) {
+    if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Renseigne ton e-mail et ton mot de passe.'),
+          content: Text('Renseigne ton identifiant et ton mot de passe.'),
         ),
       );
       return;
     }
     await ref
         .read(authControllerProvider.notifier)
-        .signIn(username: email, password: password);
+        .signIn(username: username, password: password);
   }
 
   Future<void> _forgotPassword() async {
-    final controller = TextEditingController(
-      text: _emailController.text.trim(),
-    );
-    final email = await showDialog<String>(
+    await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Mot de passe oublié'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.emailAddress,
-          autocorrect: false,
-          autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(
-            labelText: 'Adresse e-mail',
-            prefixIcon: Icon(Icons.email_outlined),
-          ),
+        content: const Text(
+          'Demande à un administrateur du club de réinitialiser ton mot '
+          'de passe depuis l’application. Il te communiquera un lien à '
+          'ouvrir pour choisir directement ton nouveau mot de passe.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
-          ),
           FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text('Envoyer le lien'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Compris'),
           ),
         ],
-      ),
-    );
-    controller.dispose();
-    if (email == null || email.isEmpty || !mounted) return;
-    try {
-      await ref.read(authRepositoryProvider).sendPasswordResetEmail(email);
-    } catch (_) {}
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Si un compte correspond à cette adresse, un e-mail a été envoyé.',
-        ),
       ),
     );
   }
@@ -105,14 +78,13 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
+            controller: _usernameController,
             textInputAction: TextInputAction.next,
             autocorrect: false,
-            autofillHints: const [AutofillHints.email],
+            autofillHints: const [AutofillHints.username],
             decoration: const InputDecoration(
-              labelText: 'Adresse e-mail',
-              prefixIcon: Icon(Icons.email_outlined),
+              labelText: 'Identifiant',
+              prefixIcon: Icon(Icons.person_outline),
             ),
           ),
           const SizedBox(height: 16),
