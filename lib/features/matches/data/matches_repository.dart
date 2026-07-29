@@ -23,6 +23,8 @@ class MatchesRepository {
       score_adverse,
       predictions_closed_at,
       address,
+      match_type,
+      jersey_note,
       created_by,
       created_at,
       updated_at,
@@ -89,6 +91,26 @@ class MatchesRepository {
         'p_address': address,
         'p_remember_as_default': rememberAsDefault,
       },
+    );
+  }
+
+  Future<void> setMatchType({
+    required String matchId,
+    required String matchType,
+  }) async {
+    await _client.rpc(
+      'admin_set_match_type',
+      params: {'p_match_id': matchId, 'p_match_type': matchType},
+    );
+  }
+
+  Future<void> setMatchJersey({
+    required String matchId,
+    required String? jerseyNote,
+  }) async {
+    await _client.rpc(
+      'admin_set_match_jersey',
+      params: {'p_match_id': matchId, 'p_jersey_note': jerseyNote},
     );
   }
 

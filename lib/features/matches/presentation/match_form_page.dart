@@ -23,6 +23,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _squadSizeController = TextEditingController(text: '14');
   final _addressController = TextEditingController();
+  final _jerseyNoteController = TextEditingController();
 
   double? _oddsWin;
   double? _oddsDraw;
@@ -32,6 +33,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   late String _opponentId;
   late DateTime _kickoffAt;
   late bool _isHome;
+  late String _matchType;
 
   bool _suggestingOdds = false;
   bool _squadDefaultApplied = false;
@@ -70,10 +72,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _kickoffAt = match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
+    _matchType = match?.matchType ?? 'championnat';
     _oddsWin = match?.oddsWin;
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
+    _jerseyNoteController.text = match?.jerseyNote ?? '';
     // Adresse du terrain d'AS Grinta, pour préremplir un match à domicile.
     Future.microtask(() async {
       final home =
@@ -88,6 +92,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   void dispose() {
     _squadSizeController.dispose();
     _addressController.dispose();
+    _jerseyNoteController.dispose();
     super.dispose();
   }
 
@@ -285,6 +290,30 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 });
                 _suggestOdds();
               },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _matchType,
+              decoration: const InputDecoration(labelText: 'Type de match'),
+              items: const [
+                DropdownMenuItem(
+                  value: 'championnat',
+                  child: Text('Championnat'),
+                ),
+                DropdownMenuItem(value: 'amical', child: Text('Match amical')),
+              ],
+              onChanged: (value) =>
+                  setState(() => _matchType = value ?? 'championnat'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _jerseyNoteController,
+              maxLength: 300,
+              decoration: const InputDecoration(
+                labelText: 'Maillot (facultatif)',
+                hintText: 'Ex. Maillot domicile bleu nuit',
+                prefixIcon: Icon(Icons.checkroom_outlined),
+              ),
             ),
             if (sportsEnabled) ...[
               const SizedBox(height: 12),
@@ -501,6 +530,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
     final notifier = ref.read(matchesControllerProvider.notifier);
     final address = _addressController.text.trim();
+    final jerseyNote = _jerseyNoteController.text.trim();
     if (widget.match == null) {
       await notifier.createMatch(
         seasonId: _seasonId,
@@ -513,6 +543,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         squadSizeLimit: squadSizeLimit,
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
+        matchType: _matchType,
+        jerseyNote: jerseyNote.isEmpty ? null : jerseyNote,
       );
     } else {
       await notifier.updateMatch(
@@ -528,6 +560,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         squadSizeLimit: squadSizeLimit,
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
+        matchType: _matchType,
+        jerseyNote: jerseyNote.isEmpty ? null : jerseyNote,
       );
     }
     if (!mounted) return;

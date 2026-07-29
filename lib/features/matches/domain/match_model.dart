@@ -19,6 +19,8 @@ class MatchModel {
     this.opponentName,
     this.seasonName,
     this.address,
+    this.matchType = 'championnat',
+    this.jerseyNote,
   });
 
   final String id;
@@ -43,10 +45,18 @@ class MatchModel {
   /// Adresse du lieu de la rencontre (facultative).
   final String? address;
 
+  /// « amical » ou « championnat », à titre informatif (onglet Info).
+  final String matchType;
+
+  /// Commentaire libre sur le maillot à porter, à titre informatif.
+  final String? jerseyNote;
+
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
   bool get isArchived => status == 'archive';
   bool get isFinished => status == 'termine' || status == 'archive';
   bool get isCancelled => status == 'annule';
+  bool get isFriendly => matchType == 'amical';
+  String get matchTypeLabel => isFriendly ? 'Match amical' : 'Championnat';
 
   /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
   bool get pronosClosed => predictionsClosedAt != null;
@@ -115,6 +125,10 @@ class MatchModel {
           json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
       address: (json['address']?.toString().trim().isNotEmpty ?? false)
           ? json['address'].toString()
+          : null,
+      matchType: (json['match_type'] ?? 'championnat').toString(),
+      jerseyNote: (json['jersey_note']?.toString().trim().isNotEmpty ?? false)
+          ? json['jersey_note'].toString()
           : null,
     );
   }
