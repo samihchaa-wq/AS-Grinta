@@ -42,7 +42,7 @@ class SportWaitlistEntry {
     required this.position,
     required this.previousSeasonAttendanceCount,
     required this.previousSeasonMatchCount,
-    required this.currentSeasonWaitlistCount,
+    this.currentSeasonWaitlistCount = 0,
     required this.source,
     this.serverName,
   });
@@ -137,7 +137,7 @@ class ConvocationPlayer {
     required this.publishedConvocationStatus,
     required this.manualOverride,
     required this.waitlistPosition,
-    required this.currentSeasonWaitlistCount,
+    this.currentSeasonWaitlistCount = 0,
     required this.recommendedNotConvoked,
     required this.turnShouldConsume,
     required this.turnState,
