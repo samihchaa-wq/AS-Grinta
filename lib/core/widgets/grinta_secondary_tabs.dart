@@ -26,7 +26,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppTheme.surface.withValues(alpha: .62),
-          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           border: Border.all(
             color: AppTheme.outline.withValues(alpha: .42),
           ),
@@ -61,7 +61,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
               side: const WidgetStatePropertyAll(BorderSide.none),
               shape: WidgetStatePropertyAll(
                 RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
               ),
               textStyle: const WidgetStatePropertyAll(
