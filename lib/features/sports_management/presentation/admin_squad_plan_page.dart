@@ -20,7 +20,6 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/compos
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 part 'admin_squad_plan_page_state.dart';
 part 'admin_squad_plan_page_effectif.dart';

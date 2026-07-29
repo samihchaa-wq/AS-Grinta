@@ -204,7 +204,16 @@ class _EffectifPlayerChip extends StatelessWidget {
               ],
             ],
           ),
-          if (!player.isGuest)
+          if (!player.isGuest) ...[
+            if (player.waitlistPosition != null)
+              Text(
+                'Rang liste d’attente : ${player.waitlistPosition}'
+                '${player.waitlistPosition == 1 ? 'er' : 'e'}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: color.withValues(alpha: .9),
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
             Text(
               'Liste d’attente : ${player.currentSeasonWaitlistCount} fois',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -212,6 +221,7 @@ class _EffectifPlayerChip extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
             ),
+          ],
         ],
       ),
       onPressed: onTap,

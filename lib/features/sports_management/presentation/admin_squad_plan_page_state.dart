@@ -70,13 +70,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           ? _compositionExisted
           : _locked || !_effectifReadyForComposition);
 
-  bool get _canConsultWaitlist {
-    final convocations = _convocations;
-    if (convocations == null || !convocations.isPublished) return false;
-    final untilKickoff = convocations.kickoffAt.difference(DateTime.now());
-    return !untilKickoff.isNegative && untilKickoff <= const Duration(days: 6);
-  }
-
   Future<void> _loadMatches() async {
     setState(() {
       _loading = true;

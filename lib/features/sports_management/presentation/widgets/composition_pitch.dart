@@ -365,31 +365,25 @@ class _GoalBalls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = goals.clamp(1, 6);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .55),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < count; i++)
-            const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
-          if (goals > 6)
-            const Padding(
-              padding: EdgeInsets.only(left: 1),
-              child: Text(
-                '+',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < count; i++)
+          const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
+        if (goals > 6)
+          const Padding(
+            padding: EdgeInsets.only(left: 1),
+            child: Text(
+              '+',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
