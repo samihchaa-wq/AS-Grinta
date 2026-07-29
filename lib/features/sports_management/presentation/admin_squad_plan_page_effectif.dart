@@ -10,7 +10,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   _desiredConvoked.contains(player.participantId),
         )
         .toList();
-    players.sort(_playerOrder);
+    players.sort((a, b) => _playerOrder(b, a));
     return players;
   }
 
