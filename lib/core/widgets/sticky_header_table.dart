@@ -106,7 +106,7 @@ class StickyHeaderTableCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       color: AppTheme.surface.withValues(alpha: .86),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         side: BorderSide(
           color: AppTheme.outline.withValues(alpha: .52),
         ),
@@ -200,7 +200,7 @@ class SortableHeaderCell extends StatelessWidget {
       flex: flex,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: content,
