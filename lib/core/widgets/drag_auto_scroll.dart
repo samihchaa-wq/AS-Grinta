@@ -40,7 +40,8 @@ class DragAutoScroller {
     if (velocity == 0) {
       stop();
     } else {
-      _timer ??= Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
+      _timer ??=
+          Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
     }
   }
 

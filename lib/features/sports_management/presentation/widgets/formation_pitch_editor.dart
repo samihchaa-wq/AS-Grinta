@@ -206,7 +206,8 @@ class FormationPitchEditor extends StatelessWidget {
               child: SizedBox(width: width, height: height, child: marker),
             ),
             childWhenDragging: Opacity(opacity: .25, child: marker),
-            onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+            onDragUpdate: (details) =>
+                autoScroll.update(details.globalPosition),
             onDragEnd: (_) => autoScroll.stop(),
             onDraggableCanceled: (_, __) => autoScroll.stop(),
             child: marker,
