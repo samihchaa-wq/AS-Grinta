@@ -1,7 +1,7 @@
 enum AuthRole { pronostiqueur, admin }
 
 extension AuthRoleX on AuthRole {
-  /// Libellé de rôle visible dans l’interface du profil.
+  /// Libellé utilisateur du rôle dans l’interface du profil.
   String get label {
     switch (this) {
       case AuthRole.admin:
