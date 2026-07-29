@@ -5,7 +5,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Fond visuel unique affiché derrière l'intégralité de l'application.
+/// Fond visuel global affiché derrière l'intégralité de l'application.
 class GrintaBackground extends StatefulWidget {
   const GrintaBackground({required this.child, super.key});
 
