@@ -1,0 +1,31 @@
+name: Phase 6 format
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    if: github.head_ref == 'visual/ui-overhaul-phase-6'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Format phase 6 files
+        run: dart format lib/core/widgets/grinta_empty_state.dart lib/core/widgets/grinta_form_section.dart lib/core/widgets/grinta_status_banner.dart
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-formatted
+          path: |
+            lib/core/widgets/grinta_empty_state.dart
+            lib/core/widgets/grinta_form_section.dart
+            lib/core/widgets/grinta_status_banner.dart
