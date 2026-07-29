@@ -107,6 +107,46 @@ class MatchInfoTab extends ConsumerWidget {
                     style: TextStyle(color: Theme.of(context).hintColor),
                   ),
                 ),
+              const SizedBox(height: 12),
+              _InfoRow(
+                icon: info.isFriendly
+                    ? Icons.handshake_outlined
+                    : Icons.emoji_events_outlined,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      const TextSpan(
+                        text: 'Type de match  ',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      TextSpan(
+                        text: info.matchTypeLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (info.jerseyNote != null) ...[
+                const SizedBox(height: 8),
+                _InfoRow(
+                  icon: Icons.checkroom_outlined,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const TextSpan(
+                          text: 'Maillot  ',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        TextSpan(
+                          text: info.jerseyNote!,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               Text(
                 info.lastEncounters.length > 1

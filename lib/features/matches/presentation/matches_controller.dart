@@ -136,6 +136,8 @@ class MatchesController extends StateNotifier<MatchesState> {
     int? squadSizeLimit,
     String? address,
     bool rememberAddressAsDefault = false,
+    String matchType = 'championnat',
+    String? jerseyNote,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -179,6 +181,11 @@ class MatchesController extends StateNotifier<MatchesState> {
         address: address,
         rememberAsDefault: rememberAddressAsDefault,
       );
+      await _repository.setMatchType(matchId: matchId, matchType: matchType);
+      await _repository.setMatchJersey(
+        matchId: matchId,
+        jerseyNote: jerseyNote,
+      );
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
@@ -202,6 +209,8 @@ class MatchesController extends StateNotifier<MatchesState> {
     int? squadSizeLimit,
     String? address,
     bool rememberAddressAsDefault = false,
+    String matchType = 'championnat',
+    String? jerseyNote,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -247,6 +256,8 @@ class MatchesController extends StateNotifier<MatchesState> {
         address: address,
         rememberAsDefault: rememberAddressAsDefault,
       );
+      await _repository.setMatchType(matchId: id, matchType: matchType);
+      await _repository.setMatchJersey(matchId: id, jerseyNote: jerseyNote);
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,

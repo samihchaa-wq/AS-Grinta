@@ -21,11 +21,18 @@ class MatchInfo {
     required this.kickoffAt,
     required this.address,
     required this.lastEncounters,
+    this.matchType = 'championnat',
+    this.jerseyNote,
   });
 
   final DateTime? kickoffAt;
   final String? address;
   final List<MatchEncounter> lastEncounters;
+  final String matchType;
+  final String? jerseyNote;
+
+  bool get isFriendly => matchType == 'amical';
+  String get matchTypeLabel => isFriendly ? 'Match amical' : 'Championnat';
 }
 
 String? _clean(Object? value) {
@@ -43,7 +50,7 @@ final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
       .from('matches')
       .select(
         'kickoff_at, match_date, match_time, location, address, opponent_id, '
-        'opponents(address)',
+        'match_type, jersey_note, opponents(address)',
       )
       .eq('id', matchId)
       .maybeSingle();
@@ -90,5 +97,7 @@ final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
     kickoffAt: kickoffAt,
     address: address,
     lastEncounters: encounters,
+    matchType: (match['match_type'] ?? 'championnat').toString(),
+    jerseyNote: _clean(match['jersey_note']),
   );
 });

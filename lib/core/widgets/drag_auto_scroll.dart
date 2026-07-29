@@ -16,8 +16,19 @@ class DragAutoScroller {
   DragAutoScroller(this.context);
 
   final BuildContext context;
-  Timer? _timer;
-  double _velocity = 0;
+
+  // Un seul glisser-déposer peut être actif à la fois : l'état du minuteur
+  // est donc statique/partagé. Les widgets de la liste (puces joueurs, banc…)
+  // sont reconstruits en permanence pendant un drag (le `DragTarget` survolé
+  // se reconstruit à chaque mouvement), ce qui recrée une nouvelle instance
+  // de `DragAutoScroller` à chaque frame. Si l'état était porté par
+  // l'instance, l'ancien minuteur devenait orphelin (plus personne ne
+  // l'arrêtait) et continuait à défiler indéfiniment, rendant le défilement
+  // manuel impossible. En centralisant l'état, n'importe quelle instance —
+  // même créée après coup — arrête bien le même minuteur.
+  static Timer? _timer;
+  static double _velocity = 0;
+  static ScrollableState? _scrollable;
 
   static const double _edgeSize = 90;
   static const double _maxPixelsPerTick = 16;
@@ -37,6 +48,7 @@ class DragAutoScroller {
       velocity = _maxPixelsPerTick * (1 - fromBottom / _edgeSize);
     }
     _velocity = velocity;
+    _scrollable = Scrollable.maybeOf(context);
     if (velocity == 0) {
       stop();
     } else {
@@ -46,12 +58,11 @@ class DragAutoScroller {
   }
 
   void _tick() {
-    if (!context.mounted) {
+    final position = _scrollable?.position;
+    if (position == null) {
       stop();
       return;
     }
-    final position = Scrollable.maybeOf(context)?.position;
-    if (position == null) return;
     final next = (position.pixels + _velocity)
         .clamp(position.minScrollExtent, position.maxScrollExtent);
     if (next == position.pixels) return;
@@ -62,5 +73,6 @@ class DragAutoScroller {
     _timer?.cancel();
     _timer = null;
     _velocity = 0;
+    _scrollable = null;
   }
 }
