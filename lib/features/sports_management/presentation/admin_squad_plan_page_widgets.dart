@@ -273,10 +273,14 @@ class _EffectifPlayerChip extends StatelessWidget {
       backgroundColor: color.withValues(alpha: .10),
     );
     if (!draggable) return chip;
+    final autoScroll = DragAutoScroller(context);
     return LongPressDraggable<ConvocationPlayer>(
       data: player,
       feedback: Material(type: MaterialType.transparency, child: chip),
       childWhenDragging: Opacity(opacity: .3, child: chip),
+      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+      onDragEnd: (_) => autoScroll.stop(),
+      onDraggableCanceled: (_, __) => autoScroll.stop(),
       child: chip,
     );
   }
@@ -321,10 +325,14 @@ class _BenchBox extends StatelessWidget {
       ),
     );
     if (!draggable) return box;
+    final autoScroll = DragAutoScroller(context);
     return LongPressDraggable<MatchCompositionEntry>(
       data: entry,
       feedback: Material(color: Colors.transparent, child: box),
       childWhenDragging: Opacity(opacity: .3, child: box),
+      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+      onDragEnd: (_) => autoScroll.stop(),
+      onDraggableCanceled: (_, __) => autoScroll.stop(),
       child: box,
     );
   }
