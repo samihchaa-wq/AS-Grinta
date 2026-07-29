@@ -1,6 +1,8 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
@@ -9,7 +11,6 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Armoire à badges : Validés · En cours · À débloquer.
 class ArmoirePage extends ConsumerWidget {
@@ -50,8 +51,8 @@ class ArmoirePage extends ConsumerWidget {
         actions: [
           if (isAdmin)
             IconButton(
-              tooltip: '👑 Gérer les badges',
-              icon: const Text('👑', style: TextStyle(fontSize: 20)),
+              tooltip: 'Gérer les badges',
+              icon: const Icon(Icons.admin_panel_settings_outlined),
               onPressed: () => context.push('/admin/badges'),
             ),
         ],
@@ -66,13 +67,24 @@ class ArmoirePage extends ConsumerWidget {
           loading: () => const Center(child: GrintaProgressIndicator()),
           error: (e, _) => ListView(
             padding: const EdgeInsets.all(16),
-            children: [Text(humanizeError(e))],
+            children: [
+              Card(
+                child: GrintaEmptyState(
+                  icon: Icons.error_outline_rounded,
+                  title: 'Collection indisponible',
+                  message: humanizeError(e),
+                ),
+              ),
+            ],
           ),
           data: (armoire) => ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
             children: [
-              const _Header(),
-              const SizedBox(height: 20),
+              _Header(
+                validated: armoire.validated.length,
+                inProgress: armoire.inProgress.length,
+              ),
+              const SizedBox(height: 24),
               if (armoire.validated.isEmpty &&
                   armoire.inProgress.isEmpty &&
                   armoire.locked.isEmpty)
@@ -85,36 +97,51 @@ class ArmoirePage extends ConsumerWidget {
                   ),
                 ),
               if (armoire.validated.isNotEmpty) ...[
-                _SectionTitle('Validés', armoire.validated.length),
-                const SizedBox(height: 4),
-                Text(
-                  'Touche un badge pour l\'arborer à côté de ton prénom '
-                  '(2 maximum).',
-                  style: Theme.of(context).textTheme.bodySmall,
+                _SectionTitle(
+                  title: 'Débloqués',
+                  count: armoire.validated.length,
+                  icon: Icons.workspace_premium_rounded,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
+                Text(
+                  'Sélectionne jusqu’à 2 badges à afficher près de ton prénom.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textFaint,
+                      ),
+                ),
+                const SizedBox(height: 14),
                 _BadgeGrid(
                   badges: armoire.validated,
                   featuredCodes: featured,
                   onToggleFeatured: (code, nowFeatured) =>
                       _toggleFeatured(context, ref, code, nowFeatured),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
               ],
               if (armoire.inProgress.isNotEmpty) ...[
-                _SectionTitle('En cours', armoire.inProgress.length),
-                const SizedBox(height: 10),
+                _SectionTitle(
+                  title: 'En progression',
+                  count: armoire.inProgress.length,
+                  icon: Icons.trending_up_rounded,
+                ),
+                const SizedBox(height: 14),
                 ...armoire.inProgress.map((b) => _InProgressTile(badge: b)),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
               if (armoire.locked.isNotEmpty) ...[
-                _SectionTitle('À débloquer', armoire.locked.length),
-                const SizedBox(height: 4),
-                Text(
-                  'Des badges mystères à découvrir…',
-                  style: Theme.of(context).textTheme.bodySmall,
+                _SectionTitle(
+                  title: 'À découvrir',
+                  count: armoire.locked.length,
+                  icon: Icons.lock_outline_rounded,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
+                Text(
+                  'Continue à jouer pour révéler ces récompenses.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textFaint,
+                      ),
+                ),
+                const SizedBox(height: 14),
                 _BadgeGrid(badges: armoire.locked, locked: true),
               ],
             ],
@@ -126,31 +153,60 @@ class ArmoirePage extends ConsumerWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.validated, required this.inProgress});
+
+  final int validated;
+  final int inProgress;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1B3B6B), Color(0xFF0B1D40)],
-        ),
-        border: Border.all(color: scheme.secondary.withValues(alpha: 0.35)),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.outline.withValues(alpha: .56)),
       ),
       child: Row(
         children: [
-          const Text('🏆', style: TextStyle(fontSize: 34)),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppTheme.reward.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              border: Border.all(
+                color: AppTheme.reward.withValues(alpha: .34),
+              ),
+            ),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: AppTheme.reward,
+              size: 28,
+            ),
+          ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text('Ma collection',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white, fontWeight: FontWeight.w800)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ma collection',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$validated débloqué${validated > 1 ? 's' : ''} · '
+                  '$inProgress en progression',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textFaint,
+                      ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -159,27 +215,45 @@ class _Header extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title, this.count);
+  const _SectionTitle({
+    required this.title,
+    required this.count,
+    required this.icon,
+  });
+
   final String title;
   final int count;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        Icon(icon, size: 18, color: AppTheme.primaryBright),
         const SizedBox(width: 8),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const Spacer(),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: AppTheme.surfaceHigh,
             borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: AppTheme.outline.withValues(alpha: .46),
+            ),
           ),
-          child: Text('$count',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(fontWeight: FontWeight.w800)),
+          child: Text(
+            '$count',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textSecondary,
+                ),
+          ),
         ),
       ],
     );
@@ -193,10 +267,9 @@ class _BadgeGrid extends StatelessWidget {
     this.featuredCodes,
     this.onToggleFeatured,
   });
+
   final List<ArmoireBadge> badges;
   final bool locked;
-
-  /// Codes des badges actuellement arborés (section « Validés » uniquement).
   final Set<String>? featuredCodes;
   final void Function(String code, bool nowFeatured)? onToggleFeatured;
 
@@ -204,7 +277,7 @@ class _BadgeGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Wrap(
       spacing: 12,
-      runSpacing: 12,
+      runSpacing: 16,
       children: [
         for (final b in badges)
           _BadgeTile(
@@ -218,7 +291,6 @@ class _BadgeGrid extends StatelessWidget {
   }
 }
 
-/// Le seuil à écrire en petit sur l'emblème d'un badge de barème.
 String? baremeThreshold(BadgeDef def) =>
     baremeLabelFor(def.metric, def.threshold);
 
@@ -229,6 +301,7 @@ class _BadgeTile extends ConsumerWidget {
     this.featured = false,
     this.onToggleFeatured,
   });
+
   final ArmoireBadge badge;
   final bool locked;
   final bool featured;
@@ -236,9 +309,6 @@ class _BadgeTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scheme = Theme.of(context).colorScheme;
-    // Emblème à la même taille que les badges « En cours » ; grille sur
-    // 4 colonnes pour bien répartir les badges validés.
     const columns = 4;
     final tile =
         (MediaQuery.of(context).size.width - 32 - (columns - 1) * 12) / columns;
@@ -253,21 +323,28 @@ class _BadgeTile extends ConsumerWidget {
               height: emblem,
               width: emblem,
               decoration: BoxDecoration(
-                color: const Color(0xFF0A1428),
-                borderRadius: BorderRadius.circular(emblem * 0.26),
-                border: Border.all(color: const Color(0xFF1B2A48)),
+                color: AppTheme.surfaceHigh.withValues(alpha: .55),
+                borderRadius: BorderRadius.circular(emblem * .24),
+                border: Border.all(
+                  color: AppTheme.outline.withValues(alpha: .38),
+                ),
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.lock_outline,
-                  color: Color(0xFF3B4A6B), size: 24),
+              child: Icon(
+                Icons.lock_outline_rounded,
+                color: AppTheme.textFaint.withValues(alpha: .55),
+                size: 22,
+              ),
             ),
-            const SizedBox(height: 6),
-            Text('???',
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: const Color(0xFF54617F))),
+            const SizedBox(height: 7),
+            Text(
+              'Mystère',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.textFaint.withValues(alpha: .72),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
           ],
         ),
       );
@@ -314,47 +391,50 @@ class _BadgeTile extends ConsumerWidget {
                       isCareerBadgeCategory(badge.def.category),
                   size: emblem,
                 ),
-                // Pastille « nouveau » : disparaît quand on clique le badge.
                 if (badge.isNew)
                   Positioned(
-                    top: -3,
-                    left: -3,
+                    top: -2,
+                    left: -2,
                     child: Container(
-                      width: 16,
-                      height: 16,
+                      width: 11,
+                      height: 11,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE84393),
+                        color: AppTheme.accent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: AppTheme.background, width: 2),
                       ),
                     ),
                   ),
-                // Badge arboré : marqué uniquement par l'étoile (pas de contour).
                 if (featured)
                   Positioned(
-                    top: 6,
-                    right: 6,
+                    top: -3,
+                    right: -3,
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
-                        color: scheme.secondary,
+                        color: AppTheme.reward,
                         shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.background, width: 2),
                       ),
-                      child: const Icon(Icons.star_rounded,
-                          size: 15, color: Colors.white),
+                      child: const Icon(
+                        Icons.star_rounded,
+                        size: 12,
+                        color: AppTheme.background,
+                      ),
                     ),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 7),
           Text(
             badge.def.name,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
                 ),
           ),
         ],
@@ -365,12 +445,11 @@ class _BadgeTile extends ConsumerWidget {
 
 class _InProgressTile extends StatelessWidget {
   const _InProgressTile({required this.badge});
+
   final ArmoireBadge badge;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // Barème à un seul palier (titres, exploits) : pas de progression.
     final showProgress = badge.target != null;
     return GestureDetector(
       onTap: () => showBadgeDetailSheet(context, badge.def),
@@ -378,14 +457,12 @@ class _InProgressTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: scheme.outline),
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          border: Border.all(color: AppTheme.outline.withValues(alpha: .52)),
         ),
         child: Row(
           children: [
-            // Badge automatique : logo visible + progression (les joueurs
-            // voient ce qu'ils peuvent débloquer).
             BadgeEmblem(
               emoji: badge.def.emoji,
               imageUrl: badge.def.imageUrl,
@@ -394,42 +471,65 @@ class _InProgressTile extends StatelessWidget {
               showStar: badge.def.hasStar,
               starCount: badge.stars,
               starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
-              size: 58,
+              size: 54,
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(badge.def.name,
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    badge.def.name,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
                   if (badge.def.description.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(badge.def.description,
-                        style: Theme.of(context).textTheme.bodySmall),
+                    const SizedBox(height: 3),
+                    Text(
+                      badge.def.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textFaint,
+                          ),
+                    ),
                   ],
                   if (showProgress) ...[
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: GrintaLinearProgressIndicator(
-                        value: badge.progress ?? 0,
-                        minHeight: 7,
-                        backgroundColor: scheme.surfaceContainerHighest,
-                        valueColor: AlwaysStoppedAnimation(scheme.secondary),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${badge.current}/${badge.target}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(999),
+                            child: GrintaLinearProgressIndicator(
+                              value: badge.progress ?? 0,
+                              minHeight: 6,
+                              backgroundColor: AppTheme.surfaceHigh,
+                              valueColor: const AlwaysStoppedAnimation(
+                                AppTheme.primaryBright,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '${badge.current}/${badge.target}',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
               ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppTheme.textFaint,
             ),
           ],
         ),
