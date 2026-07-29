@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/widgets/grinta_auth_surface.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -34,7 +36,6 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
       );
       return;
     }
-
     await ref
         .read(authControllerProvider.notifier)
         .signIn(username: email, password: password);
@@ -73,27 +74,17 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     );
     controller.dispose();
     if (email == null || email.isEmpty || !mounted) return;
-
     try {
       await ref.read(authRepositoryProvider).sendPasswordResetEmail(email);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Si un compte correspond à cette adresse, un e-mail a été envoyé.',
-          ),
+    } catch (_) {}
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Si un compte correspond à cette adresse, un e-mail a été envoyé.',
         ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Si un compte correspond à cette adresse, un e-mail a été envoyé.',
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -108,95 +99,74 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
     });
 
     final authState = ref.watch(authControllerProvider);
-
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                elevation: 0,
-                color: Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Image.asset(
-                          'assets/images/mpg_logo.png',
-                          width: double.infinity,
-                          fit: BoxFit.fitWidth,
-                        ),
-                      ),
-                      Text(
-                        'Le petit prono maison de l’AS Grinta.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
-                        autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
-                          labelText: 'Adresse e-mail',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        autofillHints: const [AutofillHints.password],
-                        onSubmitted: (_) =>
-                            authState.isLoading ? null : _submit(),
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed:
-                              authState.isLoading ? null : _forgotPassword,
-                          child: const Text('Mot de passe oublié ?'),
-                        ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: authState.isLoading ? null : _submit,
-                        icon: const Icon(Icons.login_rounded),
-                        label: const Text('Se connecter'),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: () => context.go('/auth/register'),
-                        icon: const Icon(Icons.person_add_alt_outlined),
-                        label: const Text('Créer mon compte'),
-                      ),
-                    ],
-                  ),
+    return GrintaAuthSurface(
+      subtitle: 'Le petit prono maison de l’AS Grinta.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autocorrect: false,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(
+              labelText: 'Adresse e-mail',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.password],
+            onSubmitted: (_) {
+              if (!authState.isLoading) _submit();
+            },
+            decoration: InputDecoration(
+              labelText: 'Mot de passe',
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                tooltip: _obscurePassword
+                    ? 'Afficher le mot de passe'
+                    : 'Masquer le mot de passe',
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(
+                  () => _obscurePassword = !_obscurePassword,
                 ),
               ),
             ),
           ),
-        ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: authState.isLoading ? null : _forgotPassword,
+              child: const Text('Mot de passe oublié ?'),
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: authState.isLoading ? null : _submit,
+            icon: authState.isLoading
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: GrintaProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.login_rounded),
+            label: Text(authState.isLoading ? 'Connexion…' : 'Se connecter'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed:
+                authState.isLoading ? null : () => context.go('/auth/register'),
+            icon: const Icon(Icons.person_add_alt_outlined),
+            label: const Text('Créer mon compte'),
+          ),
+        ],
       ),
     );
   }
