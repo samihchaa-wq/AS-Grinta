@@ -323,7 +323,9 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
         color: background,
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.outline.withValues(alpha: overlapsContent ? .5 : .2),
+            color: AppTheme.outline.withValues(
+              alpha: overlapsContent ? .5 : .2,
+            ),
           ),
         ),
       ),
@@ -343,7 +345,9 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
                     color: emphasized
                         ? AppTheme.textPrimary
                         : AppTheme.textSecondary,
-                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
+                    fontWeight: emphasized
+                        ? FontWeight.w900
+                        : FontWeight.w800,
                     letterSpacing: emphasized ? -.15 : 0,
                   ),
             ),
@@ -453,7 +457,10 @@ class _UpcomingMatchCard extends StatelessWidget {
                             address,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
                                   color: AppTheme.textFaint,
                                   fontWeight: FontWeight.w600,
                                 ),
