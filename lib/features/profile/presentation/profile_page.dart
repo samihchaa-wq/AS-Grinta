@@ -4,7 +4,6 @@ import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/photo_crop_preview.dart';
-import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
@@ -29,9 +28,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     final profile = ref.read(authControllerProvider).profile;
-    _firstNameController = TextEditingController(
-      text: profile?.firstName ?? '',
-    );
+    _firstNameController = TextEditingController(text: profile?.firstName ?? '');
     _lastNameController = TextEditingController(text: profile?.lastName ?? '');
     _surnomController = TextEditingController(text: profile?.surnom ?? '');
   }
@@ -59,24 +56,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppTheme.surfaceHero, AppTheme.surface],
-              ),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(AppTheme.radiusLg),
               border: Border.all(
-                color: AppTheme.primaryBright.withValues(alpha: .28),
+                color: AppTheme.outline.withValues(alpha: .56),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .18),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
-                ),
-              ],
             ),
             child: Column(
               children: [
@@ -84,32 +70,26 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(4),
+                      padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [AppTheme.primaryBright, AppTheme.accent],
+                        color: AppTheme.surfaceHigh,
+                        border: Border.all(
+                          color: AppTheme.primaryBright.withValues(alpha: .36),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primary.withValues(alpha: .25),
-                            blurRadius: 20,
-                          ),
-                        ],
                       ),
                       child: PlayerAvatar(
                         photoUrl: profile?.photoUrl,
                         name: profile?.displayName ?? '',
-                        size: 112,
+                        size: 96,
                       ),
                     ),
                     Positioned(
                       right: -2,
-                      bottom: 2,
+                      bottom: 0,
                       child: Material(
                         color: AppTheme.primary,
                         shape: const CircleBorder(),
-                        elevation: 4,
                         child: InkWell(
                           customBorder: const CircleBorder(),
                           onTap: busy ? null : _pickAndUploadPhoto,
@@ -117,7 +97,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                             padding: EdgeInsets.all(9),
                             child: Icon(
                               Icons.photo_camera_rounded,
-                              size: 18,
+                              size: 17,
                               color: Colors.white,
                             ),
                           ),
@@ -126,16 +106,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 Text(
                   displayName,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -.4,
+                        letterSpacing: -.25,
                       ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 8,
@@ -152,23 +132,23 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Text(
                   'Ta photo apparaît sur les compositions.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textFaint,
+                      ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Informations personnelles',
-            style: Theme.of(context).textTheme.titleLarge,
+          const _SectionHeading(
+            icon: Icons.person_outline_rounded,
+            title: 'Informations personnelles',
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -231,28 +211,44 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.error.withValues(alpha: .1),
+                color: Theme.of(context).colorScheme.error.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error.withValues(alpha: .3),
+                  color: Theme.of(context).colorScheme.error.withValues(alpha: .3),
                 ),
               ),
-              child: Text(
-                _localError ?? authState.error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _localError ?? authState.error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
           if (ref.watch(isAdminViewProvider)) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            const _SectionHeading(
+              icon: Icons.admin_panel_settings_outlined,
+              title: 'Administration',
+            ),
+            const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => context.push('/admin'),
               icon: const Icon(Icons.admin_panel_settings_outlined),
-              label: const Text('Administration'),
+              label: const Text('Ouvrir l’administration'),
             ),
           ],
         ],
@@ -280,9 +276,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         .uploadPhoto(bytes: bytes, fileExt: ext);
     if (!mounted) return;
     final error = ref.read(authControllerProvider).error;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(error ?? 'Photo mise à jour.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'Photo mise à jour.')),
+    );
   }
 
   Future<void> _saveProfile() async {
@@ -297,7 +293,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       setState(
         () => _localError =
             'Le prénom et le nom ne doivent contenir que des lettres '
-                '(ni emoji, ni chiffre, ni symbole).',
+            '(ni emoji, ni chiffre, ni symbole).',
       );
       return;
     }
@@ -305,7 +301,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       setState(
         () => _localError =
             'Le surnom ne doit contenir que des lettres (ni emoji, ni chiffre, '
-                'ni symbole).',
+            'ni symbole).',
       );
       return;
     }
@@ -317,9 +313,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         );
     if (!mounted) return;
     if (ref.read(authControllerProvider).error == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profil enregistré.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil enregistré.')),
+      );
     }
   }
 
@@ -397,6 +393,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 }
 
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppTheme.primaryBright),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ProfileMetaChip extends StatelessWidget {
   const _ProfileMetaChip({required this.icon, required this.label});
 
@@ -408,9 +427,9 @@ class _ProfileMetaChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.background.withValues(alpha: .36),
+        color: AppTheme.surfaceHigh.withValues(alpha: .72),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: .5)),
+        border: Border.all(color: AppTheme.outline.withValues(alpha: .44)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
