@@ -54,8 +54,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
   void _move(int index, int delta) {
     if (_entries.length < 2) return;
-    final next =
-        index == 0 && delta < 0 ? _entries.length - 1 : index + delta;
+    final next = index == 0 && delta < 0 ? _entries.length - 1 : index + delta;
     if (next < 0 || next >= _entries.length) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries);
