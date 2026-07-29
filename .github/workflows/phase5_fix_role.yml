@@ -1,0 +1,45 @@
+name: Phase 5 role fix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.head_ref == 'visual/ui-overhaul-phase-5'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: visual/ui-overhaul-phase-5
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Restore role label import
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/profile/presentation/profile_page.dart')
+          text = path.read_text()
+          marker = "import 'package:as_grinta/features/auth/presentation/auth_state.dart';"
+          addition = "import 'package:as_grinta/features/auth/domain/auth_profile.dart';\n"
+          if addition not in text:
+              text = text.replace(marker, addition + marker)
+              path.write_text(text)
+          PY
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Format profile
+        run: dart format lib/features/profile/presentation/profile_page.dart
+      - name: Commit fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add lib/features/profile/presentation/profile_page.dart
+          git diff --cached --quiet || git commit -m "fix(ui): restaurer le libellé du rôle"
+          git push origin HEAD:visual/ui-overhaul-phase-5
