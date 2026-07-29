@@ -139,28 +139,72 @@ class _EffectifColumn extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               )
             else
-              Wrap(
-                spacing: 7,
-                runSpacing: 7,
-                children: [
-                  for (final player in players)
-                    _EffectifPlayerChip(
-                      player: player,
-                      color: color,
-                      draggable: !locked && onToggle != null && !player.isGuest,
-                      onTap: player.isGuest
-                          ? (onRemoveGuest == null
-                              ? null
-                              : () => onRemoveGuest!(player))
-                          : (onShowInfo == null
-                              ? null
-                              : () => onShowInfo!(player)),
-                    ),
-                ],
+              _EffectifPlayerGrid(
+                players: players,
+                color: color,
+                locked: locked,
+                draggable: !locked && onToggle != null,
+                onRemoveGuest: onRemoveGuest,
+                onShowInfo: onShowInfo,
               ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Grille à deux colonnes de largeur égale, pour que les joueurs restent
+/// toujours alignés côte à côte quelle que soit la longueur de leur nom ou
+/// de leurs infos (un `Wrap` classique les alignerait de façon inégale selon
+/// la largeur intrinsèque de chaque puce).
+class _EffectifPlayerGrid extends StatelessWidget {
+  const _EffectifPlayerGrid({
+    required this.players,
+    required this.color,
+    required this.locked,
+    required this.draggable,
+    this.onRemoveGuest,
+    this.onShowInfo,
+  });
+
+  final List<ConvocationPlayer> players;
+  final Color color;
+  final bool locked;
+  final bool draggable;
+  final ValueChanged<ConvocationPlayer>? onRemoveGuest;
+  final ValueChanged<ConvocationPlayer>? onShowInfo;
+
+  Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
+        player: player,
+        color: color,
+        draggable: draggable && !player.isGuest,
+        onTap: player.isGuest
+            ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
+            : (onShowInfo == null ? null : () => onShowInfo!(player)),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < players.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 7),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _chip(players[i])),
+              const SizedBox(width: 7),
+              Expanded(
+                child: i + 1 < players.length
+                    ? _chip(players[i + 1])
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }
