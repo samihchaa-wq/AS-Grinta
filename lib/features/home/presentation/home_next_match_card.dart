@@ -35,7 +35,7 @@ class HomeNextMatchCard extends StatelessWidget {
             awayName: awayName,
             grintaIsHome: match.isHome,
             nameStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 19,
+                  fontSize: 20,
                   height: 1.08,
                   fontWeight: FontWeight.w900,
                 ),
@@ -51,23 +51,23 @@ class HomeNextMatchCard extends StatelessWidget {
           ),
         ],
         const SizedBox(width: 2),
-        const Icon(
+        Icon(
           Icons.arrow_forward_ios_rounded,
-          size: 16,
-          color: AppTheme.primaryBright,
+          size: 14,
+          color: AppTheme.textFaint.withValues(alpha: .72),
         ),
       ],
     );
 
     return Card(
       color: Colors.transparent,
-      elevation: 0,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: .18),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         side: BorderSide(
-          color: AppTheme.primaryBright.withValues(alpha: .55),
-          width: 1.2,
+          color: AppTheme.primaryBright.withValues(alpha: .3),
         ),
       ),
       child: DecoratedBox(
@@ -76,113 +76,155 @@ class HomeNextMatchCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppTheme.surfaceHigh.withValues(alpha: .96),
-              AppTheme.surface.withValues(alpha: .9),
+              AppTheme.surfaceHero.withValues(alpha: .94),
+              AppTheme.surface.withValues(alpha: .96),
             ],
           ),
         ),
-        child: InkWell(
-          onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: .18),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: AppTheme.primaryBright.withValues(alpha: .35),
-                        ),
-                      ),
-                      child: const Text(
-                        'PROCHAIN MATCH',
-                        style: TextStyle(
-                          color: AppTheme.primaryBright,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: .8,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      match.isHome
-                          ? Icons.home_rounded
-                          : Icons.directions_bus_filled_rounded,
-                      size: 18,
-                      color: AppTheme.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      match.isHome ? 'Domicile' : 'Extérieur',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                MatchDateHeader(
-                  kickoffAt: match.kickoffAt,
-                  foreground: AppTheme.textPrimary,
-                  secondary: AppTheme.textSecondary,
-                  dividerColor: AppTheme.outline.withValues(alpha: .7),
-                  child: fixtureRow,
-                ),
-                if (match.address case final address?) ...[
-                  const SizedBox(height: 14),
-                  InkWell(
-                    onTap: () => showMatchAddressSheet(context, address),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.place_outlined,
-                            size: 18,
-                            color: AppTheme.primaryBright,
-                          ),
-                          const SizedBox(width: 7),
-                          Expanded(
-                            child: Text(
-                              address,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w700,
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Align(
+                  alignment: const Alignment(0, -.08),
+                  child: Container(
+                    width: 190,
+                    height: 190,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          AppTheme.primary.withValues(alpha: .16),
+                          Colors.transparent,
                         ],
                       ),
                     ),
                   ),
-                ],
-                const SizedBox(height: 4),
-                MatchAvailabilitySelector(
-                  matchId: match.id,
-                  embeddedOnDark: true,
-                  topSpacing: 14,
                 ),
-              ],
+              ),
             ),
-          ),
+            InkWell(
+              onTap: () => context.push('/matches/${match.id}/lineup?section=info'),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: .14),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: AppTheme.primaryBright.withValues(alpha: .24),
+                            ),
+                          ),
+                          child: const Text(
+                            'PROCHAIN MATCH',
+                            style: TextStyle(
+                              color: AppTheme.primaryBright,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: .8,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: match.isHome
+                                ? AppTheme.primary.withValues(alpha: .12)
+                                : AppTheme.admin.withValues(alpha: .12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                match.isHome
+                                    ? Icons.home_rounded
+                                    : Icons.directions_bus_filled_rounded,
+                                size: 16,
+                                color: AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                match.isHome ? 'Domicile' : 'Extérieur',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    MatchDateHeader(
+                      kickoffAt: match.kickoffAt,
+                      foreground: AppTheme.textPrimary,
+                      secondary: AppTheme.textSecondary,
+                      dividerColor: AppTheme.outline.withValues(alpha: .5),
+                      child: fixtureRow,
+                    ),
+                    if (match.address case final address?) ...[
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: () => showMatchAddressSheet(context, address),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.place_outlined,
+                                size: 17,
+                                color: AppTheme.textFaint,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  address,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppTheme.textFaint,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    MatchAvailabilitySelector(
+                      matchId: match.id,
+                      embeddedOnDark: true,
+                      topSpacing: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
