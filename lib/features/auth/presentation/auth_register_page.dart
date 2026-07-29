@@ -1,5 +1,7 @@
 import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
+import 'package:as_grinta/core/widgets/grinta_adaptive_form.dart';
+import 'package:as_grinta/core/widgets/grinta_auth_surface.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
@@ -34,9 +36,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _submit() async {
@@ -109,126 +109,103 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                elevation: 0,
-                color: Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Image.asset(
-                        'assets/images/mpg_logo.png',
-                        width: double.infinity,
-                        fit: BoxFit.fitWidth,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Créer mon compte',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Le compte sera accessible après confirmation de l’e-mail '
-                        'et validation par un admin.',
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _firstNameController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Prénom',
-                          prefixIcon: Icon(Icons.person_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _lastNameController,
-                        textCapitalization: TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Nom',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        autocorrect: false,
-                        autofillHints: const [AutofillHints.email],
-                        decoration: const InputDecoration(
-                          labelText: 'Adresse e-mail',
-                          prefixIcon: Icon(Icons.email_outlined),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration: InputDecoration(
-                          labelText: 'Mot de passe',
-                          helperText: PasswordPolicy.helperText,
-                          helperMaxLines: 2,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _confirmController,
-                        obscureText: _obscurePassword,
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration: const InputDecoration(
-                          labelText: 'Confirme ton mot de passe',
-                          prefixIcon: Icon(Icons.lock_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      FilledButton.icon(
-                        onPressed: _submitting ? null : _submit,
-                        icon: _submitting
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: GrintaProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.sports_soccer),
-                        label: const Text('Créer mon compte'),
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: _submitting
-                            ? null
-                            : () => context.go('/auth/sign-in'),
-                        child: const Text('J’ai déjà un compte — se connecter'),
-                      ),
-                    ],
-                  ),
+    return GrintaAuthSurface(
+      maxWidth: 760,
+      title: 'Créer mon compte',
+      subtitle: 'Le compte sera accessible après confirmation de l’e-mail et validation par un admin.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GrintaAdaptiveForm(
+            children: [
+              TextField(
+                controller: _firstNameController,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                autofillHints: const [AutofillHints.givenName],
+                decoration: const InputDecoration(
+                  labelText: 'Prénom',
+                  prefixIcon: Icon(Icons.person_outline),
+                ),
+              ),
+              TextField(
+                controller: _lastNameController,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.words,
+                autofillHints: const [AutofillHints.familyName],
+                decoration: const InputDecoration(
+                  labelText: 'Nom',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autocorrect: false,
+            autofillHints: const [AutofillHints.email],
+            decoration: const InputDecoration(
+              labelText: 'Adresse e-mail',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _passwordController,
+            obscureText: _obscurePassword,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.newPassword],
+            decoration: InputDecoration(
+              labelText: 'Mot de passe',
+              helperText: PasswordPolicy.helperText,
+              helperMaxLines: 2,
+              prefixIcon: const Icon(Icons.lock_outline),
+              suffixIcon: IconButton(
+                tooltip: _obscurePassword ? 'Afficher le mot de passe' : 'Masquer le mot de passe',
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                onPressed: () => setState(
+                  () => _obscurePassword = !_obscurePassword,
                 ),
               ),
             ),
           ),
-        ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _confirmController,
+            obscureText: _obscurePassword,
+            textInputAction: TextInputAction.done,
+            autofillHints: const [AutofillHints.newPassword],
+            onSubmitted: (_) => _submitting ? null : _submit(),
+            decoration: const InputDecoration(
+              labelText: 'Confirme ton mot de passe',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _submitting ? null : _submit,
+            icon: _submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: GrintaProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.sports_soccer),
+            label: Text(_submitting ? 'Création en cours…' : 'Créer mon compte'),
+          ),
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: _submitting ? null : () => context.go('/auth/sign-in'),
+            child: const Text('J’ai déjà un compte — se connecter'),
+          ),
+        ],
       ),
     );
   }
