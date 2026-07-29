@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('an administrator can reorder and save the complete waitlist', (
+  testWidgets('the first player can move up to the bottom and save the order', (
     tester,
   ) async {
     final repository = _FakeSportWaitlistRepository();
@@ -23,8 +23,10 @@ void main() {
 
     expect(find.text('Alice'), findsOneWidget);
     expect(find.text('Bruno'), findsOneWidget);
+    expect(find.text('Présence saison précédente : 2 sur 10'), findsOneWidget);
+    expect(find.text('Liste d’attente cette saison : 3 fois'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
+    await tester.tap(find.byIcon(Icons.keyboard_arrow_up).first);
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
     await tester.pumpAndSettle();
@@ -48,6 +50,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
             position: 1,
             previousSeasonAttendanceCount: 2,
             previousSeasonMatchCount: 10,
+            currentSeasonWaitlistCount: 3,
             source: 'previous_season_attendance',
           ),
           SportWaitlistEntry(
@@ -57,6 +60,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
             position: 2,
             previousSeasonAttendanceCount: 4,
             previousSeasonMatchCount: 10,
+            currentSeasonWaitlistCount: 1,
             source: 'previous_season_attendance',
           ),
         ],
@@ -89,6 +93,8 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
                 byId[orderedPlayerIds[index]]!.previousSeasonAttendanceCount,
             previousSeasonMatchCount:
                 byId[orderedPlayerIds[index]]!.previousSeasonMatchCount,
+            currentSeasonWaitlistCount:
+                byId[orderedPlayerIds[index]]!.currentSeasonWaitlistCount,
             source: 'manual',
           ),
       ],
