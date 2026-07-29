@@ -1,0 +1,67 @@
+name: Temporary cleanup formatting
+
+on:
+  push:
+    branches:
+      - design/visual-system-polish
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/visual-system-polish
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Revert unrelated formatting and format changed UI files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          python3 - <<'PY'
+          import subprocess
+          allowed = {
+            'lib/app/shell/app_shell.dart',
+            'lib/core/theme/app_theme.dart',
+            'lib/core/widgets/grinta_app_bar.dart',
+            'lib/core/widgets/grinta_secondary_tabs.dart',
+            'lib/core/widgets/sticky_header_table.dart',
+            'lib/features/auth/domain/auth_profile.dart',
+            'lib/features/badges/presentation/armoire_page.dart',
+            'lib/features/badges/presentation/badge_detail_sheet.dart',
+            'lib/features/badges/presentation/badge_trophy_button.dart',
+            'lib/features/home/presentation/home_next_match_card.dart',
+            'lib/features/matches/presentation/matches_page.dart',
+            'lib/features/profile/presentation/profile_page.dart',
+          }
+          changed = subprocess.check_output(
+              ['git', 'diff', '--name-only', 'origin/main...HEAD'], text=True
+          ).splitlines()
+          for path in changed:
+              if path not in allowed and path != '.github/workflows/temp-cleanup-format.yml':
+                  subprocess.run(['git', 'checkout', 'origin/main', '--', path], check=True)
+          PY
+          dart format \
+            lib/app/shell/app_shell.dart \
+            lib/core/theme/app_theme.dart \
+            lib/core/widgets/grinta_app_bar.dart \
+            lib/core/widgets/grinta_secondary_tabs.dart \
+            lib/core/widgets/sticky_header_table.dart \
+            lib/features/auth/domain/auth_profile.dart \
+            lib/features/badges/presentation/armoire_page.dart \
+            lib/features/badges/presentation/badge_detail_sheet.dart \
+            lib/features/badges/presentation/badge_trophy_button.dart \
+            lib/features/home/presentation/home_next_match_card.dart \
+            lib/features/matches/presentation/matches_page.dart \
+            lib/features/profile/presentation/profile_page.dart
+          git rm .github/workflows/temp-cleanup-format.yml
+          git add -A
+          git commit -m "Limit formatting to visual redesign files"
+          git push origin HEAD:design/visual-system-polish
