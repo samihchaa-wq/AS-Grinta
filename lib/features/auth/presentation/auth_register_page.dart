@@ -155,41 +155,52 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
             ),
           ),
           const SizedBox(height: 16),
-          TextField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.newPassword],
-            decoration: InputDecoration(
-              labelText: 'Mot de passe',
-              helperText: PasswordPolicy.helperText,
-              helperMaxLines: 2,
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                tooltip: _obscurePassword
-                    ? 'Afficher le mot de passe'
-                    : 'Masquer le mot de passe',
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
+          // Un AutofillGroup dédié + un seul champ marqué "newPassword" :
+          // avec deux champs identiquement tagués, certains navigateurs
+          // (Safari en particulier) confondent les deux champs après la
+          // confirmation et le premier redevient impossible à retoucher
+          // (le clavier ne se réaffiche plus).
+          AutofillGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.newPassword],
+                  decoration: InputDecoration(
+                    labelText: 'Mot de passe',
+                    helperText: PasswordPolicy.helperText,
+                    helperMaxLines: 2,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      tooltip: _obscurePassword
+                          ? 'Afficher le mot de passe'
+                          : 'Masquer le mot de passe',
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () => setState(
+                        () => _obscurePassword = !_obscurePassword,
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: () => setState(
-                  () => _obscurePassword = !_obscurePassword,
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _confirmController,
+                  obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submitting ? null : _submit(),
+                  decoration: const InputDecoration(
+                    labelText: 'Confirme ton mot de passe',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _confirmController,
-            obscureText: _obscurePassword,
-            textInputAction: TextInputAction.done,
-            autofillHints: const [AutofillHints.newPassword],
-            onSubmitted: (_) => _submitting ? null : _submit(),
-            decoration: const InputDecoration(
-              labelText: 'Confirme ton mot de passe',
-              prefixIcon: Icon(Icons.lock_outline),
+              ],
             ),
           ),
           const SizedBox(height: 24),

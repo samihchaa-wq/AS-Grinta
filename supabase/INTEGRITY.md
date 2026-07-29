@@ -28,3 +28,5 @@ Appeler `staff_app_integrity_report()` avec une session authentifiée de staff. 
 ```
 
 Le rapport est un outil de diagnostic. Les corrections de données restent réalisées par des migrations Git versionnées et revues.
+
+<!-- checksum-nudge: force les vérifications base de données sur cette PR -->

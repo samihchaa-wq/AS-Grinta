@@ -84,40 +84,52 @@ class _ForcedPasswordChangePageState
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscure,
-                        autofocus: true,
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration: InputDecoration(
-                          labelText: 'Nouveau mot de passe',
-                          helperText: PasswordPolicy.helperText,
-                          helperMaxLines: 2,
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            tooltip: _obscure
-                                ? 'Afficher le mot de passe'
-                                : 'Masquer le mot de passe',
-                            onPressed: () =>
-                                setState(() => _obscure = !_obscure),
-                            icon: Icon(
-                              _obscure
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                      // Un AutofillGroup dédié + un seul champ marqué
+                      // "newPassword" : avec deux champs identiquement
+                      // tagués, certains navigateurs (Safari en particulier)
+                      // confondent les deux champs après la confirmation et
+                      // le premier redevient impossible à retoucher (le
+                      // clavier ne se réaffiche plus).
+                      AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextField(
+                              controller: _passwordController,
+                              obscureText: _obscure,
+                              autofocus: true,
+                              autofillHints: const [AutofillHints.newPassword],
+                              decoration: InputDecoration(
+                                labelText: 'Nouveau mot de passe',
+                                helperText: PasswordPolicy.helperText,
+                                helperMaxLines: 2,
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  tooltip: _obscure
+                                      ? 'Afficher le mot de passe'
+                                      : 'Masquer le mot de passe',
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                  icon: Icon(
+                                    _obscure
+                                        ? Icons.visibility_outlined
+                                        : Icons.visibility_off_outlined,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _confirmController,
+                              obscureText: _obscure,
+                              decoration: const InputDecoration(
+                                labelText: 'Confirmer le mot de passe',
+                                prefixIcon: Icon(Icons.lock_outline),
+                              ),
+                              onSubmitted: (_) => _submit(),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: _confirmController,
-                        obscureText: _obscure,
-                        autofillHints: const [AutofillHints.newPassword],
-                        decoration: const InputDecoration(
-                          labelText: 'Confirmer le mot de passe',
-                          prefixIcon: Icon(Icons.lock_outline),
-                        ),
-                        onSubmitted: (_) => _submit(),
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
