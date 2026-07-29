@@ -12,12 +12,11 @@ final enhancedSeasonLockedProvider = FutureProvider.autoDispose<bool>((ref) {
 
 final enhancedSeasonGaugesProvider =
     FutureProvider.autoDispose<List<PlayerGauge>>((ref) {
-      return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
-    });
+  return ref.watch(seasonPredictionsRepositoryProvider).fetchGauges();
+});
 
-final enhancedSeasonCompletedMatchesProvider = FutureProvider.autoDispose<int>((
-  ref,
-) async {
+final enhancedSeasonCompletedMatchesProvider =
+    FutureProvider.autoDispose<int>((ref) async {
   final client = ref.watch(supabaseClientProvider);
   final season = await client
       .from('seasons')

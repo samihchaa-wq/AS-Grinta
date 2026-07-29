@@ -47,22 +47,21 @@ class _NotificationsInfoCard extends StatelessWidget {
           children: [
             Text(
               'Ce que tu reçois',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
             _line(
-              '📅',
-              'La demande de disponibilité, avec un rappel de '
-                  'pronostiquer.',
-            ),
+                '📅',
+                'La demande de disponibilité, avec un rappel de '
+                    'pronostiquer.'),
             _line('🏁', 'Le score final de chaque match.'),
             _line(
-              '👑',
-              'L’invitation à voter pour l’Homme du match, si tu '
-                  'étais présent.',
-            ),
+                '👑',
+                'L’invitation à voter pour l’Homme du match, si tu '
+                    'étais présent.'),
             _line('🎉', 'Le résultat du vote, si tu as voté.'),
           ],
         ),
@@ -107,9 +106,8 @@ class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
     }
     if (!mounted) return;
     setState(() => _sending = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -188,7 +186,11 @@ class _PushActivationCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggle(BuildContext context, WidgetRef ref, bool enable) async {
+  Future<void> _toggle(
+    BuildContext context,
+    WidgetRef ref,
+    bool enable,
+  ) async {
     final repository = ref.read(pushSubscriptionsRepositoryProvider);
     var message = '';
     try {
@@ -206,9 +208,8 @@ class _PushActivationCard extends ConsumerWidget {
     }
     ref.invalidate(pushStatusProvider);
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 }

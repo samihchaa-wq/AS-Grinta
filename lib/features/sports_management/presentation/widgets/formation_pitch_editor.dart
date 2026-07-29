@@ -16,8 +16,10 @@ class FormationPitchEditor extends StatelessWidget {
 
   final List<FootballFormationSlot> slots;
   final List<MatchCompositionEntry> entries;
-  final void Function(MatchCompositionEntry entry, FootballFormationSlot slot)
-  onDroppedOnSlot;
+  final void Function(
+    MatchCompositionEntry entry,
+    FootballFormationSlot slot,
+  ) onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
   final bool editable;
 
@@ -61,15 +63,10 @@ class FormationPitchEditor extends StatelessWidget {
                 child: Stack(
                   children: [
                     const Positioned.fill(
-                      child: CustomPaint(painter: _PitchPainter()),
-                    ),
+                        child: CustomPaint(painter: _PitchPainter())),
                     for (final slot in slots)
                       _slot(
-                        context,
-                        constraints.biggest,
-                        slot,
-                        _entryFor(slot),
-                      ),
+                          context, constraints.biggest, slot, _entryFor(slot)),
                   ],
                 ),
               ),
@@ -233,11 +230,8 @@ class _PitchPainter extends CustomPainter {
     );
     canvas
       ..drawRect(rect, paint)
-      ..drawLine(
-        Offset(rect.left, rect.center.dy),
-        Offset(rect.right, rect.center.dy),
-        paint,
-      )
+      ..drawLine(Offset(rect.left, rect.center.dy),
+          Offset(rect.right, rect.center.dy), paint)
       ..drawCircle(rect.center, size.width * .13, paint)
       ..drawRect(
         Rect.fromCenter(

@@ -36,27 +36,24 @@ void main() {
     );
   }
 
-  testWidgets(
-    'un nom très long + 2 badges ne débordent pas (colonne étroite)',
-    (tester) async {
-      await tester.pumpWidget(
-        harness(
-          width: 110,
-          name: 'Jean-Christophe de la Villardière-Montmorency',
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('un nom très long + 2 badges ne débordent pas (colonne étroite)',
+      (tester) async {
+    await tester.pumpWidget(
+      harness(
+        width: 110,
+        name: 'Jean-Christophe de la Villardière-Montmorency',
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      // Les 2 badges restent visibles à droite du nom tronqué.
-      expect(find.text('🔥'), findsOneWidget);
-      expect(find.text('⚽'), findsOneWidget);
-    },
-  );
+    expect(tester.takeException(), isNull);
+    // Les 2 badges restent visibles à droite du nom tronqué.
+    expect(find.text('🔥'), findsOneWidget);
+    expect(find.text('⚽'), findsOneWidget);
+  });
 
-  testWidgets('un nom court + 3 badges ne débordent pas (largeur normale)', (
-    tester,
-  ) async {
+  testWidgets('un nom court + 3 badges ne débordent pas (largeur normale)',
+      (tester) async {
     await tester.pumpWidget(harness(width: 240, name: 'Karim'));
     await tester.pumpAndSettle();
 
@@ -65,17 +62,16 @@ void main() {
   });
 
   testWidgets(
-    'un prénom court reste entier avec 2 grands badges (colonne de classement)',
-    (tester) async {
-      // Largeur représentative de la colonne « Joueurs » d'un classement sur
-      // un téléphone : le prénom doit rester lisible en entier.
-      await tester.pumpWidget(harness(width: 150, name: 'Samih'));
-      await tester.pumpAndSettle();
+      'un prénom court reste entier avec 2 grands badges (colonne de classement)',
+      (tester) async {
+    // Largeur représentative de la colonne « Joueurs » d'un classement sur
+    // un téléphone : le prénom doit rester lisible en entier.
+    await tester.pumpWidget(harness(width: 150, name: 'Samih'));
+    await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('Samih'), findsOneWidget);
-      expect(find.text('🔥'), findsOneWidget);
-      expect(find.text('⚽'), findsOneWidget);
-    },
-  );
+    expect(tester.takeException(), isNull);
+    expect(find.text('Samih'), findsOneWidget);
+    expect(find.text('🔥'), findsOneWidget);
+    expect(find.text('⚽'), findsOneWidget);
+  });
 }

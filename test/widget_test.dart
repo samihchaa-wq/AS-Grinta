@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('loading screen displays the authentication loader', (
-    tester,
-  ) async {
+  testWidgets('loading screen displays the authentication loader',
+      (tester) async {
     await tester.pumpWidget(const MaterialApp(home: AuthLoadingPage()));
 
     final loader = find.byType(GrintaLoader);
@@ -18,9 +17,8 @@ void main() {
     expect(find.text('Préparation de ton espace…'), findsNothing);
   });
 
-  testWidgets('determinate statistic rings do not become animated loaders', (
-    tester,
-  ) async {
+  testWidgets('determinate statistic rings do not become animated loaders',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -45,12 +43,13 @@ void main() {
     expect(values, [0, .5, 1]);
   });
 
-  testWidgets('page-sized indeterminate loader keeps a stable 92px size', (
-    tester,
-  ) async {
+  testWidgets('page-sized indeterminate loader keeps a stable 92px size',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(body: Center(child: GrintaProgressIndicator())),
+        home: Scaffold(
+          body: Center(child: GrintaProgressIndicator()),
+        ),
       ),
     );
 

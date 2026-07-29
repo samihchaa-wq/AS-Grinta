@@ -55,9 +55,7 @@ class BadgeAdminRepository {
   Future<String> uploadBadgeImage(Uint8List bytes, String fileExt) async {
     final ext = fileExt.isEmpty ? 'png' : fileExt.toLowerCase();
     final path = 'custom/${DateTime.now().millisecondsSinceEpoch}.$ext';
-    await _client.storage
-        .from('badge-images')
-        .uploadBinary(
+    await _client.storage.from('badge-images').uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(
@@ -81,31 +79,28 @@ class BadgeAdminRepository {
     final code =
         'custom_${slug.isEmpty ? 'badge' : slug}_${DateTime.now().millisecondsSinceEpoch}';
     final trimmedEmoji = emoji.trim();
-    await _client.rpc(
-      'staff_create_badge',
-      params: {
-        'p_code': code,
-        'p_name': name,
-        'p_emoji': trimmedEmoji.isEmpty ? '🏅' : trimmedEmoji,
-        'p_description': description,
-        'p_image_url': null,
-        'p_color': color ?? '#C0455B',
-      },
-    );
+    await _client.rpc('staff_create_badge', params: {
+      'p_code': code,
+      'p_name': name,
+      'p_emoji': trimmedEmoji.isEmpty ? '🏅' : trimmedEmoji,
+      'p_description': description,
+      'p_image_url': null,
+      'p_color': color ?? '#C0455B',
+    });
   }
 
   Future<void> awardBadge(String code, String profileId) async {
-    await _client.rpc(
-      'staff_award_badge',
-      params: {'p_profile_id': profileId, 'p_badge_code': code},
-    );
+    await _client.rpc('staff_award_badge', params: {
+      'p_profile_id': profileId,
+      'p_badge_code': code,
+    });
   }
 
   Future<void> revokeBadge(String code, String profileId) async {
-    await _client.rpc(
-      'staff_revoke_badge',
-      params: {'p_profile_id': profileId, 'p_badge_code': code},
-    );
+    await _client.rpc('staff_revoke_badge', params: {
+      'p_profile_id': profileId,
+      'p_badge_code': code,
+    });
   }
 }
 
@@ -113,8 +108,7 @@ final badgeAdminRepositoryProvider = Provider<BadgeAdminRepository>((ref) {
   return BadgeAdminRepository(ref.watch(supabaseClientProvider));
 });
 
-final adminPeopleProvider = FutureProvider.autoDispose<List<AdminPerson>>((
-  ref,
-) async {
+final adminPeopleProvider =
+    FutureProvider.autoDispose<List<AdminPerson>>((ref) async {
   return ref.watch(badgeAdminRepositoryProvider).fetchActiveProfiles();
 });

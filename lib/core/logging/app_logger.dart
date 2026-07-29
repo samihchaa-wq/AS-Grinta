@@ -43,7 +43,10 @@ abstract final class AppLogger {
     required Object error,
     String? incidentReference,
   }) {
-    final safeOperation = operation.replaceAll(RegExp(r'[^a-zA-Z0-9_.-]'), '_');
+    final safeOperation = operation.replaceAll(
+      RegExp(r'[^a-zA-Z0-9_.-]'),
+      '_',
+    );
     final reference = incidentReference == null
         ? ''
         : ' incident=$incidentReference version=${AppConfig.version}';

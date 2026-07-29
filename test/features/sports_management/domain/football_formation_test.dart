@@ -6,7 +6,10 @@ void main() {
     expect(matchSheetSlots, hasLength(22));
 
     // Exactement un gardien.
-    expect(matchSheetSlots.where((slot) => slot.label == 'GB'), hasLength(1));
+    expect(
+      matchSheetSlots.where((slot) => slot.label == 'GB'),
+      hasLength(1),
+    );
 
     // Toutes les positions sont normalisées dans le terrain.
     for (final slot in matchSheetSlots) {
@@ -25,13 +28,9 @@ void main() {
         final distance =
             (matchSheetSlots[i].position - matchSheetSlots[j].position)
                 .distance;
-        expect(
-          distance,
-          greaterThan(0.0),
-          reason:
-              '${matchSheetSlots[i].label}'
-              ' vs ${matchSheetSlots[j].label}',
-        );
+        expect(distance, greaterThan(0.0),
+            reason: '${matchSheetSlots[i].label}'
+                ' vs ${matchSheetSlots[j].label}');
       }
     }
   });

@@ -308,7 +308,9 @@ class BadgeEmblem extends StatelessWidget {
       width: sq,
       height: sq,
       child: Stack(
-        children: [for (final a in spots) Align(alignment: a, child: diamond)],
+        children: [
+          for (final a in spots) Align(alignment: a, child: diamond),
+        ],
       ),
     );
   }

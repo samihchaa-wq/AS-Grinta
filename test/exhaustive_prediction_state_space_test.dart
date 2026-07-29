@@ -31,8 +31,7 @@ void main() {
                   actualAway: actualAway,
                   baseOdds: odds,
                 );
-                final context =
-                    'prediction=$predictedHome-$predictedAway '
+                final context = 'prediction=$predictedHome-$predictedAway '
                     'result=$actualHome-$actualAway odds=$odds';
                 if (expected == null) {
                   expect(observed, isNull, reason: context);
@@ -95,8 +94,7 @@ void main() {
               status: status,
               predictionsClosedAt: closedEntry.value,
             );
-            final expected =
-                status == 'a_venir' &&
+            final expected = status == 'a_venir' &&
                 !instantEntry.value.isBefore(open) &&
                 instantEntry.value.isBefore(close) &&
                 (closedEntry.value == null ||
@@ -104,8 +102,7 @@ void main() {
             expect(
               item.canEditAt(instantEntry.value),
               expected,
-              reason:
-                  'status=$status instant=${instantEntry.key} '
+              reason: 'status=$status instant=${instantEntry.key} '
                   'server=${closedEntry.key}',
             );
           }

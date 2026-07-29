@@ -30,8 +30,7 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (board) {
         final now = DateTime.now();
-        final visible =
-            board != null &&
+        final visible = board != null &&
             (board.isVisibleAt(now) ||
                 (showAfterComposition && now.isBefore(board.kickoffAt)));
         if (!visible) return const SizedBox.shrink();
@@ -177,9 +176,9 @@ class _BoardGroup extends StatelessWidget {
                 child: Text(
                   '$title (${players.length})',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                  ),
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                      ),
                 ),
               ),
             ],

@@ -68,9 +68,7 @@ final sportMotmVoteRepositoryProvider = Provider<SportMotmVoteRepository>((
 
 // Le scrutin actif est mis en cache pendant la session. Les écrans qui
 // modifient un vote invalident explicitement ce provider après l'action.
-final sportMotmVoteProvider = FutureProvider.family<SportMotmVote?, String>((
-  ref,
-  matchId,
-) {
+final sportMotmVoteProvider =
+    FutureProvider.family<SportMotmVote?, String>((ref, matchId) {
   return ref.watch(sportMotmVoteRepositoryProvider).fetch(matchId);
 });

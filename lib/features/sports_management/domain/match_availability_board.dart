@@ -33,8 +33,8 @@ class MatchAvailabilityBoardPlayer {
       firstName: (json['first_name'] ?? '').toString().trim(),
       lastName: (json['last_name'] ?? '').toString().trim(),
       status: MatchAvailabilityBoardStatus.parse(json['status']),
-      convocationStatus: (json['convocation_status'] ?? 'not_applicable')
-          .toString(),
+      convocationStatus:
+          (json['convocation_status'] ?? 'not_applicable').toString(),
       isGuest: json['is_guest'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
       serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,

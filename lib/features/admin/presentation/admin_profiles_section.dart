@@ -208,9 +208,8 @@ class _ProfileCard extends ConsumerWidget {
                         );
                         if (!confirmed) return;
                         try {
-                          final code = await repository.resetAccountPassword(
-                            profile.id,
-                          );
+                          final code =
+                              await repository.resetAccountPassword(profile.id);
                           ref.invalidate(adminDashboardProvider);
                           if (context.mounted) {
                             await _showResetCodeDialog(
@@ -400,9 +399,8 @@ class _ProfileCard extends ConsumerWidget {
               onPressed: () => Navigator.pop(
                 dialogContext,
                 _ProfileValidationChoice(
-                  seasonPlayerId: selectedPlayerId.isEmpty
-                      ? null
-                      : selectedPlayerId,
+                  seasonPlayerId:
+                      selectedPlayerId.isEmpty ? null : selectedPlayerId,
                   seasonId: seasonId,
                 ),
               ),
@@ -537,10 +535,8 @@ class _ProfileCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Donne ce code à $displayName. À sa prochaine connexion, il '
-              'devra choisir un nouveau mot de passe.',
-            ),
+            Text('Donne ce code à $displayName. À sa prochaine connexion, il '
+                'devra choisir un nouveau mot de passe.'),
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
@@ -581,14 +577,13 @@ class _ProfileCard extends ConsumerWidget {
               try {
                 await Clipboard.setData(ClipboardData(text: code));
               } catch (_) {
-                message =
-                    'Copie automatique impossible : sélectionne le code '
+                message = 'Copie automatique impossible : sélectionne le code '
                     'à la main.';
               }
               if (dialogContext.mounted) {
-                ScaffoldMessenger.of(
-                  dialogContext,
-                ).showSnackBar(SnackBar(content: Text(message)));
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(content: Text(message)),
+                );
               }
             },
             icon: const Icon(Icons.copy, size: 18),

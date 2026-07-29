@@ -38,29 +38,29 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   List<String>? savedOrder;
 
   SportWaitlist get _waitlist => const SportWaitlist(
-    seasonId: 'season',
-    seasonName: '2026-2027',
-    entries: [
-      SportWaitlistEntry(
-        seasonPlayerId: 'alice',
-        firstName: 'Alice',
-        lastName: 'Grinta',
-        position: 1,
-        previousSeasonAttendanceCount: 2,
-        previousSeasonMatchCount: 10,
-        source: 'previous_season_attendance',
-      ),
-      SportWaitlistEntry(
-        seasonPlayerId: 'bruno',
-        firstName: 'Bruno',
-        lastName: 'Grinta',
-        position: 2,
-        previousSeasonAttendanceCount: 4,
-        previousSeasonMatchCount: 10,
-        source: 'previous_season_attendance',
-      ),
-    ],
-  );
+        seasonId: 'season',
+        seasonName: '2026-2027',
+        entries: [
+          SportWaitlistEntry(
+            seasonPlayerId: 'alice',
+            firstName: 'Alice',
+            lastName: 'Grinta',
+            position: 1,
+            previousSeasonAttendanceCount: 2,
+            previousSeasonMatchCount: 10,
+            source: 'previous_season_attendance',
+          ),
+          SportWaitlistEntry(
+            seasonPlayerId: 'bruno',
+            firstName: 'Bruno',
+            lastName: 'Grinta',
+            position: 2,
+            previousSeasonAttendanceCount: 4,
+            previousSeasonMatchCount: 10,
+            source: 'previous_season_attendance',
+          ),
+        ],
+      );
 
   @override
   Future<SportWaitlist> fetchWaitlist({String? seasonId}) async => _waitlist;

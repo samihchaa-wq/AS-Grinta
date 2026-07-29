@@ -157,8 +157,7 @@ class _SportMatchFinalizationPageState
       return;
     }
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(
@@ -201,14 +200,13 @@ class _SportMatchFinalizationPageState
 
     setState(() => _saving = true);
     try {
-      final saved = await ref
-          .read(sportMatchFinalizationRepositoryProvider)
-          .finalize(
-            finalization: value,
-            reason: value.isValidated
-                ? 'Correction depuis Flutter'
-                : 'Validation sportive depuis Flutter',
-          );
+      final saved =
+          await ref.read(sportMatchFinalizationRepositoryProvider).finalize(
+                finalization: value,
+                reason: value.isValidated
+                    ? 'Correction depuis Flutter'
+                    : 'Validation sportive depuis Flutter',
+              );
       if (!mounted) return;
       setState(() => _finalization = saved);
       ref.invalidate(matchDetailsProvider(widget.matchId));
@@ -383,9 +381,10 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Text(
               'Score final',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             _ScoreLine(
@@ -393,9 +392,8 @@ class _SummaryCard extends StatelessWidget {
               score: value.isHome ? value.scoreAsGrinta : value.scoreAdverse,
               color: _scoreColor,
               enabled: !saving,
-              onChanged: value.isHome
-                  ? onScoreAsGrintaChanged
-                  : onScoreAdverseChanged,
+              onChanged:
+                  value.isHome ? onScoreAsGrintaChanged : onScoreAdverseChanged,
             ),
             const SizedBox(height: 8),
             _ScoreLine(
@@ -403,9 +401,8 @@ class _SummaryCard extends StatelessWidget {
               score: value.isHome ? value.scoreAdverse : value.scoreAsGrinta,
               color: _scoreColor,
               enabled: !saving,
-              onChanged: value.isHome
-                  ? onScoreAdverseChanged
-                  : onScoreAsGrintaChanged,
+              onChanged:
+                  value.isHome ? onScoreAdverseChanged : onScoreAsGrintaChanged,
             ),
             const SizedBox(height: 14),
             Wrap(
@@ -457,9 +454,10 @@ class _ScoreLine extends StatelessWidget {
             name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         IconButton.filledTonal(
@@ -472,9 +470,9 @@ class _ScoreLine extends StatelessWidget {
             '$score',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w900,
-            ),
+                  color: color,
+                  fontWeight: FontWeight.w900,
+                ),
           ),
         ),
         IconButton.filledTonal(

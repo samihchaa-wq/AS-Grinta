@@ -63,7 +63,7 @@ class SupabaseMatchAvailabilityRepository
 
 final matchAvailabilityRepositoryProvider =
     Provider<MatchAvailabilityRepository>((ref) {
-      return SupabaseMatchAvailabilityRepository(
-        ref.watch(supabaseClientProvider),
-      );
-    });
+  return SupabaseMatchAvailabilityRepository(
+    ref.watch(supabaseClientProvider),
+  );
+});

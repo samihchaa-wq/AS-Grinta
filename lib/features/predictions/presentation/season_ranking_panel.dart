@@ -66,8 +66,7 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
           );
         }
 
-        final sorted = [...entries]
-          ..sort((a, b) {
+        final sorted = [...entries]..sort((a, b) {
             int cmp;
             switch (_sort) {
               case _SrCol.name:

@@ -67,14 +67,14 @@ class SupabaseSportMatchFinalizationRepository
 
 final sportMatchFinalizationRepositoryProvider =
     Provider<SportMatchFinalizationRepository>((ref) {
-      return SupabaseSportMatchFinalizationRepository(
-        ref.watch(supabaseClientProvider),
-      );
-    });
+  return SupabaseSportMatchFinalizationRepository(
+    ref.watch(supabaseClientProvider),
+  );
+});
 
 final publishedSportMatchResultProvider = FutureProvider.autoDispose
     .family<SportMatchFinalization?, String>((ref, matchId) {
-      return ref
-          .watch(sportMatchFinalizationRepositoryProvider)
-          .fetchPublishedResult(matchId);
-    });
+  return ref
+      .watch(sportMatchFinalizationRepositoryProvider)
+      .fetchPublishedResult(matchId);
+});

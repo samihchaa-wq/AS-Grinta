@@ -156,7 +156,10 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
     await bucket.uploadBinary(
       path,
       bytes,
-      fileOptions: FileOptions(contentType: image.mimeType, upsert: false),
+      fileOptions: FileOptions(
+        contentType: image.mimeType,
+        upsert: false,
+      ),
     );
     final url = bucket.getPublicUrl(path);
     try {

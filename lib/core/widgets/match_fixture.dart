@@ -55,11 +55,10 @@ class MatchFixture extends StatelessWidget {
   Widget build(BuildContext context) {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    final baseName =
-        (nameStyle ??
-                Theme.of(context).textTheme.titleMedium ??
-                const TextStyle())
-            .copyWith(fontWeight: FontWeight.w800, color: foreground);
+    final baseName = (nameStyle ??
+            Theme.of(context).textTheme.titleMedium ??
+            const TextStyle())
+        .copyWith(fontWeight: FontWeight.w800, color: foreground);
     final scoreColor = _scoreColor;
 
     Widget line(String name, int? score) {

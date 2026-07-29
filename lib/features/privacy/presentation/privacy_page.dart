@@ -26,8 +26,7 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
           const _PrivacySection(
             icon: Icons.inventory_2_outlined,
             title: 'Données enregistrées',
-            body:
-                'L’application conserve ton profil, ta photo éventuelle, tes '
+            body: 'L’application conserve ton profil, ta photo éventuelle, tes '
                 'pronostics, tes préférences de notification, tes badges et les '
                 'liens avec les matchs auxquels tu participes.',
           ),
@@ -52,8 +51,7 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
           const _PrivacySection(
             icon: Icons.photo_outlined,
             title: 'Photos',
-            body:
-                'Les photos sont facultatives. Une nouvelle photo remplace '
+            body: 'Les photos sont facultatives. Une nouvelle photo remplace '
                 'l’ancienne, qui est supprimée du stockage. Une suppression de '
                 'compte ou de joueur doit également nettoyer les fichiers associés.',
           ),
@@ -67,8 +65,8 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
                   Text(
                     'Exporter mes données',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -108,9 +106,8 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
   Future<void> _export() async {
     setState(() => _exporting = true);
     try {
-      final data = await ref
-          .read(personalDataRepositoryProvider)
-          .exportMyData();
+      final data =
+          await ref.read(personalDataRepositoryProvider).exportMyData();
       final json = PersonalDataRepository.prettyJson(data);
       if (!mounted) return;
       await showDialog<void>(
@@ -122,9 +119,9 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
             child: SingleChildScrollView(
               child: SelectableText(
                 json,
-                style: Theme.of(
-                  dialogContext,
-                ).textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
+                style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                    ),
               ),
             ),
           ),
@@ -133,9 +130,9 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: json));
                 if (!dialogContext.mounted) return;
-                ScaffoldMessenger.of(
-                  dialogContext,
-                ).showSnackBar(const SnackBar(content: Text('Export copié.')));
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Export copié.')),
+                );
               },
               icon: const Icon(Icons.copy_outlined),
               label: const Text('Copier'),
@@ -149,9 +146,9 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
     } finally {
       if (mounted) setState(() => _exporting = false);
     }
@@ -186,8 +183,8 @@ class _PrivacySection extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                   const SizedBox(height: 6),
                   Text(body),

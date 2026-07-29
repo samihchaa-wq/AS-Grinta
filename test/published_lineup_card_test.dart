@@ -47,39 +47,39 @@ class _FakeCompositionRepository implements MatchCompositionRepository {
   int publishedFetchCount = 0;
 
   MatchComposition get _published => const MatchComposition(
-    matchId: 'match-1',
-    formationCode: '4-3-3',
-    status: 'published',
-    version: 1,
-    hasUnpublishedChanges: false,
-    squadSizeExceptionApproved: false,
-    entries: [
-      MatchCompositionEntry(
-        participantId: 'participant-1',
-        seasonPlayerId: 'player-1',
-        displayName: 'Alex',
-        isGoalkeeper: true,
-        zone: MatchCompositionZone.field,
-        x: 0.5,
-        y: 0.9,
-        sortOrder: 0,
-        availabilityStatus: 'available',
-        convocationStatus: 'convoked',
-        selectionStatus: 'starter',
-      ),
-      MatchCompositionEntry(
-        participantId: 'participant-2',
-        seasonPlayerId: 'player-2',
-        displayName: 'Sam Banc',
-        isGoalkeeper: false,
-        zone: MatchCompositionZone.bench,
-        sortOrder: 0,
-        availabilityStatus: 'available',
-        convocationStatus: 'convoked',
-        selectionStatus: 'substitute',
-      ),
-    ],
-  );
+        matchId: 'match-1',
+        formationCode: '4-3-3',
+        status: 'published',
+        version: 1,
+        hasUnpublishedChanges: false,
+        squadSizeExceptionApproved: false,
+        entries: [
+          MatchCompositionEntry(
+            participantId: 'participant-1',
+            seasonPlayerId: 'player-1',
+            displayName: 'Alex',
+            isGoalkeeper: true,
+            zone: MatchCompositionZone.field,
+            x: 0.5,
+            y: 0.9,
+            sortOrder: 0,
+            availabilityStatus: 'available',
+            convocationStatus: 'convoked',
+            selectionStatus: 'starter',
+          ),
+          MatchCompositionEntry(
+            participantId: 'participant-2',
+            seasonPlayerId: 'player-2',
+            displayName: 'Sam Banc',
+            isGoalkeeper: false,
+            zone: MatchCompositionZone.bench,
+            sortOrder: 0,
+            availabilityStatus: 'available',
+            convocationStatus: 'convoked',
+            selectionStatus: 'substitute',
+          ),
+        ],
+      );
 
   @override
   Future<MatchComposition?> fetchPublishedComposition(String matchId) async {

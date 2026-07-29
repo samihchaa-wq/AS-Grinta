@@ -12,8 +12,7 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
 
   Future<void> openMaps(BuildContext sheetContext) async {
     final query = Uri.encodeComponent(trimmed);
-    final isApple =
-        defaultTargetPlatform == TargetPlatform.iOS ||
+    final isApple = defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS;
     if (sheetContext.mounted) Navigator.pop(sheetContext);
 
@@ -68,14 +67,19 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
                 Expanded(
                   child: Text(
                     'Adresse du match',
-                    style: Theme.of(sheetContext).textTheme.titleLarge
+                    style: Theme.of(sheetContext)
+                        .textTheme
+                        .titleLarge
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(trimmed, style: Theme.of(sheetContext).textTheme.bodyLarge),
+            Text(
+              trimmed,
+              style: Theme.of(sheetContext).textTheme.bodyLarge,
+            ),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: () => openMaps(sheetContext),

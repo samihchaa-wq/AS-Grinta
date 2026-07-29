@@ -39,9 +39,9 @@ class _PublicationStatusCard extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                    ),
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   const SizedBox(height: 3),
                   Text(detail),
@@ -112,9 +112,9 @@ class _EffectifColumn extends StatelessWidget {
                   child: Text(
                     '$title (${players.length})',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                    ),
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
                 if (onRelanceAll != null && players.isNotEmpty)
@@ -150,11 +150,11 @@ class _EffectifColumn extends StatelessWidget {
                       draggable: !locked && onToggle != null && !player.isGuest,
                       onTap: player.isGuest
                           ? (onRemoveGuest == null
-                                ? null
-                                : () => onRemoveGuest!(player))
+                              ? null
+                              : () => onRemoveGuest!(player))
                           : (onShowInfo == null
-                                ? null
-                                : () => onShowInfo!(player)),
+                              ? null
+                              : () => onShowInfo!(player)),
                     ),
                 ],
               ),
@@ -184,8 +184,8 @@ class _EffectifPlayerChip extends StatelessWidget {
       avatar: player.isGuest
           ? const Icon(Icons.person_add_alt_1_outlined, size: 16)
           : player.hasUnpublishedConvocationChange
-          ? const Icon(Icons.edit_outlined, size: 16)
-          : null,
+              ? const Icon(Icons.edit_outlined, size: 16)
+              : null,
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -271,10 +271,10 @@ class _FormationDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: Colors.white54,
-      fontWeight: FontWeight.w900,
-      letterSpacing: .4,
-    );
+          color: Colors.white54,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .4,
+        );
     final items = <DropdownMenuItem<String>>[];
     int? lastLine;
     for (final formation in footballFormations) {
@@ -343,9 +343,10 @@ class _PlayerInfoRow extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 2),
               Text(detail, style: Theme.of(context).textTheme.bodyMedium),

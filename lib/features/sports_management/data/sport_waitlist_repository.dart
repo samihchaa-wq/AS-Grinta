@@ -101,8 +101,8 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
     final rows = await _client
         .from('matches')
         .select('id, kickoff_at, opponents(name)')
-        .inFilter('status', const ['a_venir', 'termine'])
-        .order('kickoff_at', ascending: false);
+        .inFilter('status', const ['a_venir', 'termine']).order('kickoff_at',
+            ascending: false);
     return (rows as List)
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map(
@@ -290,26 +290,26 @@ final sportWaitlistRepositoryProvider = Provider<SportWaitlistRepository>((
 
 final adminSportMatchesProvider =
     FutureProvider.autoDispose<List<AdminSportMatch>>((ref) {
-      return ref.watch(sportWaitlistRepositoryProvider).fetchUpcomingMatches();
-    });
+  return ref.watch(sportWaitlistRepositoryProvider).fetchUpcomingMatches();
+});
 
-final sportWaitlistProvider = FutureProvider.autoDispose
-    .family<SportWaitlist, String?>((ref, seasonId) {
-      return ref
-          .watch(sportWaitlistRepositoryProvider)
-          .fetchWaitlist(seasonId: seasonId);
-    });
+final sportWaitlistProvider =
+    FutureProvider.autoDispose.family<SportWaitlist, String?>((ref, seasonId) {
+  return ref
+      .watch(sportWaitlistRepositoryProvider)
+      .fetchWaitlist(seasonId: seasonId);
+});
 
 final matchConvocationsProvider = FutureProvider.autoDispose
     .family<MatchConvocations, String>((ref, matchId) {
-      return ref
-          .watch(sportWaitlistRepositoryProvider)
-          .fetchMatchConvocations(matchId);
-    });
+  return ref
+      .watch(sportWaitlistRepositoryProvider)
+      .fetchMatchConvocations(matchId);
+});
 
 final availabilityReminderSummaryProvider = FutureProvider.autoDispose
     .family<AvailabilityReminderSummary, String>((ref, matchId) {
-      return ref
-          .watch(sportWaitlistRepositoryProvider)
-          .fetchReminderSummary(matchId);
-    });
+  return ref
+      .watch(sportWaitlistRepositoryProvider)
+      .fetchReminderSummary(matchId);
+});

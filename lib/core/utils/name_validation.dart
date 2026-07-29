@@ -14,6 +14,5 @@ bool isValidPersonName(String value) {
 }
 
 /// Message d'erreur unique, réutilisé partout.
-const String personNameError =
-    'Ce champ ne doit contenir que des lettres '
+const String personNameError = 'Ce champ ne doit contenir que des lettres '
     '(ni emoji, ni chiffre, ni symbole).';

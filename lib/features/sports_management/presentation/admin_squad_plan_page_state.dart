@@ -87,8 +87,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           .read(sportWaitlistRepositoryProvider)
           .fetchUpcomingMatches();
       if (!mounted) return;
-      final selected =
-          _selectedMatchId != null &&
+      final selected = _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
           : (matches.isEmpty ? null : matches.first.id);
@@ -131,11 +130,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final kickoffPassed = !DateTime.now().isBefore(convocations.kickoffAt);
       final finalization = kickoffPassed
           ? await ref
-                .read(sportMatchFinalizationRepositoryProvider)
-                .fetchAdminContext(matchId)
+              .read(sportMatchFinalizationRepositoryProvider)
+              .fetchAdminContext(matchId)
           : null;
-      final postMatch =
-          finalization != null &&
+      final postMatch = finalization != null &&
           finalization.isValidated &&
           (finalization.matchStatus == 'termine' ||
               finalization.matchStatus == 'archive');
@@ -236,8 +234,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         child: GrintaEmptyState(
           icon: Icons.event_busy_rounded,
           title: 'Aucun match disponible',
-          message:
-              'Crée un match depuis l’onglet Matchs pour préparer '
+          message: 'Crée un match depuis l’onglet Matchs pour préparer '
               'l’effectif et la composition.',
         ),
       );
@@ -269,15 +266,17 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
             ],
             selected: {_step},
-            onSelectionChanged: _busy
-                ? null
-                : (value) => setState(() => _step = value.first),
+            onSelectionChanged:
+                _busy ? null : (value) => setState(() => _step = value.first),
           ),
           if (_busy) ...[
             const SizedBox(height: 10),
             const GrintaLinearProgressIndicator(),
           ],
-          if (_error != null) ...[const SizedBox(height: 12), Text(_error!)],
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!),
+          ],
           const SizedBox(height: 16),
           if (_step == _AdminStep.info && _selectedMatchId != null)
             MatchInfoTab(matchId: _selectedMatchId!)

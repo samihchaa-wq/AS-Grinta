@@ -39,7 +39,11 @@ class PushSubscriptionsRepository {
 
     await _client.rpc(
       'register_push_subscription',
-      params: {'p_endpoint': endpoint, 'p_p256dh': p256dh, 'p_auth': auth},
+      params: {
+        'p_endpoint': endpoint,
+        'p_p256dh': p256dh,
+        'p_auth': auth,
+      },
     );
     return true;
   }
@@ -59,15 +63,15 @@ class PushSubscriptionsRepository {
 
 final pushSubscriptionsRepositoryProvider =
     Provider<PushSubscriptionsRepository>((ref) {
-      return PushSubscriptionsRepository(ref.watch(supabaseClientProvider));
-    });
+  return PushSubscriptionsRepository(ref.watch(supabaseClientProvider));
+});
 
 /// État courant de l'abonnement push du navigateur.
-final pushStatusProvider = FutureProvider<({bool supported, bool subscribed})>((
-  ref,
-) async {
-  final repository = ref.watch(pushSubscriptionsRepositoryProvider);
-  final supported = await repository.isSupported();
-  if (!supported) return (supported: false, subscribed: false);
-  return (supported: true, subscribed: await repository.isSubscribed());
-});
+final pushStatusProvider = FutureProvider<({bool supported, bool subscribed})>(
+  (ref) async {
+    final repository = ref.watch(pushSubscriptionsRepositoryProvider);
+    final supported = await repository.isSupported();
+    if (!supported) return (supported: false, subscribed: false);
+    return (supported: true, subscribed: await repository.isSubscribed());
+  },
+);

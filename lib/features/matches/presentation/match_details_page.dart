@@ -355,7 +355,11 @@ class _CompletedCompositionCard extends ConsumerWidget {
 
     final goalsByPlayerId = <String, int>{};
     for (final scorerId in finalization.scorerGoalLines) {
-      goalsByPlayerId.update(scorerId, (goals) => goals + 1, ifAbsent: () => 1);
+      goalsByPlayerId.update(
+        scorerId,
+        (goals) => goals + 1,
+        ifAbsent: () => 1,
+      );
     }
 
     final selectedPlayerIds = finalization.presentPlayerIds;
@@ -390,9 +394,8 @@ class _CompletedCompositionCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (sportsEnabled) {
       // Priorité au rendu MPG dès qu'une composition publiée existe.
-      final composition = ref
-          .watch(publishedMatchCompositionProvider(matchId))
-          .valueOrNull;
+      final composition =
+          ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
       final fieldEntries =
           composition?.entriesFor(MatchCompositionZone.field) ?? const [];
       if (fieldEntries.isNotEmpty) {
@@ -510,7 +513,7 @@ class _CompletedPlayersList extends StatelessWidget {
             label: players[index].goals == 0
                 ? players[index].name
                 : '${players[index].name}, ${players[index].goals} '
-                      '${players[index].goals == 1 ? 'but' : 'buts'}',
+                    '${players[index].goals == 1 ? 'but' : 'buts'}',
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
@@ -519,8 +522,8 @@ class _CompletedPlayersList extends StatelessWidget {
                     child: Text(
                       players[index].name,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                            fontWeight: FontWeight.w700,
+                          ),
                     ),
                   ),
                   if (players[index].goals > 0) ...[
@@ -530,8 +533,8 @@ class _CompletedPlayersList extends StatelessWidget {
                           ? '⚽'
                           : '⚽ ×${players[index].goals}',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                   ],
                 ],
@@ -564,13 +567,12 @@ class _PredictionsTable extends StatelessWidget {
 
   Color? _colorFor(MatchPredictionResult prediction) {
     if (prediction.points <= 0) return null;
-    final exact =
-        prediction.scoreGrinta == actualGrinta &&
+    final exact = prediction.scoreGrinta == actualGrinta &&
         prediction.scoreOpponent == actualOpponent;
     if (exact) return const Color(0xFF9B6CFF);
     final correctWinner =
         _result(prediction.scoreGrinta, prediction.scoreOpponent) ==
-        _result(actualGrinta, actualOpponent);
+            _result(actualGrinta, actualOpponent);
     if (!correctWinner) return null;
     return const Color(0xFF39E784);
   }

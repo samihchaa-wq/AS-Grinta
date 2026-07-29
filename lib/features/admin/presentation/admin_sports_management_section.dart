@@ -119,7 +119,10 @@ class AdminSportsManagementSection extends ConsumerWidget {
     try {
       await ref
           .read(featureFlagsControllerProvider.notifier)
-          .setSportsManagementEnabled(enabled: enabled, justification: null);
+          .setSportsManagementEnabled(
+            enabled: enabled,
+            justification: null,
+          );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

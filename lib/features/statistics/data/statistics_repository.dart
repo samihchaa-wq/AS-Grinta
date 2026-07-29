@@ -12,16 +12,16 @@ String _firstName(String fullName) {
 
 extension StatisticsPeriodKey on StatisticsPeriod {
   String get databaseKey => switch (this) {
-    StatisticsPeriod.current => 'current',
-    StatisticsPeriod.previous => 'previous',
-    StatisticsPeriod.allTime => 'all_time',
-  };
+        StatisticsPeriod.current => 'current',
+        StatisticsPeriod.previous => 'previous',
+        StatisticsPeriod.allTime => 'all_time',
+      };
 
   String get fallbackLabel => switch (this) {
-    StatisticsPeriod.current => 'Saison actuelle',
-    StatisticsPeriod.previous => 'Saison précédente',
-    StatisticsPeriod.allTime => 'Toutes saisons',
-  };
+        StatisticsPeriod.current => 'Saison actuelle',
+        StatisticsPeriod.previous => 'Saison précédente',
+        StatisticsPeriod.allTime => 'Toutes saisons',
+      };
 }
 
 class PlayerStatistics {
@@ -142,9 +142,7 @@ class StatisticsRepository {
   final SupabaseClient _client;
 
   Future<StatisticsPeriodData> fetchPlayers(StatisticsPeriod period) async {
-    final response = await _client
-        .from('v_statistics_players')
-        .select('''
+    final response = await _client.from('v_statistics_players').select('''
           period_key,
           period_label,
           display_rank,
@@ -159,29 +157,27 @@ class StatisticsRepository {
           hdm,
           clean_sheets,
           profile_id
-        ''')
-        .eq('period_key', period.databaseKey);
+        ''').eq('period_key', period.databaseKey);
 
     // Un seul classement, gardiens et joueurs de champ confondus, trié par
     // matchs joués (puis buts, puis nom). Le rang est recalculé ici (ex æquo
     // en matchs joués = même rang).
-    final rows =
-        (response as List)
-            .map((row) => Map<String, dynamic>.from(row as Map))
-            .toList()
-          ..sort((a, b) {
-            final ma = (a['matches_played'] as num?)?.toInt() ?? 0;
-            final mb = (b['matches_played'] as num?)?.toInt() ?? 0;
-            if (mb != ma) return mb.compareTo(ma);
-            final ga = (a['goals'] as num?)?.toInt() ?? 0;
-            final gb = (b['goals'] as num?)?.toInt() ?? 0;
-            if (gb != ga) return gb.compareTo(ga);
-            return _firstName(
-              (a['player_name'] ?? '').toString(),
-            ).toLowerCase().compareTo(
+    final rows = (response as List)
+        .map((row) => Map<String, dynamic>.from(row as Map))
+        .toList()
+      ..sort((a, b) {
+        final ma = (a['matches_played'] as num?)?.toInt() ?? 0;
+        final mb = (b['matches_played'] as num?)?.toInt() ?? 0;
+        if (mb != ma) return mb.compareTo(ma);
+        final ga = (a['goals'] as num?)?.toInt() ?? 0;
+        final gb = (b['goals'] as num?)?.toInt() ?? 0;
+        if (gb != ga) return gb.compareTo(ga);
+        return _firstName((a['player_name'] ?? '').toString())
+            .toLowerCase()
+            .compareTo(
               _firstName((b['player_name'] ?? '').toString()).toLowerCase(),
             );
-          });
+      });
 
     final players = <PlayerStatistics>[];
     var rank = 0;
@@ -222,9 +218,7 @@ class StatisticsRepository {
   }
 
   Future<TeamStatistics> fetchTeam(StatisticsPeriod period) async {
-    final response = await _client
-        .from('v_statistics_team')
-        .select('''
+    final response = await _client.from('v_statistics_team').select('''
           period_key,
           period_label,
           matches_played,
@@ -248,9 +242,7 @@ class StatisticsRepository {
           worst_winless_streak,
           worst_winless_start,
           worst_winless_end
-        ''')
-        .eq('period_key', period.databaseKey)
-        .maybeSingle();
+        ''').eq('period_key', period.databaseKey).maybeSingle();
 
     final map = response == null
         ? <String, dynamic>{}
@@ -267,9 +259,8 @@ class StatisticsRepository {
       goalsAgainst: (map['goals_against'] as num?)?.toInt() ?? 0,
       goalDifference: (map['goal_difference'] as num?)?.toInt() ?? 0,
       recentResults: _parseRecentResults(map['recent_results']),
-      scoreMarginDistribution: _parseScoreMarginDistribution(
-        map['score_margin_distribution'],
-      ),
+      scoreMarginDistribution:
+          _parseScoreMarginDistribution(map['score_margin_distribution']),
       bestWinStreak: _parseStreak(
         map,
         lengthKey: 'best_win_streak',
@@ -340,14 +331,12 @@ final statisticsRepositoryProvider = Provider<StatisticsRepository>((ref) {
 // au lieu de tout recharger. Les données sont rafraîchies au « tire pour
 // rafraîchir » et au redémarrage.
 final statisticsPeriodProvider =
-    FutureProvider.family<StatisticsPeriodData, StatisticsPeriod>((
-      ref,
-      period,
-    ) {
-      return ref.watch(statisticsRepositoryProvider).fetchPlayers(period);
-    });
+    FutureProvider.family<StatisticsPeriodData, StatisticsPeriod>(
+        (ref, period) {
+  return ref.watch(statisticsRepositoryProvider).fetchPlayers(period);
+});
 
 final teamStatisticsPeriodProvider =
     FutureProvider.family<TeamStatistics, StatisticsPeriod>((ref, period) {
-      return ref.watch(statisticsRepositoryProvider).fetchTeam(period);
-    });
+  return ref.watch(statisticsRepositoryProvider).fetchTeam(period);
+});

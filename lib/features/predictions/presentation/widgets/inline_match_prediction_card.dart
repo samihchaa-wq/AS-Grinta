@@ -10,13 +10,14 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-      return ref
-          .watch(predictionsRepositoryProvider)
-          .fetchMatchPrediction(matchId);
-    });
+  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
+});
 
 class InlineMatchPredictionCard extends ConsumerStatefulWidget {
-  const InlineMatchPredictionCard({super.key, required this.matchId});
+  const InlineMatchPredictionCard({
+    super.key,
+    required this.matchId,
+  });
 
   final String matchId;
 
@@ -123,9 +124,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: 12),
               Text(
                 'Score à modifier',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -140,9 +141,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: 12),
               Text(
                 'Les cotes',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -177,10 +178,8 @@ class _InlineMatchPredictionCardState
               ),
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .035),
                   borderRadius: BorderRadius.circular(16),
@@ -253,9 +252,7 @@ class _InlineMatchPredictionCardState
   Future<void> _save(MatchPredictionItem item) async {
     setState(() => _saving = true);
     try {
-      await ref
-          .read(predictionsRepositoryProvider)
-          .savePrediction(
+      await ref.read(predictionsRepositoryProvider).savePrediction(
             matchId: item.matchId,
             scoreGrinta: _scoreGrinta ?? item.scoreGrinta,
             scoreOpponent: _scoreOpponent ?? item.scoreOpponent,
@@ -266,9 +263,9 @@ class _InlineMatchPredictionCardState
         ..invalidate(matchDetailsProvider(widget.matchId));
       await ref.read(predictionsControllerProvider.notifier).load();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pronostic enregistré.')),
+        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -299,9 +296,8 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         item.isFilled ? 'Enregistré' : 'À saisir',
         style: TextStyle(
-          color: item.isFilled
-              ? const Color(0xFF69E99B)
-              : AppTheme.textSecondary,
+          color:
+              item.isFilled ? const Color(0xFF69E99B) : AppTheme.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -384,9 +380,9 @@ class _ScorePicker extends StatelessWidget {
             ),
             Text(
               '$value',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
             IconButton(
               visualDensity: VisualDensity.compact,

@@ -151,7 +151,10 @@ class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
     publishSignal(revision: revision, updatedAt: updatedAt);
   }
 
-  void publishSignal({required int revision, required DateTime updatedAt}) {
+  void publishSignal({
+    required int revision,
+    required DateTime updatedAt,
+  }) {
     _changes.add(
       FeatureFlagChangeSignal(revision: revision, updatedAt: updatedAt),
     );
