@@ -203,7 +203,10 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surfaceHigh.withValues(alpha: .82),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 15,
+        ),
         hintStyle: const TextStyle(color: textFaint),
         labelStyle: const TextStyle(color: textSecondary),
         prefixIconColor: textSecondary,
@@ -242,7 +245,9 @@ abstract final class AppTheme {
             const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           ),
           shape: WidgetStateProperty.all(
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusSm)),
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(radiusSm),
+            ),
           ),
         ),
       ),
