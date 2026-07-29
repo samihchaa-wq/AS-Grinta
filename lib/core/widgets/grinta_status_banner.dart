@@ -23,14 +23,22 @@ class GrintaStatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (accent, icon) = switch (tone) {
-      GrintaStatusTone.info =>
-        (AppTheme.primaryBright, Icons.info_outline_rounded),
-      GrintaStatusTone.success =>
-        (AppTheme.success, Icons.check_circle_outline_rounded),
-      GrintaStatusTone.warning =>
-        (AppTheme.warning, Icons.warning_amber_rounded),
-      GrintaStatusTone.error =>
-        (theme.colorScheme.error, Icons.error_outline_rounded),
+      GrintaStatusTone.info => (
+        AppTheme.primaryBright,
+        Icons.info_outline_rounded,
+      ),
+      GrintaStatusTone.success => (
+        AppTheme.success,
+        Icons.check_circle_outline_rounded,
+      ),
+      GrintaStatusTone.warning => (
+        AppTheme.warning,
+        Icons.warning_amber_rounded,
+      ),
+      GrintaStatusTone.error => (
+        theme.colorScheme.error,
+        Icons.error_outline_rounded,
+      ),
     };
 
     return Semantics(
