@@ -120,14 +120,14 @@ class _AppShellState extends ConsumerState<AppShell> {
                       onDestinationSelected: _selectDestination,
                       destinations: const [
                         NavigationDestination(
-                          icon: Icon(Icons.sports_soccer_outlined),
-                          selectedIcon: Icon(Icons.sports_soccer_rounded),
-                          label: 'Matchs',
+                          icon: Icon(Icons.calendar_month_outlined),
+                          selectedIcon: Icon(Icons.calendar_month_rounded),
+                          label: 'Calendrier',
                         ),
                         NavigationDestination(
-                          icon: Icon(Icons.query_stats_outlined),
-                          selectedIcon: Icon(Icons.query_stats_rounded),
-                          label: 'Stats',
+                          icon: Icon(Icons.leaderboard_outlined),
+                          selectedIcon: Icon(Icons.leaderboard_rounded),
+                          label: 'Statistiques',
                         ),
                       ],
                     ),
@@ -182,14 +182,14 @@ class _DesktopNavigation extends StatelessWidget {
       ),
       destinations: const [
         NavigationRailDestination(
-          icon: Icon(Icons.sports_soccer_outlined),
-          selectedIcon: Icon(Icons.sports_soccer_rounded),
-          label: Text('Matchs'),
+          icon: Icon(Icons.calendar_month_outlined),
+          selectedIcon: Icon(Icons.calendar_month_rounded),
+          label: Text('Calendrier'),
         ),
         NavigationRailDestination(
-          icon: Icon(Icons.query_stats_outlined),
-          selectedIcon: Icon(Icons.query_stats_rounded),
-          label: Text('Stats'),
+          icon: Icon(Icons.leaderboard_outlined),
+          selectedIcon: Icon(Icons.leaderboard_rounded),
+          label: Text('Statistiques'),
         ),
       ],
     );

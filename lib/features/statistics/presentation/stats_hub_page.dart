@@ -37,7 +37,7 @@ class _StatsHubPageState extends State<StatsHubPage> {
     final hasPeriod = _section != _StatsSection.rankings;
     return Scaffold(
       appBar: GrintaAppBar(
-        title: const Text('Stats'),
+        title: const Text('Statistiques'),
         actions: grintaHomeActions(context),
       ),
       body: Column(
@@ -52,17 +52,14 @@ class _StatsHubPageState extends State<StatsHubPage> {
                 segments: const [
                   ButtonSegment(
                     value: _StatsSection.rankings,
-                    icon: Icon(Icons.leaderboard_outlined),
                     label: Text('Prono'),
                   ),
                   ButtonSegment(
                     value: _StatsSection.players,
-                    icon: Icon(Icons.groups_2_outlined),
                     label: Text('Joueur'),
                   ),
                   ButtonSegment(
                     value: _StatsSection.team,
-                    icon: Icon(Icons.shield_outlined),
                     label: Text('Équipe'),
                   ),
                 ],
