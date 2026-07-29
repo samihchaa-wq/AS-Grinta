@@ -111,8 +111,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               ? null
               : NavigationBar(
                   selectedIndex: _selectedIndex,
-                  labelBehavior:
-                      NavigationDestinationLabelBehavior.alwaysShow,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
                   onDestinationSelected: _selectDestination,
                   destinations: const [
                     NavigationDestination(
@@ -152,9 +151,8 @@ class _DesktopNavigation extends StatelessWidget {
       minWidth: 76,
       minExtendedWidth: 208,
       groupAlignment: -.7,
-      labelType: extended
-          ? NavigationRailLabelType.none
-          : NavigationRailLabelType.all,
+      labelType:
+          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
       onDestinationSelected: onSelected,
       leading: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 22),
