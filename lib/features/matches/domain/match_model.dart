@@ -56,7 +56,11 @@ class MatchModel {
   bool get isFinished => status == 'termine' || status == 'archive';
   bool get isCancelled => status == 'annule';
   bool get isFriendly => matchType == 'amical';
-  String get matchTypeLabel => isFriendly ? 'Match amical' : 'Championnat';
+  bool get isInternal => matchType == 'entre_nous';
+  String get matchTypeLabel {
+    if (isInternal) return 'Match entre nous';
+    return isFriendly ? 'Match amical' : 'Championnat';
+  }
 
   /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
   bool get pronosClosed => predictionsClosedAt != null;

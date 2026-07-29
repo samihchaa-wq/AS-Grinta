@@ -232,6 +232,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ),
       );
     }
+    final isInternal = _selectedMatchId == null
+        ? false
+        : (ref
+                .watch(matchInfoProvider(_selectedMatchId!))
+                .valueOrNull
+                ?.isInternal ??
+            false);
+
     return RefreshIndicator(
       onRefresh: _loadMatches,
       child: ListView(
@@ -252,7 +260,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 value: _AdminStep.composition,
                 label: Text('Compo'),
               ),
-              if (widget.showPredictionStep)
+              if (widget.showPredictionStep && !isInternal)
                 const ButtonSegment(
                   value: _AdminStep.prediction,
                   label: Text('Prono'),
@@ -275,6 +283,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             MatchInfoTab(matchId: _selectedMatchId!)
           else if (_step == _AdminStep.prediction && _selectedMatchId != null)
             InlineMatchPredictionCard(matchId: _selectedMatchId!)
+          else if (_step == _AdminStep.composition &&
+              isInternal &&
+              _selectedMatchId != null)
+            InternalTeamCompositionView(
+              matchId: _selectedMatchId!,
+              editable: true,
+            )
           else if (_convocations != null && _composition != null)
             _step == _AdminStep.effectif
                 ? _buildEffectif()

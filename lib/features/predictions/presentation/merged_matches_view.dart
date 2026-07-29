@@ -389,19 +389,30 @@ class _UpcomingMatchCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: MatchFixture(
-            homeName: homeName,
-            awayName: awayName,
-            grintaIsHome: match.isHome,
-            nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontSize: 16,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
+          child: match.isInternal
+              ? Text(
+                  '⚽ Match entre nous',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                )
+              : MatchFixture(
+                  homeName: homeName,
+                  awayName: awayName,
+                  grintaIsHome: match.isHome,
+                  nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontSize: 16,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                      ),
+                  foreground: match.isCancelled
+                      ? AppTheme.textFaint
+                      : AppTheme.textPrimary,
+                  textAlign: TextAlign.center,
                 ),
-            foreground:
-                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
-            textAlign: TextAlign.center,
-          ),
         ),
         if (isAdmin) ...[
           const SizedBox(width: 4),

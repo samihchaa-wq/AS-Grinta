@@ -114,14 +114,15 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        const PopupMenuItem(
-          value: 'stats',
-          child: ListTile(
-            leading: Icon(Icons.query_stats_outlined),
-            title: Text('Stats'),
-            contentPadding: EdgeInsets.zero,
+        if (!match.isInternal)
+          const PopupMenuItem(
+            value: 'stats',
+            child: ListTile(
+              leading: Icon(Icons.query_stats_outlined),
+              title: Text('Stats'),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
         if (!match.isCancelled)
           const PopupMenuItem(
             value: 'cancel',
