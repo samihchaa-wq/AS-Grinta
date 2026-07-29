@@ -50,6 +50,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
   }
 
+  void _selectDestination(int index) {
+    if (index == 0) {
+      _openMatches();
+    } else {
+      _openStats();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewingAsUser = ref.watch(viewAsUserProvider);
@@ -57,46 +65,126 @@ class _AppShellState extends ConsumerState<AppShell> {
       scaffoldBackgroundColor: Colors.transparent,
     );
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Column(
-        children: [
-          if (viewingAsUser)
-            _PreviewBanner(
-              onExit: () => ref.read(viewAsUserProvider.notifier).state = false,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useRail = constraints.maxWidth >= 840;
+        final extendRail = constraints.maxWidth >= 1180;
+        final content = Theme(
+          data: moduleTheme,
+          child: widget.navigationShell,
+        );
+
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: SafeArea(
+            bottom: !useRail,
+            child: Column(
+              children: [
+                if (viewingAsUser)
+                  _PreviewBanner(
+                    onExit: () =>
+                        ref.read(viewAsUserProvider.notifier).state = false,
+                  ),
+                Expanded(
+                  child: useRail
+                      ? Row(
+                          children: [
+                            _DesktopNavigation(
+                              selectedIndex: _selectedIndex,
+                              extended: extendRail,
+                              onSelected: _selectDestination,
+                            ),
+                            VerticalDivider(
+                              width: 1,
+                              thickness: 1,
+                              color: AppTheme.outline.withValues(alpha: .35),
+                            ),
+                            Expanded(child: content),
+                          ],
+                        )
+                      : content,
+                ),
+              ],
             ),
-          Expanded(
-            child: Theme(
-              data: moduleTheme,
-              child: widget.navigationShell,
+          ),
+          bottomNavigationBar: useRail
+              ? null
+              : NavigationBar(
+                  selectedIndex: _selectedIndex,
+                  labelBehavior:
+                      NavigationDestinationLabelBehavior.alwaysShow,
+                  onDestinationSelected: _selectDestination,
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.sports_soccer_outlined),
+                      selectedIcon: Icon(Icons.sports_soccer_rounded),
+                      label: 'Matchs',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.query_stats_outlined),
+                      selectedIcon: Icon(Icons.query_stats_rounded),
+                      label: 'Stats',
+                    ),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+}
+
+class _DesktopNavigation extends StatelessWidget {
+  const _DesktopNavigation({
+    required this.selectedIndex,
+    required this.extended,
+    required this.onSelected,
+  });
+
+  final int selectedIndex;
+  final bool extended;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return NavigationRail(
+      selectedIndex: selectedIndex,
+      extended: extended,
+      minWidth: 76,
+      minExtendedWidth: 208,
+      groupAlignment: -.7,
+      labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      onDestinationSelected: onSelected,
+      leading: Padding(
+        padding: const EdgeInsets.only(top: 16, bottom: 22),
+        child: Container(
+          width: 42,
+          height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withValues(alpha: .16),
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            border: Border.all(
+              color: AppTheme.primaryBright.withValues(alpha: .28),
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        height: 76,
-        selectedIndex: _selectedIndex,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        onDestinationSelected: (index) {
-          if (index == 0) {
-            _openMatches();
-          } else {
-            _openStats();
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.sports_soccer_outlined),
-            selectedIcon: Icon(Icons.sports_soccer_rounded),
-            label: 'Matchs',
+          child: const Icon(
+            Icons.sports_soccer_rounded,
+            color: AppTheme.primaryBright,
           ),
-          NavigationDestination(
-            icon: Icon(Icons.query_stats_outlined),
-            selectedIcon: Icon(Icons.query_stats_rounded),
-            label: 'Stats',
-          ),
-        ],
+        ),
       ),
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.sports_soccer_outlined),
+          selectedIcon: Icon(Icons.sports_soccer_rounded),
+          label: Text('Matchs'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.query_stats_outlined),
+          selectedIcon: Icon(Icons.query_stats_rounded),
+          label: Text('Stats'),
+        ),
+      ],
     );
   }
 }
