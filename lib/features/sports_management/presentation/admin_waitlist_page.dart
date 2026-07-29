@@ -54,7 +54,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
   void _move(int index, int delta) {
     if (_entries.length < 2) return;
-    final next = index == 0 && delta < 0 ? _entries.length - 1 : index + delta;
+    final next =
+        index == 0 && delta < 0 ? _entries.length - 1 : index + delta;
     if (next < 0 || next >= _entries.length) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries);
@@ -222,7 +223,8 @@ class _WaitlistTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = entry.previousSeasonMatchCount;
     final attendance = entry.previousSeasonAttendanceCount;
-    final previousSeasonPresence = total > 0 ? '$attendance sur $total' : 'Aucune donnée';
+    final previousSeasonPresence =
+        total > 0 ? '$attendance sur $total' : 'Aucune donnée';
     final waitlistCount = entry.currentSeasonWaitlistCount;
     return Card(
       key: ValueKey(entry.seasonPlayerId),
