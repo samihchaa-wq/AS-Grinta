@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -23,7 +25,6 @@ class _AppShellState extends ConsumerState<AppShell> {
   bool _matchFocusScheduled = false;
 
   Uri get _uri => Uri.parse(widget.location);
-
   int get _selectedIndex => widget.navigationShell.currentIndex;
 
   void _scheduleMatchFocus() {
@@ -97,7 +98,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                             VerticalDivider(
                               width: 1,
                               thickness: 1,
-                              color: AppTheme.outline.withValues(alpha: .35),
+                              color: AppTheme.outline.withValues(alpha: .28),
                             ),
                             Expanded(child: content),
                           ],
@@ -109,22 +110,31 @@ class _AppShellState extends ConsumerState<AppShell> {
           ),
           bottomNavigationBar: useRail
               ? null
-              : NavigationBar(
-                  selectedIndex: _selectedIndex,
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                  onDestinationSelected: _selectDestination,
-                  destinations: const [
-                    NavigationDestination(
-                      icon: Icon(Icons.sports_soccer_outlined),
-                      selectedIcon: Icon(Icons.sports_soccer_rounded),
-                      label: 'Matchs',
+              : ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    child: NavigationBar(
+                      selectedIndex: _selectedIndex,
+                      labelBehavior:
+                          NavigationDestinationLabelBehavior.alwaysShow,
+                      onDestinationSelected: _selectDestination,
+                      destinations: const [
+                        NavigationDestination(
+                          icon: Icon(Icons.sports_soccer_outlined),
+                          selectedIcon: Icon(Icons.sports_soccer_rounded),
+                          label: 'Matchs',
+                        ),
+                        NavigationDestination(
+                          icon: Icon(Icons.query_stats_outlined),
+                          selectedIcon: Icon(Icons.query_stats_rounded),
+                          label: 'Stats',
+                        ),
+                      ],
                     ),
-                    NavigationDestination(
-                      icon: Icon(Icons.query_stats_outlined),
-                      selectedIcon: Icon(Icons.query_stats_rounded),
-                      label: 'Stats',
-                    ),
-                  ],
+                  ),
                 ),
         );
       },
@@ -148,8 +158,8 @@ class _DesktopNavigation extends StatelessWidget {
     return NavigationRail(
       selectedIndex: selectedIndex,
       extended: extended,
-      minWidth: 76,
-      minExtendedWidth: 208,
+      minWidth: 72,
+      minExtendedWidth: 200,
       groupAlignment: -.7,
       labelType:
           extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
@@ -157,14 +167,14 @@ class _DesktopNavigation extends StatelessWidget {
       leading: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 22),
         child: Container(
-          width: 42,
-          height: 42,
+          width: 40,
+          height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppTheme.primary.withValues(alpha: .16),
+            color: AppTheme.primary.withValues(alpha: .12),
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             border: Border.all(
-              color: AppTheme.primaryBright.withValues(alpha: .28),
+              color: AppTheme.primaryBright.withValues(alpha: .22),
             ),
           ),
           child: const Icon(
@@ -197,16 +207,16 @@ class _PreviewBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.accent,
+      color: AppTheme.admin.withValues(alpha: .9),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+          padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
           child: Row(
             children: [
               const Icon(
                 Icons.visibility_outlined,
-                size: 18,
+                size: 17,
                 color: Colors.white,
               ),
               const SizedBox(width: 8),
@@ -215,7 +225,7 @@ class _PreviewBanner extends StatelessWidget {
                   'Aperçu utilisateur',
                   style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -227,7 +237,7 @@ class _PreviewBanner extends StatelessWidget {
                 ),
                 child: const Text(
                   'Revenir en admin',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ],
