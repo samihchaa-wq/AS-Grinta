@@ -1,13 +1,14 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 const grintaTableMinWidth = 620.0;
-const grintaTableHeaderFontSize = 12.0;
+const grintaTableHeaderFontSize = 11.5;
 const grintaTableCellFontSize = 13.0;
 const grintaTableRankFontSize = 12.0;
-const grintaTableHeaderPadding = EdgeInsets.fromLTRB(12, 12, 12, 12);
-const grintaTableRowPadding = EdgeInsets.fromLTRB(12, 14, 12, 14);
+const grintaTableHeaderPadding = EdgeInsets.fromLTRB(14, 13, 14, 13);
+const grintaTableRowPadding = EdgeInsets.fromLTRB(14, 15, 14, 15);
 
 TextStyle grintaTableHeaderTextStyle(
   BuildContext context, {
@@ -17,6 +18,7 @@ TextStyle grintaTableHeaderTextStyle(
     color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
     fontSize: grintaTableHeaderFontSize,
     fontWeight: FontWeight.w800,
+    letterSpacing: .35,
   );
 }
 
@@ -29,6 +31,7 @@ TextStyle grintaTableCellTextStyle(
     color: color ?? Theme.of(context).colorScheme.onSurface,
     fontSize: grintaTableCellFontSize,
     fontWeight: fontWeight,
+    height: 1.15,
   );
 }
 
@@ -37,9 +40,9 @@ TextStyle grintaTableRankTextStyle(
   Color? color,
 }) {
   return TextStyle(
-    color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+    color: color ?? AppTheme.primaryBright,
     fontSize: grintaTableRankFontSize,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w900,
   );
 }
 
@@ -74,12 +77,26 @@ class StickyHeaderTableCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget list = ListView.separated(
+    Widget list = ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.only(bottom: 4),
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) => rows[index],
+      itemBuilder: (context, index) {
+        final row = rows[index];
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            color: index.isEven
+                ? Colors.transparent
+                : AppTheme.surfaceHigh.withValues(alpha: .16),
+            border: Border(
+              bottom: BorderSide(
+                color: AppTheme.outline.withValues(alpha: .28),
+              ),
+            ),
+          ),
+          child: row,
+        );
+      },
     );
     if (onRefresh != null) {
       list = RefreshIndicator(onRefresh: onRefresh!, child: list);
@@ -87,6 +104,13 @@ class StickyHeaderTableCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      color: AppTheme.surface.withValues(alpha: .86),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        side: BorderSide(
+          color: AppTheme.outline.withValues(alpha: .52),
+        ),
+      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final tableWidth = math.max(constraints.maxWidth, minWidth);
@@ -98,8 +122,14 @@ class StickyHeaderTableCard extends StatelessWidget {
               height: constraints.maxHeight,
               child: Column(
                 children: [
-                  header,
-                  const Divider(height: 1),
+                  ColoredBox(
+                    color: AppTheme.surfaceHigh.withValues(alpha: .88),
+                    child: header,
+                  ),
+                  Divider(
+                    height: 1,
+                    color: AppTheme.primaryBright.withValues(alpha: .30),
+                  ),
                   Expanded(child: list),
                 ],
               ),
@@ -141,28 +171,39 @@ class SortableHeaderCell extends StatelessWidget {
       TextAlign.end || TextAlign.right => MainAxisAlignment.end,
       _ => MainAxisAlignment.center,
     };
+
+    final content = Row(
+      mainAxisAlignment: mainAxis,
+      children: [
+        Flexible(
+          child: Text(
+            label,
+            style: style?.copyWith(
+              color: active ? AppTheme.primaryBright : style?.color,
+            ),
+            overflow: TextOverflow.ellipsis,
+            textAlign: align,
+          ),
+        ),
+        if (active) ...[
+          const SizedBox(width: 2),
+          Icon(
+            descending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+            size: 16,
+            color: AppTheme.primaryBright,
+          ),
+        ],
+      ],
+    );
+
     return Expanded(
       flex: flex,
       child: InkWell(
         onTap: onTap,
-        child: Row(
-          mainAxisAlignment: mainAxis,
-          children: [
-            Flexible(
-              child: Text(
-                label,
-                style: style,
-                overflow: TextOverflow.ellipsis,
-                textAlign: align,
-              ),
-            ),
-            if (active)
-              Icon(
-                descending ? Icons.arrow_drop_down : Icons.arrow_drop_up,
-                size: 16,
-                color: style?.color,
-              ),
-          ],
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: content,
         ),
       ),
     );
