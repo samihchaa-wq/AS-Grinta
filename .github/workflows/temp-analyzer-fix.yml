@@ -24,6 +24,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           profile = Path('lib/features/profile/presentation/profile_page.dart')
           text = profile.read_text()
@@ -35,14 +36,12 @@ jobs:
 
           matches = Path('lib/features/matches/presentation/matches_page.dart')
           text = matches.read_text()
-          old = """                    if (value == null || value == state.selectedSeasonId)
-                      return;"""
-          new = """                    if (value == null || value == state.selectedSeasonId) {
-                      return;
-                    }"""
-          if old not in text:
-              raise SystemExit('Expected season guard not found')
-          matches.write_text(text.replace(old, new))
+          pattern = r"(?m)^(\s*)if \(value == null \|\| value == state\.selectedSeasonId\)\s*\n\s*return;"
+          replacement = r"\1if (value == null || value == state.selectedSeasonId) {\n\1  return;\n\1}"
+          text, count = re.subn(pattern, replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('Season guard replacement failed')
+          matches.write_text(text)
           PY
           flutter pub get --enforce-lockfile
           dart format \
