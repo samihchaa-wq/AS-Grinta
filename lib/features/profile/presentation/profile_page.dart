@@ -344,22 +344,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: passwordController,
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.newPassword],
-                  decoration: const InputDecoration(
-                    labelText: 'Nouveau mot de passe',
-                    helperText: PasswordPolicy.helperText,
-                    helperMaxLines: 2,
+                // Un AutofillGroup dédié + un seul champ marqué
+                // "newPassword" : avec deux champs identiquement tagués,
+                // certains navigateurs (Safari en particulier) confondent
+                // les deux champs après la confirmation et le premier
+                // redevient impossible à retoucher (le clavier ne se
+                // réaffiche plus).
+                AutofillGroup(
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        autofillHints: const [AutofillHints.newPassword],
+                        decoration: const InputDecoration(
+                          labelText: 'Nouveau mot de passe',
+                          helperText: PasswordPolicy.helperText,
+                          helperMaxLines: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: confirmationController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Confirmation',
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: confirmationController,
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.newPassword],
-                  decoration: const InputDecoration(labelText: 'Confirmation'),
                 ),
                 if (validationError != null) ...[
                   const SizedBox(height: 12),
