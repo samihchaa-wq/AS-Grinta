@@ -217,9 +217,6 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> updatePassword(String password) async {}
 
   @override
-  Future<void> sendPasswordResetEmail(String email) async {}
-
-  @override
   Future<AuthProfile> updateProfile({
     required String firstName,
     required String lastName,
@@ -237,10 +234,11 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> registerAccount({
+  Future<String> registerAccount({
     required String firstName,
     required String lastName,
-    required String email,
     required String password,
-  }) async {}
+  }) async {
+    return 'test-user';
+  }
 }

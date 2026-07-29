@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/security/password_policy.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
@@ -19,8 +20,12 @@ class AuthRepository {
     required String username,
     required String password,
   }) async {
+    final normalized = username.trim().toLowerCase();
+    final email = normalized.contains('@')
+        ? normalized
+        : '$normalized@${AppConfig.usernameDomain}';
     final response = await _client.auth.signInWithPassword(
-      email: username.trim().toLowerCase(),
+      email: email,
       password: password,
     );
     if (response.session == null || response.user == null) {
@@ -28,34 +33,31 @@ class AuthRepository {
     }
   }
 
-  Future<void> registerAccount({
+  /// Crée un compte via l'inscription publique (prénom + nom, sans e-mail).
+  /// Retourne l'identifiant généré par le serveur, à communiquer au joueur.
+  Future<String> registerAccount({
     required String firstName,
     required String lastName,
-    required String email,
     required String password,
   }) async {
     final passwordError = PasswordPolicy.validate(password);
     if (passwordError != null) throw ArgumentError(passwordError);
 
-    final response = await _client.auth.signUp(
-      email: email.trim().toLowerCase(),
-      password: password,
-      emailRedirectTo: Uri.base.resolve('/auth/sign-in').toString(),
-      data: {
-        'first_name': firstName.trim(),
-        'last_name': lastName.trim(),
+    final response = await _client.functions.invoke(
+      'register-account',
+      body: {
+        'firstName': firstName.trim(),
+        'lastName': lastName.trim(),
+        'password': password,
       },
     );
-    if (response.user == null) {
-      throw StateError('La création du compte a échoué.');
+    final data = response.data;
+    final username = data is Map ? data['username'] as String? : null;
+    if (response.status != 200 || username == null || username.isEmpty) {
+      final message = data is Map ? data['error'] as String? : null;
+      throw StateError(message ?? 'La création du compte a échoué.');
     }
-  }
-
-  Future<void> sendPasswordResetEmail(String email) async {
-    await _client.auth.resetPasswordForEmail(
-      email.trim().toLowerCase(),
-      redirectTo: Uri.base.resolve('/auth/new-password?recovery=1').toString(),
-    );
+    return username;
   }
 
   Future<void> updatePassword(String password) async {

@@ -7,7 +7,6 @@ import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRegisterPage extends ConsumerStatefulWidget {
   const AuthRegisterPage({super.key});
@@ -19,7 +18,6 @@ class AuthRegisterPage extends ConsumerStatefulWidget {
 class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   bool _obscurePassword = true;
@@ -29,7 +27,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   void dispose() {
     _firstNameController.dispose();
     _lastNameController.dispose();
-    _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
     super.dispose();
@@ -43,19 +40,14 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
   Future<void> _submit() async {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
-    final email = _emailController.text.trim().toLowerCase();
     final password = _passwordController.text;
 
-    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
-      _showError('Renseigne ton prénom, ton nom et ton adresse e-mail.');
+    if (firstName.isEmpty || lastName.isEmpty) {
+      _showError('Renseigne ton prénom et ton nom.');
       return;
     }
     if (!isValidPersonName(firstName) || !isValidPersonName(lastName)) {
       _showError('Le prénom et le nom ne doivent contenir que des lettres.');
-      return;
-    }
-    if (!email.contains('@') || !email.contains('.')) {
-      _showError('Entre une adresse e-mail valide.');
       return;
     }
     final passwordError = PasswordPolicy.validate(password);
@@ -70,10 +62,9 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
 
     setState(() => _submitting = true);
     try {
-      await ref.read(authRepositoryProvider).registerAccount(
+      final username = await ref.read(authRepositoryProvider).registerAccount(
             firstName: firstName,
             lastName: lastName,
-            email: email,
             password: password,
           );
       if (!mounted) return;
@@ -81,10 +72,29 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Vérifie ton e-mail'),
-          content: const Text(
-            'Un lien de confirmation vient de t’être envoyé. Après confirmation, '
-            'ton compte restera en attente jusqu’à sa validation par un admin.',
+          title: const Text('Compte créé'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Retiens bien ton identifiant, tu en auras besoin pour te '
+                'connecter :',
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                username,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Ton compte restera en attente jusqu’à sa validation par '
+                'un admin.',
+              ),
+            ],
           ),
           actions: [
             FilledButton(
@@ -95,8 +105,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
         ),
       );
       if (mounted) context.go('/auth/sign-in');
-    } on AuthException catch (error) {
-      _showError(error.message);
     } on StateError catch (error) {
       _showError(error.message);
     } on ArgumentError catch (error) {
@@ -113,8 +121,7 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
     return GrintaAuthSurface(
       maxWidth: 760,
       title: 'Créer mon compte',
-      subtitle:
-          'Le compte sera accessible après confirmation de l’e-mail et validation par un admin.',
+      subtitle: 'Le compte sera accessible après validation par un admin.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -141,18 +148,6 @@ class _AuthRegisterPageState extends ConsumerState<AuthRegisterPage> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            autocorrect: false,
-            autofillHints: const [AutofillHints.email],
-            decoration: const InputDecoration(
-              labelText: 'Adresse e-mail',
-              prefixIcon: Icon(Icons.email_outlined),
-            ),
           ),
           const SizedBox(height: 16),
           // Un AutofillGroup dédié + un seul champ marqué "newPassword" :
