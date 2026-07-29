@@ -162,13 +162,34 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ),
             )
           else if (state.matches.isEmpty)
-            const SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverToBoxAdapter(
-                child: _MessageCard(
-                  title: 'Aucun match',
-                  message:
-                      'Le premier match apparaîtra ici dès qu’il sera créé.',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _MessageCard(
+                      title: 'Aucun match',
+                      message:
+                          'Le premier match apparaîtra ici dès qu’il sera créé.',
+                    ),
+                    if (isAdmin) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () => _openMatchForm(context),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Ajouter un match'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             )
