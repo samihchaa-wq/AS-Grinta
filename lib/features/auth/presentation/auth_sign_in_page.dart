@@ -47,8 +47,8 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
         title: const Text('Mot de passe oublié'),
         content: const Text(
           'Demande à un administrateur du club de réinitialiser ton mot '
-          'de passe depuis l’application. Il te communiquera un nouveau '
-          'mot de passe temporaire à changer dès ta prochaine connexion.',
+          'de passe depuis l’application. Il te communiquera un lien à '
+          'ouvrir pour choisir directement ton nouveau mot de passe.',
         ),
         actions: [
           FilledButton(

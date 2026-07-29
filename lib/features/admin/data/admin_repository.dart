@@ -118,15 +118,16 @@ class AdminRepository {
     );
   }
 
-  /// Génère côté serveur un mot de passe temporaire à usage unique et force son
-  /// remplacement à la prochaine connexion. Retourne le code temporaire généré
-  /// (à afficher puis transmettre à l'utilisateur).
+  /// Génère côté serveur un lien de réinitialisation à usage unique, sans
+  /// envoyer d'e-mail. Retourne ce lien (à transmettre par l'admin au joueur
+  /// par le canal de son choix) : en l'ouvrant, le joueur choisit directement
+  /// son nouveau mot de passe.
   ///
   /// La copie dans le presse-papiers est volontairement laissée à l'appelant,
   /// déclenchée par un geste explicite : sur le web (iOS Safari/PWA notamment),
   /// une écriture presse-papiers après un `await` est bloquée par le navigateur
-  /// et ferait échouer toute l'opération alors que le mot de passe a déjà été
-  /// réinitialisé côté serveur.
+  /// et ferait échouer toute l'opération alors que le lien a déjà été généré
+  /// côté serveur.
   Future<String> resetAccountPassword(String userId) async {
     final resetResponse = await _client.functions.invoke(
       'manage-user',
@@ -143,12 +144,12 @@ class AdminRepository {
       throw StateError(message);
     }
 
-    final temporaryPassword = (resetData['temporaryPassword'] ?? '').toString();
-    if (temporaryPassword.isEmpty) {
-      throw StateError('Le mot de passe temporaire n’a pas été retourné.');
+    final resetLink = (resetData['resetLink'] ?? '').toString();
+    if (resetLink.isEmpty) {
+      throw StateError('Le lien de réinitialisation n’a pas été retourné.');
     }
 
-    return temporaryPassword;
+    return resetLink;
   }
 
   Future<void> deleteAccount(String userId) async {
