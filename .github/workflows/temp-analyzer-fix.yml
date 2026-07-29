@@ -1,0 +1,55 @@
+name: Temporary analyzer fixes
+
+on:
+  push:
+    branches:
+      - design/visual-system-polish
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/visual-system-polish
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply analyzer fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          profile = Path('lib/features/profile/presentation/profile_page.dart')
+          text = profile.read_text()
+          anchor = "import 'package:as_grinta/features/auth/presentation/auth_state.dart';"
+          import_line = "import 'package:as_grinta/features/auth/domain/auth_profile.dart';\n"
+          if import_line.strip() not in text:
+              text = text.replace(anchor, import_line + anchor)
+          profile.write_text(text)
+
+          matches = Path('lib/features/matches/presentation/matches_page.dart')
+          text = matches.read_text()
+          old = "if (dateKey != null) grouped.putIfAbsent(dateKey, () => []).add(m);"
+          new = "if (dateKey != null) {\n        grouped.putIfAbsent(dateKey, () => []).add(m);\n      }"
+          if old not in text:
+              raise SystemExit('Expected matches condition not found')
+          matches.write_text(text.replace(old, new))
+          PY
+          flutter pub get --enforce-lockfile
+          dart format \
+            lib/features/profile/presentation/profile_page.dart \
+            lib/features/matches/presentation/matches_page.dart
+      - name: Remove workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temp-analyzer-fix.yml
+          git add -A
+          git commit -m "Fix analyzer issues in visual redesign"
+          git push origin HEAD:design/visual-system-polish
