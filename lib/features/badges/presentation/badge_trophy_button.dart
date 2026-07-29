@@ -49,10 +49,7 @@ class BadgeTrophyButton extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.accent,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppTheme.background,
-                      width: 2,
-                    ),
+                    border: Border.all(color: AppTheme.background, width: 2),
                   ),
                 ),
               ),
