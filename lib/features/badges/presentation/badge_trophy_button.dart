@@ -14,59 +14,46 @@ class BadgeTrophyButton extends ConsumerWidget {
     return IconButton(
       tooltip: 'Armoire à badges',
       visualDensity: VisualDensity.compact,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      constraints: const BoxConstraints(),
+      padding: const EdgeInsets.all(4),
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      style: IconButton.styleFrom(
+        foregroundColor: AppTheme.reward,
+        backgroundColor: AppTheme.reward.withValues(alpha: .08),
+        side: BorderSide(color: AppTheme.reward.withValues(alpha: .18)),
+      ),
       icon: SizedBox(
-        width: 38,
-        height: 38,
+        width: 30,
+        height: 30,
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: AppTheme.reward.withValues(alpha: .12),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppTheme.reward.withValues(alpha: .38),
-                ),
-              ),
-              child: const Icon(
-                Icons.emoji_events_rounded,
-                size: 21,
-                color: AppTheme.reward,
-              ),
+            const Icon(
+              Icons.emoji_events_rounded,
+              size: 21,
+              color: AppTheme.reward,
             ),
             const ExcludeSemantics(
-              child: Opacity(
-                opacity: 0,
-                child: Text('🏆'),
-              ),
+              child: Opacity(opacity: 0, child: Text('🏆')),
             ),
             if (hasUnseen)
               Positioned(
-                top: -1,
-                right: -1,
+                top: -4,
+                right: -4,
                 child: Container(
                   key: const ValueKey('badge-unseen-indicator'),
-                  width: 16,
-                  height: 16,
-                  alignment: Alignment.center,
+                  width: 14,
+                  height: 14,
                   decoration: BoxDecoration(
                     color: AppTheme.accent,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppTheme.background, width: 2),
-                  ),
-                  child: const Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      height: 1,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.accent.withValues(alpha: .28),
+                        blurRadius: 8,
+                      ),
+                    ],
                   ),
                 ),
               ),
