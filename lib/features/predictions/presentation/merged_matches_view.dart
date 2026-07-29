@@ -101,9 +101,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   }
 
   Future<void> _openMatchForm(BuildContext context) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const MatchFormPage()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const MatchFormPage()));
     if (!context.mounted) return;
     await _refresh();
   }
@@ -190,10 +190,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                             message:
                                 'Le prochain match apparaîtra ici dès qu’il sera créé.',
                           )
-                        : HomeNextMatchCard(
-                            match: nextMatch,
-                            isAdmin: isAdmin,
-                          ),
+                        : HomeNextMatchCard(match: nextMatch, isAdmin: isAdmin),
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 14)),
@@ -342,14 +339,12 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
             Text(
               title,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: emphasized
-                        ? AppTheme.textPrimary
-                        : AppTheme.textSecondary,
-                    fontWeight: emphasized
-                        ? FontWeight.w900
-                        : FontWeight.w800,
-                    letterSpacing: emphasized ? -.15 : 0,
-                  ),
+                color: emphasized
+                    ? AppTheme.textPrimary
+                    : AppTheme.textSecondary,
+                fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
+                letterSpacing: emphasized ? -.15 : 0,
+              ),
             ),
           ],
         ),
@@ -395,10 +390,10 @@ class _UpcomingMatchCard extends StatelessWidget {
             awayName: awayName,
             grintaIsHome: match.isHome,
             nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontSize: 16,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
-                ),
+              fontSize: 16,
+              height: 1.1,
+              fontWeight: FontWeight.w800,
+            ),
             foreground: AppTheme.textPrimary,
             textAlign: TextAlign.center,
           ),
@@ -457,9 +452,7 @@ class _UpcomingMatchCard extends StatelessWidget {
                             address,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: AppTheme.textFaint,
                                   fontWeight: FontWeight.w600,
