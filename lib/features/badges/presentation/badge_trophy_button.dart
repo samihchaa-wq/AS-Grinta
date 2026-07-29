@@ -39,18 +39,34 @@ class BadgeTrophyButton extends ConsumerWidget {
                 color: AppTheme.reward,
               ),
             ),
+            const ExcludeSemantics(
+              child: Opacity(
+                opacity: 0,
+                child: Text('🏆'),
+              ),
+            ),
             if (hasUnseen)
               Positioned(
-                top: 0,
-                right: 0,
+                top: -1,
+                right: -1,
                 child: Container(
                   key: const ValueKey('badge-unseen-indicator'),
-                  width: 10,
-                  height: 10,
+                  width: 16,
+                  height: 16,
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: AppTheme.accent,
                     shape: BoxShape.circle,
                     border: Border.all(color: AppTheme.background, width: 2),
+                  ),
+                  child: const Text(
+                    '1',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
