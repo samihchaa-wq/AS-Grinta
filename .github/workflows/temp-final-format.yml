@@ -1,0 +1,47 @@
+name: Temporary final Dart format
+
+on:
+  push:
+    branches:
+      - design/visual-system-polish
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/visual-system-polish
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/app/shell/app_shell.dart \
+            lib/core/theme/app_theme.dart \
+            lib/core/widgets/grinta_app_bar.dart \
+            lib/core/widgets/grinta_secondary_tabs.dart \
+            lib/core/widgets/sticky_header_table.dart \
+            lib/features/auth/domain/auth_profile.dart \
+            lib/features/badges/presentation/armoire_page.dart \
+            lib/features/badges/presentation/badge_detail_sheet.dart \
+            lib/features/badges/presentation/badge_trophy_button.dart \
+            lib/features/home/presentation/home_next_match_card.dart \
+            lib/features/matches/presentation/matches_page.dart \
+            lib/features/profile/presentation/profile_page.dart
+      - name: Remove workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temp-final-format.yml
+          git add -A
+          git commit -m "Apply repository Dart formatting"
+          git push origin HEAD:design/visual-system-polish
