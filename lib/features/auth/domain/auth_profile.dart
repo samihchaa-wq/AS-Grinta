@@ -62,9 +62,8 @@ class AuthProfile {
   }
 
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
-    final roleValue = (json['role'] ?? 'pronostiqueur')
-        .toString()
-        .toLowerCase();
+    final roleValue =
+        (json['role'] ?? 'pronostiqueur').toString().toLowerCase();
     final role = switch (roleValue) {
       'admin' || 'moderateur' || 'moderator' => AuthRole.admin,
       _ => AuthRole.pronostiqueur,

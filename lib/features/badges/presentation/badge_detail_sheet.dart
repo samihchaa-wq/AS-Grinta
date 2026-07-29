@@ -51,14 +51,14 @@ class BadgeDetailSheet extends ConsumerWidget {
     final tiers = (badge.metric == null || badge.standalone)
         ? <BadgeDef>[badge]
         : (catalog
-              .where(
-                (b) =>
-                    b.metric == badge.metric &&
-                    b.kind == badge.kind &&
-                    !b.standalone,
-              )
-              .toList()
-            ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
+            .where(
+              (b) =>
+                  b.metric == badge.metric &&
+                  b.kind == badge.kind &&
+                  !b.standalone,
+            )
+            .toList()
+          ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
     final ladder = tiers.isEmpty ? <BadgeDef>[badge] : tiers;
 
     return SafeArea(
@@ -111,14 +111,18 @@ class BadgeDetailSheet extends ConsumerWidget {
                         children: [
                           Text(
                             badge.name,
-                            style: Theme.of(context).textTheme.headlineSmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                           if (badge.description.isNotEmpty) ...[
                             const SizedBox(height: 6),
                             Text(
                               badge.description,
-                              style: Theme.of(context).textTheme.bodyMedium
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
                                   ?.copyWith(color: AppTheme.textSecondary),
                             ),
                           ],
@@ -133,9 +137,9 @@ class BadgeDetailSheet extends ConsumerWidget {
                 Text(
                   'BARÈME',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.textSecondary,
-                    letterSpacing: .8,
-                  ),
+                        color: AppTheme.textSecondary,
+                        letterSpacing: .8,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -234,9 +238,11 @@ class _TierRow extends StatelessWidget {
                 Text(
                   tier.name,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: highlighted ? AppTheme.reward : AppTheme.textPrimary,
-                  ),
+                        fontWeight: FontWeight.w800,
+                        color: highlighted
+                            ? AppTheme.reward
+                            : AppTheme.textPrimary,
+                      ),
                 ),
                 if (tier.description.isNotEmpty) ...[
                   const SizedBox(height: 3),

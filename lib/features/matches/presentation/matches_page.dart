@@ -138,8 +138,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   child: GrintaEmptyState(
                     icon: Icons.stadium_rounded,
                     title: 'Aucun match cette saison',
-                    message:
-                        'Les matchs de la saison apparaîtront ici dès '
+                    message: 'Les matchs de la saison apparaîtront ici dès '
                         'qu\'ils seront programmés.',
                     compact: true,
                   ),
@@ -263,8 +262,8 @@ class _MatchCard extends StatelessWidget {
     final cardColor = isNext
         ? AppTheme.surfaceHero.withValues(alpha: .96)
         : isFinished
-        ? AppTheme.surface.withValues(alpha: .72)
-        : AppTheme.surfaceHigh.withValues(alpha: .7);
+            ? AppTheme.surface.withValues(alpha: .72)
+            : AppTheme.surfaceHigh.withValues(alpha: .7);
 
     return Card(
       color: cardColor,
@@ -282,8 +281,8 @@ class _MatchCard extends StatelessWidget {
         onTap: isFinished
             ? () => context.push('/matches/${match.id}')
             : isNext
-            ? () => context.push('/matches/${match.id}/lineup?section=info')
-            : null,
+                ? () => context.push('/matches/${match.id}/lineup?section=info')
+                : null,
         child: Padding(
           padding: EdgeInsets.all(isNext ? 18 : 14),
           child: Column(
@@ -320,12 +319,11 @@ class _MatchCard extends StatelessWidget {
                       isFinished
                           ? 'Terminé'
                           : isNext
-                          ? 'Prochain'
-                          : 'À venir',
+                              ? 'Prochain'
+                              : 'À venir',
                       style: TextStyle(
-                        color: isFinished
-                            ? resultColor
-                            : AppTheme.primaryBright,
+                        color:
+                            isFinished ? resultColor : AppTheme.primaryBright,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
@@ -373,8 +371,7 @@ class _MatchCard extends StatelessWidget {
                     if (canDelete)
                       TextButton.icon(
                         onPressed: () async {
-                          final confirmed =
-                              await showDialog<bool>(
+                          final confirmed = await showDialog<bool>(
                                 context: context,
                                 builder: (dialogContext) => AlertDialog(
                                   title: const Text('Supprimer ce match ?'),

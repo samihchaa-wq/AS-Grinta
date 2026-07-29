@@ -35,10 +35,10 @@ class HomeNextMatchCard extends StatelessWidget {
             awayName: awayName,
             grintaIsHome: match.isHome,
             nameStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 20,
-              height: 1.08,
-              fontWeight: FontWeight.w900,
-            ),
+                  fontSize: 20,
+                  height: 1.08,
+                  fontWeight: FontWeight.w900,
+                ),
             foreground: AppTheme.textPrimary,
             textAlign: TextAlign.center,
           ),
@@ -157,7 +157,9 @@ class HomeNextMatchCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Text(
                                 match.isHome ? 'Domicile' : 'Extérieur',
-                                style: Theme.of(context).textTheme.labelMedium
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
                                     ?.copyWith(
                                       color: AppTheme.textSecondary,
                                       fontWeight: FontWeight.w800,

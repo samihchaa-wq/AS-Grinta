@@ -91,8 +91,7 @@ class ArmoirePage extends ConsumerWidget {
                   child: GrintaEmptyState(
                     icon: Icons.emoji_events_outlined,
                     title: 'Ta collection est vide',
-                    message:
-                        'Joue, pronostique et gagne des matchs pour '
+                    message: 'Joue, pronostique et gagne des matchs pour '
                         'débloquer tes premiers badges.',
                   ),
                 ),
@@ -246,9 +245,9 @@ class _SectionTitle extends StatelessWidget {
           child: Text(
             '$count',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: AppTheme.textSecondary,
-            ),
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textSecondary,
+                ),
           ),
         ),
       ],
@@ -337,9 +336,9 @@ class _BadgeTile extends ConsumerWidget {
               'Mystère',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppTheme.textFaint.withValues(alpha: .72),
-                fontWeight: FontWeight.w700,
-              ),
+                    color: AppTheme.textFaint.withValues(alpha: .72),
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
           ],
         ),
@@ -355,11 +354,8 @@ class _BadgeTile extends ConsumerWidget {
           GestureDetector(
             onTap: () {
               if (badge.isNew) {
-                final uid = ref
-                    .read(supabaseClientProvider)
-                    .auth
-                    .currentUser
-                    ?.id;
+                final uid =
+                    ref.read(supabaseClientProvider).auth.currentUser?.id;
                 if (uid != null) {
                   ref
                       .read(badgeRepositoryProvider)
@@ -439,9 +435,9 @@ class _BadgeTile extends ConsumerWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
           ),
         ],
       ),
@@ -487,8 +483,8 @@ class _InProgressTile extends StatelessWidget {
                   Text(
                     badge.def.name,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   if (badge.def.description.isNotEmpty) ...[
                     const SizedBox(height: 3),
@@ -497,8 +493,8 @@ class _InProgressTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textFaint,
-                      ),
+                            color: AppTheme.textFaint,
+                          ),
                     ),
                   ],
                   if (showProgress) ...[
@@ -521,11 +517,11 @@ class _InProgressTile extends StatelessWidget {
                         const SizedBox(width: 10),
                         Text(
                           '${badge.current}/${badge.target}',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                         ),
                       ],
                     ),

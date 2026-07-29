@@ -53,13 +53,14 @@ abstract final class AppTheme {
     double radius = radiusMd,
     Color? borderColor,
     double borderWidth = 1,
-  }) => RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(radius),
-    side: BorderSide(
-      color: borderColor ?? outline.withValues(alpha: .34),
-      width: borderWidth,
-    ),
-  );
+  }) =>
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+        side: BorderSide(
+          color: borderColor ?? outline.withValues(alpha: .34),
+          width: borderWidth,
+        ),
+      );
 
   static ThemeData get dark {
     const scheme = ColorScheme.dark(
