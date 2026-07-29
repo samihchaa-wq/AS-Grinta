@@ -117,11 +117,14 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
     final finished = state.matches.where((match) => match.isFinished).toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final nextMatch = upcoming.isEmpty ? null : upcoming.last;
+    // Un match annulé ne peut pas devenir le prochain match mis en avant,
+    // mais reste visible dans « À venir » pour informer les joueurs.
+    final activeUpcoming =
+        upcoming.where((match) => !match.isCancelled).toList();
+    final nextMatch = activeUpcoming.isEmpty ? null : activeUpcoming.last;
     final nextMatchId = nextMatch?.id;
-    final laterUpcoming = upcoming.length > 1
-        ? upcoming.sublist(0, upcoming.length - 1)
-        : <MatchModel>[];
+    final laterUpcoming =
+        upcoming.where((match) => match.id != nextMatchId).toList();
 
     final focusRequest = ref.watch(matchesFocusRequestProvider);
     final nextCardIsReady = nextMatch != null && !state.isLoading;
@@ -375,8 +378,9 @@ class _UpcomingMatchCard extends StatelessWidget {
     final availabilityOpensAt = match.kickoffAt.subtract(
       const Duration(days: 6),
     );
-    final availabilityIsOpen =
-        !now.isBefore(availabilityOpensAt) && now.isBefore(match.kickoffAt);
+    final availabilityIsOpen = !match.isCancelled &&
+        !now.isBefore(availabilityOpensAt) &&
+        now.isBefore(match.kickoffAt);
     final detailsRoute = availabilityIsOpen
         ? '/matches/${match.id}/lineup?section=info'
         : '/matches/${match.id}/lineup?section=info&infoOnly=true';
@@ -394,7 +398,8 @@ class _UpcomingMatchCard extends StatelessWidget {
                   height: 1.1,
                   fontWeight: FontWeight.w800,
                 ),
-            foreground: AppTheme.textPrimary,
+            foreground:
+                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
             textAlign: TextAlign.center,
           ),
         ),
@@ -402,78 +407,97 @@ class _UpcomingMatchCard extends StatelessWidget {
           const SizedBox(width: 4),
           SizedBox(width: 36, child: AdminMatchOptionsButton(match: match)),
         ],
-        const Icon(
-          Icons.arrow_forward_ios_rounded,
-          size: 14,
-          color: AppTheme.textFaint,
-        ),
+        if (match.isCancelled)
+          Text(
+            'Annulé',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFFE5555A),
+                  fontWeight: FontWeight.w800,
+                ),
+          )
+        else
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 14,
+            color: AppTheme.textFaint,
+          ),
       ],
     );
 
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 13),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MatchDateHeader(
+            kickoffAt: match.kickoffAt,
+            foreground:
+                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
+            secondary: AppTheme.textSecondary,
+            dividerColor: AppTheme.outline.withValues(alpha: .55),
+            child: fixtureRow,
+          ),
+          if (match.address case final address?) ...[
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () => showMatchAddressSheet(context, address),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.place_outlined,
+                      size: 16,
+                      color: AppTheme.textFaint,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        address,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textFaint,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (availabilityIsOpen)
+            MatchAvailabilitySelector(
+              matchId: match.id,
+              embeddedOnDark: true,
+              topSpacing: 10,
+            ),
+        ],
+      ),
+    );
+
     return Card(
-      color: AppTheme.surface.withValues(alpha: .72),
+      color: match.isCancelled
+          ? AppTheme.surface.withValues(alpha: .5)
+          : AppTheme.surface.withValues(alpha: .72),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        side: BorderSide(color: AppTheme.outline.withValues(alpha: .34)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(detailsRoute),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 13),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              MatchDateHeader(
-                kickoffAt: match.kickoffAt,
-                foreground: AppTheme.textPrimary,
-                secondary: AppTheme.textSecondary,
-                dividerColor: AppTheme.outline.withValues(alpha: .55),
-                child: fixtureRow,
-              ),
-              if (match.address case final address?) ...[
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: () => showMatchAddressSheet(context, address),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.place_outlined,
-                          size: 16,
-                          color: AppTheme.textFaint,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            address,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textFaint,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              if (availabilityIsOpen)
-                MatchAvailabilitySelector(
-                  matchId: match.id,
-                  embeddedOnDark: true,
-                  topSpacing: 10,
-                ),
-            ],
-          ),
+        side: BorderSide(
+          color: match.isCancelled
+              ? const Color(0xFF6E4045)
+              : AppTheme.outline.withValues(alpha: .34),
         ),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: match.isCancelled
+          ? content
+          : InkWell(
+              onTap: () => context.push(detailsRoute),
+              child: content,
+            ),
     );
   }
 }

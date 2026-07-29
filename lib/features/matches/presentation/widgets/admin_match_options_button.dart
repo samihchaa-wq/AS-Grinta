@@ -23,6 +23,36 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     await ref.read(matchesControllerProvider.notifier).load(allSeasons: true);
   }
 
+  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Annuler ce match ?'),
+            content: const Text(
+              'Le match sera marqué comme annulé. Il reste visible dans le '
+              'calendrier pour informer les joueurs, mais ne sera plus '
+              'ouvrable.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Retour'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Annuler le match'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+    await ref.read(matchesControllerProvider.notifier).cancelMatch(match.id);
+    ref
+      ..invalidate(homeDashboardProvider)
+      ..invalidate(matchDetailsProvider(match.id));
+  }
+
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
           context: context,
@@ -67,13 +97,16 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               context.push('/matches/${match.id}/finalize');
             }
             return;
+          case 'cancel':
+            await _cancel(context, ref);
+            return;
           case 'delete':
             await _delete(context, ref);
             return;
         }
       },
-      itemBuilder: (context) => const [
-        PopupMenuItem(
+      itemBuilder: (context) => [
+        const PopupMenuItem(
           value: 'edit',
           child: ListTile(
             leading: Icon(Icons.settings_outlined),
@@ -81,7 +114,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: 'stats',
           child: ListTile(
             leading: Icon(Icons.query_stats_outlined),
@@ -89,7 +122,16 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
-        PopupMenuItem(
+        if (!match.isCancelled)
+          const PopupMenuItem(
+            value: 'cancel',
+            child: ListTile(
+              leading: Icon(Icons.block_outlined),
+              title: Text('Annuler'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        const PopupMenuItem(
           value: 'delete',
           child: ListTile(
             leading: Icon(Icons.delete_outline),

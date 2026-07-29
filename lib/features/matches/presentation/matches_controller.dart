@@ -278,6 +278,24 @@ class MatchesController extends StateNotifier<MatchesState> {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
     }
   }
+
+  Future<void> cancelMatch(String id) async {
+    if (!_canManageMatches) {
+      state = state.copyWith(error: 'Seul le staff peut annuler un match.');
+      return;
+    }
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.cancelMatch(id);
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
+      _ref.invalidate(homeDashboardProvider);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
+    }
+  }
 }
 
 final matchesControllerProvider =

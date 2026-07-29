@@ -220,6 +220,16 @@ class MatchesRepository {
     }
   }
 
+  Future<void> cancelMatch(String id) async {
+    final result = await _client.rpc(
+      'cancel_match',
+      params: {'p_match_id': id},
+    );
+    if (result != true) {
+      throw StateError('Le match n’existe plus ou n’a pas pu être annulé.');
+    }
+  }
+
   Future<void> finalizeMatchPostgame({
     required String id,
     required int grintaScore,
