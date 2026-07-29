@@ -10,7 +10,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   _desiredConvoked.contains(player.participantId),
         )
         .toList();
-    players.sort(_playerOrder);
+    // Les convoqués sont toujours placés par ordre inverse de la liste
+    // d'attente permanente (les moins prioritaires en premier), pour que
+    // l'admin retire manuellement en priorité les joueurs en haut de liste.
+    players.sort(_convokedOrder);
     return players;
   }
 
@@ -47,6 +50,22 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final byPosition = (a.waitlistPosition ?? 1 << 20).compareTo(
       b.waitlistPosition ?? 1 << 20,
     );
+    return byPosition != 0
+        ? byPosition
+        : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+  }
+
+  /// Ordre inverse de la liste d'attente permanente : position la plus haute
+  /// d'abord, joueurs hors liste d'attente (jamais en attente) en dernier.
+  int _convokedOrder(ConvocationPlayer a, ConvocationPlayer b) {
+    final ap = a.waitlistPosition;
+    final bp = b.waitlistPosition;
+    if (ap == null && bp == null) {
+      return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
+    }
+    if (ap == null) return 1;
+    if (bp == null) return -1;
+    final byPosition = bp.compareTo(ap);
     return byPosition != 0
         ? byPosition
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
