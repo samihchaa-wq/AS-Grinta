@@ -53,7 +53,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
   }
 
   void _move(int index, int delta) {
-    final next = index + delta;
+    if (_entries.length < 2) return;
+    final next = index == 0 && delta < 0 ? _entries.length - 1 : index + delta;
     if (next < 0 || next >= _entries.length) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries);
@@ -190,7 +191,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
           _WaitlistTile(
             index: index,
             entry: _entries[index],
-            canMoveUp: index > 0,
+            canMoveUp: _entries.length > 1,
             canMoveDown: index < _entries.length - 1,
             onMoveUp: () => _move(index, -1),
             onMoveDown: () => _move(index, 1),
@@ -221,6 +222,8 @@ class _WaitlistTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = entry.previousSeasonMatchCount;
     final attendance = entry.previousSeasonAttendanceCount;
+    final previousSeasonPresence = total > 0 ? '$attendance sur $total' : 'Aucune donnée';
+    final waitlistCount = entry.currentSeasonWaitlistCount;
     return Card(
       key: ValueKey(entry.seasonPlayerId),
       margin: const EdgeInsets.only(bottom: 8),
@@ -230,11 +233,15 @@ class _WaitlistTile extends StatelessWidget {
           entry.displayName,
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
-        subtitle: Text(
-          total > 0
-              ? '$attendance présence${attendance > 1 ? 's' : ''} sur '
-                  '$total match${total > 1 ? 's' : ''} la saison dernière'
-              : 'Aucune référence de présence la saison dernière',
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 3),
+            Text('Présence saison précédente : $previousSeasonPresence'),
+            Text(
+              'Liste d’attente cette saison : $waitlistCount fois',
+            ),
+          ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
