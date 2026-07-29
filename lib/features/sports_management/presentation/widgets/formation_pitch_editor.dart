@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
@@ -197,6 +198,7 @@ class FormationPitchEditor extends StatelessWidget {
             ),
           );
           if (!editable) return marker;
+          final autoScroll = DragAutoScroller(context);
           return LongPressDraggable<MatchCompositionEntry>(
             data: entry,
             feedback: Material(
@@ -204,6 +206,10 @@ class FormationPitchEditor extends StatelessWidget {
               child: SizedBox(width: width, height: height, child: marker),
             ),
             childWhenDragging: Opacity(opacity: .25, child: marker),
+            onDragUpdate: (details) =>
+                autoScroll.update(details.globalPosition),
+            onDragEnd: (_) => autoScroll.stop(),
+            onDraggableCanceled: (_, __) => autoScroll.stop(),
             child: marker,
           );
         },
