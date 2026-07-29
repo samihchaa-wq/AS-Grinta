@@ -528,14 +528,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           ),
         ),
         const SizedBox(height: 14),
-        if (_canConsultWaitlist) ...[
-          OutlinedButton.icon(
-            onPressed: _busy ? null : () => context.push('/admin/waitlist'),
-            icon: const Icon(Icons.format_list_numbered_rounded),
-            label: const Text('Consulter la liste d’attente'),
-          ),
-          const SizedBox(height: 14),
-        ],
         LayoutBuilder(
           builder: (context, constraints) {
             final columns = [
