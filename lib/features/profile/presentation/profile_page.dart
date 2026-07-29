@@ -130,9 +130,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   displayName,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.4,
-                  ),
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -.4,
+                      ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
@@ -296,7 +296,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       setState(
         () => _localError =
             'Le prénom et le nom ne doivent contenir que des lettres '
-            '(ni emoji, ni chiffre, ni symbole).',
+                '(ni emoji, ni chiffre, ni symbole).',
       );
       return;
     }
@@ -304,14 +304,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       setState(
         () => _localError =
             'Le surnom ne doit contenir que des lettres (ni emoji, ni chiffre, '
-            'ni symbole).',
+                'ni symbole).',
       );
       return;
     }
     setState(() => _localError = null);
-    await ref
-        .read(authControllerProvider.notifier)
-        .updateProfile(
+    await ref.read(authControllerProvider.notifier).updateProfile(
           firstName: firstName,
           lastName: lastName,
           surnom: surnom,
@@ -374,8 +372,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 onPressed: () {
                   final password = passwordController.text;
                   final policyError = PasswordPolicy.validate(password);
-                  final error =
-                      policyError ??
+                  final error = policyError ??
                       (password != confirmationController.text
                           ? 'Les deux mots de passe ne correspondent pas.'
                           : null);
@@ -422,9 +419,9 @@ class _ProfileMetaChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
