@@ -1,5 +1,7 @@
 import 'package:as_grinta/app/shell/module_navigation.dart';
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
@@ -15,7 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 /// Contenu du nouvel onglet Matchs : le prochain match reprend toutes les
 /// fonctions de l'ancien accueil et chaque match passé reprend la carte
@@ -87,9 +88,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       duration: Duration.zero,
     );
 
-    // La liste construit ses enfants à la demande. Un second positionnement
-    // après stabilisation empêche le premier accès depuis un autre module de
-    // rester en haut de la liste lorsque les cartes précédentes apparaissent.
     await Future<void>.delayed(const Duration(milliseconds: 120));
     if (!mounted || _lastFocusSignature != signature) return;
     final settledContext = _nextMatchKey.currentContext;
@@ -100,6 +98,14 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
       duration: Duration.zero,
     );
+  }
+
+  Future<void> _openMatchForm(BuildContext context) async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const MatchFormPage()));
+    if (!context.mounted) return;
+    await _refresh();
   }
 
   @override
@@ -126,10 +132,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       requestToken: '$focusRequest',
     );
 
-    // Le prochain match se trouve après toutes les rencontres plus lointaines.
-    // Ce cache ciblé force la création de son ancre dès le premier affichage,
-    // sans construire inutilement tout l'historique situé en dessous.
-    final nextMatchCacheExtent = 1200.0 + (laterUpcoming.length * 520.0);
+    final nextMatchCacheExtent = 1000.0 + (laterUpcoming.length * 360.0);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -137,7 +140,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         scrollCacheExtent: ScrollCacheExtent.pixels(nextMatchCacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+          const SliverToBoxAdapter(child: SizedBox(height: 4)),
           if (state.isLoading)
             const SliverPadding(
               padding: EdgeInsets.symmetric(horizontal: 16),
@@ -167,42 +170,15 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ),
             )
           else ...[
-            if (laterUpcoming.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  const SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SectionHeaderDelegate(
-                      icon: Icons.calendar_month_outlined,
-                      title: 'Matchs à venir',
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _UpcomingMatchCard(
-                            match: laterUpcoming[index],
-                            isAdmin: isAdmin,
-                          ),
-                        ),
-                        childCount: laterUpcoming.length,
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                ],
-              ),
             SliverMainAxisGroup(
               slivers: [
                 SliverPersistentHeader(
                   key: _nextMatchKey,
                   pinned: true,
                   delegate: const _SectionHeaderDelegate(
-                    icon: Icons.event_rounded,
+                    icon: Icons.bolt_rounded,
                     title: 'Prochain match',
+                    emphasized: true,
                   ),
                 ),
                 SliverPadding(
@@ -214,54 +190,58 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                             message:
                                 'Le prochain match apparaîtra ici dès qu’il sera créé.',
                           )
-                        : HomeNextMatchCard(
-                            match: nextMatch,
-                            isAdmin: isAdmin,
-                          ),
+                        : HomeNextMatchCard(match: nextMatch, isAdmin: isAdmin),
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
               ],
             ),
             if (isAdmin)
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 sliver: SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: '👑 Ajouter un match',
-                            iconSize: 30,
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints.tightFor(
-                              width: 38,
-                              height: 38,
-                            ),
-                            onPressed: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const MatchFormPage(),
-                                ),
-                              );
-                              if (!context.mounted) return;
-                              await _refresh();
-                            },
-                            icon: const Icon(Icons.add_circle),
-                          ),
-                          Text(
-                            '👑 Ajouter un match',
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                        ],
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => _openMatchForm(context),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Ajouter un match'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 42),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ),
                 ),
+              ),
+            if (laterUpcoming.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  const SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SectionHeaderDelegate(
+                      icon: Icons.calendar_month_outlined,
+                      title: 'À venir',
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _UpcomingMatchCard(
+                            match: laterUpcoming[index],
+                            isAdmin: isAdmin,
+                          ),
+                        ),
+                        childCount: laterUpcoming.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                ],
               ),
             SliverMainAxisGroup(
               slivers: [
@@ -269,7 +249,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   pinned: true,
                   delegate: _SectionHeaderDelegate(
                     icon: Icons.history_rounded,
-                    title: 'Matchs passés',
+                    title: 'Résultats',
                   ),
                 ),
                 if (finished.isEmpty)
@@ -289,7 +269,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.only(bottom: 8),
                           child: MatchHistoryCard(match: finished[index]),
                         ),
                         childCount: finished.length,
@@ -299,7 +279,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ],
             ),
           ],
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
     );
@@ -307,12 +287,17 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 }
 
 class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _SectionHeaderDelegate({required this.icon, required this.title});
+  const _SectionHeaderDelegate({
+    required this.icon,
+    required this.title,
+    this.emphasized = false,
+  });
 
-  static const double _height = 44;
+  static const double _height = 38;
 
   final IconData icon;
   final String title;
+  final bool emphasized;
 
   @override
   double get minExtent => _height;
@@ -326,20 +311,40 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return ColoredBox(
-      color:
-          overlapsContent ? const Color(0xF2071738) : const Color(0xB3071738),
+    final background = overlapsContent
+        ? AppTheme.background.withValues(alpha: .96)
+        : AppTheme.background.withValues(alpha: .78);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: background,
+        border: Border(
+          bottom: BorderSide(
+            color: AppTheme.outline.withValues(
+              alpha: overlapsContent ? .5 : .2,
+            ),
+          ),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            Icon(icon, size: 20),
-            const SizedBox(width: 8),
+            Icon(
+              icon,
+              size: emphasized ? 18 : 17,
+              color: emphasized ? AppTheme.primaryBright : AppTheme.textFaint,
+            ),
+            const SizedBox(width: 7),
             Text(
               title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: emphasized
+                        ? AppTheme.textPrimary
+                        : AppTheme.textSecondary,
+                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
+                    letterSpacing: emphasized ? -.15 : 0,
+                  ),
             ),
           ],
         ),
@@ -349,7 +354,9 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _SectionHeaderDelegate oldDelegate) {
-    return oldDelegate.icon != icon || oldDelegate.title != title;
+    return oldDelegate.icon != icon ||
+        oldDelegate.title != title ||
+        oldDelegate.emphasized != emphasized;
   }
 }
 
@@ -382,70 +389,74 @@ class _UpcomingMatchCard extends StatelessWidget {
             homeName: homeName,
             awayName: awayName,
             grintaIsHome: match.isHome,
-            nameStyle: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontSize: 18, height: 1.1),
-            foreground: Colors.white,
+            nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontSize: 16,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                ),
+            foreground: AppTheme.textPrimary,
             textAlign: TextAlign.center,
           ),
         ),
         if (isAdmin) ...[
-          const SizedBox(width: 2),
-          SizedBox(width: 38, child: AdminMatchOptionsButton(match: match)),
+          const SizedBox(width: 4),
+          SizedBox(width: 36, child: AdminMatchOptionsButton(match: match)),
         ],
-        const Icon(Icons.chevron_right, size: 22, color: Color(0xFFD7C8FF)),
+        const Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 14,
+          color: AppTheme.textFaint,
+        ),
       ],
     );
 
     return Card(
-      color: const Color(0xFF25164F),
+      color: AppTheme.surface.withValues(alpha: .72),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF9B6CFF), width: 1.6),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        side: BorderSide(color: AppTheme.outline.withValues(alpha: .34)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push(detailsRoute),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 14, 12, 16),
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 13),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               MatchDateHeader(
                 kickoffAt: match.kickoffAt,
-                foreground: Colors.white,
-                secondary: const Color(0xFFD7C8FF),
-                dividerColor: const Color(0xFF7A5AB7),
+                foreground: AppTheme.textPrimary,
+                secondary: AppTheme.textSecondary,
+                dividerColor: AppTheme.outline.withValues(alpha: .55),
                 child: fixtureRow,
               ),
               if (match.address case final address?) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 InkWell(
                   onTap: () => showMatchAddressSheet(context, address),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Icon(
                           Icons.place_outlined,
-                          size: 18,
-                          color: Color(0xFF9B6CFF),
+                          size: 16,
+                          color: AppTheme.textFaint,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             address,
-                            style: const TextStyle(
-                              color: Color(0xFF9B6CFF),
-                              fontWeight: FontWeight.w800,
-                              decoration: TextDecoration.underline,
-                              decorationColor: Color(0xFF9B6CFF),
-                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textFaint,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                           ),
                         ),
                       ],
@@ -457,7 +468,7 @@ class _UpcomingMatchCard extends StatelessWidget {
                 MatchAvailabilitySelector(
                   matchId: match.id,
                   embeddedOnDark: true,
-                  topSpacing: 14,
+                  topSpacing: 10,
                 ),
             ],
           ),
