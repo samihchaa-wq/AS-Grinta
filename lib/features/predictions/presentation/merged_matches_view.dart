@@ -339,12 +339,12 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
             Text(
               title,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: emphasized
-                    ? AppTheme.textPrimary
-                    : AppTheme.textSecondary,
-                fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
-                letterSpacing: emphasized ? -.15 : 0,
-              ),
+                    color: emphasized
+                        ? AppTheme.textPrimary
+                        : AppTheme.textSecondary,
+                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
+                    letterSpacing: emphasized ? -.15 : 0,
+                  ),
             ),
           ],
         ),
@@ -390,10 +390,10 @@ class _UpcomingMatchCard extends StatelessWidget {
             awayName: awayName,
             grintaIsHome: match.isHome,
             nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontSize: 16,
-              height: 1.1,
-              fontWeight: FontWeight.w800,
-            ),
+                  fontSize: 16,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                ),
             foreground: AppTheme.textPrimary,
             textAlign: TextAlign.center,
           ),
@@ -452,11 +452,11 @@ class _UpcomingMatchCard extends StatelessWidget {
                             address,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: AppTheme.textFaint,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textFaint,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                           ),
                         ),
                       ],
