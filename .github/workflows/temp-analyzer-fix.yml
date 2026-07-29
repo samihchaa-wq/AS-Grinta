@@ -35,10 +35,13 @@ jobs:
 
           matches = Path('lib/features/matches/presentation/matches_page.dart')
           text = matches.read_text()
-          old = "if (dateKey != null) grouped.putIfAbsent(dateKey, () => []).add(m);"
-          new = "if (dateKey != null) {\n        grouped.putIfAbsent(dateKey, () => []).add(m);\n      }"
+          old = """                    if (value == null || value == state.selectedSeasonId)
+                      return;"""
+          new = """                    if (value == null || value == state.selectedSeasonId) {
+                      return;
+                    }"""
           if old not in text:
-              raise SystemExit('Expected matches condition not found')
+              raise SystemExit('Expected season guard not found')
           matches.write_text(text.replace(old, new))
           PY
           flutter pub get --enforce-lockfile
