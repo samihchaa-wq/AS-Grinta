@@ -46,6 +46,7 @@ class MatchModel {
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
   bool get isArchived => status == 'archive';
   bool get isFinished => status == 'termine' || status == 'archive';
+  bool get isCancelled => status == 'annule';
 
   /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
   bool get pronosClosed => predictionsClosedAt != null;
@@ -61,6 +62,8 @@ class MatchModel {
         return 'Terminé';
       case 'archive':
         return 'Archivé';
+      case 'annule':
+        return 'Annulé';
       default:
         return isAwaitingResult ? 'En attente' : 'À venir';
     }
