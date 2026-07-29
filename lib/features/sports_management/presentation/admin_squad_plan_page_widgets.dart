@@ -186,18 +186,32 @@ class _EffectifPlayerChip extends StatelessWidget {
           : player.hasUnpublishedConvocationChange
               ? const Icon(Icons.edit_outlined, size: 16)
               : null,
-      label: Row(
+      label: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            player.firstName.trim().isEmpty
-                ? player.displayName
-                : player.firstName.trim(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                player.firstName.trim().isEmpty
+                    ? player.displayName
+                    : player.firstName.trim(),
+              ),
+              if (player.isGuest && onTap != null) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.close, size: 15, color: color.withValues(alpha: .8)),
+              ],
+            ],
           ),
-          if (player.isGuest && onTap != null) ...[
-            const SizedBox(width: 4),
-            Icon(Icons.close, size: 15, color: color.withValues(alpha: .8)),
-          ],
+          if (!player.isGuest)
+            Text(
+              'Liste d’attente : ${player.currentSeasonWaitlistCount} fois',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color.withValues(alpha: .9),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
         ],
       ),
       onPressed: onTap,

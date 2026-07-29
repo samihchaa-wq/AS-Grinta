@@ -42,6 +42,7 @@ class SportWaitlistEntry {
     required this.position,
     required this.previousSeasonAttendanceCount,
     required this.previousSeasonMatchCount,
+    this.currentSeasonWaitlistCount = 0,
     required this.source,
     this.serverName,
   });
@@ -57,6 +58,8 @@ class SportWaitlistEntry {
           (json['previous_season_attendance_count'] as num?)?.toInt() ?? 0,
       previousSeasonMatchCount:
           (json['previous_season_match_count'] as num?)?.toInt() ?? 0,
+      currentSeasonWaitlistCount:
+          (json['current_season_waitlist_count'] as num?)?.toInt() ?? 0,
       source: (json['source'] ?? 'previous_season_attendance').toString(),
       serverName: (rawName != null && rawName.isNotEmpty) ? rawName : null,
     );
@@ -68,6 +71,7 @@ class SportWaitlistEntry {
   final int position;
   final int previousSeasonAttendanceCount;
   final int previousSeasonMatchCount;
+  final int currentSeasonWaitlistCount;
   final String source;
 
   /// Appellation résolue par le serveur : surnom sinon prénom, jamais le nom.
@@ -133,6 +137,7 @@ class ConvocationPlayer {
     required this.publishedConvocationStatus,
     required this.manualOverride,
     required this.waitlistPosition,
+    this.currentSeasonWaitlistCount = 0,
     required this.recommendedNotConvoked,
     required this.turnShouldConsume,
     required this.turnState,
@@ -166,6 +171,8 @@ class ConvocationPlayer {
       ),
       manualOverride: json['manual_override'] == true,
       waitlistPosition: (json['waitlist_position'] as num?)?.toInt(),
+      currentSeasonWaitlistCount:
+          (json['current_season_waitlist_count'] as num?)?.toInt() ?? 0,
       recommendedNotConvoked: json['recommended_not_convoked'] == true,
       turnShouldConsume: json['turn_should_consume'] == true,
       turnState: WaitlistTurnState.fromWire(json['turn_state']),
@@ -190,6 +197,7 @@ class ConvocationPlayer {
   final ConvocationStatus publishedConvocationStatus;
   final bool manualOverride;
   final int? waitlistPosition;
+  final int currentSeasonWaitlistCount;
   final bool recommendedNotConvoked;
   final bool turnShouldConsume;
   final WaitlistTurnState turnState;
