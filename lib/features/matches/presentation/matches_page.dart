@@ -116,8 +116,9 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                       )
                       .toList(),
                   onChanged: (value) async {
-                    if (value == null || value == state.selectedSeasonId)
+                    if (value == null || value == state.selectedSeasonId) {
                       return;
+                    }
                     await ref
                         .read(matchesControllerProvider.notifier)
                         .load(seasonId: value);
