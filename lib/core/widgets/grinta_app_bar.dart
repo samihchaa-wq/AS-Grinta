@@ -1,11 +1,10 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Barre supérieure commune, divisée en 4 quarts de gauche à droite :
-/// 1) le logo MPG · 2-3) le nom de la page (centré) · 4) les actions
-/// (armoire à badges, paramètres).
+/// Barre supérieure commune de l'application.
 ///
 /// [admin] ajoute la pastille « Admin » à droite : à activer sur toute page
 /// réservée à l'administrateur.
@@ -17,7 +16,7 @@ class GrintaAppBar extends AppBar {
     bool admin = false,
     super.bottom,
   }) : super(
-          toolbarHeight: 104,
+          toolbarHeight: 76,
           titleSpacing: 0,
           centerTitle: false,
           title: _GrintaTitleBar(
@@ -42,42 +41,38 @@ class _GrintaTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: 72,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Image.asset(
                 'assets/images/mpg_logo_bar.png',
-                height: 96,
+                height: 62,
                 fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
               ),
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
-            flex: 3,
-            child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: DefaultTextStyle.merge(
-                  textAlign: TextAlign.center,
-                  softWrap: false,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
-                  child: pageName,
-                ),
-              ),
+            child: DefaultTextStyle.merge(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.left,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.4,
+                  ),
+              child: pageName,
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
+          if (admin || (actions?.isNotEmpty ?? false)) ...[
+            const SizedBox(width: 10),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 48),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -90,7 +85,7 @@ class _GrintaTitleBar extends StatelessWidget {
                 ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -99,13 +94,17 @@ class _GrintaTitleBar extends StatelessWidget {
 
 List<Widget> grintaHomeActions(BuildContext context) => [
       const BadgeTrophyButton(),
-      const SizedBox(width: 6),
+      const SizedBox(width: 4),
       IconButton(
         tooltip: 'Paramètres',
-        iconSize: 30,
+        iconSize: 25,
         visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        constraints: const BoxConstraints(),
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+        style: IconButton.styleFrom(
+          foregroundColor: AppTheme.textSecondary,
+          backgroundColor: AppTheme.surface.withValues(alpha: .56),
+        ),
         icon: const Icon(Icons.settings_outlined),
         onPressed: () => context.push('/more'),
       ),
