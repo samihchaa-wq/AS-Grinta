@@ -125,7 +125,9 @@ class MatchesRepository {
     return result.toString();
   }
 
-  /// Crée le match et renvoie son identifiant.
+  /// Crée le match, ses cotes, son adresse, son type et son maillot en une
+  /// seule transaction serveur, et renvoie son identifiant. Une coupure
+  /// réseau ne peut donc plus laisser un match partiellement enregistré.
   Future<String> createMatch({
     required String seasonId,
     required String opponentId,
@@ -135,12 +137,13 @@ class MatchesRepository {
     required double oddsDraw,
     required double oddsLoss,
     int? squadSizeLimit,
+    String? address,
+    bool rememberAddressAsDefault = false,
+    String matchType = 'championnat',
+    String? jerseyNote,
   }) async {
-    final sportsEnabled = squadSizeLimit != null;
     final result = await _client.rpc(
-      sportsEnabled
-          ? 'create_match_with_odds_and_sport_limit'
-          : 'create_match_with_odds',
+      'admin_create_match_complete',
       params: {
         'p_season_id': seasonId,
         'p_opponent_id': opponentId,
@@ -150,7 +153,11 @@ class MatchesRepository {
         'p_win': oddsWin,
         'p_draw': oddsDraw,
         'p_loss': oddsLoss,
-        if (sportsEnabled) 'p_squad_size_limit': squadSizeLimit,
+        'p_squad_size_limit': squadSizeLimit,
+        'p_address': address,
+        'p_remember_address_as_default': rememberAddressAsDefault,
+        'p_match_type': matchType,
+        'p_jersey_note': jerseyNote,
       },
     );
     if (result == null || result.toString().isEmpty) {
@@ -226,6 +233,8 @@ class MatchesRepository {
     }
   }
 
+  /// Enregistre le match, ses cotes, son adresse, son type et son maillot en
+  /// une seule transaction serveur.
   Future<void> updateMatch({
     required String id,
     required String seasonId,
@@ -237,12 +246,13 @@ class MatchesRepository {
     required double oddsDraw,
     required double oddsLoss,
     int? squadSizeLimit,
+    String? address,
+    bool rememberAddressAsDefault = false,
+    String matchType = 'championnat',
+    String? jerseyNote,
   }) async {
-    final sportsEnabled = squadSizeLimit != null;
     final result = await _client.rpc(
-      sportsEnabled
-          ? 'update_match_with_odds_and_sport_limit'
-          : 'update_match_with_odds',
+      'admin_update_match_complete',
       params: {
         'p_match_id': id,
         'p_season_id': seasonId,
@@ -254,7 +264,11 @@ class MatchesRepository {
         'p_win': oddsWin,
         'p_draw': oddsDraw,
         'p_loss': oddsLoss,
-        if (sportsEnabled) 'p_squad_size_limit': squadSizeLimit,
+        'p_squad_size_limit': squadSizeLimit,
+        'p_address': address,
+        'p_remember_address_as_default': rememberAddressAsDefault,
+        'p_match_type': matchType,
+        'p_jersey_note': jerseyNote,
       },
     );
     if (result != true) {

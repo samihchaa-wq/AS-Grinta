@@ -46,17 +46,38 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadLimitLoaded = false;
   bool _rememberAddressAsDefault = false;
 
+  /// Incrémenté à chaque nouvelle demande de cotes : une réponse dont le
+  /// jeton ne correspond plus à la dernière demande en cours est ignorée,
+  /// pour qu'un changement rapide d'adversaire ne se fasse jamais écraser
+  /// par la réponse d'un choix précédent arrivée en retard.
+  int _oddsRequestToken = 0;
+
   /// Adresse du terrain d'AS Grinta (matchs à domicile), mémorisée globalement.
   String? _clubHomeAddress;
 
   Future<void> _suggestOdds() async {
-    if (_opponentId.isEmpty) return;
+    final token = ++_oddsRequestToken;
+    if (_opponentId.isEmpty) {
+      setState(() {
+        _oddsWin = null;
+        _oddsDraw = null;
+        _oddsLoss = null;
+      });
+      return;
+    }
 
-    setState(() => _suggestingOdds = true);
+    // Efface immédiatement les cotes précédentes : un envoi ne doit jamais
+    // pouvoir se glisser avec les cotes d'un adversaire déjà abandonné.
+    setState(() {
+      _suggestingOdds = true;
+      _oddsWin = null;
+      _oddsDraw = null;
+      _oddsLoss = null;
+    });
     final odds = await ref
         .read(matchesRepositoryProvider)
         .previewMatchOdds(opponentId: _opponentId, isHome: _isHome);
-    if (!mounted) return;
+    if (!mounted || token != _oddsRequestToken) return;
     setState(() {
       _suggestingOdds = false;
       if (odds != null) {

@@ -53,6 +53,38 @@ class AdminMatchOptionsButton extends ConsumerWidget {
       ..invalidate(matchDetailsProvider(match.id));
   }
 
+  Future<void> _finish(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Terminer ce match ?'),
+            content: const Text(
+              'Le match entre nous sera marqué comme terminé et sortira des '
+              'matchs à venir. Cette action ne peut pas être annulée depuis '
+              'l’application.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Retour'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Terminer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+    await ref
+        .read(matchesControllerProvider.notifier)
+        .finishInternalMatch(match.id);
+    ref
+      ..invalidate(homeDashboardProvider)
+      ..invalidate(matchDetailsProvider(match.id));
+  }
+
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
           context: context,
@@ -97,6 +129,9 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               context.push('/matches/${match.id}/finalize');
             }
             return;
+          case 'finish':
+            await _finish(context, ref);
+            return;
           case 'cancel':
             await _cancel(context, ref);
             return;
@@ -120,6 +155,15 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             child: ListTile(
               leading: Icon(Icons.query_stats_outlined),
               title: Text('Stats'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        if (match.isInternal && !match.isFinished && !match.isCancelled)
+          const PopupMenuItem(
+            value: 'finish',
+            child: ListTile(
+              leading: Icon(Icons.check_circle_outline),
+              title: Text('Terminer'),
               contentPadding: EdgeInsets.zero,
             ),
           ),

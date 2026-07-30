@@ -75,6 +75,7 @@ class MatchDetailsData {
     required this.matchId,
     required this.opponentId,
     required this.opponentName,
+    required this.isInternal,
     required this.kickoffAt,
     required this.status,
     required this.location,
@@ -91,8 +92,14 @@ class MatchDetailsData {
   });
 
   final String matchId;
-  final String opponentId;
+
+  /// Absent pour un match entre nous, qui n'a pas d'adversaire réel.
+  final String? opponentId;
   final String opponentName;
+
+  /// Vrai pour un match entre nous (pas d'adversaire, pas de cotes, pas de
+  /// pronostics ni d'historique face-à-face).
+  final bool isInternal;
   final DateTime kickoffAt;
   final String status;
   final String location;
@@ -118,14 +125,19 @@ class MatchDetailsRepository {
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client.from('matches').select('''
       id, opponent_id, match_date, match_time, kickoff_at, status, location,
-      score_as_grinta, score_adverse, opponents(name),
+      match_type, score_as_grinta, score_adverse, opponents(name),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
     ''').eq('id', matchId).maybeSingle();
     if (match == null) {
       throw StateError('Ce match est introuvable ou a été supprimé.');
     }
-    final opponentId = match['opponent_id'].toString();
-    final opponent = Map<String, dynamic>.from(match['opponents'] as Map);
+    // Un match entre nous n'a pas d'adversaire réel : ni opponent_id, ni
+    // ligne opponents jointe.
+    final isInternal = match['match_type']?.toString() == 'entre_nous';
+    final opponentId = match['opponent_id']?.toString();
+    final opponent = match['opponents'] is Map
+        ? Map<String, dynamic>.from(match['opponents'] as Map)
+        : const <String, dynamic>{};
     final serverKickoff = DateTime.tryParse(
       '${match['kickoff_at'] ?? ''}',
     )?.toLocal();
@@ -146,15 +158,19 @@ class MatchDetailsRepository {
       params: {'p_match_id': matchId},
     );
 
-    final historyRaw = await _client
-        .from('matches')
-        .select('match_date, location, score_as_grinta, score_adverse')
-        .eq('opponent_id', opponentId)
-        .neq('id', matchId)
-        .inFilter('status', const ['termine', 'archive'])
-        .order('match_date', ascending: false)
-        .limit(5);
-    final history = (historyRaw as List)
+    // Pas d'historique face-à-face pour un match entre nous : il n'y a pas
+    // d'adversaire réel à comparer.
+    final List historyRaw = isInternal || opponentId == null
+        ? const []
+        : await _client
+            .from('matches')
+            .select('match_date, location, score_as_grinta, score_adverse')
+            .eq('opponent_id', opponentId)
+            .neq('id', matchId)
+            .inFilter('status', const ['termine', 'archive'])
+            .order('match_date', ascending: false)
+            .limit(5);
+    final history = historyRaw
         .map((row) => Map<String, dynamic>.from(row))
         .map(
           (row) => HeadToHeadMatch(
@@ -292,7 +308,10 @@ class MatchDetailsRepository {
     return MatchDetailsData(
       matchId: matchId,
       opponentId: opponentId,
-      opponentName: opponent['name']?.toString() ?? 'Adversaire',
+      opponentName: isInternal
+          ? 'Match entre nous'
+          : opponent['name']?.toString() ?? 'Adversaire',
+      isInternal: isInternal,
       kickoffAt: kickoffAt,
       status: status,
       location: (match['location'] ?? 'domicile').toString(),

@@ -166,7 +166,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final matchId = await _repository.createMatch(
+      await _repository.createMatch(
         seasonId: seasonId,
         opponentId: opponentId,
         kickoffAt: kickoffAt,
@@ -175,15 +175,9 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
-      );
-      await _repository.setMatchAddress(
-        matchId: matchId,
         address: address,
-        rememberAsDefault: rememberAddressAsDefault,
-      );
-      await _repository.setMatchType(matchId: matchId, matchType: matchType);
-      await _repository.setMatchJersey(
-        matchId: matchId,
+        rememberAddressAsDefault: rememberAddressAsDefault,
+        matchType: matchType,
         jerseyNote: jerseyNote,
       );
       await load(
@@ -250,14 +244,11 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
         squadSizeLimit: squadSizeLimit,
-      );
-      await _repository.setMatchAddress(
-        matchId: id,
         address: address,
-        rememberAsDefault: rememberAddressAsDefault,
+        rememberAddressAsDefault: rememberAddressAsDefault,
+        matchType: matchType,
+        jerseyNote: jerseyNote,
       );
-      await _repository.setMatchType(matchId: id, matchType: matchType);
-      await _repository.setMatchJersey(matchId: id, jerseyNote: jerseyNote);
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
@@ -373,6 +364,27 @@ class MatchesController extends StateNotifier<MatchesState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.cancelMatch(id);
+      await load(
+        seasonId: state.selectedSeasonId,
+        allSeasons: state.includesAllSeasons,
+      );
+      _ref.invalidate(homeDashboardProvider);
+    } catch (error) {
+      state = state.copyWith(isLoading: false, error: humanizeError(error));
+    }
+  }
+
+  /// Clôture un match entre nous une fois joué : il n'a ni pronostics, ni
+  /// feuille de match à valider, donc pas d'autre façon de sortir de
+  /// « à venir » que cette bascule directe en archivé.
+  Future<void> finishInternalMatch(String id) async {
+    if (!_canManageMatches) {
+      state = state.copyWith(error: 'Seul le staff peut terminer un match.');
+      return;
+    }
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _repository.updateMatchStatus(id: id, status: 'archive');
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
