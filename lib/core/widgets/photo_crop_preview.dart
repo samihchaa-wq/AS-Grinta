@@ -133,10 +133,14 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                           child: InteractiveViewer(
                             transformationController: _transformationController,
                             constrained: false,
-                            boundaryMargin: EdgeInsets.zero,
-                            // minScale < 1 permet de dézoomer en dessous du
-                            // cadrage "plein carré" pour voir apparaître le
-                            // fond (utile pour juger d'un fond transparent).
+                            // Une marge à zéro forçait l'image à toujours
+                            // recouvrir entièrement le cadre, quel que soit
+                            // minScale : le dézoom n'avait alors aucun effet
+                            // visible. Une marge généreuse laisse vraiment
+                            // dézoomer en dessous du cadrage "plein carré"
+                            // pour voir apparaître le fond.
+                            boundaryMargin:
+                                const EdgeInsets.all(_cropSize * 1.5),
                             minScale: 0.4,
                             maxScale: 4,
                             child: Image.memory(
