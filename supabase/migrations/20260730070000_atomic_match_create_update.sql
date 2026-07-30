@@ -27,6 +27,10 @@ as $function$
 declare
   v_match_id uuid;
 begin
+  if not private.is_admin() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+
   if p_squad_size_limit is not null then
     v_match_id := private.create_match_with_sport_limit(
       p_season_id, p_opponent_id, p_match_date, p_match_time,
@@ -72,6 +76,10 @@ security definer
 set search_path = ''
 as $function$
 begin
+  if not private.is_admin() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+
   if p_squad_size_limit is not null then
     perform private.update_match_with_sport_limit(
       p_match_id, p_season_id, p_opponent_id, p_match_date, p_match_time,
