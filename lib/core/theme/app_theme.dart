@@ -36,9 +36,18 @@ abstract final class AppTheme {
   static const Color warning = Color(0xFFF0A34A);
   static const Color admin = Color(0xFF8A72E8);
   static const Color error = Color(0xFFFF6F7D);
-  static const Color textPrimary = Color(0xFFF5F7FB);
-  static const Color textSecondary = Color(0xFFE4E8F0);
-  static const Color textFaint = Color(0xFFB7C0CE);
+  static const Color textPrimary = Color(0xFFFFFFFF);
+  static const Color textSecondary = Color(0xFFFFFFFF);
+  static const Color textFaint = Color(0xFFFFFFFF);
+
+  // Très fin liseré noir appliqué au texte neutre blanc pour qu'il reste
+  // net et lisible quel que soit ce qui se trouve derrière (fond photo).
+  static const List<Shadow> textOutline = [
+    Shadow(offset: Offset(-.6, -.6), color: Colors.black),
+    Shadow(offset: Offset(.6, -.6), color: Colors.black),
+    Shadow(offset: Offset(-.6, .6), color: Colors.black),
+    Shadow(offset: Offset(.6, .6), color: Colors.black),
+  ];
 
   // Grille de 8 px et niveaux de surfaces communs.
   static const double spaceXs = 8;
@@ -109,40 +118,62 @@ abstract final class AppTheme {
           color: textPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -1,
+          shadows: textOutline,
         ),
         headlineMedium: base.textTheme.headlineMedium?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -.55,
+          shadows: textOutline,
         ),
         headlineSmall: base.textTheme.headlineSmall?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w800,
+          shadows: textOutline,
         ),
         titleLarge: base.textTheme.titleLarge?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: -.2,
+          shadows: textOutline,
         ),
         titleMedium: base.textTheme.titleMedium?.copyWith(
           color: textPrimary,
           fontWeight: FontWeight.w700,
+          shadows: textOutline,
+        ),
+        titleSmall: base.textTheme.titleSmall?.copyWith(
+          color: textPrimary,
+          shadows: textOutline,
         ),
         bodyLarge: base.textTheme.bodyLarge?.copyWith(
           color: textPrimary,
           height: 1.4,
+          shadows: textOutline,
         ),
         bodyMedium: base.textTheme.bodyMedium?.copyWith(
           color: textSecondary,
           height: 1.4,
+          shadows: textOutline,
         ),
         bodySmall: base.textTheme.bodySmall?.copyWith(
           color: textFaint,
           height: 1.35,
+          shadows: textOutline,
         ),
         labelLarge: base.textTheme.labelLarge?.copyWith(
+          color: textPrimary,
           fontWeight: FontWeight.w800,
           letterSpacing: .05,
+          shadows: textOutline,
+        ),
+        labelMedium: base.textTheme.labelMedium?.copyWith(
+          color: textSecondary,
+          shadows: textOutline,
+        ),
+        labelSmall: base.textTheme.labelSmall?.copyWith(
+          color: textFaint,
+          shadows: textOutline,
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -160,6 +191,7 @@ abstract final class AppTheme {
           fontSize: 20,
           fontWeight: FontWeight.w800,
           letterSpacing: -.3,
+          shadows: textOutline,
         ),
       ),
       cardTheme: CardThemeData(
@@ -289,6 +321,7 @@ abstract final class AppTheme {
         labelStyle: const TextStyle(
           color: textPrimary,
           fontWeight: FontWeight.w700,
+          shadows: textOutline,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
@@ -312,6 +345,7 @@ abstract final class AppTheme {
             height: 1.1,
             color: selected ? textPrimary : textFaint,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            shadows: textOutline,
           );
         }),
       ),
