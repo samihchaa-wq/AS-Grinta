@@ -71,7 +71,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(1.15),
+            textScaler: const TextScaler.linear(1.10),
           ),
           child: GrintaAccessibilityScope(
             child: Stack(
