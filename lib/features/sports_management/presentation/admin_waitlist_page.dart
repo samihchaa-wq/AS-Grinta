@@ -85,7 +85,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
           autofocus: true,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
-            labelText: 'Nombre de fois en liste d’attente cette saison',
+            labelText: 'Nombre de fois en liste d’attente',
           ),
         ),
         actions: [
