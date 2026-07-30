@@ -261,10 +261,10 @@ class _MatchCard extends StatelessWidget {
     final isFinished = match.isFinished;
     final resultColor = _resultColor();
     final cardColor = isNext
-        ? AppTheme.surfaceHero.withValues(alpha: .96)
+        ? AppTheme.surfaceHero
         : isFinished
-            ? AppTheme.surface.withValues(alpha: .72)
-            : AppTheme.surfaceHigh.withValues(alpha: .7);
+            ? AppTheme.surface
+            : AppTheme.surfaceHigh;
 
     return Card(
       color: cardColor,

@@ -24,7 +24,7 @@ class GrintaFormSection extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: .88),
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         border: Border.all(
           color: theme.colorScheme.outline.withValues(alpha: .34),

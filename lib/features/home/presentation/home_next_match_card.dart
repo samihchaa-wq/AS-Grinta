@@ -81,8 +81,8 @@ class HomeNextMatchCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppTheme.surfaceHero.withValues(alpha: .94),
-              AppTheme.surface.withValues(alpha: .96),
+              AppTheme.surfaceHero,
+              AppTheme.surface,
             ],
           ),
         ),

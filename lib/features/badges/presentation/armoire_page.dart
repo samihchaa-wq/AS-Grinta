@@ -318,16 +318,16 @@ class _BadgeTile extends ConsumerWidget {
               height: emblem,
               width: emblem,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceHigh.withValues(alpha: .55),
+                color: AppTheme.surfaceHigh,
                 borderRadius: BorderRadius.circular(emblem * .24),
                 border: Border.all(
                   color: AppTheme.outline.withValues(alpha: .38),
                 ),
               ),
               alignment: Alignment.center,
-              child: Icon(
+              child: const Icon(
                 Icons.lock_outline_rounded,
-                color: AppTheme.textFaint.withValues(alpha: .55),
+                color: AppTheme.textFaint,
                 size: 22,
               ),
             ),
@@ -336,7 +336,7 @@ class _BadgeTile extends ConsumerWidget {
               'Mystère',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textFaint.withValues(alpha: .72),
+                    color: AppTheme.textFaint,
                     fontWeight: FontWeight.w700,
                   ),
             ),
