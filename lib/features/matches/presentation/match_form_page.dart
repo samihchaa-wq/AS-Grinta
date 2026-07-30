@@ -129,6 +129,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   /// un match à l'extérieur. Ne touche pas un champ déjà renseigné.
   void _prefillAddress() {
     if (_addressController.text.trim().isNotEmpty) return;
+    _applyRememberedAddress();
+  }
+
+  /// Comme [_prefillAddress], mais remplace toujours le contenu actuel :
+  /// utilisé quand l'adversaire ou le lieu (domicile/extérieur) change, car
+  /// une adresse déjà saisie ne concerne alors plus la bonne équipe.
+  void _refreshAddressForSelection() => _applyRememberedAddress();
+
+  void _applyRememberedAddress() {
     String? remembered;
     if (_isHome) {
       remembered = _clubHomeAddress;
@@ -139,9 +148,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           );
       remembered = opponent['address']?.toString().trim();
     }
-    if (remembered != null && remembered.isNotEmpty) {
-      _addressController.text = remembered;
-    }
+    _addressController.text = remembered ?? '';
   }
 
   Future<void> _loadSquadLimit() async {
@@ -269,7 +276,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                           } else {
                             _isInternal = false;
                             _opponentId = value ?? '';
-                            _prefillAddress();
+                            _refreshAddressForSelection();
                           }
                         });
                         if (!_isInternal) _suggestOdds();
@@ -340,7 +347,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 onChanged: (value) {
                   setState(() {
                     _isHome = value ?? true;
-                    _prefillAddress();
+                    _refreshAddressForSelection();
                   });
                   _suggestOdds();
                 },
