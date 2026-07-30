@@ -69,18 +69,6 @@ class MorePage extends ConsumerWidget {
                 onTap: () => context.push('/admin'),
               ),
             ),
-          if (!isRealAdmin)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.admin_panel_settings_outlined),
-                title: const Text(
-                  'Admin',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/admin-access'),
-              ),
-            ),
           if (isRealAdmin) ...[
             const SizedBox(height: 10),
             Card(
