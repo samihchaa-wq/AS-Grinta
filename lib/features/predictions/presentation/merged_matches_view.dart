@@ -123,10 +123,12 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         upcoming.where((match) => !match.isCancelled).toList();
     final nextMatch = activeUpcoming.isEmpty ? null : activeUpcoming.last;
     final nextMatchId = nextMatch?.id;
-    final laterUpcoming = upcoming
-        .where((match) => match.id != nextMatchId)
-        .toList()
-      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    // `upcoming` est déjà trié du plus lointain au plus proche : on garde cet
+    // ordre pour que « À venir » affiche le futur le plus lointain en haut et
+    // le match juste avant le prochain en bas, juste au-dessus de la section
+    // « Prochain ».
+    final laterUpcoming =
+        upcoming.where((match) => match.id != nextMatchId).toList();
 
     final focusRequest = ref.watch(matchesFocusRequestProvider);
     final nextCardIsReady = nextMatch != null && !state.isLoading;
@@ -196,6 +198,34 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ),
             )
           else ...[
+            if (laterUpcoming.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  const SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SectionHeaderDelegate(
+                      icon: Icons.calendar_month_outlined,
+                      title: 'À venir',
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _UpcomingMatchCard(
+                            match: laterUpcoming[index],
+                            isAdmin: isAdmin,
+                          ),
+                        ),
+                        childCount: laterUpcoming.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                ],
+              ),
             SliverMainAxisGroup(
               slivers: [
                 SliverPersistentHeader(
@@ -240,34 +270,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     ),
                   ),
                 ),
-              ),
-            if (laterUpcoming.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  const SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SectionHeaderDelegate(
-                      icon: Icons.calendar_month_outlined,
-                      title: 'À venir',
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _UpcomingMatchCard(
-                            match: laterUpcoming[index],
-                            isAdmin: isAdmin,
-                          ),
-                        ),
-                        childCount: laterUpcoming.length,
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                ],
               ),
             SliverMainAxisGroup(
               slivers: [
