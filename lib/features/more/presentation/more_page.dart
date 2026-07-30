@@ -53,7 +53,9 @@ class MorePage extends ConsumerWidget {
                 subtitle: const Text('L’ordre pour proposer une place libre'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push(
-                  isRealAdmin && !viewingAsUser ? '/admin/waitlist' : '/waitlist',
+                  isRealAdmin && !viewingAsUser
+                      ? '/admin/waitlist'
+                      : '/waitlist',
                 ),
               ),
             ),
