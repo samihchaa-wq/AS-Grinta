@@ -93,7 +93,7 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
           builder: (context, constraints) {
             final groups = [
               _BoardGroup(
-                title: 'Convoqués',
+                title: 'Disponibles',
                 players: board.convoked,
                 color: const Color(0xFF168A52),
                 icon: Icons.check_circle_outline,

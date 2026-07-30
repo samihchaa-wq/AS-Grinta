@@ -64,7 +64,7 @@ void main() {
       ).readAsStringSync();
 
       expect(effectifSource, contains('Enregistrer le brouillon'));
-      expect(effectifSource, contains('Publier les convocations'));
+      expect(effectifSource, contains('Enregistrer les convocations'));
       expect(effectifSource, contains('.publishEffectif('));
       expect(repositorySource, contains("'admin_publish_match_effectif'"));
       expect(compositionSource, isNot(contains('.publishMatch(')));

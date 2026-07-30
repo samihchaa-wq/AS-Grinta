@@ -40,14 +40,14 @@ void main() {
 
     final publishButton = find.widgetWithText(
       FilledButton,
-      'Publier les modifications',
+      'Enregistrer les modifications',
     );
     await tester.ensureVisible(publishButton);
     await _pumpFrames(tester, count: 4);
     await tester.tap(publishButton);
     await _pumpFrames(tester, count: 4);
 
-    expect(find.text('Publier les modifications ?'), findsOneWidget);
+    expect(find.text('Enregistrer les modifications ?'), findsOneWidget);
     expect(
       find.textContaining('La composition restera privée'),
       findsOneWidget,
