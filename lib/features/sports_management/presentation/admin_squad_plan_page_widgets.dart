@@ -259,22 +259,6 @@ class _EffectifPlayerChip extends StatelessWidget {
               ],
             ],
           ),
-          if (!player.isGuest) ...[
-            if (player.waitlistPosition != null)
-              Text(
-                'Rang L.A. : ${player.waitlistPosition}'
-                '${player.waitlistPosition == 1 ? 'er' : 'e'}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            Text(
-              'L.A. : ${player.currentSeasonWaitlistCount} fois',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
         ],
       ),
       onPressed: onTap,

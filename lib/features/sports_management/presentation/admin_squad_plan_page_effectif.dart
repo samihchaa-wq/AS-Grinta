@@ -327,6 +327,15 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 title: 'Liste d’attente',
                 detail: waitlistDetail,
               ),
+              if (!player.isGuest) ...[
+                const SizedBox(height: 12),
+                _PlayerInfoRow(
+                  icon: Icons.repeat_rounded,
+                  color: const Color(0xFFE08A00),
+                  title: 'Nombre de tours en liste d’attente',
+                  detail: '${player.currentSeasonWaitlistCount} fois',
+                ),
+              ],
               if (canRelance) ...[
                 const SizedBox(height: 18),
                 SizedBox(
