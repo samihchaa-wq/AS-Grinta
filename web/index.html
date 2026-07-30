@@ -20,6 +20,19 @@
   <title>Ma Petite Grinta</title>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; background: #07142E; }
+    /* Les photos de joueurs sont rendues comme de vraies balises <img> (pour
+       fiabiliser leur chargement sur le web). Sans ces règles, iOS Safari
+       intercepte l'appui long sur une image pour son propre menu
+       « Enregistrer l'image », ce qui empêche Flutter de démarrer le
+       glisser-déposer d'un joueur dans l'écran de composition. */
+    img {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      user-drag: none;
+      touch-action: none;
+    }
   </style>
   <script src="build_version.js"></script>
 </head>
