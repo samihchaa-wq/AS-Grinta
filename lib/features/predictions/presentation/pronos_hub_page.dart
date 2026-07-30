@@ -86,7 +86,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
       backgroundColor: Colors.transparent,
       appBar: GrintaAppBar(
         title: Text(switch (_category) {
-          _PronosCategory.matches => 'Matchs',
+          _PronosCategory.matches => 'Calendrier',
           _PronosCategory.scorers => 'Prono joueurs',
           _PronosCategory.general => 'Classements',
         }),
