@@ -295,10 +295,18 @@ class _GuestInput {
 }
 
 class _BenchBox extends StatelessWidget {
-  const _BenchBox({required this.entry, required this.draggable});
+  const _BenchBox({
+    required this.entry,
+    required this.draggable,
+    this.finishedBenchCount = 0,
+  });
 
   final MatchCompositionEntry entry;
   final bool draggable;
+
+  /// Nombre de fois où ce joueur a déjà été noté remplaçant dans un match
+  /// terminé.
+  final int finishedBenchCount;
 
   @override
   Widget build(BuildContext context) {
@@ -307,11 +315,22 @@ class _BenchBox extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PlayerAvatar(
-            photoUrl: entry.photoUrl,
-            name: entry.displayName,
-            isGoalkeeper: entry.isGoalkeeper,
-            size: 58,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              PlayerAvatar(
+                photoUrl: entry.photoUrl,
+                name: entry.displayName,
+                isGoalkeeper: entry.isGoalkeeper,
+                size: 58,
+              ),
+              if (finishedBenchCount > 0)
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: SubstituteHistoryBadge(count: finishedBenchCount),
+                ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(

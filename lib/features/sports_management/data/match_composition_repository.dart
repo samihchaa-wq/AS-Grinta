@@ -9,6 +9,7 @@ abstract interface class MatchCompositionRepository {
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
   );
+  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId);
   Future<MatchComposition> saveComposition({
     required MatchComposition composition,
     required bool allowSquadSizeException,
@@ -68,6 +69,21 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map((row) => row['id'].toString())
         .toSet();
+  }
+
+  @override
+  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async {
+    final response = await _client.rpc(
+      'admin_get_finished_bench_counts',
+      params: {'p_match_id': matchId},
+    );
+    if (response is! List) return const {};
+    return {
+      for (final row in response)
+        if (Map<String, dynamic>.from(row as Map) case final entry)
+          entry['participant_id'].toString():
+              (entry['finished_bench_count'] as num?)?.toInt() ?? 0,
+    };
   }
 
   @override

@@ -100,6 +100,11 @@ class _FakeCompositionRepository implements MatchCompositionRepository {
   }
 
   @override
+  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async {
+    return const {};
+  }
+
+  @override
   Future<MatchComposition> createPostMatchComposition({
     required MatchComposition composition,
     required bool allowSquadSizeException,

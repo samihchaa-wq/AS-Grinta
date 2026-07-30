@@ -374,5 +374,9 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
       {'sp1'};
 
   @override
+  Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>
+      const {};
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
