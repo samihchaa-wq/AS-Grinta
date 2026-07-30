@@ -144,6 +144,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) => const AdminWaitlistPage(),
               ),
               GoRoute(
+                path: '/waitlist',
+                builder: (_, __) => const AdminWaitlistPage(editable: false),
+              ),
+              GoRoute(
                 path: '/admin/badges',
                 builder: (_, __) => const BadgeAdminPage(),
               ),

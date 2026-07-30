@@ -8,7 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class AdminWaitlistPage extends ConsumerStatefulWidget {
-  const AdminWaitlistPage({super.key});
+  const AdminWaitlistPage({super.key, this.editable = true});
+
+  /// Faux pour l'écran accessible à tout joueur depuis Paramètres : la
+  /// liste s'affiche alors en lecture seule, sans réordonner ni modifier
+  /// le nombre de fois en liste d'attente.
+  final bool editable;
 
   @override
   ConsumerState<AdminWaitlistPage> createState() => _AdminWaitlistPageState();
@@ -34,8 +39,10 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
       _error = null;
     });
     try {
-      final value =
-          await ref.read(sportWaitlistRepositoryProvider).fetchWaitlist();
+      final repository = ref.read(sportWaitlistRepositoryProvider);
+      final value = widget.editable
+          ? await repository.fetchWaitlist()
+          : await repository.fetchWaitlistReadOnly();
       if (!mounted) return;
       setState(() {
         _waitlist = value;
@@ -157,7 +164,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: const Text('Liste d’attente'),
-        admin: true,
+        admin: widget.editable,
         actions: [
           IconButton(
             tooltip: 'Actualiser',
@@ -167,20 +174,22 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         ],
       ),
       body: _body(context),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: FilledButton.icon(
-          onPressed: _dirty && !_saving ? _save : null,
-          icon: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: GrintaProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.save_outlined),
-          label: const Text('Enregistrer l’ordre'),
-        ),
-      ),
+      bottomNavigationBar: widget.editable
+          ? SafeArea(
+              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: FilledButton.icon(
+                onPressed: _dirty && !_saving ? _save : null,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: GrintaProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: const Text('Enregistrer l’ordre'),
+              ),
+            )
+          : null,
     );
   }
 
@@ -247,6 +256,7 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
           _WaitlistTile(
             index: index,
             entry: _entries[index],
+            editable: widget.editable,
             canMoveUp: _entries.length > 1,
             canMoveDown: index < _entries.length - 1,
             onMoveUp: () => _move(index, -1),
@@ -262,6 +272,7 @@ class _WaitlistTile extends StatelessWidget {
   const _WaitlistTile({
     required this.index,
     required this.entry,
+    required this.editable,
     required this.canMoveUp,
     required this.canMoveDown,
     required this.onMoveUp,
@@ -271,6 +282,10 @@ class _WaitlistTile extends StatelessWidget {
 
   final int index;
   final SportWaitlistEntry entry;
+
+  /// Faux pour l'écran joueur (lecture seule) : masque les flèches de
+  /// réordonnancement et l'édition du nombre de fois en liste d'attente.
+  final bool editable;
   final bool canMoveUp;
   final bool canMoveDown;
   final VoidCallback onMoveUp;
@@ -283,6 +298,8 @@ class _WaitlistTile extends StatelessWidget {
     final attendance = entry.previousSeasonAttendanceCount;
     final previousSeasonPresence = total > 0 ? '$attendance' : 'Aucune donnée';
     final waitlistCount = entry.currentSeasonWaitlistCount;
+    final waitlistCountText =
+        Text('Liste d’attente cette saison : $waitlistCount fois');
     return Card(
       key: ValueKey(entry.seasonPlayerId),
       margin: const EdgeInsets.only(bottom: 8),
@@ -297,42 +314,48 @@ class _WaitlistTile extends StatelessWidget {
           children: [
             const SizedBox(height: 3),
             Text('Présence saison précédente : $previousSeasonPresence'),
-            InkWell(
-              onTap: onEditWaitlistCount,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+            if (editable)
+              InkWell(
+                onTap: onEditWaitlistCount,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    waitlistCountText,
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 15,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              )
+            else
+              waitlistCountText,
+          ],
+        ),
+        trailing: editable
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Liste d’attente cette saison : $waitlistCount fois'),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.edit_outlined,
-                    size: 15,
-                    color: Theme.of(context).colorScheme.primary,
+                  InkWell(
+                    onTap: canMoveUp ? onMoveUp : null,
+                    child: Icon(
+                      Icons.keyboard_arrow_up,
+                      color: canMoveUp ? null : Theme.of(context).disabledColor,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: canMoveDown ? onMoveDown : null,
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color:
+                          canMoveDown ? null : Theme.of(context).disabledColor,
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            InkWell(
-              onTap: canMoveUp ? onMoveUp : null,
-              child: Icon(
-                Icons.keyboard_arrow_up,
-                color: canMoveUp ? null : Theme.of(context).disabledColor,
-              ),
-            ),
-            InkWell(
-              onTap: canMoveDown ? onMoveDown : null,
-              child: Icon(
-                Icons.keyboard_arrow_down,
-                color: canMoveDown ? null : Theme.of(context).disabledColor,
-              ),
-            ),
-          ],
-        ),
+              )
+            : null,
       ),
     );
   }

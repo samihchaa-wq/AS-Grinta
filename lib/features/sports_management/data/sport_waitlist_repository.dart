@@ -7,6 +7,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 abstract interface class SportWaitlistRepository {
   Future<SportWaitlist> fetchWaitlist({String? seasonId});
 
+  /// Lecture accessible à tout joueur actif, sans les effets de bord de
+  /// [fetchWaitlist] (pas d'initialisation ni de clôture des tours en
+  /// retard) et sans possibilité de modification.
+  Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId});
+
   Future<SportWaitlist> reorderWaitlist({
     required String seasonId,
     required List<String> orderedPlayerIds,
@@ -79,6 +84,15 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   Future<SportWaitlist> fetchWaitlist({String? seasonId}) async {
     final response = await _client.rpc(
       'admin_get_sport_waitlist',
+      params: {'p_season_id': seasonId},
+    );
+    return SportWaitlist.fromRpc(response);
+  }
+
+  @override
+  Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId}) async {
+    final response = await _client.rpc(
+      'get_sport_waitlist',
       params: {'p_season_id': seasonId},
     );
     return SportWaitlist.fromRpc(response);

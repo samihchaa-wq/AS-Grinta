@@ -65,6 +65,7 @@ Ces fonctions utilisent l’identité de la session avec `auth.uid()` et ne modi
 Ces fonctions ne réalisent pas d’écriture et exposent uniquement des informations prévues dans l’interface de l’équipe :
 
 - `get_last_opponent_encounters` — contrôle `is_active_profile()` ;
+- `get_sport_waitlist` — contrôle `is_active_profile()` ; lecture seule de l'ordre de la liste d'attente, sans les effets de bord ni les droits de modification réservés à `admin_get_sport_waitlist` ;
 - `match_prediction_participant_count` — contrôle `is_active_profile()` et renvoie uniquement un nombre ;
 - `profile_badge_metrics` — renvoie uniquement des compteurs sportifs et de pronostics associés à un profil. Cette exception est explicitement surveillée par les tests.
 

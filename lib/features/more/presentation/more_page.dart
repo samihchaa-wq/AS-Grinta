@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +14,7 @@ class MorePage extends ConsumerWidget {
     final profile = ref.watch(authControllerProvider).profile;
     final isRealAdmin = ref.watch(isRealAdminProvider);
     final viewingAsUser = ref.watch(viewAsUserProvider);
+    final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Paramètres')),
@@ -42,6 +44,18 @@ class MorePage extends ConsumerWidget {
               onTap: () => context.push('/notifications'),
             ),
           ),
+          if (sportsEnabled) ...[
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.format_list_numbered_rounded),
+                title: const Text('Liste d’attente'),
+                subtitle: const Text('L’ordre pour proposer une place libre'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/waitlist'),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           if (isRealAdmin && !viewingAsUser)
             Card(
