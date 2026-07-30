@@ -25,7 +25,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: .38),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(AppTheme.radiusSm),
           border: Border.all(color: AppTheme.outline.withValues(alpha: .24)),
         ),
@@ -48,7 +48,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
               ),
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 return states.contains(WidgetState.selected)
-                    ? AppTheme.primary.withValues(alpha: .18)
+                    ? const Color(0xFF1E3A66)
                     : Colors.transparent;
               }),
               foregroundColor: WidgetStateProperty.resolveWith((states) {

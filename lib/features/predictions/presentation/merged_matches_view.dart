@@ -361,9 +361,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    final background = overlapsContent
-        ? AppTheme.background.withValues(alpha: .96)
-        : AppTheme.background.withValues(alpha: .78);
+    final background = AppTheme.background;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -538,9 +536,7 @@ class _UpcomingMatchCard extends StatelessWidget {
     );
 
     return Card(
-      color: match.isCancelled
-          ? AppTheme.surface.withValues(alpha: .5)
-          : AppTheme.surface.withValues(alpha: .72),
+      color: AppTheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         side: BorderSide(

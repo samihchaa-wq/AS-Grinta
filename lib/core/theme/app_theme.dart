@@ -163,7 +163,7 @@ abstract final class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: surface.withValues(alpha: .9),
+        color: surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: EdgeInsets.zero,
@@ -223,7 +223,7 @@ abstract final class AppTheme {
       iconTheme: const IconThemeData(color: textSecondary, size: 22),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceHigh.withValues(alpha: .62),
+        fillColor: surfaceHigh,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 13,
@@ -264,8 +264,8 @@ abstract final class AppTheme {
           minimumSize: WidgetStateProperty.all(const Size(72, 42)),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
-                ? primary.withValues(alpha: .24)
-                : surfaceHigh.withValues(alpha: .48);
+                ? const Color(0xFF1E3A66)
+                : surfaceHigh;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
@@ -284,7 +284,7 @@ abstract final class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: surfaceHigh.withValues(alpha: .64),
+        backgroundColor: surfaceHigh,
         side: BorderSide(color: outline.withValues(alpha: .28)),
         labelStyle: const TextStyle(
           color: textPrimary,
@@ -294,7 +294,7 @@ abstract final class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 62,
-        backgroundColor: const Color(0xD90A1425),
+        backgroundColor: const Color(0xFF0A1425),
         indicatorColor: primary.withValues(alpha: .14),
         surfaceTintColor: Colors.transparent,
         elevation: 0,

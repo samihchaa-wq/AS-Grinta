@@ -94,7 +94,7 @@ class StickyHeaderTableCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      color: AppTheme.surface.withValues(alpha: .64),
+      color: AppTheme.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
@@ -112,7 +112,7 @@ class StickyHeaderTableCard extends StatelessWidget {
               child: Column(
                 children: [
                   ColoredBox(
-                    color: AppTheme.surfaceHigh.withValues(alpha: .52),
+                    color: AppTheme.surfaceHigh,
                     child: header,
                   ),
                   Divider(

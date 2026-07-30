@@ -315,7 +315,7 @@ class _TeamDropZone extends StatelessWidget {
     if (!editable) {
       return DecoratedBox(
         decoration: BoxDecoration(
-          color: AppTheme.surface.withValues(alpha: .5),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
         ),

@@ -204,7 +204,7 @@ class _PreviewBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.admin.withValues(alpha: .9),
+      color: AppTheme.admin,
       child: SafeArea(
         bottom: false,
         child: Padding(

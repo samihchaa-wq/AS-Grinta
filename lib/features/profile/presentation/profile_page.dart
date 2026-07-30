@@ -452,7 +452,7 @@ class _ProfileMetaChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceHigh.withValues(alpha: .72),
+        color: AppTheme.surfaceHigh,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppTheme.outline.withValues(alpha: .44)),
       ),
