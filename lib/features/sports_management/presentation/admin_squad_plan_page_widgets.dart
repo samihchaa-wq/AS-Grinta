@@ -201,12 +201,12 @@ class _EffectifPlayerGrid extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < players.length; i += _columns) ...[
-          if (i > 0) const SizedBox(height: 7),
+          if (i > 0) const SizedBox(height: 5),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var col = 0; col < _columns; col++) ...[
-                if (col > 0) const SizedBox(width: 7),
+                if (col > 0) const SizedBox(width: 5),
                 Expanded(
                   child: i + col < players.length
                       ? _chip(players[i + col])
@@ -258,6 +258,7 @@ class _EffectifPlayerChip extends StatelessWidget {
                       : player.firstName.trim(),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
+                  style: const TextStyle(fontSize: 12.5),
                 ),
               ),
               if (player.isGuest && onTap != null) ...[
@@ -274,6 +275,10 @@ class _EffectifPlayerChip extends StatelessWidget {
         color.withValues(alpha: .16),
         Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
     Widget content = chip;
     if (draggable) {

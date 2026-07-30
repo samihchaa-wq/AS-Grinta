@@ -27,7 +27,7 @@ class MatchInfoTab extends ConsumerWidget {
       ),
       data: (info) => Card(
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -39,17 +39,23 @@ class MatchInfoTab extends ConsumerWidget {
                       children: [
                         const TextSpan(
                           text: 'Coup d’envoi  ',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         TextSpan(
                           text: AppFormats.dateTime(info.kickoffAt!),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 _InfoRow(
                   icon: Icons.groups_rounded,
                   child: Text.rich(
@@ -57,28 +63,34 @@ class MatchInfoTab extends ConsumerWidget {
                       children: [
                         const TextSpan(
                           text: 'Rendez-vous  ',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         TextSpan(
                           text: AppFormats.time(
                             info.kickoffAt!
                                 .subtract(const Duration(minutes: 30)),
                           ),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         const TextSpan(
                           text: '  (30 min avant)',
                           style: TextStyle(
                             fontWeight: FontWeight.w500,
-                            fontSize: 12,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
               ],
-              const SizedBox(height: 12),
               if (info.address != null)
                 InkWell(
                   onTap: () => showMatchAddressSheet(context, info.address!),
@@ -91,6 +103,7 @@ class MatchInfoTab extends ConsumerWidget {
                       child: Text(
                         info.address!,
                         style: const TextStyle(
+                          fontSize: 17,
                           color: Color(0xFF9B6CFF),
                           fontWeight: FontWeight.w800,
                           decoration: TextDecoration.underline,
@@ -105,10 +118,13 @@ class MatchInfoTab extends ConsumerWidget {
                   icon: Icons.place_outlined,
                   child: Text(
                     'Adresse non renseignée.',
-                    style: TextStyle(color: Theme.of(context).hintColor),
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Theme.of(context).hintColor,
+                    ),
                   ),
                 ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _InfoRow(
                 icon: info.isFriendly
                     ? Icons.handshake_outlined
@@ -118,18 +134,24 @@ class MatchInfoTab extends ConsumerWidget {
                     children: [
                       const TextSpan(
                         text: 'Type de match  ',
-                        style: TextStyle(fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       TextSpan(
                         text: info.matchTypeLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
               if (info.jerseyNote != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Builder(
                   builder: (context) {
                     final jersey = JerseyOption.fromId(info.jerseyNote);
@@ -143,12 +165,17 @@ class MatchInfoTab extends ConsumerWidget {
                             children: [
                               const TextSpan(
                                 text: 'Maillot  ',
-                                style: TextStyle(fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                               TextSpan(
                                 text: info.jerseyNote!,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w800),
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ],
                           ),
@@ -158,14 +185,18 @@ class MatchInfoTab extends ConsumerWidget {
                     return _InfoRow(
                       icon: Icons.checkroom_outlined,
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Text(
                             'Maillot  ',
-                            style: TextStyle(fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                           SizedBox(
-                            width: 32,
-                            height: 36,
+                            width: 44,
+                            height: 50,
                             child: Image.asset(
                               jersey.assetPath,
                               fit: BoxFit.contain,
@@ -177,21 +208,23 @@ class MatchInfoTab extends ConsumerWidget {
                   },
                 ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Text(
                 info.lastEncounters.length > 1
                     ? 'Dernières rencontres'
                     : 'Dernière rencontre',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               if (info.lastEncounters.isEmpty)
                 Text(
                   'Aucune rencontre passée contre cet adversaire.',
-                  style: TextStyle(color: Theme.of(context).hintColor),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Theme.of(context).hintColor,
+                  ),
                 )
               else
                 Wrap(
@@ -220,10 +253,10 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Icon(icon, size: 20, color: iconColor),
-        const SizedBox(width: 10),
+        Icon(icon, size: 23, color: iconColor),
+        const SizedBox(width: 12),
         Expanded(child: child),
       ],
     );
@@ -256,7 +289,7 @@ class _EncounterChip extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w900,
-              fontSize: 16,
+              fontSize: 18,
             ),
           ),
           if (encounter.date != null)
@@ -264,7 +297,7 @@ class _EncounterChip extends StatelessWidget {
               AppFormats.date(encounter.date!),
               style: TextStyle(
                 color: color.withValues(alpha: .8),
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
