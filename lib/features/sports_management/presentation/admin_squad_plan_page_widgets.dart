@@ -255,14 +255,12 @@ class _EffectifPlayerChip extends StatelessWidget {
                 'Rang L.A. : ${player.waitlistPosition}'
                 '${player.waitlistPosition == 1 ? 'er' : 'e'}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: color.withValues(alpha: .9),
                       fontWeight: FontWeight.w700,
                     ),
               ),
             Text(
               'L.A. : ${player.currentSeasonWaitlistCount} fois',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color.withValues(alpha: .9),
                     fontWeight: FontWeight.w700,
                   ),
             ),
