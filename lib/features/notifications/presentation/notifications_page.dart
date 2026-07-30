@@ -27,6 +27,7 @@ class NotificationsPage extends ConsumerWidget {
             SizedBox(height: 16),
             _NotificationsInfoCard(),
             _AdminTestButton(),
+            _AdminKillSwitchCard(),
           ],
         ),
       ),
@@ -132,6 +133,103 @@ class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
             label: const Text('M’envoyer un test'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// État courant du coupe-circuit admin (suspend toutes les notifications).
+final notificationsPausedProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  final response = await ref
+      .read(supabaseClientProvider)
+      .rpc('admin_get_notifications_paused');
+  final map = Map<String, dynamic>.from(response as Map);
+  final flag = Map<String, dynamic>.from(
+    map['notifications_paused'] as Map? ?? const {},
+  );
+  return flag['enabled'] == true;
+});
+
+/// Coupe-circuit réservé à l'admin : suspend l'envoi de toutes les
+/// notifications push (test compris) le temps d'une phase de tests, sans
+/// toucher aux préférences individuelles des joueurs.
+class _AdminKillSwitchCard extends ConsumerStatefulWidget {
+  const _AdminKillSwitchCard();
+
+  @override
+  ConsumerState<_AdminKillSwitchCard> createState() =>
+      _AdminKillSwitchCardState();
+}
+
+class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
+  bool _updating = false;
+
+  Future<void> _toggle(bool enable) async {
+    setState(() => _updating = true);
+    var message = enable
+        ? 'Toutes les notifications sont désactivées.'
+        : 'Les notifications sont réactivées.';
+    try {
+      await ref.read(supabaseClientProvider).rpc(
+        'admin_set_notifications_paused',
+        params: {'p_enabled': enable},
+      );
+      ref.invalidate(notificationsPausedProvider);
+    } catch (_) {
+      message = 'Impossible de modifier ce réglage.';
+    }
+    if (!mounted) return;
+    setState(() => _updating = false);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ref.watch(isAdminViewProvider)) return const SizedBox.shrink();
+    final pausedAsync = ref.watch(notificationsPausedProvider);
+    final paused = pausedAsync.valueOrNull ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        color: paused ? const Color(0xFF3A1F22) : null,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AdminBadge(),
+              const SizedBox(height: 8),
+              Text(
+                'Toutes les notifications',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                paused
+                    ? 'Désactivées : aucun joueur ne reçoit rien, y compris le test.'
+                    : 'Coupe l’envoi de toute notification (y compris le test) '
+                        'le temps d’une phase de tests, sans toucher aux '
+                        'préférences des joueurs.',
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Désactiver toutes les notifications'),
+                value: paused,
+                onChanged: (_updating || pausedAsync.isLoading)
+                    ? null
+                    : (value) => _toggle(value),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
