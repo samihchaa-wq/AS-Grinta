@@ -194,6 +194,12 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260728095000_sync_motm_workflow_after_finalization.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260729123000_waitlist_history_counts.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260729123500_grant_waitlist_history_enrich_execute.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260729161500_manual_waitlist_count.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260730044106_fix_prepare_deletion_effectif_draft_updated_by.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260730044911_notifications_admin_kill_switch.sql
