@@ -19,7 +19,16 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Ma Petite Grinta</title>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; background: #07142E; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #07142E;
+      background-image: linear-gradient(rgba(5, 11, 23, .45), rgba(5, 11, 23, .45)), url('images/app_background.webp');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
     /* Les photos de joueurs sont rendues comme de vraies balises <img> (pour
        fiabiliser leur chargement sur le web). Sans ces règles, iOS Safari
        intercepte l'appui long sur une image pour son propre menu
