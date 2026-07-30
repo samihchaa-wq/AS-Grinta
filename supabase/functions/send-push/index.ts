@@ -27,6 +27,7 @@ type PushRequestBody = {
   match_id?: string;
   profile_ids?: string[];
   notification_event_id?: number;
+  display_name?: string;
 };
 
 const sportsAvailabilityKinds = new Set([
@@ -47,6 +48,50 @@ function endpointHost(endpoint: string): string | null {
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message.slice(0, 500);
   return String(error).slice(0, 500);
+}
+
+// Envoie un contenu fixe à un ensemble explicite de profils (canal de test,
+// alerte admin), sans passer par le pipeline générique de dispatch/log.
+async function sendFixedPayloadToProfiles(
+  supabase: ReturnType<typeof createClient>,
+  profileIds: string[],
+  payload: { title: string; body: string; url: string; tag: string },
+  vapid: { public: string; private: string },
+): Promise<{ attempted: number; sent: number; failed: number }> {
+  if (profileIds.length === 0) return { attempted: 0, sent: 0, failed: 0 };
+  const { data: subs } = await supabase
+    .from("push_subscriptions")
+    .select("profile_id, endpoint, p256dh, auth")
+    .in("profile_id", profileIds);
+  const targets: SubscriptionRow[] = subs ?? [];
+  if (targets.length === 0) return { attempted: 0, sent: 0, failed: 0 };
+
+  webpush.setVapidDetails(
+    "https://samihchaa-wq.github.io/AS-Grinta",
+    vapid.public,
+    vapid.private,
+  );
+  const message = JSON.stringify(payload);
+  const dead: string[] = [];
+  let sent = 0;
+  await Promise.all(targets.map(async (sub) => {
+    const outcome = await executePushDelivery(() =>
+      webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+        message,
+        { TTL: 3600, urgency: "high" },
+      )
+    );
+    if (outcome.success) {
+      sent += 1;
+    } else if (outcome.failureClass === "expired") {
+      dead.push(sub.endpoint);
+    }
+  }));
+  if (dead.length > 0) {
+    await supabase.rpc("internal_push_prune", { p_endpoints: dead });
+  }
+  return { attempted: targets.length, sent, failed: targets.length - sent };
 }
 
 Deno.serve(async (req: Request) => {
@@ -77,11 +122,38 @@ Deno.serve(async (req: Request) => {
     return new Response("non autorisé", { status: 401 });
   }
 
+  // Coupe-circuit admin : quand actif, aucun envoi ne part (test compris),
+  // le temps d'une phase de tests, sans toucher aux préférences des joueurs.
+  if (config.notifications_paused === true) {
+    return Response.json({ paused: true, attempted: 0, sent: 0, failed: 0 });
+  }
+
   let body: PushRequestBody;
   try {
     body = await req.json();
   } catch {
     return new Response("corps invalide", { status: 400 });
+  }
+
+  // Alerte admin : un nouveau compte attend une validation. Envoyée à tous
+  // les admins actifs, avec un contenu fixe décrivant le joueur concerné.
+  if (body.kind === "admin_pending_signup") {
+    const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
+    const displayName = typeof body.display_name === "string" && body.display_name.trim()
+      ? body.display_name.trim()
+      : "Un joueur";
+    const result = await sendFixedPayloadToProfiles(
+      supabase,
+      profileIds,
+      {
+        title: "Nouveau compte en attente",
+        body: `${displayName} attend ta validation.`,
+        url: "admin/administration",
+        tag: "admin-pending-signup",
+      },
+      { public: config.vapid_public, private: config.vapid_private },
+    );
+    return Response.json(result);
   }
 
   // Canal de test : envoie une notification fixe UNIQUEMENT aux profils passés
@@ -91,49 +163,18 @@ Deno.serve(async (req: Request) => {
     if (profileIds.length === 0) {
       return new Response("profile_ids requis", { status: 400 });
     }
-    const { data: subs } = await supabase
-      .from("push_subscriptions")
-      .select("profile_id, endpoint, p256dh, auth")
-      .in("profile_id", profileIds);
-    const testSubs: SubscriptionRow[] = subs ?? [];
-    if (testSubs.length === 0) {
-      return Response.json({ attempted: 0, sent: 0, failed: 0 });
-    }
-    webpush.setVapidDetails(
-      "https://samihchaa-wq.github.io/AS-Grinta",
-      config.vapid_public,
-      config.vapid_private,
+    const result = await sendFixedPayloadToProfiles(
+      supabase,
+      profileIds,
+      {
+        title: "Test AS Grinta",
+        body: "Si tu vois ceci, les notifications fonctionnent 🎉",
+        url: ".",
+        tag: "test-push",
+      },
+      { public: config.vapid_public, private: config.vapid_private },
     );
-    const testPayload = JSON.stringify({
-      title: "Test AS Grinta",
-      body: "Si tu vois ceci, les notifications fonctionnent 🎉",
-      url: ".",
-      tag: "test-push",
-    });
-    const testDead: string[] = [];
-    let testSent = 0;
-    await Promise.all(testSubs.map(async (sub) => {
-      const outcome = await executePushDelivery(() =>
-        webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          testPayload,
-          { TTL: 600, urgency: "high" },
-        )
-      );
-      if (outcome.success) {
-        testSent += 1;
-      } else if (outcome.failureClass === "expired") {
-        testDead.push(sub.endpoint);
-      }
-    }));
-    if (testDead.length > 0) {
-      await supabase.rpc("internal_push_prune", { p_endpoints: testDead });
-    }
-    return Response.json({
-      attempted: testSubs.length,
-      sent: testSent,
-      failed: testSubs.length - testSent,
-    });
+    return Response.json(result);
   }
 
   if (!body.kind || !body.match_id) {
