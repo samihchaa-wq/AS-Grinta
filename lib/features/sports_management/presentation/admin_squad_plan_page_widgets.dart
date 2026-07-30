@@ -68,6 +68,7 @@ class _EffectifColumn extends StatelessWidget {
     this.onRemoveGuest,
     this.onShowInfo,
     this.onRelanceAll,
+    this.onRelance,
   });
 
   final String title;
@@ -81,6 +82,7 @@ class _EffectifColumn extends StatelessWidget {
   final ValueChanged<ConvocationPlayer>? onRemoveGuest;
   final ValueChanged<ConvocationPlayer>? onShowInfo;
   final VoidCallback? onRelanceAll;
+  final ValueChanged<ConvocationPlayer>? onRelance;
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +149,7 @@ class _EffectifColumn extends StatelessWidget {
                 draggable: !locked && onToggle != null,
                 onRemoveGuest: onRemoveGuest,
                 onShowInfo: onShowInfo,
+                onRelance: onRelance,
               ),
           ],
         ),
@@ -167,6 +170,7 @@ class _EffectifPlayerGrid extends StatelessWidget {
     required this.draggable,
     this.onRemoveGuest,
     this.onShowInfo,
+    this.onRelance,
   });
 
   final List<ConvocationPlayer> players;
@@ -175,6 +179,7 @@ class _EffectifPlayerGrid extends StatelessWidget {
   final bool draggable;
   final ValueChanged<ConvocationPlayer>? onRemoveGuest;
   final ValueChanged<ConvocationPlayer>? onShowInfo;
+  final ValueChanged<ConvocationPlayer>? onRelance;
 
   Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
         player: player,
@@ -183,6 +188,9 @@ class _EffectifPlayerGrid extends StatelessWidget {
         onTap: player.isGuest
             ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
             : (onShowInfo == null ? null : () => onShowInfo!(player)),
+        onRelance: (player.isGuest || onRelance == null)
+            ? null
+            : () => onRelance!(player),
       );
 
   @override
@@ -216,12 +224,14 @@ class _EffectifPlayerChip extends StatelessWidget {
     required this.color,
     required this.draggable,
     this.onTap,
+    this.onRelance,
   });
 
   final ConvocationPlayer player;
   final Color color;
   final bool draggable;
   final VoidCallback? onTap;
+  final VoidCallback? onRelance;
 
   @override
   Widget build(BuildContext context) {
@@ -274,16 +284,49 @@ class _EffectifPlayerChip extends StatelessWidget {
         Theme.of(context).colorScheme.surfaceContainerHighest,
       ),
     );
-    if (!draggable) return chip;
-    final autoScroll = DragAutoScroller(context);
-    return LongPressDraggable<ConvocationPlayer>(
-      data: player,
-      feedback: Material(type: MaterialType.transparency, child: chip),
-      childWhenDragging: Opacity(opacity: .3, child: chip),
-      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-      onDragEnd: (_) => autoScroll.stop(),
-      onDraggableCanceled: (_, __) => autoScroll.stop(),
-      child: chip,
+    Widget content = chip;
+    if (draggable) {
+      final autoScroll = DragAutoScroller(context);
+      content = LongPressDraggable<ConvocationPlayer>(
+        data: player,
+        feedback: Material(type: MaterialType.transparency, child: chip),
+        childWhenDragging: Opacity(opacity: .3, child: chip),
+        onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+        onDragEnd: (_) => autoScroll.stop(),
+        onDraggableCanceled: (_, __) => autoScroll.stop(),
+        child: chip,
+      );
+    }
+    if (onRelance == null) return content;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        content,
+        Positioned(
+          top: -6,
+          right: -6,
+          child: Tooltip(
+            message: 'Relancer ${player.displayName}',
+            child: Material(
+              color: color,
+              shape: const CircleBorder(),
+              elevation: 1,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onRelance,
+                child: const Padding(
+                  padding: EdgeInsets.all(5),
+                  child: Icon(
+                    Icons.notifications_active_rounded,
+                    size: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
