@@ -70,6 +70,10 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   Future<SportWaitlist> fetchWaitlist({String? seasonId}) async => _waitlist;
 
   @override
+  Future<SportWaitlist> fetchWaitlistReadOnly({String? seasonId}) async =>
+      _waitlist;
+
+  @override
   Future<SportWaitlist> reorderWaitlist({
     required String seasonId,
     required List<String> orderedPlayerIds,

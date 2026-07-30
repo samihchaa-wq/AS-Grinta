@@ -98,8 +98,13 @@ bool _isSportsManagementRoute(Uri uri) {
         'motm',
         'waitlist',
       }.contains(segments.last);
+  final isPlayerWaitlistRoute =
+      segments.length == 1 && segments.first == 'waitlist';
 
-  return isPlayerMatchRoute || isAdminMatchRoute || isAdminRotationRoute;
+  return isPlayerMatchRoute ||
+      isAdminMatchRoute ||
+      isAdminRotationRoute ||
+      isPlayerWaitlistRoute;
 }
 
 String? _safeLocalRedirect(String? value) {
