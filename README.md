@@ -6,9 +6,10 @@ football amateur.
 
 ## Comptes et rôles
 
-- Auto-inscription via un lien public, puis validation par l’administrateur
-- Identifiants sans e-mail ; changement de mot de passe forcé à la première
-  connexion quand l’admin le demande
+- Auto-inscription par adresse e-mail, avec confirmation puis validation par
+  l’administrateur
+- Connexion par e-mail et mot de passe, récupération du mot de passe et
+  changement forcé lorsque l’administrateur l’exige
 - Deux rôles : **pronostiqueur** (joueur) et **administrateur**
 - Saisons successives avec un effectif nommé par saison
 
@@ -20,9 +21,10 @@ football amateur.
 - **Multiplicateur ×2** : chaque joueur dispose d’un portefeuille de ×2 à
   poser sur le prono de son choix (score exact doublé).
 - **Pronostics de saison** : révélés uniquement au verrouillage de la saison.
-- **Cotes suggérées** : calculées depuis la forme récente (buts des 4 derniers
-  matchs pondérés 40/30/20/10 %), cotes équitables sans marge, ajustables par
-  l’admin avant enregistrement.
+- **Cotes suggérées** : calculées par le modèle serveur courant à partir de la
+  forme chronologique de l’équipe et des confrontations directes pondérées dans
+  le temps. Les cotes sont équitables, sans marge, puis ajustables par
+  l’administrateur avant enregistrement.
 - **Classements** dépliables (pronos et statistiques), avec colonnes « bons
   paris » et « scores exacts ».
 
@@ -56,11 +58,12 @@ football amateur.
 
 ## Navigation
 
-- Accueil (prochain match, dernier match, vote HDM)
-- Matchs / Pronos
-- Classements
-- Statistiques
-- Paramètres (profil, notifications) et Administration pour les admins
+- Matchs / Pronos (écran d’entrée)
+- Détail du match, composition, vote HDM et finalisation
+- Classements et statistiques
+- Profil, joueurs, armoire à badges, notifications et confidentialité
+- Administration des comptes, matchs, compositions, invités, liste d’attente
+  et badges pour les administrateurs
 
 ## Configuration
 
@@ -83,7 +86,7 @@ sont documentés dans `CHANGELOG.md`.
 
 - Aucun tableau du coach ni contrôle de match en direct
 - Aucun chronomètre, aucun statut de match « en cours »
-- Aucun événement en temps réel
+- Aucun événement de jeu en temps réel
 - Aucun carton jaune ou rouge
 
 ## Stack
