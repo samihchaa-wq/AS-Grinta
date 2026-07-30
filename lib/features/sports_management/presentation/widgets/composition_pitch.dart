@@ -85,7 +85,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
                                 'Glisse un joueur ici ou utilise son menu.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.white70,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),

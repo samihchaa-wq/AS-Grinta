@@ -105,7 +105,7 @@ class _SeasonPredictionEntryPageState
                 ),
                 const SizedBox(height: 12),
                 if (_error != null) ...[
-                  Text(_error!, style: const TextStyle(color: Colors.white70)),
+                  Text(_error!, style: const TextStyle(color: Colors.white)),
                   const SizedBox(height: 12),
                 ],
                 ...entries.map(_buildPlayerRow),

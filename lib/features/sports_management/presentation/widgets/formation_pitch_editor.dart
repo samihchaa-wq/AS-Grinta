@@ -138,7 +138,7 @@ class FormationPitchEditor extends StatelessWidget {
                   Text(
                     slot.label,
                     style: const TextStyle(
-                      color: Colors.white70,
+                      color: Colors.white,
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
                     ),

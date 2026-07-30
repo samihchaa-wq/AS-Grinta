@@ -463,7 +463,7 @@ class _CandidateExploit extends StatelessWidget {
       return Text(
         cleanSheet ? 'Clean sheet' : 'A encaissé',
         style: TextStyle(
-          color: cleanSheet ? const Color(0xFF52D08A) : Colors.white54,
+          color: cleanSheet ? const Color(0xFF52D08A) : Colors.white,
           fontWeight: FontWeight.w800,
           fontSize: 13,
         ),
@@ -473,7 +473,7 @@ class _CandidateExploit extends StatelessWidget {
     return Text(
       goals <= 1 ? '$goals but' : '$goals buts',
       style: TextStyle(
-        color: goals > 0 ? const Color(0xFFCAB5FF) : Colors.white54,
+        color: goals > 0 ? const Color(0xFFCAB5FF) : Colors.white,
         fontWeight: FontWeight.w800,
         fontSize: 13,
       ),

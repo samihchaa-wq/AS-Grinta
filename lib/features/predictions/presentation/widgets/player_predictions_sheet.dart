@@ -84,7 +84,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                               'buts actuels',
                             ),
                       style: const TextStyle(
-                        color: Colors.white70,
+                        color: Colors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -236,7 +236,7 @@ class _RankBadge extends StatelessWidget {
       return Text(
         '$rank',
         textAlign: TextAlign.center,
-        style: const TextStyle(color: Colors.white60),
+        style: const TextStyle(color: Colors.white),
       );
     }
     return CircleAvatar(

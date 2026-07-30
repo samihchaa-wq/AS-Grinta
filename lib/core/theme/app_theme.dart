@@ -37,8 +37,8 @@ abstract final class AppTheme {
   static const Color admin = Color(0xFF8A72E8);
   static const Color error = Color(0xFFFF6F7D);
   static const Color textPrimary = Color(0xFFF5F7FB);
-  static const Color textSecondary = Color(0xFFC6CEDA);
-  static const Color textFaint = Color(0xFF8D99AA);
+  static const Color textSecondary = Color(0xFFE4E8F0);
+  static const Color textFaint = Color(0xFFB7C0CE);
 
   // Grille de 8 px et niveaux de surfaces communs.
   static const double spaceXs = 8;
