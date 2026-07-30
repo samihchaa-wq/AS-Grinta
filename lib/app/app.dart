@@ -70,30 +70,44 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       routerConfig: router,
       builder: (context, child) {
         return GrintaAccessibilityScope(
-          child: Column(
+          child: Stack(
             children: [
-              if (!isOnline)
-                Material(
-                  color: Theme.of(context).colorScheme.surface,
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                      child: GrintaStatusBanner(
-                        title: 'Connexion perdue',
-                        message:
-                            'Les données affichées peuvent être obsolètes.',
-                        tone: GrintaStatusTone.warning,
-                        compact: true,
-                        action: TextButton(
-                          onPressed: () => ref.invalidate(onlineStatusProvider),
-                          child: const Text('Réessayer'),
+              const Positioned.fill(
+                child: Image(
+                  image: AssetImage('assets/images/app_background.webp'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const Positioned.fill(
+                child: ColoredBox(color: Color(0x73050B17)),
+              ),
+              Column(
+                children: [
+                  if (!isOnline)
+                    Material(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                          child: GrintaStatusBanner(
+                            title: 'Connexion perdue',
+                            message:
+                                'Les données affichées peuvent être obsolètes.',
+                            tone: GrintaStatusTone.warning,
+                            compact: true,
+                            action: TextButton(
+                              onPressed: () =>
+                                  ref.invalidate(onlineStatusProvider),
+                              child: const Text('Réessayer'),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              Expanded(child: child ?? const SizedBox.shrink()),
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                ],
+              ),
             ],
           ),
         );
