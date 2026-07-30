@@ -279,13 +279,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (file == null) return;
     final bytes = await file.readAsBytes();
     if (!mounted) return;
-    final confirmed = await confirmCompositionPhoto(context, bytes);
-    if (!confirmed) return;
-    final name = file.name;
-    final ext = name.contains('.') ? name.split('.').last : 'jpg';
+    final cropped = await cropProfilePhoto(context, bytes);
+    if (cropped == null) return;
     await ref
         .read(authControllerProvider.notifier)
-        .uploadPhoto(bytes: bytes, fileExt: ext);
+        .uploadPhoto(bytes: cropped, fileExt: 'png');
     if (!mounted) return;
     final error = ref.read(authControllerProvider).error;
     ScaffoldMessenger.of(

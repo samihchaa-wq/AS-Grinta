@@ -151,8 +151,11 @@ class _InlineMatchPredictionCardState
                   Expanded(
                     child: _Odd(
                       label: '1',
-                      value: AppFormats.odds(item.oddsWin),
-                      selected: grinta > opponent,
+                      value: AppFormats.odds(
+                        item.isHome ? item.oddsWin : item.oddsLoss,
+                      ),
+                      selected:
+                          item.isHome ? grinta > opponent : opponent > grinta,
                       accent: const Color(0xFF39E784),
                     ),
                   ),
@@ -169,8 +172,11 @@ class _InlineMatchPredictionCardState
                   Expanded(
                     child: _Odd(
                       label: '2',
-                      value: AppFormats.odds(item.oddsLoss),
-                      selected: grinta < opponent,
+                      value: AppFormats.odds(
+                        item.isHome ? item.oddsLoss : item.oddsWin,
+                      ),
+                      selected:
+                          item.isHome ? grinta < opponent : opponent < grinta,
                       accent: const Color(0xFFFF6B6B),
                     ),
                   ),

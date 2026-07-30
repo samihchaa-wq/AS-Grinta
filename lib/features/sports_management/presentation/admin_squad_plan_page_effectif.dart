@@ -572,6 +572,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 onRelanceAll: (_reminders?.canRemind ?? false)
                     ? () => _sendReminder()
                     : null,
+                onRelance: (_reminders?.canRemind ?? false)
+                    ? (player) => _sendReminder(player: player)
+                    : null,
               ),
             ];
             if (constraints.maxWidth >= 900) {

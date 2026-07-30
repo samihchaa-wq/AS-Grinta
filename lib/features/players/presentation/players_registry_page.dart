@@ -230,14 +230,13 @@ Future<void> _pickAndUploadRosterPhoto(
   if (file == null) return;
   final bytes = await file.readAsBytes();
   if (!context.mounted) return;
-  final confirmed = await confirmCompositionPhoto(context, bytes);
-  if (!confirmed) return;
-  final ext = file.name.contains('.') ? file.name.split('.').last : 'jpg';
+  final cropped = await cropProfilePhoto(context, bytes);
+  if (cropped == null) return;
   try {
     await ref.read(rosterRepositoryProvider).uploadPlayerPhoto(
           seasonPlayerId: player.id,
-          bytes: bytes,
-          fileExt: ext,
+          bytes: cropped,
+          fileExt: 'png',
         );
     ref.invalidate(rosterProvider(seasonId));
     if (context.mounted) {
