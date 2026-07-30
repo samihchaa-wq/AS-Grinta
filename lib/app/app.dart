@@ -79,7 +79,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
                 ),
               ),
               const Positioned.fill(
-                child: ColoredBox(color: Color(0x73050B17)),
+                child: ColoredBox(color: Color(0x33050B17)),
               ),
               Column(
                 children: [
