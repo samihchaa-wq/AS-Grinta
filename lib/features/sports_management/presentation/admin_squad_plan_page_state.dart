@@ -210,7 +210,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: GrintaAppBar(
-        title: const Text('Gestion du match'),
+        title: const SizedBox.shrink(),
         admin: true,
         actions: [
           IconButton(
