@@ -131,8 +131,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                         key: _boundaryKey,
                         child: ClipRect(
                           child: InteractiveViewer(
-                            transformationController:
-                                _transformationController,
+                            transformationController: _transformationController,
                             constrained: false,
                             boundaryMargin: EdgeInsets.zero,
                             minScale: 1,
