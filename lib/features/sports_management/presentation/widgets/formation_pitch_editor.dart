@@ -150,6 +150,11 @@ class FormationPitchEditor extends StatelessWidget {
 
           final finishedBenchCount =
               finishedBenchCounts[entry.participantId] ?? 0;
+          // Le prénom est toujours un bandeau SOUS la photo (jamais dessus,
+          // pour ne jamais masquer le visage) : l'avatar est réduit pour
+          // laisser la place au bandeau, le tout tenant dans le même carré
+          // qu'un emplacement vide.
+          final avatarSize = width - 16;
           final marker = Material(
             color: Colors.transparent,
             child: InkWell(
@@ -168,51 +173,51 @@ class FormationPitchEditor extends StatelessWidget {
                         ]
                       : null,
                 ),
-                // L'avatar occupe tout le carré (même taille qu'un emplacement
-                // vide) ; le prénom est un bandeau en bas.
-                child: Stack(
-                  fit: StackFit.expand,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    PlayerAvatar(
-                      photoUrl: entry.photoUrl,
-                      name: entry.displayName,
-                      isGoalkeeper: entry.isGoalkeeper,
-                      size: width,
-                    ),
-                    Positioned(
-                      left: 2,
-                      right: finishedBenchCount > 0 ? 15 : 2,
-                      bottom: 2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 3,
-                          vertical: 1,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        PlayerAvatar(
+                          photoUrl: entry.photoUrl,
+                          name: entry.displayName,
+                          isGoalkeeper: entry.isGoalkeeper,
+                          size: avatarSize,
                         ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: .55),
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                        child: Text(
-                          entry.displayName.trim(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
+                        if (finishedBenchCount > 0)
+                          Positioned(
+                            right: -2,
+                            top: -2,
+                            child: SubstituteHistoryBadge(
+                              count: finishedBenchCount,
+                            ),
                           ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      constraints: BoxConstraints(maxWidth: width),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 3,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .55),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Text(
+                        entry.displayName.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
-                    if (finishedBenchCount > 0)
-                      Positioned(
-                        right: 1,
-                        bottom: 1,
-                        child: SubstituteHistoryBadge(
-                          count: finishedBenchCount,
-                        ),
-                      ),
                   ],
                 ),
               ),
