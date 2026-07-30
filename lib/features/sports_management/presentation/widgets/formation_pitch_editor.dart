@@ -13,6 +13,7 @@ class FormationPitchEditor extends StatelessWidget {
     required this.onDroppedOnSlot,
     required this.onRemoveFromField,
     this.editable = true,
+    this.finishedBenchCounts = const {},
   });
 
   final List<FootballFormationSlot> slots;
@@ -23,6 +24,10 @@ class FormationPitchEditor extends StatelessWidget {
   ) onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
   final bool editable;
+
+  /// Nombre de fois où chaque joueur (par participantId) a déjà été noté
+  /// remplaçant dans un match terminé.
+  final Map<String, int> finishedBenchCounts;
 
   MatchCompositionEntry? _entryFor(FootballFormationSlot slot) {
     MatchCompositionEntry? closest;
@@ -67,7 +72,12 @@ class FormationPitchEditor extends StatelessWidget {
                         child: CustomPaint(painter: _PitchPainter())),
                     for (final slot in slots)
                       _slot(
-                          context, constraints.biggest, slot, _entryFor(slot)),
+                        context,
+                        constraints.biggest,
+                        slot,
+                        _entryFor(slot),
+                        finishedBenchCounts,
+                      ),
                   ],
                 ),
               ),
@@ -83,6 +93,7 @@ class FormationPitchEditor extends StatelessWidget {
     Size size,
     FootballFormationSlot slot,
     MatchCompositionEntry? entry,
+    Map<String, int> finishedBenchCounts,
   ) {
     // La feuille de match affiche 22 postes : on garde des marqueurs
     // compacts (carrés) pour qu'ils tiennent sans se chevaucher sur mobile.
@@ -137,6 +148,8 @@ class FormationPitchEditor extends StatelessWidget {
             );
           }
 
+          final finishedBenchCount =
+              finishedBenchCounts[entry.participantId] ?? 0;
           final marker = Material(
             color: Colors.transparent,
             child: InkWell(
@@ -168,7 +181,7 @@ class FormationPitchEditor extends StatelessWidget {
                     ),
                     Positioned(
                       left: 2,
-                      right: 2,
+                      right: finishedBenchCount > 0 ? 15 : 2,
                       bottom: 2,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -192,6 +205,14 @@ class FormationPitchEditor extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (finishedBenchCount > 0)
+                      Positioned(
+                        right: 1,
+                        bottom: 1,
+                        child: SubstituteHistoryBadge(
+                          count: finishedBenchCount,
+                        ),
+                      ),
                   ],
                 ),
               ),

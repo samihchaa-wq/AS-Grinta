@@ -388,6 +388,38 @@ class _GoalBalls extends StatelessWidget {
   }
 }
 
+/// Petit repère en bas à droite de l'avatar : nombre de fois où ce joueur a
+/// déjà été noté remplaçant dans un match terminé. Affiché uniquement dans
+/// l'écran de composition d'un match à venir, pour aider l'admin à
+/// équilibrer le temps de jeu. Invisible quand le compteur est à zéro.
+class SubstituteHistoryBadge extends StatelessWidget {
+  const SubstituteHistoryBadge({super.key, required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2E3A59),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white70, width: .8),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        ),
+      ),
+    );
+  }
+}
+
 /// Vignette d'un joueur : photo si disponible, sinon initiales.
 /// Utilisée uniquement sur les compositions.
 class PlayerAvatar extends StatefulWidget {

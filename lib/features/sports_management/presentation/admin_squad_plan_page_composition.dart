@@ -543,6 +543,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             editable: !_compositionLocked,
             onDroppedOnSlot: _dropOnSlot,
             onRemoveFromField: _moveToBench,
+            finishedBenchCounts: _postMatch ? const {} : _finishedBenchCounts,
           ),
         ),
         const SizedBox(height: 14),
@@ -576,6 +577,10 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                           _BenchBox(
                             entry: entry,
                             draggable: !_compositionLocked,
+                            finishedBenchCount: _postMatch
+                                ? 0
+                                : _finishedBenchCounts[entry.participantId] ??
+                                    0,
                           ),
                       ],
                     ),

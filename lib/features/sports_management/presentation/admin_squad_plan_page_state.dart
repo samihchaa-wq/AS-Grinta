@@ -7,6 +7,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   MatchComposition? _composition;
   Set<String> _desiredConvoked = {};
   Set<String> _actualPresent = {};
+  Map<String, int> _finishedBenchCounts = {};
   bool _postMatch = false;
   bool _compositionExisted = false;
   AvailabilityReminderSummary? _reminders;
@@ -116,10 +117,12 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         waitlistRepository.fetchMatchConvocations(matchId),
         compositionRepository.fetchAdminComposition(matchId),
         waitlistRepository.fetchReminderSummary(matchId),
+        compositionRepository.fetchFinishedBenchCounts(matchId),
       ]);
       final convocations = results[0] as MatchConvocations;
       final saved = results[1] as MatchComposition?;
       final reminders = results[2] as AvailabilityReminderSummary;
+      final finishedBenchCounts = results[3] as Map<String, int>;
       final kickoffPassed = !DateTime.now().isBefore(convocations.kickoffAt);
       final finalization = kickoffPassed
           ? await ref
@@ -150,6 +153,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _postMatch = postMatch;
         _compositionExisted = saved != null;
         _actualPresent = actualPresent;
+        _finishedBenchCounts = finishedBenchCounts;
         _reminders = reminders;
         _desiredConvoked = postMatch
             ? actualPresent
