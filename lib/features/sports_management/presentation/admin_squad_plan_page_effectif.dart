@@ -147,16 +147,16 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final overLimit = convoked.length > limit;
     final confirmed = await _confirmAction(
       title: convocations.isPublished
-          ? 'Publier les modifications ?'
-          : 'Publier les convocations ?',
-      actionLabel: convocations.isPublished ? 'Mettre à jour' : 'Publier',
+          ? 'Enregistrer les modifications ?'
+          : 'Enregistrer les convocations ?',
+      actionLabel: convocations.isPublished ? 'Mettre à jour' : 'Enregistrer',
       actionIcon: Icons.campaign_outlined,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${convoked.length} convoqué${convoked.length > 1 ? 's' : ''} · '
+            '${convoked.length} disponible${convoked.length > 1 ? 's' : ''} · '
             '${waitlisted.length} en liste d’attente · limite $limit.',
           ),
           const SizedBox(height: 12),
@@ -188,7 +188,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           );
       await _loadWorkspace(convocations.matchId);
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
-      if (mounted) _showMessage('Convocations publiées.');
+      if (mounted) _showMessage('Convocations enregistrées.');
     } catch (error) {
       if (mounted) _showMessage(humanizeError(error));
     } finally {
@@ -510,7 +510,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 if (over) ...[
                   const SizedBox(height: 10),
                   Text(
-                    '${_convokedPlayers.length} convoqués pour une limite de $limit. Une confirmation sera demandée avant publication.',
+                    '${_convokedPlayers.length} disponibles pour une limite de $limit. Une confirmation sera demandée avant enregistrement.',
                     style: const TextStyle(
                       color: Colors.orange,
                       fontWeight: FontWeight.w800,
@@ -532,7 +532,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           builder: (context, constraints) {
             final columns = [
               _EffectifColumn(
-                title: 'Convoqués',
+                title: 'Disponibles',
                 color: const Color(0xFF168A52),
                 icon: Icons.check_circle_outline,
                 players: _convokedPlayers,
@@ -615,9 +615,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           label: Text(
             convocations.isPublished
                 ? hasPending
-                    ? 'Publier les modifications'
-                    : 'Convocations publiées'
-                : 'Publier les convocations',
+                    ? 'Enregistrer les modifications'
+                    : 'Convocations enregistrées'
+                : 'Enregistrer les convocations',
           ),
         ),
         if (_locked)
