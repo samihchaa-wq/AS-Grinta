@@ -134,7 +134,10 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                             transformationController: _transformationController,
                             constrained: false,
                             boundaryMargin: EdgeInsets.zero,
-                            minScale: 1,
+                            // minScale < 1 permet de dézoomer en dessous du
+                            // cadrage "plein carré" pour voir apparaître le
+                            // fond (utile pour juger d'un fond transparent).
+                            minScale: 0.4,
                             maxScale: 4,
                             child: Image.memory(
                               widget.bytes,
