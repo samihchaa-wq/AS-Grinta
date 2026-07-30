@@ -52,7 +52,11 @@ class MorePage extends ConsumerWidget {
                 title: const Text('Liste d’attente'),
                 subtitle: const Text('L’ordre pour proposer une place libre'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/waitlist'),
+                onTap: () => context.push(
+                  isRealAdmin && !viewingAsUser
+                      ? '/admin/waitlist'
+                      : '/waitlist',
+                ),
               ),
             ),
           ],

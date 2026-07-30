@@ -158,7 +158,7 @@ class _EffectifColumn extends StatelessWidget {
   }
 }
 
-/// Grille à deux colonnes de largeur égale, pour que les joueurs restent
+/// Grille à colonnes de largeur égale, pour que les joueurs restent
 /// toujours alignés côte à côte quelle que soit la longueur de leur nom ou
 /// de leurs infos (un `Wrap` classique les alignerait de façon inégale selon
 /// la largeur intrinsèque de chaque puce).
@@ -193,23 +193,26 @@ class _EffectifPlayerGrid extends StatelessWidget {
             : () => onRelance!(player),
       );
 
+  static const int _columns = 4;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < players.length; i += 2) ...[
+        for (var i = 0; i < players.length; i += _columns) ...[
           if (i > 0) const SizedBox(height: 7),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _chip(players[i])),
-              const SizedBox(width: 7),
-              Expanded(
-                child: i + 1 < players.length
-                    ? _chip(players[i + 1])
-                    : const SizedBox.shrink(),
-              ),
+              for (var col = 0; col < _columns; col++) ...[
+                if (col > 0) const SizedBox(width: 7),
+                Expanded(
+                  child: i + col < players.length
+                      ? _chip(players[i + col])
+                      : const SizedBox.shrink(),
+                ),
+              ],
             ],
           ),
         ],
@@ -248,10 +251,14 @@ class _EffectifPlayerChip extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                player.firstName.trim().isEmpty
-                    ? player.displayName
-                    : player.firstName.trim(),
+              Flexible(
+                child: Text(
+                  player.firstName.trim().isEmpty
+                      ? player.displayName
+                      : player.firstName.trim(),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
               if (player.isGuest && onTap != null) ...[
                 const SizedBox(width: 4),
