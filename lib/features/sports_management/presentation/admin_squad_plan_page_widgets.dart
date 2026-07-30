@@ -92,9 +92,10 @@ class _EffectifColumn extends StatelessWidget {
         duration: const Duration(milliseconds: 140),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: candidates.isNotEmpty
-              ? color.withValues(alpha: .18)
-              : color.withValues(alpha: .07),
+          color: Color.alphaBlend(
+            color.withValues(alpha: candidates.isNotEmpty ? .18 : .07),
+            Theme.of(context).colorScheme.surface,
+          ),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: candidates.isNotEmpty ? color : color.withValues(alpha: .35),
@@ -270,7 +271,10 @@ class _EffectifPlayerChip extends StatelessWidget {
       ),
       onPressed: onTap,
       side: BorderSide(color: color.withValues(alpha: .55)),
-      backgroundColor: color.withValues(alpha: .10),
+      backgroundColor: Color.alphaBlend(
+        color.withValues(alpha: .16),
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
     );
     if (!draggable) return chip;
     final autoScroll = DragAutoScroller(context);
