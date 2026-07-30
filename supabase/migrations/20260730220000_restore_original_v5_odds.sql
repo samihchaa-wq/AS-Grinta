@@ -1,24 +1,30 @@
--- Restaure calculate_match_odds_v5 exactement telle qu'écrite le 18 juillet
--- (PR #270, commit 18a0d2d) : aucune modification par rapport à la formule
--- d'origine. Les ajustements testés depuis (garde-fou sur les cotes
--- finales, lissage de la forme générale) sont retirés à la demande
--- explicite du client — la méthode reste strictement celle sur laquelle on
--- s'était mis d'accord.
+-- Restaure calculate_match_odds_v5 à sa dernière version correcte avant les
+-- errements du 30 juillet : celle du 25 juillet (compact_archived_match_
+-- history.sql), qui combine les matchs récents (public.matches, status
+-- 'termine') ET les 156 matchs d'historique archivé (public.
+-- historical_match_scores) via UNION ALL.
+--
+-- Une première tentative de retour en arrière, plus tôt dans la journée,
+-- avait par erreur restauré la version du 18 juillet — antérieure à cette
+-- fusion des deux sources — ce qui faisait perdre l'accès à l'historique
+-- archivé et rendait les cotes non représentatives (calculées sur 1 ou 2
+-- matchs de test au lieu des ~158 matchs réels). Cette migration corrige
+-- cette erreur et rétablit le calcul exact du 25 juillet, sans aucune
+-- autre modification.
 
 create or replace function public.calculate_match_odds_v5(
   p_opponent_id uuid,
   p_reference_date date
-)
-returns jsonb
+) returns jsonb
 language plpgsql
 stable
 security definer
 set search_path = ''
-as $function$
+as $$
 declare
   v_ref date := coalesce(p_reference_date, current_date);
-  v_h_v numeric := 0; -- somme des poids des victoires en confrontation directe
-  v_h_d numeric := 0; -- somme des poids des défaites en confrontation directe
+  v_h_v numeric := 0;
+  v_h_d numeric := 0;
   v_form_v numeric := 0;
   v_form_d numeric := 0;
   v_q_forme numeric;
@@ -38,28 +44,33 @@ begin
     raise exception 'Adversaire introuvable';
   end if;
 
-  -- Étapes 1 à 4 : confrontations directes classées de la plus récente
-  -- (rang 1) à la plus ancienne. Les nuls gardent leur rang mais ne sont
-  -- sommés ni dans H_V ni dans H_D.
-  with h2h as (
+  with all_results as (
+    select m.id, m.opponent_id, m.match_date,
+      m.score_as_grinta, m.score_adverse
+    from public.matches m
+    where m.status = 'termine'
+      and m.score_as_grinta is not null
+      and m.score_adverse is not null
+    union all
+    select h.id, h.opponent_id, h.match_date,
+      h.score_as_grinta::integer, h.score_adverse::integer
+    from public.historical_match_scores h
+  ), h2h as (
     select
       case
-        when m.score_as_grinta > m.score_adverse then 'V'
-        when m.score_as_grinta = m.score_adverse then 'N'
+        when r.score_as_grinta > r.score_adverse then 'V'
+        when r.score_as_grinta = r.score_adverse then 'N'
         else 'D'
       end as result,
       row_number() over (
-        order by m.match_date desc, m.match_time desc nulls last, m.id desc
+        order by r.match_date desc, r.id desc
       ) as rang,
-      greatest(0, (v_ref - m.match_date))::numeric as age
-    from public.matches m
-    where m.opponent_id = p_opponent_id
-      and m.status in ('termine', 'archive')
-      and m.score_as_grinta is not null
-      and m.score_adverse is not null
+      greatest(0, (v_ref - r.match_date))::numeric as age
+    from all_results r
+    where r.opponent_id = p_opponent_id
+      and r.match_date < v_ref
   ), weighted as (
-    select
-      result,
+    select result,
       case
         when rang <= 5 then
           (array[1.0, 0.95, 0.90, 0.85, 0.80])[rang::int]
@@ -76,22 +87,29 @@ begin
   into v_h_v, v_h_d
   from weighted;
 
-  -- Étape 5 : forme générale récente, tous adversaires confondus.
-  with form as (
+  with all_results as (
+    select m.id, m.match_date, m.score_as_grinta, m.score_adverse
+    from public.matches m
+    where m.status = 'termine'
+      and m.score_as_grinta is not null
+      and m.score_adverse is not null
+    union all
+    select h.id, h.match_date,
+      h.score_as_grinta::integer, h.score_adverse::integer
+    from public.historical_match_scores h
+  ), form as (
     select
       case
-        when m.score_as_grinta > m.score_adverse then 'V'
-        when m.score_as_grinta = m.score_adverse then 'N'
+        when r.score_as_grinta > r.score_adverse then 'V'
+        when r.score_as_grinta = r.score_adverse then 'N'
         else 'D'
       end as result,
       power(
         0.5::numeric,
-        greatest(0, (v_ref - m.match_date))::numeric / 180.0
+        greatest(0, (v_ref - r.match_date))::numeric / 180.0
       ) as poids
-    from public.matches m
-    where m.status in ('termine', 'archive')
-      and m.score_as_grinta is not null
-      and m.score_adverse is not null
+    from all_results r
+    where r.match_date < v_ref
   )
   select
     coalesce(sum(poids) filter (where result = 'V'), 0),
@@ -105,18 +123,13 @@ begin
     v_q_forme := v_form_v / (v_form_v + v_form_d);
   end if;
 
-  -- Étape 6 : probabilité décisive, prior de force = 1.
   v_q := (1.0 * v_q_forme + v_h_v) / (1.0 + v_h_v + v_h_d);
-  -- Garde-fou anti division par zéro dans les cas dégénérés (aucune défaite
-  -- ni victoire enregistrée) : garde Q strictement dans ]0 ; 1[.
   v_q := least(0.999999, greatest(0.000001, v_q));
 
-  -- Étapes 7 et 8 : cotes provisoires.
   v_cote_v_prov := 1.0 / v_q;
   v_cote_d_prov := 1.0 / (1.0 - v_q);
   v_cote_n_prov := ((v_cote_v_prov + v_cote_d_prov) / 2.0) * 1.50;
 
-  -- Étapes 9 et 10 : probabilités implicites puis normalisation.
   v_u_v := 1.0 / v_cote_v_prov;
   v_u_n := 1.0 / v_cote_n_prov;
   v_u_d := 1.0 / v_cote_d_prov;
@@ -125,7 +138,6 @@ begin
   v_p_n := v_u_n / v_s;
   v_p_d := v_u_d / v_s;
 
-  -- Étape 11 : cotes finales, arrondies à deux décimales uniquement ici.
   return jsonb_build_object(
     'win', round(1.0 / v_p_v, 2),
     'draw', round(1.0 / v_p_n, 2),
@@ -137,12 +149,12 @@ begin
     'q_form', round(v_q_forme, 6),
     'h2h_win_weight', round(v_h_v, 6),
     'h2h_loss_weight', round(v_h_d, 6),
-    'model_version', 'results_weighted_v5'
+    'model_version', 'compact_history_v6'
   );
 end;
-$function$;
+$$;
 
--- Recalcule les cotes de tous les matchs à venir avec la formule d'origine.
+-- Recalcule les cotes de tous les matchs à venir avec l'historique complet.
 do $$
 begin
   if to_regprocedure('public.recalculate_upcoming_match_odds_v4()') is not null then
