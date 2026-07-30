@@ -4,6 +4,7 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
+import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _squadSizeController = TextEditingController(text: '14');
   final _addressController = TextEditingController();
-  final _jerseyNoteController = TextEditingController();
+  JerseyOption? _selectedJersey;
 
   double? _oddsWin;
   double? _oddsDraw;
@@ -105,7 +106,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
-    _jerseyNoteController.text = match?.jerseyNote ?? '';
+    _selectedJersey = JerseyOption.fromId(match?.jerseyNote);
     // Adresse du terrain d'AS Grinta, pour préremplir un match à domicile.
     Future.microtask(() async {
       final home =
@@ -120,7 +121,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   void dispose() {
     _squadSizeController.dispose();
     _addressController.dispose();
-    _jerseyNoteController.dispose();
     super.dispose();
   }
 
@@ -369,15 +369,28 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 onChanged: (value) =>
                     setState(() => _matchType = value ?? 'championnat'),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _jerseyNoteController,
-                maxLength: 300,
-                decoration: const InputDecoration(
-                  labelText: 'Maillot (facultatif)',
-                  hintText: 'Ex. Maillot domicile bleu nuit',
-                  prefixIcon: Icon(Icons.checkroom_outlined),
-                ),
+              const SizedBox(height: 16),
+              Text(
+                'Maillot',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  for (final option in JerseyOption.values) ...[
+                    _JerseyOptionTile(
+                      option: option,
+                      selected: _selectedJersey == option,
+                      onTap: () => setState(() {
+                        _selectedJersey =
+                            _selectedJersey == option ? null : option;
+                      }),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ],
               ),
             ],
             if (sportsEnabled && !_isInternal) ...[
@@ -622,7 +635,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
     final squadSizeLimit =
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-    final jerseyNote = _jerseyNoteController.text.trim();
+    final jerseyNote = _selectedJersey?.id;
     if (widget.match == null) {
       await notifier.createMatch(
         seasonId: _seasonId,
@@ -636,7 +649,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
         matchType: _matchType,
-        jerseyNote: jerseyNote.isEmpty ? null : jerseyNote,
+        jerseyNote: jerseyNote,
       );
     } else {
       await notifier.updateMatch(
@@ -653,7 +666,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
         matchType: _matchType,
-        jerseyNote: jerseyNote.isEmpty ? null : jerseyNote,
+        jerseyNote: jerseyNote,
       );
     }
     if (!mounted) return;
@@ -699,6 +712,60 @@ class _OddsDisplay extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _JerseyOptionTile extends StatelessWidget {
+  const _JerseyOptionTile({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final JerseyOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 84,
+        height: 96,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: .12) : null,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? accent
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Stack(
+          children: [
+            Center(
+              child: Image.asset(option.assetPath, fit: BoxFit.contain),
+            ),
+            if (selected)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: accent,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
