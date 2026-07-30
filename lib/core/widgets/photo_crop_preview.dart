@@ -108,7 +108,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: const Color(0xFF174936),
               borderRadius: BorderRadius.circular(18),
