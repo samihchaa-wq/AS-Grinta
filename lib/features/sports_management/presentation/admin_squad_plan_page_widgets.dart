@@ -370,7 +370,7 @@ class _FormationDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Colors.white54,
+          color: Colors.white,
           fontWeight: FontWeight.w900,
           letterSpacing: .4,
         );

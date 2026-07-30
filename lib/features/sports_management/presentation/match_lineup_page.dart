@@ -248,7 +248,7 @@ class PublishedLineupPreview extends ConsumerWidget {
           final beforeKickoff =
               board == null || DateTime.now().isBefore(board.kickoffAt);
           final foreground = embeddedOnDark ? Colors.white : null;
-          final secondary = embeddedOnDark ? Colors.white70 : null;
+          final secondary = embeddedOnDark ? Colors.white : null;
           final content = Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
