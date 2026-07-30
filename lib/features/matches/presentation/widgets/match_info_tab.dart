@@ -2,6 +2,7 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
+import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -129,22 +130,51 @@ class MatchInfoTab extends ConsumerWidget {
               ),
               if (info.jerseyNote != null) ...[
                 const SizedBox(height: 8),
-                _InfoRow(
-                  icon: Icons.checkroom_outlined,
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        const TextSpan(
-                          text: 'Maillot  ',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                Builder(
+                  builder: (context) {
+                    final jersey = JerseyOption.fromId(info.jerseyNote);
+                    if (jersey == null) {
+                      // Anciennes fiches enregistrées avant le sélecteur
+                      // visuel : on garde le texte libre tel quel.
+                      return _InfoRow(
+                        icon: Icons.checkroom_outlined,
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              const TextSpan(
+                                text: 'Maillot  ',
+                                style: TextStyle(fontWeight: FontWeight.w500),
+                              ),
+                              TextSpan(
+                                text: info.jerseyNote!,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800),
+                              ),
+                            ],
+                          ),
                         ),
-                        TextSpan(
-                          text: info.jerseyNote!,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ],
-                    ),
-                  ),
+                      );
+                    }
+                    return _InfoRow(
+                      icon: Icons.checkroom_outlined,
+                      child: Row(
+                        children: [
+                          const Text(
+                            'Maillot  ',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          SizedBox(
+                            width: 32,
+                            height: 36,
+                            child: Image.asset(
+                              jersey.assetPath,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
               const SizedBox(height: 20),
