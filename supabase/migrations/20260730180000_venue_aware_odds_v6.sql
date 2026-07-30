@@ -272,4 +272,13 @@ end;
 $function$;
 
 -- Recalcule les cotes de tous les matchs à venir avec le lieu pris en compte.
-select public.recalculate_upcoming_match_odds_v4();
+-- Gardé par un test d'existence : les environnements de test qui ne
+-- rejouent pas la lignée complète du moteur de cotes (v4/v5) n'ont pas
+-- cette fonction, et cette migration n'a pas vocation à la redéfinir.
+do $$
+begin
+  if to_regprocedure('public.recalculate_upcoming_match_odds_v4()') is not null then
+    perform public.recalculate_upcoming_match_odds_v4();
+  end if;
+end;
+$$;
