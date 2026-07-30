@@ -26,7 +26,7 @@ class NotificationsPage extends ConsumerWidget {
             _PushActivationCard(),
             SizedBox(height: 16),
             _NotificationsInfoCard(),
-            _AdminTestButton(),
+            _TestPushButton(),
             _AdminKillSwitchCard(),
           ],
         ),
@@ -85,23 +85,24 @@ class _NotificationsInfoCard extends StatelessWidget {
   }
 }
 
-/// Bouton réservé à l'admin : envoie une notification de test à soi-même
-/// uniquement, pour valider le rendu sans déranger l'équipe.
-class _AdminTestButton extends ConsumerStatefulWidget {
-  const _AdminTestButton();
+/// Ouvert à tout le monde : envoie une notification de test à soi-même
+/// uniquement, pour vérifier que les notifications fonctionnent bien sur
+/// cet appareil.
+class _TestPushButton extends ConsumerStatefulWidget {
+  const _TestPushButton();
 
   @override
-  ConsumerState<_AdminTestButton> createState() => _AdminTestButtonState();
+  ConsumerState<_TestPushButton> createState() => _TestPushButtonState();
 }
 
-class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
+class _TestPushButtonState extends ConsumerState<_TestPushButton> {
   bool _sending = false;
 
   Future<void> _send() async {
     setState(() => _sending = true);
     var message = 'Test envoyé — regarde tes notifications.';
     try {
-      await ref.read(supabaseClientProvider).rpc('admin_send_test_push');
+      await ref.read(supabaseClientProvider).rpc('send_test_push');
     } catch (_) {
       message = 'Impossible d’envoyer le test.';
     }
@@ -113,26 +114,18 @@ class _AdminTestButtonState extends ConsumerState<_AdminTestButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (!ref.watch(isAdminViewProvider)) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const AdminBadge(),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _sending ? null : _send,
-            icon: _sending
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: GrintaProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send_outlined),
-            label: const Text('M’envoyer un test'),
-          ),
-        ],
+      child: OutlinedButton.icon(
+        onPressed: _sending ? null : _send,
+        icon: _sending
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: GrintaProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.send_outlined),
+        label: const Text('M’envoyer un test'),
       ),
     );
   }

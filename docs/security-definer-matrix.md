@@ -15,7 +15,6 @@ Une fonction `SECURITY DEFINER` s’exécute avec les droits de son propriétair
 
 Ces fonctions vérifient explicitement le rôle administrateur :
 
-- `admin_send_test_push`
 - `admin_set_guest_photo`
 - `admin_set_match_address`
 - `is_admin`
@@ -57,6 +56,7 @@ Ces fonctions utilisent l’identité de la session avec `auth.uid()` et ne modi
 - `get_my_profile`
 - `register_push_subscription`
 - `save_match_prediction`
+- `send_test_push`
 - `set_badge_featured`
 - `update_my_app_preferences`
 
