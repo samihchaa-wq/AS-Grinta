@@ -263,6 +263,22 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               label: const Text('Ouvrir l’administration'),
             ),
           ],
+          const SizedBox(height: 24),
+          const Divider(),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: busy ? null : () => _signOut(context),
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Se déconnecter'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.error.withValues(
+                      alpha: .5,
+                    ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -413,6 +429,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     confirmationController.dispose();
     if (result == null || !mounted) return;
     await ref.read(authControllerProvider.notifier).updatePassword(result);
+  }
+
+  Future<void> _signOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Se déconnecter ?'),
+        content: const Text(
+          'Tu devras te reconnecter pour accéder à l’application.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Se déconnecter'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref.read(authControllerProvider.notifier).signOut();
   }
 }
 
