@@ -115,20 +115,33 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     final upcoming = state.matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final finished = state.matches.where((match) => match.isFinished).toList()
-      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
     // Un match annulé ne peut pas devenir le prochain match mis en avant,
-    // mais reste visible dans « À venir » pour informer les joueurs.
+    // mais reste visible dans le flux chronologique pour informer les
+    // joueurs.
     final activeUpcoming =
         upcoming.where((match) => !match.isCancelled).toList();
     final nextMatch = activeUpcoming.isEmpty ? null : activeUpcoming.last;
     final nextMatchId = nextMatch?.id;
+    // Un match annulé peut tomber n'importe où dans le temps par rapport au
+    // prochain match réel (ex. annulé dans 4 jours alors que le prochain
+    // match est dans 5 jours) : on le classe par rapport à la date du
+    // prochain match, pas par rapport à aujourd'hui, pour garder un flux
+    // strictement continu (futur en haut, passé en bas).
+    final referenceKickoff = nextMatch?.kickoffAt ?? DateTime.now();
+    final otherMatches =
+        upcoming.where((match) => match.id != nextMatchId).toList();
     // `upcoming` est déjà trié du plus lointain au plus proche : on garde cet
     // ordre pour que « À venir » affiche le futur le plus lointain en haut et
     // le match juste avant le prochain en bas, juste au-dessus de la section
     // « Prochain ».
-    final laterUpcoming =
-        upcoming.where((match) => match.id != nextMatchId).toList();
+    final laterUpcoming = otherMatches
+        .where((match) => match.kickoffAt.isAfter(referenceKickoff))
+        .toList();
+    final pastSection = [
+      ...otherMatches
+          .where((match) => !match.kickoffAt.isAfter(referenceKickoff)),
+      ...state.matches.where((match) => match.isFinished),
+    ]..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
 
     final focusRequest = ref.watch(matchesFocusRequestProvider);
     final nextCardIsReady = nextMatch != null && !state.isLoading;
@@ -280,7 +293,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     title: 'Résultats',
                   ),
                 ),
-                if (finished.isEmpty)
+                if (pastSection.isEmpty)
                   const SliverPadding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverToBoxAdapter(
@@ -296,11 +309,20 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: MatchHistoryCard(match: finished[index]),
-                        ),
-                        childCount: finished.length,
+                        (context, index) {
+                          final match = pastSection[index];
+                          final card = match.isFinished
+                              ? MatchHistoryCard(match: match)
+                              : _UpcomingMatchCard(
+                                  match: match,
+                                  isAdmin: isAdmin,
+                                );
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: card,
+                          );
+                        },
+                        childCount: pastSection.length,
                       ),
                     ),
                   ),
