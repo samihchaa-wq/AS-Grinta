@@ -2,7 +2,8 @@ part of 'pronos_hub_page.dart';
 
 enum _LbCol { name, first, second, points }
 
-const _leaderboardValueFlex = 2;
+const _leaderboardValueFlex = 10;
+const _leaderboardPointsFlex = 12;
 
 class _LeaderboardCard extends ConsumerStatefulWidget {
   const _LeaderboardCard({
@@ -114,7 +115,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
             ),
             SortableHeaderCell(
               label: 'Points',
-              flex: _leaderboardValueFlex,
+              flex: _leaderboardPointsFlex,
               align: TextAlign.end,
               active: _sort == _LbCol.points,
               descending: _desc,
@@ -205,7 +206,7 @@ StickyTableRow _leaderboardRow(
           ),
         ),
         Expanded(
-          flex: _leaderboardValueFlex,
+          flex: _leaderboardPointsFlex,
           child: Text(points, textAlign: TextAlign.end, style: valueStyle),
         ),
       ],
