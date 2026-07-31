@@ -76,39 +76,9 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     });
   }
 
-  Future<void> _editWaitlistCount(SportWaitlistEntry entry) async {
-    final controller = TextEditingController(
-      text: '${entry.currentSeasonWaitlistCount}',
-    );
-    final newCount = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Liste d’attente de ${entry.displayName}'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de fois en liste d’attente',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = int.tryParse(controller.text.trim());
-              Navigator.pop(dialogContext, value);
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (newCount == null || newCount < 0) return;
+  Future<void> _adjustWaitlistCount(SportWaitlistEntry entry, int delta) async {
+    final newCount = entry.currentSeasonWaitlistCount + delta;
+    if (newCount < 0) return;
     try {
       await ref.read(sportWaitlistRepositoryProvider).setWaitlistManualCount(
             seasonPlayerId: entry.seasonPlayerId,
@@ -130,6 +100,24 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
+  }
+
+  /// Remet la liste dans l'ordre équitable : d'abord les joueurs les moins
+  /// souvent mis en liste d'attente cette saison, puis, à égalité, les
+  /// joueurs les moins présents la saison précédente.
+  void _recalculateOrder() {
+    setState(() {
+      final entries = List<SportWaitlistEntry>.of(_entries)
+        ..sort((a, b) {
+          final byWaitlistCount = a.currentSeasonWaitlistCount
+              .compareTo(b.currentSeasonWaitlistCount);
+          if (byWaitlistCount != 0) return byWaitlistCount;
+          return a.previousSeasonAttendanceCount
+              .compareTo(b.previousSeasonAttendanceCount);
+        });
+      _entries = entries;
+      _dirty = true;
+    });
   }
 
   Future<void> _save() async {
@@ -255,6 +243,14 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
             ),
           ),
         ),
+        if (widget.editable) ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _recalculateOrder,
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: const Text('Recalculer'),
+          ),
+        ],
         const SizedBox(height: 12),
         for (var index = 0; index < _entries.length; index++)
           _WaitlistTile(
@@ -265,7 +261,8 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
             onReorderDrop: widget.editable
                 ? (dragged) => _reorderByDrag(dragged, _entries[index])
                 : null,
-            onEditWaitlistCount: () => _editWaitlistCount(_entries[index]),
+            onIncrement: () => _adjustWaitlistCount(_entries[index], 1),
+            onDecrement: () => _adjustWaitlistCount(_entries[index], -1),
           ),
       ],
     );
@@ -278,7 +275,8 @@ class _WaitlistTile extends StatelessWidget {
     required this.index,
     required this.entry,
     required this.editable,
-    required this.onEditWaitlistCount,
+    required this.onIncrement,
+    required this.onDecrement,
     this.onReorderDrop,
   });
 
@@ -286,9 +284,11 @@ class _WaitlistTile extends StatelessWidget {
   final SportWaitlistEntry entry;
 
   /// Faux pour l'écran joueur (lecture seule) : masque le glisser-déposer
-  /// de réordonnancement et l'édition du nombre de fois en liste d'attente.
+  /// de réordonnancement et les boutons +/- du nombre de fois en liste
+  /// d'attente.
   final bool editable;
-  final VoidCallback onEditWaitlistCount;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
 
   /// Appelé avec le joueur glissé quand il est déposé sur cette puce, pour
   /// le repositionner à cet emplacement dans la liste.
@@ -316,20 +316,18 @@ class _WaitlistTile extends StatelessWidget {
             const SizedBox(height: 3),
             Text('Présence saison précédente : $previousSeasonPresence'),
             if (editable)
-              InkWell(
-                onTap: onEditWaitlistCount,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    waitlistCountText,
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 15,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
+              Row(
+                children: [
+                  Expanded(child: waitlistCountText),
+                  _CompactIconButton(
+                    icon: Icons.remove_circle_outline,
+                    onPressed: waitlistCount > 0 ? onDecrement : null,
+                  ),
+                  _CompactIconButton(
+                    icon: Icons.add_circle_outline,
+                    onPressed: onIncrement,
+                  ),
+                ],
               )
             else
               waitlistCountText,
@@ -381,6 +379,24 @@ class _WaitlistTile extends StatelessWidget {
           child: content,
         );
       },
+    );
+  }
+}
+
+class _CompactIconButton extends StatelessWidget {
+  const _CompactIconButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon, size: 20),
+      onPressed: onPressed,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
     );
   }
 }
