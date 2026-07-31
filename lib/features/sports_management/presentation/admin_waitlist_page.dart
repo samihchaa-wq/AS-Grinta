@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
@@ -59,52 +60,25 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
     }
   }
 
-  void _move(int index, int delta) {
-    if (_entries.length < 2) return;
-    final next = index == 0 && delta < 0 ? _entries.length - 1 : index + delta;
-    if (next < 0 || next >= _entries.length) return;
+  void _reorderByDrag(SportWaitlistEntry dragged, SportWaitlistEntry target) {
+    if (dragged.seasonPlayerId == target.seasonPlayerId) return;
     setState(() {
       final entries = List<SportWaitlistEntry>.of(_entries);
-      final item = entries.removeAt(index);
-      entries.insert(next, item);
+      final fromIndex =
+          entries.indexWhere((e) => e.seasonPlayerId == dragged.seasonPlayerId);
+      final toIndex =
+          entries.indexWhere((e) => e.seasonPlayerId == target.seasonPlayerId);
+      if (fromIndex == -1 || toIndex == -1) return;
+      final item = entries.removeAt(fromIndex);
+      entries.insert(toIndex, item);
       _entries = entries;
       _dirty = true;
     });
   }
 
-  Future<void> _editWaitlistCount(SportWaitlistEntry entry) async {
-    final controller = TextEditingController(
-      text: '${entry.currentSeasonWaitlistCount}',
-    );
-    final newCount = await showDialog<int>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Liste d’attente de ${entry.displayName}'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Nombre de fois en liste d’attente',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = int.tryParse(controller.text.trim());
-              Navigator.pop(dialogContext, value);
-            },
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (newCount == null || newCount < 0) return;
+  Future<void> _adjustWaitlistCount(SportWaitlistEntry entry, int delta) async {
+    final newCount = entry.currentSeasonWaitlistCount + delta;
+    if (newCount < 0) return;
     try {
       await ref.read(sportWaitlistRepositoryProvider).setWaitlistManualCount(
             seasonPlayerId: entry.seasonPlayerId,
@@ -126,6 +100,24 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
         context,
       ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
+  }
+
+  /// Remet la liste dans l'ordre équitable : d'abord les joueurs les moins
+  /// souvent mis en liste d'attente cette saison, puis, à égalité, les
+  /// joueurs les moins présents la saison précédente.
+  void _recalculateOrder() {
+    setState(() {
+      final entries = List<SportWaitlistEntry>.of(_entries)
+        ..sort((a, b) {
+          final byWaitlistCount = a.currentSeasonWaitlistCount
+              .compareTo(b.currentSeasonWaitlistCount);
+          if (byWaitlistCount != 0) return byWaitlistCount;
+          return a.previousSeasonAttendanceCount
+              .compareTo(b.previousSeasonAttendanceCount);
+        });
+      _entries = entries;
+      _dirty = true;
+    });
   }
 
   Future<void> _save() async {
@@ -251,17 +243,26 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
             ),
           ),
         ),
+        if (widget.editable) ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _recalculateOrder,
+            icon: const Icon(Icons.auto_fix_high_outlined),
+            label: const Text('Recalculer'),
+          ),
+        ],
         const SizedBox(height: 12),
         for (var index = 0; index < _entries.length; index++)
           _WaitlistTile(
+            key: ValueKey(_entries[index].seasonPlayerId),
             index: index,
             entry: _entries[index],
             editable: widget.editable,
-            canMoveUp: _entries.length > 1,
-            canMoveDown: index < _entries.length - 1,
-            onMoveUp: () => _move(index, -1),
-            onMoveDown: () => _move(index, 1),
-            onEditWaitlistCount: () => _editWaitlistCount(_entries[index]),
+            onReorderDrop: widget.editable
+                ? (dragged) => _reorderByDrag(dragged, _entries[index])
+                : null,
+            onIncrement: () => _adjustWaitlistCount(_entries[index], 1),
+            onDecrement: () => _adjustWaitlistCount(_entries[index], -1),
           ),
       ],
     );
@@ -270,27 +271,28 @@ class _AdminWaitlistPageState extends ConsumerState<AdminWaitlistPage> {
 
 class _WaitlistTile extends StatelessWidget {
   const _WaitlistTile({
+    super.key,
     required this.index,
     required this.entry,
     required this.editable,
-    required this.canMoveUp,
-    required this.canMoveDown,
-    required this.onMoveUp,
-    required this.onMoveDown,
-    required this.onEditWaitlistCount,
+    required this.onIncrement,
+    required this.onDecrement,
+    this.onReorderDrop,
   });
 
   final int index;
   final SportWaitlistEntry entry;
 
-  /// Faux pour l'écran joueur (lecture seule) : masque les flèches de
-  /// réordonnancement et l'édition du nombre de fois en liste d'attente.
+  /// Faux pour l'écran joueur (lecture seule) : masque le glisser-déposer
+  /// de réordonnancement et les boutons +/- du nombre de fois en liste
+  /// d'attente.
   final bool editable;
-  final bool canMoveUp;
-  final bool canMoveDown;
-  final VoidCallback onMoveUp;
-  final VoidCallback onMoveDown;
-  final VoidCallback onEditWaitlistCount;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+
+  /// Appelé avec le joueur glissé quand il est déposé sur cette puce, pour
+  /// le repositionner à cet emplacement dans la liste.
+  final ValueChanged<SportWaitlistEntry>? onReorderDrop;
 
   @override
   Widget build(BuildContext context) {
@@ -300,8 +302,7 @@ class _WaitlistTile extends StatelessWidget {
     final waitlistCount = entry.currentSeasonWaitlistCount;
     final waitlistCountText =
         Text('Liste d’attente cette saison : $waitlistCount fois');
-    return Card(
-      key: ValueKey(entry.seasonPlayerId),
+    final card = Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         leading: CircleAvatar(child: Text('${index + 1}')),
@@ -315,48 +316,87 @@ class _WaitlistTile extends StatelessWidget {
             const SizedBox(height: 3),
             Text('Présence saison précédente : $previousSeasonPresence'),
             if (editable)
-              InkWell(
-                onTap: onEditWaitlistCount,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    waitlistCountText,
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 15,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
+              Row(
+                children: [
+                  Expanded(child: waitlistCountText),
+                  _CompactIconButton(
+                    icon: Icons.remove_circle_outline,
+                    onPressed: waitlistCount > 0 ? onDecrement : null,
+                  ),
+                  _CompactIconButton(
+                    icon: Icons.add_circle_outline,
+                    onPressed: onIncrement,
+                  ),
+                ],
               )
             else
               waitlistCountText,
           ],
         ),
         trailing: editable
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  InkWell(
-                    onTap: canMoveUp ? onMoveUp : null,
-                    child: Icon(
-                      Icons.keyboard_arrow_up,
-                      color: canMoveUp ? null : Theme.of(context).disabledColor,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: canMoveDown ? onMoveDown : null,
-                    child: Icon(
-                      Icons.keyboard_arrow_down,
-                      color:
-                          canMoveDown ? null : Theme.of(context).disabledColor,
-                    ),
-                  ),
-                ],
-              )
+            ? Icon(Icons.drag_indicator, color: Theme.of(context).hintColor)
             : null,
       ),
+    );
+
+    if (!editable || onReorderDrop == null) {
+      return card;
+    }
+
+    return DragTarget<SportWaitlistEntry>(
+      onWillAcceptWithDetails: (details) =>
+          details.data.seasonPlayerId != entry.seasonPlayerId,
+      onAcceptWithDetails: (details) => onReorderDrop!(details.data),
+      builder: (context, candidates, rejected) {
+        final highlighted = candidates.isNotEmpty;
+        final content = AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: highlighted
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: card,
+        );
+        final autoScroll = DragAutoScroller(context);
+        return LongPressDraggable<SportWaitlistEntry>(
+          data: entry,
+          feedback: Material(
+            type: MaterialType.transparency,
+            child: SizedBox(
+              width: MediaQuery.sizeOf(context).width - 32,
+              child: card,
+            ),
+          ),
+          childWhenDragging: Opacity(opacity: .3, child: content),
+          onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+          onDragEnd: (_) => autoScroll.stop(),
+          onDraggableCanceled: (_, __) => autoScroll.stop(),
+          child: content,
+        );
+      },
+    );
+  }
+}
+
+class _CompactIconButton extends StatelessWidget {
+  const _CompactIconButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: Icon(icon, size: 20),
+      onPressed: onPressed,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
     );
   }
 }

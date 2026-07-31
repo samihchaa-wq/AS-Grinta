@@ -431,11 +431,19 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       final allowException = selectedCount > limit;
       late final MatchComposition result;
       if (_postMatch) {
-        result = await repository.createPostMatchComposition(
-          composition: ready,
-          allowSquadSizeException: allowException,
-          reason: 'Composition réelle publiée après finalisation du match',
-        );
+        result = _compositionExisted
+            ? await repository.updatePostMatchComposition(
+                composition: ready,
+                allowSquadSizeException: allowException,
+                reason: 'Composition réelle modifiée après finalisation du '
+                    'match',
+              )
+            : await repository.createPostMatchComposition(
+                composition: ready,
+                allowSquadSizeException: allowException,
+                reason: 'Composition réelle publiée après finalisation du '
+                    'match',
+              );
       } else {
         final saved = await repository.saveComposition(
           composition: ready,
@@ -608,23 +616,14 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
           onPressed: canPublish ? () => _saveComposition(publish: true) : null,
           icon: const Icon(Icons.campaign_outlined),
           label: Text(
-            _postMatch && _compositionExisted
-                ? 'Composition publiée'
-                : composition.isPublished
-                    ? hasPendingComposition
-                        ? 'Publier les modifications'
-                        : 'Composition publiée'
-                    : 'Publier la composition',
+            composition.isPublished
+                ? hasPendingComposition
+                    ? 'Publier les modifications'
+                    : 'Composition publiée'
+                : 'Publier la composition',
           ),
         ),
-        if (_postMatch && _compositionExisted)
-          const Padding(
-            padding: EdgeInsets.only(top: 10),
-            child: Text(
-              'Composition verrouillée : une composition existe déjà pour ce match.',
-            ),
-          )
-        else if (_locked && !_postMatch)
+        if (_locked && !_postMatch)
           const Padding(
             padding: EdgeInsets.only(top: 10),
             child: Text(
