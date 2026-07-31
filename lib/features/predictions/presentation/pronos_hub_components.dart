@@ -2,7 +2,6 @@ part of 'pronos_hub_page.dart';
 
 enum _LbCol { name, first, second, points }
 
-const _leaderboardNameFlex = 5;
 const _leaderboardValueFlex = 2;
 
 class _LeaderboardCard extends ConsumerStatefulWidget {
@@ -82,19 +81,21 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
     return StickyHeaderTableCard(
       minWidth: 0,
       onRefresh: widget.onRefresh,
-      header: Padding(
-        padding: grintaTableHeaderPadding,
+      pinnedHeader: Padding(
+        padding: grintaTablePinnedHeaderPadding,
+        child: SortableHeaderCell(
+          label: 'Joueurs',
+          align: TextAlign.start,
+          active: _sort == _LbCol.name,
+          descending: _desc,
+          onTap: () => _onSort(_LbCol.name),
+          style: style,
+        ),
+      ),
+      scrollableHeader: Padding(
+        padding: grintaTableScrollableHeaderPadding,
         child: Row(
           children: [
-            SortableHeaderCell(
-              label: 'Joueurs',
-              flex: _leaderboardNameFlex,
-              align: TextAlign.start,
-              active: _sort == _LbCol.name,
-              descending: _desc,
-              onTap: () => _onSort(_LbCol.name),
-              style: style,
-            ),
             SortableHeaderCell(
               label: widget.showMatchStats ? 'Bons' : 'Matchs',
               flex: _leaderboardValueFlex,
@@ -125,7 +126,8 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
       ),
       rows: [
         for (var index = 0; index < sorted.length; index++)
-          _LeaderboardRowLayout(
+          _leaderboardRow(
+            context,
             rank: index + 1,
             profileId: sorted[index].profileId,
             name: sorted[index].name,
@@ -140,95 +142,92 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
   }
 }
 
-class _LeaderboardRowLayout extends StatelessWidget {
-  const _LeaderboardRowLayout({
-    required this.rank,
-    required this.name,
-    required this.firstValue,
-    required this.secondValue,
-    required this.points,
-    required this.isCurrentUser,
-    this.profileId,
-  });
+StickyTableRow _leaderboardRow(
+  BuildContext context, {
+  required int rank,
+  required String name,
+  required String? profileId,
+  required String firstValue,
+  required String secondValue,
+  required String points,
+  required bool isCurrentUser,
+}) {
+  final valueStyle = grintaTableCellTextStyle(context);
 
-  final int rank;
-  final String name;
-  final String? profileId;
-  final String firstValue;
-  final String secondValue;
-  final String points;
-  final bool isCurrentUser;
-
-  @override
-  Widget build(BuildContext context) {
-    final valueStyle = grintaTableCellTextStyle(context);
-    final row = Padding(
-      padding: grintaTableRowPadding,
-      child: Row(
-        children: [
-          Expanded(
-            flex: _leaderboardNameFlex,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 22,
-                  child: Text(
-                    '$rank',
-                    style: grintaTableRankTextStyle(
-                      context,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: NameWithBadges(
-                    profileId: profileId,
-                    name: name,
-                    badgeSize: 18,
-                    style: grintaTableCellTextStyle(
-                      context,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
+  Widget pinned = Padding(
+    padding: grintaTablePinnedRowPadding,
+    child: Row(
+      children: [
+        SizedBox(
+          width: 22,
+          child: Text(
+            '$rank',
+            style: grintaTableRankTextStyle(
+              context,
+              color: AppTheme.textSecondary,
             ),
           ),
-          Expanded(
-            flex: _leaderboardValueFlex,
-            child: Text(
-              firstValue,
-              textAlign: TextAlign.center,
-              style: valueStyle,
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: NameWithBadges(
+            profileId: profileId,
+            name: name,
+            badgeSize: 18,
+            style: grintaTableCellTextStyle(
+              context,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          Expanded(
-            flex: _leaderboardValueFlex,
-            child: Text(
-              secondValue,
-              textAlign: TextAlign.center,
-              style: valueStyle,
-            ),
-          ),
-          Expanded(
-            flex: _leaderboardValueFlex,
-            child: Text(points, textAlign: TextAlign.end, style: valueStyle),
-          ),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 
-    if (!isCurrentUser) return row;
+  Widget scrollable = Padding(
+    padding: grintaTableScrollableRowPadding,
+    child: Row(
+      children: [
+        Expanded(
+          flex: _leaderboardValueFlex,
+          child: Text(
+            firstValue,
+            textAlign: TextAlign.center,
+            style: valueStyle,
+          ),
+        ),
+        Expanded(
+          flex: _leaderboardValueFlex,
+          child: Text(
+            secondValue,
+            textAlign: TextAlign.center,
+            style: valueStyle,
+          ),
+        ),
+        Expanded(
+          flex: _leaderboardValueFlex,
+          child: Text(points, textAlign: TextAlign.end, style: valueStyle),
+        ),
+      ],
+    ),
+  );
+
+  if (isCurrentUser) {
     final accent = Theme.of(context).colorScheme.secondary;
-    return DecoratedBox(
+    pinned = DecoratedBox(
       decoration: BoxDecoration(
         color: accent.withValues(alpha: .14),
         border: Border(left: BorderSide(color: accent, width: 4)),
       ),
-      child: row,
+      child: pinned,
+    );
+    scrollable = DecoratedBox(
+      decoration: BoxDecoration(color: accent.withValues(alpha: .14)),
+      child: scrollable,
     );
   }
+
+  return StickyTableRow(pinned: pinned, scrollable: scrollable);
 }
 
 class _LoadingCard extends StatelessWidget {

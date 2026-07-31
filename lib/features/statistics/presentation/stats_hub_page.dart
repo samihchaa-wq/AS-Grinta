@@ -116,7 +116,6 @@ enum _PlayerStatCol {
   losses,
 }
 
-const _playerNameFlex = 2;
 const _playerValueFlex = 1;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
@@ -211,14 +210,20 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           child: StickyHeaderTableCard(
             onRefresh: _refresh,
-            header: _PlayersHeaderRow(
+            pinnedHeader: _PlayersPinnedHeader(
+              sort: _sort,
+              descending: _descending,
+              onSort: _onSort,
+            ),
+            scrollableHeader: _PlayersScrollableHeader(
               sort: _sort,
               descending: _descending,
               onSort: _onSort,
             ),
             rows: [
               for (var index = 0; index < players.length; index++)
-                _PlayersDataRow(
+                _playersRow(
+                  context,
                   rank: index + 1,
                   player: players[index],
                   isCurrentUser: currentProfileId != null &&
@@ -232,8 +237,35 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
   }
 }
 
-class _PlayersHeaderRow extends StatelessWidget {
-  const _PlayersHeaderRow({
+class _PlayersPinnedHeader extends StatelessWidget {
+  const _PlayersPinnedHeader({
+    required this.sort,
+    required this.descending,
+    required this.onSort,
+  });
+
+  final _PlayerStatCol? sort;
+  final bool descending;
+  final ValueChanged<_PlayerStatCol> onSort;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: grintaTablePinnedHeaderPadding,
+      child: SortableHeaderCell(
+        label: 'Joueur',
+        align: TextAlign.start,
+        active: sort == _PlayerStatCol.name,
+        descending: descending,
+        onTap: () => onSort(_PlayerStatCol.name),
+        style: grintaTableHeaderTextStyle(context),
+      ),
+    );
+  }
+}
+
+class _PlayersScrollableHeader extends StatelessWidget {
+  const _PlayersScrollableHeader({
     required this.sort,
     required this.descending,
     required this.onSort,
@@ -259,18 +291,9 @@ class _PlayersHeaderRow extends StatelessWidget {
     }
 
     return Padding(
-      padding: grintaTableHeaderPadding,
+      padding: grintaTableScrollableHeaderPadding,
       child: Row(
         children: [
-          SortableHeaderCell(
-            label: 'Joueur',
-            flex: _playerNameFlex,
-            align: TextAlign.start,
-            active: sort == _PlayerStatCol.name,
-            descending: descending,
-            onTap: () => onSort(_PlayerStatCol.name),
-            style: style,
-          ),
           valueCell('J', _PlayerStatCol.played),
           valueCell('B/CS', _PlayerStatCol.goalsOrCleanSheets),
           valueCell('HDM', _PlayerStatCol.hdm),
@@ -283,80 +306,75 @@ class _PlayersHeaderRow extends StatelessWidget {
   }
 }
 
-class _PlayersDataRow extends StatelessWidget {
-  const _PlayersDataRow({
-    required this.rank,
-    required this.player,
-    required this.isCurrentUser,
-  });
+StickyTableRow _playersRow(
+  BuildContext context, {
+  required int rank,
+  required PlayerStatistics player,
+  required bool isCurrentUser,
+}) {
+  final valueStyle = grintaTableCellTextStyle(context);
 
-  final int rank;
-  final PlayerStatistics player;
-  final bool isCurrentUser;
+  Widget value(int number) {
+    return Expanded(
+      flex: _playerValueFlex,
+      child: Text('$number', textAlign: TextAlign.center, style: valueStyle),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    Widget value(int number) {
-      return Expanded(
-        flex: _playerValueFlex,
-        child: Text(
-          '$number',
-          textAlign: TextAlign.center,
-          style: grintaTableCellTextStyle(context),
+  Widget pinned = Padding(
+    padding: grintaTablePinnedRowPadding,
+    child: Row(
+      children: [
+        SizedBox(
+          width: 22,
+          child: Text('$rank', style: grintaTableRankTextStyle(context)),
         ),
-      );
-    }
-
-    final row = Padding(
-      padding: grintaTableRowPadding,
-      child: Row(
-        children: [
-          Expanded(
-            flex: _playerNameFlex,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 22,
-                  child: Text(
-                    '$rank',
-                    style: grintaTableRankTextStyle(context),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: NameWithBadges(
-                    profileId: player.profileId,
-                    name: player.playerName,
-                    badgeSize: 26,
-                    style: grintaTableCellTextStyle(
-                      context,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
+        const SizedBox(width: 4),
+        Expanded(
+          child: NameWithBadges(
+            profileId: player.profileId,
+            name: player.playerName,
+            badgeSize: 26,
+            style: grintaTableCellTextStyle(
+              context,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          value(player.matchesPlayed ?? 0),
-          value(player.isGoalkeeper ? player.cleanSheets : player.goals),
-          value(player.hdm ?? 0),
-          value(player.wins ?? 0),
-          value(player.draws ?? 0),
-          value(player.losses ?? 0),
-        ],
-      ),
-    );
+        ),
+      ],
+    ),
+  );
 
-    if (!isCurrentUser) return row;
+  Widget scrollable = Padding(
+    padding: grintaTableScrollableRowPadding,
+    child: Row(
+      children: [
+        value(player.matchesPlayed ?? 0),
+        value(player.isGoalkeeper ? player.cleanSheets : player.goals),
+        value(player.hdm ?? 0),
+        value(player.wins ?? 0),
+        value(player.draws ?? 0),
+        value(player.losses ?? 0),
+      ],
+    ),
+  );
+
+  if (isCurrentUser) {
     final accent = Theme.of(context).colorScheme.secondary;
-    return DecoratedBox(
+    pinned = DecoratedBox(
       decoration: BoxDecoration(
         color: accent.withValues(alpha: .14),
         border: Border(left: BorderSide(color: accent, width: 4)),
       ),
-      child: row,
+      child: pinned,
+    );
+    scrollable = DecoratedBox(
+      decoration: BoxDecoration(color: accent.withValues(alpha: .14)),
+      child: scrollable,
     );
   }
+
+  return StickyTableRow(pinned: pinned, scrollable: scrollable);
 }
 
 class _Message extends StatelessWidget {
