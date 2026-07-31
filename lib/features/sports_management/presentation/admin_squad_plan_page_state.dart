@@ -262,7 +262,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 value: _AdminStep.composition,
                 label: Text('Compo'),
               ),
-              if (!isInternal && _locked)
+              if (!isInternal)
                 const ButtonSegment(
                   value: _AdminStep.live,
                   label: Text('Tableau blanc'),
