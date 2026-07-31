@@ -7,33 +7,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('the first player can move up to the bottom and save the order', (
-    tester,
-  ) async {
-    final repository = _FakeSportWaitlistRepository();
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          sportWaitlistRepositoryProvider.overrideWithValue(repository),
-        ],
-        child: const MaterialApp(home: AdminWaitlistPage()),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'dragging the first player onto the second reorders and saves the list',
+    (tester) async {
+      final repository = _FakeSportWaitlistRepository();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sportWaitlistRepositoryProvider.overrideWithValue(repository),
+          ],
+          child: const MaterialApp(home: AdminWaitlistPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Alice'), findsOneWidget);
-    expect(find.text('Bruno'), findsOneWidget);
-    expect(find.text('Présence saison précédente : 2'), findsOneWidget);
-    expect(find.text('Liste d’attente cette saison : 3 fois'), findsOneWidget);
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Bruno'), findsOneWidget);
+      expect(find.text('Présence saison précédente : 2'), findsOneWidget);
+      expect(
+        find.text('Liste d’attente cette saison : 3 fois'),
+        findsOneWidget,
+      );
 
-    await tester.tap(find.byIcon(Icons.keyboard_arrow_up).first);
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
-    await tester.pumpAndSettle();
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text('Alice')),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await gesture.moveTo(tester.getCenter(find.text('Bruno')));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
 
-    expect(repository.savedOrder, ['bruno', 'alice']);
-    expect(find.text('Liste d’attente enregistrée.'), findsOneWidget);
-  });
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Enregistrer l’ordre'));
+      await tester.pumpAndSettle();
+
+      expect(repository.savedOrder, ['bruno', 'alice']);
+      expect(find.text('Liste d’attente enregistrée.'), findsOneWidget);
+    },
+  );
 }
 
 class _FakeSportWaitlistRepository implements SportWaitlistRepository {
