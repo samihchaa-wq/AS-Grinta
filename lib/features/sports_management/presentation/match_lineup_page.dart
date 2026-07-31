@@ -49,8 +49,6 @@ class MatchLineupPage extends ConsumerWidget {
     final isAdmin = ref.watch(isAdminViewProvider);
     final matchInfo = ref.watch(matchInfoProvider(matchId)).valueOrNull;
     final isInternal = matchInfo?.isInternal ?? false;
-    final kickoffPassed = matchInfo?.kickoffAt != null &&
-        !DateTime.now().isBefore(matchInfo!.kickoffAt!);
 
     if (isAdmin) {
       return AdminSquadPlanPage(
@@ -63,7 +61,7 @@ class MatchLineupPage extends ConsumerWidget {
     final showInfo = section == 'info';
     final showEffectif = section == 'effectif';
     final showComposition = section == 'composition';
-    final showLive = section == 'live' && !isInternal && kickoffPassed;
+    final showLive = section == 'live' && !isInternal;
     final showPrediction = section == 'prediction' && !isInternal;
 
     return Scaffold(
@@ -104,7 +102,7 @@ class MatchLineupPage extends ConsumerWidget {
                   value: 'composition',
                   label: Text('Compo'),
                 ),
-                if (!isInternal && kickoffPassed)
+                if (!isInternal)
                   const ButtonSegment(
                     value: 'live',
                     label: Text('Tableau blanc'),
