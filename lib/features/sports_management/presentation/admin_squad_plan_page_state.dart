@@ -289,10 +289,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           if (_step == _AdminStep.info && _selectedMatchId != null)
             MatchInfoTab(matchId: _selectedMatchId!)
           else if (_step == _AdminStep.live && _selectedMatchId != null)
-            SizedBox(
-              height: MediaQuery.of(context).size.height * .75,
-              child: MatchLiveTab(matchId: _selectedMatchId!),
-            )
+            MatchLiveTab(matchId: _selectedMatchId!)
           else if (_step == _AdminStep.prediction && _selectedMatchId != null)
             InlineMatchPredictionCard(matchId: _selectedMatchId!)
           else if (_step == _AdminStep.composition &&

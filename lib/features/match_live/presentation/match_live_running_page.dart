@@ -50,8 +50,14 @@ class MatchLiveRunningPage extends ConsumerWidget {
       matchLiveStateProvider(matchId).notifier,
     );
 
+    // Cette liste est déjà imbriquée dans le scroll de la page qui l'affiche.
+    // Sans shrinkWrap + NeverScrollableScrollPhysics, les deux listes se
+    // disputent les gestes tactiles : scroll bloqué et glisser-déposer
+    // capturé par le mauvais niveau.
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       children: [
         MatchLiveClock(session: bundle.session),
         const SizedBox(height: 12),
