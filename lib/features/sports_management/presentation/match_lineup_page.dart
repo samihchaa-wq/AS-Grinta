@@ -105,7 +105,7 @@ class MatchLineupPage extends ConsumerWidget {
                 if (!isInternal)
                   const ButtonSegment(
                     value: 'live',
-                    label: Text('Tableau blanc'),
+                    label: Text('Live'),
                   ),
                 if (!isInternal)
                   const ButtonSegment(

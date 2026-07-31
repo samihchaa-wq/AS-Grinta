@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
@@ -32,6 +34,16 @@ class _MatchLivePreKickoffPageState
     text: '${widget.bundle.session.planPlannedDurationMinutes}',
   );
   bool _busy = false;
+  bool _opening = false;
+  String? _openError;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.canEdit && !widget.bundle.session.sessionExists) {
+      _openWorkspaceIfNeeded();
+    }
+  }
 
   @override
   void dispose() {
@@ -42,10 +54,56 @@ class _MatchLivePreKickoffPageState
   MatchLiveStateController get _controller =>
       ref.read(matchLiveStateProvider(widget.matchId).notifier);
 
+  // La session live doit exister avant que le banc/terrain ne soit
+  // modifiable : c'est cet appel qui copie la composition publiée dans
+  // l'espace de travail éditable. Sans lui, la page resterait bloquée sur
+  // "Composition indisponible" et le bouton "Démarrer le match" ne
+  // s'afficherait jamais.
+  Future<void> _openWorkspaceIfNeeded() async {
+    setState(() {
+      _opening = true;
+      _openError = null;
+    });
+    try {
+      await _controller.openWorkspace();
+    } catch (error) {
+      if (mounted) setState(() => _openError = humanizeError(error));
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final lineup = widget.bundle.lineup;
     if (lineup == null) {
+      if (_openError != null) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_openError!, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _openWorkspaceIfNeeded,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Réessayer'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      if (_opening) {
+        return const Center(
+          child: GrintaLoader.page(
+            message: 'Préparation du Tableau Blanc…',
+            semanticLabel: 'Ouverture de l’espace de suivi en direct',
+          ),
+        );
+      }
       return const Center(child: Text('Composition indisponible.'));
     }
     final field = lineup.entriesFor(MatchCompositionZone.field);
