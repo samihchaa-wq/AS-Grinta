@@ -255,8 +255,14 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
     final value = _finalization;
     if (value == null) return const SizedBox.shrink();
 
+    // Cette liste est déjà imbriquée dans le scroll de la page qui l'affiche.
+    // Sans shrinkWrap + NeverScrollableScrollPhysics, les deux listes se
+    // disputent les gestes tactiles : scroll bloqué avant le bouton
+    // « Valider ».
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       children: [
         Text(
           'Récapitulatif du match',

@@ -140,11 +140,7 @@ class MatchLineupPage extends ConsumerWidget {
                 fallbackToEffectif: false,
                 emptyMessage: 'Composition non publiée.',
               ),
-            if (showLive)
-              SizedBox(
-                height: MediaQuery.of(context).size.height * .75,
-                child: MatchLiveTab(matchId: matchId),
-              ),
+            if (showLive) MatchLiveTab(matchId: matchId),
             if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
           ],
         ),

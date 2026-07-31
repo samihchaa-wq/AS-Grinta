@@ -130,8 +130,14 @@ class _MatchLivePreKickoffPageState
     final field = lineup.entriesFor(MatchCompositionZone.field);
     final bench = lineup.entriesFor(MatchCompositionZone.bench);
 
+    // Cette liste est déjà imbriquée dans le scroll de la page qui l'affiche.
+    // Sans shrinkWrap + NeverScrollableScrollPhysics, les deux listes se
+    // disputent les gestes tactiles : scroll bloqué avant le bouton
+    // « Démarrer le match » et glisser-déposer capturé par le mauvais niveau.
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       children: [
         if (widget.canEdit) ...[
           Card(

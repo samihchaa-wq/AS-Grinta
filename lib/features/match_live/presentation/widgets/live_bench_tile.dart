@@ -22,8 +22,10 @@ class LiveBenchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Même taille que les marqueurs du terrain (FormationPitchEditor) pour
+    // que le banc et les titulaires soient visuellement cohérents.
     final box = SizedBox(
-      width: 64,
+      width: 48,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -34,7 +36,7 @@ class LiveBenchTile extends StatelessWidget {
                 photoUrl: entry.photoUrl,
                 name: entry.displayName,
                 isGoalkeeper: entry.isGoalkeeper,
-                size: 58,
+                size: 42,
               ),
               if (timesBenched > 0)
                 Positioned(
