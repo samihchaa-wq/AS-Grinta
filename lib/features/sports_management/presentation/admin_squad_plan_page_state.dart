@@ -66,10 +66,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));
 
   bool get _compositionLocked =>
-      _busy ||
-      (_postMatch
-          ? _compositionExisted
-          : _locked || !_effectifReadyForComposition);
+      _busy || (!_postMatch && (_locked || !_effectifReadyForComposition));
 
   Future<void> _loadMatches() async {
     setState(() {
