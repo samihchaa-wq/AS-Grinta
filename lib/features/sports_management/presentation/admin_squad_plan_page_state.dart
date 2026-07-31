@@ -24,6 +24,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     }
     if (value == 'info') return _AdminStep.info;
     if (value == 'composition') return _AdminStep.composition;
+    if (value == 'live') return _AdminStep.live;
     return _AdminStep.effectif;
   }
 
@@ -261,6 +262,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 value: _AdminStep.composition,
                 label: Text('Compo'),
               ),
+              if (!isInternal && _locked)
+                const ButtonSegment(
+                  value: _AdminStep.live,
+                  label: Text('Tableau blanc'),
+                ),
               if (widget.showPredictionStep && !isInternal)
                 const ButtonSegment(
                   value: _AdminStep.prediction,
@@ -282,6 +288,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           const SizedBox(height: 16),
           if (_step == _AdminStep.info && _selectedMatchId != null)
             MatchInfoTab(matchId: _selectedMatchId!)
+          else if (_step == _AdminStep.live && _selectedMatchId != null)
+            MatchLiveTab(matchId: _selectedMatchId!)
           else if (_step == _AdminStep.prediction && _selectedMatchId != null)
             InlineMatchPredictionCard(matchId: _selectedMatchId!)
           else if (_step == _AdminStep.composition &&

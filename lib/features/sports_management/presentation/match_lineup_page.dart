@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/match_live/presentation/match_live_tab.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
@@ -41,12 +42,15 @@ class MatchLineupPage extends ConsumerWidget {
     final section = switch (requestedSection) {
       'info' => 'info',
       'composition' => 'composition',
+      'live' => 'live',
       'prediction' => 'prediction',
       _ => 'effectif',
     };
     final isAdmin = ref.watch(isAdminViewProvider);
-    final isInternal =
-        ref.watch(matchInfoProvider(matchId)).valueOrNull?.isInternal ?? false;
+    final matchInfo = ref.watch(matchInfoProvider(matchId)).valueOrNull;
+    final isInternal = matchInfo?.isInternal ?? false;
+    final kickoffPassed = matchInfo?.kickoffAt != null &&
+        !DateTime.now().isBefore(matchInfo!.kickoffAt!);
 
     if (isAdmin) {
       return AdminSquadPlanPage(
@@ -59,6 +63,7 @@ class MatchLineupPage extends ConsumerWidget {
     final showInfo = section == 'info';
     final showEffectif = section == 'effectif';
     final showComposition = section == 'composition';
+    final showLive = section == 'live' && !isInternal && kickoffPassed;
     final showPrediction = section == 'prediction' && !isInternal;
 
     return Scaffold(
@@ -99,6 +104,11 @@ class MatchLineupPage extends ConsumerWidget {
                   value: 'composition',
                   label: Text('Compo'),
                 ),
+                if (!isInternal && kickoffPassed)
+                  const ButtonSegment(
+                    value: 'live',
+                    label: Text('Tableau blanc'),
+                  ),
                 if (!isInternal)
                   const ButtonSegment(
                     value: 'prediction',
@@ -106,7 +116,8 @@ class MatchLineupPage extends ConsumerWidget {
                   ),
               ],
               selected: {
-                if (isInternal && section == 'prediction')
+                if ((isInternal && section == 'prediction') ||
+                    (section == 'live' && !showLive))
                   'effectif'
                 else
                   section,
@@ -130,6 +141,11 @@ class MatchLineupPage extends ConsumerWidget {
                 expanded: true,
                 fallbackToEffectif: false,
                 emptyMessage: 'Composition non publiée.',
+              ),
+            if (showLive)
+              SizedBox(
+                height: MediaQuery.of(context).size.height * .75,
+                child: MatchLiveTab(matchId: matchId),
               ),
             if (showPrediction) InlineMatchPredictionCard(matchId: matchId),
           ],

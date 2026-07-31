@@ -4,6 +4,7 @@ import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/features/match_live/presentation/match_live_tab.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_info_tab.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
@@ -30,7 +31,7 @@ part 'admin_squad_plan_page_effectif.dart';
 part 'admin_squad_plan_page_composition.dart';
 part 'admin_squad_plan_page_widgets.dart';
 
-enum _AdminStep { info, effectif, composition, prediction }
+enum _AdminStep { info, effectif, composition, live, prediction }
 
 class AdminSquadPlanPage extends ConsumerStatefulWidget {
   const AdminSquadPlanPage({
