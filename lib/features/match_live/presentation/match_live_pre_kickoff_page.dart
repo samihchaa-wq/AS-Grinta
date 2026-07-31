@@ -34,14 +34,19 @@ class _MatchLivePreKickoffPageState
     text: '${widget.bundle.session.planPlannedDurationMinutes}',
   );
   bool _busy = false;
-  bool _opening = false;
+  late bool _opening = widget.canEdit && !widget.bundle.session.sessionExists;
   String? _openError;
 
   @override
   void initState() {
     super.initState();
-    if (widget.canEdit && !widget.bundle.session.sessionExists) {
-      _openWorkspaceIfNeeded();
+    if (_opening) {
+      // setState ne peut pas être appelé pendant la phase de build : on
+      // reporte l'ouverture au premier post-frame, une fois le premier
+      // rendu (avec le loader) déjà affiché.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openWorkspaceIfNeeded();
+      });
     }
   }
 
