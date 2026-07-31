@@ -265,7 +265,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               if (!isInternal)
                 const ButtonSegment(
                   value: _AdminStep.live,
-                  label: Text('Tableau blanc'),
+                  label: Text('Live'),
                 ),
               if (widget.showPredictionStep && !isInternal)
                 const ButtonSegment(
