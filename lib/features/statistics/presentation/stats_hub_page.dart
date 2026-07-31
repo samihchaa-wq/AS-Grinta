@@ -327,7 +327,7 @@ class _PlayersDataRow extends StatelessWidget {
                   child: NameWithBadges(
                     profileId: player.profileId,
                     name: player.playerName,
-                    badgeSize: 18,
+                    badgeSize: 26,
                     style: grintaTableCellTextStyle(
                       context,
                       fontWeight: FontWeight.w800,
