@@ -6,6 +6,7 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
@@ -95,6 +96,10 @@ class MatchDetailsPage extends ConsumerWidget {
                   matchId: matchId,
                   sportsEnabled: sportsEnabled,
                 ),
+                if (sportsEnabled) ...[
+                  const SizedBox(height: 16),
+                  MatchFaitsDuMatchCard(matchId: matchId),
+                ],
                 if (details.predictions.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   _PredictionsTable(
