@@ -87,10 +87,12 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
 
         return StickyHeaderTableCard(
           onRefresh: widget.onRefresh,
-          header: _header(context),
+          pinnedHeader: _pinnedHeader(context),
+          scrollableHeader: _scrollableHeader(context),
           rows: [
             for (var index = 0; index < sorted.length; index++)
-              _SeasonRankingRow(
+              _buildRow(
+                context,
                 rank: index + 1,
                 entry: sorted[index],
                 points: _format(sorted[index].seasonPoints),
@@ -101,24 +103,29 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
     );
   }
 
-  Widget _header(BuildContext context) {
+  Widget _pinnedHeader(BuildContext context) {
+    return Padding(
+      padding: grintaTablePinnedHeaderPadding,
+      child: SortableHeaderCell(
+        label: 'Joueurs',
+        align: TextAlign.start,
+        active: _sort == _SrCol.name,
+        descending: _desc,
+        onTap: () => _onSort(_SrCol.name),
+        style: grintaTableHeaderTextStyle(context),
+      ),
+    );
+  }
+
+  Widget _scrollableHeader(BuildContext context) {
     final style = grintaTableHeaderTextStyle(context);
     return Padding(
-      padding: grintaTableHeaderPadding,
+      padding: grintaTableScrollableHeaderPadding,
       child: Row(
         children: [
           SortableHeaderCell(
-            label: 'Joueurs',
-            flex: 6,
-            align: TextAlign.start,
-            active: _sort == _SrCol.name,
-            descending: _desc,
-            onTap: () => _onSort(_SrCol.name),
-            style: style,
-          ),
-          SortableHeaderCell(
             label: 'Plus proches',
-            flex: 2,
+            flex: 1,
             active: _sort == _SrCol.closest,
             descending: _desc,
             onTap: () => _onSort(_SrCol.closest),
@@ -126,7 +133,7 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
           ),
           SortableHeaderCell(
             label: 'Exacts',
-            flex: 2,
+            flex: 1,
             active: _sort == _SrCol.exact,
             descending: _desc,
             onTap: () => _onSort(_SrCol.exact),
@@ -134,7 +141,7 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
           ),
           SortableHeaderCell(
             label: 'Points',
-            flex: 2,
+            flex: 1,
             align: TextAlign.end,
             active: _sort == _SrCol.points,
             descending: _desc,
@@ -145,55 +152,45 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
       ),
     );
   }
-}
 
-class _SeasonRankingRow extends StatelessWidget {
-  const _SeasonRankingRow({
-    required this.rank,
-    required this.entry,
-    required this.points,
-  });
-
-  final int rank;
-  final LeaderboardEntry entry;
-  final String points;
-
-  @override
-  Widget build(BuildContext context) {
+  StickyTableRow _buildRow(
+    BuildContext context, {
+    required int rank,
+    required LeaderboardEntry entry,
+    required String points,
+  }) {
     final valueStyle = grintaTableCellTextStyle(context);
 
-    return Padding(
-      padding: grintaTableRowPadding,
+    final pinned = Padding(
+      padding: grintaTablePinnedRowPadding,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 22,
+            child: Text('$rank', style: grintaTableRankTextStyle(context)),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: NameWithBadges(
+              profileId: entry.profileId,
+              name: entry.name,
+              badgeSize: 18,
+              style: grintaTableCellTextStyle(
+                context,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final scrollable = Padding(
+      padding: grintaTableScrollableRowPadding,
       child: Row(
         children: [
           Expanded(
-            flex: 6,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 22,
-                  child: Text(
-                    '$rank',
-                    style: grintaTableRankTextStyle(context),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: NameWithBadges(
-                    profileId: entry.profileId,
-                    name: entry.name,
-                    badgeSize: 18,
-                    style: grintaTableCellTextStyle(
-                      context,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
+            flex: 1,
             child: Text(
               '${entry.seasonBons}',
               textAlign: TextAlign.center,
@@ -201,7 +198,7 @@ class _SeasonRankingRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: 1,
             child: Text(
               '${entry.seasonExacts}',
               textAlign: TextAlign.center,
@@ -209,11 +206,13 @@ class _SeasonRankingRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: 1,
             child: Text(points, textAlign: TextAlign.end, style: valueStyle),
           ),
         ],
       ),
     );
+
+    return StickyTableRow(pinned: pinned, scrollable: scrollable);
   }
 }
