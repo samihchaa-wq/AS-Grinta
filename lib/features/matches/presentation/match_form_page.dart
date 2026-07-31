@@ -734,21 +734,9 @@ class _JerseyOptionTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      child: SizedBox(
         width: 84,
         height: 96,
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: selected ? accent.withValues(alpha: .12) : null,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? accent
-                : Theme.of(context).colorScheme.outlineVariant,
-            width: selected ? 2 : 1,
-          ),
-        ),
         child: Stack(
           children: [
             Center(
