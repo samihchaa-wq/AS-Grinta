@@ -532,6 +532,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   icon: const Icon(Icons.person_add_alt_1_outlined),
                   label: const Text('Ajouter un invité'),
                 ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => context.push('/admin/waitlist'),
+                  icon: const Icon(Icons.format_list_numbered_rounded),
+                  label: const Text('Voir la liste d’attente'),
+                ),
               ],
             ),
           ),
