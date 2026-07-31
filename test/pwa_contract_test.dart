@@ -44,10 +44,14 @@ void main() {
       expect(worker, contains("request.mode === 'navigate'"));
     });
 
-    test('le bandeau de mise à jour est utilisable au clavier', () {
-      expect(index, contains("document.createElement('button')"));
-      expect(index, contains("bar.type = 'button'"));
-      expect(index, contains("aria-label', 'Mettre à jour Ma Petite Grinta"));
+    test('la mise à jour se déclenche automatiquement, sans action requise',
+        () {
+      // Un bandeau cliquable ne s'affichait pas de façon fiable : la mise à
+      // jour s'applique désormais dès qu'une nouvelle version est détectée,
+      // le bandeau n'étant plus qu'informatif (aria-live, non interactif).
+      expect(index, contains("aria-live', 'polite'"));
+      expect(index, contains("worker.postMessage({ type: 'SKIP_WAITING' })"));
+      expect(index, isNot(contains("document.createElement('button')")));
     });
   });
 }
