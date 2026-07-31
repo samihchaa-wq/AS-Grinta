@@ -66,6 +66,17 @@ String _fromMessage(String raw) {
     'historical import actor': 'Ce compte technique ne peut pas être supprimé.',
     'target account not found': 'Ce compte est introuvable.',
     'only upcoming or finished matches': 'Ce match ne peut plus être modifié.',
+    'cannot be finalized before kickoff':
+        'Démarre puis termine le match dans le Tableau Blanc avant de le valider.',
+    'end the match before exporting':
+        'Termine le match avant d’exporter le compte rendu.',
+    'already been exported': 'Ce match a déjà été exporté.',
+    'the match is not currently live': 'Le match n’est pas en cours.',
+    'coach or administrator role required':
+        'Action réservée au coach ou à l’administrateur.',
+    'administrator role required': 'Action réservée à l’administrateur.',
+    'live tracking is only available for upcoming matches':
+        'Le Tableau Blanc n’est disponible que pour les prochains matchs.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',
     'valeur de pronostic hors limites':
         'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',
