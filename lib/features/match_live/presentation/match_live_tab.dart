@@ -37,38 +37,55 @@ class MatchLiveTab extends ConsumerWidget {
       data: (bundle) {
         final canEdit = canEditAsync.valueOrNull ?? false;
 
-        if (!bundle.session.sessionExists) {
-          if (!canEdit) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Le match n’a pas encore démarré.',
-                  textAlign: TextAlign.center,
+        // Filet de sécurité temporaire : un bug déjà corrigé faisait
+        // disparaître cet onglet sans aucun message en cas d'exception
+        // pendant la construction. On affiche désormais le détail brut au
+        // lieu de rien, le temps de confirmer qu'aucune autre exception ne
+        // se cache encore ici.
+        try {
+          if (!bundle.session.sessionExists) {
+            if (!canEdit) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Le match n’a pas encore démarré.',
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
+              );
+            }
+            return MatchLivePreKickoffPage(
+              matchId: matchId,
+              bundle: bundle,
+              canEdit: true,
             );
           }
-          return MatchLivePreKickoffPage(
-            matchId: matchId,
-            bundle: bundle,
-            canEdit: true,
-          );
-        }
 
-        if (bundle.session.state == MatchLiveState.notStarted) {
-          return MatchLivePreKickoffPage(
+          if (bundle.session.state == MatchLiveState.notStarted) {
+            return MatchLivePreKickoffPage(
+              matchId: matchId,
+              bundle: bundle,
+              canEdit: canEdit,
+            );
+          }
+
+          return MatchLiveRunningPage(
             matchId: matchId,
             bundle: bundle,
             canEdit: canEdit,
           );
+        } catch (error, stackTrace) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: SelectableText(
+                'Diagnostic Tableau Blanc :\n$error\n\n$stackTrace',
+                textAlign: TextAlign.left,
+              ),
+            ),
+          );
         }
-
-        return MatchLiveRunningPage(
-          matchId: matchId,
-          bundle: bundle,
-          canEdit: canEdit,
-        );
       },
     );
   }

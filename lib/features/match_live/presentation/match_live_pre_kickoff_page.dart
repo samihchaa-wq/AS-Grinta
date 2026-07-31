@@ -111,6 +111,22 @@ class _MatchLivePreKickoffPageState
       }
       return const Center(child: Text('Composition indisponible.'));
     }
+    try {
+      return _buildLoaded(context, lineup);
+    } catch (error, stackTrace) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SelectableText(
+            'Diagnostic Tableau Blanc (préparation) :\n$error\n\n$stackTrace',
+            textAlign: TextAlign.left,
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildLoaded(BuildContext context, MatchComposition lineup) {
     final field = lineup.entriesFor(MatchCompositionZone.field);
     final bench = lineup.entriesFor(MatchCompositionZone.bench);
 

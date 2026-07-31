@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
@@ -61,9 +62,11 @@ class MatchLiveStateController
   @override
   Future<MatchLiveStateBundle> build(String matchId) async {
     final repository = ref.watch(matchLiveRepositoryProvider);
-    _subscription = repository.watchChanges(matchId).listen((_) {
-      unawaited(_refresh());
-    });
+    _subscription = repository.watchChanges(matchId).listen(
+          (_) => unawaited(_refresh()),
+          onError: (Object error, StackTrace stackTrace) =>
+              AppLogger.error('match_live.watch_changes', error, stackTrace),
+        );
     ref.onDispose(() => _subscription?.cancel());
     return repository.fetchLiveState(matchId);
   }
