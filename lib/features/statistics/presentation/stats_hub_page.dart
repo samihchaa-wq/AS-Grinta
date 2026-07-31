@@ -116,7 +116,7 @@ enum _PlayerStatCol {
   losses,
 }
 
-const _playerNameFlex = 5;
+const _playerNameFlex = 2;
 const _playerValueFlex = 1;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
@@ -316,10 +316,9 @@ class _PlayersDataRow extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 16,
+                  width: 22,
                   child: Text(
                     '$rank',
-                    textAlign: TextAlign.right,
                     style: grintaTableRankTextStyle(context),
                   ),
                 ),
