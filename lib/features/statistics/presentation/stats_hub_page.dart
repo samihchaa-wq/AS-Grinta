@@ -106,7 +106,15 @@ class _StatsHubPageState extends State<StatsHubPage> {
   }
 }
 
-enum _PlayerStatCol { name, played, wins, draws, losses, goals, hdm }
+enum _PlayerStatCol {
+  name,
+  played,
+  goalsOrCleanSheets,
+  hdm,
+  wins,
+  draws,
+  losses,
+}
 
 const _playerNameFlex = 5;
 const _playerValueFlex = 1;
@@ -141,7 +149,8 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
       _PlayerStatCol.wins => player.wins ?? 0,
       _PlayerStatCol.draws => player.draws ?? 0,
       _PlayerStatCol.losses => player.losses ?? 0,
-      _PlayerStatCol.goals => player.goals,
+      _PlayerStatCol.goalsOrCleanSheets =>
+        player.isGoalkeeper ? player.cleanSheets : player.goals,
       _PlayerStatCol.hdm => player.hdm ?? 0,
       _PlayerStatCol.name => 0,
     };
@@ -201,7 +210,6 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           child: StickyHeaderTableCard(
-            minWidth: 0,
             onRefresh: _refresh,
             header: _PlayersHeaderRow(
               sort: _sort,
@@ -264,11 +272,11 @@ class _PlayersHeaderRow extends StatelessWidget {
             style: style,
           ),
           valueCell('J', _PlayerStatCol.played),
+          valueCell('B/CS', _PlayerStatCol.goalsOrCleanSheets),
+          valueCell('HDM', _PlayerStatCol.hdm),
           valueCell('G', _PlayerStatCol.wins),
           valueCell('N', _PlayerStatCol.draws),
           valueCell('P', _PlayerStatCol.losses),
-          valueCell('B', _PlayerStatCol.goals),
-          valueCell('HDM', _PlayerStatCol.hdm),
         ],
       ),
     );
@@ -330,11 +338,11 @@ class _PlayersDataRow extends StatelessWidget {
             ),
           ),
           value(player.matchesPlayed ?? 0),
+          value(player.isGoalkeeper ? player.cleanSheets : player.goals),
+          value(player.hdm ?? 0),
           value(player.wins ?? 0),
           value(player.draws ?? 0),
           value(player.losses ?? 0),
-          value(player.goals),
-          value(player.hdm ?? 0),
         ],
       ),
     );
