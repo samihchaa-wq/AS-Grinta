@@ -319,10 +319,11 @@ class _PlayersDataRow extends StatelessWidget {
                   width: 16,
                   child: Text(
                     '$rank',
+                    textAlign: TextAlign.right,
                     style: grintaTableRankTextStyle(context),
                   ),
                 ),
-                const SizedBox(width: 2),
+                const SizedBox(width: 4),
                 Expanded(
                   child: NameWithBadges(
                     profileId: player.profileId,
