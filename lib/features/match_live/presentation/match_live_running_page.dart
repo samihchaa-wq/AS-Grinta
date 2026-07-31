@@ -225,8 +225,7 @@ class MatchLiveRunningPage extends ConsumerWidget {
         .firstWhere(
           (entry) =>
               entry != null &&
-              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position)
-                      .distance <
+              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position).distance <
                   .12,
           orElse: () => null,
         );
@@ -291,7 +290,8 @@ class MatchLiveRunningPage extends ConsumerWidget {
     final bench = lineup.entriesFor(MatchCompositionZone.bench);
     if (bench.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun remplaçant disponible sur le banc.')),
+        const SnackBar(
+            content: Text('Aucun remplaçant disponible sur le banc.')),
       );
       return;
     }

@@ -26,8 +26,7 @@ class MatchLiveRecapPage extends ConsumerStatefulWidget {
   final MatchLiveStateBundle bundle;
 
   @override
-  ConsumerState<MatchLiveRecapPage> createState() =>
-      _MatchLiveRecapPageState();
+  ConsumerState<MatchLiveRecapPage> createState() => _MatchLiveRecapPageState();
 }
 
 class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
@@ -85,9 +84,11 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
     MatchComposition? lineup,
     Map<String, int> goalsByParticipant,
   ) {
-    final liveEntry = lineup?.entries.where(
-      (entry) => entry.participantId == participant.participantId,
-    ).firstOrNull;
+    final liveEntry = lineup?.entries
+        .where(
+          (entry) => entry.participantId == participant.participantId,
+        )
+        .firstOrNull;
     if (liveEntry == null) return participant;
     final present = liveEntry.zone == MatchCompositionZone.field ||
         liveEntry.zone == MatchCompositionZone.bench;

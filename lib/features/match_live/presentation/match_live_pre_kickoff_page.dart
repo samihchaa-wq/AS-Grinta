@@ -94,7 +94,8 @@ class _MatchLivePreKickoffPageState
             slots: formationForCode(lineup.formationCode).slots,
             entries: field,
             editable: widget.canEdit,
-            onDroppedOnSlot: (moving, slot) => _dropOnSlot(lineup, moving, slot),
+            onDroppedOnSlot: (moving, slot) =>
+                _dropOnSlot(lineup, moving, slot),
             onRemoveFromField: (entry) => _moveToBench(lineup, entry),
           ),
         ),
@@ -126,7 +127,8 @@ class _MatchLivePreKickoffPageState
                       runSpacing: 14,
                       children: [
                         for (final entry in bench)
-                          LiveBenchTile(entry: entry, draggable: widget.canEdit),
+                          LiveBenchTile(
+                              entry: entry, draggable: widget.canEdit),
                       ],
                     ),
                 ],
@@ -157,8 +159,7 @@ class _MatchLivePreKickoffPageState
         .firstWhere(
           (entry) =>
               entry != null &&
-              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position)
-                      .distance <
+              (Offset(entry.x ?? .5, entry.y ?? .5) - slot.position).distance <
                   .12,
           orElse: () => null,
         );

@@ -3,7 +3,11 @@ import 'package:as_grinta/features/match_live/presentation/match_live_providers.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-typedef _ScoredEvent = ({MatchLiveEvent event, int scoreAsGrinta, int scoreAdverse});
+typedef _ScoredEvent = ({
+  MatchLiveEvent event,
+  int scoreAsGrinta,
+  int scoreAdverse
+});
 
 /// Chronologie des buts et remplacements d'un match suivi en direct, dans
 /// la fiche du match fini. `null` (match jamais suivi via le Tableau Blanc)

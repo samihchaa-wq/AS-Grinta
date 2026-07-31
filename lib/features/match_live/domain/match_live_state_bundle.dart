@@ -23,9 +23,7 @@ class MatchLiveStateBundle {
       session: session,
       lineup: lineup,
       events: eventsRaw is List
-          ? eventsRaw
-              .map((row) => MatchLiveEvent.fromJson(_map(row)))
-              .toList()
+          ? eventsRaw.map((row) => MatchLiveEvent.fromJson(_map(row))).toList()
           : const [],
       substituteCounts: countsRaw is Map
           ? countsRaw.map(
@@ -50,7 +48,8 @@ class MatchLiveStateBundle {
   List<MatchLiveEvent> get ownGoals =>
       events.where((e) => e.type == MatchLiveEventType.goalUs).toList();
 
-  int timesBenched(String participantId) => substituteCounts[participantId] ?? 0;
+  int timesBenched(String participantId) =>
+      substituteCounts[participantId] ?? 0;
 }
 
 Map<String, dynamic> _map(Object? raw) {

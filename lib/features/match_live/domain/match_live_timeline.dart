@@ -14,9 +14,7 @@ class MatchLiveTimeline {
     return MatchLiveTimeline(
       matchId: json['match_id'].toString(),
       events: eventsRaw is List
-          ? eventsRaw
-              .map((row) => MatchLiveEvent.fromJson(_map(row)))
-              .toList()
+          ? eventsRaw.map((row) => MatchLiveEvent.fromJson(_map(row))).toList()
           : const [],
     );
   }
