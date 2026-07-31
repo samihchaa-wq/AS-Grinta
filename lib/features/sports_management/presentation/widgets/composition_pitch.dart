@@ -442,17 +442,19 @@ class PlayerAvatar extends StatefulWidget {
 
 class _PlayerAvatarState extends State<PlayerAvatar> {
   // Palette d'avatars « aléatoires » (stables par joueur, dérivés du nom).
+  // Volontairement sans jaune ni orange : ces teintes se confondaient avec
+  // la couronne dorée de l'Homme du Match posée sur l'avatar.
   static const _avatarPalette = <List<Color>>[
     [Color(0xFF7C4DFF), Color(0xFF5E35B1)],
     [Color(0xFF2E86DE), Color(0xFF1B4F91)],
     [Color(0xFF17A589), Color(0xFF0E6B57)],
     [Color(0xFFE84393), Color(0xFFB61E74)],
-    [Color(0xFFE67E22), Color(0xFFB35900)],
+    [Color(0xFF00A8E8), Color(0xFF006C93)],
     [Color(0xFF27AE60), Color(0xFF1E7A45)],
     [Color(0xFFE74C3C), Color(0xFF992D22)],
     [Color(0xFF00B2A9), Color(0xFF00807A)],
     [Color(0xFF8E44AD), Color(0xFF5E2C72)],
-    [Color(0xFFF39C12), Color(0xFFB9770E)],
+    [Color(0xFF546E7A), Color(0xFF37474F)],
   ];
 
   // Compteur de tentatives : on réessaie le chargement en cas d'échec.
