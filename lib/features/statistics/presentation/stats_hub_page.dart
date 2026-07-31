@@ -316,13 +316,13 @@ class _PlayersDataRow extends StatelessWidget {
             child: Row(
               children: [
                 SizedBox(
-                  width: 22,
+                  width: 16,
                   child: Text(
                     '$rank',
                     style: grintaTableRankTextStyle(context),
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 2),
                 Expanded(
                   child: NameWithBadges(
                     profileId: player.profileId,
