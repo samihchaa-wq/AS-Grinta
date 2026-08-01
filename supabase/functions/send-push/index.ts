@@ -1,8 +1,9 @@
-// Envoi des notifications Web Push (VAPID).
+// Envoi des notifications Web Push (VAPID) et jobs internes protégés.
 // Appelée par la base via pg_net avec le jeton interne x-push-token.
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
 import { executePushDelivery } from "./delivery_policy.ts";
+import { refreshMatchWeather } from "./weather_refresh.ts";
 
 type SubscriptionRow = {
   profile_id?: string;
@@ -124,17 +125,34 @@ Deno.serve(async (req: Request) => {
     return new Response("non autorisé", { status: 401 });
   }
 
-  // Coupe-circuit admin : quand actif, aucun envoi ne part (test compris),
-  // le temps d'une phase de tests, sans toucher aux préférences des joueurs.
-  if (config.notifications_paused === true) {
-    return Response.json({ paused: true, attempted: 0, sent: 0, failed: 0 });
-  }
-
   let body: PushRequestBody;
   try {
     body = await req.json();
   } catch {
     return new Response("corps invalide", { status: 400 });
+  }
+
+  // Job interne non-push. Il utilise le même canal serveur authentifié mais
+  // reste indépendant du coupe-circuit des notifications.
+  if (body.kind === "refresh_match_weather") {
+    try {
+      const result = await refreshMatchWeather(
+        supabase,
+        typeof body.match_id === "string" && body.match_id.trim()
+          ? body.match_id.trim()
+          : null,
+      );
+      return Response.json(result);
+    } catch (error) {
+      console.error("match-weather worker failure", error);
+      return new Response("météo indisponible", { status: 500 });
+    }
+  }
+
+  // Coupe-circuit admin : quand actif, aucun envoi ne part (test compris),
+  // le temps d'une phase de tests, sans toucher aux préférences des joueurs.
+  if (config.notifications_paused === true) {
+    return Response.json({ paused: true, attempted: 0, sent: 0, failed: 0 });
   }
 
   // Alerte admin : un nouveau compte attend une validation. Envoyée à tous
