@@ -31,8 +31,7 @@ class MatchWeatherCard extends ConsumerWidget {
     }
 
     final weather = ref.watch(matchWeatherProvider(matchId)).valueOrNull;
-    if (weather == null ||
-        !weather.forecastFor.isAtSameMomentAs(kickoffAt)) {
+    if (weather == null || !weather.forecastFor.isAtSameMomentAs(kickoffAt)) {
       return const SizedBox.shrink();
     }
 
@@ -44,10 +43,7 @@ class MatchWeatherCard extends ConsumerWidget {
 }
 
 class _WeatherBody extends StatelessWidget {
-  const _WeatherBody({
-    required this.weather,
-    required this.kickoffAt,
-  });
+  const _WeatherBody({required this.weather, required this.kickoffAt});
 
   final MatchWeather weather;
   final DateTime kickoffAt;
@@ -267,19 +263,13 @@ class _WeatherBody extends StatelessWidget {
             const Text(
               'Prévision pour le lieu du match et l’heure du coup d’envoi',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.textFaint,
-                fontSize: 10.5,
-              ),
+              style: TextStyle(color: AppTheme.textFaint, fontSize: 10.5),
             ),
             const SizedBox(height: 3),
             Text(
               'Mis à jour à ${_time(weather.fetchedAt)}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.textFaint,
-                fontSize: 10.5,
-              ),
+              style: const TextStyle(color: AppTheme.textFaint, fontSize: 10.5),
             ),
           ],
         ),
@@ -289,11 +279,7 @@ class _WeatherBody extends StatelessWidget {
 }
 
 class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _Metric({required this.icon, required this.label, required this.value});
 
   final IconData icon;
   final String label;

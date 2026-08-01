@@ -43,7 +43,8 @@ MatchWeather _weather({
     windSpeed: wind,
     windGusts: gusts,
     humidity: humidity,
-    hourlyForecast: hours ??
+    hourlyForecast:
+        hours ??
         [
           MatchWeatherHour(
             forecastAt: kickoff.subtract(const Duration(hours: 1)),
@@ -77,9 +78,7 @@ Widget _app({
   required DateTime now,
 }) {
   return ProviderScope(
-    overrides: [
-      matchWeatherRepositoryProvider.overrideWithValue(repository),
-    ],
+    overrides: [matchWeatherRepositoryProvider.overrideWithValue(repository)],
     child: MaterialApp(
       theme: ThemeData.dark(useMaterial3: true),
       home: Scaffold(
@@ -114,7 +113,9 @@ void main() {
     expect(repository.watchCount, 0);
   });
 
-  testWidgets('la carte apparaît exactement à J-6 avec les données', (tester) async {
+  testWidgets('la carte apparaît exactement à J-6 avec les données', (
+    tester,
+  ) async {
     final repository = _FakeWeatherRepository(_weather(kickoff: kickoff));
     await tester.pumpWidget(
       _app(
@@ -147,35 +148,39 @@ void main() {
     expect(find.text('21h'), findsOneWidget);
   });
 
-  testWidgets('les données optionnelles manquantes ne font pas crasher la carte',
-      (tester) async {
-    final repository = _FakeWeatherRepository(
-      _weather(
-        kickoff: kickoff,
-        temperature: null,
-        apparentTemperature: null,
-        rain: null,
-        wind: null,
-        gusts: null,
-        humidity: null,
-        hours: const [],
-      ),
-    );
-    await tester.pumpWidget(
-      _app(
-        repository: repository,
-        kickoff: kickoff,
-        now: kickoff.subtract(const Duration(days: 1)),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'les données optionnelles manquantes ne font pas crasher la carte',
+    (tester) async {
+      final repository = _FakeWeatherRepository(
+        _weather(
+          kickoff: kickoff,
+          temperature: null,
+          apparentTemperature: null,
+          rain: null,
+          wind: null,
+          gusts: null,
+          humidity: null,
+          hours: const [],
+        ),
+      );
+      await tester.pumpWidget(
+        _app(
+          repository: repository,
+          kickoff: kickoff,
+          now: kickoff.subtract(const Duration(days: 1)),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
-    expect(find.text('Météo du match'), findsOneWidget);
-    expect(find.textContaining('Indice Grinta'), findsOneWidget);
-  });
+      expect(tester.takeException(), isNull);
+      expect(find.text('Météo du match'), findsOneWidget);
+      expect(find.textContaining('Indice Grinta'), findsOneWidget);
+    },
+  );
 
-  testWidgets('une prévision liée à une ancienne heure est masquée', (tester) async {
+  testWidgets('une prévision liée à une ancienne heure est masquée', (
+    tester,
+  ) async {
     final repository = _FakeWeatherRepository(
       _weather(kickoff: kickoff.subtract(const Duration(hours: 1))),
     );
@@ -191,8 +196,9 @@ void main() {
     expect(find.text('Météo du match'), findsNothing);
   });
 
-  testWidgets('les conditions difficiles utilisent un message de prudence',
-      (tester) async {
+  testWidgets('les conditions difficiles utilisent un message de prudence', (
+    tester,
+  ) async {
     final repository = _FakeWeatherRepository(
       _weather(kickoff: kickoff, weatherCode: 95, gusts: 70),
     );
@@ -226,8 +232,9 @@ void main() {
     );
   });
 
-  testWidgets('aucun cache météo ne laisse simplement la carte absente',
-      (tester) async {
+  testWidgets('aucun cache météo ne laisse simplement la carte absente', (
+    tester,
+  ) async {
     final repository = _FakeWeatherRepository(null);
     await tester.pumpWidget(
       _app(

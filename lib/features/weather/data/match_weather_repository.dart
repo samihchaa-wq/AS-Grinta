@@ -31,5 +31,7 @@ final matchWeatherRepositoryProvider = Provider<MatchWeatherRepository>((ref) {
 
 final matchWeatherProvider = StreamProvider.autoDispose
     .family<MatchWeather?, String>((ref, matchId) {
-  return ref.watch(matchWeatherRepositoryProvider).watchMatchWeather(matchId);
-});
+      return ref
+          .watch(matchWeatherRepositoryProvider)
+          .watchMatchWeather(matchId);
+    });
