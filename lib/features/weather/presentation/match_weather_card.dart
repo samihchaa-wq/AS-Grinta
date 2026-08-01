@@ -373,8 +373,7 @@ List<MatchWeatherHour> _relevantHours(
   if (hours.length <= 3) {
     return [...hours]..sort((a, b) => a.forecastAt.compareTo(b.forecastAt));
   }
-  final nearest = [...hours]
-    ..sort((a, b) {
+  final nearest = [...hours]..sort((a, b) {
       final aDistance = a.forecastAt.difference(kickoffAt).inMinutes.abs();
       final bDistance = b.forecastAt.difference(kickoffAt).inMinutes.abs();
       return aDistance.compareTo(bDistance);
