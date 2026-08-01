@@ -6,13 +6,16 @@ on:
       - feature/match-weather-j6
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feature/match-weather-j6
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -24,11 +27,17 @@ jobs:
             lib/features/weather/domain/match_weather.dart \
             lib/features/weather/presentation/match_weather_card.dart \
             test/match_weather_card_test.dart
-      - uses: actions/upload-artifact@v4
-        with:
-          name: weather-formatted-dart
-          path: |
-            lib/features/weather/data/match_weather_repository.dart
-            lib/features/weather/domain/match_weather.dart
-            lib/features/weather/presentation/match_weather_card.dart
+      - name: Commit canonical formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/weather/data/match_weather_repository.dart \
+            lib/features/weather/domain/match_weather.dart \
+            lib/features/weather/presentation/match_weather_card.dart \
             test/match_weather_card_test.dart
+          git commit -m "style(weather): apply canonical Dart formatting"
+          git push origin HEAD:feature/match-weather-j6
