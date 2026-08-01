@@ -1,7 +1,7 @@
 name: as_grinta
 description: Application officielle AS Grinta.
 publish_to: "none"
-version: 0.3.2+89
+version: 0.3.2+90
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -27,12 +27,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/images/module_backgrounds/
-    - assets/images/mpg_logo.png
-    - assets/images/mpg_logo_bar.png
-    - assets/images/scorer_logo.png
-    - assets/images/keeper_logo.png
-    - assets/images/app_background.webp
-    - assets/images/jerseys/
