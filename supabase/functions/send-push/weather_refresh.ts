@@ -56,8 +56,13 @@ async function fetchJson<T>(url: string): Promise<T> {
 function geocodingQueries(address: string): string[] {
   const trimmed = address.trim();
   const queries = [trimmed];
-  const postalCity = trimmed.match(/\b\d{4,6}\b\s+([^,]+)/)?.[0]?.trim();
+  const postalCityMatch = trimmed.match(/\b\d{4,6}\b\s+([^,]+)/);
+  const postalCity = postalCityMatch?.[0]?.trim();
+  const cityOnly = postalCityMatch?.[1]?.trim();
   if (postalCity && postalCity !== trimmed) queries.push(postalCity);
+  if (cityOnly && cityOnly !== trimmed && !queries.includes(cityOnly)) {
+    queries.push(cityOnly);
+  }
 
   const segments = trimmed.split(",").map((part) => part.trim()).filter(Boolean);
   if (segments.length > 1) {
@@ -66,7 +71,7 @@ function geocodingQueries(address: string): string[] {
     const last = segments.at(-1)!;
     if (!queries.includes(last)) queries.push(last);
   }
-  return [...new Set(queries)].slice(0, 4);
+  return [...new Set(queries)].slice(0, 5);
 }
 
 async function geocode(address: string): Promise<{ latitude: number; longitude: number }> {
