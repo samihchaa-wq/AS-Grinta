@@ -48,6 +48,9 @@ class MatchLiveStateBundle {
   List<MatchLiveEvent> get ownGoals =>
       events.where((e) => e.type == MatchLiveEventType.goalUs).toList();
 
+  List<MatchLiveEvent> get opponentGoals =>
+      events.where((e) => e.type == MatchLiveEventType.goalThem).toList();
+
   int timesBenched(String participantId) =>
       substituteCounts[participantId] ?? 0;
 }

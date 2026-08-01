@@ -120,6 +120,16 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
                   foregroundColor: Theme.of(context).colorScheme.error,
                 ),
               ),
+              // Repartir de zéro après un lancement par erreur ou une saisie
+              // ratée : tout le direct est effacé et la préparation revient.
+              OutlinedButton.icon(
+                onPressed: () => _confirmRestart(context, controller),
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: const Text('Recommencer'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+              ),
             ],
           ),
         const SizedBox(height: 20),
@@ -366,6 +376,58 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     if (confirmed == true) {
       await controller.endMatch();
     }
+  }
+
+  /// « Recommencer » efface définitivement la saisie du direct. La confirmation
+  /// énumère donc ce qui va disparaître, chiffres à l'appui, plutôt qu'un
+  /// « Êtes-vous sûr ? » que personne ne lit.
+  Future<void> _confirmRestart(
+    BuildContext context,
+    MatchLiveStateController controller,
+  ) async {
+    final goals = bundle.ownGoals.length + bundle.opponentGoals.length;
+    final substitutions = bundle.substitutions.length;
+    final details = [
+      if (goals > 0) goals == 1 ? '1 but' : '$goals buts',
+      if (substitutions > 0)
+        substitutions == 1 ? '1 remplacement' : '$substitutions remplacements',
+    ];
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Recommencer le match ?'),
+        content: Text(
+          details.isEmpty
+              ? 'Le chronomètre et le score repartent à zéro, et la '
+                  'composition redevient celle du coup d’envoi.\n\n'
+                  'Cette action est définitive.'
+              : 'Tout ce qui a été saisi sera effacé : ${details.join(' et ')}, '
+                  'le chronomètre et le score.\n\n'
+                  'La composition redevient celle du coup d’envoi et tu '
+                  'reviens à l’écran de préparation.\n\n'
+                  'Cette action est définitive.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
+            child: const Text('Tout effacer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    // Les changements préparés mais pas encore validés n'ont plus de sens.
+    setState(_pending.clear);
+    await controller.restartSession();
   }
 
   Future<void> _handlePitchDrop(
