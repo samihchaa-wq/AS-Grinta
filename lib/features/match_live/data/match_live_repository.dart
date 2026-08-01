@@ -41,6 +41,15 @@ abstract interface class MatchLiveRepository {
     required String matchId,
     required String eventId,
   });
+
+  /// Attribue un but déjà enregistré : à un joueur, ou à un contre-son-camp
+  /// adverse. Les deux paramètres nuls/faux remettent le but « à attribuer ».
+  Future<MatchLiveStateBundle> setEventScorer({
+    required String matchId,
+    required String eventId,
+    String? scorerParticipantId,
+    bool isOpponentOwnGoal,
+  });
   Future<MatchLiveStateBundle> endMatch({
     required String matchId,
     String? reason,
@@ -183,6 +192,25 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
     final response = await _client.rpc(
       'coach_delete_match_live_event',
       params: {'p_match_id': matchId, 'p_event_id': eventId},
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> setEventScorer({
+    required String matchId,
+    required String eventId,
+    String? scorerParticipantId,
+    bool isOpponentOwnGoal = false,
+  }) async {
+    final response = await _client.rpc(
+      'coach_set_match_live_event_scorer',
+      params: {
+        'p_match_id': matchId,
+        'p_event_id': eventId,
+        'p_scorer_participant_id': scorerParticipantId,
+        'p_is_opponent_own_goal': isOpponentOwnGoal,
+      },
     );
     return MatchLiveStateBundle.fromRpc(response);
   }

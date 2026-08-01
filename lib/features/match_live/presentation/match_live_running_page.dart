@@ -216,14 +216,52 @@ class MatchLiveRunningPage extends ConsumerWidget {
           icon: Icons.sports_soccer_rounded,
           events: bundle.ownGoals,
           emptyLabel: 'Aucun but AS Grinta pour le moment.',
-          lineBuilder: (event) =>
-              '${event.scorerName ?? '?'} · ${event.minute}\'',
+          lineBuilder: (event) => _goalLabel(event),
+          contentBuilder: (event) => _GoalLine(
+            event: event,
+            canEdit: canEdit,
+            onPickScorer: () => _pickGoalScorer(
+              context,
+              controller,
+              event,
+              scorerCandidates,
+            ),
+          ),
           canEdit: canEdit,
           deleteConfirmation: 'Retirer ce but ?',
           onDelete: (event) => controller.deleteEvent(event.id),
         ),
       ],
     );
+  }
+
+  static String _goalLabel(MatchLiveEvent event) {
+    final who = event.isOpponentOwnGoal
+        ? 'CSC adverse'
+        : (event.scorerName ?? 'Buteur à désigner');
+    return "$who · ${event.minute}'";
+  }
+
+  /// Attribue un but déjà compté : un joueur, ou un CSC adverse.
+  Future<void> _pickGoalScorer(
+    BuildContext context,
+    MatchLiveStateController controller,
+    MatchLiveEvent event,
+    List<MatchCompositionEntry> candidates,
+  ) async {
+    final choice = await pickMatchLiveScorer(
+      context,
+      candidates: candidates,
+      title: "Qui a marqué à la ${event.minute}ᵉ minute ?",
+      extraChoiceLabel: 'CSC adverse',
+      extraChoiceIcon: Icons.shield_moon_outlined,
+    );
+    if (choice == null) return;
+    if (choice == kMatchLiveExtraChoiceId) {
+      await controller.setEventScorer(event.id, isOpponentOwnGoal: true);
+      return;
+    }
+    await controller.setEventScorer(event.id, scorerParticipantId: choice);
   }
 
   Future<void> _confirmEndMatch(
@@ -471,18 +509,9 @@ class _ScoreRow extends ConsumerWidget {
       label: 'AS Grinta',
       score: bundle.session.scoreAsGrinta,
       canEdit: canEdit,
-      onIncrement: () async {
-        final scorerId = await pickMatchLiveScorer(
-          context,
-          candidates: scorerCandidates,
-        );
-        if (scorerId == null) return;
-        await controller.adjustScore(
-          team: 'us',
-          delta: 1,
-          scorerParticipantId: scorerId,
-        );
-      },
+      // Aucune liste ne surgit pendant l'action : le but est compté tout de
+      // suite, le buteur s'attribue depuis la ligne « Buteurs ».
+      onIncrement: () => controller.adjustScore(team: 'us', delta: 1),
       onDecrement: () => controller.adjustScore(team: 'us', delta: -1),
     );
     final opponent = _TeamScore(
@@ -502,6 +531,65 @@ class _ScoreRow extends ConsumerWidget {
           child: Text('-', style: Theme.of(context).textTheme.headlineMedium),
         ),
         Expanded(child: grintaIsHome ? opponent : grinta),
+      ],
+    );
+  }
+}
+
+/// Une ligne de la liste « Buteurs ». Tant que le but n'est attribué à
+/// personne, elle propose de choisir le buteur au lieu d'afficher un nom.
+class _GoalLine extends StatelessWidget {
+  const _GoalLine({
+    required this.event,
+    required this.canEdit,
+    required this.onPickScorer,
+  });
+
+  final MatchLiveEvent event;
+  final bool canEdit;
+  final VoidCallback onPickScorer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final minute = "${event.minute}'";
+
+    if (!event.needsScorer) {
+      final label = event.isOpponentOwnGoal
+          ? 'CSC adverse'
+          : (event.scorerName ?? '?');
+      return InkWell(
+        onTap: canEdit ? onPickScorer : null,
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            const SizedBox(width: 8),
+            Text(minute, style: theme.textTheme.bodySmall),
+          ],
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: canEdit
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: onPickScorer,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                    label: const Text('Sélectionner un buteur'),
+                  ),
+                )
+              : Text('Buteur à désigner', style: theme.textTheme.bodyMedium),
+        ),
+        const SizedBox(width: 8),
+        Text(minute, style: theme.textTheme.bodySmall),
       ],
     );
   }

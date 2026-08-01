@@ -149,6 +149,21 @@ class MatchLiveStateController
     );
   }
 
+  Future<void> setEventScorer(
+    String eventId, {
+    String? scorerParticipantId,
+    bool isOpponentOwnGoal = false,
+  }) {
+    return _mutate(
+      (repository) => repository.setEventScorer(
+        matchId: arg,
+        eventId: eventId,
+        scorerParticipantId: scorerParticipantId,
+        isOpponentOwnGoal: isOpponentOwnGoal,
+      ),
+    );
+  }
+
   Future<void> endMatch({String? reason}) {
     return _mutate(
       (repository) => repository.endMatch(matchId: arg, reason: reason),

@@ -106,7 +106,9 @@ class _EventLine extends StatelessWidget {
     final (icon, text) = switch (event.type) {
       MatchLiveEventType.goalUs => (
           Icons.sports_soccer_rounded,
-          event.scorerName ?? 'But AS Grinta',
+          event.isOpponentOwnGoal
+              ? 'CSC adverse'
+              : (event.scorerName ?? 'But AS Grinta'),
         ),
       MatchLiveEventType.goalThem => (
           Icons.sports_soccer_rounded,

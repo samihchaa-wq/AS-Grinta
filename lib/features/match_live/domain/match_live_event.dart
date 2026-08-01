@@ -26,6 +26,7 @@ class MatchLiveEvent {
     this.playerInName,
     this.playerOutParticipantId,
     this.playerOutName,
+    this.isOpponentOwnGoal = false,
   });
 
   factory MatchLiveEvent.fromJson(Map<String, dynamic> json) {
@@ -42,6 +43,7 @@ class MatchLiveEvent {
       playerInName: _nullableText(json['player_in_name']),
       playerOutParticipantId: _nullableText(json['player_out_participant_id']),
       playerOutName: _nullableText(json['player_out_name']),
+      isOpponentOwnGoal: json['is_opponent_own_goal'] == true,
     );
   }
 
@@ -57,6 +59,16 @@ class MatchLiveEvent {
   final String? playerInName;
   final String? playerOutParticipantId;
   final String? playerOutName;
+
+  /// But d'AS Grinta marqué contre son camp par l'adversaire : il compte au
+  /// score mais n'est crédité à aucun joueur.
+  final bool isOpponentOwnGoal;
+
+  /// Un but d'AS Grinta dont le buteur reste à désigner.
+  bool get needsScorer =>
+      type == MatchLiveEventType.goalUs &&
+      scorerParticipantId == null &&
+      !isOpponentOwnGoal;
 }
 
 String? _nullableText(Object? value) {
