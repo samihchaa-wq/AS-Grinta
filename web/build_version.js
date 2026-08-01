@@ -1,3 +1,3 @@
 (function (globalScope) {
-  globalScope.AS_GRINTA_WEB_VERSION = '0.2.8+84';
+  globalScope.AS_GRINTA_WEB_VERSION = '0.2.9+85';
 })(typeof self !== 'undefined' ? self : window);
