@@ -1,0 +1,35 @@
+name: Weather formatter helper
+
+on:
+  push:
+    branches:
+      - feature/match-weather-j6
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format weather files
+        run: |
+          dart format \
+            lib/features/weather/data/match_weather_repository.dart \
+            lib/features/weather/domain/match_weather.dart \
+            lib/features/weather/presentation/match_weather_card.dart \
+            test/match_weather_card_test.dart
+          git diff -- \
+            lib/features/weather/data/match_weather_repository.dart \
+            lib/features/weather/domain/match_weather.dart \
+            lib/features/weather/presentation/match_weather_card.dart \
+            test/match_weather_card_test.dart > weather-format.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: weather-format-patch
+          path: weather-format.patch
