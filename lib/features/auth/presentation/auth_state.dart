@@ -266,3 +266,14 @@ final isRealAdminProvider = Provider<bool>((ref) {
 final isAdminViewProvider = Provider<bool>((ref) {
   return ref.watch(isRealAdminProvider) && !ref.watch(viewAsUserProvider);
 });
+
+/// Vrai si le compte connecté est modérateur, sans tenir compte de l'aperçu.
+final isRealModeratorProvider = Provider<bool>((ref) {
+  return ref.watch(authControllerProvider).profile?.role.isModerator == true;
+});
+
+/// Vrai si le module « Modérateur » doit être visible : seul ce rôle y accède,
+/// et l'aperçu utilisateur le masque comme le reste.
+final isModeratorViewProvider = Provider<bool>((ref) {
+  return ref.watch(isRealModeratorProvider) && !ref.watch(viewAsUserProvider);
+});

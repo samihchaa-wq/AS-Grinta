@@ -131,12 +131,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                       ),
                     _ProfileMetaChip(
                       icon: Icons.shield_outlined,
-                      label: profile == null
-                          ? 'Rôle inconnu'
-                          : switch (profile.role) {
-                              AuthRole.admin => 'Admin',
-                              AuthRole.pronostiqueur => 'Joueur',
-                            },
+                      label:
+                          profile == null ? 'Rôle inconnu' : profile.role.label,
                     ),
                   ],
                 ),

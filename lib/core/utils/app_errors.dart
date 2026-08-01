@@ -75,6 +75,11 @@ String _fromMessage(String raw) {
     'coach or administrator role required':
         'Action réservée au coach ou à l’administrateur.',
     'administrator role required': 'Action réservée à l’administrateur.',
+    'only a moderator can grant or revoke the moderator role':
+        'Seul un modérateur peut nommer ou retirer un modérateur.',
+    'the last active moderator cannot be removed':
+        'Il doit rester au moins un modérateur actif.',
+    'moderator role required': 'Action réservée au modérateur.',
     'live tracking is only available for upcoming matches':
         'Le Tableau Blanc n’est disponible que pour les prochains matchs.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',

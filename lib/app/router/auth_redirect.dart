@@ -55,13 +55,22 @@ String? resolveAuthRedirect({
   }
 
   final role = authState.profile?.role;
-  final isAdmin = role == AuthRole.admin;
+  final isAdmin = role?.isAdmin == true;
+  final isModerator = role?.isModerator == true;
   final isStaff = role?.isStaff == true;
   final segments =
       uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
+  // Le module « Modérateur », la gestion des comptes qu'il contient et celle
+  // des badges : un admin garde tous ses autres droits mais n'entre pas ici,
+  // même par l'URL.
+  final isModeratorRoute = const {
+    '/admin',
+    '/admin/administration',
+    '/admin/badges',
+  }.contains(location);
   final isMatchAdminRoute = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(segments.last);
@@ -69,6 +78,7 @@ String? resolveAuthRedirect({
 
   if (isFinalizationRoute && !isAdmin) return '/matches';
   if ((isAdminRoute || isMatchAdminRoute) && !isStaff) return '/matches';
+  if (isModeratorRoute && !isModerator) return '/matches';
   if (isPlayersRoute && !isStaff) return '/matches';
   return null;
 }
