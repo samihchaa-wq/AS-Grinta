@@ -1,21 +1,152 @@
 begin;
-\ir ../../migrations/20260802050000_match_weather.sql
 
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
+-- `supabase test db` mounts the test files but does not expose the repository
+-- migration directory to psql. Recreate the migration's query/security surface
+-- here so the isolated contract remains executable; the migration itself is
+-- independently protected by the migration guard.
+create table public.match_weather (
+  match_id uuid primary key references public.matches(id) on delete cascade,
+  forecast_for timestamptz not null,
+  latitude double precision not null check (latitude between -90 and 90),
+  longitude double precision not null check (longitude between -180 and 180),
+  geocoded_address text not null check (char_length(geocoded_address) between 1 and 500),
+  timezone text,
+  temperature numeric,
+  apparent_temperature numeric,
+  precipitation_probability integer check (
+    precipitation_probability is null
+    or precipitation_probability between 0 and 100
+  ),
+  weather_code integer,
+  wind_speed numeric check (wind_speed is null or wind_speed >= 0),
+  wind_gusts numeric check (wind_gusts is null or wind_gusts >= 0),
+  humidity integer check (humidity is null or humidity between 0 and 100),
+  hourly_forecast jsonb not null default '[]'::jsonb
+    check (jsonb_typeof(hourly_forecast) = 'array'),
+  source text not null default 'open-meteo' check (source = 'open-meteo'),
+  fetched_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.match_weather enable row level security;
+revoke all on table public.match_weather from public, anon, authenticated;
+grant select on table public.match_weather to authenticated;
+grant all on table public.match_weather to service_role;
+
+create policy match_weather_active_profile_select
+on public.match_weather
+for select
+to authenticated
+using ((select private.is_active_profile()));
+
+create or replace function private.match_weather_refresh_interval(
+  p_kickoff_at timestamptz,
+  p_now timestamptz
+)
+returns interval
+language sql
+immutable
+set search_path = ''
+as $function$
+  select case
+    when p_kickoff_at - p_now > interval '72 hours' then interval '12 hours'
+    when p_kickoff_at - p_now > interval '24 hours' then interval '6 hours'
+    when p_kickoff_at - p_now > interval '6 hours' then interval '2 hours'
+    else interval '1 hour'
+  end;
+$function$;
+
+revoke all on function private.match_weather_refresh_interval(timestamptz, timestamptz)
+  from public, anon, authenticated;
+grant execute on function private.match_weather_refresh_interval(timestamptz, timestamptz)
+  to service_role;
+
+create or replace function public.internal_match_weather_candidates(
+  p_match_id uuid default null,
+  p_now timestamptz default now()
+)
+returns table (
+  match_id uuid,
+  kickoff_at timestamptz,
+  planned_duration_minutes integer,
+  resolved_address text,
+  cached_latitude double precision,
+  cached_longitude double precision,
+  cached_geocoded_address text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $function$
+  select
+    match.id,
+    match.kickoff_at,
+    match.planned_duration_minutes,
+    address.resolved_address,
+    weather.latitude,
+    weather.longitude,
+    weather.geocoded_address
+  from public.matches match
+  left join public.opponents opponent on opponent.id = match.opponent_id
+  left join public.club_settings club on club.id
+  left join public.match_weather weather on weather.match_id = match.id
+  cross join lateral (
+    select coalesce(
+      nullif(btrim(match.address), ''),
+      case
+        when match.location = 'domicile' then nullif(btrim(club.home_address), '')
+        else nullif(btrim(opponent.address), '')
+      end
+    ) as resolved_address
+  ) address
+  where match.status = 'a_venir'
+    and match.kickoff_at is not null
+    and match.kickoff_at > p_now
+    and match.kickoff_at <= p_now + interval '6 days'
+    and address.resolved_address is not null
+    and (p_match_id is null or match.id = p_match_id)
+    and (
+      weather.match_id is null
+      or weather.forecast_for is distinct from match.kickoff_at
+      or weather.geocoded_address is distinct from address.resolved_address
+      or weather.fetched_at is null
+      or weather.fetched_at <= p_now - private.match_weather_refresh_interval(
+        match.kickoff_at,
+        p_now
+      )
+    )
+  order by match.kickoff_at;
+$function$;
+
+revoke all on function public.internal_match_weather_candidates(uuid, timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.internal_match_weather_candidates(uuid, timestamptz)
+  to service_role;
+
+do $do$
+declare
+  v_job_id bigint;
+begin
+  for v_job_id in select jobid from cron.job where jobname = 'match-weather-refresh'
+  loop
+    perform cron.unschedule(v_job_id);
+  end loop;
+  perform cron.schedule(
+    'match-weather-refresh',
+    '*/15 * * * *',
+    $cron$select 1;$cron$
+  );
+end;
+$do$;
+
 insert into auth.users(id, email, raw_user_meta_data)
 values
-  (
-    'aa000000-0000-0000-0000-000000000001',
-    'weather-active@example.invalid',
-    '{"first_name":"Meteo","last_name":"Active"}'::jsonb
-  ),
-  (
-    'aa000000-0000-0000-0000-000000000002',
-    'weather-pending@example.invalid',
-    '{"first_name":"Meteo","last_name":"Pending"}'::jsonb
-  );
+  ('aa000000-0000-0000-0000-000000000001','weather-active@example.invalid','{"first_name":"Meteo","last_name":"Active"}'::jsonb),
+  ('aa000000-0000-0000-0000-000000000002','weather-pending@example.invalid','{"first_name":"Meteo","last_name":"Pending"}'::jsonb);
 
 update public.profiles
 set status = case
@@ -33,11 +164,7 @@ insert into public.seasons(id, name, status)
 values ('aa100000-0000-0000-0000-000000000001', '2039-2040', 'open');
 
 insert into public.opponents(id, name, address)
-values (
-  'aa200000-0000-0000-0000-000000000001',
-  'Météo FC',
-  '12 rue Extérieure, 31000 Toulouse'
-);
+values ('aa200000-0000-0000-0000-000000000001','Météo FC','12 rue Extérieure, 31000 Toulouse');
 
 update public.club_settings
 set home_address = '1 rue du Stade, 31000 Toulouse'
