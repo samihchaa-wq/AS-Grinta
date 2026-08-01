@@ -53,6 +53,12 @@ begin
       continue; -- déjà corrigée
     end if;
 
+    -- Le schéma minimal rejoué par les tests métier s'arrête à une version
+    -- antérieure au surnom : il n'y a alors aucune priorité à compléter.
+    if position('surnom' in v_def) = 0 then
+      continue;
+    end if;
+
     -- Nom affiché : le prénom du compte s'intercale juste après le surnom.
     -- L'alias du profil change d'une fonction à l'autre (profile, in_profile,
     -- scorer_profile…), il est donc capturé puis réutilisé.
@@ -70,6 +76,8 @@ begin
       'lower(coalesce(profile.surnom, profile.first_name, player.first_name'
     );
 
+    -- La fonction parle du surnom mais pas sous la forme attendue : c'est une
+    -- dérive réelle, on refuse de deviner.
     if v_new = v_def then
       raise exception '%: motif de nom introuvable, correction manuelle requise',
         v_signature;
