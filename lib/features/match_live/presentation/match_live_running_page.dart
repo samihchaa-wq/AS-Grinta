@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
@@ -5,10 +6,8 @@ import 'package:as_grinta/features/match_live/presentation/match_live_providers.
 import 'package:as_grinta/features/match_live/presentation/match_live_recap_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
-import 'package:as_grinta/features/match_live/presentation/widgets/match_live_batch_substitution_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
-import 'package:as_grinta/features/match_live/presentation/widgets/match_live_substitution_dialog.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -16,9 +15,12 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/format
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Un changement préparé mais pas encore envoyé.
+typedef PendingSubstitution = ({String playerIn, String playerOut});
+
 /// Le match est en cours (running/paused/halftime) ou terminé mais pas
 /// encore exporté : c'est l'écran principal du Tableau Blanc.
-class MatchLiveRunningPage extends ConsumerWidget {
+class MatchLiveRunningPage extends ConsumerStatefulWidget {
   const MatchLiveRunningPage({
     super.key,
     required this.matchId,
@@ -31,7 +33,21 @@ class MatchLiveRunningPage extends ConsumerWidget {
   final bool canEdit;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MatchLiveRunningPage> createState() =>
+      _MatchLiveRunningPageState();
+}
+
+class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
+  /// Les changements préparés par glisser-déposer, en attente de validation.
+  final List<PendingSubstitution> _pending = [];
+  bool _saving = false;
+
+  String get matchId => widget.matchId;
+  MatchLiveStateBundle get bundle => widget.bundle;
+  bool get canEdit => widget.canEdit;
+
+  @override
+  Widget build(BuildContext context) {
     if (bundle.session.state == MatchLiveState.finished) {
       if (!canEdit) {
         return const _Message(
@@ -113,84 +129,6 @@ class MatchLiveRunningPage extends ConsumerWidget {
           scorerCandidates: scorerCandidates,
         ),
         const SizedBox(height: 20),
-        Center(
-          child: FormationPitchEditor(
-            slots: formationForCode(lineup.formationCode).slots,
-            entries: field,
-            editable: canEdit,
-            finishedBenchCounts: bundle.substituteCounts,
-            onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
-              context,
-              controller,
-              lineup,
-              moving,
-              slot,
-            ),
-            onRemoveFromField: (entry) =>
-                _pickReplacement(context, controller, lineup, entry),
-          ),
-        ),
-        const SizedBox(height: 14),
-        DragTarget<MatchCompositionEntry>(
-          onWillAcceptWithDetails: (details) =>
-              canEdit && details.data.zone == MatchCompositionZone.field,
-          onAcceptWithDetails: (details) =>
-              _pickReplacement(context, controller, lineup, details.data),
-          builder: (context, candidates, rejected) => Card(
-            color: candidates.isNotEmpty
-                ? Theme.of(context).colorScheme.primaryContainer
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Banc (${bench.length})',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                        ),
-                      ),
-                      if (canEdit && bench.isNotEmpty && field.isNotEmpty)
-                        TextButton.icon(
-                          onPressed: () => _pickBatch(
-                            context,
-                            controller,
-                            lineup,
-                          ),
-                          icon: const Icon(Icons.swap_horiz_rounded),
-                          label: const Text('Plusieurs'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (bench.isEmpty)
-                    const Text('Aucun joueur sur le banc.')
-                  else
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 14,
-                      children: [
-                        for (final entry in bench)
-                          LiveBenchTile(
-                            entry: entry,
-                            draggable: canEdit,
-                            timesBenched:
-                                bundle.timesBenched(entry.participantId),
-                          ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
         _EventsSection(
           title: 'Remplacements',
           icon: Icons.swap_horiz_rounded,
@@ -231,8 +169,141 @@ class MatchLiveRunningPage extends ConsumerWidget {
           deleteConfirmation: 'Retirer ce but ?',
           onDelete: (event) => controller.deleteEvent(event.id),
         ),
+        const SizedBox(height: 20),
+        // Banc à gauche, terrain à droite : le coach voit ses remplaçants
+        // et le terrain d'un seul coup d'œil, sans faire défiler.
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BenchColumn(
+                bench: bench,
+                bundle: bundle,
+                canEdit: canEdit,
+                onFieldPlayerDropped: (playerOut, playerIn) =>
+                    _stage(playerIn: playerIn, playerOut: playerOut),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FormationPitchEditor(
+                  slots: formationForCode(lineup.formationCode).slots,
+                  entries: field,
+                  editable: canEdit,
+                  finishedBenchCounts: bundle.substituteCounts,
+                  onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
+                    context,
+                    controller,
+                    lineup,
+                    moving,
+                    slot,
+                  ),
+                  onRemoveFromField: (entry) =>
+                      _explainHowToSubstitute(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (canEdit && _pending.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _PendingSubstitutions(
+            pending: _pending,
+            nameOf: (participantId) => _nameOf(lineup, participantId),
+            busy: _saving,
+            onRemove: (pair) => setState(() => _pending.remove(pair)),
+            onValidate: () => _validatePending(lineup, controller),
+          ),
+        ],
       ],
     );
+  }
+
+  /// Prépare un changement au lieu de l'envoyer tout de suite : le coach
+  /// peut en enchaîner plusieurs, puis tout valider d'un coup.
+  void _stage({
+    required MatchCompositionEntry playerIn,
+    required MatchCompositionEntry playerOut,
+  }) {
+    final alreadyUsed = _pending.any(
+      (pair) =>
+          pair.playerIn == playerIn.participantId ||
+          pair.playerOut == playerIn.participantId ||
+          pair.playerIn == playerOut.participantId ||
+          pair.playerOut == playerOut.participantId,
+    );
+    if (alreadyUsed) {
+      _showMessage(
+        context,
+        'Ce joueur fait déjà partie des changements en attente.',
+      );
+      return;
+    }
+    setState(() {
+      _pending.add(
+        (playerIn: playerIn.participantId, playerOut: playerOut.participantId),
+      );
+    });
+  }
+
+  String _nameOf(MatchComposition lineup, String participantId) {
+    for (final entry in lineup.entries) {
+      if (entry.participantId == participantId) return entry.displayName;
+    }
+    return '?';
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _explainHowToSubstitute(BuildContext context) {
+    _showMessage(
+      context,
+      'Glisse ce joueur sur le remplaçant qui entre, à gauche du terrain.',
+    );
+  }
+
+  /// Envoie toute la salve : les changements portent alors la même minute.
+  Future<void> _validatePending(
+    MatchComposition lineup,
+    MatchLiveStateController controller,
+  ) async {
+    if (_pending.isEmpty || _saving) return;
+    final pairs = [..._pending];
+
+    final positions = {
+      for (final entry in lineup.entriesFor(MatchCompositionZone.field))
+        entry.participantId: Offset(entry.x ?? .5, entry.y ?? .5),
+    };
+    final incomingOf = {for (final p in pairs) p.playerIn: p.playerOut};
+    final outgoing = {for (final p in pairs) p.playerOut};
+    var benchOrder = lineup.entriesFor(MatchCompositionZone.bench).length;
+
+    final entries = [
+      for (final entry in lineup.entries)
+        if (incomingOf.containsKey(entry.participantId))
+          entry.moveTo(
+            MatchCompositionZone.field,
+            x: positions[incomingOf[entry.participantId]]?.dx ?? .5,
+            y: positions[incomingOf[entry.participantId]]?.dy ?? .5,
+          )
+        else if (outgoing.contains(entry.participantId))
+          entry.moveTo(MatchCompositionZone.bench, sortOrder: benchOrder++)
+        else
+          entry,
+    ];
+
+    setState(() => _saving = true);
+    try {
+      await controller.saveLiveLineup(
+        entries: [for (final entry in entries) entry.toRpcJson()],
+        substitutions: pairs,
+      );
+      if (mounted) setState(() => _pending.clear());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   static String _goalLabel(MatchLiveEvent event) {
@@ -322,15 +393,9 @@ class MatchLiveRunningPage extends ConsumerWidget {
         );
         return;
       }
-      await _performSubstitution(
-        context,
-        controller,
-        lineup,
-        playerIn: moving,
-        playerOut: currentAtSlot,
-        playerInX: slot.position.dx,
-        playerInY: slot.position.dy,
-      );
+      // On prépare le changement au lieu de l'envoyer : le coach peut en
+      // enchaîner d'autres avant de tout valider.
+      _stage(playerIn: moving, playerOut: currentAtSlot);
       return;
     }
 
@@ -358,127 +423,164 @@ class MatchLiveRunningPage extends ConsumerWidget {
       entries: [for (final entry in entries) entry.toRpcJson()],
     );
   }
+}
 
-  Future<void> _pickReplacement(
-    BuildContext context,
-    MatchLiveStateController controller,
-    MatchComposition lineup,
-    MatchCompositionEntry fieldEntry,
-  ) async {
-    final bench = lineup.entriesFor(MatchCompositionZone.bench);
-    if (bench.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Aucun remplaçant disponible sur le banc.')),
-      );
-      return;
-    }
-    final replacementId = await pickMatchLiveScorer(
-      context,
-      candidates: bench,
-      title: 'Qui entre à la place de ${fieldEntry.displayName} ?',
-      icon: Icons.arrow_upward_rounded,
-    );
-    if (replacementId == null) return;
-    if (!context.mounted) return;
-    final replacement = bench.firstWhere(
-      (entry) => entry.participantId == replacementId,
-    );
-    await _performSubstitution(
-      context,
-      controller,
-      lineup,
-      playerIn: replacement,
-      playerOut: fieldEntry,
-      playerInX: fieldEntry.x ?? .5,
-      playerInY: fieldEntry.y ?? .5,
-    );
-  }
+/// Le banc, en colonne verticale à gauche du terrain. Chaque remplaçant est
+/// une cible : y déposer un titulaire prépare l'échange entre les deux.
+class _BenchColumn extends StatelessWidget {
+  const _BenchColumn({
+    required this.bench,
+    required this.bundle,
+    required this.canEdit,
+    required this.onFieldPlayerDropped,
+  });
 
-  Future<void> _performSubstitution(
-    BuildContext context,
-    MatchLiveStateController controller,
-    MatchComposition lineup, {
-    required MatchCompositionEntry playerIn,
-    required MatchCompositionEntry playerOut,
-    required double playerInX,
-    required double playerInY,
-  }) async {
-    final confirmed = await confirmMatchLiveSubstitution(
-      context,
-      playerInName: playerIn.displayName,
-      playerOutName: playerOut.displayName,
-    );
-    if (!confirmed) return;
+  final List<MatchCompositionEntry> bench;
+  final MatchLiveStateBundle bundle;
+  final bool canEdit;
 
-    final benchCount = lineup.entriesFor(MatchCompositionZone.bench).length;
-    final entries = [
-      for (final entry in lineup.entries)
-        if (entry.participantId == playerIn.participantId)
-          entry.moveTo(MatchCompositionZone.field, x: playerInX, y: playerInY)
-        else if (entry.participantId == playerOut.participantId)
-          entry.moveTo(MatchCompositionZone.bench, sortOrder: benchCount)
-        else
-          entry,
-    ];
-    await controller.saveLiveLineup(
-      entries: [for (final entry in entries) entry.toRpcJson()],
-      substitutions: [
-        (
-          playerIn: playerIn.participantId,
-          playerOut: playerOut.participantId,
+  /// (titulaire qui sort, remplaçant qui entre)
+  final void Function(MatchCompositionEntry, MatchCompositionEntry)
+      onFieldPlayerDropped;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 78,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'Banc (${bench.length})',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (bench.isEmpty)
+                Text(
+                  'Personne',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall,
+                )
+              else
+                for (final entry in bench)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: DragTarget<MatchCompositionEntry>(
+                      onWillAcceptWithDetails: (details) =>
+                          canEdit &&
+                          details.data.zone == MatchCompositionZone.field,
+                      onAcceptWithDetails: (details) =>
+                          onFieldPlayerDropped(details.data, entry),
+                      builder: (context, candidates, rejected) => DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: candidates.isNotEmpty
+                                ? theme.colorScheme.primary
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: LiveBenchTile(
+                          entry: entry,
+                          draggable: canEdit,
+                          timesBenched: bundle.timesBenched(
+                            entry.participantId,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
+}
 
-  /// Salve : plusieurs changements préparés puis envoyés d'un bloc, ce qui
-  /// leur donne la même minute dans « Remplacements » et « Faits du match ».
-  Future<void> _pickBatch(
-    BuildContext context,
-    MatchLiveStateController controller,
-    MatchComposition lineup,
-  ) async {
-    final field = lineup.entriesFor(MatchCompositionZone.field);
-    final bench = lineup.entriesFor(MatchCompositionZone.bench);
-    final pairs = await pickMatchLiveSubstitutionBatch(
-      context,
-      field: field,
-      bench: bench,
-    );
-    if (pairs == null || pairs.isEmpty) return;
+/// Les changements préparés, listés sous le terrain tant qu'ils ne sont pas
+/// validés. Le coach peut en retirer un ou tout envoyer d'un coup.
+class _PendingSubstitutions extends StatelessWidget {
+  const _PendingSubstitutions({
+    required this.pending,
+    required this.nameOf,
+    required this.busy,
+    required this.onRemove,
+    required this.onValidate,
+  });
 
-    // Chaque entrant prend la place exacte de celui qu'il remplace.
-    final positions = {
-      for (final entry in field)
-        entry.participantId: Offset(entry.x ?? .5, entry.y ?? .5),
-    };
-    final incomingOf = {
-      for (final pair in pairs) pair.playerIn: pair.playerOut,
-    };
-    final outgoing = {for (final pair in pairs) pair.playerOut};
+  final List<PendingSubstitution> pending;
+  final String Function(String participantId) nameOf;
+  final bool busy;
+  final ValueChanged<PendingSubstitution> onRemove;
+  final VoidCallback onValidate;
 
-    var benchOrder = bench.length;
-    final entries = [
-      for (final entry in lineup.entries)
-        if (incomingOf.containsKey(entry.participantId))
-          entry.moveTo(
-            MatchCompositionZone.field,
-            x: positions[incomingOf[entry.participantId]]?.dx ?? .5,
-            y: positions[incomingOf[entry.participantId]]?.dy ?? .5,
-          )
-        else if (outgoing.contains(entry.participantId))
-          entry.moveTo(MatchCompositionZone.bench, sortOrder: benchOrder++)
-        else
-          entry,
-    ];
-
-    await controller.saveLiveLineup(
-      entries: [for (final entry in entries) entry.toRpcJson()],
-      substitutions: [
-        for (final pair in pairs)
-          (playerIn: pair.playerIn, playerOut: pair.playerOut),
-      ],
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      color: theme.colorScheme.primaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              pending.length == 1
+                  ? 'Changement à valider'
+                  : '${pending.length} changements à valider',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final pair in pending)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: LiveSubstitutionLine(
+                        playerInName: nameOf(pair.playerIn),
+                        playerOutName: nameOf(pair.playerOut),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Retirer',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: busy ? null : () => onRemove(pair),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 4),
+            FilledButton.icon(
+              onPressed: busy ? null : onValidate,
+              icon: busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: GrintaProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check_rounded),
+              label: Text(
+                pending.length == 1
+                    ? 'Valider le changement'
+                    : 'Valider les ${pending.length} changements',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
