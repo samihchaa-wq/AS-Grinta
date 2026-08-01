@@ -25,7 +25,7 @@ class MatchWeatherHour {
     return MatchWeatherHour(
       forecastAt:
           DateTime.tryParse('${json['forecast_at'] ?? ''}')?.toLocal() ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+              DateTime.fromMillisecondsSinceEpoch(0),
       label: (json['label'] ?? '').toString(),
       temperature: _double(json['temperature']),
       apparentTemperature: _double(json['apparent_temperature']),
@@ -77,19 +77,19 @@ class MatchWeather {
     final rawHourly = json['hourly_forecast'];
     final hourly = rawHourly is List
         ? rawHourly
-              .whereType<Map>()
-              .map(
-                (row) =>
-                    MatchWeatherHour.fromJson(Map<String, dynamic>.from(row)),
-              )
-              .toList()
+            .whereType<Map>()
+            .map(
+              (row) =>
+                  MatchWeatherHour.fromJson(Map<String, dynamic>.from(row)),
+            )
+            .toList()
         : <MatchWeatherHour>[];
 
     return MatchWeather(
       matchId: (json['match_id'] ?? '').toString(),
       forecastFor:
           DateTime.tryParse('${json['forecast_for'] ?? ''}')?.toLocal() ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+              DateTime.fromMillisecondsSinceEpoch(0),
       latitude: _double(json['latitude']) ?? 0,
       longitude: _double(json['longitude']) ?? 0,
       geocodedAddress: (json['geocoded_address'] ?? '').toString(),
@@ -102,8 +102,7 @@ class MatchWeather {
       windGusts: _double(json['wind_gusts']),
       humidity: _int(json['humidity']),
       hourlyForecast: hourly,
-      fetchedAt:
-          DateTime.tryParse('${json['fetched_at'] ?? ''}')?.toLocal() ??
+      fetchedAt: DateTime.tryParse('${json['fetched_at'] ?? ''}')?.toLocal() ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
