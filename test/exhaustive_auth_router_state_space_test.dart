@@ -54,6 +54,7 @@ void main() {
       _route('/matches/m1/guests'),
       _route('/admin'),
       _route('/admin/administration'),
+      _route('/admin/badges'),
       _route('/admin/matches'),
       _route('/admin/composition'),
       _route('/admin/guests'),
@@ -193,9 +194,13 @@ String? _expectedRedirect({
       matchedLocation.endsWith('/finalize');
   final adminRoot =
       matchedLocation == '/admin' || matchedLocation.startsWith('/admin/');
-  // Le module « Modérateur » : réservé, même en tapant l'URL.
-  final moderatorOnly =
-      matchedLocation == '/admin' || matchedLocation == '/admin/administration';
+  // Le module « Modérateur » et la gestion des badges : réservés, même en
+  // tapant l'URL.
+  final moderatorOnly = const {
+    '/admin',
+    '/admin/administration',
+    '/admin/badges',
+  }.contains(matchedLocation);
   final matchAdmin = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(suffix);

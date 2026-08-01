@@ -29,6 +29,8 @@ select is(
       and pg_get_functiondef(p.oid) !~* '(public|private)\.is_active_profile\s*\('
       and pg_get_functiondef(p.oid) !~* '(public|private)\.is_match_staff\s*\('
       and pg_get_functiondef(p.oid) !~* '(public|private)\.is_admin\s*\('
+      -- Garde plus stricte que is_admin : réservée au rôle de modérateur.
+      and pg_get_functiondef(p.oid) !~* '(public|private)\.is_moderator\s*\('
   ),
   0::bigint,
   'toute fonction privilégiée accessible aux connectés possède un garde approuvé'

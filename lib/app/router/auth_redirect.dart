@@ -63,10 +63,14 @@ String? resolveAuthRedirect({
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
-  // Le module « Modérateur » et la gestion des comptes qu'il contient : un
-  // admin garde tous ses autres droits mais n'entre pas ici, même par l'URL.
-  final isModeratorRoute =
-      location == '/admin' || location == '/admin/administration';
+  // Le module « Modérateur », la gestion des comptes qu'il contient et celle
+  // des badges : un admin garde tous ses autres droits mais n'entre pas ici,
+  // même par l'URL.
+  final isModeratorRoute = const {
+    '/admin',
+    '/admin/administration',
+    '/admin/badges',
+  }.contains(location);
   final isMatchAdminRoute = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(segments.last);

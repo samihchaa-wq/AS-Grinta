@@ -192,7 +192,11 @@ void main() {
       );
 
       // Masquer l'entrée ne suffit pas : l'URL doit rediriger aussi.
-      for (final route in <String>['/admin', '/admin/administration']) {
+      for (final route in <String>[
+        '/admin',
+        '/admin/administration',
+        '/admin/badges',
+      ]) {
         expect(
           resolveAuthRedirect(
             authState: state,
@@ -215,6 +219,7 @@ void main() {
       for (final route in <String>[
         '/admin',
         '/admin/administration',
+        '/admin/badges',
         '/admin/matches',
         '/players',
         '/matches/abc/finalize',
