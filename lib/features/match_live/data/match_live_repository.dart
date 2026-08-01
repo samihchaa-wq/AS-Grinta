@@ -60,6 +60,14 @@ abstract interface class MatchLiveRepository {
     required String matchId,
     String? reason,
   });
+
+  /// Efface tout ce qui a été saisi en direct (buts, remplacements, chrono,
+  /// score) et remet la composition du coup d'envoi. Le match repasse à
+  /// l'écran de préparation. Impossible sur un match déjà exporté.
+  Future<MatchLiveStateBundle> restartSession({
+    required String matchId,
+    String? reason,
+  });
   Future<SportMatchFinalization> publishRecap({
     required String matchId,
     required int scoreAsGrinta,
@@ -236,6 +244,18 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
   }) async {
     final response = await _client.rpc(
       'coach_reopen_match_live',
+      params: {'p_match_id': matchId, 'p_reason': _clean(reason)},
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> restartSession({
+    required String matchId,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'coach_restart_match_live_session',
       params: {'p_match_id': matchId, 'p_reason': _clean(reason)},
     );
     return MatchLiveStateBundle.fromRpc(response);

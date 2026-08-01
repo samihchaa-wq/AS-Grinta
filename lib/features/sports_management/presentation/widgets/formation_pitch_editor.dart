@@ -5,6 +5,27 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 
+/// Dimensions d'un marqueur de joueur, dérivées de la largeur du terrain.
+///
+/// Le banc du Tableau Blanc s'appuie sur les mêmes valeurs : sans cela ses
+/// vignettes gardaient une taille fixe et paraissaient plus grosses que les
+/// titulaires dès que le terrain se réduisait pour laisser la place au banc.
+class FormationMarkerMetrics {
+  const FormationMarkerMetrics(this.width);
+
+  /// Taille des marqueurs pour un terrain large de [pitchWidth].
+  factory FormationMarkerMetrics.forPitch(double pitchWidth) =>
+      FormationMarkerMetrics((pitchWidth / 5.6).clamp(44.0, 64.0).toDouble());
+
+  final double width;
+
+  double get height => width * 1.32;
+
+  double get avatarSize => width * .82;
+
+  double get nameFontSize => (width * .18).clamp(10.5, 12.5).toDouble();
+}
+
 class FormationPitchEditor extends StatelessWidget {
   const FormationPitchEditor({
     super.key,
@@ -14,6 +35,7 @@ class FormationPitchEditor extends StatelessWidget {
     required this.onRemoveFromField,
     this.editable = true,
     this.finishedBenchCounts = const {},
+    this.markerMetrics,
   });
 
   final List<FootballFormationSlot> slots;
@@ -28,6 +50,11 @@ class FormationPitchEditor extends StatelessWidget {
   /// Nombre de fois où chaque joueur (par participantId) a déjà été noté
   /// remplaçant dans un match terminé.
   final Map<String, int> finishedBenchCounts;
+
+  /// Taille imposée des marqueurs. Renseignée quand un autre bloc (le banc du
+  /// Tableau Blanc) doit afficher exactement les mêmes vignettes ; sinon elle
+  /// est déduite de la largeur réelle du terrain.
+  final FormationMarkerMetrics? markerMetrics;
 
   MatchCompositionEntry? _entryFor(FootballFormationSlot slot) {
     MatchCompositionEntry? closest;
@@ -99,10 +126,12 @@ class FormationPitchEditor extends StatelessWidget {
     // (CompositionPitch) : photo généreuse, prénom juste dessous. Les
     // marqueurs suivent la largeur du terrain, qui se réduit quand le banc
     // s'affiche à côté, pour rester lisibles sans se chevaucher.
-    final width = (size.width / 5.6).clamp(44.0, 64.0).toDouble();
-    final height = width * 1.32;
-    final avatarSize = width * .82;
-    final nameFontSize = (width * .18).clamp(9.5, 12.0).toDouble();
+    final metrics =
+        markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
+    final width = metrics.width;
+    final height = metrics.height;
+    final avatarSize = metrics.avatarSize;
+    final nameFontSize = metrics.nameFontSize;
     final left = (slot.position.dx * size.width - width / 2)
         .clamp(0.0, size.width - width)
         .toDouble();

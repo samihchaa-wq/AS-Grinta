@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter/material.dart';
 
 /// Vignette d'un joueur sur le banc, avec le compteur 🔄 (nombre de fois sur
@@ -11,21 +12,25 @@ class LiveBenchTile extends StatelessWidget {
     super.key,
     required this.entry,
     required this.draggable,
+    required this.metrics,
     this.timesBenched = 0,
     this.onTap,
   });
 
   final MatchCompositionEntry entry;
   final bool draggable;
+
+  /// Dimensions calculées depuis la largeur du terrain affiché à côté : un
+  /// remplaçant occupe exactement la même place qu'un titulaire.
+  final FormationMarkerMetrics metrics;
+
   final int timesBenched;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    // Même taille que les marqueurs du terrain (FormationPitchEditor) pour
-    // que le banc et les titulaires soient visuellement cohérents.
     final box = SizedBox(
-      width: 48,
+      width: metrics.width,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -36,7 +41,7 @@ class LiveBenchTile extends StatelessWidget {
                 photoUrl: entry.photoUrl,
                 name: entry.displayName,
                 isGoalkeeper: entry.isGoalkeeper,
-                size: 42,
+                size: metrics.avatarSize,
               ),
               if (timesBenched > 0)
                 Positioned(
@@ -46,13 +51,16 @@ class LiveBenchTile extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             entry.displayName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: metrics.nameFontSize,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

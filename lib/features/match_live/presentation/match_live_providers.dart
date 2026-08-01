@@ -175,4 +175,12 @@ class MatchLiveStateController
       (repository) => repository.reopen(matchId: arg, reason: reason),
     );
   }
+
+  /// Remet le suivi en direct à zéro : tout ce qui a été saisi est effacé et
+  /// le match revient à l'écran de préparation.
+  Future<void> restartSession({String? reason}) {
+    return _mutate(
+      (repository) => repository.restartSession(matchId: arg, reason: reason),
+    );
+  }
 }
