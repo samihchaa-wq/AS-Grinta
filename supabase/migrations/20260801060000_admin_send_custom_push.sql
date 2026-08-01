@@ -9,6 +9,10 @@
 -- Les droits et la validation restent côté serveur : seul un admin peut
 -- appeler la fonction, les destinataires doivent être des profils actifs,
 -- et les longueurs sont bornées pour éviter une notification illisible.
+--
+-- Comme toutes les fonctions SECURITY DEFINER exposées aux comptes
+-- connectés, elle tourne avec un search_path vide : chaque objet est
+-- nommé explicitement pour qu'aucun schéma détourné ne puisse s'insérer.
 
 create or replace function public.admin_send_custom_push(
   p_title text,
@@ -18,7 +22,7 @@ create or replace function public.admin_send_custom_push(
 returns integer
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   v_token text;
@@ -57,9 +61,9 @@ begin
     raise exception 'Aucun destinataire valide' using errcode = '22023';
   end if;
 
-  select decrypted_secret into v_token
-  from vault.decrypted_secrets
-  where name = 'push_internal_token';
+  select secret.decrypted_secret into v_token
+  from vault.decrypted_secrets secret
+  where secret.name = 'push_internal_token';
 
   if v_token is null then
     raise exception 'Notifications push non configurées';
