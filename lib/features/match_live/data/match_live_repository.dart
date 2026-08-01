@@ -28,10 +28,12 @@ abstract interface class MatchLiveRepository {
     required int delta,
     String? scorerParticipantId,
   });
+  /// [substitutions] peut contenir plusieurs changements : ils sont alors
+  /// enregistrés en une seule salve, tous à la même minute.
   Future<MatchLiveStateBundle> saveLiveLineup({
     required String matchId,
     required List<Map<String, dynamic>> entries,
-    ({String playerIn, String playerOut})? substitution,
+    List<({String playerIn, String playerOut})> substitutions,
   });
   Future<MatchLiveStateBundle> endMatch({
     required String matchId,
@@ -146,19 +148,22 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
   Future<MatchLiveStateBundle> saveLiveLineup({
     required String matchId,
     required List<Map<String, dynamic>> entries,
-    ({String playerIn, String playerOut})? substitution,
+    List<({String playerIn, String playerOut})> substitutions = const [],
   }) async {
     final response = await _client.rpc(
       'coach_save_match_live_lineup',
       params: {
         'p_match_id': matchId,
         'p_entries': entries,
-        'p_substitution': substitution == null
+        'p_substitution': substitutions.isEmpty
             ? null
-            : {
-                'player_in': substitution.playerIn,
-                'player_out': substitution.playerOut,
-              },
+            : [
+                for (final substitution in substitutions)
+                  {
+                    'player_in': substitution.playerIn,
+                    'player_out': substitution.playerOut,
+                  },
+              ],
       },
     );
     return MatchLiveStateBundle.fromRpc(response);

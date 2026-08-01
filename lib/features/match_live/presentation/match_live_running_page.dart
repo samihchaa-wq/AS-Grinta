@@ -4,6 +4,7 @@ import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dar
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_recap_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_batch_substitution_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_substitution_dialog.dart';
@@ -142,11 +143,28 @@ class MatchLiveRunningPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Banc (${bench.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Banc (${bench.length})',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
                         ),
+                      ),
+                      if (canEdit && bench.isNotEmpty && field.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => _pickBatch(
+                            context,
+                            controller,
+                            lineup,
+                          ),
+                          icon: const Icon(Icons.swap_horiz_rounded),
+                          label: const Text('Plusieurs'),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)
@@ -346,10 +364,62 @@ class MatchLiveRunningPage extends ConsumerWidget {
     ];
     await controller.saveLiveLineup(
       entries: [for (final entry in entries) entry.toRpcJson()],
-      substitution: (
-        playerIn: playerIn.participantId,
-        playerOut: playerOut.participantId,
-      ),
+      substitutions: [
+        (
+          playerIn: playerIn.participantId,
+          playerOut: playerOut.participantId,
+        ),
+      ],
+    );
+  }
+
+  /// Salve : plusieurs changements préparés puis envoyés d'un bloc, ce qui
+  /// leur donne la même minute dans « Remplacements » et « Faits du match ».
+  Future<void> _pickBatch(
+    BuildContext context,
+    MatchLiveStateController controller,
+    MatchComposition lineup,
+  ) async {
+    final field = lineup.entriesFor(MatchCompositionZone.field);
+    final bench = lineup.entriesFor(MatchCompositionZone.bench);
+    final pairs = await pickMatchLiveSubstitutionBatch(
+      context,
+      field: field,
+      bench: bench,
+    );
+    if (pairs == null || pairs.isEmpty) return;
+
+    // Chaque entrant prend la place exacte de celui qu'il remplace.
+    final positions = {
+      for (final entry in field)
+        entry.participantId: Offset(entry.x ?? .5, entry.y ?? .5),
+    };
+    final incomingOf = {
+      for (final pair in pairs) pair.playerIn: pair.playerOut,
+    };
+    final outgoing = {for (final pair in pairs) pair.playerOut};
+
+    var benchOrder = bench.length;
+    final entries = [
+      for (final entry in lineup.entries)
+        if (incomingOf.containsKey(entry.participantId))
+          entry.moveTo(
+            MatchCompositionZone.field,
+            x: positions[incomingOf[entry.participantId]]?.dx ?? .5,
+            y: positions[incomingOf[entry.participantId]]?.dy ?? .5,
+          )
+        else if (outgoing.contains(entry.participantId))
+          entry.moveTo(MatchCompositionZone.bench, sortOrder: benchOrder++)
+        else
+          entry,
+    ];
+
+    await controller.saveLiveLineup(
+      entries: [for (final entry in entries) entry.toRpcJson()],
+      substitutions: [
+        for (final pair in pairs)
+          (playerIn: pair.playerIn, playerOut: pair.playerOut),
+      ],
     );
   }
 }

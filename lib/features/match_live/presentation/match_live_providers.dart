@@ -132,13 +132,13 @@ class MatchLiveStateController
 
   Future<void> saveLiveLineup({
     required List<Map<String, dynamic>> entries,
-    ({String playerIn, String playerOut})? substitution,
+    List<({String playerIn, String playerOut})> substitutions = const [],
   }) {
     return _mutate(
       (repository) => repository.saveLiveLineup(
         matchId: arg,
         entries: entries,
-        substitution: substitution,
+        substitutions: substitutions,
       ),
     );
   }
