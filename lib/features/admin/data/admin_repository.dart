@@ -296,6 +296,24 @@ class AdminRepository {
       throw StateError('Le verrou des pronostics n’a pas pu être modifié.');
     }
   }
+
+  /// Envoie une notification écrite par l'admin aux destinataires choisis.
+  /// Renvoie le nombre de destinataires réellement retenus par le serveur.
+  Future<int> sendCustomNotification({
+    required String title,
+    required String body,
+    required List<String> profileIds,
+  }) async {
+    final result = await _client.rpc(
+      'admin_send_custom_push',
+      params: {
+        'p_title': title,
+        'p_body': body,
+        'p_profile_ids': profileIds,
+      },
+    );
+    return (result as num?)?.toInt() ?? 0;
+  }
 }
 
 final adminRepositoryProvider = Provider<AdminRepository>((ref) {

@@ -43,6 +43,21 @@ class AdminMenuPage extends ConsumerWidget {
               onTap: () => context.push('/players'),
             ),
           ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.campaign_outlined),
+              title: const Text(
+                'Notification',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: const Text(
+                'Écrire un message et l’envoyer aux personnes de ton choix.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/admin/notification'),
+            ),
+          ),
           if (sportsEnabled) ...[
             const SizedBox(height: 10),
             Card(

@@ -28,6 +28,8 @@ type PushRequestBody = {
   profile_ids?: string[];
   notification_event_id?: number;
   display_name?: string;
+  title?: string;
+  message?: string;
 };
 
 const sportsAvailabilityKinds = new Set([
@@ -171,6 +173,33 @@ Deno.serve(async (req: Request) => {
         body: "Si tu vois ceci, les notifications fonctionnent 🎉",
         url: ".",
         tag: "test-push",
+      },
+      { public: config.vapid_public, private: config.vapid_private },
+    );
+    return Response.json(result);
+  }
+
+  // Message libre écrit par un administrateur, envoyé aux destinataires
+  // qu'il a choisis. Le titre et le texte viennent de la RPC, qui a déjà
+  // vérifié les droits et borné leur longueur.
+  if (body.kind === "custom") {
+    const profileIds = Array.isArray(body.profile_ids) ? body.profile_ids : [];
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    const message = typeof body.message === "string" ? body.message.trim() : "";
+    if (profileIds.length === 0) {
+      return new Response("profile_ids requis", { status: 400 });
+    }
+    if (!title || !message) {
+      return new Response("title et message requis", { status: 400 });
+    }
+    const result = await sendFixedPayloadToProfiles(
+      supabase,
+      profileIds,
+      {
+        title,
+        body: message,
+        url: ".",
+        tag: `custom-${Date.now()}`,
       },
       { public: config.vapid_public, private: config.vapid_private },
     );

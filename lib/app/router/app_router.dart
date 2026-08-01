@@ -1,6 +1,7 @@
 import 'package:as_grinta/app/router/auth_redirect.dart';
 import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:as_grinta/features/admin/presentation/admin_menu_page.dart';
+import 'package:as_grinta/features/admin/presentation/admin_notification_page.dart';
 import 'package:as_grinta/features/admin/presentation/admin_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
 import 'package:as_grinta/features/auth/presentation/auth_register_page.dart';
@@ -149,6 +150,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/admin/badges',
                 builder: (_, __) => const BadgeAdminPage(),
+              ),
+              GoRoute(
+                path: '/admin/notification',
+                builder: (_, __) => const AdminNotificationPage(),
               ),
               GoRoute(path: '/more', builder: (_, __) => const MorePage()),
               GoRoute(

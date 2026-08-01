@@ -95,13 +95,14 @@ class FormationPitchEditor extends StatelessWidget {
     MatchCompositionEntry? entry,
     Map<String, int> finishedBenchCounts,
   ) {
-    // Les marqueurs suivent la largeur du terrain : celui-ci est réduit
-    // quand le banc s'affiche à côté, et les postes doivent rester lisibles
-    // sans se chevaucher. Le joueur placé occupe le même carré qu'un
-    // emplacement vide.
-    final width = (size.width / 5.2).clamp(40.0, 62.0).toDouble();
-    final height = width;
-    final nameFontSize = (width * .22).clamp(10.0, 14.0).toDouble();
+    // Mêmes proportions que la composition d'un match terminé
+    // (CompositionPitch) : photo généreuse, prénom juste dessous. Les
+    // marqueurs suivent la largeur du terrain, qui se réduit quand le banc
+    // s'affiche à côté, pour rester lisibles sans se chevaucher.
+    final width = (size.width / 5.6).clamp(44.0, 64.0).toDouble();
+    final height = width * 1.32;
+    final avatarSize = width * .82;
+    final nameFontSize = (width * .18).clamp(9.5, 12.0).toDouble();
     final left = (slot.position.dx * size.width - width / 2)
         .clamp(0.0, size.width - width)
         .toDouble();
@@ -121,42 +122,44 @@ class FormationPitchEditor extends StatelessWidget {
         builder: (context, candidates, rejected) {
           final highlighted = candidates.isNotEmpty;
           if (entry == null) {
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
-              decoration: BoxDecoration(
-                color: highlighted
-                    ? AppTheme.accent.withValues(alpha: .32)
-                    : Colors.white.withValues(alpha: .10),
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(
-                  color: highlighted ? AppTheme.accent : Colors.white54,
-                  width: highlighted ? 2 : 1,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.add, color: Colors.white, size: 18),
-                  Text(
-                    slot.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                    ),
+            // L'emplacement vide reste carré, à la taille de la photo, pour
+            // que la grille des postes garde son alignement.
+            return Align(
+              alignment: Alignment.topCenter,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                width: avatarSize,
+                height: avatarSize,
+                decoration: BoxDecoration(
+                  color: highlighted
+                      ? AppTheme.accent.withValues(alpha: .32)
+                      : Colors.white.withValues(alpha: .10),
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(
+                    color: highlighted ? AppTheme.accent : Colors.white54,
+                    width: highlighted ? 2 : 1,
                   ),
-                ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.add, color: Colors.white, size: 18),
+                    Text(
+                      slot.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
           final finishedBenchCount =
               finishedBenchCounts[entry.participantId] ?? 0;
-          // Le prénom est toujours un bandeau SOUS la photo (jamais dessus,
-          // pour ne jamais masquer le visage) : l'avatar est réduit pour
-          // laisser la place au bandeau, le tout tenant dans le même carré
-          // qu'un emplacement vide.
-          final avatarSize = width - 16;
           final marker = Material(
             color: Colors.transparent,
             child: InkWell(
@@ -176,7 +179,7 @@ class FormationPitchEditor extends StatelessWidget {
                       : null,
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Stack(
                       clipBehavior: Clip.none,
@@ -198,26 +201,21 @@ class FormationPitchEditor extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Container(
-                      constraints: BoxConstraints(maxWidth: width),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 3,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: .55),
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Text(
-                        entry.displayName.trim(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: nameFontSize,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    // Prénom en blanc ombré sous la photo, comme sur la
+                    // composition d'un match terminé : plus lisible qu'un
+                    // bandeau noir et jamais posé sur le visage.
+                    Text(
+                      entry.displayName.trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: nameFontSize,
+                        fontWeight: FontWeight.w800,
+                        shadows: const [
+                          Shadow(color: Colors.black87, blurRadius: 3),
+                        ],
                       ),
                     ),
                   ],
