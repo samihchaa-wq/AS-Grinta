@@ -127,6 +127,25 @@ class _MatchLivePreKickoffPageState
   }
 
   Widget _buildLoaded(BuildContext context, MatchComposition lineup) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildComposition(
+        context,
+        lineup,
+        // Le terrain occupe toute la largeur disponible, plafonnée par
+        // FormationPitchEditor. Les vignettes du banc reprennent la même
+        // taille pour qu'un remplaçant occupe la place d'un titulaire.
+        FormationMarkerMetrics.forPitch(
+          (constraints.maxWidth - 32).clamp(0.0, 540.0).toDouble(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComposition(
+    BuildContext context,
+    MatchComposition lineup,
+    FormationMarkerMetrics metrics,
+  ) {
     final field = lineup.entriesFor(MatchCompositionZone.field);
     final bench = lineup.entriesFor(MatchCompositionZone.bench);
 
@@ -179,6 +198,7 @@ class _MatchLivePreKickoffPageState
             slots: formationForCode(lineup.formationCode).slots,
             entries: field,
             editable: widget.canEdit,
+            markerMetrics: metrics,
             onDroppedOnSlot: (moving, slot) =>
                 _dropOnSlot(lineup, moving, slot),
             onRemoveFromField: (entry) => _moveToBench(lineup, entry),
@@ -213,7 +233,10 @@ class _MatchLivePreKickoffPageState
                       children: [
                         for (final entry in bench)
                           LiveBenchTile(
-                              entry: entry, draggable: widget.canEdit),
+                            entry: entry,
+                            draggable: widget.canEdit,
+                            metrics: metrics,
+                          ),
                       ],
                     ),
                 ],

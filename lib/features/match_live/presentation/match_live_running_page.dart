@@ -172,37 +172,44 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
         const SizedBox(height: 20),
         // Banc à gauche, terrain à droite : le coach voit ses remplaçants
         // et le terrain d'un seul coup d'œil, sans faire défiler.
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _BenchColumn(
-                bench: bench,
-                bundle: bundle,
-                canEdit: canEdit,
-                onFieldPlayerDropped: (playerOut, playerIn) =>
-                    _stage(playerIn: playerIn, playerOut: playerOut),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: FormationPitchEditor(
-                  slots: formationForCode(lineup.formationCode).slots,
-                  entries: field,
-                  editable: canEdit,
-                  finishedBenchCounts: bundle.substituteCounts,
-                  onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
-                    context,
-                    controller,
-                    lineup,
-                    moving,
-                    slot,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final metrics = benchAndPitchMetrics(constraints.maxWidth);
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _BenchColumn(
+                    bench: bench,
+                    bundle: bundle,
+                    canEdit: canEdit,
+                    metrics: metrics,
+                    onFieldPlayerDropped: (playerOut, playerIn) =>
+                        _stage(playerIn: playerIn, playerOut: playerOut),
                   ),
-                  onRemoveFromField: (entry) =>
-                      _explainHowToSubstitute(context),
-                ),
+                  const SizedBox(width: _benchGap),
+                  Expanded(
+                    child: FormationPitchEditor(
+                      slots: formationForCode(lineup.formationCode).slots,
+                      entries: field,
+                      editable: canEdit,
+                      finishedBenchCounts: bundle.substituteCounts,
+                      markerMetrics: metrics,
+                      onDroppedOnSlot: (moving, slot) => _handlePitchDrop(
+                        context,
+                        controller,
+                        lineup,
+                        moving,
+                        slot,
+                      ),
+                      onRemoveFromField: (entry) =>
+                          _explainHowToSubstitute(context),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
         if (canEdit && _pending.isNotEmpty) ...[
           const SizedBox(height: 14),
@@ -427,17 +434,43 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
 
 /// Le banc, en colonne verticale à gauche du terrain. Chaque remplaçant est
 /// une cible : y déposer un titulaire prépare l'échange entre les deux.
+/// Espace entre la colonne du banc et le terrain.
+const double _benchGap = 10;
+
+/// Ce que la colonne du banc ajoute autour d'une vignette (padding gauche et
+/// droite du Card). Sert à répartir la largeur entre le banc et le terrain.
+const double _benchColumnMargin = 14;
+
+/// Répartit [availableWidth] entre la colonne du banc et le terrain.
+///
+/// La colonne du banc vaut une vignette plus ses marges et le terrain prend le
+/// reste, mais la taille d'une vignette se déduit justement de la largeur du
+/// terrain : on résout donc l'équation une fois pour les deux blocs, au lieu
+/// de figer la taille du banc — ce qui faisait paraître les remplaçants plus
+/// gros que les titulaires.
+FormationMarkerMetrics benchAndPitchMetrics(double availableWidth) {
+  final pitchWidth =
+      (availableWidth - _benchGap - _benchColumnMargin) * 5.6 / 6.6;
+  return FormationMarkerMetrics.forPitch(pitchWidth);
+}
+
+/// Largeur totale occupée par la colonne du banc pour ces [metrics].
+double benchColumnWidth(FormationMarkerMetrics metrics) =>
+    metrics.width + _benchColumnMargin;
+
 class _BenchColumn extends StatelessWidget {
   const _BenchColumn({
     required this.bench,
     required this.bundle,
     required this.canEdit,
+    required this.metrics,
     required this.onFieldPlayerDropped,
   });
 
   final List<MatchCompositionEntry> bench;
   final MatchLiveStateBundle bundle;
   final bool canEdit;
+  final FormationMarkerMetrics metrics;
 
   /// (titulaire qui sort, remplaçant qui entre)
   final void Function(MatchCompositionEntry, MatchCompositionEntry)
@@ -447,11 +480,14 @@ class _BenchColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SizedBox(
-      width: 78,
+      width: metrics.width + _benchColumnMargin,
       child: Card(
         margin: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+          padding: const EdgeInsets.symmetric(
+            horizontal: _benchColumnMargin / 2,
+            vertical: 10,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -491,6 +527,7 @@ class _BenchColumn extends StatelessWidget {
                         child: LiveBenchTile(
                           entry: entry,
                           draggable: canEdit,
+                          metrics: metrics,
                           timesBenched: bundle.timesBenched(
                             entry.participantId,
                           ),
