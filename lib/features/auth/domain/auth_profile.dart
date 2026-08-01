@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/utils/name_validation.dart';
+
 enum AuthRole { pronostiqueur, admin, moderateur }
 
 extension AuthRoleX on AuthRole {
@@ -58,13 +60,16 @@ class AuthProfile {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  String get fullName => '$firstName $lastName'.trim();
+  String get fullName =>
+      capitalizePersonName('${capitalizePersonName(firstName)} $lastName');
 
-  /// Nom affiché partout : surnom s'il est renseigné, sinon prénom.
+  /// Nom affiché partout : surnom s'il est renseigné, sinon prénom. L'initiale
+  /// est remise en majuscule : un prénom saisi en minuscules à l'inscription
+  /// ne doit pas s'afficher ainsi dans toute l'application.
   String get displayName {
-    final nick = surnom.trim();
+    final nick = capitalizePersonName(surnom);
     if (nick.isNotEmpty) return nick;
-    final first = firstName.trim();
+    final first = capitalizePersonName(firstName);
     if (first.isNotEmpty) return first;
     return fullName.isEmpty ? 'Utilisateur' : fullName;
   }

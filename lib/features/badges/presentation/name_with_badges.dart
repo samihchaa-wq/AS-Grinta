@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
@@ -44,7 +45,7 @@ class NameWithBadges extends ConsumerWidget {
     final emblemSize =
         badgeSize ?? (resolved.fontSize ?? grintaTableCellFontSize) * 1.35;
     final nameText = Text(
-      name,
+      capitalizePersonName(name),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: resolved,

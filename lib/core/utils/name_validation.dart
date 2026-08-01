@@ -16,3 +16,21 @@ bool isValidPersonName(String value) {
 /// Message d'erreur unique, réutilisé partout.
 const String personNameError = 'Ce champ ne doit contenir que des lettres '
     '(ni emoji, ni chiffre, ni symbole).';
+
+final RegExp _nameWordStart = RegExp(r"(^|[ '’-])(\p{L})", unicode: true);
+
+/// Met une majuscule à l'initiale de chaque partie d'un nom, sans toucher au
+/// reste : « romain » devient « Romain », « jean-pierre » devient
+/// « Jean-Pierre », mais « CHÂA » et « McDonald » restent tels quels.
+///
+/// Un prénom saisi en minuscules à l'inscription ne doit pas s'afficher ainsi
+/// dans toute l'application ; en ne forçant que l'initiale, on ne défait pas
+/// non plus une graphie voulue.
+String capitalizePersonName(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return trimmed;
+  return trimmed.replaceAllMapped(
+    _nameWordStart,
+    (match) => '${match[1]}${match[2]!.toUpperCase()}',
+  );
+}

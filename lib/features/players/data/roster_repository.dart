@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/storage/image_mime.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,18 +35,19 @@ class RosterPlayer {
 
   /// Le nom saisi dans l'effectif, indépendamment du compte rattaché.
   String get rosterName {
-    final first = firstName.trim();
+    final first = capitalizePersonName(firstName);
     if (first.isNotEmpty) return first;
-    return lastName.trim().isEmpty ? 'Joueur' : lastName.trim();
+    final last = capitalizePersonName(lastName);
+    return last.isEmpty ? 'Joueur' : last;
   }
 
   /// Même priorité que côté serveur : le joueur rattaché à un compte s'appelle
   /// comme il l'a décidé sur ce compte, pas comme l'admin l'a saisi dans
   /// l'effectif.
   String get displayName {
-    final surnom = linkedProfileSurnom?.trim() ?? '';
+    final surnom = capitalizePersonName(linkedProfileSurnom ?? '');
     if (surnom.isNotEmpty) return surnom;
-    final accountFirstName = linkedProfileName?.trim() ?? '';
+    final accountFirstName = capitalizePersonName(linkedProfileName ?? '');
     if (accountFirstName.isNotEmpty) return accountFirstName;
     return rosterName;
   }
