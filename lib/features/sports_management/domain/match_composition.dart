@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 
@@ -58,7 +59,9 @@ class MatchCompositionEntry {
       participantId: json['participant_id'].toString(),
       seasonPlayerId: json['season_player_id']?.toString() ?? '',
       guestPlayerId: guestPlayerId,
-      displayName: (json['display_name'] ?? 'Joueur').toString().trim(),
+      displayName: capitalizePersonName(
+        (json['display_name'] ?? 'Joueur').toString(),
+      ),
       isGuest: json['is_guest'] == true || guestPlayerId != null,
       isGoalkeeper: json['is_goalkeeper'] == true,
       zone: MatchCompositionZone.fromWire(json['zone']),
