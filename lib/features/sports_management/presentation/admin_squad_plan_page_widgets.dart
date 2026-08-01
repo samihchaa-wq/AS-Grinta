@@ -253,9 +253,10 @@ class _EffectifPlayerChip extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  player.firstName.trim().isEmpty
-                      ? player.displayName
-                      : player.firstName.trim(),
+                  // Le nom résolu par le serveur d'abord : un joueur rattaché
+                  // à un compte s'appelle comme il l'a décidé dessus, pas
+                  // comme il a été saisi dans l'effectif.
+                  player.shortName,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                   style: const TextStyle(fontSize: 12.5),
