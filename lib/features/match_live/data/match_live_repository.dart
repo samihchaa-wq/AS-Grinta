@@ -35,6 +35,12 @@ abstract interface class MatchLiveRepository {
     required List<Map<String, dynamic>> entries,
     List<({String playerIn, String playerOut})> substitutions,
   });
+  /// Supprime un but ou un remplacement saisi par erreur. Un but retire
+  /// aussi l'unité correspondante au score.
+  Future<MatchLiveStateBundle> deleteEvent({
+    required String matchId,
+    required String eventId,
+  });
   Future<MatchLiveStateBundle> endMatch({
     required String matchId,
     String? reason,
@@ -165,6 +171,18 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
                   },
               ],
       },
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> deleteEvent({
+    required String matchId,
+    required String eventId,
+  }) async {
+    final response = await _client.rpc(
+      'coach_delete_match_live_event',
+      params: {'p_match_id': matchId, 'p_event_id': eventId},
     );
     return MatchLiveStateBundle.fromRpc(response);
   }

@@ -143,6 +143,12 @@ class MatchLiveStateController
     );
   }
 
+  Future<void> deleteEvent(String eventId) {
+    return _mutate(
+      (repository) => repository.deleteEvent(matchId: arg, eventId: eventId),
+    );
+  }
+
   Future<void> endMatch({String? reason}) {
     return _mutate(
       (repository) => repository.endMatch(matchId: arg, reason: reason),

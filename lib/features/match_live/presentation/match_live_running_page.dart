@@ -8,6 +8,7 @@ import 'package:as_grinta/features/match_live/presentation/widgets/match_live_ba
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_substitution_dialog.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
@@ -78,7 +79,7 @@ class MatchLiveRunningPage extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () => controller.setClockState('resume'),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Restart'),
+                  label: const Text('Reprendre'),
                 ),
               if (bundle.session.half == 1 &&
                   bundle.session.state != MatchLiveState.halftime)
@@ -196,6 +197,9 @@ class MatchLiveRunningPage extends ConsumerWidget {
           emptyLabel: 'Aucun remplacement pour le moment.',
           lineBuilder: (event) =>
               '${event.playerInName ?? '?'} entre, ${event.playerOutName ?? '?'} sort · ${event.minute}\'',
+          canEdit: canEdit,
+          deleteConfirmation: 'Retirer ce remplacement ?',
+          onDelete: (event) => controller.deleteEvent(event.id),
         ),
         const SizedBox(height: 12),
         _EventsSection(
@@ -205,6 +209,9 @@ class MatchLiveRunningPage extends ConsumerWidget {
           emptyLabel: 'Aucun but AS Grinta pour le moment.',
           lineBuilder: (event) =>
               '${event.scorerName ?? '?'} · ${event.minute}\'',
+          canEdit: canEdit,
+          deleteConfirmation: 'Retirer ce but ?',
+          onDelete: (event) => controller.deleteEvent(event.id),
         ),
       ],
     );
@@ -437,40 +444,50 @@ class _ScoreRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(
-      matchLiveStateProvider(bundle.session.matchId).notifier,
+    final matchId = bundle.session.matchId;
+    final controller = ref.read(matchLiveStateProvider(matchId).notifier);
+    final fixture = ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
+
+    // Le nom réel de l'adversaire, et surtout le même ordre que l'en-tête :
+    // à l'extérieur, l'équipe qui reçoit est affichée à gauche.
+    final opponentName = fixture?.opponentName ?? 'Adversaire';
+    final grintaIsHome = fixture?.grintaIsHome ?? true;
+
+    final grinta = _TeamScore(
+      label: 'AS Grinta',
+      score: bundle.session.scoreAsGrinta,
+      canEdit: canEdit,
+      onIncrement: () async {
+        final scorerId = await pickMatchLiveScorer(
+          context,
+          candidates: scorerCandidates,
+        );
+        if (scorerId == null) return;
+        await controller.adjustScore(
+          team: 'us',
+          delta: 1,
+          scorerParticipantId: scorerId,
+        );
+      },
+      onDecrement: () => controller.adjustScore(team: 'us', delta: -1),
     );
+    final opponent = _TeamScore(
+      label: opponentName,
+      score: bundle.session.scoreAdverse,
+      canEdit: canEdit,
+      onIncrement: () => controller.adjustScore(team: 'them', delta: 1),
+      onDecrement: () => controller.adjustScore(team: 'them', delta: -1),
+    );
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _TeamScore(
-          label: 'AS Grinta',
-          score: bundle.session.scoreAsGrinta,
-          canEdit: canEdit,
-          onIncrement: () async {
-            final scorerId = await pickMatchLiveScorer(
-              context,
-              candidates: scorerCandidates,
-            );
-            if (scorerId == null) return;
-            await controller.adjustScore(
-              team: 'us',
-              delta: 1,
-              scorerParticipantId: scorerId,
-            );
-          },
-          onDecrement: () => controller.adjustScore(team: 'us', delta: -1),
+        Expanded(child: grintaIsHome ? grinta : opponent),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('-', style: Theme.of(context).textTheme.headlineMedium),
         ),
-        const SizedBox(width: 28),
-        Text('-', style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(width: 28),
-        _TeamScore(
-          label: 'Adversaire',
-          score: bundle.session.scoreAdverse,
-          canEdit: canEdit,
-          onIncrement: () => controller.adjustScore(team: 'them', delta: 1),
-          onDecrement: () => controller.adjustScore(team: 'them', delta: -1),
-        ),
+        Expanded(child: grintaIsHome ? opponent : grinta),
       ],
     );
   }
@@ -495,7 +512,13 @@ class _TeamScore extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
         Text(
           '$score',
@@ -504,6 +527,7 @@ class _TeamScore extends StatelessWidget {
         if (canEdit)
           Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
                 onPressed: score > 0 ? onDecrement : null,
@@ -527,6 +551,9 @@ class _EventsSection extends StatelessWidget {
     required this.events,
     required this.emptyLabel,
     required this.lineBuilder,
+    this.canEdit = false,
+    this.onDelete,
+    this.deleteConfirmation,
   });
 
   final String title;
@@ -534,9 +561,39 @@ class _EventsSection extends StatelessWidget {
   final List<MatchLiveEvent> events;
   final String emptyLabel;
   final String Function(MatchLiveEvent event) lineBuilder;
+  final bool canEdit;
+  final ValueChanged<MatchLiveEvent>? onDelete;
+
+  /// Question posée avant de supprimer la ligne (« Retirer ce but ? »).
+  final String? deleteConfirmation;
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    MatchLiveEvent event,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(deleteConfirmation ?? 'Retirer cette ligne ?'),
+        content: Text(lineBuilder(event)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onDelete?.call(event);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final removable = canEdit && onDelete != null;
     return Card(
       child: ExpansionTile(
         leading: Icon(icon),
@@ -554,6 +611,13 @@ class _EventsSection extends StatelessWidget {
                 dense: true,
                 leading: const Icon(Icons.circle, size: 8),
                 title: Text(lineBuilder(event)),
+                trailing: removable
+                    ? IconButton(
+                        tooltip: 'Retirer',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => _confirmDelete(context, event),
+                      )
+                    : null,
               ),
         ],
       ),
