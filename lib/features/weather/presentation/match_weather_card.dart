@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/weather/data/match_weather_repository.dart';
 import 'package:as_grinta/features/weather/domain/match_weather.dart';
@@ -40,11 +38,7 @@ class MatchWeatherCard extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.only(top: 14),
-      child: _WeatherBody(
-        weather: weather,
-        kickoffAt: kickoffAt,
-        plannedDurationMinutes: plannedDurationMinutes,
-      ),
+      child: _WeatherBody(weather: weather, kickoffAt: kickoffAt),
     );
   }
 }
@@ -53,12 +47,10 @@ class _WeatherBody extends StatelessWidget {
   const _WeatherBody({
     required this.weather,
     required this.kickoffAt,
-    required this.plannedDurationMinutes,
   });
 
   final MatchWeather weather;
   final DateTime kickoffAt;
-  final int plannedDurationMinutes;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +58,7 @@ class _WeatherBody extends StatelessWidget {
     final hourly = _relevantHours(weather.hourlyForecast, kickoffAt);
     final index = _grintaIndex(weather);
     final safety = _isDifficult(weather);
-    final trend = _trend(weather.hourlyForecast, plannedDurationMinutes);
+    final trend = _trend(weather.hourlyForecast);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -364,7 +356,11 @@ class _HourlyCell extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Icon(_weatherIcon(hour.weatherCode), size: 18, color: AppTheme.textPrimary),
+        Icon(
+          _weatherIcon(hour.weatherCode),
+          size: 18,
+          color: AppTheme.textPrimary,
+        ),
         const SizedBox(height: 2),
         Text(
           hour.temperature == null ? '—' : '${_number(hour.temperature!)}°',
@@ -388,7 +384,9 @@ List<MatchWeatherHour> _relevantHours(
   List<MatchWeatherHour> hours,
   DateTime kickoffAt,
 ) {
-  if (hours.length <= 3) return [...hours]..sort((a, b) => a.forecastAt.compareTo(b.forecastAt));
+  if (hours.length <= 3) {
+    return [...hours]..sort((a, b) => a.forecastAt.compareTo(b.forecastAt));
+  }
   final nearest = [...hours]
     ..sort((a, b) {
       final aDistance = a.forecastAt.difference(kickoffAt).inMinutes.abs();
@@ -421,7 +419,7 @@ int _grintaIndex(MatchWeather weather) {
   }
   if (temp != null && temp >= 8 && temp <= 22) score += 1;
   if (wind >= 15 && wind <= 30) score += 1;
-  return score.clamp(1, 10);
+  return score.clamp(1, 10).toInt();
 }
 
 String _grintaMessage(MatchWeather weather) {
@@ -444,9 +442,10 @@ String _grintaMessage(MatchWeather weather) {
   return 'Conditions de match validées.';
 }
 
-String? _trend(List<MatchWeatherHour> hours, int plannedDurationMinutes) {
+String? _trend(List<MatchWeatherHour> hours) {
   if (hours.length < 2) return null;
-  final sorted = [...hours]..sort((a, b) => a.forecastAt.compareTo(b.forecastAt));
+  final sorted = [...hours]
+    ..sort((a, b) => a.forecastAt.compareTo(b.forecastAt));
   final start = sorted.first;
   final end = sorted.last;
   final rainStart = start.precipitationProbability;
@@ -456,7 +455,9 @@ String? _trend(List<MatchWeatherHour> hours, int plannedDurationMinutes) {
   }
   final tempStart = start.temperature;
   final tempEnd = end.temperature;
-  if (tempStart != null && tempEnd != null && (tempEnd - tempStart).abs() >= 4) {
+  if (tempStart != null &&
+      tempEnd != null &&
+      (tempEnd - tempStart).abs() >= 4) {
     final direction = tempEnd < tempStart ? 'baisser' : 'monter';
     return 'La température devrait $direction nettement pendant le match.';
   }
