@@ -334,11 +334,6 @@ StickyTableRow _playersRow(
           child: NameWithBadges(
             profileId: player.profileId,
             name: player.playerName,
-            badgeSize: 26,
-            style: grintaTableCellTextStyle(
-              context,
-              fontWeight: FontWeight.w800,
-            ),
           ),
         ),
       ],

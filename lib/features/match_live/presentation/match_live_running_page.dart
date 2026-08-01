@@ -101,7 +101,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
               if (bundle.session.half == 1 &&
                   bundle.session.state != MatchLiveState.halftime)
                 OutlinedButton.icon(
-                  onPressed: () => controller.setClockState('halftime'),
+                  onPressed: () => _confirmHalftime(context, controller),
                   icon: const Icon(Icons.sports_rounded),
                   label: const Text('Mi-temps'),
                 ),
@@ -350,6 +350,45 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       return;
     }
     await controller.setEventScorer(event.id, scorerParticipantId: choice);
+  }
+
+  /// La mi-temps ne fige pas le chronomètre où il en est : elle le cale sur la
+  /// moitié du temps de jeu saisi avant le coup d'envoi. Le coach doit savoir
+  /// sur quelle minute il va atterrir avant de valider, surtout si le direct a
+  /// pris du retard.
+  Future<void> _confirmHalftime(
+    BuildContext context,
+    MatchLiveStateController controller,
+  ) async {
+    final planned = bundle.session.planPlannedDurationMinutes;
+    final target = Duration(seconds: planned * 30);
+    final minutes = target.inMinutes.toString().padLeft(2, '0');
+    final seconds = (target.inSeconds % 60).toString().padLeft(2, '0');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Passer à la mi-temps ?'),
+        content: Text(
+          'Le chronomètre sera calé sur $minutes:$seconds — la moitié des '
+          '$planned minutes de jeu prévues — puis mis en pause.\n\n'
+          'Le temps affiché actuellement sera donc remplacé.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Oui, mi-temps'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await controller.setClockState('halftime');
+    }
   }
 
   Future<void> _confirmEndMatch(

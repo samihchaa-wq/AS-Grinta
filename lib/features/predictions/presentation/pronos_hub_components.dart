@@ -171,15 +171,7 @@ StickyTableRow _leaderboardRow(
         ),
         const SizedBox(width: 4),
         Expanded(
-          child: NameWithBadges(
-            profileId: profileId,
-            name: name,
-            badgeSize: 18,
-            style: grintaTableCellTextStyle(
-              context,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          child: NameWithBadges(profileId: profileId, name: name),
         ),
       ],
     ),

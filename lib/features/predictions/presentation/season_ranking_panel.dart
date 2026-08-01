@@ -174,11 +174,6 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
             child: NameWithBadges(
               profileId: entry.profileId,
               name: entry.name,
-              badgeSize: 18,
-              style: grintaTableCellTextStyle(
-                context,
-                fontWeight: FontWeight.w800,
-              ),
             ),
           ),
         ],
