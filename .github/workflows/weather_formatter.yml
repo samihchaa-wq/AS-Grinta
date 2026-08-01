@@ -19,6 +19,8 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Resolve locked packages
+        run: flutter pub get --enforce-lockfile
       - name: Format weather files
         run: |
           dart format \
