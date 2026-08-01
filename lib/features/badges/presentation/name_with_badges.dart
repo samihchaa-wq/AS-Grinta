@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
@@ -11,21 +12,42 @@ class NameWithBadges extends ConsumerWidget {
     required this.profileId,
     required this.name,
     this.style,
-    this.badgeSize = 36,
+    this.badgeSize,
   });
 
   final String? profileId;
   final String name;
+
+  /// Fusionné par-dessus la référence : un écran qui ne précise que la couleur
+  /// ou la graisse garde donc la taille commune. Seul un `fontSize` explicite
+  /// s'en écarte.
   final TextStyle? style;
-  final double badgeSize;
+
+  /// Déduit de la taille du nom quand il n'est pas donné, pour que le badge
+  /// suive toujours le texte qu'il accompagne.
+  final double? badgeSize;
+
+  /// Taille de référence d'un nom de joueur dans une liste. Elle vient des
+  /// classements ; tous les autres écrans s'alignent dessus pour qu'un même
+  /// joueur ait partout la même stature.
+  TextStyle _resolvedStyle(BuildContext context) {
+    final base = grintaTableCellTextStyle(
+      context,
+      fontWeight: FontWeight.w800,
+    );
+    return style == null ? base : base.merge(style);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final resolved = _resolvedStyle(context);
+    final emblemSize =
+        badgeSize ?? (resolved.fontSize ?? grintaTableCellFontSize) * 1.35;
     final nameText = Text(
       name,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: style,
+      style: resolved,
     );
     if (profileId == null) return nameText;
 
@@ -41,7 +63,7 @@ class NameWithBadges extends ConsumerWidget {
         Flexible(child: nameText),
         for (final b in badges.take(2)) ...[
           const SizedBox(width: 4),
-          _BadgeChip(badge: b, size: badgeSize),
+          _BadgeChip(badge: b, size: emblemSize),
         ],
       ],
     );

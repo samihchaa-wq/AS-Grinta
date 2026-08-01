@@ -166,7 +166,6 @@ class _SeasonPredictionEntryPageState
                 child: NameWithBadges(
                   profileId: item.profileId,
                   name: item.playerName,
-                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
             ),
