@@ -99,6 +99,11 @@ class _RosterList extends ConsumerWidget {
                         player.linkedProfileId == null
                             ? 'Aucun pronostiqueur lié'
                             : 'Lié à ${player.linkedProfileLabel ?? 'un compte'}',
+                        // Le nom affiché vient du compte : on rappelle celui de
+                        // la fiche quand il diffère, pour que l'admin retrouve
+                        // le joueur qu'il a saisi.
+                        if (player.displayName != player.rosterName)
+                          'Fiche : ${player.rosterName}',
                         if (!player.isActive) 'Archivé',
                       ].join(' · '),
                     ),

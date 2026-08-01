@@ -1,7 +1,7 @@
 name: as_grinta
 description: Application officielle AS Grinta.
 publish_to: "none"
-version: 0.2.8+84
+version: 0.2.9+85
 
 environment:
   sdk: ">=3.4.0 <4.0.0"

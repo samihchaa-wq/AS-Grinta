@@ -16,6 +16,7 @@ class RosterPlayer {
     required this.linkedProfileId,
     required this.linkedProfileName,
     required this.linkedProfileUsername,
+    this.linkedProfileSurnom,
     this.photoUrl,
   });
 
@@ -28,12 +29,25 @@ class RosterPlayer {
   final String? linkedProfileId;
   final String? linkedProfileName;
   final String? linkedProfileUsername;
+  final String? linkedProfileSurnom;
   final String? photoUrl;
 
-  String get displayName {
+  /// Le nom saisi dans l'effectif, indépendamment du compte rattaché.
+  String get rosterName {
     final first = firstName.trim();
     if (first.isNotEmpty) return first;
     return lastName.trim().isEmpty ? 'Joueur' : lastName.trim();
+  }
+
+  /// Même priorité que côté serveur : le joueur rattaché à un compte s'appelle
+  /// comme il l'a décidé sur ce compte, pas comme l'admin l'a saisi dans
+  /// l'effectif.
+  String get displayName {
+    final surnom = linkedProfileSurnom?.trim() ?? '';
+    if (surnom.isNotEmpty) return surnom;
+    final accountFirstName = linkedProfileName?.trim() ?? '';
+    if (accountFirstName.isNotEmpty) return accountFirstName;
+    return rosterName;
   }
 
   String get fullName => '$firstName $lastName'.trim();
@@ -96,6 +110,7 @@ class RosterRepository {
       profiles!season_players_profile_id_fkey(
         id,
         first_name,
+        surnom,
         status,
         photo_url
       )
@@ -122,6 +137,7 @@ class RosterRepository {
         linkedProfileId: map['profile_id']?.toString(),
         linkedProfileName: profile?['first_name']?.toString(),
         linkedProfileUsername: null,
+        linkedProfileSurnom: profile?['surnom']?.toString(),
         photoUrl: photo,
       );
     }).toList();
