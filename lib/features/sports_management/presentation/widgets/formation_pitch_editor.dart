@@ -95,11 +95,13 @@ class FormationPitchEditor extends StatelessWidget {
     MatchCompositionEntry? entry,
     Map<String, int> finishedBenchCounts,
   ) {
-    // La feuille de match affiche 22 postes : on garde des marqueurs
-    // compacts (carrés) pour qu'ils tiennent sans se chevaucher sur mobile.
-    // Le joueur placé occupe le même carré que l'emplacement vide.
-    const width = 58.0;
-    const height = 58.0;
+    // Les marqueurs suivent la largeur du terrain : celui-ci est réduit
+    // quand le banc s'affiche à côté, et les postes doivent rester lisibles
+    // sans se chevaucher. Le joueur placé occupe le même carré qu'un
+    // emplacement vide.
+    final width = (size.width / 5.2).clamp(40.0, 62.0).toDouble();
+    final height = width;
+    final nameFontSize = (width * .22).clamp(10.0, 14.0).toDouble();
     final left = (slot.position.dx * size.width - width / 2)
         .clamp(0.0, size.width - width)
         .toDouble();
@@ -211,9 +213,9 @@ class FormationPitchEditor extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 9,
+                          fontSize: nameFontSize,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
