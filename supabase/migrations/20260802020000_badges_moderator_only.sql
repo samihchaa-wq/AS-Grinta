@@ -16,6 +16,7 @@
 do $patch$
 declare
   v_function text;
+  v_oid regprocedure;
   v_def text;
   v_old constant text :=
     'if not public.is_match_staff() then'
@@ -30,7 +31,14 @@ begin
     'public.staff_revoke_badge(uuid, text)'
   ]
   loop
-    v_def := pg_get_functiondef(v_function::regprocedure);
+    -- Le schéma minimal rejoué par les tests métier n'installe pas le module
+    -- badges : on passe au lieu d'échouer quand la fonction n'existe pas.
+    v_oid := to_regprocedure(v_function);
+    if v_oid is null then
+      continue;
+    end if;
+
+    v_def := pg_get_functiondef(v_oid);
     if position('public.is_moderator()' in v_def) > 0 then
       continue; -- déjà restreinte
     end if;
