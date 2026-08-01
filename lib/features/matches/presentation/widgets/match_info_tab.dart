@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
+import 'package:as_grinta/features/weather/presentation/match_weather_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -208,6 +209,12 @@ class MatchInfoTab extends ConsumerWidget {
                   },
                 ),
               ],
+              if (info.kickoffAt != null)
+                MatchWeatherCard(
+                  matchId: matchId,
+                  kickoffAt: info.kickoffAt!,
+                  plannedDurationMinutes: 90,
+                ),
               const SizedBox(height: 24),
               Text(
                 info.lastEncounters.length > 1
