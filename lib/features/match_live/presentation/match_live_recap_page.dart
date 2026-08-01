@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
@@ -334,9 +335,9 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
                   ListTile(
                     dense: true,
                     leading: const Icon(Icons.swap_horiz_rounded),
-                    title: Text(
-                      '${event.playerInName ?? '?'} entre, '
-                      '${event.playerOutName ?? '?'} sort',
+                    title: LiveSubstitutionLine(
+                      playerInName: event.playerInName ?? '?',
+                      playerOutName: event.playerOutName ?? '?',
                     ),
                     trailing: Text("${event.minute}'"),
                   ),

@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -105,22 +106,28 @@ class _EventLine extends StatelessWidget {
     final (icon, text) = switch (event.type) {
       MatchLiveEventType.goalUs => (
           Icons.sports_soccer_rounded,
-          event.scorerName ?? 'But AS Grinta',
+          event.isOpponentOwnGoal
+              ? 'CSC adverse'
+              : (event.scorerName ?? 'But AS Grinta'),
         ),
       MatchLiveEventType.goalThem => (
           Icons.sports_soccer_rounded,
           'But adverse',
         ),
-      MatchLiveEventType.substitution => (
-          Icons.swap_horiz_rounded,
-          '${event.playerInName ?? '?'} entre, ${event.playerOutName ?? '?'} sort',
-        ),
+      // Le libellé n'est pas utilisé : un remplacement s'affiche avec des
+      // flèches (LiveSubstitutionLine), pas en toutes lettres.
+      MatchLiveEventType.substitution => (Icons.swap_horiz_rounded, ''),
     };
     final isGoal = event.type != MatchLiveEventType.substitution;
     return ListTile(
       dense: true,
       leading: Icon(icon, size: 20),
-      title: Text(text),
+      title: isGoal
+          ? Text(text)
+          : LiveSubstitutionLine(
+              playerInName: event.playerInName ?? '?',
+              playerOutName: event.playerOutName ?? '?',
+            ),
       subtitle:
           isGoal ? Text('${row.scoreAsGrinta}-${row.scoreAdverse}') : null,
       trailing: Text(

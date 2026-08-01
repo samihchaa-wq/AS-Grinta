@@ -4,9 +4,12 @@ import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dar
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_recap_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_batch_substitution_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_substitution_dialog.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/upcoming_match_fixture_header.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
@@ -77,7 +80,7 @@ class MatchLiveRunningPage extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () => controller.setClockState('resume'),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Restart'),
+                  label: const Text('Reprendre'),
                 ),
               if (bundle.session.half == 1 &&
                   bundle.session.state != MatchLiveState.halftime)
@@ -142,11 +145,28 @@ class MatchLiveRunningPage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Banc (${bench.length})',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Banc (${bench.length})',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
                         ),
+                      ),
+                      if (canEdit && bench.isNotEmpty && field.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => _pickBatch(
+                            context,
+                            controller,
+                            lineup,
+                          ),
+                          icon: const Icon(Icons.swap_horiz_rounded),
+                          label: const Text('Plusieurs'),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)
@@ -176,8 +196,19 @@ class MatchLiveRunningPage extends ConsumerWidget {
           icon: Icons.swap_horiz_rounded,
           events: bundle.substitutions,
           emptyLabel: 'Aucun remplacement pour le moment.',
-          lineBuilder: (event) =>
-              '${event.playerInName ?? '?'} entre, ${event.playerOutName ?? '?'} sort · ${event.minute}\'',
+          lineBuilder: (event) => LiveSubstitutionLine.describe(
+            playerInName: event.playerInName ?? '?',
+            playerOutName: event.playerOutName ?? '?',
+            trailingText: "${event.minute}'",
+          ),
+          contentBuilder: (event) => LiveSubstitutionLine(
+            playerInName: event.playerInName ?? '?',
+            playerOutName: event.playerOutName ?? '?',
+            trailingText: "${event.minute}'",
+          ),
+          canEdit: canEdit,
+          deleteConfirmation: 'Retirer ce remplacement ?',
+          onDelete: (event) => controller.deleteEvent(event.id),
         ),
         const SizedBox(height: 12),
         _EventsSection(
@@ -185,11 +216,52 @@ class MatchLiveRunningPage extends ConsumerWidget {
           icon: Icons.sports_soccer_rounded,
           events: bundle.ownGoals,
           emptyLabel: 'Aucun but AS Grinta pour le moment.',
-          lineBuilder: (event) =>
-              '${event.scorerName ?? '?'} · ${event.minute}\'',
+          lineBuilder: (event) => _goalLabel(event),
+          contentBuilder: (event) => _GoalLine(
+            event: event,
+            canEdit: canEdit,
+            onPickScorer: () => _pickGoalScorer(
+              context,
+              controller,
+              event,
+              scorerCandidates,
+            ),
+          ),
+          canEdit: canEdit,
+          deleteConfirmation: 'Retirer ce but ?',
+          onDelete: (event) => controller.deleteEvent(event.id),
         ),
       ],
     );
+  }
+
+  static String _goalLabel(MatchLiveEvent event) {
+    final who = event.isOpponentOwnGoal
+        ? 'CSC adverse'
+        : (event.scorerName ?? 'Buteur à désigner');
+    return "$who · ${event.minute}'";
+  }
+
+  /// Attribue un but déjà compté : un joueur, ou un CSC adverse.
+  Future<void> _pickGoalScorer(
+    BuildContext context,
+    MatchLiveStateController controller,
+    MatchLiveEvent event,
+    List<MatchCompositionEntry> candidates,
+  ) async {
+    final choice = await pickMatchLiveScorer(
+      context,
+      candidates: candidates,
+      title: 'Qui a marqué à la ${event.minute}ᵉ minute ?',
+      extraChoiceLabel: 'CSC adverse',
+      extraChoiceIcon: Icons.shield_moon_outlined,
+    );
+    if (choice == null) return;
+    if (choice == kMatchLiveExtraChoiceId) {
+      await controller.setEventScorer(event.id, isOpponentOwnGoal: true);
+      return;
+    }
+    await controller.setEventScorer(event.id, scorerParticipantId: choice);
   }
 
   Future<void> _confirmEndMatch(
@@ -301,7 +373,12 @@ class MatchLiveRunningPage extends ConsumerWidget {
       );
       return;
     }
-    final replacementId = await pickMatchLiveScorer(context, candidates: bench);
+    final replacementId = await pickMatchLiveScorer(
+      context,
+      candidates: bench,
+      title: 'Qui entre à la place de ${fieldEntry.displayName} ?',
+      icon: Icons.arrow_upward_rounded,
+    );
     if (replacementId == null) return;
     if (!context.mounted) return;
     final replacement = bench.firstWhere(
@@ -346,10 +423,62 @@ class MatchLiveRunningPage extends ConsumerWidget {
     ];
     await controller.saveLiveLineup(
       entries: [for (final entry in entries) entry.toRpcJson()],
-      substitution: (
-        playerIn: playerIn.participantId,
-        playerOut: playerOut.participantId,
-      ),
+      substitutions: [
+        (
+          playerIn: playerIn.participantId,
+          playerOut: playerOut.participantId,
+        ),
+      ],
+    );
+  }
+
+  /// Salve : plusieurs changements préparés puis envoyés d'un bloc, ce qui
+  /// leur donne la même minute dans « Remplacements » et « Faits du match ».
+  Future<void> _pickBatch(
+    BuildContext context,
+    MatchLiveStateController controller,
+    MatchComposition lineup,
+  ) async {
+    final field = lineup.entriesFor(MatchCompositionZone.field);
+    final bench = lineup.entriesFor(MatchCompositionZone.bench);
+    final pairs = await pickMatchLiveSubstitutionBatch(
+      context,
+      field: field,
+      bench: bench,
+    );
+    if (pairs == null || pairs.isEmpty) return;
+
+    // Chaque entrant prend la place exacte de celui qu'il remplace.
+    final positions = {
+      for (final entry in field)
+        entry.participantId: Offset(entry.x ?? .5, entry.y ?? .5),
+    };
+    final incomingOf = {
+      for (final pair in pairs) pair.playerIn: pair.playerOut,
+    };
+    final outgoing = {for (final pair in pairs) pair.playerOut};
+
+    var benchOrder = bench.length;
+    final entries = [
+      for (final entry in lineup.entries)
+        if (incomingOf.containsKey(entry.participantId))
+          entry.moveTo(
+            MatchCompositionZone.field,
+            x: positions[incomingOf[entry.participantId]]?.dx ?? .5,
+            y: positions[incomingOf[entry.participantId]]?.dy ?? .5,
+          )
+        else if (outgoing.contains(entry.participantId))
+          entry.moveTo(MatchCompositionZone.bench, sortOrder: benchOrder++)
+        else
+          entry,
+    ];
+
+    await controller.saveLiveLineup(
+      entries: [for (final entry in entries) entry.toRpcJson()],
+      substitutions: [
+        for (final pair in pairs)
+          (playerIn: pair.playerIn, playerOut: pair.playerOut),
+      ],
     );
   }
 }
@@ -367,40 +496,100 @@ class _ScoreRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(
-      matchLiveStateProvider(bundle.session.matchId).notifier,
+    final matchId = bundle.session.matchId;
+    final controller = ref.read(matchLiveStateProvider(matchId).notifier);
+    final fixture =
+        ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
+
+    // Le nom réel de l'adversaire, et surtout le même ordre que l'en-tête :
+    // à l'extérieur, l'équipe qui reçoit est affichée à gauche.
+    final opponentName = fixture?.opponentName ?? 'Adversaire';
+    final grintaIsHome = fixture?.grintaIsHome ?? true;
+
+    final grinta = _TeamScore(
+      label: 'AS Grinta',
+      score: bundle.session.scoreAsGrinta,
+      canEdit: canEdit,
+      // Aucune liste ne surgit pendant l'action : le but est compté tout de
+      // suite, le buteur s'attribue depuis la ligne « Buteurs ».
+      onIncrement: () => controller.adjustScore(team: 'us', delta: 1),
+      onDecrement: () => controller.adjustScore(team: 'us', delta: -1),
     );
+    final opponent = _TeamScore(
+      label: opponentName,
+      score: bundle.session.scoreAdverse,
+      canEdit: canEdit,
+      onIncrement: () => controller.adjustScore(team: 'them', delta: 1),
+      onDecrement: () => controller.adjustScore(team: 'them', delta: -1),
+    );
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _TeamScore(
-          label: 'AS Grinta',
-          score: bundle.session.scoreAsGrinta,
-          canEdit: canEdit,
-          onIncrement: () async {
-            final scorerId = await pickMatchLiveScorer(
-              context,
-              candidates: scorerCandidates,
-            );
-            if (scorerId == null) return;
-            await controller.adjustScore(
-              team: 'us',
-              delta: 1,
-              scorerParticipantId: scorerId,
-            );
-          },
-          onDecrement: () => controller.adjustScore(team: 'us', delta: -1),
+        Expanded(child: grintaIsHome ? grinta : opponent),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('-', style: Theme.of(context).textTheme.headlineMedium),
         ),
-        const SizedBox(width: 28),
-        Text('-', style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(width: 28),
-        _TeamScore(
-          label: 'Adversaire',
-          score: bundle.session.scoreAdverse,
-          canEdit: canEdit,
-          onIncrement: () => controller.adjustScore(team: 'them', delta: 1),
-          onDecrement: () => controller.adjustScore(team: 'them', delta: -1),
+        Expanded(child: grintaIsHome ? opponent : grinta),
+      ],
+    );
+  }
+}
+
+/// Une ligne de la liste « Buteurs ». Tant que le but n'est attribué à
+/// personne, elle propose de choisir le buteur au lieu d'afficher un nom.
+class _GoalLine extends StatelessWidget {
+  const _GoalLine({
+    required this.event,
+    required this.canEdit,
+    required this.onPickScorer,
+  });
+
+  final MatchLiveEvent event;
+  final bool canEdit;
+  final VoidCallback onPickScorer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final minute = "${event.minute}'";
+
+    if (!event.needsScorer) {
+      final label =
+          event.isOpponentOwnGoal ? 'CSC adverse' : (event.scorerName ?? '?');
+      return InkWell(
+        onTap: canEdit ? onPickScorer : null,
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            const SizedBox(width: 8),
+            Text(minute, style: theme.textTheme.bodySmall),
+          ],
         ),
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: canEdit
+              ? Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: onPickScorer,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.person_add_alt_1_outlined, size: 18),
+                    label: const Text('Sélectionner un buteur'),
+                  ),
+                )
+              : Text('Buteur à désigner', style: theme.textTheme.bodyMedium),
+        ),
+        const SizedBox(width: 8),
+        Text(minute, style: theme.textTheme.bodySmall),
       ],
     );
   }
@@ -425,7 +614,13 @@ class _TeamScore extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelLarge),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelLarge,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 4),
         Text(
           '$score',
@@ -434,6 +629,7 @@ class _TeamScore extends StatelessWidget {
         if (canEdit)
           Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
                 onPressed: score > 0 ? onDecrement : null,
@@ -457,16 +653,55 @@ class _EventsSection extends StatelessWidget {
     required this.events,
     required this.emptyLabel,
     required this.lineBuilder,
+    this.contentBuilder,
+    this.canEdit = false,
+    this.onDelete,
+    this.deleteConfirmation,
   });
 
   final String title;
   final IconData icon;
   final List<MatchLiveEvent> events;
   final String emptyLabel;
+
+  /// Version texte de la ligne : confirmation de suppression, accessibilité.
   final String Function(MatchLiveEvent event) lineBuilder;
+
+  /// Rendu enrichi de la ligne. À défaut, [lineBuilder] est affiché tel quel.
+  final Widget Function(MatchLiveEvent event)? contentBuilder;
+  final bool canEdit;
+  final ValueChanged<MatchLiveEvent>? onDelete;
+
+  /// Question posée avant de supprimer la ligne (« Retirer ce but ? »).
+  final String? deleteConfirmation;
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    MatchLiveEvent event,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(deleteConfirmation ?? 'Retirer cette ligne ?'),
+        content: Text(lineBuilder(event)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Retirer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) onDelete?.call(event);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final removable = canEdit && onDelete != null;
     return Card(
       child: ExpansionTile(
         leading: Icon(icon),
@@ -483,7 +718,14 @@ class _EventsSection extends StatelessWidget {
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.circle, size: 8),
-                title: Text(lineBuilder(event)),
+                title: contentBuilder?.call(event) ?? Text(lineBuilder(event)),
+                trailing: removable
+                    ? IconButton(
+                        tooltip: 'Retirer',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => _confirmDelete(context, event),
+                      )
+                    : null,
               ),
         ],
       ),

@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -58,11 +59,16 @@ class MatchLineupPage extends ConsumerWidget {
       );
     }
 
-    final showInfo = section == 'info';
-    final showEffectif = section == 'effectif';
-    final showComposition = section == 'composition';
-    final showLive = section == 'live' && !isInternal;
-    final showPrediction = section == 'prediction' && !isInternal;
+    // À plus de six jours du coup d'envoi, seul l'onglet Info a du sens :
+    // ni l'effectif, ni la compo, ni le prono ne sont encore ouverts.
+    final tooFarAway = isMatchTooFarAway(matchInfo?.kickoffAt);
+
+    final showInfo = section == 'info' || tooFarAway;
+    final showEffectif = section == 'effectif' && !tooFarAway;
+    final showComposition = section == 'composition' && !tooFarAway;
+    final showLive = section == 'live' && !isInternal && !tooFarAway;
+    final showPrediction =
+        section == 'prediction' && !isInternal && !tooFarAway;
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Fiche du match')),
@@ -94,27 +100,31 @@ class MatchLineupPage extends ConsumerWidget {
               showSelectedIcon: false,
               segments: [
                 const ButtonSegment(value: 'info', label: Text('Info')),
-                const ButtonSegment(
-                  value: 'effectif',
-                  label: Text('Effectif'),
-                ),
-                const ButtonSegment(
-                  value: 'composition',
-                  label: Text('Compo'),
-                ),
-                if (!isInternal)
+                if (!tooFarAway)
+                  const ButtonSegment(
+                    value: 'effectif',
+                    label: Text('Effectif'),
+                  ),
+                if (!tooFarAway)
+                  const ButtonSegment(
+                    value: 'composition',
+                    label: Text('Compo'),
+                  ),
+                if (!isInternal && !tooFarAway)
                   const ButtonSegment(
                     value: 'live',
                     label: Text('Live'),
                   ),
-                if (!isInternal)
+                if (!isInternal && !tooFarAway)
                   const ButtonSegment(
                     value: 'prediction',
                     label: Text('Prono'),
                   ),
               ],
               selected: {
-                if ((isInternal && section == 'prediction') ||
+                if (tooFarAway)
+                  'info'
+                else if ((isInternal && section == 'prediction') ||
                     (section == 'live' && !showLive))
                   'effectif'
                 else

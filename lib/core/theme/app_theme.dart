@@ -293,7 +293,13 @@ abstract final class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          minimumSize: WidgetStateProperty.all(const Size(72, 42)),
+          // La fiche du match affiche jusqu'à cinq onglets sur la largeur
+          // d'un téléphone : marges resserrées et libellé compact pour que
+          // « Effectif » et « Compo » tiennent sur une seule ligne.
+          minimumSize: WidgetStateProperty.all(const Size(48, 42)),
+          textStyle: WidgetStateProperty.all(
+            const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
                 ? const Color(0xFF1E3A66)
@@ -306,7 +312,7 @@ abstract final class AppTheme {
           }),
           side: WidgetStateProperty.all(BorderSide.none),
           padding: WidgetStateProperty.all(
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           ),
           shape: WidgetStateProperty.all(
             RoundedRectangleBorder(

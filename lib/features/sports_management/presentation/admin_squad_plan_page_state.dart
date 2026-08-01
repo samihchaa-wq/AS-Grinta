@@ -234,13 +234,17 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ),
       );
     }
-    final isInternal = _selectedMatchId == null
-        ? false
-        : (ref
-                .watch(matchInfoProvider(_selectedMatchId!))
-                .valueOrNull
-                ?.isInternal ??
-            false);
+    final matchInfo = _selectedMatchId == null
+        ? null
+        : ref.watch(matchInfoProvider(_selectedMatchId!)).valueOrNull;
+    final isInternal = matchInfo?.isInternal ?? false;
+
+    // À plus de six jours du coup d'envoi, seul l'onglet Info est ouvert :
+    // l'effectif n'est pas encore sollicité et la compo n'a pas de sens.
+    final tooFarAway = isMatchTooFarAway(
+      matchInfo?.kickoffAt ?? _convocations?.kickoffAt,
+    );
+    final step = tooFarAway ? _AdminStep.info : _step;
 
     return RefreshIndicator(
       onRefresh: _loadMatches,
@@ -254,26 +258,28 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             showSelectedIcon: false,
             segments: [
               const ButtonSegment(value: _AdminStep.info, label: Text('Info')),
-              const ButtonSegment(
-                value: _AdminStep.effectif,
-                label: Text('Effectif'),
-              ),
-              const ButtonSegment(
-                value: _AdminStep.composition,
-                label: Text('Compo'),
-              ),
-              if (!isInternal)
+              if (!tooFarAway)
+                const ButtonSegment(
+                  value: _AdminStep.effectif,
+                  label: Text('Effectif'),
+                ),
+              if (!tooFarAway)
+                const ButtonSegment(
+                  value: _AdminStep.composition,
+                  label: Text('Compo'),
+                ),
+              if (!isInternal && !tooFarAway)
                 const ButtonSegment(
                   value: _AdminStep.live,
                   label: Text('Live'),
                 ),
-              if (widget.showPredictionStep && !isInternal)
+              if (widget.showPredictionStep && !isInternal && !tooFarAway)
                 const ButtonSegment(
                   value: _AdminStep.prediction,
                   label: Text('Prono'),
                 ),
             ],
-            selected: {_step},
+            selected: {step},
             onSelectionChanged:
                 _busy ? null : (value) => setState(() => _step = value.first),
           ),
@@ -286,13 +292,13 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
             Text(_error!),
           ],
           const SizedBox(height: 16),
-          if (_step == _AdminStep.info && _selectedMatchId != null)
+          if (step == _AdminStep.info && _selectedMatchId != null)
             MatchInfoTab(matchId: _selectedMatchId!)
-          else if (_step == _AdminStep.live && _selectedMatchId != null)
+          else if (step == _AdminStep.live && _selectedMatchId != null)
             MatchLiveTab(matchId: _selectedMatchId!)
-          else if (_step == _AdminStep.prediction && _selectedMatchId != null)
+          else if (step == _AdminStep.prediction && _selectedMatchId != null)
             InlineMatchPredictionCard(matchId: _selectedMatchId!)
-          else if (_step == _AdminStep.composition &&
+          else if (step == _AdminStep.composition &&
               isInternal &&
               _selectedMatchId != null)
             InternalTeamCompositionView(
@@ -300,7 +306,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               editable: true,
             )
           else if (_convocations != null && _composition != null)
-            _step == _AdminStep.effectif
+            step == _AdminStep.effectif
                 ? _buildEffectif()
                 : _buildComposition(),
         ],

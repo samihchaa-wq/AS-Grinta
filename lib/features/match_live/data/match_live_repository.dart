@@ -28,10 +28,29 @@ abstract interface class MatchLiveRepository {
     required int delta,
     String? scorerParticipantId,
   });
+
+  /// [substitutions] peut contenir plusieurs changements : ils sont alors
+  /// enregistrés en une seule salve, tous à la même minute.
   Future<MatchLiveStateBundle> saveLiveLineup({
     required String matchId,
     required List<Map<String, dynamic>> entries,
-    ({String playerIn, String playerOut})? substitution,
+    List<({String playerIn, String playerOut})> substitutions,
+  });
+
+  /// Supprime un but ou un remplacement saisi par erreur. Un but retire
+  /// aussi l'unité correspondante au score.
+  Future<MatchLiveStateBundle> deleteEvent({
+    required String matchId,
+    required String eventId,
+  });
+
+  /// Attribue un but déjà enregistré : à un joueur, ou à un contre-son-camp
+  /// adverse. Les deux paramètres nuls/faux remettent le but « à attribuer ».
+  Future<MatchLiveStateBundle> setEventScorer({
+    required String matchId,
+    required String eventId,
+    String? scorerParticipantId,
+    bool isOpponentOwnGoal,
   });
   Future<MatchLiveStateBundle> endMatch({
     required String matchId,
@@ -146,19 +165,53 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
   Future<MatchLiveStateBundle> saveLiveLineup({
     required String matchId,
     required List<Map<String, dynamic>> entries,
-    ({String playerIn, String playerOut})? substitution,
+    List<({String playerIn, String playerOut})> substitutions = const [],
   }) async {
     final response = await _client.rpc(
       'coach_save_match_live_lineup',
       params: {
         'p_match_id': matchId,
         'p_entries': entries,
-        'p_substitution': substitution == null
+        'p_substitution': substitutions.isEmpty
             ? null
-            : {
-                'player_in': substitution.playerIn,
-                'player_out': substitution.playerOut,
-              },
+            : [
+                for (final substitution in substitutions)
+                  {
+                    'player_in': substitution.playerIn,
+                    'player_out': substitution.playerOut,
+                  },
+              ],
+      },
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> deleteEvent({
+    required String matchId,
+    required String eventId,
+  }) async {
+    final response = await _client.rpc(
+      'coach_delete_match_live_event',
+      params: {'p_match_id': matchId, 'p_event_id': eventId},
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> setEventScorer({
+    required String matchId,
+    required String eventId,
+    String? scorerParticipantId,
+    bool isOpponentOwnGoal = false,
+  }) async {
+    final response = await _client.rpc(
+      'coach_set_match_live_event_scorer',
+      params: {
+        'p_match_id': matchId,
+        'p_event_id': eventId,
+        'p_scorer_participant_id': scorerParticipantId,
+        'p_is_opponent_own_goal': isOpponentOwnGoal,
       },
     );
     return MatchLiveStateBundle.fromRpc(response);
