@@ -1,11 +1,13 @@
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 
-/// Liste des joueurs sur le terrain ou sur le banc pour attribuer un but.
+/// Liste de joueurs à choisir : buteur, ou remplaçant qui entre.
 /// Retourne le participantId choisi, ou `null` si annulé.
 Future<String?> pickMatchLiveScorer(
   BuildContext context, {
   required List<MatchCompositionEntry> candidates,
+  String title = 'Qui a marqué ?',
+  IconData icon = Icons.sports_soccer,
 }) {
   final sorted = [...candidates]
     ..sort((a, b) => a.displayName.toLowerCase().compareTo(
@@ -22,10 +24,7 @@ Future<String?> pickMatchLiveScorer(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Qui a marqué ?',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Flexible(
                 child: ListView.builder(
@@ -34,7 +33,7 @@ Future<String?> pickMatchLiveScorer(
                   itemBuilder: (context, index) {
                     final entry = sorted[index];
                     return ListTile(
-                      leading: const Icon(Icons.sports_soccer),
+                      leading: Icon(icon),
                       title: Text(entry.displayName),
                       onTap: () =>
                           Navigator.of(context).pop(entry.participantId),

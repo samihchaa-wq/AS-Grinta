@@ -4,6 +4,7 @@ import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dar
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_recap_page.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_bench_tile.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_batch_substitution_sheet.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_clock.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/match_live_scorer_picker_dialog.dart';
@@ -195,8 +196,16 @@ class MatchLiveRunningPage extends ConsumerWidget {
           icon: Icons.swap_horiz_rounded,
           events: bundle.substitutions,
           emptyLabel: 'Aucun remplacement pour le moment.',
-          lineBuilder: (event) =>
-              '${event.playerInName ?? '?'} entre, ${event.playerOutName ?? '?'} sort · ${event.minute}\'',
+          lineBuilder: (event) => LiveSubstitutionLine.describe(
+            playerInName: event.playerInName ?? '?',
+            playerOutName: event.playerOutName ?? '?',
+            trailingText: "${event.minute}'",
+          ),
+          contentBuilder: (event) => LiveSubstitutionLine(
+            playerInName: event.playerInName ?? '?',
+            playerOutName: event.playerOutName ?? '?',
+            trailingText: "${event.minute}'",
+          ),
           canEdit: canEdit,
           deleteConfirmation: 'Retirer ce remplacement ?',
           onDelete: (event) => controller.deleteEvent(event.id),
@@ -326,7 +335,12 @@ class MatchLiveRunningPage extends ConsumerWidget {
       );
       return;
     }
-    final replacementId = await pickMatchLiveScorer(context, candidates: bench);
+    final replacementId = await pickMatchLiveScorer(
+      context,
+      candidates: bench,
+      title: 'Qui entre à la place de ${fieldEntry.displayName} ?',
+      icon: Icons.arrow_upward_rounded,
+    );
     if (replacementId == null) return;
     if (!context.mounted) return;
     final replacement = bench.firstWhere(
@@ -551,6 +565,7 @@ class _EventsSection extends StatelessWidget {
     required this.events,
     required this.emptyLabel,
     required this.lineBuilder,
+    this.contentBuilder,
     this.canEdit = false,
     this.onDelete,
     this.deleteConfirmation,
@@ -560,7 +575,12 @@ class _EventsSection extends StatelessWidget {
   final IconData icon;
   final List<MatchLiveEvent> events;
   final String emptyLabel;
+
+  /// Version texte de la ligne : confirmation de suppression, accessibilité.
   final String Function(MatchLiveEvent event) lineBuilder;
+
+  /// Rendu enrichi de la ligne. À défaut, [lineBuilder] est affiché tel quel.
+  final Widget Function(MatchLiveEvent event)? contentBuilder;
   final bool canEdit;
   final ValueChanged<MatchLiveEvent>? onDelete;
 
@@ -610,7 +630,7 @@ class _EventsSection extends StatelessWidget {
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.circle, size: 8),
-                title: Text(lineBuilder(event)),
+                title: contentBuilder?.call(event) ?? Text(lineBuilder(event)),
                 trailing: removable
                     ? IconButton(
                         tooltip: 'Retirer',

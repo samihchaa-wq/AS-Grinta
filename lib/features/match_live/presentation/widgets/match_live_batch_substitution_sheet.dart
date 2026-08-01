@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 
@@ -104,9 +105,9 @@ class _BatchSubstitutionSheetState extends State<_BatchSubstitutionSheet> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.swap_horiz_rounded),
-                  title: Text(
-                    '${_nameOf(pair.playerIn)} entre, '
-                    '${_nameOf(pair.playerOut)} sort',
+                  title: LiveSubstitutionLine(
+                    playerInName: _nameOf(pair.playerIn),
+                    playerOutName: _nameOf(pair.playerOut),
                   ),
                   trailing: IconButton(
                     tooltip: 'Retirer',
