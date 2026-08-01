@@ -229,6 +229,16 @@ class ConvocationPlayer {
     return isGuest ? '$name (Invité)' : name;
   }
 
+  /// Le même nom, sans le suffixe « (Invité) » : sur une puce étroite, la
+  /// grille n'a pas la place de l'afficher et l'icône marque déjà l'invité.
+  String get shortName {
+    const suffix = ' (Invité)';
+    final name = displayName;
+    return name.endsWith(suffix)
+        ? name.substring(0, name.length - suffix.length)
+        : name;
+  }
+
   bool get isAvailable => availabilityStatus == 'available';
   bool get isAbsent => availabilityStatus == 'absent';
   bool get isConvoked => convocationStatus == ConvocationStatus.convoked;
