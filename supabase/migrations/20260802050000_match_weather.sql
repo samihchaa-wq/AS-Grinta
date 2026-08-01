@@ -1,5 +1,5 @@
 -- Cached match weather, available only inside the six-day upcoming-match window.
--- Forecast data is written by an internal Edge Function and read by active users.
+-- Forecast data is written by the protected internal Edge worker and read by active users.
 
 create table public.match_weather (
   match_id uuid primary key references public.matches(id) on delete cascade,
@@ -61,8 +61,8 @@ begin
 end;
 $do$;
 
--- Centralise the refresh cadence so the Edge Function cannot accidentally
--- request forecasts for distant, cancelled or already played matches.
+-- Centralise the refresh cadence so the server cannot accidentally request
+-- forecasts for distant, cancelled or already played matches.
 create or replace function private.match_weather_refresh_interval(
   p_kickoff_at timestamptz,
   p_now timestamptz
@@ -85,8 +85,8 @@ revoke all on function private.match_weather_refresh_interval(timestamptz, times
 grant execute on function private.match_weather_refresh_interval(timestamptz, timestamptz)
   to service_role;
 
--- Internal read model consumed by the weather Edge Function. It returns only
--- matches that are currently eligible AND whose cache is due for refresh.
+-- Internal read model consumed by the worker. It returns only matches that are
+-- currently eligible AND whose cache is due for refresh.
 create or replace function public.internal_match_weather_candidates(
   p_match_id uuid default null,
   p_now timestamptz default now()
@@ -174,10 +174,13 @@ begin
   end if;
 
   select net.http_post(
-    url := 'https://ovzijmqrnsgcmryinkfa.supabase.co/functions/v1/refresh-match-weather',
+    url := 'https://ovzijmqrnsgcmryinkfa.supabase.co/functions/v1/send-push',
     body := case
-      when p_match_id is null then '{}'::jsonb
-      else jsonb_build_object('match_id', p_match_id)
+      when p_match_id is null then jsonb_build_object('kind', 'refresh_match_weather')
+      else jsonb_build_object(
+        'kind', 'refresh_match_weather',
+        'match_id', p_match_id
+      )
     end,
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
