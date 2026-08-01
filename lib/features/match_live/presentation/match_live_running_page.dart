@@ -252,7 +252,7 @@ class MatchLiveRunningPage extends ConsumerWidget {
     final choice = await pickMatchLiveScorer(
       context,
       candidates: candidates,
-      title: "Qui a marqué à la ${event.minute}ᵉ minute ?",
+      title: 'Qui a marqué à la ${event.minute}ᵉ minute ?',
       extraChoiceLabel: 'CSC adverse',
       extraChoiceIcon: Icons.shield_moon_outlined,
     );
@@ -498,7 +498,8 @@ class _ScoreRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final matchId = bundle.session.matchId;
     final controller = ref.read(matchLiveStateProvider(matchId).notifier);
-    final fixture = ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
+    final fixture =
+        ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
 
     // Le nom réel de l'adversaire, et surtout le même ordre que l'en-tête :
     // à l'extérieur, l'équipe qui reçoit est affichée à gauche.
@@ -555,9 +556,8 @@ class _GoalLine extends StatelessWidget {
     final minute = "${event.minute}'";
 
     if (!event.needsScorer) {
-      final label = event.isOpponentOwnGoal
-          ? 'CSC adverse'
-          : (event.scorerName ?? '?');
+      final label =
+          event.isOpponentOwnGoal ? 'CSC adverse' : (event.scorerName ?? '?');
       return InkWell(
         onTap: canEdit ? onPickScorer : null,
         child: Row(

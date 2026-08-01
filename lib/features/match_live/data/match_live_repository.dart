@@ -28,6 +28,7 @@ abstract interface class MatchLiveRepository {
     required int delta,
     String? scorerParticipantId,
   });
+
   /// [substitutions] peut contenir plusieurs changements : ils sont alors
   /// enregistrés en une seule salve, tous à la même minute.
   Future<MatchLiveStateBundle> saveLiveLineup({
@@ -35,6 +36,7 @@ abstract interface class MatchLiveRepository {
     required List<Map<String, dynamic>> entries,
     List<({String playerIn, String playerOut})> substitutions,
   });
+
   /// Supprime un but ou un remplacement saisi par erreur. Un but retire
   /// aussi l'unité correspondante au score.
   Future<MatchLiveStateBundle> deleteEvent({

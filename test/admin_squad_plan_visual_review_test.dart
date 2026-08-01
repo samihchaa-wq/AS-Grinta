@@ -280,7 +280,10 @@ MatchConvocations _convocations({
   return MatchConvocations(
     matchId: _matchId,
     opponentName: 'Olympique Test',
-    kickoffAt: DateTime(2099, 1, 1, 18),
+    // Dans la fenêtre d'ouverture du match (six jours) : au-delà, la fiche
+    // ne montre plus que l'onglet Info et il n'y a ni effectif ni compo à
+    // capturer. Le coup d'envoi reste à venir, donc rien n'est verrouillé.
+    kickoffAt: DateTime.now().add(const Duration(days: 2)),
     seasonId: 'season-visual',
     squadSizeLimit: 14,
     publishedSquadSizeLimit: 14,

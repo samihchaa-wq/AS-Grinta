@@ -60,7 +60,8 @@ class LiveSubstitutionLine extends StatelessWidget {
             if (trailingText != null)
               Text(
                 trailingText!,
-                style: style.copyWith(color: style.color?.withValues(alpha: .7)),
+                style:
+                    style.copyWith(color: style.color?.withValues(alpha: .7)),
               ),
           ],
         ),
