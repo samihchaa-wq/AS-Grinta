@@ -69,6 +69,59 @@ class _HistoricalChoice {
   final int? historicalId;
 }
 
+/// Les trois rôles, avec ce que chacun ouvre. Le libellé dit l'essentiel :
+/// c'est le seul endroit où la différence entre admin et modérateur se décide.
+class _RoleChoice extends StatelessWidget {
+  const _RoleChoice({required this.current, required this.onSelected});
+
+  final String current;
+  final ValueChanged<String> onSelected;
+
+  static const _roles = <({String value, String label, String hint})>[
+    (value: 'pronostiqueur', label: 'Joueur', hint: 'Aucun droit de gestion.'),
+    (
+      value: 'admin',
+      label: 'Admin',
+      hint: 'Gère matchs, compos et Tableau Blanc. '
+          'Ne voit pas ce module Modérateur.',
+    ),
+    (
+      value: 'moderateur',
+      label: 'Modérateur',
+      hint: 'Comme un admin, plus la gestion des comptes et des saisons.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _roles.firstWhere(
+      (role) => role.value == current,
+      orElse: () => _roles.first,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final role in _roles)
+              ChoiceChip(
+                label: Text(role.label),
+                selected: role.value == selected.value,
+                onSelected: role.value == selected.value
+                    ? null
+                    : (_) => onSelected(role.value),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(selected.hint, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
 class _ProfileCard extends ConsumerWidget {
   const _ProfileCard({required this.profile});
 
@@ -130,6 +183,16 @@ class _ProfileCard extends ConsumerWidget {
             ),
             if (profile.username.trim().isNotEmpty)
               Text('Identifiant : ${profile.username}'),
+            if (!policy.isSelf && !policy.isPending) ...[
+              const SizedBox(height: 10),
+              _RoleChoice(
+                current: profile.role,
+                onSelected: (role) => run(
+                  () => repository.updateProfileRole(profile.id, role),
+                  success: 'Rôle de ${profile.displayName} mis à jour.',
+                ),
+              ),
+            ],
             if (!profile.passwordSet && !policy.isPending)
               const Padding(
                 padding: EdgeInsets.only(top: 6),

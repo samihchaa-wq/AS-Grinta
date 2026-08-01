@@ -196,6 +196,15 @@ class AdminRepository {
     await _updatePrivilegedProfileFields(profileId: profileId, status: status);
   }
 
+  /// Attribue un rôle. Distribuer ou retirer « moderateur » est refusé côté
+  /// serveur à quelqu'un qui ne l'est pas lui-même.
+  Future<void> updateProfileRole(String profileId, String role) async {
+    if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
+      throw ArgumentError('Rôle invalide.');
+    }
+    await _updatePrivilegedProfileFields(profileId: profileId, role: role);
+  }
+
   Future<void> validateProfile(
     String profileId, {
     String? seasonPlayerId,

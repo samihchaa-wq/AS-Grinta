@@ -169,7 +169,6 @@ void main() {
       );
 
       for (final route in <String>[
-        '/admin',
         '/admin/matches',
         '/players',
         '/matches/abc/finalize',
@@ -181,6 +180,53 @@ void main() {
             matchedLocation: route,
           ),
           isNull,
+        );
+      }
+    });
+
+    test('le module Modérateur est fermé à un simple admin', () {
+      const state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        profile: _adminProfile,
+      );
+
+      // Masquer l'entrée ne suffit pas : l'URL doit rediriger aussi.
+      for (final route in <String>['/admin', '/admin/administration']) {
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse(route),
+            matchedLocation: route,
+          ),
+          '/matches',
+          reason: route,
+        );
+      }
+    });
+
+    test('le modérateur garde tout, module compris', () {
+      const state = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        profile: _moderatorProfile,
+      );
+
+      for (final route in <String>[
+        '/admin',
+        '/admin/administration',
+        '/admin/matches',
+        '/players',
+        '/matches/abc/finalize',
+      ]) {
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse(route),
+            matchedLocation: route,
+          ),
+          isNull,
+          reason: route,
         );
       }
     });
@@ -221,6 +267,16 @@ const _adminProfile = AuthProfile(
   firstName: 'Admin',
   lastName: 'One',
   role: AuthRole.admin,
+  isGoalkeeper: false,
+  isActive: true,
+  mustChangePassword: false,
+);
+
+const _moderatorProfile = AuthProfile(
+  id: 'moderator',
+  firstName: 'Moderator',
+  lastName: 'One',
+  role: AuthRole.moderateur,
   isGoalkeeper: false,
   isActive: true,
   mustChangePassword: false,

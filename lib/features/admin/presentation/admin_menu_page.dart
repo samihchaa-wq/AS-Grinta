@@ -1,18 +1,17 @@
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
-import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Module réservé aux modérateurs : la gestion des comptes et des saisons.
+/// Un admin garde tous ses autres droits mais n'y a pas accès.
 class AdminMenuPage extends ConsumerWidget {
   const AdminMenuPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Admin'), admin: true),
+      appBar: GrintaAppBar(title: const Text('Modérateur'), admin: true),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -43,38 +42,9 @@ class AdminMenuPage extends ConsumerWidget {
               onTap: () => context.push('/players'),
             ),
           ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.campaign_outlined),
-              title: const Text(
-                'Notification',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: const Text(
-                'Écrire un message et l’envoyer aux personnes de ton choix.',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/admin/notification'),
-            ),
-          ),
-          if (sportsEnabled) ...[
-            const SizedBox(height: 10),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.format_list_numbered),
-                title: const Text(
-                  'Liste d’attente',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: const Text(
-                  'Modifier l’ordre permanent utilisé pour les propositions.',
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/admin/waitlist'),
-              ),
-            ),
-          ],
+          // « Notification » vit désormais dans l'écran Notifications, et
+          // « Liste d'attente » dans les paramètres : les deux étaient en
+          // double ici.
         ],
       ),
     );

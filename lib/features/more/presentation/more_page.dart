@@ -13,6 +13,7 @@ class MorePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authControllerProvider).profile;
     final isRealAdmin = ref.watch(isRealAdminProvider);
+    final isModerator = ref.watch(isRealModeratorProvider);
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
@@ -60,13 +61,27 @@ class MorePage extends ConsumerWidget {
               ),
             ),
           ],
+          // L'effectif vivait dans le menu « Modérateur ». Les admins gardent
+          // les droits qu'ils avaient : il leur reste donc accessible ici.
+          if (isRealAdmin && !viewingAsUser) ...[
+            const SizedBox(height: 10),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.groups_outlined),
+                title: const Text('Effectif'),
+                subtitle: const Text('Gérer les joueurs de l’équipe'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/players'),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
-          if (isRealAdmin && !viewingAsUser)
+          if (isModerator && !viewingAsUser)
             Card(
               child: ListTile(
                 leading: const Text('👑', style: TextStyle(fontSize: 22)),
                 title: const Text(
-                  'Admin',
+                  'Modérateur',
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
                 trailing: const Icon(Icons.chevron_right),

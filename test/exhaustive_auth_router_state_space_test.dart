@@ -17,6 +17,10 @@ void main() {
       _AuthScenario('player', _authenticated(_profile(AuthRole.pronostiqueur))),
       _AuthScenario('admin', _authenticated(_profile(AuthRole.admin))),
       _AuthScenario(
+        'moderator',
+        _authenticated(_profile(AuthRole.moderateur)),
+      ),
+      _AuthScenario(
         'player_password_change',
         _authenticated(
           _profile(AuthRole.pronostiqueur, mustChangePassword: true),
@@ -183,11 +187,15 @@ String? _expectedRedirect({
   }
 
   final role = authState.profile?.role;
-  final admin = role == AuthRole.admin;
+  final admin = role == AuthRole.admin || role == AuthRole.moderateur;
+  final moderator = role == AuthRole.moderateur;
   final finalization = matchedLocation.startsWith('/matches/') &&
       matchedLocation.endsWith('/finalize');
   final adminRoot =
       matchedLocation == '/admin' || matchedLocation.startsWith('/admin/');
+  // Le module « Modérateur » : réservé, même en tapant l'URL.
+  final moderatorOnly =
+      matchedLocation == '/admin' || matchedLocation == '/admin/administration';
   final matchAdmin = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(suffix);
@@ -196,6 +204,7 @@ String? _expectedRedirect({
   if ((adminRoot || matchAdmin || matchedLocation == '/players') && !admin) {
     return '/matches';
   }
+  if (moderatorOnly && !moderator) return '/matches';
   return null;
 }
 

@@ -5,6 +5,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/preferences/data/push_subscriptions_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 class NotificationsPage extends ConsumerWidget {
@@ -27,6 +28,7 @@ class NotificationsPage extends ConsumerWidget {
             SizedBox(height: 16),
             _NotificationsInfoCard(),
             _TestPushButton(),
+            _AdminCustomNotificationCard(),
             _AdminKillSwitchCard(),
           ],
         ),
@@ -148,6 +150,43 @@ final notificationsPausedProvider = FutureProvider.autoDispose<bool>((
 /// Coupe-circuit réservé à l'admin : suspend l'envoi de toutes les
 /// notifications push (test compris) le temps d'une phase de tests, sans
 /// toucher aux préférences individuelles des joueurs.
+/// Écrire un message libre et l'envoyer aux personnes de son choix. Réservé
+/// aux comptes privilégiés : un joueur ne voit pas cette carte.
+class _AdminCustomNotificationCard extends ConsumerWidget {
+  const _AdminCustomNotificationCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(isAdminViewProvider)) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Card(
+        child: ListTile(
+          leading: const Icon(Icons.campaign_outlined),
+          title: const Row(
+            children: [
+              AdminBadge(),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Envoyer une notification',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          subtitle: const Text(
+            'Écris un message et choisis qui le reçoit.',
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/admin/notification'),
+        ),
+      ),
+    );
+  }
+}
+
 class _AdminKillSwitchCard extends ConsumerStatefulWidget {
   const _AdminKillSwitchCard();
 
