@@ -29,9 +29,7 @@ final matchWeatherRepositoryProvider = Provider<MatchWeatherRepository>((ref) {
   return SupabaseMatchWeatherRepository(ref.watch(supabaseClientProvider));
 });
 
-final matchWeatherProvider = StreamProvider.autoDispose
-    .family<MatchWeather?, String>((ref, matchId) {
-      return ref
-          .watch(matchWeatherRepositoryProvider)
-          .watchMatchWeather(matchId);
-    });
+final matchWeatherProvider =
+    StreamProvider.autoDispose.family<MatchWeather?, String>((ref, matchId) {
+  return ref.watch(matchWeatherRepositoryProvider).watchMatchWeather(matchId);
+});
