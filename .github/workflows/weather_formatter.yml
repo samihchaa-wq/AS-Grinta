@@ -1,9 +1,11 @@
 name: Weather formatter helper
 
 on:
-  push:
-    branches:
-      - feature/match-weather-j6
+  pull_request:
+    paths:
+      - 'lib/features/weather/**'
+      - 'test/match_weather_card_test.dart'
+      - '.github/workflows/weather_formatter.yml'
 
 permissions:
   contents: read
