@@ -166,6 +166,7 @@ class _SeasonPredictionEntryPageState
                 child: NameWithBadges(
                   profileId: item.profileId,
                   name: item.playerName,
+                  badgeSize: widget.embedded ? 22 : null,
                 ),
               ),
             ),
