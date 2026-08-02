@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/fix-moderator-match-save
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
