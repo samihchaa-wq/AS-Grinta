@@ -61,7 +61,8 @@ class SharedDataSyncRepository {
   }
 }
 
-final sharedDataSyncRepositoryProvider = Provider<SharedDataSyncRepository>((ref) {
+final sharedDataSyncRepositoryProvider =
+    Provider<SharedDataSyncRepository>((ref) {
   return SharedDataSyncRepository(ref.watch(supabaseClientProvider));
 });
 
