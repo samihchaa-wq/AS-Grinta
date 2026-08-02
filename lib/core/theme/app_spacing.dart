@@ -2,7 +2,8 @@
 ///
 /// Principe : petites marges extérieures pour préserver l'espace utile,
 /// puis davantage d'air à l'intérieur des cartes. Les valeurs spécifiques
-/// au Live restent volontairement plus serrées.
+/// au Live restent volontairement plus serrées. Ces constantes servent de
+/// référence aux écrans principaux afin de conserver les mêmes axes visuels.
 abstract final class AppSpacing {
   /// Marge latérale standard des écrans.
   static const double screenGutter = 12;
