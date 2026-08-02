@@ -171,7 +171,11 @@ StickyTableRow _leaderboardRow(
         ),
         const SizedBox(width: 4),
         Expanded(
-          child: NameWithBadges(profileId: profileId, name: name),
+          child: NameWithBadges(
+            profileId: profileId,
+            name: name,
+            badgeSize: 22,
+          ),
         ),
       ],
     ),
