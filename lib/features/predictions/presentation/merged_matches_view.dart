@@ -1,4 +1,5 @@
 import 'package:as_grinta/app/shell/module_navigation.dart';
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -115,25 +116,13 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     final upcoming = state.matches.where((match) => !match.isFinished).toList()
       ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    // Un match annulé ne peut pas devenir le prochain match mis en avant,
-    // mais reste visible dans le flux chronologique pour informer les
-    // joueurs.
     final activeUpcoming =
         upcoming.where((match) => !match.isCancelled).toList();
     final nextMatch = activeUpcoming.isEmpty ? null : activeUpcoming.last;
     final nextMatchId = nextMatch?.id;
-    // Un match annulé peut tomber n'importe où dans le temps par rapport au
-    // prochain match réel (ex. annulé dans 4 jours alors que le prochain
-    // match est dans 5 jours) : on le classe par rapport à la date du
-    // prochain match, pas par rapport à aujourd'hui, pour garder un flux
-    // strictement continu (futur en haut, passé en bas).
     final referenceKickoff = nextMatch?.kickoffAt ?? DateTime.now();
     final otherMatches =
         upcoming.where((match) => match.id != nextMatchId).toList();
-    // `upcoming` est déjà trié du plus lointain au plus proche : on garde cet
-    // ordre pour que « À venir » affiche le futur le plus lointain en haut et
-    // le match juste avant le prochain en bas, juste au-dessus de la section
-    // « Prochain ».
     final laterUpcoming = otherMatches
         .where((match) => match.kickoffAt.isAfter(referenceKickoff))
         .toList();
@@ -160,15 +149,19 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         scrollCacheExtent: ScrollCacheExtent.pixels(nextMatchCacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          const SliverToBoxAdapter(child: SizedBox(height: 4)),
+          const SliverToBoxAdapter(
+              child: SizedBox(height: AppSpacing.microGap)),
           if (state.isLoading)
             const SliverPadding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding:
+                  EdgeInsets.symmetric(horizontal: AppSpacing.screenGutter),
               sliver: SliverToBoxAdapter(child: _LoadingCard()),
             )
           else if (state.error != null)
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenGutter,
+              ),
               sliver: SliverToBoxAdapter(
                 child: _MessageCard(
                   title: 'Matchs indisponibles',
@@ -180,7 +173,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
             )
           else if (state.matches.isEmpty)
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenGutter,
+              ),
               sliver: SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -191,7 +186,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                           'Le premier match apparaîtra ici dès qu’il sera créé.',
                     ),
                     if (isAdmin) ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.sectionGap),
                       Align(
                         alignment: Alignment.centerRight,
                         child: FilledButton.tonalIcon(
@@ -200,7 +195,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                           label: const Text('Ajouter un match'),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(0, 42),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.cardPadding,
+                            ),
                             visualDensity: VisualDensity.compact,
                           ),
                         ),
@@ -222,11 +219,15 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     ),
                   ),
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.only(
+                            bottom: AppSpacing.contentGap,
+                          ),
                           child: _UpcomingMatchCard(
                             match: laterUpcoming[index],
                             isAdmin: isAdmin,
@@ -236,7 +237,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                       ),
                     ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.contentGap),
+                  ),
                 ],
               ),
             SliverMainAxisGroup(
@@ -251,7 +254,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenGutter,
+                  ),
                   sliver: SliverToBoxAdapter(
                     child: nextMatch == null
                         ? const _MessageCard(
@@ -262,12 +267,19 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                         : HomeNextMatchCard(match: nextMatch, isAdmin: isAdmin),
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.sectionGap),
+                ),
               ],
             ),
             if (isAdmin)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenGutter,
+                  0,
+                  AppSpacing.screenGutter,
+                  AppSpacing.sectionGap,
+                ),
                 sliver: SliverToBoxAdapter(
                   child: Align(
                     alignment: Alignment.centerRight,
@@ -277,7 +289,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                       label: const Text('Ajouter un match'),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(0, 42),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.cardPadding,
+                        ),
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
@@ -295,7 +309,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
                 if (pastSection.isEmpty)
                   const SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: _MessageCard(
                         title: 'Aucun match joué',
@@ -306,7 +322,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   )
                 else
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -318,7 +336,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                                   isAdmin: isAdmin,
                                 );
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.contentGap,
+                            ),
                             child: card,
                           );
                         },
@@ -375,7 +395,9 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenGutter,
+        ),
         child: Row(
           children: [
             Icon(
@@ -460,7 +482,7 @@ class _UpcomingMatchCard extends StatelessWidget {
                 ),
         ),
         if (isAdmin) ...[
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.microGap),
           SizedBox(width: 36, child: AdminMatchOptionsButton(match: match)),
         ],
         if (match.isCancelled)
@@ -481,7 +503,12 @@ class _UpcomingMatchCard extends StatelessWidget {
     );
 
     final content = Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 13),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.cardPadding,
+        12,
+        AppSpacing.cardPadding,
+        13,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -494,7 +521,7 @@ class _UpcomingMatchCard extends StatelessWidget {
             child: fixtureRow,
           ),
           if (match.address case final address?) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.contentGap),
             InkWell(
               onTap: () => showMatchAddressSheet(context, address),
               borderRadius: BorderRadius.circular(AppTheme.radiusSm),

@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_running_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/formation_pitch_editor.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,7 +12,8 @@ void main() {
       for (final available in widths) {
         final metrics = benchAndPitchMetrics(available);
         // Le terrain occupe ce qui reste une fois le banc et l'écart posés.
-        final pitchWidth = available - benchColumnWidth(metrics) - 10;
+        final pitchWidth =
+            available - benchColumnWidth(metrics) - AppSpacing.contentGap;
         // Et cette largeur de terrain redonne bien la même taille de vignette :
         // sans quoi le banc et les titulaires divergeraient à l'affichage.
         expect(

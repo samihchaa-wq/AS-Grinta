@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
@@ -71,8 +72,11 @@ class _GrintaTitleBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenGutter,
+      ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
             width: 44,
@@ -86,7 +90,7 @@ class _GrintaTitleBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.contentGap),
           Expanded(
             child: DefaultTextStyle.merge(
               maxLines: 1,
@@ -105,11 +109,12 @@ class _GrintaTitleBar extends StatelessWidget {
               constraints: const BoxConstraints(maxHeight: 44),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (admin) ...[
                     const AdminBadge(),
                     if (actions != null && actions!.isNotEmpty)
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.microGap),
                   ],
                   ...?actions,
                 ],

@@ -88,7 +88,12 @@ class _MatchRankingView extends ConsumerWidget {
         tone: GrintaEmptyTone.alert,
       ),
       data: (entries) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenGutter,
+          6,
+          AppSpacing.screenGutter,
+          32,
+        ),
         child: _LeaderboardCard(
           entries: entries,
           points: (entry) => entry.matchPoints * 100,
@@ -112,7 +117,12 @@ class _ScorerRankingView extends ConsumerWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenGutter,
+        6,
+        AppSpacing.screenGutter,
+        32,
+      ),
       child: SeasonRankingPanel(onRefresh: refresh),
     );
   }
@@ -145,7 +155,12 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
         tone: GrintaEmptyTone.alert,
       ),
       data: (entries) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenGutter,
+          6,
+          AppSpacing.screenGutter,
+          32,
+        ),
         child: _LeaderboardCard(
           entries: entries,
           points: (entry) => entry.totalPoints.roundToDouble(),

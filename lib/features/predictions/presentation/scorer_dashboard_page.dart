@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/features/predictions/data/season_predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/season_prediction_entry_page.dart';
@@ -59,7 +60,12 @@ class _LockedScorerDashboard extends ConsumerWidget {
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenGutter,
+              AppSpacing.contentGap,
+              AppSpacing.screenGutter,
+              32,
+            ),
             children: [
               Align(
                 alignment: Alignment.centerRight,
@@ -69,7 +75,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
                   label: const Text('Comment ça marche ?'),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.microGap),
               if (scorers.isNotEmpty)
                 _GaugeSection(
                   title: 'Buteurs',
@@ -86,7 +92,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
                   ),
                 ),
               if (scorers.isNotEmpty && keepers.isNotEmpty)
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.sectionGap),
               if (keepers.isNotEmpty)
                 _GaugeSection(
                   title: 'Clean sheets',
@@ -174,7 +180,12 @@ class _GaugeSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 16, 14, 4),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.cardPadding,
+        16,
+        AppSpacing.cardPadding,
+        AppSpacing.microGap,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFF0E1D3B),
         borderRadius: BorderRadius.circular(24),
@@ -199,7 +210,7 @@ class _GaugeSection extends StatelessWidget {
                 ),
                 child: Icon(icon, color: const Color(0xFF79A4FF), size: 24),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.sectionGap),
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -208,7 +219,7 @@ class _GaugeSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppSpacing.cardPadding),
           for (final gauge in gauges)
             ReferencePlayerGaugeCard(
               gauge: gauge,

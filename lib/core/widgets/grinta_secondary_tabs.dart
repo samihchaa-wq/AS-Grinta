@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
@@ -22,7 +23,12 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenGutter,
+        2,
+        AppSpacing.screenGutter,
+        AppSpacing.sectionGap,
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: AppTheme.surface,
@@ -44,7 +50,7 @@ class GrintaSecondaryTabs<T> extends StatelessWidget {
                 Size(double.infinity, height),
               ),
               padding: const WidgetStatePropertyAll(
-                EdgeInsets.symmetric(horizontal: 8),
+                EdgeInsets.symmetric(horizontal: AppSpacing.contentGap),
               ),
               backgroundColor: WidgetStateProperty.resolveWith((states) {
                 return states.contains(WidgetState.selected)

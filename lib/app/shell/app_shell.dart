@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:as_grinta/app/shell/module_navigation.dart';
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -208,15 +209,19 @@ class _PreviewBanner extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenGutter,
+            vertical: AppSpacing.microGap,
+          ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Icon(
                 Icons.visibility_outlined,
                 size: 17,
                 color: Colors.white,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.contentGap),
               const Expanded(
                 child: Text(
                   'Aperçu utilisateur',
