@@ -16,10 +16,18 @@ create table public.shared_data_change_signals (
     check (revision > 0)
 );
 
--- Le bootstrap métier CI n'installe pas le catalogue complet des badges alors
--- que la table existe bien dans le schéma de production. Une table minimale
--- suffit ici pour vérifier le contrat du trigger sans dupliquer ce catalogue.
+-- Le bootstrap métier CI n'installe pas tout le catalogue réellement présent
+-- en production. Des tables minimales suffisent ici pour vérifier le contrat
+-- des triggers sans dupliquer leurs schémas métier complets.
 create table public.badges (
+  id uuid primary key
+);
+
+create table public.match_internal_compositions (
+  id uuid primary key
+);
+
+create table public.match_internal_composition_entries (
   id uuid primary key
 );
 
