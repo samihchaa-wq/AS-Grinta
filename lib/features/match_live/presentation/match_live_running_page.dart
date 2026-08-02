@@ -90,7 +90,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
           onEndMatch: () => _confirmEndMatch(context, controller),
         ),
         const SizedBox(height: 10),
-        _ScoreCard(bundle: bundle),
+        _ScoreCard(bundle: bundle, canEdit: canEdit),
         if (canEdit && _pending.isNotEmpty) ...[
           const SizedBox(height: 10),
           _PendingSubstitutions(
@@ -143,16 +143,6 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
             );
           },
         ),
-        if (canEdit) ...[
-          const SizedBox(height: 12),
-          _LiveActionBar(
-            onOurGoal: () => _addOurGoal(controller, scorerCandidates),
-            onSubstitution: () =>
-                _openReplacementPicker(field: field, bench: bench),
-            onOpponentGoal: () => _addOpponentGoal(controller),
-            onJournal: _openJournal,
-          ),
-        ],
         const SizedBox(height: 12),
         _LiveJournal(
           key: _journalKey,
@@ -250,118 +240,6 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       context,
       'Glisse ce joueur sur le remplaçant qui entre, à gauche du terrain.',
     );
-  }
-
-  Future<void> _openReplacementPicker({
-    required List<MatchCompositionEntry> field,
-    required List<MatchCompositionEntry> bench,
-  }) async {
-    final availableField = field
-        .where((entry) => !_isPendingParticipant(entry.participantId))
-        .toList();
-    final availableBench = bench
-        .where((entry) => !_isPendingParticipant(entry.participantId))
-        .toList();
-
-    if (availableField.isEmpty || availableBench.isEmpty) {
-      _showMessage(
-        context,
-        availableBench.isEmpty
-            ? 'Aucun remplaçant disponible pour préparer un changement.'
-            : 'Aucun titulaire disponible pour préparer un changement.',
-      );
-      return;
-    }
-
-    final playerOutId = await pickMatchLiveScorer(
-      context,
-      candidates: availableField,
-      title: 'Qui sort ?',
-      icon: Icons.logout_rounded,
-    );
-    if (!mounted || playerOutId == null) return;
-
-    final playerOut = availableField.firstWhere(
-      (entry) => entry.participantId == playerOutId,
-    );
-    final playerInId = await pickMatchLiveScorer(
-      context,
-      candidates: availableBench,
-      title: 'Qui entre à la place de ${playerOut.displayName} ?',
-      icon: Icons.login_rounded,
-    );
-    if (!mounted || playerInId == null) return;
-
-    final playerIn = availableBench.firstWhere(
-      (entry) => entry.participantId == playerInId,
-    );
-    _stage(playerIn: playerIn, playerOut: playerOut);
-  }
-
-  Future<void> _addOurGoal(
-    MatchLiveStateController controller,
-    List<MatchCompositionEntry> scorerCandidates,
-  ) async {
-    await controller.adjustScore(team: 'us', delta: 1);
-    if (!mounted) return;
-
-    final latestBundle = ref.read(matchLiveStateProvider(matchId)).valueOrNull;
-    MatchLiveEvent? latestUnassignedGoal;
-    if (latestBundle != null) {
-      for (final event in latestBundle.ownGoals.reversed) {
-        if (event.needsScorer) {
-          latestUnassignedGoal = event;
-          break;
-        }
-      }
-    }
-
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: const Text('But AS Grinta ajouté.'),
-        action: latestUnassignedGoal == null
-            ? null
-            : SnackBarAction(
-                label: 'Buteur',
-                onPressed: () {
-                  _pickGoalScorer(
-                    context,
-                    controller,
-                    latestUnassignedGoal!,
-                    scorerCandidates,
-                  );
-                },
-              ),
-      ),
-    );
-  }
-
-  Future<void> _addOpponentGoal(MatchLiveStateController controller) async {
-    await controller.adjustScore(team: 'them', delta: 1);
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      const SnackBar(content: Text('But adverse ajouté.')),
-    );
-  }
-
-  void _openJournal() {
-    if (!_journalExpanded) {
-      setState(() => _journalExpanded = true);
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final journalContext = _journalKey.currentContext;
-      if (!mounted || journalContext == null) return;
-      Scrollable.ensureVisible(
-        journalContext,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOut,
-        alignment: .12,
-      );
-    });
   }
 
   Future<void> _validatePending(
@@ -677,15 +555,15 @@ class _LiveTopBar extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 104,
+              width: 90,
               child: MatchLiveClock(session: session, compact: true),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 6),
             Expanded(
               child: canEdit
                   ? _LiveMatchControls(
@@ -775,7 +653,7 @@ class _LiveMatchControls extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = (constraints.maxWidth - 8) / 2;
+        final width = (constraints.maxWidth - 6) / 2;
 
         Widget button({
           required String label,
@@ -788,38 +666,38 @@ class _LiveMatchControls extends StatelessWidget {
               ? OutlinedButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.error,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
+                    horizontal: 5,
+                    vertical: 9,
                   ),
                   visualDensity: VisualDensity.compact,
                 )
               : filled
                   ? FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
+                        horizontal: 5,
+                        vertical: 9,
                       ),
                       visualDensity: VisualDensity.compact,
                     )
                   : OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 10,
+                        horizontal: 5,
+                        vertical: 9,
                       ),
                       visualDensity: VisualDensity.compact,
                     );
           final child = Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 17),
-              const SizedBox(width: 5),
+              Icon(icon, size: 16),
+              const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.fade,
                   softWrap: false,
-                  style: const TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 11.5),
                 ),
               ),
             ],
@@ -838,8 +716,8 @@ class _LiveMatchControls extends StatelessWidget {
         }
 
         return Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: 6,
+          runSpacing: 6,
           children: [
             button(
               label: firstAction.label,
@@ -871,66 +749,147 @@ class _LiveMatchControls extends StatelessWidget {
 }
 
 class _ScoreCard extends ConsumerWidget {
-  const _ScoreCard({required this.bundle});
+  const _ScoreCard({required this.bundle, required this.canEdit});
 
   final MatchLiveStateBundle bundle;
+  final bool canEdit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fixture = ref
-        .watch(upcomingMatchFixtureProvider(bundle.session.matchId))
-        .valueOrNull;
+    final matchId = bundle.session.matchId;
+    final controller = ref.read(matchLiveStateProvider(matchId).notifier);
+    final fixture =
+        ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
     final opponentName = fixture?.opponentName ?? 'Adversaire';
     final grintaIsHome = fixture?.grintaIsHome ?? true;
-    final homeName = grintaIsHome ? 'AS Grinta' : opponentName;
-    final awayName = grintaIsHome ? opponentName : 'AS Grinta';
-    final homeScore = grintaIsHome
-        ? bundle.session.scoreAsGrinta
-        : bundle.session.scoreAdverse;
-    final awayScore = grintaIsHome
-        ? bundle.session.scoreAdverse
-        : bundle.session.scoreAsGrinta;
+
+    final home = _ScoreTeamControl(
+      label: grintaIsHome ? 'AS Grinta' : opponentName,
+      score: grintaIsHome
+          ? bundle.session.scoreAsGrinta
+          : bundle.session.scoreAdverse,
+      canEdit: canEdit,
+      onIncrement: () => controller.adjustScore(
+        team: grintaIsHome ? 'us' : 'them',
+        delta: 1,
+      ),
+      onDecrement: () => controller.adjustScore(
+        team: grintaIsHome ? 'us' : 'them',
+        delta: -1,
+      ),
+    );
+    final away = _ScoreTeamControl(
+      label: grintaIsHome ? opponentName : 'AS Grinta',
+      score: grintaIsHome
+          ? bundle.session.scoreAdverse
+          : bundle.session.scoreAsGrinta,
+      canEdit: canEdit,
+      onIncrement: () => controller.adjustScore(
+        team: grintaIsHome ? 'them' : 'us',
+        delta: 1,
+      ),
+      onDecrement: () => controller.adjustScore(
+        team: grintaIsHome ? 'them' : 'us',
+        delta: -1,
+      ),
+    );
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         child: Row(
           children: [
-            Expanded(
+            Expanded(child: home),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                homeName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                '–',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+            Expanded(child: away),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreTeamControl extends StatelessWidget {
+  const _ScoreTeamControl({
+    required this.label,
+    required this.score,
+    required this.canEdit,
+    required this.onIncrement,
+    required this.onDecrement,
+  });
+
+  final String label;
+  final int score;
+  final bool canEdit;
+  final VoidCallback onIncrement;
+  final VoidCallback onDecrement;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (canEdit)
+              IconButton(
+                tooltip: 'Retirer un but',
+                onPressed: score > 0 ? onDecrement : null,
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(
+                  minWidth: 34,
+                  minHeight: 34,
+                ),
+                icon: const Icon(Icons.remove_circle_outline_rounded),
+              ),
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 34),
               child: Text(
-                '$homeScore  –  $awayScore',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                '$score',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),
-            Expanded(
-              child: Text(
-                awayName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            if (canEdit)
+              IconButton(
+                tooltip: 'Ajouter un but',
+                onPressed: onIncrement,
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(
+                  minWidth: 34,
+                  minHeight: 34,
+                ),
+                icon: const Icon(Icons.add_circle_outline_rounded),
               ),
-            ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
@@ -1138,72 +1097,6 @@ class _PendingSubstitutions extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _LiveActionBar extends StatelessWidget {
-  const _LiveActionBar({
-    required this.onOurGoal,
-    required this.onSubstitution,
-    required this.onOpponentGoal,
-    required this.onJournal,
-  });
-
-  final VoidCallback onOurGoal;
-  final VoidCallback onSubstitution;
-  final VoidCallback onOpponentGoal;
-  final VoidCallback onJournal;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 520 ? 4 : 2;
-        final width = (constraints.maxWidth - (columns - 1) * 8) / columns;
-
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            SizedBox(
-              width: width,
-              child: FilledButton.icon(
-                onPressed: onOurGoal,
-                icon: const Icon(Icons.sports_soccer_rounded),
-                label: const Text('But Grinta'),
-              ),
-            ),
-            SizedBox(
-              width: width,
-              child: FilledButton.tonalIcon(
-                onPressed: onSubstitution,
-                icon: const Icon(Icons.swap_horiz_rounded),
-                label: const Text('Remplacement'),
-              ),
-            ),
-            SizedBox(
-              width: width,
-              child: OutlinedButton.icon(
-                onPressed: onOpponentGoal,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
-                ),
-                icon: const Icon(Icons.sports_soccer_outlined),
-                label: const Text('But adverse'),
-              ),
-            ),
-            SizedBox(
-              width: width,
-              child: OutlinedButton.icon(
-                onPressed: onJournal,
-                icon: const Icon(Icons.receipt_long_rounded),
-                label: const Text('Journal'),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }
