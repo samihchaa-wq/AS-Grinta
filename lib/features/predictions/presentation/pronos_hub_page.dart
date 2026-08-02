@@ -129,6 +129,9 @@ class RankingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _GeneralRankingsSection(initialView: initialView);
+    return _GeneralRankingsSection(
+      initialView: initialView,
+      badgeSize: 22,
+    );
   }
 }
