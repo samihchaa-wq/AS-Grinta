@@ -1,5 +1,5 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour automatique
-// et réception des notifications Web Push.
+// et réception des notifications Web Push. Release 0.3.2+93.
 importScripts('build_version.js');
 
 const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
