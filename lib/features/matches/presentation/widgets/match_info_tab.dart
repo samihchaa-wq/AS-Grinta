@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
@@ -22,7 +23,7 @@ class MatchInfoTab extends ConsumerWidget {
       loading: () => const Center(child: GrintaProgressIndicator()),
       error: (_, __) => const Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(AppSpacing.cardPadding),
           child: Text('Infos du match indisponibles.'),
         ),
       ),
@@ -30,7 +31,7 @@ class MatchInfoTab extends ConsumerWidget {
         final encounters = info.lastEncounters.take(5).toList();
         return Card(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 13, 14, 14),
+            padding: const EdgeInsets.all(AppSpacing.cardPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,7 +59,7 @@ class MatchInfoTab extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.contentGap),
                   _InfoRow(
                     icon: Icons.groups_rounded,
                     child: Text.rich(
@@ -93,7 +94,7 @@ class MatchInfoTab extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: AppSpacing.contentGap),
                 ],
                 if (info.address != null)
                   InkWell(
@@ -130,7 +131,7 @@ class MatchInfoTab extends ConsumerWidget {
                       ),
                     ),
                   ),
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSpacing.contentGap),
                 _InfoRow(
                   icon: info.isFriendly
                       ? Icons.handshake_outlined
@@ -157,7 +158,7 @@ class MatchInfoTab extends ConsumerWidget {
                   ),
                 ),
                 if (info.jerseyNote != null) ...[
-                  const SizedBox(height: 9),
+                  const SizedBox(height: AppSpacing.contentGap),
                   Builder(
                     builder: (context) {
                       final jersey = JerseyOption.fromId(info.jerseyNote);
@@ -218,7 +219,7 @@ class MatchInfoTab extends ConsumerWidget {
                     kickoffAt: info.kickoffAt!,
                     plannedDurationMinutes: 90,
                   ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sectionGap),
                 Text(
                   encounters.length > 1
                       ? '5 dernières rencontres'
@@ -227,7 +228,7 @@ class MatchInfoTab extends ConsumerWidget {
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: AppSpacing.contentGap),
                 if (encounters.isEmpty)
                   Text(
                     'Aucune rencontre passée contre cet adversaire.',
@@ -243,7 +244,8 @@ class MatchInfoTab extends ConsumerWidget {
                       for (var index = 0;
                           index < encounters.length;
                           index++) ...[
-                        if (index > 0) const SizedBox(width: 4),
+                        if (index > 0)
+                          const SizedBox(width: AppSpacing.microGap),
                         Expanded(
                           child: _EncounterChip(encounter: encounters[index]),
                         ),
@@ -272,7 +274,7 @@ class _InfoRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Icon(icon, size: 21, color: iconColor),
-        const SizedBox(width: 10),
+        const SizedBox(width: AppSpacing.contentGap),
         Expanded(child: child),
       ],
     );
