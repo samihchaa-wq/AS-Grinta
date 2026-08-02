@@ -152,9 +152,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.microGap)),
           if (state.isLoading)
             const SliverPadding(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenGutter,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenGutter),
               sliver: SliverToBoxAdapter(child: _LoadingCard()),
             )
           else if (state.error != null)
