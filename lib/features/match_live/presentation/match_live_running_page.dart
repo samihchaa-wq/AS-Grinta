@@ -52,8 +52,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     if (bundle.session.state == MatchLiveState.finished) {
       if (!canEdit) {
         return const _Message(
-          message:
-              'Le match est terminé. En attente de la publication du '
+          message: 'Le match est terminé. En attente de la publication du '
               'compte rendu par le coach.',
         );
       }
@@ -433,15 +432,13 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     MatchLiveEvent event,
   ) async {
     final description = switch (event.type) {
-      MatchLiveEventType.goalUs =>
-        event.isOpponentOwnGoal
-            ? "But AS Grinta (CSC adverse) · ${event.minute}'"
-            : "But AS Grinta · ${event.scorerName ?? 'buteur à désigner'} · "
-                  "${event.minute}'",
+      MatchLiveEventType.goalUs => event.isOpponentOwnGoal
+          ? "But AS Grinta (CSC adverse) · ${event.minute}'"
+          : "But AS Grinta · ${event.scorerName ?? 'buteur à désigner'} · "
+              "${event.minute}'",
       MatchLiveEventType.goalThem => "But adverse · ${event.minute}'",
-      MatchLiveEventType.substitution =>
-        '${event.playerInName ?? '?'} entre · '
-            '${event.playerOutName ?? '?'} sort · ${event.minute}\'',
+      MatchLiveEventType.substitution => '${event.playerInName ?? '?'} entre · '
+          '${event.playerOutName ?? '?'} sort · ${event.minute}\'',
     };
     final title = event.type == MatchLiveEventType.substitution
         ? 'Retirer ce remplacement ?'
@@ -549,13 +546,13 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
         content: Text(
           details.isEmpty
               ? 'Le chronomètre et le score repartent à zéro, et la '
-                    'composition redevient celle du coup d’envoi.\n\n'
-                    'Cette action est définitive.'
+                  'composition redevient celle du coup d’envoi.\n\n'
+                  'Cette action est définitive.'
               : 'Tout ce qui a été saisi sera effacé : ${details.join(' et ')}, '
-                    'le chronomètre et le score.\n\n'
-                    'La composition redevient celle du coup d’envoi et tu '
-                    'reviens à l’écran de préparation.\n\n'
-                    'Cette action est définitive.',
+                  'le chronomètre et le score.\n\n'
+                  'La composition redevient celle du coup d’envoi et tu '
+                  'reviens à l’écran de préparation.\n\n'
+                  'Cette action est définitive.',
         ),
         actions: [
           TextButton(
@@ -749,29 +746,29 @@ class _LiveMatchControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final firstAction = switch (session.state) {
       MatchLiveState.running => (
-        label: 'Pause',
-        icon: Icons.pause_rounded,
-        callback: onPause,
-        filled: false,
-      ),
+          label: 'Pause',
+          icon: Icons.pause_rounded,
+          callback: onPause,
+          filled: false,
+        ),
       MatchLiveState.paused => (
-        label: 'Reprendre',
-        icon: Icons.play_arrow_rounded,
-        callback: onResume,
-        filled: false,
-      ),
+          label: 'Reprendre',
+          icon: Icons.play_arrow_rounded,
+          callback: onResume,
+          filled: false,
+        ),
       MatchLiveState.halftime => (
-        label: 'Reprendre 2e',
-        icon: Icons.play_arrow_rounded,
-        callback: onResumeSecondHalf,
-        filled: true,
-      ),
+          label: 'Reprendre 2e',
+          icon: Icons.play_arrow_rounded,
+          callback: onResumeSecondHalf,
+          filled: true,
+        ),
       _ => (
-        label: 'Pause',
-        icon: Icons.pause_rounded,
-        callback: null,
-        filled: false,
-      ),
+          label: 'Pause',
+          icon: Icons.pause_rounded,
+          callback: null,
+          filled: false,
+        ),
     };
     final canGoHalftime =
         session.half == 1 && session.state != MatchLiveState.halftime;
@@ -797,20 +794,20 @@ class _LiveMatchControls extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                 )
               : filled
-              ? FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                )
-              : OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                );
+                  ? FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    )
+                  : OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    );
           final child = Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -966,7 +963,7 @@ class _BenchColumn extends StatelessWidget {
   final FormationMarkerMetrics metrics;
   final Set<String> pendingOutIds;
   final void Function(MatchCompositionEntry, MatchCompositionEntry)
-  onFieldPlayerDropped;
+      onFieldPlayerDropped;
 
   @override
   Widget build(BuildContext context) {
@@ -1017,8 +1014,8 @@ class _BenchColumn extends StatelessWidget {
                               color: candidates.isNotEmpty
                                   ? theme.colorScheme.primary
                                   : isPendingOut
-                                  ? theme.colorScheme.error
-                                  : Colors.transparent,
+                                      ? theme.colorScheme.error
+                                      : Colors.transparent,
                               width: 2,
                             ),
                           ),
@@ -1253,8 +1250,8 @@ class _LiveJournal extends StatelessWidget {
                     child: Text(
                       'Journal du match',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                   ),
                   if (events.isNotEmpty)
@@ -1325,23 +1322,23 @@ class _JournalEventRow extends StatelessWidget {
     final theme = Theme.of(context);
     final (icon, color, label) = switch (event.type) {
       MatchLiveEventType.goalUs => (
-        Icons.sports_soccer_rounded,
-        theme.colorScheme.primary,
-        event.isOpponentOwnGoal
-            ? 'But AS Grinta · CSC adverse'
-            : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}',
-      ),
+          Icons.sports_soccer_rounded,
+          theme.colorScheme.primary,
+          event.isOpponentOwnGoal
+              ? 'But AS Grinta · CSC adverse'
+              : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}',
+        ),
       MatchLiveEventType.goalThem => (
-        Icons.sports_soccer_outlined,
-        theme.colorScheme.error,
-        'But adverse',
-      ),
+          Icons.sports_soccer_outlined,
+          theme.colorScheme.error,
+          'But adverse',
+        ),
       MatchLiveEventType.substitution => (
-        Icons.swap_horiz_rounded,
-        theme.colorScheme.secondary,
-        '${event.playerInName ?? '?'} entre · '
-            '${event.playerOutName ?? '?'} sort',
-      ),
+          Icons.swap_horiz_rounded,
+          theme.colorScheme.secondary,
+          '${event.playerInName ?? '?'} entre · '
+              '${event.playerOutName ?? '?'} sort',
+        ),
     };
     final hasScore =
         event.scoreAsGrintaAfter != null && event.scoreAdverseAfter != null;
