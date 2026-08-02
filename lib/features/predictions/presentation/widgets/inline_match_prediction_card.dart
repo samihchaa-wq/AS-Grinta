@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
@@ -41,13 +42,13 @@ class _InlineMatchPredictionCardState
     return prediction.when(
       loading: () => const Card(
         child: Padding(
-          padding: EdgeInsets.all(28),
+          padding: EdgeInsets.all(AppSpacing.cardPadding),
           child: Center(child: GrintaProgressIndicator()),
         ),
       ),
       error: (error, _) => Card(
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(AppSpacing.cardPadding),
           child: Text('$error'),
         ),
       ),
@@ -55,7 +56,7 @@ class _InlineMatchPredictionCardState
         if (item == null) {
           return const Card(
             child: Padding(
-              padding: EdgeInsets.all(18),
+              padding: EdgeInsets.all(AppSpacing.cardPadding),
               child: Text('Ce match est introuvable.'),
             ),
           );
@@ -95,7 +96,7 @@ class _InlineMatchPredictionCardState
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppSpacing.cardPadding),
           decoration: BoxDecoration(
             color: const Color(0xFF102A56),
             borderRadius: BorderRadius.circular(22),
@@ -108,7 +109,7 @@ class _InlineMatchPredictionCardState
                 alignment: Alignment.centerRight,
                 child: _StatusChip(item: item),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.contentGap),
               details.when(
                 loading: () => const Center(
                   child: SizedBox.square(
@@ -119,16 +120,16 @@ class _InlineMatchPredictionCardState
                 error: (_, __) => const SizedBox.shrink(),
                 data: (data) => _HeadToHead(data: data),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               const Divider(height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Score à modifier',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.contentGap),
               Row(
                 children: [
                   if (item.isHome) grintaPicker else opponentPicker,
@@ -136,16 +137,16 @@ class _InlineMatchPredictionCardState
                   if (item.isHome) opponentPicker else grintaPicker,
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               const Divider(height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Les cotes',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.contentGap),
               Row(
                 children: [
                   Expanded(
@@ -159,7 +160,7 @@ class _InlineMatchPredictionCardState
                       accent: const Color(0xFF39E784),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.contentGap),
                   Expanded(
                     child: _Odd(
                       label: 'N',
@@ -168,7 +169,7 @@ class _InlineMatchPredictionCardState
                       accent: const Color(0xFFE59A1F),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.contentGap),
                   Expanded(
                     child: _Odd(
                       label: '2',
@@ -182,10 +183,12 @@ class _InlineMatchPredictionCardState
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.contentGap),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.compactCardPadding,
+                  vertical: AppSpacing.contentGap,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .035),
                   borderRadius: BorderRadius.circular(16),
@@ -194,7 +197,7 @@ class _InlineMatchPredictionCardState
                 child: Row(
                   children: [
                     const Icon(Icons.bolt_rounded),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.contentGap),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +227,7 @@ class _InlineMatchPredictionCardState
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -243,7 +246,7 @@ class _InlineMatchPredictionCardState
                   label: const Text('Enregistrer'),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.contentGap),
               const Text(
                 'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
@@ -287,7 +290,10 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.compactCardPadding,
+        vertical: AppSpacing.contentGap,
+      ),
       decoration: BoxDecoration(
         color: item.isFilled
             ? const Color(0xFF39E784).withValues(alpha: .10)
@@ -326,7 +332,7 @@ class _HeadToHead extends StatelessWidget {
           'Les 5 dernières rencontres',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.contentGap),
         if (matches.isEmpty)
           const Text(
             'Aucune confrontation précédente.',
@@ -334,8 +340,8 @@ class _HeadToHead extends StatelessWidget {
           )
         else
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: AppSpacing.contentGap,
+            runSpacing: AppSpacing.contentGap,
             children: matches.map((match) {
               return MatchResultScoreChip(
                 scoreGrinta: match.scoreGrinta ?? 0,
@@ -424,7 +430,7 @@ class _Odd extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.contentGap),
       decoration: BoxDecoration(
         color: selected ? accent.withValues(alpha: .16) : null,
         borderRadius: BorderRadius.circular(14),
