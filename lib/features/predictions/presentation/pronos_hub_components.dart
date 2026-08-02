@@ -11,12 +11,14 @@ class _LeaderboardCard extends ConsumerStatefulWidget {
     required this.points,
     this.onRefresh,
     this.showMatchStats = false,
+    this.badgeSize,
   });
 
   final List<LeaderboardEntry> entries;
   final double Function(LeaderboardEntry) points;
   final Future<void> Function()? onRefresh;
   final bool showMatchStats;
+  final double? badgeSize;
 
   @override
   ConsumerState<_LeaderboardCard> createState() => _LeaderboardCardState();
@@ -137,6 +139,7 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
             points: '${widget.points(sorted[index]).round()}',
             isCurrentUser: currentProfileId != null &&
                 sorted[index].profileId == currentProfileId,
+            badgeSize: widget.badgeSize,
           ),
       ],
     );
@@ -152,6 +155,7 @@ StickyTableRow _leaderboardRow(
   required String secondValue,
   required String points,
   required bool isCurrentUser,
+  double? badgeSize,
 }) {
   final valueStyle = grintaTableCellTextStyle(context);
 
@@ -174,7 +178,7 @@ StickyTableRow _leaderboardRow(
           child: NameWithBadges(
             profileId: profileId,
             name: name,
-            badgeSize: 22,
+            badgeSize: badgeSize,
           ),
         ),
       ],
