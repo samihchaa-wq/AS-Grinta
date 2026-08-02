@@ -157,7 +157,7 @@ jobs:
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
-      - name: Check formatting of all Dart files
+      - name: Format Dart files and print Live diff
         shell: bash
         run: |
           set -euo pipefail
@@ -166,8 +166,10 @@ jobs:
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
-          dart format --output=none --set-exit-if-changed "${files[@]}" \
-            2>&1 | tee format.log
+          dart format "${files[@]}" 2>&1 | tee format.log
+          echo '--- DART FORMAT DIFF START ---'
+          git diff --no-ext-diff -- lib/features/match_live/presentation/match_live_running_page.dart
+          echo '--- DART FORMAT DIFF END ---'
 
       - name: Analyze with fatal warnings and infos
         shell: bash
