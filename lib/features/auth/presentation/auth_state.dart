@@ -85,6 +85,11 @@ class AuthController extends StateNotifier<AuthState> {
     });
   }
 
+  /// Revalide le profil courant sans recréer la session Supabase. Utilisé par
+  /// la synchronisation inter-modules pour prendre immédiatement en compte un
+  /// changement distant de rôle ou de statut.
+  Future<void> refreshProfile() => _refreshProfile();
+
   Future<void> _drainRefreshQueue({
     required bool initialRetryAfterSignIn,
   }) async {

@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour automatique
 // et réception des notifications Web Push.
-// Révision de déploiement 0.3.2+95 : force la prise en compte du bundle courant.
+// Révision de déploiement 0.3.2+96 : force la prise en compte du bundle courant.
 importScripts('build_version.js');
 
 const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
