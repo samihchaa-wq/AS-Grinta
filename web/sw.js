@@ -1,6 +1,6 @@
 // Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour automatique
 // et réception des notifications Web Push.
-// Révision de déploiement 0.3.2+94 : force la prise en compte du bundle courant.
+// Révision de déploiement 0.3.2+95 : force la prise en compte du bundle courant.
 importScripts('build_version.js');
 
 const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
@@ -63,9 +63,6 @@ self.addEventListener('fetch', (event) => {
           await cache.put(request, response.clone());
           return response;
         }
-        // Un serveur statique renvoie souvent 404 pour une URL Flutter profonde.
-        // Dans ce cas la navigation doit recevoir l’index, même si le réseau
-        // répond techniquement au lieu de lever une erreur.
         if (request.mode === 'navigate') {
           const index = await cachedNavigationFallback(cache);
           if (index) return index;
