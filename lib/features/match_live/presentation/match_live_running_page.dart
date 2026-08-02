@@ -250,7 +250,9 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       for (final entry in lineup.entriesFor(MatchCompositionZone.field))
         entry.participantId: Offset(entry.x ?? .5, entry.y ?? .5),
     };
-    final incomingOf = {for (final pair in _pending) pair.playerIn: pair.playerOut};
+    final incomingOf = {
+      for (final pair in _pending) pair.playerIn: pair.playerOut,
+    };
     final outgoing = {for (final pair in _pending) pair.playerOut};
     var benchOrder = lineup.entriesFor(MatchCompositionZone.bench).length;
 
