@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/inline_match_prediction_card.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,12 @@ class UpcomingMatchPredictionPage extends StatelessWidget {
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Ton prono')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenGutter,
+          AppSpacing.sectionGap,
+          AppSpacing.screenGutter,
+          40,
+        ),
         children: [InlineMatchPredictionCard(matchId: matchId)],
       ),
     );

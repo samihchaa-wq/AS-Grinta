@@ -250,7 +250,12 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       onRefresh: _loadMatches,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenGutter,
+          AppSpacing.sectionGap,
+          AppSpacing.screenGutter,
+          40,
+        ),
         children: [
           if (_selectedMatchId != null)
             UpcomingMatchFixtureHeader(matchId: _selectedMatchId!),
@@ -284,14 +289,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 _busy ? null : (value) => setState(() => _step = value.first),
           ),
           if (_busy) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.contentGap),
             const GrintaLinearProgressIndicator(),
           ],
           if (_error != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.sectionGap),
             Text(_error!),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.sectionGap),
           if (step == _AdminStep.info && _selectedMatchId != null)
             MatchInfoTab(matchId: _selectedMatchId!)
           else if (step == _AdminStep.live && _selectedMatchId != null)
