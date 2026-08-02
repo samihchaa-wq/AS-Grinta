@@ -213,8 +213,7 @@ class StatisticsRepository {
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           hdm: (map['hdm'] as num?)?.toInt(),
           cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
-          teamCleanSheets:
-              (map['team_clean_sheets'] as num?)?.toInt() ?? 0,
+          teamCleanSheets: (map['team_clean_sheets'] as num?)?.toInt() ?? 0,
         ),
       );
     }
