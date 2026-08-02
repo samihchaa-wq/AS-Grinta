@@ -55,7 +55,7 @@ class MatchesController extends StateNotifier<MatchesState> {
   final Ref _ref;
 
   AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
-  bool get _isAdmin => _role == AuthRole.admin;
+  bool get _isAdmin => _role?.isAdmin ?? false;
   bool get _canManageMatches => _isAdmin;
 
   Future<void> load({String? seasonId, bool allSeasons = false}) async {

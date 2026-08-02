@@ -171,7 +171,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
-    final canManage = role == AuthRole.admin;
+    final canManage = role?.isAdmin ?? false;
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
     final feature =
         ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
