@@ -8,9 +8,14 @@ import 'package:flutter/material.dart';
 /// poussée seconde par seconde, seules les transitions d'état sont
 /// synchronisées via Supabase Realtime.
 class MatchLiveClock extends StatefulWidget {
-  const MatchLiveClock({super.key, required this.session});
+  const MatchLiveClock({
+    super.key,
+    required this.session,
+    this.compact = false,
+  });
 
   final MatchLiveSession session;
+  final bool compact;
 
   @override
   State<MatchLiveClock> createState() => _MatchLiveClockState();
@@ -63,23 +68,24 @@ class _MatchLiveClockState extends State<MatchLiveClock> {
       MatchLiveState.halftime => 'Mi-temps',
       MatchLiveState.finished => 'Terminé',
     };
+    final timeStyle = TextStyle(
+      fontSize: widget.compact ? 27 : 44,
+      fontWeight: FontWeight.w900,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final labelStyle = (widget.compact
+            ? Theme.of(context).textTheme.labelMedium
+            : Theme.of(context).textTheme.labelLarge)
+        ?.copyWith(fontWeight: FontWeight.w700);
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment:
+          widget.compact ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
-        Text(
-          _format(elapsed),
-          style: const TextStyle(
-            fontSize: 44,
-            fontWeight: FontWeight.w900,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
-        ),
+        Text(_format(elapsed), style: timeStyle),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-        ),
+        Text(label, style: labelStyle),
       ],
     );
   }
