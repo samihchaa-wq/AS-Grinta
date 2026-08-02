@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:as_grinta/app/router/app_router.dart';
 import 'package:as_grinta/core/network/connectivity_service.dart';
+import 'package:as_grinta/core/sync/shared_data_sync.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
 import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
@@ -34,11 +37,19 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(featureFlagsControllerProvider);
+      // Reconnecte le signal Realtime et fait aussi un refresh explicite : un
+      // iPhone peut suspendre le websocket pendant que l'application est en
+      // arrière-plan, il ne faut donc pas dépendre d'un événement manqué.
+      ref.invalidate(sharedDataSignalProvider);
+      unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Maintient l'abonnement global tant que l'application est montée.
+    ref.watch(sharedDataSyncListenerProvider);
+
     ref.listen<bool>(
       authControllerProvider.select((state) => state.isAuthenticated),
       (previous, next) {
