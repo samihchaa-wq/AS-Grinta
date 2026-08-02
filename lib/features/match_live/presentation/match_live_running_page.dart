@@ -62,8 +62,14 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     if (lineup == null) {
       return const _Message(message: 'Composition indisponible.');
     }
-    final field = lineup.entriesFor(MatchCompositionZone.field);
-    final bench = lineup.entriesFor(MatchCompositionZone.bench);
+
+    // Les changements en attente sont affichés immédiatement sur le terrain
+    // sans être envoyés au serveur. Le coach voit donc exactement la
+    // composition qui sera enregistrée s'il valide. En annulant un changement,
+    // on revient instantanément à la composition réellement enregistrée.
+    final previewLineup = _previewLineup(lineup);
+    final field = previewLineup.entriesFor(MatchCompositionZone.field);
+    final bench = previewLineup.entriesFor(MatchCompositionZone.bench);
     final scorerCandidates = [...field, ...bench];
     final controller = ref.read(
       matchLiveStateProvider(matchId).notifier,
@@ -232,6 +238,43 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
           ),
         ],
       ],
+    );
+  }
+
+  /// Construit uniquement pour l'affichage la composition telle qu'elle sera
+  /// après validation des remplacements. Rien n'est persisté ici.
+  MatchComposition _previewLineup(MatchComposition lineup) {
+    if (_pending.isEmpty) return lineup;
+
+    final positions = {
+      for (final entry in lineup.entriesFor(MatchCompositionZone.field))
+        entry.participantId: Offset(entry.x ?? .5, entry.y ?? .5),
+    };
+    final incomingOf = {for (final pair in _pending) pair.playerIn: pair.playerOut};
+    final outgoing = {for (final pair in _pending) pair.playerOut};
+    var benchOrder = lineup.entriesFor(MatchCompositionZone.bench).length;
+
+    return lineup.copyWith(
+      entries: [
+        for (final entry in lineup.entries)
+          if (incomingOf.containsKey(entry.participantId))
+            entry.moveTo(
+              MatchCompositionZone.field,
+              x: positions[incomingOf[entry.participantId]]?.dx ?? .5,
+              y: positions[incomingOf[entry.participantId]]?.dy ?? .5,
+            )
+          else if (outgoing.contains(entry.participantId))
+            entry.moveTo(MatchCompositionZone.bench, sortOrder: benchOrder++)
+          else
+            entry,
+      ],
+    );
+  }
+
+  bool _isPendingParticipant(String participantId) {
+    return _pending.any(
+      (pair) =>
+          pair.playerIn == participantId || pair.playerOut == participantId,
     );
   }
 
@@ -476,6 +519,14 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     MatchCompositionEntry moving,
     FootballFormationSlot slot,
   ) async {
+    if (_isPendingParticipant(moving.participantId)) {
+      _showMessage(
+        context,
+        'Valide ou annule ce changement avant de déplacer ce joueur.',
+      );
+      return;
+    }
+
     final currentAtSlot = lineup.entries
         .where((entry) => entry.zone == MatchCompositionZone.field)
         .cast<MatchCompositionEntry?>()
@@ -486,6 +537,15 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
                   .12,
           orElse: () => null,
         );
+
+    if (currentAtSlot != null &&
+        _isPendingParticipant(currentAtSlot.participantId)) {
+      _showMessage(
+        context,
+        'Cette position fait déjà partie d’un changement en attente.',
+      );
+      return;
+    }
 
     if (moving.zone != MatchCompositionZone.field) {
       // Entrée depuis le banc : il faut un joueur déjà sur le terrain à
@@ -502,7 +562,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
         return;
       }
       // On prépare le changement au lieu de l'envoyer : le coach peut en
-      // enchaîner d'autres avant de tout valider.
+      // enchaîner d'autres avant de tout valider. L'aperçu est immédiat.
       _stage(playerIn: moving, playerOut: currentAtSlot);
       return;
     }
@@ -673,11 +733,17 @@ class _PendingSubstitutions extends StatelessWidget {
           children: [
             Text(
               pending.length == 1
-                  ? 'Changement à valider'
-                  : '${pending.length} changements à valider',
+                  ? 'Aperçu du changement'
+                  : 'Aperçu de ${pending.length} changements',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Le terrain affiche déjà le résultat. Valide pour enregistrer, '
+              'ou annule pour remettre les joueurs à leur place précédente.',
+              style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
             for (final pair in pending)
@@ -692,9 +758,9 @@ class _PendingSubstitutions extends StatelessWidget {
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Retirer',
+                      tooltip: 'Annuler ce changement',
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close_rounded),
+                      icon: const Icon(Icons.undo_rounded),
                       onPressed: busy ? null : () => onRemove(pair),
                     ),
                   ],
