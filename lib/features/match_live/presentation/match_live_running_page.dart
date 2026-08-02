@@ -769,14 +769,10 @@ class _ScoreCard extends ConsumerWidget {
           ? bundle.session.scoreAsGrinta
           : bundle.session.scoreAdverse,
       canEdit: canEdit,
-      onIncrement: () => controller.adjustScore(
-        team: grintaIsHome ? 'us' : 'them',
-        delta: 1,
-      ),
-      onDecrement: () => controller.adjustScore(
-        team: grintaIsHome ? 'us' : 'them',
-        delta: -1,
-      ),
+      onIncrement: () =>
+          controller.adjustScore(team: grintaIsHome ? 'us' : 'them', delta: 1),
+      onDecrement: () =>
+          controller.adjustScore(team: grintaIsHome ? 'us' : 'them', delta: -1),
     );
     final away = _ScoreTeamControl(
       label: grintaIsHome ? opponentName : 'AS Grinta',
@@ -784,14 +780,10 @@ class _ScoreCard extends ConsumerWidget {
           ? bundle.session.scoreAdverse
           : bundle.session.scoreAsGrinta,
       canEdit: canEdit,
-      onIncrement: () => controller.adjustScore(
-        team: grintaIsHome ? 'them' : 'us',
-        delta: 1,
-      ),
-      onDecrement: () => controller.adjustScore(
-        team: grintaIsHome ? 'them' : 'us',
-        delta: -1,
-      ),
+      onIncrement: () =>
+          controller.adjustScore(team: grintaIsHome ? 'them' : 'us', delta: 1),
+      onDecrement: () =>
+          controller.adjustScore(team: grintaIsHome ? 'them' : 'us', delta: -1),
     );
 
     return Card(
@@ -858,10 +850,7 @@ class _ScoreTeamControl extends StatelessWidget {
                 onPressed: score > 0 ? onDecrement : null,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(
-                  minWidth: 34,
-                  minHeight: 34,
-                ),
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                 icon: const Icon(Icons.remove_circle_outline_rounded),
               ),
             ConstrainedBox(
@@ -881,10 +870,7 @@ class _ScoreTeamControl extends StatelessWidget {
                 onPressed: onIncrement,
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints(
-                  minWidth: 34,
-                  minHeight: 34,
-                ),
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                 icon: const Icon(Icons.add_circle_outline_rounded),
               ),
           ],
@@ -1175,6 +1161,7 @@ class _LiveJournal extends StatelessWidget {
             _JournalEventRow(
               event: latest,
               canEdit: false,
+              canEditScorer: canEdit,
               onEditScorer: onEditScorer,
               onDelete: onDelete,
             ),
@@ -1184,6 +1171,7 @@ class _LiveJournal extends StatelessWidget {
               _JournalEventRow(
                 event: ordered[index],
                 canEdit: canEdit,
+                canEditScorer: canEdit,
                 onEditScorer: onEditScorer,
                 onDelete: onDelete,
               ),
@@ -1201,12 +1189,14 @@ class _JournalEventRow extends StatelessWidget {
   const _JournalEventRow({
     required this.event,
     required this.canEdit,
+    required this.canEditScorer,
     required this.onEditScorer,
     required this.onDelete,
   });
 
   final MatchLiveEvent event;
   final bool canEdit;
+  final bool canEditScorer;
   final ValueChanged<MatchLiveEvent> onEditScorer;
   final ValueChanged<MatchLiveEvent> onDelete;
 
@@ -1235,6 +1225,9 @@ class _JournalEventRow extends StatelessWidget {
     };
     final hasScore =
         event.scoreAsGrintaAfter != null && event.scoreAdverseAfter != null;
+    final canChooseScorer = canEditScorer &&
+        event.type == MatchLiveEventType.goalUs &&
+        event.needsScorer;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 9, 8, 9),
@@ -1252,11 +1245,24 @@ class _JournalEventRow extends StatelessWidget {
           Icon(icon, size: 20, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: canChooseScorer ? () => onEditScorer(event) : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: canChooseScorer
+                      ? theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w800,
+                          decoration: TextDecoration.underline,
+                        )
+                      : theme.textTheme.bodyMedium,
+                ),
+              ),
             ),
           ),
           if (hasScore) ...[
