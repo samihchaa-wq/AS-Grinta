@@ -334,6 +334,7 @@ StickyTableRow _playersRow(
           child: NameWithBadges(
             profileId: player.profileId,
             name: player.playerName,
+            badgeSize: 22,
           ),
         ),
       ],
