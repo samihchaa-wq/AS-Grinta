@@ -1,0 +1,33 @@
+name: Format shared data sync diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Show exact formatter diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib/core/sync/shared_data_sync.dart
+          git diff -- lib/core/sync/shared_data_sync.dart
+          git diff --exit-code -- lib/core/sync/shared_data_sync.dart
