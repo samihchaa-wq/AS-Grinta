@@ -198,7 +198,9 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
       lastProfileId = next;
       lastRevision = null;
       debounce?.cancel();
-      ref.read(sharedDataRefreshCoordinatorProvider).invalidateForSessionChange();
+      ref
+          .read(sharedDataRefreshCoordinatorProvider)
+          .invalidateForSessionChange();
       ref.invalidate(sharedDataSignalProvider);
     },
   );
