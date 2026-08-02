@@ -240,11 +240,9 @@ class MatchInfoTab extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (
-                        var index = 0;
-                        index < encounters.length;
-                        index++
-                      ) ...[
+                      for (var index = 0;
+                          index < encounters.length;
+                          index++) ...[
                         if (index > 0) const SizedBox(width: 4),
                         Expanded(
                           child: _EncounterChip(encounter: encounters[index]),
