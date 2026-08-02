@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter/material.dart';
@@ -34,27 +35,32 @@ class TeamStatisticsPanel extends ConsumerWidget {
         onRefresh: refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenGutter,
+            AppSpacing.contentGap,
+            AppSpacing.screenGutter,
+            36,
+          ),
           children: [
             const _TeamSectionTitle('Résultats'),
             const SizedBox(height: 10),
             _TeamResultsCard(statistics: statistics),
-            const SizedBox(height: 22),
+            const SizedBox(height: AppSpacing.sectionGap),
             const _TeamSectionTitle('Buts marqués'),
             const SizedBox(height: 10),
             _TeamGoalsCard(statistics: statistics),
             if (statistics.recentResults.isNotEmpty) ...[
-              const SizedBox(height: 22),
+              const SizedBox(height: AppSpacing.sectionGap),
               const _TeamSectionTitle('Derniers matchs'),
               const SizedBox(height: 10),
               _RecentResultsCard(results: statistics.recentResults),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: AppSpacing.sectionGap),
             const _TeamSectionTitle('Score moyen'),
             const SizedBox(height: 10),
             _AverageScoreCard(statistics: statistics),
             if (statistics.scoreMarginDistribution.isNotEmpty) ...[
-              const SizedBox(height: 22),
+              const SizedBox(height: AppSpacing.sectionGap),
               const _TeamSectionTitle(
                 'Nombre de matchs selon l’écart de score',
               ),
@@ -63,7 +69,7 @@ class TeamStatisticsPanel extends ConsumerWidget {
                 distribution: statistics.scoreMarginDistribution,
               ),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: AppSpacing.sectionGap),
             const _TeamSectionTitle('Séries'),
             const SizedBox(height: 10),
             _TeamStreaksSection(statistics: statistics),
@@ -102,17 +108,24 @@ class _TeamResultsCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 22, 14, 20),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.cardPadding,
+          22,
+          AppSpacing.cardPadding,
+          20,
+        ),
         child: Column(
           children: [
             Text(
               '${statistics.matchesPlayed}',
+              textAlign: TextAlign.center,
               style: theme.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
             ),
             Text(
               'match${statistics.matchesPlayed > 1 ? 's' : ''} joué${statistics.matchesPlayed > 1 ? 's' : ''}',
+              textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
@@ -121,7 +134,7 @@ class _TeamResultsCard extends StatelessWidget {
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, constraints) {
-                const gap = 8.0;
+                const gap = AppSpacing.contentGap;
                 final ringSize = math.min(
                   96.0,
                   math.max(
@@ -220,6 +233,7 @@ class _ResultRing extends StatelessWidget {
                       Text(
                         '$value',
                         maxLines: 1,
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: valueFontSize,
                           fontWeight: FontWeight.w900,
@@ -233,6 +247,7 @@ class _ResultRing extends StatelessWidget {
                           child: Text(
                             label,
                             maxLines: 1,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               color: theme.colorScheme.onSurfaceVariant,
                               fontSize: labelFontSize,
@@ -266,7 +281,10 @@ class _TeamGoalsCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.compactCardPadding,
+          vertical: 24,
+        ),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final donutSize = math.min(88.0, constraints.maxWidth * .27);
@@ -322,7 +340,7 @@ class _GoalValue extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.microGap),
       child: Column(
         children: [
           SizedBox(
@@ -332,6 +350,7 @@ class _GoalValue extends StatelessWidget {
               child: Text(
                 '$value',
                 maxLines: 1,
+                textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w900,
@@ -416,10 +435,13 @@ class _RecentResultsCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.compactCardPadding,
+          vertical: 20,
+        ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const gap = 8.0;
+            const gap = AppSpacing.contentGap;
             final count = results.length;
             final bubbleSize = count == 0
                 ? 0.0
@@ -480,6 +502,7 @@ class _ResultBubble extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(
               result,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
@@ -507,7 +530,10 @@ class _AverageScoreCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.cardPadding,
+          vertical: 22,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -553,15 +579,17 @@ class _AverageValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           value,
+          textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: color,
                 fontWeight: FontWeight.w900,
               ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.microGap),
         Text(
           label,
           textAlign: TextAlign.center,
@@ -644,17 +672,19 @@ class _MarginBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
             height: 18,
             child: Text(
               count == 0 ? '' : '$count',
+              textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.microGap),
           Expanded(
             child: Align(
               alignment: Alignment.bottomCenter,
@@ -672,9 +702,10 @@ class _MarginBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.contentGap),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
@@ -726,7 +757,7 @@ class _TeamStreaksSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sectionGap),
         _StreakGroupCard(
           title: 'Pires séries',
           children: [
@@ -764,7 +795,12 @@ class _StreakGroupCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.cardPadding,
+          18,
+          AppSpacing.cardPadding,
+          20,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -823,7 +859,7 @@ class _StreakRow extends StatelessWidget {
                     theme.colorScheme.onSurface.withValues(alpha: .13),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sectionGap),
             Text(
               '${streak.length} / $scale',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -869,12 +905,17 @@ class _ScrollableMessage extends StatelessWidget {
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenGutter,
+          AppSpacing.sectionGap,
+          AppSpacing.screenGutter,
+          32,
+        ),
         children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(message),
+              padding: const EdgeInsets.all(AppSpacing.cardPadding),
+              child: Text(message, textAlign: TextAlign.center),
             ),
           ),
         ],
