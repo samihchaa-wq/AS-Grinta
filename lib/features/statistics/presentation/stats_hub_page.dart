@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
@@ -43,7 +44,12 @@ class _StatsHubPageState extends State<StatsHubPage> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenGutter,
+              AppSpacing.contentGap,
+              AppSpacing.screenGutter,
+              AppSpacing.contentGap,
+            ),
             child: SizedBox(
               width: double.infinity,
               child: SegmentedButton<_StatsSection>(
@@ -208,7 +214,12 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
         }
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenGutter,
+            AppSpacing.contentGap,
+            AppSpacing.screenGutter,
+            32,
+          ),
           child: StickyHeaderTableCard(
             onRefresh: _refresh,
             pinnedHeader: _PlayersPinnedHeader(
@@ -393,7 +404,12 @@ class _Message extends StatelessWidget {
       onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.screenGutter,
+          AppSpacing.sectionGap,
+          AppSpacing.screenGutter,
+          32,
+        ),
         children: [
           Card(
             child: GrintaEmptyState(
