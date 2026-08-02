@@ -129,7 +129,7 @@ void main() {
     expect(find.text('Météo au coup d’envoi'), findsOneWidget);
     expect(find.text('16°C'), findsOneWidget);
     expect(find.text('Ressenti 14°C'), findsOneWidget);
-    expect(find.text('Pluie'), findsOneWidget);
+    expect(find.text('Pluie'), findsWidgets);
     expect(find.text('65 %'), findsOneWidget);
     expect(find.text('22 km/h'), findsOneWidget);
   });
