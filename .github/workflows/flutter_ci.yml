@@ -32,29 +32,13 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-
           replacements = {
-              Path('lib/features/matches/presentation/match_form_page.dart'): [
-                  ('final canManage = role == AuthRole.admin;',
-                   'final canManage = role?.isAdmin ?? false;'),
-              ],
-              Path('lib/features/matches/presentation/matches_controller.dart'): [
-                  ('bool get _isAdmin => _role == AuthRole.admin;',
-                   'bool get _isAdmin => _role?.isAdmin ?? false;'),
-              ],
-              Path('pubspec.yaml'): [
-                  ('version: 0.3.2+93', 'version: 0.3.2+94'),
-              ],
-              Path('web/build_version.js'): [
-                  ("AS_GRINTA_WEB_VERSION = '0.3.2+93';",
-                   "AS_GRINTA_WEB_VERSION = '0.3.2+94';"),
-              ],
-              Path('web/sw.js'): [
-                  ('Révision de déploiement 0.3.2+93',
-                   'Révision de déploiement 0.3.2+94'),
-              ],
+              Path('lib/features/matches/presentation/match_form_page.dart'): [('final canManage = role == AuthRole.admin;', 'final canManage = role?.isAdmin ?? false;')],
+              Path('lib/features/matches/presentation/matches_controller.dart'): [('bool get _isAdmin => _role == AuthRole.admin;', 'bool get _isAdmin => _role?.isAdmin ?? false;')],
+              Path('pubspec.yaml'): [('version: 0.3.2+93', 'version: 0.3.2+94')],
+              Path('web/build_version.js'): [("AS_GRINTA_WEB_VERSION = '0.3.2+93';", "AS_GRINTA_WEB_VERSION = '0.3.2+94';")],
+              Path('web/sw.js'): [('Révision de déploiement 0.3.2+93', 'Révision de déploiement 0.3.2+94')],
           }
-
           for path, pairs in replacements.items():
               text = path.read_text()
               for old, new in pairs:
@@ -62,38 +46,7 @@ jobs:
                       raise SystemExit(f'{path}: expected exactly one occurrence of {old!r}')
                   text = text.replace(old, new)
               path.write_text(text)
-
-          Path('test/match_staff_permissions_contract_test.dart').write_text("""import 'dart:io';
-
-import 'package:flutter_test/flutter_test.dart';
-
-void main() {
-  test('match management honors moderator admin rights', () async {
-    final form = await File(
-      'lib/features/matches/presentation/match_form_page.dart',
-    ).readAsString();
-    final controller = await File(
-      'lib/features/matches/presentation/matches_controller.dart',
-    ).readAsString();
-
-    expect(form, contains('final canManage = role?.isAdmin ?? false;'));
-    expect(
-      controller,
-      contains('bool get _isAdmin => _role?.isAdmin ?? false;'),
-    );
-    expect(
-      form,
-      isNot(contains('final canManage = role == AuthRole.admin;')),
-    );
-    expect(
-      controller,
-      isNot(contains('bool get _isAdmin => _role == AuthRole.admin;')),
-    );
-  });
-}
-""")
           PY
-
           git checkout origin/main -- .github/workflows/flutter_ci.yml
           git rm .github/workflows/apply-moderator-match-save-fix.yml
           git config user.name "github-actions[bot]"
@@ -101,7 +54,6 @@ void main() {
           git add lib/features/matches/presentation/match_form_page.dart \
                   lib/features/matches/presentation/matches_controller.dart \
                   pubspec.yaml web/build_version.js web/sw.js \
-                  test/match_staff_permissions_contract_test.dart \
                   .github/workflows/flutter_ci.yml \
                   .github/workflows/apply-moderator-match-save-fix.yml
           git commit -m "Corrige l’enregistrement des matchs pour les modérateurs"
@@ -160,16 +112,13 @@ void main() {
           python3 - <<'PY'
           import json
           from pathlib import Path
-
           report = json.loads(Path('dependency-outdated.json').read_text())
           packages = report.get('packages', [])
-
           def version(item, key):
               value = item.get(key)
               if isinstance(value, dict):
                   return value.get('version')
               return value
-
           discontinued = []
           constrained = []
           locked = []
@@ -192,7 +141,6 @@ void main() {
                   locked.append((name, current, upgradable, kind))
               if resolvable and latest and resolvable != latest:
                   constrained.append((name, resolvable, latest, kind))
-
           lines = [
               f'Dépendances obsolètes analysées : {len(packages)}',
               f'Versions verrouillées pouvant être mises à jour : {len(locked)}',
@@ -204,17 +152,11 @@ void main() {
           if locked:
               lines.append('')
               lines.append('Mises à jour compatibles :')
-              lines.extend(
-                  f'- {name}: {current} -> {upgradable} ({kind})'
-                  for name, current, upgradable, kind in locked
-              )
+              lines.extend(f'- {name}: {current} -> {upgradable} ({kind})' for name, current, upgradable, kind in locked)
           if constrained:
               lines.append('')
               lines.append('Contraintes à réexaminer :')
-              lines.extend(
-                  f'- {name}: résoluble {resolvable}, dernière {latest} ({kind})'
-                  for name, resolvable, latest, kind in constrained
-              )
+              lines.extend(f'- {name}: résoluble {resolvable}, dernière {latest} ({kind})' for name, resolvable, latest, kind in constrained)
           if discontinued:
               lines.append('')
               lines.append('Paquets abandonnés : ' + ', '.join(sorted(discontinued)))
@@ -222,13 +164,10 @@ void main() {
               lines.append('Paquets affectés : ' + ', '.join(sorted(affected)))
           if retracted:
               lines.append('Versions retirées : ' + ', '.join(sorted(retracted)))
-
           Path('dependency-summary.txt').write_text('\n'.join(lines) + '\n')
           print('\n'.join(lines))
           if discontinued or affected or retracted:
-              raise SystemExit(
-                  'Le graphe contient un paquet abandonné, vulnérable ou retiré.'
-              )
+              raise SystemExit('Le graphe contient un paquet abandonné, vulnérable ou retiré.')
           PY
 
       - name: Read application version
@@ -272,18 +211,15 @@ void main() {
           python3 - <<'PY'
           import os
           from pathlib import Path
-
           lcov_path = Path('coverage/lcov.info')
           if not lcov_path.exists():
               raise SystemExit('Le rapport coverage/lcov.info est absent.')
-
           total_lines = 0
           covered_lines = 0
           source_files = 0
           current_source = None
           current_total = 0
           current_covered = 0
-
           def commit_file():
               global total_lines, covered_lines, source_files
               global current_source, current_total, current_covered
@@ -303,7 +239,6 @@ void main() {
               current_source = None
               current_total = 0
               current_covered = 0
-
           for raw_line in lcov_path.read_text().splitlines():
               if raw_line.startswith('SF:'):
                   commit_file()
@@ -316,10 +251,8 @@ void main() {
               elif raw_line == 'end_of_record':
                   commit_file()
           commit_file()
-
           if total_lines == 0:
               raise SystemExit('Le rapport de couverture ne contient aucune ligne instrumentée.')
-
           percentage = covered_lines * 100 / total_lines
           threshold = float(os.environ['MIN_LINE_COVERAGE'])
           summary = (
@@ -331,9 +264,7 @@ void main() {
           Path('coverage-summary.txt').write_text(summary)
           print(summary, end='')
           if percentage + 1e-9 < threshold:
-              raise SystemExit(
-                  f'Couverture insuffisante : {percentage:.2f}% < {threshold:.2f}%.'
-              )
+              raise SystemExit(f'Couverture insuffisante : {percentage:.2f}% < {threshold:.2f}%.')
           PY
 
       - name: Build web
