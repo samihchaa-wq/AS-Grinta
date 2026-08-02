@@ -95,7 +95,7 @@ Widget _app({
 }
 
 void main() {
-  // Le résumé météo doit désormais représenter uniquement le coup d’envoi.
+  // Le résumé météo représente désormais uniquement le coup d’envoi.
   final kickoff = DateTime(2040, 1, 7, 20);
 
   testWidgets('la carte reste invisible avant J-6', (tester) async {
