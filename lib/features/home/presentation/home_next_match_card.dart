@@ -5,7 +5,6 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
-import 'package:as_grinta/features/weather/presentation/match_weather_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -223,11 +222,6 @@ class HomeNextMatchCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                    MatchWeatherCard(
-                      matchId: match.id,
-                      kickoffAt: match.kickoffAt,
-                      plannedDurationMinutes: match.plannedDurationMinutes,
-                    ),
                     const SizedBox(height: 8),
                     MatchAvailabilitySelector(
                       matchId: match.id,
