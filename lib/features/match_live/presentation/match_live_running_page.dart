@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
@@ -64,8 +65,6 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
       return const _Message(message: 'Composition indisponible.');
     }
 
-    // Les changements en attente sont visibles immédiatement, sans être
-    // persistés tant que le coach ne les a pas validés.
     final previewLineup = _previewLineup(lineup);
     final field = previewLineup.entriesFor(MatchCompositionZone.field);
     final bench = previewLineup.entriesFor(MatchCompositionZone.bench);
@@ -74,7 +73,12 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     final controller = ref.read(matchLiveStateProvider(matchId).notifier);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 32),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.liveScreenGutter,
+        AppSpacing.sectionGap,
+        AppSpacing.liveScreenGutter,
+        32,
+      ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
@@ -102,7 +106,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
             onValidate: () => _validatePending(lineup, controller),
           ),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sectionGap),
         LayoutBuilder(
           builder: (context, constraints) {
             final metrics = benchAndPitchMetrics(constraints.maxWidth);
@@ -143,7 +147,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
             );
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.sectionGap),
         _LiveJournal(
           key: _journalKey,
           events: bundle.events,
@@ -555,9 +559,12 @@ class _LiveTopBar extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.liveScreenGutter,
+          vertical: AppSpacing.sectionGap,
+        ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
               width: 90,
@@ -575,23 +582,21 @@ class _LiveTopBar extends StatelessWidget {
                       onRestart: onRestart,
                       onEndMatch: onEndMatch,
                     )
-                  : Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Icon(
-                            Icons.circle,
-                            size: 9,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Suivi en direct',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                        ],
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.circle,
+                          size: 9,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Suivi en direct',
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                      ],
                     ),
             ),
           ],
@@ -653,7 +658,7 @@ class _LiveMatchControls extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = (constraints.maxWidth - 6) / 2;
+        final width = (constraints.maxWidth - AppSpacing.microGap) / 2;
 
         Widget button({
           required String label,
@@ -688,15 +693,17 @@ class _LiveMatchControls extends StatelessWidget {
                     );
           final child = Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(icon, size: 16),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.microGap),
               Flexible(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.fade,
                   softWrap: false,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 11.5),
                 ),
               ),
@@ -716,8 +723,9 @@ class _LiveMatchControls extends StatelessWidget {
         }
 
         return Wrap(
-          spacing: 6,
-          runSpacing: 6,
+          alignment: WrapAlignment.center,
+          spacing: AppSpacing.microGap,
+          runSpacing: AppSpacing.microGap,
           children: [
             button(
               label: firstAction.label,
@@ -789,14 +797,21 @@ class _ScoreCard extends ConsumerWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.liveScreenGutter,
+          vertical: 9,
+        ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(child: home),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.microGap,
+              ),
               child: Text(
                 '–',
+                textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -830,6 +845,7 @@ class _ScoreTeamControl extends StatelessWidget {
     final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           label,
@@ -843,6 +859,7 @@ class _ScoreTeamControl extends StatelessWidget {
         const SizedBox(height: 3),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (canEdit)
               IconButton(
@@ -880,8 +897,8 @@ class _ScoreTeamControl extends StatelessWidget {
   }
 }
 
-const double _benchGap = 10;
-const double _benchColumnMargin = 14;
+const double _benchGap = AppSpacing.contentGap;
+const double _benchColumnMargin = AppSpacing.compactCardPadding;
 
 FormationMarkerMetrics benchAndPitchMetrics(double availableWidth) {
   final pitchWidth =
@@ -927,11 +944,12 @@ class _BenchColumn extends StatelessWidget {
             children: [
               Text(
                 'Banc (${bench.length})',
+                textAlign: TextAlign.center,
                 style: theme.textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.contentGap),
               if (bench.isEmpty)
                 Text(
                   'Personne',
@@ -1008,7 +1026,12 @@ class _PendingSubstitutions extends StatelessWidget {
       margin: EdgeInsets.zero,
       color: theme.colorScheme.primaryContainer,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.compactCardPadding,
+          10,
+          AppSpacing.compactCardPadding,
+          10,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1018,7 +1041,7 @@ class _PendingSubstitutions extends StatelessWidget {
                   Icons.swap_horiz_rounded,
                   color: theme.colorScheme.onPrimaryContainer,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.contentGap),
                 Expanded(
                   child: Text(
                     pending.length == 1
@@ -1050,7 +1073,7 @@ class _PendingSubstitutions extends StatelessWidget {
                   ),
                 ],
               ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.microGap),
             Row(
               children: [
                 Expanded(
@@ -1059,7 +1082,7 @@ class _PendingSubstitutions extends StatelessWidget {
                     child: const Text('Annuler'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.contentGap),
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
@@ -1120,8 +1143,12 @@ class _LiveJournal extends StatelessWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             onTap: () => onExpandedChanged(!expanded),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.cardPadding,
+                vertical: AppSpacing.compactCardPadding,
+              ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Icon(Icons.receipt_long_rounded),
                   const SizedBox(width: 9),
@@ -1136,9 +1163,10 @@ class _LiveJournal extends StatelessWidget {
                   if (events.isNotEmpty)
                     Text(
                       '${events.length}',
+                      textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.labelMedium,
                     ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: AppSpacing.microGap),
                   Icon(
                     expanded
                         ? Icons.keyboard_arrow_up_rounded
@@ -1150,7 +1178,12 @@ class _LiveJournal extends StatelessWidget {
           ),
           if (latest == null)
             const Padding(
-              padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.cardPadding,
+                0,
+                AppSpacing.cardPadding,
+                AppSpacing.cardPadding,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Aucun événement pour le moment.'),
@@ -1232,18 +1265,20 @@ class _JournalEventRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 9, 8, 9),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
             width: 36,
             child: Text(
               "${event.minute}'",
+              textAlign: TextAlign.center,
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
             ),
           ),
           Icon(icon, size: 20, color: color),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.contentGap),
           Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(6),
@@ -1266,9 +1301,10 @@ class _JournalEventRow extends StatelessWidget {
             ),
           ),
           if (hasScore) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.contentGap),
             Text(
               '${event.scoreAsGrintaAfter} - ${event.scoreAdverseAfter}',
+              textAlign: TextAlign.center,
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.w800,
               ),
@@ -1292,7 +1328,7 @@ class _JournalEventRow extends StatelessWidget {
                     child: Row(
                       children: [
                         const Icon(Icons.person_search_rounded),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: AppSpacing.contentGap),
                         Text(
                           event.needsScorer
                               ? 'Choisir le buteur'
@@ -1306,7 +1342,7 @@ class _JournalEventRow extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(Icons.delete_outline_rounded),
-                      SizedBox(width: 8),
+                      SizedBox(width: AppSpacing.contentGap),
                       Text('Retirer'),
                     ],
                   ),
