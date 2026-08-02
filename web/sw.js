@@ -1,5 +1,5 @@
-// Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour choisie
-// par l’utilisateur et réception des notifications Web Push.
+// Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour automatique
+// et réception des notifications Web Push.
 importScripts('build_version.js');
 
 const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
@@ -17,14 +17,14 @@ const APP_SHELL = [
 
 self.addEventListener('install', (event) => {
   // Le socle minimal est disponible hors ligne après une première installation
-  // réussie. Lors d’une mise à jour, le worker reste en attente jusqu’au clic
-  // de l’utilisateur sur le bandeau de mise à jour.
+  // réussie. Lors d’une mise à jour, le worker reste en attente jusqu’au signal
+  // automatique envoyé par la page courante.
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
   );
 });
 
-// Feu vert de l'utilisateur : on active la nouvelle version.
+// Activation immédiate demandée par la page lorsqu'une nouvelle version existe.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
