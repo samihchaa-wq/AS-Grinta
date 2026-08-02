@@ -16,6 +16,13 @@ create table public.shared_data_change_signals (
     check (revision > 0)
 );
 
+-- Le bootstrap métier CI n'installe pas le catalogue complet des badges alors
+-- que la table existe bien dans le schéma de production. Une table minimale
+-- suffit ici pour vérifier le contrat du trigger sans dupliquer ce catalogue.
+create table public.badges (
+  id uuid primary key
+);
+
 alter table public.shared_data_change_signals enable row level security;
 revoke all on table public.shared_data_change_signals
   from public, anon, authenticated;
