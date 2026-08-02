@@ -41,9 +41,10 @@ class MatchFinalizationController
     required Set<String> presentPlayerIds,
     required String? manOfMatchPlayerId,
   }) async {
-    if (_ref.read(authControllerProvider).profile?.role != AuthRole.admin) {
+    final role = _ref.read(authControllerProvider).profile?.role;
+    if (!(role?.isAdmin ?? false)) {
       state = state.copyWith(
-        error: 'Seul un administrateur peut valider le résultat.',
+        error: 'Seul un membre du staff peut valider le résultat.',
       );
       return false;
     }
