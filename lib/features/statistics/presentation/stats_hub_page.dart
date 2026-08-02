@@ -109,7 +109,8 @@ class _StatsHubPageState extends State<StatsHubPage> {
 enum _PlayerStatCol {
   name,
   played,
-  goalsOrCleanSheets,
+  goals,
+  cleanSheets,
   hdm,
   wins,
   draws,
@@ -145,11 +146,11 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
   num _value(_PlayerStatCol column, PlayerStatistics player) {
     return switch (column) {
       _PlayerStatCol.played => player.matchesPlayed ?? 0,
+      _PlayerStatCol.goals => player.goals,
+      _PlayerStatCol.cleanSheets => player.teamCleanSheets,
       _PlayerStatCol.wins => player.wins ?? 0,
       _PlayerStatCol.draws => player.draws ?? 0,
       _PlayerStatCol.losses => player.losses ?? 0,
-      _PlayerStatCol.goalsOrCleanSheets =>
-        player.isGoalkeeper ? player.cleanSheets : player.goals,
       _PlayerStatCol.hdm => player.hdm ?? 0,
       _PlayerStatCol.name => 0,
     };
@@ -295,7 +296,8 @@ class _PlayersScrollableHeader extends StatelessWidget {
       child: Row(
         children: [
           valueCell('J', _PlayerStatCol.played),
-          valueCell('B/CS', _PlayerStatCol.goalsOrCleanSheets),
+          valueCell('B', _PlayerStatCol.goals),
+          valueCell('CS', _PlayerStatCol.cleanSheets),
           valueCell('HDM', _PlayerStatCol.hdm),
           valueCell('G', _PlayerStatCol.wins),
           valueCell('N', _PlayerStatCol.draws),
@@ -346,7 +348,8 @@ StickyTableRow _playersRow(
     child: Row(
       children: [
         value(player.matchesPlayed ?? 0),
-        value(player.isGoalkeeper ? player.cleanSheets : player.goals),
+        value(player.goals),
+        value(player.teamCleanSheets),
         value(player.hdm ?? 0),
         value(player.wins ?? 0),
         value(player.draws ?? 0),
