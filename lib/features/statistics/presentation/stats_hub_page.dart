@@ -26,9 +26,9 @@ class StatsHubPage extends StatefulWidget {
 
 class _StatsHubPageState extends State<StatsHubPage> {
   late _StatsSection _section = switch (widget.initialSection) {
-    'players' => _StatsSection.players,
+    'rankings' => _StatsSection.rankings,
     'team' => _StatsSection.team,
-    _ => _StatsSection.rankings,
+    _ => _StatsSection.players,
   };
   StatisticsPeriod _period = StatisticsPeriod.current;
 
@@ -334,6 +334,7 @@ StickyTableRow _playersRow(
           child: NameWithBadges(
             profileId: player.profileId,
             name: player.playerName,
+            badgeSize: 22,
           ),
         ),
       ],

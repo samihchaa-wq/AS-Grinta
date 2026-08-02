@@ -81,6 +81,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
                     context,
                     gauge,
                     currentUserId,
+                    embedded,
                   ),
                 ),
               if (scorers.isNotEmpty && keepers.isNotEmpty)
@@ -96,6 +97,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
                     context,
                     gauge,
                     currentUserId,
+                    embedded,
                   ),
                 ),
             ],
@@ -125,6 +127,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
     BuildContext context,
     PlayerGauge gauge,
     String? currentUserId,
+    bool embedded,
   ) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -139,6 +142,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
           gauge: gauge,
           currentUserId: currentUserId,
           scrollController: controller,
+          badgeSize: embedded ? 22 : null,
         ),
       ),
     );

@@ -10,11 +10,13 @@ class PlayerPredictionsSheet extends StatelessWidget {
     required this.gauge,
     required this.currentUserId,
     required this.scrollController,
+    this.badgeSize,
   });
 
   final PlayerGauge gauge;
   final String? currentUserId;
   final ScrollController scrollController;
+  final double? badgeSize;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +144,7 @@ class PlayerPredictionsSheet extends StatelessWidget {
                     prediction: predictions[index],
                     rank: _rankFor(predictions, index, gauge.actual),
                     isMine: predictions[index].predictorId == currentUserId,
+                    badgeSize: badgeSize,
                   ),
               ],
             ),
@@ -171,11 +174,13 @@ class _PredictionRow extends StatelessWidget {
     required this.prediction,
     required this.rank,
     required this.isMine,
+    this.badgeSize,
   });
 
   final GaugePrediction prediction;
   final int rank;
   final bool isMine;
+  final double? badgeSize;
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +202,7 @@ class _PredictionRow extends StatelessWidget {
             child: NameWithBadges(
               profileId: prediction.predictorId,
               name: prediction.predictorName,
+              badgeSize: badgeSize,
               style: TextStyle(
                 color: isMine ? mine : Colors.white,
                 fontWeight: isMine ? FontWeight.w900 : FontWeight.w700,

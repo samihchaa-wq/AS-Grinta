@@ -1,9 +1,10 @@
 part of 'pronos_hub_page.dart';
 
 class _GeneralRankingsSection extends StatefulWidget {
-  const _GeneralRankingsSection({this.initialView});
+  const _GeneralRankingsSection({this.initialView, this.badgeSize});
 
   final String? initialView;
+  final double? badgeSize;
 
   @override
   State<_GeneralRankingsSection> createState() =>
@@ -43,12 +44,16 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
         ),
         Expanded(
           child: switch (_view) {
-            _GeneralRankingView.matches => const _MatchRankingView(),
+            _GeneralRankingView.matches => _MatchRankingView(
+                badgeSize: widget.badgeSize,
+              ),
             _GeneralRankingView.scorers => const ColorfulSeasonPredictionsPage(
                 embedded: true,
                 showRanking: false,
               ),
-            _GeneralRankingView.general => const _GeneralRankingViewWidget(),
+            _GeneralRankingView.general => _GeneralRankingViewWidget(
+                badgeSize: widget.badgeSize,
+              ),
           },
         ),
       ],
@@ -57,7 +62,9 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
 }
 
 class _MatchRankingView extends ConsumerWidget {
-  const _MatchRankingView();
+  const _MatchRankingView({this.badgeSize});
+
+  final double? badgeSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -87,6 +94,7 @@ class _MatchRankingView extends ConsumerWidget {
           points: (entry) => entry.matchPoints * 100,
           showMatchStats: true,
           onRefresh: refresh,
+          badgeSize: badgeSize,
         ),
       ),
     );
@@ -111,7 +119,9 @@ class _ScorerRankingView extends ConsumerWidget {
 }
 
 class _GeneralRankingViewWidget extends ConsumerWidget {
-  const _GeneralRankingViewWidget();
+  const _GeneralRankingViewWidget({this.badgeSize});
+
+  final double? badgeSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -140,6 +150,7 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
           entries: entries,
           points: (entry) => entry.totalPoints.roundToDouble(),
           onRefresh: refresh,
+          badgeSize: badgeSize,
         ),
       ),
     );
