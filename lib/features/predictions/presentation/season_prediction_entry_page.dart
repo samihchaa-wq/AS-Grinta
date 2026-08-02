@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
@@ -38,6 +39,13 @@ class _SeasonPredictionEntryPageState
   @override
   Widget build(BuildContext context) {
     final items = ref.watch(seasonPredictionsProvider);
+    return _buildPage(context, items);
+  }
+
+  Widget _buildPage(
+    BuildContext context,
+    AsyncValue<List<SeasonPredictionItem>> items,
+  ) {
     final content = RefreshIndicator(
       onRefresh: () async {
         _draftValues.clear();
@@ -53,20 +61,33 @@ class _SeasonPredictionEntryPageState
           ],
         ),
         error: (error, _) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [Text(humanizeError(error))],
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenGutter,
+            AppSpacing.sectionGap,
+            AppSpacing.screenGutter,
+            32,
+          ),
+          children: [
+            Text(humanizeError(error), textAlign: TextAlign.center),
+          ],
         ),
         data: (entries) {
           if (entries.isEmpty) {
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenGutter,
+                AppSpacing.sectionGap,
+                AppSpacing.screenGutter,
+                32,
+              ),
               children: const [
                 Card(
                   child: Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: EdgeInsets.all(AppSpacing.cardPadding),
                     child: Text(
                       'Aucune saison ouverte ou aucun joueur actif dans '
                       'l’effectif.',
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -78,11 +99,21 @@ class _SeasonPredictionEntryPageState
             key: _formKey,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenGutter,
+                AppSpacing.sectionGap,
+                AppSpacing.screenGutter,
+                32,
+              ),
               children: [
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.cardPadding,
+                      AppSpacing.compactCardPadding,
+                      AppSpacing.cardPadding,
+                      AppSpacing.contentGap,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -103,13 +134,17 @@ class _SeasonPredictionEntryPageState
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sectionGap),
                 if (_error != null) ...[
-                  Text(_error!, style: const TextStyle(color: Colors.white)),
-                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: AppSpacing.sectionGap),
                 ],
                 ...entries.map(_buildPlayerRow),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.sectionGap),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
@@ -148,21 +183,24 @@ class _SeasonPredictionEntryPageState
     final key = '${item.playerId}:${item.category}';
     final value = _draftValues[key] ?? item.value;
     final isGoalkeeper = item.category == 'clean_sheets';
-    // On pronostique le TOTAL de la saison (plus de base sur 30 matchs) : le
-    // plafond des clean sheets ne doit donc plus être bloqué à 30.
     const maxValue = 99;
     final label = isGoalkeeper ? 'clean sheets' : 'buts';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.contentGap),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.cardPadding,
+          AppSpacing.contentGap,
+          AppSpacing.compactCardPadding,
+          AppSpacing.contentGap,
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.only(top: AppSpacing.sectionGap),
                 child: NameWithBadges(
                   profileId: item.profileId,
                   name: item.playerName,
@@ -203,9 +241,10 @@ class _SeasonPredictionEntryPageState
             SizedBox(
               width: 76,
               child: Padding(
-                padding: const EdgeInsets.only(top: 14),
+                padding: const EdgeInsets.only(top: AppSpacing.cardPadding),
                 child: Text(
                   label,
+                  textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
