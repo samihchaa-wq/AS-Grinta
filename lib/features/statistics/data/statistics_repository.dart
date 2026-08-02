@@ -40,6 +40,7 @@ class PlayerStatistics {
     required this.goals,
     required this.hdm,
     required this.cleanSheets,
+    this.teamCleanSheets = 0,
   });
 
   final StatisticsPeriod period;
@@ -58,7 +59,12 @@ class PlayerStatistics {
   final int? losses;
   final int goals;
   final int? hdm;
+
+  /// Clean sheets attribués au gardien par la validation post-match historique.
   final int cleanSheets;
+
+  /// Matchs joués sans but encaissé, tous postes confondus.
+  final int teamCleanSheets;
 
   bool get hasHistoricalBreakdown => matchesPlayed != null;
 }
@@ -156,6 +162,7 @@ class StatisticsRepository {
           goals,
           hdm,
           clean_sheets,
+          team_clean_sheets,
           profile_id
         ''').eq('period_key', period.databaseKey);
 
@@ -206,6 +213,8 @@ class StatisticsRepository {
           goals: (map['goals'] as num?)?.toInt() ?? 0,
           hdm: (map['hdm'] as num?)?.toInt(),
           cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
+          teamCleanSheets:
+              (map['team_clean_sheets'] as num?)?.toInt() ?? 0,
         ),
       );
     }
