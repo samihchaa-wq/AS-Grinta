@@ -51,16 +51,16 @@ class _StatsHubPageState extends State<StatsHubPage> {
                 showSelectedIcon: false,
                 segments: const [
                   ButtonSegment(
-                    value: _StatsSection.rankings,
-                    label: Text('Prono'),
-                  ),
-                  ButtonSegment(
                     value: _StatsSection.players,
-                    label: Text('Joueur'),
+                    label: Text('Joueurs'),
                   ),
                   ButtonSegment(
                     value: _StatsSection.team,
                     label: Text('Équipe'),
+                  ),
+                  ButtonSegment(
+                    value: _StatsSection.rankings,
+                    label: Text('Prono'),
                   ),
                 ],
                 selected: {_section},
