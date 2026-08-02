@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -93,7 +94,12 @@ class MatchLineupPage extends ConsumerWidget {
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenGutter,
+            AppSpacing.sectionGap,
+            AppSpacing.screenGutter,
+            40,
+          ),
           children: [
             UpcomingMatchFixtureHeader(matchId: matchId),
             SegmentedButton<String>(
@@ -134,7 +140,7 @@ class MatchLineupPage extends ConsumerWidget {
                 '/matches/$matchId/lineup?section=${selection.first}',
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.sectionGap),
             if (showInfo) MatchInfoTab(matchId: matchId),
             if (showEffectif)
               MatchAvailabilityBoardCard(
@@ -175,7 +181,12 @@ class _MatchInfoOnlyPage extends ConsumerWidget {
         },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenGutter,
+            AppSpacing.sectionGap,
+            AppSpacing.screenGutter,
+            40,
+          ),
           children: [MatchInfoTab(matchId: matchId)],
         ),
       ),
@@ -208,7 +219,10 @@ class PublishedLineupCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (showAvailabilityFlow)
-              MatchAvailabilitySelector(matchId: matchId, bottomSpacing: 12),
+              MatchAvailabilitySelector(
+                matchId: matchId,
+                bottomSpacing: AppSpacing.sectionGap,
+              ),
             PublishedLineupPreview(matchId: matchId, showLists: true),
           ],
         ),
@@ -258,7 +272,7 @@ class PublishedLineupPreview extends ConsumerWidget {
             return Card(
               margin: EdgeInsets.zero,
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(AppSpacing.cardPadding),
                 child: Text(emptyMessage ?? 'Composition non publiée.'),
               ),
             );
@@ -275,7 +289,7 @@ class PublishedLineupPreview extends ConsumerWidget {
               Row(
                 children: [
                   Icon(Icons.groups_2_outlined, color: foreground),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.contentGap),
                   Expanded(
                     child: Text(
                       'Composition',
@@ -295,7 +309,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.microGap),
               Text(
                 'Composition publiée',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -303,7 +317,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                     ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               Center(
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: expanded ? 500 : 360),
@@ -312,7 +326,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Remplaçants (${composition.benchCount})',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -320,7 +334,7 @@ class PublishedLineupPreview extends ConsumerWidget {
                       fontWeight: FontWeight.w900,
                     ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.contentGap),
               if (composition.benchCount == 0)
                 Text(
                   'Aucun remplaçant.',
@@ -330,8 +344,8 @@ class PublishedLineupPreview extends ConsumerWidget {
                 )
               else
                 Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+                  spacing: AppSpacing.contentGap,
+                  runSpacing: AppSpacing.contentGap,
                   children: [
                     for (final entry in composition.entriesFor(
                       MatchCompositionZone.bench,
@@ -340,10 +354,12 @@ class PublishedLineupPreview extends ConsumerWidget {
                   ],
                 ),
               if (showLists && beforeKickoff) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sectionGap),
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
-                  childrenPadding: const EdgeInsets.only(top: 8),
+                  childrenPadding: const EdgeInsets.only(
+                    top: AppSpacing.contentGap,
+                  ),
                   leading: Icon(Icons.list_alt_outlined, color: foreground),
                   title: Text(
                     'Voir les listes',
@@ -365,7 +381,7 @@ class PublishedLineupPreview extends ConsumerWidget {
           );
           if (embeddedOnDark) {
             return Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(AppSpacing.cardPadding),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: .06),
                 borderRadius: BorderRadius.circular(18),
@@ -378,7 +394,10 @@ class PublishedLineupPreview extends ConsumerWidget {
           }
           return Card(
             margin: EdgeInsets.zero,
-            child: Padding(padding: const EdgeInsets.all(16), child: content),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.cardPadding),
+              child: content,
+            ),
           );
         },
       ),
