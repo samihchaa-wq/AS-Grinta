@@ -18,12 +18,14 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
     required this.gauge,
     required this.scaleMax,
     required this.personalPrediction,
+    this.badgeSize = 88,
     required this.onTap,
   });
 
   final PlayerGauge gauge;
   final int scaleMax;
   final int? personalPrediction;
+  final double badgeSize;
   final VoidCallback onTap;
 
   @override
@@ -47,6 +49,7 @@ class ReferencePlayerGaugeCard extends StatelessWidget {
                   gauge: gauge,
                   scaleMax: scaleMax,
                   personalPrediction: personalPrediction,
+                  badgeSize: badgeSize,
                 ),
               ),
             ),
@@ -62,11 +65,13 @@ class _ReferenceCardCanvas extends StatelessWidget {
     required this.gauge,
     required this.scaleMax,
     required this.personalPrediction,
+    required this.badgeSize,
   });
 
   final PlayerGauge gauge;
   final int scaleMax;
   final int? personalPrediction;
+  final double badgeSize;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +99,7 @@ class _ReferenceCardCanvas extends StatelessWidget {
               name: gauge.playerName,
               profileId: gauge.profileId,
               isGoalkeeper: gauge.isGoalkeeper,
+              badgeSize: badgeSize,
             ),
           ),
           Positioned(
@@ -119,11 +125,13 @@ class _PlayerIdentity extends ConsumerWidget {
     required this.name,
     required this.profileId,
     required this.isGoalkeeper,
+    required this.badgeSize,
   });
 
   final String name;
   final String? profileId;
   final bool isGoalkeeper;
+  final double badgeSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -179,7 +187,7 @@ class _PlayerIdentity extends ConsumerWidget {
         ),
         for (final badge in badges.take(2)) ...[
           const SizedBox(width: 18),
-          _GaugeBadgeChip(badge: badge, size: 88),
+          _GaugeBadgeChip(badge: badge, size: badgeSize),
         ],
       ],
     );

@@ -77,6 +77,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
                   gauges: scorers,
                   scaleMax: _scale(scorers, 20),
                   currentUserId: currentUserId,
+                  badgeSize: embedded ? 112 : 88,
                   onOpen: (gauge) => _openPlayerDetails(
                     context,
                     gauge,
@@ -93,6 +94,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
                   gauges: keepers,
                   scaleMax: _scale(keepers, 15),
                   currentUserId: currentUserId,
+                  badgeSize: embedded ? 112 : 88,
                   onOpen: (gauge) => _openPlayerDetails(
                     context,
                     gauge,
@@ -142,7 +144,7 @@ class _LockedScorerDashboard extends ConsumerWidget {
           gauge: gauge,
           currentUserId: currentUserId,
           scrollController: controller,
-          badgeSize: embedded ? 22 : null,
+          badgeSize: embedded ? 28 : null,
         ),
       ),
     );
@@ -156,6 +158,7 @@ class _GaugeSection extends StatelessWidget {
     required this.gauges,
     required this.scaleMax,
     required this.currentUserId,
+    required this.badgeSize,
     required this.onOpen,
   });
 
@@ -164,6 +167,7 @@ class _GaugeSection extends StatelessWidget {
   final List<PlayerGauge> gauges;
   final int scaleMax;
   final String? currentUserId;
+  final double badgeSize;
   final ValueChanged<PlayerGauge> onOpen;
 
   @override
@@ -210,6 +214,7 @@ class _GaugeSection extends StatelessWidget {
               gauge: gauge,
               scaleMax: scaleMax,
               personalPrediction: gauge.predictionFor(currentUserId)?.value,
+              badgeSize: badgeSize,
               onTap: () => onOpen(gauge),
             ),
         ],
