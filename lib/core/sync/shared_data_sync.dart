@@ -171,25 +171,25 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
   int? lastRevision;
   String? lastProfileId = ref.read(authControllerProvider).profile?.id;
 
-  ref.listen<AsyncValue<SharedDataChangeSignal?>>(sharedDataSignalProvider, (
-    previous,
-    next,
-  ) {
-    final signal = next.valueOrNull;
-    if (signal == null) return;
+  ref.listen<AsyncValue<SharedDataChangeSignal?>>(
+    sharedDataSignalProvider,
+    (previous, next) {
+      final signal = next.valueOrNull;
+      if (signal == null) return;
 
-    if (lastRevision == null) {
+      if (lastRevision == null) {
+        lastRevision = signal.revision;
+        return;
+      }
+      if (signal.revision <= lastRevision!) return;
       lastRevision = signal.revision;
-      return;
-    }
-    if (signal.revision <= lastRevision!) return;
-    lastRevision = signal.revision;
 
-    debounce?.cancel();
-    debounce = Timer(const Duration(milliseconds: 350), () {
-      unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
-    });
-  });
+      debounce?.cancel();
+      debounce = Timer(const Duration(milliseconds: 350), () {
+        unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
+      });
+    },
+  );
 
   ref.listen<String?>(
     authControllerProvider.select((state) => state.profile?.id),
