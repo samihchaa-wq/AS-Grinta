@@ -95,6 +95,7 @@ Widget _app({
 }
 
 void main() {
+  // Le résumé météo représente désormais uniquement le coup d’envoi.
   final kickoff = DateTime(2040, 1, 7, 20);
 
   testWidgets('la carte reste invisible avant J-6', (tester) async {
@@ -108,7 +109,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Météo du match'), findsNothing);
+    expect(find.text('Météo au coup d’envoi'), findsNothing);
     expect(repository.watchCount, 0);
   });
 
@@ -125,13 +126,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Météo du match'), findsOneWidget);
+    expect(find.text('Météo au coup d’envoi'), findsOneWidget);
     expect(find.text('16°C'), findsOneWidget);
     expect(find.text('Ressenti 14°C'), findsOneWidget);
     expect(find.text('Pluie'), findsWidgets);
+    expect(find.text('65 %'), findsOneWidget);
+    expect(find.text('22 km/h'), findsOneWidget);
   });
 
-  testWidgets('les trois créneaux horaires sont affichés', (tester) async {
+  testWidgets('la carte n’affiche plus les trois créneaux ni l’indice Grinta', (
+    tester,
+  ) async {
     final repository = _FakeWeatherRepository(_weather(kickoff: kickoff));
     await tester.pumpWidget(
       _app(
@@ -142,9 +147,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('19h'), findsOneWidget);
-    expect(find.text('20h'), findsOneWidget);
-    expect(find.text('21h'), findsOneWidget);
+    expect(find.text('19h'), findsNothing);
+    expect(find.text('20h'), findsNothing);
+    expect(find.text('21h'), findsNothing);
+    expect(find.textContaining('Indice Grinta'), findsNothing);
+    expect(find.textContaining('Prévision pour le lieu'), findsNothing);
+    expect(find.textContaining('Mis à jour'), findsNothing);
   });
 
   testWidgets(
@@ -172,8 +180,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text('Météo du match'), findsOneWidget);
-      expect(find.textContaining('Indice Grinta'), findsOneWidget);
+      expect(find.text('Météo au coup d’envoi'), findsOneWidget);
     },
   );
 
@@ -192,10 +199,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Météo du match'), findsNothing);
+    expect(find.text('Météo au coup d’envoi'), findsNothing);
   });
 
-  testWidgets('les conditions difficiles utilisent un message de prudence', (
+  testWidgets('les conditions météo restent lisibles au coup d’envoi', (
     tester,
   ) async {
     final repository = _FakeWeatherRepository(
@@ -210,25 +217,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('prudence'), findsOneWidget);
-    expect(find.text('4/10'), findsOneWidget);
-  });
-
-  testWidgets('une pluie marquée produit la signature Grinta', (tester) async {
-    final repository = _FakeWeatherRepository(_weather(kickoff: kickoff));
-    await tester.pumpWidget(
-      _app(
-        repository: repository,
-        kickoff: kickoff,
-        now: kickoff.subtract(const Duration(days: 3)),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('Ça va glisser. Le vrai football commence.'),
-      findsOneWidget,
-    );
+    expect(find.text('Orage'), findsOneWidget);
+    expect(find.text('70 km/h'), findsOneWidget);
   });
 
   testWidgets('aucun cache météo ne laisse simplement la carte absente', (
@@ -245,6 +235,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Météo du match'), findsNothing);
+    expect(find.text('Météo au coup d’envoi'), findsNothing);
   });
 }
