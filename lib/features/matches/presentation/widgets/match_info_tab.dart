@@ -73,8 +73,9 @@ class MatchInfoTab extends ConsumerWidget {
                           ),
                           TextSpan(
                             text: AppFormats.time(
-                              info.kickoffAt!
-                                  .subtract(const Duration(minutes: 30)),
+                              info.kickoffAt!.subtract(
+                                const Duration(minutes: 30),
+                              ),
                             ),
                             style: const TextStyle(
                               fontSize: 15.5,
@@ -222,9 +223,9 @@ class MatchInfoTab extends ConsumerWidget {
                   encounters.length > 1
                       ? '5 dernières rencontres'
                       : 'Dernière rencontre',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 7),
                 if (encounters.isEmpty)
@@ -239,7 +240,11 @@ class MatchInfoTab extends ConsumerWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (var index = 0; index < encounters.length; index++) ...[
+                      for (
+                        var index = 0;
+                        index < encounters.length;
+                        index++
+                      ) ...[
                         if (index > 0) const SizedBox(width: 4),
                         Expanded(
                           child: _EncounterChip(encounter: encounters[index]),
