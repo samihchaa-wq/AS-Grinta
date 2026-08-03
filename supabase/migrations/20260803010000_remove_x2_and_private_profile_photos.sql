@@ -314,7 +314,6 @@ create or replace function public.save_match_prediction(
 )
 returns boolean
 language sql
-security definer
 set search_path to ''
 as $$
   select public.save_match_prediction(
