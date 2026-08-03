@@ -29,7 +29,7 @@ Le vote ouvre au premier événement valide parmi :
 2. validation du récapitulatif Live par le coach ;
 3. validation des Stats/finalisation du match par un administrateur ou modérateur.
 
-Le vote ne peut jamais ouvrir avant le coup d'envoi.
+Le vote ne peut jamais ouvrir avant le coup d'envoi. À H+2, son ouverture ne dépend pas d'une publication de composition ou d'une finalisation préalable : dès qu'un bulletin de vote valide peut être constitué, le scrutin est créé et ouvert.
 
 ## Notifications supprimées
 
@@ -45,6 +45,6 @@ Les envois automatiques suivants ne font plus partie du contrat :
 
 ## Exploitation
 
-Le coupe-circuit global `notifications_paused` reste prioritaire sur tout envoi. Les tâches planifiées ne doivent pas consommer définitivement un événement à envoyer lorsque ce coupe-circuit est actif.
+Le coupe-circuit global `notifications_paused` reste prioritaire sur tout envoi. Il ne suspend pas les transitions métier : les disponibilités continuent donc à s'ouvrir et se fermer aux heures prévues, même lorsque les push sont en pause. Les tâches planifiées ne doivent pas consommer définitivement un événement à envoyer lorsque ce coupe-circuit est actif.
 
 Les déclencheurs automatiques sont portés par la base afin que les mêmes règles s'appliquent quelle que soit l'interface utilisée pour modifier un match.
