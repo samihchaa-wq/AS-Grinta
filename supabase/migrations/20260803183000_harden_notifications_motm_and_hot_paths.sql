@@ -1,8 +1,8 @@
 begin;
 
--- Le contrat HDM est volontairement basé sur la première finalisation valide
--- (validation des Stats ou export du récapitulatif Live), avec H+2 comme filet
--- de sécurité. Le scrutin ne peut jamais ouvrir avant le coup d'envoi.
+-- Le contrat produit HDM est strict : ouverture à H+1 h 45 après le coup
+-- d'envoi. Une validation Stats ou un récapitulatif Live ne peut jamais avancer
+-- cette fenêtre.
 create or replace function private.match_motm_opens_at(p_match_id uuid)
 returns timestamptz
 language sql
@@ -10,25 +10,15 @@ stable
 security definer
 set search_path to ''
 as $function$
-  select least(
-    match.kickoff_at + interval '2 hours',
-    greatest(
-      match.kickoff_at,
-      coalesce((
-        select min(version.created_at)
-        from public.match_sport_finalization_versions version
-        where version.match_id = p_match_id
-      ), 'infinity'::timestamptz)
-    )
-  )
+  select match.kickoff_at + interval '1 hour 45 minutes'
   from public.matches match
   where match.id = p_match_id;
 $function$;
 
 comment on function private.match_motm_opens_at(uuid) is
-  'Ouvre le vote HDM à la première finalisation Stats/récap Live après le coup d''envoi, sinon à H+2.';
+  'Ouvre le vote HDM strictement à H+1 h 45 après le coup d''envoi.';
 
--- La fermeture reste fixe à H+24, quelle que soit l'heure réelle d'ouverture.
+-- La fermeture reste fixe à H+24 après le coup d'envoi.
 create or replace function private.ensure_match_motm_election(p_match_id uuid)
 returns void
 language plpgsql
@@ -84,6 +74,116 @@ begin
   set vote_state = 'draft',
       updated_at = now()
   where match_id = p_match_id;
+end;
+$function$;
+
+-- Le job périodique doit créer le scrutin dès H+1 h 45, et non H+2.
+create or replace function private.close_due_match_motm_elections()
+returns integer
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_row record;
+  v_processed integer := 0;
+begin
+  if not private.is_feature_enabled('sports_management') then
+    return 0;
+  end if;
+
+  for v_row in
+    select match.id as match_id
+    from public.matches match
+    where match.status <> 'annule'
+      and match.kickoff_at + interval '1 hour 45 minutes' <= now()
+      and match.kickoff_at > now() - interval '30 days'
+      and not exists (
+        select 1
+        from public.match_sport_motm_elections election
+        where election.match_id = match.id
+      )
+    order by match.kickoff_at, match.id
+  loop
+    perform private.ensure_match_motm_election(v_row.match_id);
+  end loop;
+
+  for v_row in
+    select election.match_id
+    from public.match_sport_motm_elections election
+    where election.state in ('draft', 'open')
+    order by election.closes_at nulls last, election.match_id
+    for update skip locked
+  loop
+    perform private.transition_match_motm_election(v_row.match_id);
+    v_processed := v_processed + 1;
+  end loop;
+
+  return v_processed;
+end;
+$function$;
+
+-- Réaligne les scrutins encore en brouillon sur la règle stricte. Les scrutins
+-- déjà ouverts ne sont pas rétrogradés afin de ne pas invalider des votes déjà
+-- exprimés pendant un déploiement.
+update public.match_sport_motm_elections election
+set opens_at = private.match_motm_opens_at(election.match_id),
+    updated_at = now()
+where election.state = 'draft';
+
+-- Une finalisation post-match peut créer ou synchroniser le scrutin, mais ne
+-- doit jamais avancer son heure d'ouverture avant H+1 h 45.
+create or replace function private.trg_reset_match_motm_after_finalization()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_opens_at timestamptz;
+  v_vote_state public.sport_vote_state;
+begin
+  perform private.ensure_match_motm_election(new.match_id);
+
+  v_opens_at := private.match_motm_opens_at(new.match_id);
+  update public.match_sport_motm_elections election
+  set opens_at = v_opens_at,
+      updated_at = now()
+  where election.match_id = new.match_id
+    and election.state = 'draft';
+
+  perform private.transition_match_motm_election(new.match_id);
+
+  select election.state
+  into v_vote_state
+  from public.match_sport_motm_elections election
+  where election.match_id = new.match_id;
+
+  if v_vote_state is not null then
+    update public.match_sport_workflows workflow
+    set vote_state = v_vote_state,
+        updated_at = now()
+    where workflow.match_id = new.match_id
+      and workflow.vote_state is distinct from v_vote_state;
+  end if;
+
+  if v_vote_state = 'closed' then
+    delete from public.match_man_of_match
+    where match_id = new.match_id;
+
+    insert into public.match_man_of_match(match_id, season_player_id)
+    select result.match_id, participant.season_player_id
+    from public.match_sport_motm_results result
+    join public.match_sport_participants participant
+      on participant.id = result.participant_id
+     and participant.match_id = result.match_id
+    where result.match_id = new.match_id
+      and result.is_winner
+      and participant.season_player_id is not null
+    on conflict do nothing;
+  end if;
+
+  return new;
 end;
 $function$;
 
