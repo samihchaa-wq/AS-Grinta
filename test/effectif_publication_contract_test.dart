@@ -44,7 +44,8 @@ void main() {
       convocations.players.single.publishedConvocationStatus,
       ConvocationStatus.convoked,
     );
-    expect(convocations.players.single.hasUnpublishedConvocationChange, isFalse);
+    expect(
+        convocations.players.single.hasUnpublishedConvocationChange, isFalse);
   });
 
   test('the admin flow has no draft or publication step', () {
@@ -73,7 +74,8 @@ void main() {
     );
     expect(
       compositionSource,
-      isNot(contains('Les convocations ne seront pas modifiées par cette action.')),
+      isNot(contains(
+          'Les convocations ne seront pas modifiées par cette action.')),
     );
   });
 }
