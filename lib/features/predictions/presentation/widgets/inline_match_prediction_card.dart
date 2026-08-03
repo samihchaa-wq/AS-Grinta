@@ -124,7 +124,10 @@ class _InlineMatchPredictionCardState
                 ),
                 error: (_, __) => const Text(
                   'Historique des confrontations momentanément indisponible.',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 data: (data) => _HeadToHead(data: data),
               ),
