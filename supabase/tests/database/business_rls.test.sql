@@ -57,8 +57,8 @@ select is(
   'les pronostics saisonniers sont préremplis automatiquement'
 );
 
--- Match d'abord ouvert : les pronostics historiques sont donc acceptés par le
--- garde serveur. Il est ensuite marqué terminé pour créditer un x2 à Alice.
+-- Match dans la fenêtre J-6 : deux pronostics sont saisis puis le match est
+-- marqué terminé afin de vérifier la révélation des pronostics après résultat.
 insert into public.matches (
   id, season_id, opponent_id, match_date, match_time, location,
   planned_duration_minutes, status, created_by
@@ -67,7 +67,9 @@ values (
   '50000000-0000-0000-0000-000000000001',
   '20000000-0000-0000-0000-000000000001',
   '30000000-0000-0000-0000-000000000001',
-  date '2097-12-01', time '20:00', 'domicile', 90, 'a_venir',
+  ((now() at time zone 'Europe/Paris') + interval '1 day')::date,
+  ((now() at time zone 'Europe/Paris') + interval '1 day')::time,
+  'domicile', 90, 'a_venir',
   '10000000-0000-0000-0000-000000000001'
 );
 
@@ -113,14 +115,14 @@ select
   'domicile', 90, 'a_venir',
   '10000000-0000-0000-0000-000000000001';
 
--- Deux matchs ouverts dans un ordre déterministe.
+-- Deux autres matchs ouverts simultanément dans la fenêtre J-6.
 insert into public.matches (
   id, season_id, opponent_id, match_date, match_time, location,
   planned_duration_minutes, status, created_by
 )
 values
-  ('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', date '2098-01-10', time '20:00', 'domicile', 90, 'a_venir', '10000000-0000-0000-0000-000000000001'),
-  ('50000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', date '2098-01-11', time '20:00', 'exterieur', 90, 'a_venir', '10000000-0000-0000-0000-000000000001');
+  ('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', ((now() at time zone 'Europe/Paris') + interval '2 days')::date, ((now() at time zone 'Europe/Paris') + interval '2 days')::time, 'domicile', 90, 'a_venir', '10000000-0000-0000-0000-000000000001'),
+  ('50000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', ((now() at time zone 'Europe/Paris') + interval '3 days')::date, ((now() at time zone 'Europe/Paris') + interval '3 days')::time, 'exterieur', 90, 'a_venir', '10000000-0000-0000-0000-000000000001');
 
 insert into public.match_odds (
   match_id, odds_victoire_as_grinta, odds_nul, odds_victoire_adverse
@@ -178,7 +180,7 @@ select is(
   'la RLS empêche la modification du pronostic d’un autre utilisateur'
 );
 
--- Premier match et compte actif/inactif.
+-- Plusieurs matchs ouverts et compte actif/inactif.
 select set_config(
   'request.jwt.claims',
   '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
@@ -186,13 +188,12 @@ select set_config(
 );
 set local role authenticated;
 select ok(
-  public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 0, false),
-  'le premier match ouvert accepte le pronostic'
+  public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 0),
+  'un match dans la fenêtre J-6 accepte le pronostic'
 );
-select throws_ok(
-  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000004', 1, 0, false)$$,
-  '22023',
-  'le deuxième match est refusé tant que le premier reste ouvert'
+select ok(
+  public.save_match_prediction('50000000-0000-0000-0000-000000000004', 1, 0),
+  'plusieurs matchs ouverts sont pronostiquables indépendamment'
 );
 
 reset role;
@@ -203,12 +204,13 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 0, 0, false)$$,
+  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 0, 0)$$,
   '42501',
   'un profil inactif ne peut pas pronostiquer'
 );
 
--- Portefeuille x2.
+-- L’ancienne signature à quatre paramètres reste compatible pendant la
+-- transition, mais le booléen historique x2 n’a plus aucun effet.
 reset role;
 select set_config(
   'request.jwt.claims',
@@ -216,22 +218,9 @@ select set_config(
   true
 );
 set local role authenticated;
-select throws_ok(
-  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 1, true)$$,
-  '23514',
-  'un x2 ne peut pas être dépensé sans crédit disponible'
-);
-
-reset role;
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
 select ok(
-  public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 0, true),
-  'un crédit x2 gagné peut être dépensé une fois'
+  public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 1, true),
+  'l’ancienne signature reste compatible sans bonus x2'
 );
 select throws_ok(
   $$select public.close_match_predictions('50000000-0000-0000-0000-000000000003')$$,
@@ -239,7 +228,7 @@ select throws_ok(
   'un pronostiqueur ne peut pas fermer les pronostics'
 );
 
--- Fermeture manuelle, non-redépense et H-5.
+-- Fermeture manuelle et H-5.
 reset role;
 select set_config(
   'request.jwt.claims',
@@ -260,18 +249,13 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 2, 0, false)$$,
+  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 2, 0)$$,
   '22023',
   'un pronostic fermé manuellement ne peut plus être modifié'
 );
-select throws_ok(
-  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000004', 2, 1, true)$$,
-  '23514',
-  'le même crédit x2 ne peut pas être dépensé sur un second match'
-);
 select ok(
-  public.save_match_prediction('50000000-0000-0000-0000-000000000004', 2, 1, false),
-  'le deuxième match devient pronostiquable après fermeture du premier'
+  public.save_match_prediction('50000000-0000-0000-0000-000000000004', 2, 1),
+  'la fermeture d’un match ne ferme pas les autres matchs ouverts'
 );
 
 reset role;
@@ -294,8 +278,8 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000002', 0, 0, false)$$,
-  'P0002',
+  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000002', 0, 0)$$,
+  '22023',
   'un match situé à moins de cinq minutes est exclu de la fenêtre de pronostic'
 );
 
