@@ -285,5 +285,4 @@ jobs:
             coverage/lcov.info
             coverage-summary.txt
             build-web.log
-            lib/features/predictions/presentation/merged_matches_view.dart
           if-no-files-found: warn
