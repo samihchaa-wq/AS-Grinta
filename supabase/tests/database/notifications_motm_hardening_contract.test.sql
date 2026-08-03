@@ -5,19 +5,22 @@ select no_plan();
 
 select ok(
   position(
+    'interval ''1 hour 45 minutes''' in
+    pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
+  ) > 0
+  and position(
     'match_sport_finalization_versions' in
     pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
-  ) > 0
-  and position(
-    'interval ''2 hours''' in
-    pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
-  ) > 0
-  and position(
-    'greatest' in lower(
-      pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
-    )
+  ) = 0,
+  'le HDM ouvre strictement à H+1 h 45 sans dépendre d’une finalisation Stats/Live'
+);
+
+select ok(
+  position(
+    'interval ''1 hour 45 minutes''' in
+    pg_get_functiondef('private.close_due_match_motm_elections()'::regprocedure)
   ) > 0,
-  'le HDM ouvre après finalisation Stats/Live, jamais avant le coup d’envoi, sinon à H+2'
+  'le job périodique crée le scrutin dès H+1 h 45'
 );
 
 select ok(
@@ -30,15 +33,20 @@ select ok(
 
 select ok(
   position(
-    'OPENS_AT = LEAST' in upper(
+    'OPENS_AT = V_OPENS_AT' in upper(
       pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
     )
   ) > 0
   and position(
+    'LEAST' in upper(
+      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+    )
+  ) = 0
+  and position(
     'transition_match_motm_election' in
     pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
   ) > 0,
-  'une validation Stats/Live avance une éventuelle fenêtre HDM existante puis la transitionne'
+  'une validation Stats/Live synchronise le scrutin sans avancer l’ouverture avant H+1 h 45'
 );
 
 select ok(
