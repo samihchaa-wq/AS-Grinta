@@ -14,6 +14,11 @@ select ok(
 );
 
 select ok(
+  to_regprocedure('public.enforce_match_prediction_x2()') is null,
+  'le garde serveur du bonus x2 a disparu'
+);
+
+select ok(
   not exists (
     select 1
     from information_schema.columns
