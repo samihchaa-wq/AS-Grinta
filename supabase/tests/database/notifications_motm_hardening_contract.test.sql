@@ -1,3 +1,5 @@
+\ir ../../migrations/20260803183000_harden_notifications_motm_and_hot_paths.sql
+
 begin;
 
 set local search_path = public, extensions, pg_catalog;
@@ -84,7 +86,7 @@ select is(
     where schemaname = 'public'
       and tablename = 'match_internal_compositions'
       and permissive = 'PERMISSIVE'
-      and 'authenticated' = any(roles)
+      and 'authenticated'::name = any(roles)
       and cmd in ('SELECT', 'ALL')
   ),
   1,
@@ -98,7 +100,7 @@ select is(
     where schemaname = 'public'
       and tablename = 'match_internal_composition_entries'
       and permissive = 'PERMISSIVE'
-      and 'authenticated' = any(roles)
+      and 'authenticated'::name = any(roles)
       and cmd in ('SELECT', 'ALL')
   ),
   1,
