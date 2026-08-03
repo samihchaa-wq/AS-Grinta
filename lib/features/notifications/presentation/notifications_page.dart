@@ -370,7 +370,7 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
                 paused
                     ? 'Désactivées : aucun joueur ne reçoit rien, y compris le test.'
                     : 'Coupe temporairement tous les envois sans modifier les '
-                          'préférences des joueurs.',
+                        'préférences des joueurs.',
               ),
               const SizedBox(height: 12),
               SwitchListTile.adaptive(
@@ -404,9 +404,8 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     setState(() => _enabling = true);
     var message = 'Notifications activées sur cet appareil.';
     try {
-      final enabled = await ref
-          .read(pushSubscriptionsRepositoryProvider)
-          .enable();
+      final enabled =
+          await ref.read(pushSubscriptionsRepositoryProvider).enable();
       if (!enabled) message = 'Autorisation refusée par le navigateur.';
     } catch (_) {
       message = 'Impossible d’activer les notifications.';
