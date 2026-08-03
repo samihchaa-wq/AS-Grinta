@@ -230,8 +230,7 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
           const _MessageCard(
             icon: Icons.schedule_outlined,
             title: 'Scrutin bientôt ouvert',
-            message: 'Le vote s’ouvre 1 h 45 après le coup d’envoi '
-                '(ou dès la validation du résultat).',
+            message: 'Le vote s’ouvre 1 h 45 après le coup d’envoi.',
           )
         ],
         if (_error != null) ...[
@@ -261,7 +260,15 @@ class MatchMotmVoteCard extends ConsumerWidget {
     final asyncVote = ref.watch(sportMotmVoteProvider(matchId));
     return asyncVote.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, __) => Padding(
+        padding: EdgeInsets.only(bottom: bottomSpacing),
+        child: const Card(
+          child: ListTile(
+            leading: Icon(Icons.error_outline),
+            title: Text('Vote HDM momentanément indisponible.'),
+          ),
+        ),
+      ),
       data: (vote) {
         if (vote == null) return const SizedBox.shrink();
         // Ceux qui n'étaient pas au match ne voient rien pendant le scrutin :
@@ -356,9 +363,6 @@ class _VoteHeader extends StatelessWidget {
               finished: vote.hasScore,
               nameStyle: Theme.of(context).textTheme.titleLarge,
             ),
-            // Une fois le scrutin clos, la couronne, le score et le vainqueur
-            // suffisent : on n'affiche « Résultats définitifs · Clôturé … »
-            // que tant que le vote n'est pas terminé.
             if (vote.state != SportMotmVoteState.closed) ...[
               const SizedBox(height: 8),
               Text(status),
