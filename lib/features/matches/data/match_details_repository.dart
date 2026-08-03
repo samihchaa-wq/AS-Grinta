@@ -284,7 +284,7 @@ class MatchDetailsRepository {
       }
 
       final predictionRows = await _client.from('match_predictions').select('''
-        profile_id,predicted_score_as_grinta,predicted_score_adverse,use_x2,
+        profile_id,predicted_score_as_grinta,predicted_score_adverse,
         profiles(first_name,surnom)
       ''').eq('match_id', matchId).eq('is_filled', true);
       predictions = (predictionRows as List).map((row) {
@@ -299,7 +299,7 @@ class MatchDetailsRepository {
           scoreGrinta: (map['predicted_score_as_grinta'] as num?)?.toInt() ?? 0,
           scoreOpponent: (map['predicted_score_adverse'] as num?)?.toInt() ?? 0,
           points: pointsByProfile[profileId] ?? 0,
-          usedX2: map['use_x2'] == true,
+          usedX2: false,
         );
       }).toList()
         ..sort((a, b) => b.points.compareTo(a.points));
