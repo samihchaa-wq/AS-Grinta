@@ -1,6 +1,39 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Données légères communes à toute la fiche d'un match.
+///
+/// Elles sont chargées une seule fois puis partagées entre le bandeau, les
+/// règles temporelles et l'onglet Info. L'historique des confrontations reste
+/// volontairement séparé afin de n'être demandé que lorsque l'onglet Info en a
+/// réellement besoin.
+class MatchCore {
+  const MatchCore({
+    required this.kickoffAt,
+    required this.address,
+    required this.opponentId,
+    required this.status,
+    required this.location,
+    required this.opponentName,
+    this.matchType = 'championnat',
+    this.jerseyNote,
+  });
+
+  final DateTime? kickoffAt;
+  final String? address;
+  final String? opponentId;
+  final String status;
+  final String location;
+  final String opponentName;
+  final String matchType;
+  final String? jerseyNote;
+
+  bool get isFriendly => matchType == 'amical';
+  bool get isInternal => matchType == 'entre_nous';
+  bool get isUpcoming => status == 'a_venir';
+  bool get grintaIsHome => location == 'domicile';
+}
+
 /// Une rencontre passée contre l'adversaire (pour l'historique « 5 dernières »).
 class MatchEncounter {
   const MatchEncounter({
@@ -44,43 +77,61 @@ String? _clean(Object? value) {
   return text == null || text.isEmpty ? null : text;
 }
 
+final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
+  ref,
+  matchId,
+) async {
+  final client = ref.watch(supabaseClientProvider);
+  final match = await client
+      .from('matches')
+      .select(
+        'kickoff_at, match_date, match_time, status, location, address, '
+        'opponent_id, match_type, jersey_note, opponents(name, address)',
+      )
+      .eq('id', matchId)
+      .maybeSingle();
+
+  if (match == null) return null;
+
+  final opponent = match['opponents'] is Map
+      ? Map<String, dynamic>.from(match['opponents'] as Map)
+      : const <String, dynamic>{};
+  final opponentName = _clean(opponent['name']) ?? 'Adversaire';
+  final opponentAddress = _clean(opponent['address']);
+  final location = (match['location']?.toString() ?? 'domicile').trim();
+  final isHome = location == 'domicile';
+  final address = _clean(match['address']) ?? (isHome ? null : opponentAddress);
+
+  final serverKickoff = DateTime.tryParse('${match['kickoff_at'] ?? ''}');
+  final date = match['match_date']?.toString() ?? '';
+  final time = match['match_time']?.toString() ?? '00:00:00';
+  final kickoffAt = serverKickoff ?? DateTime.tryParse('${date}T$time');
+
+  return MatchCore(
+    kickoffAt: kickoffAt,
+    address: address,
+    opponentId: _clean(match['opponent_id']),
+    status: (match['status'] ?? '').toString(),
+    location: location,
+    opponentName: opponentName,
+    matchType: (match['match_type'] ?? 'championnat').toString(),
+    jerseyNote: _clean(match['jersey_note']),
+  );
+});
+
 final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
   ref,
   matchId,
 ) async {
   final client = ref.watch(supabaseClientProvider);
+  final core = await ref.watch(matchCoreProvider(matchId).future);
 
-  final match = await client
-      .from('matches')
-      .select(
-        'kickoff_at, match_date, match_time, location, address, opponent_id, '
-        'match_type, jersey_note, opponents(address)',
-      )
-      .eq('id', matchId)
-      .maybeSingle();
-
-  if (match == null) {
+  if (core == null) {
     return const MatchInfo(kickoffAt: null, address: null, lastEncounters: []);
   }
 
-  final opponentId = match['opponent_id']?.toString();
-  final isHome = (match['location']?.toString() ?? 'domicile') == 'domicile';
-  final opponentAddress = match['opponents'] is Map
-      ? _clean((match['opponents'] as Map)['address'])
-      : null;
-  // L'adresse est celle de l'équipe à domicile : repli sur l'adversaire
-  // uniquement pour un match à l'extérieur.
-  final address = _clean(match['address']) ?? (isHome ? null : opponentAddress);
-
-  final serverKickoff = DateTime.tryParse(
-    '${match['kickoff_at'] ?? ''}',
-  )?.toLocal();
-  final date = match['match_date']?.toString() ?? '';
-  final time = match['match_time']?.toString() ?? '00:00:00';
-  final kickoffAt = serverKickoff ?? DateTime.tryParse('${date}T$time');
-
   final encounters = <MatchEncounter>[];
-  if (opponentId != null && opponentId.isNotEmpty) {
+  if (core.opponentId != null && core.opponentId!.isNotEmpty) {
     final rows = await client.rpc(
       'get_last_opponent_encounters',
       params: {'p_match_id': matchId},
@@ -98,10 +149,10 @@ final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
   }
 
   return MatchInfo(
-    kickoffAt: kickoffAt,
-    address: address,
+    kickoffAt: core.kickoffAt,
+    address: core.address,
     lastEncounters: encounters,
-    matchType: (match['match_type'] ?? 'championnat').toString(),
-    jerseyNote: _clean(match['jersey_note']),
+    matchType: core.matchType,
+    jerseyNote: core.jerseyNote,
   );
 });
