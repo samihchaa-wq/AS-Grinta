@@ -38,57 +38,15 @@ jobs:
 
           path = Path('supabase/tests/database/load_multi_season_performance.test.sql')
           text = path.read_text()
-          old_insert = '''insert into public.match_predictions(
-            match_id,
-            profile_id,
-            predicted_score_as_grinta,
-            predicted_score_adverse,
-            is_filled,
-            use_x2,
-            created_at,
-            updated_at
+          text = text.replace('  use_x2,\n', '')
+          text = text.replace(
+              '  lm.match_index % 10 = 0\n'
+              '    and lp.player_index = ((lm.match_index - 1) % 60) + 1,\n',
+              '',
           )
-          select
-            lm.match_id,
-            lp.profile_id,
-            (lm.match_index + lp.player_index) % 5,
-            (lm.match_index * 2 + lp.player_index) % 4,
-            true,
-            lm.match_index % 10 = 0
-              and lp.player_index = ((lm.match_index - 1) % 60) + 1,
-            now(),
-            now()
-          from load_matches lm
-          cross join load_profiles lp;'''
-          new_insert = '''insert into public.match_predictions(
-            match_id,
-            profile_id,
-            predicted_score_as_grinta,
-            predicted_score_adverse,
-            is_filled,
-            created_at,
-            updated_at
-          )
-          select
-            lm.match_id,
-            lp.profile_id,
-            (lm.match_index + lp.player_index) % 5,
-            (lm.match_index * 2 + lp.player_index) % 4,
-            true,
-            now(),
-            now()
-          from load_matches lm
-          cross join load_profiles lp;'''
-          if old_insert not in text:
-              raise SystemExit('Expected x2 load fixture block not found')
-          text = text.replace(old_insert, new_insert)
-          old_score = '''      ) * case when mp.use_x2 then 2 else 1 end
-            )::bigint as match_points,'''
-          new_score = '''      )
-            )::bigint as match_points,'''
-          if old_score not in text:
-              raise SystemExit('Expected x2 load ranking multiplier not found')
-          text = text.replace(old_score, new_score)
+          text = text.replace(' * case when mp.use_x2 then 2 else 1 end', '')
+          if 'use_x2' in text:
+              raise SystemExit('use_x2 still present in load test after patch')
           path.write_text(text)
           PY
 
