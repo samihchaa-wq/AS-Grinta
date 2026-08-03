@@ -86,11 +86,11 @@ class AdminSportsManagementSection extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Réglages serveur : disponibilités ouvertes J−'
-              '${feature.availabilityOpenHoursBefore ~/ 24} avant le match, '
-              'effectif proposé à ${feature.usualSquadSize} (modifiable match '
-              'par match), scrutin Homme du Match ouvert '
-              '${feature.voteDurationHours} h.',
+              'Réglages serveur : disponibilités, effectif, composition et '
+              'pronostic ouverts à J−6 à 12 h (heure de Paris), Live ouvert '
+              '15 minutes avant le match, effectif proposé à '
+              '${feature.usualSquadSize} (modifiable match par match), scrutin '
+              'Homme du Match ouvert 1 h 45 après le coup d’envoi.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (feature.updatedAt != null) ...[
