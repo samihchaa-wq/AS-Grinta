@@ -150,9 +150,14 @@ end;
 $function$;
 
 -- Conserver l'historique des anciens événements sans autoriser de nouveaux
--- inserts avec des types retirés. NOT VALID évite de supprimer l'audit passé.
+-- inserts avec des types retirés. La contrainte de livraison dépend de celle du
+-- journal logique : on la retire donc en premier, sans CASCADE, puis on recrée
+-- les deux dans l'ordre inverse. NOT VALID conserve les lignes d'audit passées.
+alter table public.push_delivery_log
+  drop constraint if exists push_delivery_log_kind_check;
 alter table public.push_notification_log
   drop constraint if exists push_notification_log_kind_check;
+
 alter table public.push_notification_log
   add constraint push_notification_log_kind_check check (kind = any(array[
     'motm_open'::text,
@@ -162,8 +167,6 @@ alter table public.push_notification_log
     'match_rescheduled_time'::text
   ])) not valid;
 
-alter table public.push_delivery_log
-  drop constraint if exists push_delivery_log_kind_check;
 alter table public.push_delivery_log
   add constraint push_delivery_log_kind_check check (kind = any(array[
     'availability_open'::text,
