@@ -2,6 +2,28 @@
 -- The legacy four-argument prediction RPC is kept as a compatibility shim,
 -- but its x2 argument is ignored.
 
+-- Keep this migration self-contained for both production and isolated CI.
+create schema if not exists private;
+
+create or replace function private.is_active_profile()
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select exists (
+    select 1
+    from public.profiles profile
+    where profile.id = (select auth.uid())
+      and profile.status = 'active'
+  );
+$$;
+
+-- Legacy score view from the former x2 implementation. Current scoring is
+-- provided by v_match_prediction_points below.
+drop view if exists public.v_predictions_score;
+
 -- ---------------------------------------------------------------------------
 -- Private profile photos
 -- ---------------------------------------------------------------------------
