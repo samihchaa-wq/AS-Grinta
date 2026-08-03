@@ -149,6 +149,51 @@ exception
 end;
 $function$;
 
+-- Une nouvelle fenêtre de vote ne remet à zéro que son propre marqueur
+-- d'ouverture. Les anciens types retirés restent intacts dans l'historique.
+create or replace function public.push_on_motm_election_opened()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $function$
+declare
+  v_is_new_window boolean := false;
+begin
+  if not private.is_feature_enabled('sports_management') then
+    return new;
+  end if;
+
+  if new.state = 'open' then
+    if tg_op = 'INSERT' then
+      v_is_new_window := true;
+    else
+      v_is_new_window := old.state is distinct from 'open'
+        or old.opens_at is distinct from new.opens_at
+        or old.closes_at is distinct from new.closes_at
+        or old.finalization_version is distinct from new.finalization_version;
+    end if;
+  end if;
+
+  if v_is_new_window then
+    delete from public.push_notification_log
+    where match_id = new.match_id
+      and kind = 'motm_open';
+
+    if not private.is_feature_enabled('notifications_paused') then
+      insert into public.push_notification_log(match_id, kind, sent_at)
+      values (new.match_id, 'motm_open', now())
+      on conflict do nothing;
+      if found then
+        perform private.dispatch_motm_push('motm_open', new.match_id);
+      end if;
+    end if;
+  end if;
+
+  return new;
+end;
+$function$;
+
 -- Conserver l'historique des anciens événements sans autoriser de nouveaux
 -- inserts avec des types retirés. La contrainte de livraison dépend de celle du
 -- journal logique : on la retire donc en premier, sans CASCADE, puis on recrée
