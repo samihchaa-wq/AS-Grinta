@@ -34,6 +34,11 @@ class MatchesRepository {
         odds_victoire_as_grinta,
         odds_nul,
         odds_victoire_adverse
+      ),
+      match_live_sessions(
+        state,
+        finished_at,
+        exported
       )
     ''');
 
