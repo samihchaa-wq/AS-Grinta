@@ -12,14 +12,13 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final inlineMatchPredictionProvider = FutureProvider.autoDispose
     .family<MatchPredictionItem?, String>((ref, matchId) {
-  return ref.watch(predictionsRepositoryProvider).fetchMatchPrediction(matchId);
-});
+      return ref
+          .watch(predictionsRepositoryProvider)
+          .fetchMatchPrediction(matchId);
+    });
 
 class InlineMatchPredictionCard extends ConsumerStatefulWidget {
-  const InlineMatchPredictionCard({
-    super.key,
-    required this.matchId,
-  });
+  const InlineMatchPredictionCard({super.key, required this.matchId});
 
   final String matchId;
 
@@ -124,10 +123,7 @@ class _InlineMatchPredictionCardState
                 ),
                 error: (_, __) => const Text(
                   'Historique des confrontations momentanément indisponible.',
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                 ),
                 data: (data) => _HeadToHead(data: data),
               ),
@@ -136,9 +132,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Score à modifier',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -153,9 +149,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Les cotes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -166,8 +162,9 @@ class _InlineMatchPredictionCardState
                       value: AppFormats.odds(
                         item.isHome ? item.oddsWin : item.oddsLoss,
                       ),
-                      selected:
-                          item.isHome ? grinta > opponent : opponent > grinta,
+                      selected: item.isHome
+                          ? grinta > opponent
+                          : opponent > grinta,
                       accent: const Color(0xFF39E784),
                     ),
                   ),
@@ -187,8 +184,9 @@ class _InlineMatchPredictionCardState
                       value: AppFormats.odds(
                         item.isHome ? item.oddsLoss : item.oddsWin,
                       ),
-                      selected:
-                          item.isHome ? grinta < opponent : opponent < grinta,
+                      selected: item.isHome
+                          ? grinta < opponent
+                          : opponent < grinta,
                       accent: const Color(0xFFFF6B6B),
                     ),
                   ),
@@ -218,8 +216,8 @@ class _InlineMatchPredictionCardState
                 notOpenYet
                     ? 'Disponible à partir de J−6 à 12 h, heure de Paris.'
                     : closed
-                        ? 'Pronostic fermé 5 minutes avant le coup d’envoi.'
-                        : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi.',
+                    ? 'Pronostic fermé 5 minutes avant le coup d’envoi.'
+                    : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi.',
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
@@ -235,7 +233,9 @@ class _InlineMatchPredictionCardState
   Future<void> _save(MatchPredictionItem item) async {
     setState(() => _saving = true);
     try {
-      await ref.read(predictionsRepositoryProvider).savePrediction(
+      await ref
+          .read(predictionsRepositoryProvider)
+          .savePrediction(
             matchId: item.matchId,
             scoreGrinta: _scoreGrinta ?? item.scoreGrinta,
             scoreOpponent: _scoreOpponent ?? item.scoreOpponent,
@@ -245,15 +245,15 @@ class _InlineMatchPredictionCardState
         ..invalidate(matchDetailsProvider(widget.matchId));
       await ref.read(predictionsControllerProvider.notifier).load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pronostic enregistré.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(humanizeError(error))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -278,10 +278,10 @@ class _StatusChip extends StatelessWidget {
     final label = notOpenYet
         ? 'Pas encore ouvert'
         : closed
-            ? 'Fermé'
-            : saved
-                ? 'Enregistré'
-                : 'À saisir';
+        ? 'Fermé'
+        : saved
+        ? 'Enregistré'
+        : 'À saisir';
     final highlighted = saved && !notOpenYet && !closed;
 
     return Container(
@@ -303,9 +303,7 @@ class _StatusChip extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: highlighted
-              ? const Color(0xFF69E99B)
-              : AppTheme.textSecondary,
+          color: highlighted ? const Color(0xFF69E99B) : AppTheme.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -388,9 +386,9 @@ class _ScorePicker extends StatelessWidget {
             ),
             Text(
               '$value',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             IconButton(
               visualDensity: VisualDensity.compact,
