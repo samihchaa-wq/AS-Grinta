@@ -50,7 +50,8 @@ void main() {
     );
   });
 
-  test('the admin flow has one save button and no draft or publication step', () {
+  test('the admin flow has one save button and no draft or publication step',
+      () {
     final effectifSource = File(
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_effectif.dart',
