@@ -27,7 +27,22 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
     final boardAsync = ref.watch(matchAvailabilityBoardProvider(matchId));
     return boardAsync.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, __) => Padding(
+        padding: EdgeInsets.only(bottom: bottomSpacing),
+        child: Card(
+          margin: compact ? EdgeInsets.zero : null,
+          child: const Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline),
+                SizedBox(width: 10),
+                Expanded(child: Text('Effectif momentanément indisponible.')),
+              ],
+            ),
+          ),
+        ),
+      ),
       data: (board) {
         final now = DateTime.now();
         final visible = board != null &&

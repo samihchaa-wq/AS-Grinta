@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('J-6 noon prediction window', () {
-    final opensAt = DateTime(2026, 8, 1, 12);
-    final kickoff = DateTime(2026, 8, 7, 20, 30);
+    // 7 août 2026 à 20:30 Paris = 18:30 UTC.
+    // J-6 à 12:00 Paris = 1er août à 10:00 UTC.
+    final opensAt = DateTime.utc(2026, 8, 1, 10);
+    final kickoff = DateTime.utc(2026, 8, 7, 18, 30);
 
     test('opens at noon on the sixth calendar day before kickoff', () {
       final item = _item(kickoffAt: kickoff);
@@ -21,11 +23,11 @@ void main() {
     test('every match inside the window is editable independently', () {
       final first = _item(
         matchId: 'match-1',
-        kickoffAt: DateTime(2026, 8, 2, 9),
+        kickoffAt: DateTime.utc(2026, 8, 2, 7),
       );
       final second = _item(
         matchId: 'match-2',
-        kickoffAt: DateTime(2026, 8, 4, 21),
+        kickoffAt: DateTime.utc(2026, 8, 4, 19),
       );
 
       expect(first.canEditAt(opensAt), isTrue);
@@ -33,7 +35,7 @@ void main() {
     });
 
     test('a match whose J-6 noon has not arrived remains closed', () {
-      final item = _item(kickoffAt: DateTime(2026, 8, 8, 10));
+      final item = _item(kickoffAt: DateTime.utc(2026, 8, 8, 8));
 
       expect(item.canEditAt(opensAt), isFalse);
     });
@@ -41,7 +43,7 @@ void main() {
     test('the controller saves any match whose window is open', () async {
       final item = _item(
         matchId: 'match-2',
-        kickoffAt: DateTime.now().add(const Duration(days: 3)),
+        kickoffAt: DateTime.now().toUtc().add(const Duration(days: 3)),
       );
       final repository = _FakePredictionsRepository(item);
       final controller = PredictionsController(repository);

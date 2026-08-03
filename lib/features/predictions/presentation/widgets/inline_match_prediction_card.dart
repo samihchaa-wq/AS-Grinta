@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_result_score_chip.dart';
@@ -15,10 +16,7 @@ final inlineMatchPredictionProvider = FutureProvider.autoDispose
 });
 
 class InlineMatchPredictionCard extends ConsumerStatefulWidget {
-  const InlineMatchPredictionCard({
-    super.key,
-    required this.matchId,
-  });
+  const InlineMatchPredictionCard({super.key, required this.matchId});
 
   final String matchId;
 
@@ -48,7 +46,7 @@ class _InlineMatchPredictionCardState
       error: (error, _) => Card(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.cardPadding),
-          child: Text('$error'),
+          child: Text(humanizeError(error)),
         ),
       ),
       data: (item) {
@@ -66,7 +64,10 @@ class _InlineMatchPredictionCardState
 
         final grinta = _scoreGrinta ?? item.scoreGrinta;
         final opponent = _scoreOpponent ?? item.scoreOpponent;
-        final canEdit = item.canEdit && !_saving;
+        final now = DateTime.now();
+        final notOpenYet = now.isBefore(item.opensAt);
+        final closed = !notOpenYet && !item.canEditAt(now);
+        final canEdit = !notOpenYet && !closed && !_saving;
 
         final grintaPicker = Expanded(
           child: _ScorePicker(
@@ -104,7 +105,11 @@ class _InlineMatchPredictionCardState
             children: [
               Align(
                 alignment: Alignment.centerRight,
-                child: _StatusChip(item: item),
+                child: _StatusChip(
+                  item: item,
+                  notOpenYet: notOpenYet,
+                  closed: closed,
+                ),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               details.when(
@@ -114,7 +119,10 @@ class _InlineMatchPredictionCardState
                     child: GrintaProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, __) => const Text(
+                  'Historique des confrontations momentanément indisponible.',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                ),
                 data: (data) => _HeadToHead(data: data),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
@@ -122,9 +130,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Score à modifier',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -139,9 +147,9 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Les cotes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -200,9 +208,16 @@ class _InlineMatchPredictionCardState
                 ),
               ),
               const SizedBox(height: AppSpacing.contentGap),
-              const Text(
-                'Modifiable jusqu’à 5 minutes avant le coup d’envoi',
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+              Text(
+                notOpenYet
+                    ? 'Disponible à partir de J−6 à 12 h, heure de Paris.'
+                    : closed
+                        ? 'Pronostic fermé 5 minutes avant le coup d’envoi.'
+                        : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi.',
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -224,9 +239,15 @@ class _InlineMatchPredictionCardState
         ..invalidate(matchDetailsProvider(widget.matchId));
       await ref.read(predictionsControllerProvider.notifier).load();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pronostic enregistré.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pronostic enregistré.')));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -235,33 +256,48 @@ class _InlineMatchPredictionCardState
 }
 
 class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.item});
+  const _StatusChip({
+    required this.item,
+    required this.notOpenYet,
+    required this.closed,
+  });
 
   final MatchPredictionItem item;
+  final bool notOpenYet;
+  final bool closed;
 
   @override
   Widget build(BuildContext context) {
+    final saved = item.isFilled;
+    final label = notOpenYet
+        ? 'Pas encore ouvert'
+        : closed
+            ? 'Fermé'
+            : saved
+                ? 'Enregistré'
+                : 'À saisir';
+    final highlighted = saved && !notOpenYet && !closed;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.compactCardPadding,
         vertical: AppSpacing.contentGap,
       ),
       decoration: BoxDecoration(
-        color: item.isFilled
+        color: highlighted
             ? const Color(0xFF39E784).withValues(alpha: .10)
             : Colors.white.withValues(alpha: .04),
         borderRadius: BorderRadius.circular(99),
         border: Border.all(
-          color: item.isFilled
+          color: highlighted
               ? const Color(0xFF39E784).withValues(alpha: .34)
               : AppTheme.outline,
         ),
       ),
       child: Text(
-        item.isFilled ? 'Enregistré' : 'À saisir',
+        label,
         style: TextStyle(
-          color:
-              item.isFilled ? const Color(0xFF69E99B) : AppTheme.textSecondary,
+          color: highlighted ? const Color(0xFF69E99B) : AppTheme.textSecondary,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -344,15 +380,15 @@ class _ScorePicker extends StatelessWidget {
             ),
             Text(
               '$value',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             IconButton(
               visualDensity: VisualDensity.compact,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
-              onPressed: enabled ? onPlus : null,
+              onPressed: enabled && value < 99 ? onPlus : null,
               icon: const Icon(Icons.add_circle_outline),
             ),
           ],
