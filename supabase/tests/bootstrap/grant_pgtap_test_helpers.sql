@@ -1,3 +1,8 @@
+-- La baseline CI omet volontairement certaines anciennes migrations devenues
+-- trop larges pour être rejouées en fin de chaîne. On restaure ici uniquement
+-- le schéma minimal de composition interne requis par le durcissement courant.
+\ir internal_composition_schema.sql
+
 -- La migration propre à la branche est appliquée ici, après le replay complet
 -- de la baseline de production et avant l'exécution des contrats pgTAP.
 -- Cette inclusion est volontairement côté bootstrap CI : `supabase test db`
