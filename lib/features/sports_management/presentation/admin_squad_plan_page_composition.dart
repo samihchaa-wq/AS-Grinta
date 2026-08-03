@@ -251,7 +251,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     _updateState(() {
       _composition = composition.copyWith(
         formationCode: code,
-        hasUnpublishedChanges: true,
         entries: [
           for (final entry in composition.entries)
             if (placement.containsKey(entry.participantId))
@@ -272,6 +271,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         ],
       );
     });
+    unawaited(_persistComposition());
   }
 
   void _dropOnSlot(MatchCompositionEntry moving, FootballFormationSlot slot) {
@@ -292,7 +292,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         : null;
     _updateState(() {
       _composition = composition.copyWith(
-        hasUnpublishedChanges: true,
         entries: [
           for (final entry in composition.entries)
             if (entry.participantId == moving.participantId)
@@ -317,6 +316,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         ],
       );
     });
+    unawaited(_persistComposition());
   }
 
   void _moveToBench(MatchCompositionEntry moving) {
@@ -326,7 +326,6 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         composition.entriesFor(MatchCompositionZone.bench).length;
     _updateState(() {
       _composition = composition.copyWith(
-        hasUnpublishedChanges: true,
         entries: [
           for (final entry in composition.entries)
             if (entry.participantId == moving.participantId)
@@ -340,6 +339,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         ],
       );
     });
+    unawaited(_persistComposition());
   }
 
   MatchComposition _compositionReadyToSave() {
@@ -365,60 +365,14 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     );
   }
 
-  Future<bool> _confirmCompositionPublication(MatchComposition ready) {
-    final fieldCount = ready.entriesFor(MatchCompositionZone.field).length;
-    final benchCount = ready.entriesFor(MatchCompositionZone.bench).length;
-    final limit = int.tryParse(_limitController.text) ??
-        _convocations?.squadSizeLimit ??
-        14;
-    final selectedCount = fieldCount + benchCount;
-    final overLimit = selectedCount > limit;
-    return _confirmAction(
-      title: ready.isPublished
-          ? 'Mettre à jour la composition ?'
-          : 'Publier la composition ?',
-      actionLabel: ready.isPublished ? 'Mettre à jour' : 'Publier',
-      actionIcon: Icons.campaign_outlined,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$fieldCount titulaire${fieldCount > 1 ? 's' : ''} · '
-            '$benchCount remplaçant${benchCount > 1 ? 's' : ''}.',
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'La composition deviendra immédiatement visible par les joueurs. Les convocations ne seront pas modifiées par cette action.',
-          ),
-          if (overLimit) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Attention : $selectedCount joueurs sont sélectionnés pour une limite de $limit.',
-              style: const TextStyle(
-                color: Colors.orange,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<MatchComposition?> _saveComposition({required bool publish}) async {
+  Future<void> _persistComposition() async {
     final composition = _composition;
-    if (composition == null || _compositionLocked) return null;
+    if (composition == null || _compositionLocked) return;
     if (!_postMatch && !_effectifReadyForComposition) {
-      _showMessage('Publie d’abord les convocations.');
-      return null;
+      _showMessage('L’effectif doit être enregistré avant la composition.');
+      return;
     }
     final ready = _compositionReadyToSave();
-    if (publish) {
-      final confirmed = await _confirmCompositionPublication(ready);
-      if (!confirmed || !mounted) return null;
-    }
-
     _updateState(() => _busy = true);
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
@@ -435,46 +389,36 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             ? await repository.updatePostMatchComposition(
                 composition: ready,
                 allowSquadSizeException: allowException,
-                reason: 'Composition réelle modifiée après finalisation du '
-                    'match',
+                reason: 'Composition réelle modifiée',
               )
             : await repository.createPostMatchComposition(
                 composition: ready,
                 allowSquadSizeException: allowException,
-                reason: 'Composition réelle publiée après finalisation du '
-                    'match',
+                reason: 'Composition réelle enregistrée',
               );
       } else {
-        final saved = await repository.saveComposition(
+        await repository.saveComposition(
           composition: ready,
           allowSquadSizeException: allowException,
-          reason: publish
-              ? 'Préparation de la publication de la composition'
-              : 'Brouillon de composition',
+          reason: 'Mise à jour immédiate de la composition',
         );
-        result = publish
-            ? await repository.publishComposition(
-                matchId: ready.matchId,
-                allowSquadSizeException: allowException,
-                reason: 'Composition publiée explicitement depuis le match',
-              )
-            : saved;
+        result = await repository.publishComposition(
+          matchId: ready.matchId,
+          allowSquadSizeException: allowException,
+          reason: 'Mise à jour immédiate de la composition',
+        );
       }
-      if (!mounted) return result;
+      if (!mounted) return;
       _updateState(() {
         _composition = result;
         if (_postMatch) _compositionExisted = true;
       });
       ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
-      _showMessage(
-        publish || _postMatch
-            ? 'Composition publiée.'
-            : 'Brouillon de composition enregistré.',
-      );
-      return result;
     } catch (error) {
-      if (mounted) _showMessage(humanizeError(error));
-      return null;
+      if (mounted) {
+        _showMessage(humanizeError(error));
+        await _loadWorkspace(ready.matchId);
+      }
     } finally {
       if (mounted) _updateState(() => _busy = false);
     }
@@ -486,36 +430,19 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final bench = composition.entriesFor(MatchCompositionZone.bench)
       ..removeWhere((entry) => !_desiredConvoked.contains(entry.participantId));
     final effectifReady = _effectifReadyForComposition;
-    final hasPendingComposition = composition.hasUnpublishedChanges;
-    final canPublish = !_compositionLocked &&
-        (!composition.isPublished || hasPendingComposition);
 
-    final statusTitle = !effectifReady
-        ? 'Convocations à publier avant la composition'
-        : hasPendingComposition
-            ? 'Brouillon de composition non publié'
-            : composition.isPublished
-                ? 'Composition publiée'
-                : 'Composition non publiée';
-    final statusDetail = !effectifReady
-        ? 'Reviens dans Effectif, puis publie les convocations pour déverrouiller cette étape.'
-        : hasPendingComposition
-            ? 'Les joueurs voient encore la précédente composition.'
-            : composition.isPublished
-                ? 'Version ${composition.version} visible par les joueurs.'
-                : 'Prépare le terrain et le banc avant publication.';
+    if (!effectifReady && !_postMatch) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('Enregistre d’abord l’effectif pour préparer la composition.'),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PublicationStatusCard(
-          title: statusTitle,
-          detail: statusDetail,
-          pending: !effectifReady ||
-              hasPendingComposition ||
-              !composition.isPublished,
-        ),
-        const SizedBox(height: 14),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -524,15 +451,16 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               children: [
                 Text(
                   'Composition',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   _postMatch
-                      ? 'Choisis un dispositif, puis glisse les joueurs réellement présents sur les postes affichés.'
-                      : 'Choisis un dispositif, puis glisse les joueurs convoqués sur les postes affichés. Le brouillon reste privé.',
+                      ? 'Choisis le dispositif réellement joué. Chaque modification est enregistrée immédiatement.'
+                      : 'Choisis un dispositif, puis glisse les joueurs sur les postes. Chaque modification est enregistrée immédiatement et visible par les joueurs.',
                 ),
                 const SizedBox(height: 14),
                 _FormationDropdown(
@@ -597,38 +525,10 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        if (!_postMatch) ...[
-          OutlinedButton.icon(
-            onPressed: _compositionLocked || !hasPendingComposition
-                ? null
-                : () => _saveComposition(publish: false),
-            icon: const Icon(Icons.save_outlined),
-            label: Text(
-              hasPendingComposition
-                  ? 'Enregistrer le brouillon'
-                  : 'Brouillon enregistré',
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
-        FilledButton.icon(
-          onPressed: canPublish ? () => _saveComposition(publish: true) : null,
-          icon: const Icon(Icons.campaign_outlined),
-          label: Text(
-            composition.isPublished
-                ? hasPendingComposition
-                    ? 'Publier les modifications'
-                    : 'Composition publiée'
-                : 'Publier la composition',
-          ),
-        ),
         if (_locked && !_postMatch)
           const Padding(
             padding: EdgeInsets.only(top: 10),
-            child: Text(
-              'Finalise d’abord le match pour utiliser les joueurs réellement présents.',
-            ),
+            child: Text('Composition verrouillée au coup d’envoi.'),
           ),
       ],
     );
