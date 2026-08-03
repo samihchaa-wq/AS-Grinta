@@ -31,7 +31,6 @@ class _InlineMatchPredictionCardState
     extends ConsumerState<InlineMatchPredictionCard> {
   int? _scoreGrinta;
   int? _scoreOpponent;
-  bool? _useX2;
   bool _saving = false;
 
   @override
@@ -64,11 +63,9 @@ class _InlineMatchPredictionCardState
 
         _scoreGrinta ??= item.scoreGrinta;
         _scoreOpponent ??= item.scoreOpponent;
-        _useX2 ??= item.useX2;
 
         final grinta = _scoreGrinta ?? item.scoreGrinta;
         final opponent = _scoreOpponent ?? item.scoreOpponent;
-        final useX2 = _useX2 ?? item.useX2;
         final canEdit = item.canEdit && !_saving;
 
         final grintaPicker = Expanded(
@@ -183,50 +180,6 @@ class _InlineMatchPredictionCardState
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.contentGap),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.compactCardPadding,
-                  vertical: AppSpacing.contentGap,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .035),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.bolt_rounded),
-                    const SizedBox(width: AppSpacing.contentGap),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Activer le ×2',
-                            style: TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          Text(
-                            '${item.x2Available} en réserve',
-                            style: const TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: useX2,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onChanged: !canEdit || (!useX2 && item.x2Available <= 0)
-                          ? null
-                          : (value) => setState(() => _useX2 = value),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: AppSpacing.sectionGap),
               SizedBox(
                 width: double.infinity,
@@ -265,7 +218,6 @@ class _InlineMatchPredictionCardState
             matchId: item.matchId,
             scoreGrinta: _scoreGrinta ?? item.scoreGrinta,
             scoreOpponent: _scoreOpponent ?? item.scoreOpponent,
-            useX2: _useX2 ?? item.useX2,
           );
       ref
         ..invalidate(inlineMatchPredictionProvider(widget.matchId))
@@ -421,9 +373,6 @@ class _Odd extends StatelessWidget {
   final String label;
   final String value;
   final bool selected;
-
-  /// Couleur du résultat (1 vert, N orange, 2 rouge), appliquée à la
-  /// sélection.
   final Color accent;
 
   @override
