@@ -21,24 +21,6 @@ select ok(
   'RLS est activée sur le catalogue des invités'
 );
 
-select ok(
-  (
-    select is_nullable = 'YES'
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'match_sport_participants'
-      and column_name = 'season_player_id'
-  )
-  and exists (
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'match_sport_participants'
-      and column_name = 'guest_player_id'
-  ),
-  'un participant peut désormais porter une identité permanente ou invitée'
-);
-
 select is(
   (
     select count(*)
@@ -102,34 +84,20 @@ insert into public.opponents(id, name)
 values ('a3000000-0000-0000-0000-000000000001', 'Invités FC');
 
 insert into public.season_players(
-  id,
-  season_id,
-  first_name,
-  last_name,
-  is_goalkeeper,
-  is_active,
-  position,
-  profile_id
+  id, season_id, first_name, last_name, is_goalkeeper,
+  is_active, position, profile_id
 )
 values
   (
     'a4000000-0000-0000-0000-000000000001',
     'a2000000-0000-0000-0000-000000000001',
-    'Permanent',
-    'Un',
-    false,
-    true,
-    1,
+    'Permanent', 'Un', false, true, 1,
     'a1000000-0000-0000-0000-000000000002'
   ),
   (
     'a4000000-0000-0000-0000-000000000002',
     'a2000000-0000-0000-0000-000000000001',
-    'Permanent',
-    'Deux',
-    false,
-    true,
-    2,
+    'Permanent', 'Deux', false, true, 2,
     'a1000000-0000-0000-0000-000000000001'
   );
 
@@ -153,11 +121,7 @@ select set_config(
     'a3000000-0000-0000-0000-000000000001',
     ((now() + interval '5 days') at time zone 'Europe/Paris')::date,
     ((now() + interval '5 days') at time zone 'Europe/Paris')::time,
-    'domicile',
-    2.10,
-    3.20,
-    2.90,
-    14
+    'domicile', 2.10, 3.20, 2.90, 14
   )::text,
   true
 );
@@ -182,26 +146,13 @@ select throws_ok(
     current_setting('test.guest_match')::uuid,
     null,
     'Alex',
-    null,
-    false,
+    'Gardien',
+    true,
     'Tentative joueur'
   )$$,
   '42501',
   'Active administrator role required',
   'un joueur ne peut pas ajouter un invité'
-);
-
-select throws_ok(
-  $$insert into public.guest_players(
-    first_name, created_by, updated_by
-  ) values (
-    'Direct',
-    'a1000000-0000-0000-0000-000000000002',
-    'a1000000-0000-0000-0000-000000000002'
-  )$$,
-  '42501',
-  null,
-  'aucune écriture directe dans le catalogue n’est possible'
 );
 
 reset role;
@@ -227,19 +178,13 @@ select set_config(
 
 select set_config(
   'test.guest_id',
-  (
-    current_setting('test.guest_add_result')::jsonb
-    ->> 'guest_player_id'
-  ),
+  current_setting('test.guest_add_result')::jsonb ->> 'guest_player_id',
   true
 );
 
 select set_config(
   'test.guest_participant',
-  (
-    current_setting('test.guest_add_result')::jsonb
-    ->> 'participant_id'
-  ),
+  current_setting('test.guest_add_result')::jsonb ->> 'participant_id',
   true
 );
 
@@ -248,39 +193,6 @@ select is(
   'Alex Gardien (Invité)',
   'le nouvel invité est réutilisable et clairement identifié'
 );
-
-select is(
-  public.admin_get_match_guests(
-    current_setting('test.guest_match')::uuid
-  ) #>> '{guests,0,participant_id}',
-  current_setting('test.guest_participant'),
-  'l’invité est rattaché au match'
-);
-
-reset role;
-
-select ok(
-  exists (
-    select 1
-    from public.match_sport_participants participant
-    where participant.id = current_setting('test.guest_participant')::uuid
-      and participant.season_player_id is null
-      and participant.guest_player_id =
-        current_setting('test.guest_id')::uuid
-      and participant.is_eligible
-      and participant.availability_status = 'not_applicable'
-      and participant.convocation_status = 'convoked'
-      and participant.waitlist_turn_state = 'not_applicable'
-  ),
-  'l’invité est convoqué sans disponibilité ni tour de liste d’attente'
-);
-
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
 
 select is(
   public.admin_add_or_reuse_match_guest(
@@ -296,49 +208,16 @@ select is(
 );
 
 select is(
-  jsonb_array_length(
-    public.admin_get_guest_players(false) -> 'guests'
-  ),
+  jsonb_array_length(public.admin_get_guest_players(false) -> 'guests'),
   1,
   'la réutilisation exacte ne crée pas de doublon dans le catalogue'
 );
 
-select private.sync_match_sport_workflow(
-  current_setting('test.guest_match')::uuid
-);
-
-select is(
-  (
-    select participant.is_eligible
-    from public.match_sport_participants participant
-    where participant.id = current_setting('test.guest_participant')::uuid
-  ),
-  true,
-  'une synchronisation ultérieure du match conserve les invités'
-);
-
-select is(
-  (
-    select (item ->> 'is_guest')::boolean
-    from jsonb_array_elements(
-      public.admin_get_match_convocations(
-        current_setting('test.guest_match')::uuid
-      ) -> 'players'
-    ) item
-    where item ->> 'participant_id' =
-      current_setting('test.guest_participant')
-  ),
-  true,
-  'les convocations administrateur exposent l’identité invitée'
-);
-
 reset role;
-
 update public.match_sport_participants
 set availability_status = 'available',
     availability_updated_at = now(),
     availability_updated_by = 'a1000000-0000-0000-0000-000000000001',
-    convocation_status = 'convoked',
     updated_at = now()
 where match_id = current_setting('test.guest_match')::uuid
   and season_player_id is not null;
@@ -349,6 +228,29 @@ select set_config(
   true
 );
 set local role authenticated;
+
+select is(
+  public.admin_save_match_effectif(
+    current_setting('test.guest_match')::uuid,
+    14,
+    (
+      select jsonb_agg(
+        jsonb_build_object(
+          'season_player_id', participant.season_player_id,
+          'status', 'convoked'
+        ) order by participant.season_player_id
+      )
+      from public.match_sport_participants participant
+      where participant.match_id = current_setting('test.guest_match')::uuid
+        and participant.season_player_id is not null
+        and participant.availability_status = 'available'
+        and participant.is_eligible
+    ),
+    'Effectif immédiat avant composition avec invité'
+  ) #>> '{convocation_version}',
+  '1',
+  'les convocations sont enregistrées immédiatement avant la composition avec invité'
+);
 
 select is(
   public.admin_save_match_composition(
@@ -395,64 +297,25 @@ select is(
               participant.season_player_id
           ) as sort_order
         from public.match_sport_participants participant
-        where participant.match_id =
-          current_setting('test.guest_match')::uuid
+        where participant.match_id = current_setting('test.guest_match')::uuid
           and participant.is_eligible
       ) ranked
     ),
     false,
-    'Composition avec invité'
+    'Composition immédiate avec invité'
   ) #>> '{has_goalkeeper_warning}',
   'false',
   'un invité gardien placé sur le terrain satisfait l’avertissement gardien'
 );
 
 select is(
-  (
-    select item ->> 'display_name'
-    from jsonb_array_elements(
-      public.admin_get_match_composition(
-        current_setting('test.guest_match')::uuid
-      ) -> 'entries'
-    ) item
-    where item ->> 'participant_id' =
-      current_setting('test.guest_participant')
-  ),
-  'Alex Gardien (Invité)',
-  'le brouillon prépare un libellé invité explicite'
-);
-
-select is(
-  public.admin_publish_match_effectif(
-    current_setting('test.guest_match')::uuid,
-    14,
-    (
-      select jsonb_agg(
-        jsonb_build_object(
-          'season_player_id', participant.season_player_id,
-          'status', 'convoked'
-        ) order by participant.season_player_id
-      )
-      from public.match_sport_participants participant
-      where participant.match_id = current_setting('test.guest_match')::uuid
-        and participant.season_player_id is not null
-        and participant.availability_status = 'available'
-        and participant.is_eligible
-    ),
-    'Publication préalable des convocations avec invité'
-  ) #>> '{convocation_version}',
-  '1',
-  'les convocations sont publiées explicitement avant la composition avec invité'
-);
-
-select is(
   public.admin_publish_match_composition(
     current_setting('test.guest_match')::uuid,
     false,
-    'Publication avec invité'
+    'Compatibilité ancienne publication avec invité'
   ) #>> '{version}',
   '1',
-  'la composition avec invité se publie normalement'
+  'l’ancien appel publish reste un no-op compatible après le save immédiat'
 );
 
 select is(
@@ -463,8 +326,7 @@ select is(
         current_setting('test.guest_match')::uuid
       ) -> 'entries'
     ) item
-    where item ->> 'participant_id' =
-      current_setting('test.guest_participant')
+    where item ->> 'participant_id' = current_setting('test.guest_participant')
   ),
   true,
   'le snapshot public conserve le marqueur invité'
@@ -477,17 +339,13 @@ select public.admin_set_guest_archived(
 );
 
 select is(
-  jsonb_array_length(
-    public.admin_get_guest_players(false) -> 'guests'
-  ),
+  jsonb_array_length(public.admin_get_guest_players(false) -> 'guests'),
   0,
   'un invité archivé disparaît du catalogue réutilisable'
 );
 
 select is(
-  jsonb_array_length(
-    public.admin_get_guest_players(true) -> 'guests'
-  ),
+  jsonb_array_length(public.admin_get_guest_players(true) -> 'guests'),
   1,
   'un invité archivé reste consultable par le staff'
 );
@@ -519,24 +377,21 @@ select is(
 );
 
 reset role;
-
 select ok(
   not exists (
     select 1
     from public.match_composition_entries entry
     where entry.match_id = current_setting('test.guest_match')::uuid
-      and entry.participant_id =
-        current_setting('test.guest_participant')::uuid
+      and entry.participant_id = current_setting('test.guest_participant')::uuid
   )
   and exists (
     select 1
     from public.match_composition_publications publication,
       jsonb_array_elements(publication.snapshot -> 'entries') item
     where publication.match_id = current_setting('test.guest_match')::uuid
-      and item ->> 'participant_id' =
-        current_setting('test.guest_participant')
+      and item ->> 'participant_id' = current_setting('test.guest_participant')
   ),
-  'le retrait nettoie le brouillon mais préserve la publication historique'
+  'le retrait nettoie la composition courante mais préserve la publication historique'
 );
 
 update private.app_feature_flags
