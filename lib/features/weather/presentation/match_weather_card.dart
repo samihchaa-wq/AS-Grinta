@@ -209,10 +209,7 @@ class _Metric extends StatelessWidget {
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppTheme.textFaint,
-                fontSize: 10.5,
-              ),
+              style: const TextStyle(color: AppTheme.textFaint, fontSize: 10.5),
             ),
           ),
           const SizedBox(width: 5),
