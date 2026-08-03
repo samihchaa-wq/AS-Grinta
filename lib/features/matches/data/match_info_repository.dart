@@ -77,6 +77,25 @@ String? _clean(Object? value) {
   return text == null || text.isEmpty ? null : text;
 }
 
+const _emptyMatchInfo = MatchInfo(
+  kickoffAt: null,
+  address: null,
+  lastEncounters: [],
+);
+
+MatchInfo _infoFromCore(
+  MatchCore core, {
+  List<MatchEncounter> encounters = const [],
+}) {
+  return MatchInfo(
+    kickoffAt: core.kickoffAt,
+    address: core.address,
+    lastEncounters: encounters,
+    matchType: core.matchType,
+    jerseyNote: core.jerseyNote,
+  );
+}
+
 final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
   ref,
   matchId,
@@ -119,16 +138,24 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
   );
 });
 
+/// Version légère utilisée par la structure de la fiche (onglets, temporalité,
+/// admin). Elle n'effectue aucune lecture de l'historique des confrontations.
 final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
+  ref,
+  matchId,
+) async {
+  final core = await ref.watch(matchCoreProvider(matchId).future);
+  return core == null ? _emptyMatchInfo : _infoFromCore(core);
+});
+
+/// Version complète chargée uniquement par l'onglet Info.
+final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
   ref,
   matchId,
 ) async {
   final client = ref.watch(supabaseClientProvider);
   final core = await ref.watch(matchCoreProvider(matchId).future);
-
-  if (core == null) {
-    return const MatchInfo(kickoffAt: null, address: null, lastEncounters: []);
-  }
+  if (core == null) return _emptyMatchInfo;
 
   final encounters = <MatchEncounter>[];
   if (core.opponentId != null && core.opponentId!.isNotEmpty) {
@@ -148,11 +175,5 @@ final matchInfoProvider = FutureProvider.family<MatchInfo, String>((
     }
   }
 
-  return MatchInfo(
-    kickoffAt: core.kickoffAt,
-    address: core.address,
-    lastEncounters: encounters,
-    matchType: core.matchType,
-    jerseyNote: core.jerseyNote,
-  );
+  return _infoFromCore(core, encounters: encounters);
 });
