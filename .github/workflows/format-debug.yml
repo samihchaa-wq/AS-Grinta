@@ -1,0 +1,23 @@
+name: Format debug
+
+on:
+  push:
+    branches:
+      - agent/fix-audit-core-issues
+
+permissions:
+  contents: read
+
+jobs:
+  format-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Show formatter diff
+        run: |
+          dart format lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart
+          git diff -- lib/features/predictions/presentation/widgets/inline_match_prediction_card.dart
