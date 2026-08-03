@@ -58,10 +58,9 @@ class _MandatoryNotificationsCard extends StatelessWidget {
           children: [
             Text(
               'Notifications essentielles',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -104,7 +103,10 @@ class _MandatoryNotificationsCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 2),
                 Text(subtitle),
               ],
@@ -131,10 +133,9 @@ class _OptionalNotificationsCard extends ConsumerWidget {
           children: [
             Text(
               'À toi de choisir',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -157,7 +158,9 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     secondary: const Icon(Icons.sports_soccer_outlined),
                     title: const Text('Pronostics'),
-                    subtitle: const Text('Un rappel à J−5 si tu n’as pas pronostiqué.'),
+                    subtitle: const Text(
+                      'Un rappel à J−5 si tu n’as pas pronostiqué.',
+                    ),
                     value: preferences.predictionNotifications,
                     onChanged: (value) => _update(
                       context,
@@ -238,7 +241,9 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
     }
     if (!mounted) return;
     setState(() => _sending = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -260,7 +265,9 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
   }
 }
 
-final notificationsPausedProvider = FutureProvider.autoDispose<bool>((ref) async {
+final notificationsPausedProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
   final response = await ref
       .read(supabaseClientProvider)
       .rpc('admin_get_notifications_paused');
@@ -321,17 +328,18 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
         ? 'Toutes les notifications sont désactivées.'
         : 'Les notifications sont réactivées.';
     try {
-      await ref.read(supabaseClientProvider).rpc(
-        'admin_set_notifications_paused',
-        params: {'p_enabled': enable},
-      );
+      await ref
+          .read(supabaseClientProvider)
+          .rpc('admin_set_notifications_paused', params: {'p_enabled': enable});
       ref.invalidate(notificationsPausedProvider);
     } catch (_) {
       message = 'Impossible de modifier ce réglage.';
     }
     if (!mounted) return;
     setState(() => _updating = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -353,17 +361,16 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
               const SizedBox(height: 8),
               Text(
                 'Toutes les notifications',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 6),
               Text(
                 paused
                     ? 'Désactivées : aucun joueur ne reçoit rien, y compris le test.'
                     : 'Coupe temporairement tous les envois sans modifier les '
-                        'préférences des joueurs.',
+                          'préférences des joueurs.',
               ),
               const SizedBox(height: 12),
               SwitchListTile.adaptive(
@@ -386,7 +393,8 @@ class _PushActivationCard extends ConsumerStatefulWidget {
   const _PushActivationCard();
 
   @override
-  ConsumerState<_PushActivationCard> createState() => _PushActivationCardState();
+  ConsumerState<_PushActivationCard> createState() =>
+      _PushActivationCardState();
 }
 
 class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
@@ -396,8 +404,9 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     setState(() => _enabling = true);
     var message = 'Notifications activées sur cet appareil.';
     try {
-      final enabled =
-          await ref.read(pushSubscriptionsRepositoryProvider).enable();
+      final enabled = await ref
+          .read(pushSubscriptionsRepositoryProvider)
+          .enable();
       if (!enabled) message = 'Autorisation refusée par le navigateur.';
     } catch (_) {
       message = 'Impossible d’activer les notifications.';
@@ -405,7 +414,9 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     ref.invalidate(pushStatusProvider);
     if (!mounted) return;
     setState(() => _enabling = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
