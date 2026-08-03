@@ -49,7 +49,28 @@ class _MatchAvailabilitySelectorState
     final availability = ref.watch(myMatchAvailabilityProvider(widget.matchId));
     return availability.when(
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, __) => Padding(
+        padding: EdgeInsets.only(
+          top: widget.topSpacing,
+          bottom: widget.bottomSpacing,
+        ),
+        child: const Card(
+          child: Padding(
+            padding: EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Ta disponibilité est momentanément indisponible.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       data: (value) {
         if (value == null || !value.canRespond) {
           return const SizedBox.shrink();
