@@ -62,8 +62,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     'Compte en attente de validation',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -77,8 +77,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     onPressed: auth.isLoading
                         ? null
                         : () => ref
-                            .read(authControllerProvider.notifier)
-                            .refreshProfile(),
+                              .read(authControllerProvider.notifier)
+                              .refreshProfile(),
                     icon: auth.isLoading
                         ? const SizedBox(
                             width: 18,
@@ -92,8 +92,9 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                   TextButton(
                     onPressed: auth.isLoading
                         ? null
-                        : () =>
-                            ref.read(authControllerProvider.notifier).signOut(),
+                        : () => ref
+                              .read(authControllerProvider.notifier)
+                              .signOut(),
                     child: const Text('Se déconnecter'),
                   ),
                 ],
