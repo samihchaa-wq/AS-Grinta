@@ -3,6 +3,7 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
+-- Contrat final des workflows simplifiés validé par la CI complète.
 select ok(
   to_regprocedure('public.save_match_prediction(uuid,integer,integer)') is not null,
   'le pronostic sans bonus x2 expose la nouvelle RPC'
