@@ -1,12 +1,15 @@
 name: Flutter CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: flutter-ci-${{ github.workflow }}-${{ github.ref }}
@@ -15,10 +18,30 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require a merged pull request on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          response=$(curl -LfsS \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls")
+          merged_count=$(jq '[.[] | select(.merged_at != null and .base.ref == "main")] | length' <<<"$response")
+          if [ "$merged_count" -lt 1 ]; then
+            echo "::error::Push direct détecté sur main. Les changements doivent passer par une pull request fusionnée."
+            exit 1
+          fi
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -26,34 +49,240 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Write formatter outputs
+      - name: Install locked dependencies
+        shell: bash
         run: |
-          dart format \
-            lib/core/utils/match_window.dart \
-            lib/features/admin/presentation/admin_sports_management_section.dart \
-            lib/features/predictions/data/predictions_repository.dart \
-            lib/features/predictions/presentation/merged_matches_view.dart \
-            lib/features/sports_management/presentation/admin_squad_plan_page_state.dart \
-            lib/features/sports_management/presentation/match_lineup_page.dart \
-            lib/features/weather/presentation/match_weather_card.dart \
-            test/exhaustive_prediction_state_space_test.dart \
-            test/match_weather_card_test.dart \
-            test/match_window_test.dart \
-            test/prediction_window_test.dart
+          set -o pipefail
+          flutter pub get --enforce-lockfile 2>&1 | tee pub-get.log
+          if grep -Eiq 'affected by (a )?(security )?advisory' pub-get.log; then
+            echo "::error::Une dépendance verrouillée est concernée par un avis de sécurité Pub."
+            exit 1
+          fi
 
-      - name: Upload formatted sources
+      - name: Audit dependency freshness
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! flutter pub outdated --json \
+            > dependency-outdated.json \
+            2> dependency-outdated.stderr.log; then
+            cat dependency-outdated.stderr.log >&2
+            exit 1
+          fi
+          if ! flutter pub deps --json \
+            > dependency-graph.json \
+            2> dependency-graph.stderr.log; then
+            cat dependency-graph.stderr.log >&2
+            exit 1
+          fi
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path('dependency-outdated.json').read_text())
+          packages = report.get('packages', [])
+
+          def version(item, key):
+              value = item.get(key)
+              if isinstance(value, dict):
+                  return value.get('version')
+              return value
+
+          discontinued = []
+          constrained = []
+          locked = []
+          affected = []
+          retracted = []
+          for package in packages:
+              name = package.get('package', '<inconnu>')
+              current = version(package, 'current')
+              upgradable = version(package, 'upgradable')
+              resolvable = version(package, 'resolvable')
+              latest = version(package, 'latest')
+              kind = package.get('kind', 'unknown')
+              if package.get('isDiscontinued') or package.get('discontinued'):
+                  discontinued.append(name)
+              if package.get('isCurrentAffectedByAdvisory'):
+                  affected.append(name)
+              if package.get('isCurrentRetracted'):
+                  retracted.append(name)
+              if current and upgradable and current != upgradable:
+                  locked.append((name, current, upgradable, kind))
+              if resolvable and latest and resolvable != latest:
+                  constrained.append((name, resolvable, latest, kind))
+
+          lines = [
+              f'Dépendances obsolètes analysées : {len(packages)}',
+              f'Versions verrouillées pouvant être mises à jour : {len(locked)}',
+              f'Versions plus récentes non résolubles actuellement : {len(constrained)}',
+              f'Paquets abandonnés : {len(discontinued)}',
+              f'Paquets affectés par un avis : {len(affected)}',
+              f'Versions retirées : {len(retracted)}',
+          ]
+          if locked:
+              lines.append('')
+              lines.append('Mises à jour compatibles :')
+              lines.extend(
+                  f'- {name}: {current} -> {upgradable} ({kind})'
+                  for name, current, upgradable, kind in locked
+              )
+          if constrained:
+              lines.append('')
+              lines.append('Contraintes à réexaminer :')
+              lines.extend(
+                  f'- {name}: résoluble {resolvable}, dernière {latest} ({kind})'
+                  for name, resolvable, latest, kind in constrained
+              )
+          if discontinued:
+              lines.append('')
+              lines.append('Paquets abandonnés : ' + ', '.join(sorted(discontinued)))
+          if affected:
+              lines.append('Paquets affectés : ' + ', '.join(sorted(affected)))
+          if retracted:
+              lines.append('Versions retirées : ' + ', '.join(sorted(retracted)))
+
+          Path('dependency-summary.txt').write_text('\n'.join(lines) + '\n')
+          print('\n'.join(lines))
+          if discontinued or affected or retracted:
+              raise SystemExit(
+                  'Le graphe contient un paquet abandonné, vulnérable ou retiré.'
+              )
+          PY
+
+      - name: Read application version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          test -n "$version"
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check formatting of all Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(git ls-files '*.dart')
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::Aucun fichier Dart suivi par Git."
+            exit 1
+          fi
+          dart format --output=none --set-exit-if-changed "${files[@]}" \
+            2>&1 | tee format.log
+
+      - name: Analyze with fatal warnings and infos
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --fatal-warnings --fatal-infos 2>&1 | tee analyze.log
+
+      - name: Test with coverage
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test --coverage 2>&1 | tee test.log
+
+      - name: Enforce coverage baseline
+        shell: bash
+        env:
+          MIN_LINE_COVERAGE: '15.0'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          lcov_path = Path('coverage/lcov.info')
+          if not lcov_path.exists():
+              raise SystemExit('Le rapport coverage/lcov.info est absent.')
+
+          total_lines = 0
+          covered_lines = 0
+          source_files = 0
+          current_source = None
+          current_total = 0
+          current_covered = 0
+
+          def commit_file():
+              global total_lines, covered_lines, source_files
+              global current_source, current_total, current_covered
+              if current_source is None:
+                  return
+              normalized = current_source.replace('\\', '/')
+              excluded = (
+                  normalized.endswith('.g.dart')
+                  or normalized.endswith('.freezed.dart')
+                  or '/generated/' in normalized
+                  or '/l10n/generated/' in normalized
+              )
+              if not excluded and current_total > 0:
+                  source_files += 1
+                  total_lines += current_total
+                  covered_lines += current_covered
+              current_source = None
+              current_total = 0
+              current_covered = 0
+
+          for raw_line in lcov_path.read_text().splitlines():
+              if raw_line.startswith('SF:'):
+                  commit_file()
+                  current_source = raw_line[3:]
+              elif raw_line.startswith('DA:') and current_source is not None:
+                  _, count = raw_line[3:].split(',', 1)
+                  current_total += 1
+                  if int(count) > 0:
+                      current_covered += 1
+              elif raw_line == 'end_of_record':
+                  commit_file()
+          commit_file()
+
+          if total_lines == 0:
+              raise SystemExit('Le rapport de couverture ne contient aucune ligne instrumentée.')
+
+          percentage = covered_lines * 100 / total_lines
+          threshold = float(os.environ['MIN_LINE_COVERAGE'])
+          summary = (
+              f'Fichiers instrumentés : {source_files}\n'
+              f'Lignes couvertes : {covered_lines}/{total_lines}\n'
+              f'Couverture de lignes : {percentage:.2f}%\n'
+              f'Seuil minimal : {threshold:.2f}%\n'
+          )
+          Path('coverage-summary.txt').write_text(summary)
+          print(summary, end='')
+          if percentage + 1e-9 < threshold:
+              raise SystemExit(
+                  f'Couverture insuffisante : {percentage:.2f}% < {threshold:.2f}%.'
+              )
+          PY
+
+      - name: Build web
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --no-web-resources-cdn \
+            --dart-define-from-file=config/production.json \
+            --dart-define=APP_VERSION="$APP_VERSION" \
+            2>&1 | tee build-web.log
+
+      - name: Upload validation logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: formatted-match-temporality-dart
+          name: flutter-validation-logs
           path: |
-            lib/core/utils/match_window.dart
-            lib/features/admin/presentation/admin_sports_management_section.dart
-            lib/features/predictions/data/predictions_repository.dart
-            lib/features/predictions/presentation/merged_matches_view.dart
-            lib/features/sports_management/presentation/admin_squad_plan_page_state.dart
-            lib/features/sports_management/presentation/match_lineup_page.dart
-            lib/features/weather/presentation/match_weather_card.dart
-            test/exhaustive_prediction_state_space_test.dart
-            test/match_weather_card_test.dart
-            test/match_window_test.dart
-            test/prediction_window_test.dart
+            pub-get.log
+            dependency-outdated.json
+            dependency-outdated.stderr.log
+            dependency-graph.json
+            dependency-graph.stderr.log
+            dependency-summary.txt
+            format.log
+            analyze.log
+            test.log
+            coverage/lcov.info
+            coverage-summary.txt
+            build-web.log
+          if-no-files-found: warn
