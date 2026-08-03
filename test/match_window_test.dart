@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('fenêtre d’ouverture d’un match', () {
+    // Un coup d'envoi du vendredi soir ouvre toute la fiche le samedi
+    // précédent à midi, indépendamment de l'heure du match.
     final kickoff = DateTime(2026, 8, 7, 20, 30);
     final opensAt = DateTime(2026, 8, 1, 12);
 
