@@ -13,7 +13,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   AvailabilityReminderSummary? _reminders;
   late _AdminStep _step;
   late final TextEditingController _limitController;
-  Timer? _effectifSaveDebounce;
+  bool _effectifDirty = false;
+  bool _compositionDirty = false;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -48,7 +49,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   @override
   void dispose() {
-    _effectifSaveDebounce?.cancel();
     _limitController.dispose();
     super.dispose();
   }
@@ -61,7 +61,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   }
 
   bool get _effectifReadyForComposition =>
-      _postMatch || (_convocations?.isReadyForComposition ?? false);
+      _postMatch ||
+      (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));
 
   bool get _compositionLocked =>
       _busy || (!_postMatch && (_locked || !_effectifReadyForComposition));
@@ -159,6 +160,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                     player.participantId,
               };
         _limitController.text = '${convocations.squadSizeLimit}';
+        _effectifDirty = false;
+        _compositionDirty = false;
       });
     } catch (error) {
       if (mounted) setState(() => _error = humanizeError(error));

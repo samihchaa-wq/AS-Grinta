@@ -45,10 +45,13 @@ void main() {
       ConvocationStatus.convoked,
     );
     expect(
-        convocations.players.single.hasUnpublishedConvocationChange, isFalse);
+      convocations.players.single.hasUnpublishedConvocationChange,
+      isFalse,
+    );
   });
 
-  test('the admin flow has no draft or publication step', () {
+  test('the admin flow has one save button and no draft or publication step',
+      () {
     final effectifSource = File(
       'lib/features/sports_management/presentation/'
       'admin_squad_plan_page_effectif.dart',
@@ -63,19 +66,27 @@ void main() {
 
     expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
     expect(effectifSource, isNot(contains('Enregistrer les convocations')));
-    expect(effectifSource, contains('Chaque changement est'));
+    expect(effectifSource, contains("label: const Text('Enregistrer')"));
+    expect(
+      effectifSource,
+      contains('jusqu’à ce que tu appuies sur Enregistrer'),
+    );
     expect(effectifSource, contains('.publishEffectif('));
     expect(repositorySource, contains("'admin_publish_match_effectif'"));
 
-    expect(compositionSource, contains('Chaque modification est enregistrée'));
+    expect(compositionSource, contains("label: const Text('Enregistrer')"));
+    expect(compositionSource, contains('puis appuie sur Enregistrer'));
     expect(
       compositionSource,
       isNot(contains("label: const Text('Publier la composition')")),
     );
     expect(
       compositionSource,
-      isNot(contains(
-          'Les convocations ne seront pas modifiées par cette action.')),
+      isNot(
+        contains(
+          'Les convocations ne seront pas modifiées par cette action.',
+        ),
+      ),
     );
   });
 }

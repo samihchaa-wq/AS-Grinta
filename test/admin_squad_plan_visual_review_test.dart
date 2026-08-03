@@ -21,7 +21,7 @@ const _matchId = 'match-visual-review';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the effectif with immediate persistence',
+  testWidgets('captures the compact effectif with explicit save',
       (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
@@ -31,19 +31,19 @@ void main() {
     );
 
     expect(
-      find.textContaining('Chaque changement est enregistré immédiatement.'),
+      find.textContaining('jusqu’à ce que tu appuies sur Enregistrer.'),
       findsOneWidget,
     );
+    expect(find.byType(ActionChip), findsWidgets);
     expect(
-      find.widgetWithText(FilledButton, 'Enregistrer les modifications'),
-      findsNothing,
+      find.widgetWithText(FilledButton, 'Enregistrer'),
+      findsOneWidget,
     );
     expect(find.textContaining('Brouillon'), findsNothing);
-    await _capture(tester, 'effectif_enregistrement_immediat.png');
+    await _capture(tester, 'effectif_compact_enregistrer.png');
   });
 
-  testWidgets('captures the composition with immediate persistence',
-      (tester) async {
+  testWidgets('captures the composition with explicit save', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
@@ -52,18 +52,20 @@ void main() {
     );
 
     expect(
-      find.textContaining(
-        'Chaque modification est enregistrée immédiatement et visible par les joueurs.',
-      ),
+      find.textContaining('puis appuie sur Enregistrer.'),
       findsOneWidget,
     );
     expect(find.text('Remplaçants (3)'), findsOneWidget);
+    expect(
+      find.widgetWithText(FilledButton, 'Enregistrer'),
+      findsOneWidget,
+    );
     expect(
       find.widgetWithText(FilledButton, 'Publier la composition'),
       findsNothing,
     );
     expect(find.textContaining('Brouillon'), findsNothing);
-    await _capture(tester, 'composition_enregistrement_immediat.png');
+    await _capture(tester, 'composition_enregistrer.png');
   });
 }
 
