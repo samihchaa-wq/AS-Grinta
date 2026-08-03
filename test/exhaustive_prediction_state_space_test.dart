@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
@@ -54,8 +55,8 @@ void main() {
     });
 
     test('all match statuses and every prediction-window boundary', () {
-      final kickoff = DateTime.utc(2026, 8, 7, 12);
-      final open = kickoff.subtract(const Duration(days: 6));
+      final kickoff = DateTime(2026, 8, 7, 20, 30);
+      final open = matchFeaturesOpenAt(kickoff);
       final close = kickoff.subtract(const Duration(minutes: 5));
       final instants = <String, DateTime>{
         'before_open': open.subtract(const Duration(milliseconds: 1)),
