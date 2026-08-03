@@ -31,217 +31,233 @@ class _EffectifColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final body = Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: .6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  '$title (${players.length})',
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              if (onRelanceAll != null)
-                Tooltip(
-                  message: 'Relancer tous les sans réponse',
-                  child: IconButton(
-                    visualDensity: VisualDensity.compact,
-                    onPressed: locked ? null : onRelanceAll,
-                    icon: const Icon(Icons.notifications_active_outlined),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          if (players.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 6),
-              child: Text('Aucun joueur.'),
-            )
-          else
-            for (final player in players) ...[
-              _EffectifPlayerTile(
-                player: player,
-                locked: locked,
-                color: color,
-                onToggle: onToggle == null ? null : () => onToggle!(player),
-                onRemoveGuest:
-                    onRemoveGuest == null ? null : () => onRemoveGuest!(player),
-                onShowInfo:
-                    onShowInfo == null ? null : () => onShowInfo!(player),
-                onRelance: onRelance == null ||
-                        player.availabilityStatus != 'no_response'
-                    ? null
-                    : () => onRelance!(player),
-              ),
-              const SizedBox(height: 7),
-            ],
-        ],
-      ),
-    );
-    if (!acceptsDrops || onAccept == null) return body;
     return DragTarget<ConvocationPlayer>(
-      onWillAcceptWithDetails: (details) => !locked && !details.data.isGuest,
-      onAcceptWithDetails: (details) => onAccept!(details.data),
+      onWillAcceptWithDetails: (details) =>
+          acceptsDrops && !locked && !details.data.isGuest,
+      onAcceptWithDetails: (details) => onAccept?.call(details.data),
       builder: (context, candidates, rejected) => AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        decoration: candidates.isEmpty
-            ? null
-            : BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: .28),
-                    blurRadius: 16,
+        duration: const Duration(milliseconds: 140),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(
+            color.withValues(alpha: candidates.isNotEmpty ? .22 : .13),
+            Theme.of(context).colorScheme.surfaceContainer,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: candidates.isNotEmpty ? color : color.withValues(alpha: .55),
+            width: candidates.isNotEmpty ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    '$title (${players.length})',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
-                ],
+                ),
+                if (onRelanceAll != null && players.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: locked ? null : onRelanceAll,
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    icon: const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 16,
+                    ),
+                    label: const Text('Relancer tous'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            if (players.isEmpty)
+              Text(
+                'Aucun joueur.',
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            else
+              _EffectifPlayerGrid(
+                players: players,
+                color: color,
+                locked: locked,
+                draggable: !locked && onToggle != null,
+                onRemoveGuest: onRemoveGuest,
+                onShowInfo: onShowInfo,
+                onRelance: onRelance,
               ),
-        child: body,
+          ],
+        ),
       ),
     );
   }
 }
 
-class _EffectifPlayerTile extends StatelessWidget {
-  const _EffectifPlayerTile({
-    required this.player,
-    required this.locked,
+class _EffectifPlayerGrid extends StatelessWidget {
+  const _EffectifPlayerGrid({
+    required this.players,
     required this.color,
-    this.onToggle,
+    required this.locked,
+    required this.draggable,
     this.onRemoveGuest,
     this.onShowInfo,
     this.onRelance,
   });
 
-  final ConvocationPlayer player;
-  final bool locked;
+  final List<ConvocationPlayer> players;
   final Color color;
-  final VoidCallback? onToggle;
-  final VoidCallback? onRemoveGuest;
-  final VoidCallback? onShowInfo;
-  final VoidCallback? onRelance;
+  final bool locked;
+  final bool draggable;
+  final ValueChanged<ConvocationPlayer>? onRemoveGuest;
+  final ValueChanged<ConvocationPlayer>? onShowInfo;
+  final ValueChanged<ConvocationPlayer>? onRelance;
+
+  Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
+        player: player,
+        color: color,
+        draggable: draggable && !player.isGuest,
+        onTap: player.isGuest
+            ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
+            : (onShowInfo == null ? null : () => onShowInfo!(player)),
+        onRelance: (player.isGuest || onRelance == null)
+            ? null
+            : () => onRelance!(player),
+      );
+
+  static const int _columns = 4;
 
   @override
   Widget build(BuildContext context) {
-    final card = Material(
-      color: Colors.black.withValues(alpha: .12),
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onShowInfo,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-          child: Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < players.length; i += _columns) ...[
+          if (i > 0) const SizedBox(height: 5),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _EffectifPlayerAvatar(player: player, color: color),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      player.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    if (player.waitlistPosition != null)
-                      Text(
-                        'Liste d’attente · ${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                  ],
+              for (var col = 0; col < _columns; col++) ...[
+                if (col > 0) const SizedBox(width: 5),
+                Expanded(
+                  child: i + col < players.length
+                      ? _chip(players[i + col])
+                      : const SizedBox.shrink(),
                 ),
-              ),
-              if (onRelance != null)
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Relancer ce joueur',
-                  onPressed: locked ? null : onRelance,
-                  icon: const Icon(Icons.notifications_active_outlined),
-                ),
-              if (player.isGuest && onRemoveGuest != null)
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Retirer l’invité',
-                  onPressed: locked ? null : onRemoveGuest,
-                  icon: const Icon(Icons.person_remove_outlined),
-                )
-              else if (onToggle != null)
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Changer de colonne',
-                  onPressed: locked ? null : onToggle,
-                  icon: const Icon(Icons.swap_horiz_rounded),
-                ),
+              ],
             ],
           ),
-        ),
-      ),
-    );
-
-    if (locked || player.isGuest || onToggle == null) return card;
-    return LongPressDraggable<ConvocationPlayer>(
-      data: player,
-      dragAnchorStrategy: pointerDragAnchorStrategy,
-      feedback: Material(
-        type: MaterialType.transparency,
-        child: SizedBox(width: 250, child: card),
-      ),
-      childWhenDragging: Opacity(opacity: .35, child: card),
-      child: card,
+        ],
+      ],
     );
   }
 }
 
-class _EffectifPlayerAvatar extends StatelessWidget {
-  const _EffectifPlayerAvatar({required this.player, required this.color});
+class _EffectifPlayerChip extends StatelessWidget {
+  const _EffectifPlayerChip({
+    required this.player,
+    required this.color,
+    required this.draggable,
+    this.onTap,
+    this.onRelance,
+  });
 
   final ConvocationPlayer player;
   final Color color;
+  final bool draggable;
+  final VoidCallback? onTap;
+  final VoidCallback? onRelance;
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: color.withValues(alpha: .18),
-      child: player.isGuest
-          ? const Icon(Icons.person_outline_rounded, size: 18)
-          : Text(
-              _initials(player.displayName),
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
+    final chip = ActionChip(
+      avatar: player.isGuest
+          ? const Icon(Icons.person_add_alt_1_outlined, size: 15)
+          : null,
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              player.shortName,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
+          ),
+          if (player.isGuest && onTap != null) ...[
+            const SizedBox(width: 3),
+            Icon(Icons.close, size: 14, color: color),
+          ],
+        ],
+      ),
+      onPressed: onTap,
+      side: BorderSide(color: color.withValues(alpha: .72)),
+      backgroundColor: Color.alphaBlend(
+        color.withValues(alpha: .24),
+        Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+      visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
-  }
-
-  String _initials(String value) {
-    final words = value
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((word) => word.isNotEmpty)
-        .toList();
-    if (words.isEmpty) return '?';
-    if (words.length == 1) {
-      return words.first.substring(0, 1).toUpperCase();
+    Widget content = chip;
+    if (draggable) {
+      final autoScroll = DragAutoScroller(context);
+      content = LongPressDraggable<ConvocationPlayer>(
+        data: player,
+        feedback: Material(type: MaterialType.transparency, child: chip),
+        childWhenDragging: Opacity(opacity: .3, child: chip),
+        onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+        onDragEnd: (_) => autoScroll.stop(),
+        onDraggableCanceled: (_, __) => autoScroll.stop(),
+        child: chip,
+      );
     }
-    return '${words.first[0]}${words.last[0]}'.toUpperCase();
+    if (onRelance == null) return content;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        content,
+        Positioned(
+          top: -6,
+          right: -6,
+          child: Tooltip(
+            message: 'Relancer ${player.displayName}',
+            child: Material(
+              color: color,
+              shape: const CircleBorder(),
+              elevation: 1,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onRelance,
+                child: const Padding(
+                  padding: EdgeInsets.all(5),
+                  child: Icon(
+                    Icons.notifications_active_rounded,
+                    size: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
