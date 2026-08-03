@@ -1,0 +1,45 @@
+name: Temporary MOTM contract alignment
+
+on:
+  push:
+    branches:
+      - agent/full-hardening-temporality-notifications
+    paths:
+      - .github/workflows/temp-align-motm-contract.yml
+
+permissions:
+  contents: write
+
+jobs:
+  align-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/full-hardening-temporality-notifications
+      - name: Align legacy MOTM pgTAP expectations
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("supabase/tests/database/sports_management_motm_vote.test.sql")
+          text = path.read_text()
+          replacements = {
+              "  7200,\n  'le scrutin automatique ouvre deux heures après le coup d’envoi'":
+                  "  6300,\n  'le scrutin automatique ouvre une heure quarante-cinq minutes après le coup d’envoi'",
+              "  79200,\n  'la fenêtre utile automatique dure vingt-deux heures'":
+                  "  80100,\n  'la fenêtre utile automatique dure vingt-deux heures et quinze minutes'",
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"Expected exactly one occurrence: {old!r}")
+              text = text.replace(old, new)
+          path.write_text(text)
+      - name: Commit aligned test
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/tests/database/sports_management_motm_vote.test.sql
+          git commit -m "Align legacy MOTM vote tests with strict H+1h45"
+          git push origin HEAD:agent/full-hardening-temporality-notifications
