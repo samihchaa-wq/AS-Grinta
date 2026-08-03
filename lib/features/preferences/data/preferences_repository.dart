@@ -4,29 +4,32 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AppPreferences {
   const AppPreferences({
-    this.predictionOpen = true,
-    this.predictionReminders = true,
-    this.matchReminders = true,
+    this.predictionNotifications = true,
+    this.motmVoteNotifications = true,
+    this.convocationNotifications = true,
   });
 
-  /// Prévenir quand un pronostic est ouvert (nouveau match).
-  final bool predictionOpen;
+  /// Prévenir à J−5 lorsqu'un pronostic n'est pas encore rempli.
+  final bool predictionNotifications;
 
-  /// Prévenir 2 h avant le match si le pronostic n'est pas rempli.
-  final bool predictionReminders;
+  /// Prévenir lorsque le vote Homme du match s'ouvre.
+  final bool motmVoteNotifications;
 
-  /// Prévenir quand le match est fini (points + pronostics des autres).
-  final bool matchReminders;
+  /// Prévenir lorsqu'un joueur passe de la liste d'attente aux convoqués.
+  final bool convocationNotifications;
 
   AppPreferences copyWith({
-    bool? predictionOpen,
-    bool? predictionReminders,
-    bool? matchReminders,
+    bool? predictionNotifications,
+    bool? motmVoteNotifications,
+    bool? convocationNotifications,
   }) {
     return AppPreferences(
-      predictionOpen: predictionOpen ?? this.predictionOpen,
-      predictionReminders: predictionReminders ?? this.predictionReminders,
-      matchReminders: matchReminders ?? this.matchReminders,
+      predictionNotifications:
+          predictionNotifications ?? this.predictionNotifications,
+      motmVoteNotifications:
+          motmVoteNotifications ?? this.motmVoteNotifications,
+      convocationNotifications:
+          convocationNotifications ?? this.convocationNotifications,
     );
   }
 }
@@ -46,19 +49,19 @@ class PreferencesRepository {
     final row = Map<String, dynamic>.from(response);
 
     return AppPreferences(
-      predictionOpen: row['notify_prediction_open'] != false,
-      predictionReminders: row['notify_prediction_reminders'] != false,
-      matchReminders: row['notify_match_reminders'] != false,
+      predictionNotifications: row['notify_prediction_reminders'] != false,
+      motmVoteNotifications: row['notify_motm_vote'] != false,
+      convocationNotifications: row['notify_convocation'] != false,
     );
   }
 
   Future<void> update(AppPreferences preferences) async {
     final result = await _client.rpc(
-      'update_my_app_preferences',
+      'update_my_notification_preferences',
       params: {
-        'p_notify_prediction_open': preferences.predictionOpen,
-        'p_notify_prediction_reminders': preferences.predictionReminders,
-        'p_notify_match_reminders': preferences.matchReminders,
+        'p_notify_prediction': preferences.predictionNotifications,
+        'p_notify_motm_vote': preferences.motmVoteNotifications,
+        'p_notify_convocation': preferences.convocationNotifications,
       },
     );
     if (result != true) {
