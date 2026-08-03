@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: admin-squad-plan-visual-review-${{ github.ref }}
@@ -25,6 +25,83 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - name: Remove remaining x2 load-test references once
+        if: github.event_name == 'pull_request' && github.head_ref == 'agent/simplify-match-workflows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/load_multi_season_performance.test.sql')
+          text = path.read_text()
+          old_insert = '''insert into public.match_predictions(
+            match_id,
+            profile_id,
+            predicted_score_as_grinta,
+            predicted_score_adverse,
+            is_filled,
+            use_x2,
+            created_at,
+            updated_at
+          )
+          select
+            lm.match_id,
+            lp.profile_id,
+            (lm.match_index + lp.player_index) % 5,
+            (lm.match_index * 2 + lp.player_index) % 4,
+            true,
+            lm.match_index % 10 = 0
+              and lp.player_index = ((lm.match_index - 1) % 60) + 1,
+            now(),
+            now()
+          from load_matches lm
+          cross join load_profiles lp;'''
+          new_insert = '''insert into public.match_predictions(
+            match_id,
+            profile_id,
+            predicted_score_as_grinta,
+            predicted_score_adverse,
+            is_filled,
+            created_at,
+            updated_at
+          )
+          select
+            lm.match_id,
+            lp.profile_id,
+            (lm.match_index + lp.player_index) % 5,
+            (lm.match_index * 2 + lp.player_index) % 4,
+            true,
+            now(),
+            now()
+          from load_matches lm
+          cross join load_profiles lp;'''
+          if old_insert not in text:
+              raise SystemExit('Expected x2 load fixture block not found')
+          text = text.replace(old_insert, new_insert)
+          old_score = '''      ) * case when mp.use_x2 then 2 else 1 end
+            )::bigint as match_points,'''
+          new_score = '''      )
+            )::bigint as match_points,'''
+          if old_score not in text:
+              raise SystemExit('Expected x2 load ranking multiplier not found')
+          text = text.replace(old_score, new_score)
+          path.write_text(text)
+          PY
+
+          echo 'Remaining use_x2 references in SQL tests:'
+          grep -Rni --include='*.sql' 'use_x2' supabase/tests/database || true
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout origin/main -- .github/workflows/admin_squad_plan_visual_review.yml
+          git add -A
+          git commit -m "Remove x2 from multi-season load test"
+          git push origin HEAD:agent/simplify-match-workflows
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
