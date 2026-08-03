@@ -3,7 +3,6 @@ import 'package:as_grinta/core/utils/name_validation.dart';
 enum AuthRole { pronostiqueur, admin, moderateur }
 
 extension AuthRoleX on AuthRole {
-  /// Libellé utilisateur du rôle dans l’interface du profil.
   String get label {
     switch (this) {
       case AuthRole.moderateur:
@@ -16,15 +15,8 @@ extension AuthRoleX on AuthRole {
   }
 
   bool get isPronostiqueur => this == AuthRole.pronostiqueur;
-
-  /// Le modérateur est un admin qui voit en plus le module « Modérateur » des
-  /// paramètres : partout ailleurs, les deux rôles ont exactement les mêmes
-  /// droits, y compris côté serveur.
   bool get isModerator => this == AuthRole.moderateur;
-
   bool get isAdmin => this == AuthRole.admin || isModerator;
-
-  /// Les deux rôles privilégiés. « staff » leur est synonyme.
   bool get isStaff => isAdmin;
 }
 
@@ -38,7 +30,7 @@ class AuthProfile {
     this.photoUrl,
     required this.role,
     required this.isGoalkeeper,
-    required this.isActive,
+    required this.status,
     required this.mustChangePassword,
     this.createdAt,
     this.updatedAt,
@@ -49,23 +41,20 @@ class AuthProfile {
   final String firstName;
   final String lastName;
   final String? photoUrl;
-
-  /// Surnom optionnel : s'il est renseigné, il s'affiche partout à la place du
-  /// prénom.
   final String surnom;
   final AuthRole role;
   final bool isGoalkeeper;
-  final bool isActive;
+  final String status;
   final bool mustChangePassword;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  bool get isActive => status == 'active';
+  bool get isPending => status == 'pending';
+
   String get fullName =>
       capitalizePersonName('${capitalizePersonName(firstName)} $lastName');
 
-  /// Nom affiché partout : surnom s'il est renseigné, sinon prénom. L'initiale
-  /// est remise en majuscule : un prénom saisi en minuscules à l'inscription
-  /// ne doit pas s'afficher ainsi dans toute l'application.
   String get displayName {
     final nick = capitalizePersonName(surnom);
     if (nick.isNotEmpty) return nick;
@@ -96,7 +85,7 @@ class AuthProfile {
           : null,
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
-      isActive: statusValue == 'active',
+      status: statusValue,
       mustChangePassword: json['must_change_password'] == true,
       createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
       updatedAt: DateTime.tryParse('${json['updated_at'] ?? ''}'),
