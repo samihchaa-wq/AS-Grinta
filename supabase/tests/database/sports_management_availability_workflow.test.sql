@@ -318,7 +318,7 @@ select is(
     '65000000-0000-0000-0000-000000000001'
   ) #>> '{availability_state}',
   'open',
-  'un match créé à moins de 144 heures est ouvert immédiatement'
+  'un match dont le midi de J−6 est passé est ouvert immédiatement'
 );
 
 select is(
@@ -337,11 +337,11 @@ select is(
     where match_id = '65000000-0000-0000-0000-000000000001'
   ),
   (
-    select kickoff_at - interval '144 hours'
+    select private.match_features_open_at(kickoff_at)
     from public.matches
     where id = '65000000-0000-0000-0000-000000000001'
   ),
-  'l’ouverture est calculée exactement 144 heures avant le coup d’envoi'
+  'l’ouverture est calculée à midi, heure de Paris, le jour J−6'
 );
 
 select is(
@@ -361,8 +361,8 @@ select is(
     where match_id = '65000000-0000-0000-0000-000000000001'
       and is_eligible
   ),
-  2::bigint,
-  'seuls les joueurs actifs liés à un compte actif sont éligibles'
+  4::bigint,
+  'tous les joueurs de saison actifs hors coach sont immédiatement éligibles'
 );
 
 select set_config(
@@ -550,8 +550,8 @@ select is(
     from public.match_sport_participants
     where match_id = '65000000-0000-0000-0000-000000000001'
   ),
-  2::bigint,
-  'les données existantes sont conservées après désactivation'
+  4::bigint,
+  'les données existantes de tous les joueurs de saison actifs sont conservées après désactivation'
 );
 
 select * from finish();

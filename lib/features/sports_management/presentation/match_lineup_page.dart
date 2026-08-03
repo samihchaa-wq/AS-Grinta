@@ -60,14 +60,16 @@ class MatchLineupPage extends ConsumerWidget {
       );
     }
 
-    // À plus de six jours du coup d'envoi, seul l'onglet Info a du sens :
-    // ni l'effectif, ni la compo, ni le prono ne sont encore ouverts.
+    // Avant J-6 à midi, seul l'onglet Info est disponible. Le Live possède sa
+    // propre fenêtre et reste masqué jusqu'à quinze minutes avant le match.
     final tooFarAway = isMatchTooFarAway(matchInfo?.kickoffAt);
+    final liveTooEarly = isMatchLiveTooEarly(matchInfo?.kickoffAt);
 
     final showInfo = section == 'info' || tooFarAway;
     final showEffectif = section == 'effectif' && !tooFarAway;
     final showComposition = section == 'composition' && !tooFarAway;
-    final showLive = section == 'live' && !isInternal && !tooFarAway;
+    final showLive =
+        section == 'live' && !isInternal && !tooFarAway && !liveTooEarly;
     final showPrediction =
         section == 'prediction' && !isInternal && !tooFarAway;
 
@@ -116,11 +118,8 @@ class MatchLineupPage extends ConsumerWidget {
                     value: 'composition',
                     label: Text('Compo'),
                   ),
-                if (!isInternal && !tooFarAway)
-                  const ButtonSegment(
-                    value: 'live',
-                    label: Text('Live'),
-                  ),
+                if (!isInternal && !tooFarAway && !liveTooEarly)
+                  const ButtonSegment(value: 'live', label: Text('Live')),
                 if (!isInternal && !tooFarAway)
                   const ButtonSegment(
                     value: 'prediction',

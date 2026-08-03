@@ -4,15 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('copyWith conserve les préférences non modifiées', () {
     const preferences = AppPreferences(
-      predictionOpen: true,
-      predictionReminders: true,
-      matchReminders: true,
+      predictionNotifications: true,
+      motmVoteNotifications: true,
+      convocationNotifications: true,
     );
 
-    final updated = preferences.copyWith(matchReminders: false);
+    final updated = preferences.copyWith(convocationNotifications: false);
 
-    expect(updated.matchReminders, isFalse);
-    expect(updated.predictionReminders, isTrue);
-    expect(updated.predictionOpen, isTrue);
+    expect(updated.convocationNotifications, isFalse);
+    expect(updated.motmVoteNotifications, isTrue);
+    expect(updated.predictionNotifications, isTrue);
   });
 }

@@ -2,6 +2,30 @@
 -- notification tests. Production already has these objects from the Web Push
 -- migration; this file is test bootstrap only.
 
+-- The baseline business bootstrap historically called this timestamp
+-- `created_at`, while production's notification log uses `sent_at`. Align the
+-- isolated schema before notification migrations install triggers that update
+-- the delivery timestamp.
+do $do$
+begin
+  if exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'push_notification_log'
+      and column_name = 'created_at'
+  ) and not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'push_notification_log'
+      and column_name = 'sent_at'
+  ) then
+    alter table public.push_notification_log rename column created_at to sent_at;
+  end if;
+end;
+$do$;
+
 create table if not exists public.push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,

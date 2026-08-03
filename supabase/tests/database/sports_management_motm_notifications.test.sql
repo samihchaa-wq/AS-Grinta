@@ -4,28 +4,23 @@ set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
 select ok(
-  to_regprocedure('public.internal_push_dispatch(text,uuid)') is not null
-  and to_regprocedure('private.push_due_motm_reminders(timestamptz)') is not null,
-  'les fonctions de notification HDM existent'
+  to_regprocedure('public.internal_push_dispatch(text,uuid)') is not null,
+  'le dispatcher de notification HDM existe'
 );
 
 select ok(
   exists (
     select 1
     from cron.job
-    where jobname = 'sports-motm-push-reminders'
+    where jobname = 'sports-motm-jobs'
       and schedule = '* * * * *'
+  )
+  and not exists (
+    select 1
+    from cron.job
+    where jobname = 'sports-motm-push-reminders'
   ),
-  'le rappel HDM est vérifié chaque minute'
-);
-
-select ok(
-  not has_function_privilege(
-    'anon',
-    'private.push_due_motm_reminders(timestamptz)',
-    'EXECUTE'
-  ),
-  'le worker HDM n’est pas exposé au rôle anonyme'
+  'le job HDM combiné tourne chaque minute sans ancien cron de rappel'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)
@@ -52,7 +47,7 @@ set role = case
       else 'pronostiqueur'
     end,
     status = 'active',
-    notify_match_reminders = true,
+    notify_motm_vote = true,
     updated_at = now()
 where id in (
   'd1000000-0000-0000-0000-000000000001',
@@ -216,7 +211,7 @@ select is(
     'Validation ouvrant le scrutin et sa notification'
   ) #>> '{vote_state}',
   'open',
-  'la validation ouvre le scrutin'
+  'la validation après le coup d’envoi ouvre le scrutin'
 );
 
 reset role;
@@ -239,7 +234,7 @@ select is(
     ) -> 'subscriptions'
   ),
   2,
-  'les deux joueurs permanents présents reçoivent l’ouverture'
+  'les deux joueurs présents avec la préférence active reçoivent l’ouverture'
 );
 
 select like(
@@ -249,6 +244,49 @@ select like(
   ) #>> '{payload,url}',
   'matches/%/vote',
   'la notification ouvre directement l’écran de vote'
+);
+
+update public.profiles
+set notify_motm_vote = false,
+    updated_at = now()
+where id = 'd1000000-0000-0000-0000-000000000003';
+
+select is(
+  jsonb_array_length(
+    public.internal_push_dispatch(
+      'motm_open',
+      current_setting('test.motm_push_match')::uuid
+    ) -> 'subscriptions'
+  ),
+  1,
+  'la préférence HDM retire immédiatement le joueur désabonné des destinataires'
+);
+
+select is(
+  public.internal_push_dispatch(
+    'motm_open',
+    current_setting('test.motm_push_match')::uuid
+  ) #>> '{subscriptions,0,profile_id}',
+  'd1000000-0000-0000-0000-000000000002',
+  'seul le joueur ayant conservé la préférence reçoit l’ouverture'
+);
+
+select throws_ok(
+  $$select public.internal_push_dispatch(
+    'motm_reminder',
+    current_setting('test.motm_push_match')::uuid
+  )$$,
+  '22023',
+  'le rappel HDM automatique n’est plus dispatchable'
+);
+
+select throws_ok(
+  $$select public.internal_push_dispatch(
+    'motm_results',
+    current_setting('test.motm_push_match')::uuid
+  )$$,
+  '22023',
+  'le résultat HDM automatique n’est plus dispatchable'
 );
 
 select set_config(
@@ -263,47 +301,10 @@ select is(
     current_setting('test.motm_push_player_two_participant')::uuid
   ) #>> '{accepted}',
   'true',
-  'le premier joueur vote avant le rappel'
+  'un joueur peut voter pendant le scrutin ouvert'
 );
 
 reset role;
-update public.match_sport_motm_elections
-set opens_at = now() - interval '19 hours',
-    closes_at = now() + interval '5 hours'
-where match_id = current_setting('test.motm_push_match')::uuid;
-
-select is(
-  private.push_due_motm_reminders(now()),
-  1,
-  'un rappel est créé six heures avant la clôture'
-);
-
-select is(
-  private.push_due_motm_reminders(now()),
-  0,
-  'une seconde exécution ne crée aucun doublon'
-);
-
-select is(
-  jsonb_array_length(
-    public.internal_push_dispatch(
-      'motm_reminder',
-      current_setting('test.motm_push_match')::uuid
-    ) -> 'subscriptions'
-  ),
-  1,
-  'le rappel cible uniquement le joueur présent qui n’a pas voté'
-);
-
-select is(
-  public.internal_push_dispatch(
-    'motm_reminder',
-    current_setting('test.motm_push_match')::uuid
-  ) #>> '{subscriptions,0,profile_id}',
-  'd1000000-0000-0000-0000-000000000003',
-  'le joueur ayant déjà voté est exclu du rappel'
-);
-
 update public.match_sport_motm_elections
 set opens_at = now() - interval '25 hours',
     closes_at = now() - interval '1 hour'
@@ -314,7 +315,7 @@ select ok(
     current_setting('test.motm_push_match')::uuid,
     false
   ),
-  'la clôture calcule le résultat'
+  'la clôture calcule toujours le résultat métier'
 );
 
 select is(
@@ -322,30 +323,10 @@ select is(
     select count(*)
     from public.push_notification_log
     where match_id = current_setting('test.motm_push_match')::uuid
-      and kind = 'motm_results'
+      and kind in ('motm_reminder', 'motm_results')
   ),
-  1::bigint,
-  'la clôture annonce une seule fois les résultats'
-);
-
-select like(
-  public.internal_push_dispatch(
-    'motm_results',
-    current_setting('test.motm_push_match')::uuid
-  ) #>> '{payload,body}',
-  '%Votant Deux%',
-  'le message de résultat contient le gagnant réel'
-);
-
-select is(
-  jsonb_array_length(
-    public.internal_push_dispatch(
-      'motm_results',
-      current_setting('test.motm_push_match')::uuid
-    ) -> 'subscriptions'
-  ),
-  2,
-  'les joueurs actifs de la saison reçoivent le résultat'
+  0::bigint,
+  'la clôture ne crée ni rappel ni notification automatique de résultat'
 );
 
 select set_config(
@@ -357,7 +338,7 @@ set local role authenticated;
 select is(
   public.admin_restart_match_motm_vote(
     current_setting('test.motm_push_match')::uuid,
-    'Relance contrôlée du scrutin et des notifications'
+    'Relance contrôlée du scrutin'
   ) #>> '{state}',
   'open',
   'une relance ouvre un nouveau cycle'
@@ -372,7 +353,7 @@ select is(
       and kind in ('motm_open', 'motm_reminder', 'motm_results')
   ),
   1::bigint,
-  'la relance retire les anciens marqueurs et conserve seulement la nouvelle ouverture'
+  'un nouveau cycle conserve uniquement le marqueur d’ouverture HDM'
 );
 
 select is(
@@ -383,7 +364,7 @@ select is(
       and kind in ('motm_open', 'motm_reminder', 'motm_results')
   ),
   'motm_open',
-  'le nouveau cycle recommence par la notification d’ouverture'
+  'le nouveau cycle recommence uniquement par la notification d’ouverture'
 );
 
 update private.app_feature_flags
@@ -401,12 +382,6 @@ select is(
   ),
   0,
   'le feature flag désactivé bloque les destinataires HDM'
-);
-
-select is(
-  private.push_due_motm_reminders(now() + interval '19 hours'),
-  0,
-  'le feature flag désactivé bloque également le worker'
 );
 
 select * from finish();

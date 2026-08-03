@@ -237,10 +237,14 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ? null
         : ref.watch(matchInfoProvider(_selectedMatchId!)).valueOrNull;
     final isInternal = matchInfo?.isInternal ?? false;
-    final tooFarAway = isMatchTooFarAway(
-      matchInfo?.kickoffAt ?? _convocations?.kickoffAt,
-    );
-    final step = tooFarAway ? _AdminStep.info : _step;
+    final kickoffAt = matchInfo?.kickoffAt ?? _convocations?.kickoffAt;
+    final tooFarAway = isMatchTooFarAway(kickoffAt);
+    final liveTooEarly = isMatchLiveTooEarly(kickoffAt);
+    final step = tooFarAway
+        ? _AdminStep.info
+        : (_step == _AdminStep.live && liveTooEarly
+            ? _AdminStep.effectif
+            : _step);
 
     return RefreshIndicator(
       onRefresh: _loadMatches,
@@ -269,7 +273,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                   value: _AdminStep.composition,
                   label: Text('Compo'),
                 ),
-              if (!isInternal && !tooFarAway)
+              if (!isInternal && !tooFarAway && !liveTooEarly)
                 const ButtonSegment(
                   value: _AdminStep.live,
                   label: Text('Live'),

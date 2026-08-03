@@ -3,41 +3,39 @@ import 'package:as_grinta/features/predictions/presentation/predictions_controll
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('six-day prediction window', () {
-    final now = DateTime.utc(2026, 8, 1, 12);
-    final kickoff = now.add(const Duration(days: 6));
+  group('J-6 noon prediction window', () {
+    final opensAt = DateTime(2026, 8, 1, 12);
+    final kickoff = DateTime(2026, 8, 7, 20, 30);
 
-    test('opens exactly six days before kickoff', () {
+    test('opens at noon on the sixth calendar day before kickoff', () {
       final item = _item(kickoffAt: kickoff);
 
-      expect(item.opensAt, now);
+      expect(item.opensAt, opensAt);
       expect(
-        item.canEditAt(now.subtract(const Duration(milliseconds: 1))),
+        item.canEditAt(opensAt.subtract(const Duration(milliseconds: 1))),
         isFalse,
       );
-      expect(item.canEditAt(now), isTrue);
+      expect(item.canEditAt(opensAt), isTrue);
     });
 
     test('every match inside the window is editable independently', () {
       final first = _item(
         matchId: 'match-1',
-        kickoffAt: now.add(const Duration(days: 1)),
+        kickoffAt: DateTime(2026, 8, 2, 9),
       );
       final second = _item(
         matchId: 'match-2',
-        kickoffAt: now.add(const Duration(days: 3)),
+        kickoffAt: DateTime(2026, 8, 4, 21),
       );
 
-      expect(first.canEditAt(now), isTrue);
-      expect(second.canEditAt(now), isTrue);
+      expect(first.canEditAt(opensAt), isTrue);
+      expect(second.canEditAt(opensAt), isTrue);
     });
 
-    test('a match more than six days away remains closed', () {
-      final item = _item(
-        kickoffAt: now.add(const Duration(days: 6, milliseconds: 1)),
-      );
+    test('a match whose J-6 noon has not arrived remains closed', () {
+      final item = _item(kickoffAt: DateTime(2026, 8, 8, 10));
 
-      expect(item.canEditAt(now), isFalse);
+      expect(item.canEditAt(opensAt), isFalse);
     });
 
     test('the controller saves any match whose window is open', () async {
