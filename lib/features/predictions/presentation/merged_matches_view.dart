@@ -1,6 +1,7 @@
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_address_sheet.dart';
@@ -19,9 +20,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Contenu du nouvel onglet Matchs : le prochain match reprend toutes les
-/// fonctions de l'ancien accueil et chaque match passé reprend la carte
-/// détaillée « Dernier match ».
+/// Contenu de l'onglet Matchs.
+///
+/// Tous les matchs ayant franchi J-6 à midi passent ensemble dans la section
+/// « Prochain match ». Les rencontres plus lointaines restent dans « À venir ».
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key});
 
@@ -113,48 +115,59 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
+    final now = DateTime.now();
 
-    final upcoming = state.matches.where((match) => !match.isFinished).toList()
-      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final activeUpcoming =
-        upcoming.where((match) => !match.isCancelled).toList();
-    final nextMatch = activeUpcoming.isEmpty ? null : activeUpcoming.last;
-    final nextMatchId = nextMatch?.id;
-    final referenceKickoff = nextMatch?.kickoffAt ?? DateTime.now();
-    final otherMatches =
-        upcoming.where((match) => match.id != nextMatchId).toList();
-    final laterUpcoming = otherMatches
-        .where((match) => match.kickoffAt.isAfter(referenceKickoff))
+    final scheduled = state.matches.where((match) => !match.isFinished).toList();
+    final futureScheduled = scheduled
+        .where((match) => match.kickoffAt.isAfter(now))
+        .toList()
+      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    final nextMatches = futureScheduled
+        .where(
+          (match) =>
+              !match.isCancelled &&
+              !isMatchTooFarAway(match.kickoffAt, now: now),
+        )
+        .toList();
+    final laterUpcoming = futureScheduled
+        .where(
+          (match) =>
+              match.isCancelled ||
+              isMatchTooFarAway(match.kickoffAt, now: now),
+        )
         .toList();
     final pastSection = [
-      ...otherMatches
-          .where((match) => !match.kickoffAt.isAfter(referenceKickoff)),
+      ...scheduled.where((match) => !match.kickoffAt.isAfter(now)),
       ...state.matches.where((match) => match.isFinished),
     ]..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
 
+    final firstNextMatchId = nextMatches.isEmpty ? null : nextMatches.first.id;
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    final nextCardIsReady = nextMatch != null && !state.isLoading;
+    final nextCardIsReady = nextMatches.isNotEmpty && !state.isLoading;
 
     _focusNextMatch(
-      matchId: nextMatchId,
+      matchId: firstNextMatchId,
       cardIsReady: nextCardIsReady,
       requestToken: '$focusRequest',
     );
 
-    final nextMatchCacheExtent = 1000.0 + (laterUpcoming.length * 360.0);
+    final cacheExtent =
+        1000.0 + ((laterUpcoming.length + nextMatches.length) * 360.0);
 
     return RefreshIndicator(
       onRefresh: _refresh,
       child: CustomScrollView(
-        scrollCacheExtent: ScrollCacheExtent.pixels(nextMatchCacheExtent),
+        scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           const SliverToBoxAdapter(
-              child: SizedBox(height: AppSpacing.microGap)),
+            child: SizedBox(height: AppSpacing.microGap),
+          ),
           if (state.isLoading)
             const SliverPadding(
-              padding:
-                  EdgeInsets.symmetric(horizontal: AppSpacing.screenGutter),
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenGutter,
+              ),
               sliver: SliverToBoxAdapter(child: _LoadingCard()),
             )
           else if (state.error != null)
@@ -242,36 +255,44 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   ),
                 ],
               ),
-            SliverMainAxisGroup(
-              slivers: [
-                SliverPersistentHeader(
-                  key: _nextMatchKey,
-                  pinned: true,
-                  delegate: const _SectionHeaderDelegate(
-                    icon: Icons.bolt_rounded,
-                    title: 'Prochain match',
-                    emphasized: true,
+            if (nextMatches.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  SliverPersistentHeader(
+                    key: _nextMatchKey,
+                    pinned: true,
+                    delegate: const _SectionHeaderDelegate(
+                      icon: Icons.bolt_rounded,
+                      title: 'Prochain match',
+                      emphasized: true,
+                    ),
                   ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenGutter,
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == nextMatches.length - 1
+                                ? 0
+                                : AppSpacing.contentGap,
+                          ),
+                          child: HomeNextMatchCard(
+                            match: nextMatches[index],
+                            isAdmin: isAdmin,
+                          ),
+                        ),
+                        childCount: nextMatches.length,
+                      ),
+                    ),
                   ),
-                  sliver: SliverToBoxAdapter(
-                    child: nextMatch == null
-                        ? const _MessageCard(
-                            title: 'Pas de match programmé',
-                            message:
-                                'Le prochain match apparaîtra ici dès qu’il sera créé.',
-                          )
-                        : HomeNextMatchCard(match: nextMatch, isAdmin: isAdmin),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.sectionGap),
                   ),
-                ),
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.sectionGap),
-                ),
-              ],
-            ),
+                ],
+              ),
             if (isAdmin)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
@@ -442,9 +463,7 @@ class _UpcomingMatchCard extends StatelessWidget {
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final now = DateTime.now();
-    final availabilityOpensAt = match.kickoffAt.subtract(
-      const Duration(days: 6),
-    );
+    final availabilityOpensAt = matchFeaturesOpenAt(match.kickoffAt);
     final availabilityIsOpen = !match.isCancelled &&
         !now.isBefore(availabilityOpensAt) &&
         now.isBefore(match.kickoffAt);
