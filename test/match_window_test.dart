@@ -65,7 +65,7 @@ void main() {
     });
   });
 
-  group('fenêtre du Live', () {
+  group('frontière Prono / Live', () {
     final kickoff = DateTime.utc(2026, 8, 7, 18, 30);
     final opensAt = DateTime.utc(2026, 8, 7, 18, 15);
 
@@ -81,8 +81,86 @@ void main() {
       expect(isMatchLiveTooEarly(kickoff, now: opensAt), isFalse);
     });
 
+    test('le prono ferme au même instant', () {
+      expect(matchPredictionClosesAt(kickoff), opensAt);
+      expect(
+        isMatchPredictionClosed(
+          kickoff,
+          now: opensAt.subtract(const Duration(milliseconds: 1)),
+        ),
+        isFalse,
+      );
+      expect(isMatchPredictionClosed(kickoff, now: opensAt), isTrue);
+      expect(isMatchAdminEditLocked(kickoff, now: opensAt), isTrue);
+    });
+
     test('sans coup d’envoi connu, le Live ne bloque pas la fiche', () {
       expect(isMatchLiveTooEarly(null, now: opensAt), isFalse);
+      expect(isMatchPredictionClosed(null, now: opensAt), isTrue);
+    });
+  });
+
+  group('phase d’affichage du match', () {
+    final kickoff = DateTime.utc(2026, 8, 7, 18, 30);
+
+    MatchDisplayPhase phaseAt(
+      DateTime now, {
+      String status = 'a_venir',
+      String? liveState,
+      int duration = 90,
+    }) =>
+        matchDisplayPhase(
+          kickoffAt: kickoff,
+          status: status,
+          plannedDurationMinutes: duration,
+          liveState: liveState,
+          now: now,
+        );
+
+    test('enchaîne à venir, prochain, direct et à valider', () {
+      expect(
+        phaseAt(DateTime.utc(2026, 8, 1, 9, 59, 59)),
+        MatchDisplayPhase.upcoming,
+      );
+      expect(
+        phaseAt(DateTime.utc(2026, 8, 1, 10)),
+        MatchDisplayPhase.next,
+      );
+      expect(
+        phaseAt(DateTime.utc(2026, 8, 7, 18, 15)),
+        MatchDisplayPhase.live,
+      );
+      expect(
+        phaseAt(DateTime.utc(2026, 8, 7, 20, 15)),
+        MatchDisplayPhase.awaitingValidation,
+      );
+    });
+
+    test('une fin Live bascule immédiatement à valider', () {
+      expect(
+        phaseAt(
+          DateTime.utc(2026, 8, 7, 19),
+          liveState: 'finished',
+        ),
+        MatchDisplayPhase.awaitingValidation,
+      );
+    });
+
+    test('la validation serveur l’emporte sur toute temporalité', () {
+      expect(
+        phaseAt(
+          DateTime.utc(2026, 8, 7, 18),
+          status: 'termine',
+        ),
+        MatchDisplayPhase.past,
+      );
+      expect(
+        phaseAt(
+          DateTime.utc(2026, 8, 7, 18),
+          status: 'annule',
+        ),
+        MatchDisplayPhase.cancelled,
+      );
     });
   });
 }
