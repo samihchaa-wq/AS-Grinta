@@ -10,9 +10,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   _desiredConvoked.contains(player.participantId),
         )
         .toList();
-    // Les convoqués sont toujours placés par ordre inverse de la liste
-    // d'attente permanente (les moins prioritaires en premier), pour que
-    // l'admin retire manuellement en priorité les joueurs en haut de liste.
     players.sort(_convokedOrder);
     return players;
   }
@@ -55,8 +52,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 
-  /// Ordre inverse de la liste d'attente permanente : position la plus haute
-  /// d'abord, joueurs hors liste d'attente (jamais en attente) en dernier.
   int _convokedOrder(ConvocationPlayer a, ConvocationPlayer b) {
     final ap = a.waitlistPosition;
     final bp = b.waitlistPosition;
@@ -79,14 +74,23 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       } else {
         _desiredConvoked.remove(player.participantId);
       }
-      _effectifDirty = true;
+    });
+    unawaited(_persistEffectif());
+  }
+
+  void _scheduleEffectifSave() {
+    _effectifSaveDebounce?.cancel();
+    _effectifSaveDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (mounted) unawaited(_persistEffectif());
     });
   }
 
-  int? _validatedSquadLimit() {
+  int? _validatedSquadLimit({bool showError = true}) {
     final limit = int.tryParse(_limitController.text.trim());
     if (limit == null || limit < 1 || limit > 30) {
-      _showMessage('Saisis une limite comprise entre 1 et 30.');
+      if (showError) {
+        _showMessage('Saisis une limite comprise entre 1 et 30.');
+      }
       return null;
     }
     return limit;
@@ -106,91 +110,40 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     };
   }
 
-  Future<bool> _saveEffectif() async {
+  Future<void> _persistEffectif() async {
     final convocations = _convocations;
-    if (convocations == null || _busy || _locked) return false;
-    final limit = _validatedSquadLimit();
-    if (limit == null) return false;
-    _updateState(() => _busy = true);
-    try {
-      await ref.read(sportWaitlistRepositoryProvider).saveEffectif(
-            matchId: convocations.matchId,
-            squadSizeLimit: limit,
-            decisions: _effectifDecisions(convocations),
-            reason: 'Brouillon d’effectif enregistré depuis le match',
-          );
-      await _loadWorkspace(convocations.matchId);
-      ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
-      if (!mounted) return false;
-      final count = _convokedPlayers.length;
-      _showMessage(
-        count > limit
-            ? 'Brouillon enregistré : $count joueurs pour une limite de $limit. Rien n’est encore publié.'
-            : 'Brouillon d’effectif enregistré. Rien n’est encore publié.',
-      );
-      return true;
-    } catch (error) {
-      if (mounted) _showMessage(humanizeError(error));
-      return false;
-    } finally {
-      if (mounted) _updateState(() => _busy = false);
+    if (convocations == null || _locked) return;
+    if (_busy) {
+      _scheduleEffectifSave();
+      return;
     }
-  }
-
-  Future<void> _publishEffectif() async {
-    final convocations = _convocations;
-    if (convocations == null || _busy || _locked) return;
-    final limit = _validatedSquadLimit();
+    final limit = _validatedSquadLimit(showError: false);
     if (limit == null) return;
-    final convoked = _convokedPlayers;
-    final waitlisted = _waitlistedPlayers;
-    final overLimit = convoked.length > limit;
-    final confirmed = await _confirmAction(
-      title: convocations.isPublished
-          ? 'Enregistrer les modifications ?'
-          : 'Enregistrer les convocations ?',
-      actionLabel: convocations.isPublished ? 'Mettre à jour' : 'Enregistrer',
-      actionIcon: Icons.campaign_outlined,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${convoked.length} disponible${convoked.length > 1 ? 's' : ''} · '
-            '${waitlisted.length} en liste d’attente · limite $limit.',
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Cette action rendra les décisions visibles par les joueurs. La composition restera privée jusqu’à sa propre publication.',
-          ),
-          if (overLimit) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Attention : l’effectif dépasse la limite de ${convoked.length - limit} joueur${convoked.length - limit > 1 ? 's' : ''}.',
-              style: const TextStyle(
-                color: Colors.orange,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-    if (!confirmed || !mounted) return;
 
     _updateState(() => _busy = true);
     try {
-      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
-            matchId: convocations.matchId,
-            squadSizeLimit: limit,
-            decisions: _effectifDecisions(convocations),
-            reason: 'Convocations publiées explicitement depuis le match',
-          );
-      await _loadWorkspace(convocations.matchId);
+      final updated =
+          await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
+                matchId: convocations.matchId,
+                squadSizeLimit: limit,
+                decisions: _effectifDecisions(convocations),
+                reason: 'Mise à jour immédiate de l’effectif depuis le match',
+              );
+      if (!mounted) return;
+      _updateState(() {
+        _convocations = updated;
+        _desiredConvoked = {
+          for (final player in updated.players)
+            if ((player.isAvailable || player.isGuest) && player.isConvoked)
+              player.participantId,
+        };
+      });
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
-      if (mounted) _showMessage('Convocations enregistrées.');
     } catch (error) {
-      if (mounted) _showMessage(humanizeError(error));
+      if (mounted) {
+        _showMessage(humanizeError(error));
+        await _loadWorkspace(convocations.matchId);
+      }
     } finally {
       if (mounted) _updateState(() => _busy = false);
     }
@@ -275,12 +228,14 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
-    final publishedDetail = switch (player.publishedConvocationStatus) {
-      ConvocationStatus.convoked => 'Convoqué dans la publication actuelle',
-      ConvocationStatus.notConvoked =>
-        'Non convoqué dans la publication actuelle',
-      ConvocationStatus.notApplicable => 'Aucune décision publiée',
-    };
+    final isConvoked = _desiredConvoked.contains(player.participantId);
+    final convocationDetail = player.isGuest
+        ? 'Invité sélectionné pour ce match'
+        : isConvoked
+            ? 'Convoqué pour ce match'
+            : player.isAvailable
+                ? 'Non convoqué pour ce match'
+                : 'Aucune décision de convocation applicable';
     final canRelance = !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
@@ -298,9 +253,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             children: [
               Text(
                 player.displayName,
-                style: Theme.of(
-                  sheetContext,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),
               _PlayerInfoRow(
@@ -311,14 +267,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               ),
               const SizedBox(height: 12),
               _PlayerInfoRow(
-                icon: Icons.campaign_outlined,
-                color: player.hasUnpublishedConvocationChange
-                    ? Colors.orange
-                    : const Color(0xFF168A52),
-                title: player.hasUnpublishedConvocationChange
-                    ? 'Modification non publiée'
-                    : 'Convocation publiée',
-                detail: publishedDetail,
+                icon: Icons.groups_rounded,
+                color: isConvoked ? const Color(0xFF168A52) : Colors.blueGrey,
+                title: 'Convocation',
+                detail: convocationDetail,
               ),
               const SizedBox(height: 12),
               _PlayerInfoRow(
@@ -379,9 +331,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 ),
                 TextField(
                   controller: lastName,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom facultatif',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Nom facultatif'),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -459,34 +409,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
   }
 
   Widget _buildEffectif() {
-    final convocations = _convocations!;
     final limit = int.tryParse(_limitController.text) ?? 14;
     final over = _convokedPlayers.length > limit;
-    final hasPending = _effectifHasPendingPublication;
-    final statusTitle = _effectifDirty
-        ? 'Modifications non enregistrées'
-        : convocations.hasUnpublishedChanges
-            ? 'Brouillon enregistré, non publié'
-            : convocations.isPublished
-                ? 'Convocations publiées'
-                : 'Aucune convocation publiée';
-    final statusDetail = _effectifDirty
-        ? 'Enregistre le brouillon ou publie directement les décisions actuelles.'
-        : convocations.hasUnpublishedChanges
-            ? 'Les joueurs voient encore la précédente publication.'
-            : convocations.isPublished
-                ? 'Version ${convocations.convocationVersion} visible par les joueurs.'
-                : 'Les joueurs ne voient encore aucune décision de convocation.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _PublicationStatusCard(
-          title: statusTitle,
-          detail: statusDetail,
-          pending: hasPending || !convocations.isPublished,
-        ),
-        const SizedBox(height: 14),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -495,15 +423,16 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               children: [
                 Text(
                   'Effectif',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 const Text(
                   'Touche un joueur pour voir sa disponibilité et son rang. '
-                  'Glisse-le pour changer de colonne. Les changements restent '
-                  'privés tant que tu ne publies pas les convocations.',
+                  'Glisse-le pour changer de colonne. Chaque changement est '
+                  'enregistré immédiatement.',
                 ),
                 const SizedBox(height: 14),
                 TextField(
@@ -514,12 +443,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     labelText: 'Nombre de joueurs souhaité',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (_) => _updateState(() => _effectifDirty = true),
+                  onChanged: (_) => _scheduleEffectifSave(),
                 ),
                 if (over) ...[
                   const SizedBox(height: 10),
                   Text(
-                    '${_convokedPlayers.length} disponibles pour une limite de $limit. Une confirmation sera demandée avant enregistrement.',
+                    '${_convokedPlayers.length} joueurs pour une limite de $limit.',
                     style: const TextStyle(
                       color: Colors.orange,
                       fontWeight: FontWeight.w800,
@@ -612,31 +541,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               ],
             );
           },
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: _busy || _locked || !_effectifDirty ? null : _saveEffectif,
-          icon: const Icon(Icons.save_outlined),
-          label: Text(
-            _effectifDirty
-                ? 'Enregistrer le brouillon'
-                : 'Brouillon enregistré',
-          ),
-        ),
-        const SizedBox(height: 10),
-        FilledButton.icon(
-          onPressed:
-              _busy || _locked || (!hasPending && convocations.isPublished)
-                  ? null
-                  : _publishEffectif,
-          icon: const Icon(Icons.campaign_outlined),
-          label: Text(
-            convocations.isPublished
-                ? hasPending
-                    ? 'Enregistrer les modifications'
-                    : 'Convocations enregistrées'
-                : 'Enregistrer les convocations',
-          ),
         ),
         if (_locked)
           const Padding(
