@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -36,7 +37,7 @@ class MatchPredictionItem {
   final int? actualScoreOpponent;
   final DateTime? predictionsClosedAt;
 
-  DateTime get opensAt => kickoffAt.subtract(const Duration(days: 6));
+  DateTime get opensAt => matchFeaturesOpenAt(kickoffAt);
   DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
 
   bool isClosedAt(DateTime now) =>
