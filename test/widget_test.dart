@@ -80,7 +80,15 @@ void main() {
 
 class _LoadingAuthRepository extends AuthRepository {
   _LoadingAuthRepository()
-      : super(supabase.SupabaseClient('http://localhost', 'test-anon-key'));
+      : super(
+          supabase.SupabaseClient(
+            'http://localhost',
+            'test-anon-key',
+            authOptions: const supabase.AuthClientOptions(
+              autoRefreshToken: false,
+            ),
+          ),
+        );
 
   @override
   Stream<supabase.AuthState> get authStateChanges => const Stream.empty();
