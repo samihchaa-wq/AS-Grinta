@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/weather/data/match_weather_repository.dart';
 import 'package:as_grinta/features/weather/domain/match_weather.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ class MatchWeatherCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = now ?? DateTime.now();
-    final opensAt = kickoffAt.subtract(const Duration(days: 6));
+    final opensAt = matchFeaturesOpenAt(kickoffAt);
     if (current.isBefore(opensAt) || !current.isBefore(kickoffAt)) {
       return const SizedBox.shrink();
     }
