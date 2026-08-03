@@ -23,15 +23,11 @@ Chaque utilisateur dispose de trois préférences indépendantes :
 
 ## Vote Homme du match
 
-Le vote ouvre au premier événement valide parmi :
+Le vote Homme du Match ouvre **strictement 1 h 45 après le coup d'envoi**.
 
-1. validation du récapitulatif Live par le coach ;
-2. validation des Stats/finalisation du match par un administrateur ou modérateur ;
-3. à défaut, deux heures après le coup d'envoi.
+La validation du récapitulatif Live ou des Stats peut préparer et synchroniser le scrutin, mais elle ne peut jamais avancer son ouverture avant H+1 h 45. À partir de H+1 h 45, l'ouverture ne dépend d'aucune publication de composition ni d'aucune finalisation préalable : dès qu'un bulletin de vote valide peut être constitué, le scrutin est créé et ouvert.
 
-Le vote ne peut jamais ouvrir avant le coup d'envoi. À H+2, son ouverture ne dépend pas d'une publication de composition ou d'une finalisation préalable : dès qu'un bulletin de vote valide peut être constitué, le scrutin est créé et ouvert.
-
-La fermeture est fixe à **H+24 après le coup d'envoi**, quelle que soit l'heure à laquelle le vote s'est ouvert. Une validation rapide après le match donne donc une fenêtre de vote plus longue qu'une ouverture automatique à H+2.
+La fermeture est fixe à **H+24 après le coup d'envoi**.
 
 ## Notifications supprimées
 
