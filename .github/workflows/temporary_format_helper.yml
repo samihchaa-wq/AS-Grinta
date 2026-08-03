@@ -1,0 +1,35 @@
+name: Temporary Dart format helper
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    if: github.head_ref == 'agent/simplify-match-workflows'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Format updated tests
+        run: |
+          dart format \
+            test/admin_squad_plan_visual_review_test.dart \
+            test/auth_controller_test.dart \
+            test/effectif_publication_contract_test.dart
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-updated-tests
+          path: |
+            test/admin_squad_plan_visual_review_test.dart
+            test/auth_controller_test.dart
+            test/effectif_publication_contract_test.dart
