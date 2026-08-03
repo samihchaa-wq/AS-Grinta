@@ -119,10 +119,7 @@ class MatchLineupPage extends ConsumerWidget {
                     label: Text('Compo'),
                   ),
                 if (!isInternal && !tooFarAway && !liveTooEarly)
-                  const ButtonSegment(
-                    value: 'live',
-                    label: Text('Live'),
-                  ),
+                  const ButtonSegment(value: 'live', label: Text('Live')),
                 if (!isInternal && !tooFarAway)
                   const ButtonSegment(
                     value: 'prediction',
@@ -279,8 +276,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               ),
             );
           }
-          final board =
-              ref.watch(matchAvailabilityBoardProvider(matchId)).valueOrNull;
+          final board = ref
+              .watch(matchAvailabilityBoardProvider(matchId))
+              .valueOrNull;
           final beforeKickoff =
               board == null || DateTime.now().isBefore(board.kickoffAt);
           final foreground = embeddedOnDark ? Colors.white : null;
@@ -296,18 +294,18 @@ class PublishedLineupPreview extends ConsumerWidget {
                     child: Text(
                       'Composition',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: foreground,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        color: foreground,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   if (composition.formationCode != null)
                     Text(
                       composition.formationCode!,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: secondary,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: secondary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                 ],
               ),
@@ -315,9 +313,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               Text(
                 'Composition publiée',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: secondary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: secondary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
               Center(
@@ -332,9 +330,9 @@ class PublishedLineupPreview extends ConsumerWidget {
               Text(
                 'Remplaçants (${composition.benchCount})',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: foreground,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  color: foreground,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               if (composition.benchCount == 0)
