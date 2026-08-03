@@ -30,7 +30,8 @@ class AuthProfile {
     this.photoUrl,
     required this.role,
     required this.isGoalkeeper,
-    required this.status,
+    required this.isActive,
+    this.status = 'active',
     required this.mustChangePassword,
     this.createdAt,
     this.updatedAt,
@@ -44,12 +45,12 @@ class AuthProfile {
   final String surnom;
   final AuthRole role;
   final bool isGoalkeeper;
+  final bool isActive;
   final String status;
   final bool mustChangePassword;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  bool get isActive => status == 'active';
   bool get isPending => status == 'pending';
 
   String get fullName =>
@@ -85,6 +86,7 @@ class AuthProfile {
           : null,
       role: role,
       isGoalkeeper: json['is_goalkeeper'] == true,
+      isActive: statusValue == 'active',
       status: statusValue,
       mustChangePassword: json['must_change_password'] == true,
       createdAt: DateTime.tryParse('${json['created_at'] ?? ''}'),
