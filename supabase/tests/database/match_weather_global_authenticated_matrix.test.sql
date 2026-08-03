@@ -64,6 +64,23 @@ revoke all on function private.match_weather_refresh_interval(timestamptz, times
 grant execute on function private.match_weather_refresh_interval(timestamptz, timestamptz)
   to service_role;
 
+create or replace function private.match_features_open_at(
+  p_kickoff_at timestamptz
+)
+returns timestamptz
+language sql
+stable
+strict
+set search_path = ''
+as $function$
+  select (
+    ((p_kickoff_at at time zone 'Europe/Paris')::date - 6) + time '12:00'
+  ) at time zone 'Europe/Paris';
+$function$;
+
+revoke all on function private.match_features_open_at(timestamptz)
+  from public, anon, authenticated;
+
 create or replace function public.internal_match_weather_candidates(
   p_match_id uuid default null,
   p_now timestamptz default now()
@@ -106,7 +123,7 @@ as $function$
   where match.status = 'a_venir'
     and match.kickoff_at is not null
     and match.kickoff_at > p_now
-    and match.kickoff_at <= p_now + interval '6 days'
+    and private.match_features_open_at(match.kickoff_at) <= p_now
     and address.resolved_address is not null
     and (p_match_id is null or match.id = p_match_id)
     and (
@@ -197,8 +214,8 @@ select is(private.match_weather_refresh_interval(timestamptz '2040-01-03 12:00:0
 select is(private.match_weather_refresh_interval(timestamptz '2040-01-02 00:00:00+00',timestamptz '2040-01-01 12:00:00+00'),interval '2 hours','dans les dernières 24 heures la météo est rafraîchie toutes les 2 heures');
 select is(private.match_weather_refresh_interval(timestamptz '2040-01-01 16:00:00+00',timestamptz '2040-01-01 12:00:00+00'),interval '1 hour','dans les six dernières heures la météo est rafraîchie chaque heure');
 
-select is((select count(*) from public.internal_match_weather_candidates(null,timestamptz '2040-01-01 12:00:00+00') where match_id='aa300000-0000-0000-0000-000000000001'),0::bigint,'un match à J-7 ne déclenche aucun appel météo');
-select is((select count(*) from public.internal_match_weather_candidates(null,timestamptz '2040-01-01 12:00:00+00') where match_id='aa300000-0000-0000-0000-000000000002'),1::bigint,'un match entre dans le pipeline exactement à J-6');
+select is((select count(*) from public.internal_match_weather_candidates(null,timestamptz '2040-01-01 11:00:00+00') where match_id='aa300000-0000-0000-0000-000000000001'),0::bigint,'un match à J-7 ne déclenche aucun appel météo');
+select is((select count(*) from public.internal_match_weather_candidates(null,timestamptz '2040-01-01 11:00:00+00') where match_id='aa300000-0000-0000-0000-000000000002'),1::bigint,'un match entre dans le pipeline exactement à J-6 à midi, heure de Paris');
 select is((select resolved_address from public.internal_match_weather_candidates('aa300000-0000-0000-0000-000000000002',timestamptz '2040-01-01 12:00:00+00')),'1 rue du Stade, 31000 Toulouse','un match à domicile reprend l’adresse du club');
 select is((select resolved_address from public.internal_match_weather_candidates('aa300000-0000-0000-0000-000000000003',timestamptz '2040-01-01 12:00:00+00')),'12 rue Extérieure, 31000 Toulouse','un match extérieur reprend l’adresse de l’adversaire');
 select is((select count(*) from public.internal_match_weather_candidates('aa300000-0000-0000-0000-000000000004',timestamptz '2040-01-01 12:00:00+00')),0::bigint,'un match terminé ne déclenche jamais de météo');
