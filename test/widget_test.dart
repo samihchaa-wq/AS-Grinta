@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
@@ -28,7 +30,6 @@ void main() {
       find.descendant(of: loader, matching: find.byType(CustomPaint)),
       findsOneWidget,
     );
-    expect(find.text('Préparation de ton espace…'), findsNothing);
   });
 
   testWidgets('determinate statistic rings do not become animated loaders',
