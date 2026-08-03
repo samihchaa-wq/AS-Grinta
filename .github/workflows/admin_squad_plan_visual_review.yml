@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: admin-squad-plan-visual-review-${{ github.ref }}
@@ -25,74 +25,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref || github.ref }}
-
-      - name: Align guest test once
-        if: github.event_name == 'pull_request' && github.head_ref == 'agent/simplify-match-workflows'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('supabase/tests/database/sports_management_guests.test.sql')
-          text = path.read_text()
-
-          marker = "select is(\n  public.admin_save_match_composition(\n    current_setting('test.guest_match')::uuid,"
-          if marker not in text:
-              raise SystemExit('Guest composition marker not found')
-          effectif = '''select is(
-  public.admin_save_match_effectif(
-    current_setting('test.guest_match')::uuid,
-    14,
-    (
-      select jsonb_agg(
-        jsonb_build_object(
-          'season_player_id', participant.season_player_id,
-          'status', 'convoked'
-        ) order by participant.season_player_id
-      )
-      from public.match_sport_participants participant
-      where participant.match_id = current_setting('test.guest_match')::uuid
-        and participant.season_player_id is not null
-        and participant.availability_status = 'available'
-        and participant.is_eligible
-    ),
-    'Effectif immédiat avant composition avec invité'
-  ) #>> '{convocation_version}',
-  '1',
-  'les convocations sont enregistrées immédiatement avant la composition avec invité'
-);
-
-'''
-          text = text.replace(marker, effectif + marker, 1)
-
-          start = text.index("select is(\n  public.admin_publish_match_effectif(\n    current_setting('test.guest_match')::uuid,")
-          end = text.index("\n\nselect is(\n  public.admin_publish_match_composition(", start)
-          text = text[:start] + text[end+2:]
-          text = text.replace(
-              "'le brouillon prépare un libellé invité explicite'",
-              "'la composition immédiate prépare un libellé invité explicite'",
-          )
-          text = text.replace(
-              "'la composition avec invité se publie normalement'",
-              "'l’ancien appel publish reste un no-op compatible après le save immédiat'",
-          )
-          text = text.replace(
-              "'le retrait nettoie le brouillon mais préserve la publication historique'",
-              "'le retrait nettoie la composition courante mais préserve la publication historique'",
-          )
-          path.write_text(text)
-          PY
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout origin/main -- .github/workflows/admin_squad_plan_visual_review.yml
-          git add -A
-          git commit -m "Align guest test with immediate effectif persistence"
-          git push origin HEAD:agent/simplify-match-workflows
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
