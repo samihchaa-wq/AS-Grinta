@@ -95,16 +95,16 @@ Widget _app({
 }
 
 void main() {
-  // Le résumé météo représente désormais uniquement le coup d’envoi.
   final kickoff = DateTime(2040, 1, 7, 20);
+  final opensAt = DateTime(2040, 1, 1, 12);
 
-  testWidgets('la carte reste invisible avant J-6', (tester) async {
+  testWidgets('la carte reste invisible avant J-6 à midi', (tester) async {
     final repository = _FakeWeatherRepository(_weather(kickoff: kickoff));
     await tester.pumpWidget(
       _app(
         repository: repository,
         kickoff: kickoff,
-        now: kickoff.subtract(const Duration(days: 6, minutes: 1)),
+        now: opensAt.subtract(const Duration(minutes: 1)),
       ),
     );
     await tester.pump();
@@ -113,16 +113,10 @@ void main() {
     expect(repository.watchCount, 0);
   });
 
-  testWidgets('la carte apparaît exactement à J-6 avec les données', (
-    tester,
-  ) async {
+  testWidgets('la carte apparaît exactement à J-6 à midi', (tester) async {
     final repository = _FakeWeatherRepository(_weather(kickoff: kickoff));
     await tester.pumpWidget(
-      _app(
-        repository: repository,
-        kickoff: kickoff,
-        now: kickoff.subtract(const Duration(days: 6)),
-      ),
+      _app(repository: repository, kickoff: kickoff, now: opensAt),
     );
     await tester.pumpAndSettle();
 
