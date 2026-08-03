@@ -361,8 +361,8 @@ select is(
     where match_id = '65000000-0000-0000-0000-000000000001'
       and is_eligible
   ),
-  2::bigint,
-  'seuls les joueurs actifs liés à un compte actif sont éligibles'
+  4::bigint,
+  'tous les joueurs de saison actifs hors coach sont immédiatement éligibles'
 );
 
 select set_config(
@@ -550,8 +550,8 @@ select is(
     from public.match_sport_participants
     where match_id = '65000000-0000-0000-0000-000000000001'
   ),
-  2::bigint,
-  'les données existantes sont conservées après désactivation'
+  4::bigint,
+  'les données existantes de tous les joueurs de saison actifs sont conservées après désactivation'
 );
 
 select * from finish();
