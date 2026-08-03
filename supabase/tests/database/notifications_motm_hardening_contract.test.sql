@@ -31,6 +31,19 @@ select ok(
 );
 
 select ok(
+  position(
+    'opens_at = LEAST' in upper(
+      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+    )
+  ) > 0
+  and position(
+    'transition_match_motm_election' in
+    pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+  ) > 0,
+  'une validation Stats/Live avance une éventuelle fenêtre HDM existante puis la transitionne'
+);
+
+select ok(
   to_regprocedure('private.push_due_motm_reminders(timestamptz)') is null
   and to_regprocedure('public.push_on_motm_election_closed()') is null
   and to_regprocedure('public.push_on_match_result()') is null,
@@ -47,6 +60,18 @@ select ok(
     pg_get_functiondef('private.dispatch_motm_push(text,uuid)'::regprocedure)
   ) = 0,
   'le transport HDM privé n’accepte plus les anciens types de rappel/résultat'
+);
+
+select ok(
+  position(
+    'motm_reminder' in
+    pg_get_functiondef('public.push_on_motm_election_opened()'::regprocedure)
+  ) = 0
+  and position(
+    'motm_results' in
+    pg_get_functiondef('public.push_on_motm_election_opened()'::regprocedure)
+  ) = 0,
+  'le trigger d’ouverture HDM ne manipule plus les anciens types retirés'
 );
 
 select ok(
