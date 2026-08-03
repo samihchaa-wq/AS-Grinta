@@ -367,9 +367,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
 
   Future<void> _persistComposition() async {
     final composition = _composition;
-    if (composition == null ||
-        _compositionLocked ||
-        !_compositionDirty) {
+    if (composition == null || _compositionLocked || !_compositionDirty) {
       return;
     }
     if (!_postMatch && !_effectifReadyForComposition) {
