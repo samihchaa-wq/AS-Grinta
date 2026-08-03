@@ -47,6 +47,7 @@ select is(
       'public.admin_publish_match_composition(uuid,boolean,text)',
       'public.admin_get_match_composition(uuid)',
       'public.get_published_match_composition(uuid)',
+      'public.admin_save_match_effectif(uuid,integer,jsonb,text)',
       'public.admin_publish_match_effectif(uuid,integer,jsonb,text)'
     ]::text[]) expected(signature)
     join pg_proc procedure on procedure.oid = to_regprocedure(expected.signature)
@@ -147,10 +148,6 @@ update public.match_sport_participants
 set availability_status = 'available',
     availability_updated_at = now(),
     availability_updated_by = '91000000-0000-0000-0000-000000000001',
-    convocation_status = 'convoked',
-    convocation_manual_override = true,
-    waitlist_turn_should_consume = false,
-    waitlist_turn_state = 'waived',
     updated_at = now()
 where match_id = current_setting('test.composition_match')::uuid;
 
@@ -252,6 +249,25 @@ select set_config(
 );
 set local role authenticated;
 
+select is(
+  public.admin_save_match_effectif(
+    current_setting('test.composition_match')::uuid,
+    14,
+    pg_temp.effectif_payload(),
+    'Effectif immédiat avant composition'
+  ) #>> '{convocation_version}',
+  '1',
+  'l’effectif est enregistré et publié immédiatement'
+);
+
+select is(
+  public.admin_get_match_convocations(
+    current_setting('test.composition_match')::uuid
+  ) #>> '{has_unpublished_changes}',
+  'false',
+  'aucun brouillon d’effectif ne subsiste'
+);
+
 select throws_ok(
   $$select public.admin_save_match_composition(
     current_setting('test.composition_match')::uuid,
@@ -271,42 +287,18 @@ select is(
     '4-3-3',
     pg_temp.composition_payload('valid'),
     false,
-    'Premier brouillon'
-  ) #>> '{field_count}',
-  '11',
-  'un brouillon complet est enregistré avant toute publication'
-);
-
-select throws_ok(
-  $$select public.admin_publish_match_composition(
-    current_setting('test.composition_match')::uuid,
-    false,
-    'Composition avant convocations'
-  )$$,
-  '22023',
-  'Publish convocations before publishing the composition',
-  'la composition ne peut pas publier les convocations à la place de l’effectif'
-);
-
-select is(
-  public.admin_publish_match_effectif(
-    current_setting('test.composition_match')::uuid,
-    14,
-    pg_temp.effectif_payload(),
-    'Publication préalable des convocations'
-  ) #>> '{convocation_version}',
-  '1',
-  'les convocations sont publiées explicitement avant la composition'
-);
-
-select is(
-  public.admin_publish_match_composition(
-    current_setting('test.composition_match')::uuid,
-    false,
-    'Première publication'
+    'Première composition immédiate'
   ) #>> '{version}',
   '1',
-  'la première publication crée la version 1'
+  'la première composition valide est publiée immédiatement en version 1'
+);
+
+select is(
+  public.admin_get_match_composition(
+    current_setting('test.composition_match')::uuid
+  ) #>> '{has_unpublished_changes}',
+  'false',
+  'aucun brouillon de composition ne subsiste'
 );
 
 select is(
@@ -316,7 +308,7 @@ select is(
     where match_id = current_setting('test.composition_match')::uuid
   ),
   'published',
-  'le workflow passe à published'
+  'le workflow de composition est publié après le save'
 );
 
 select is(
@@ -326,7 +318,17 @@ select is(
     where match_id = current_setting('test.composition_match')::uuid
   ),
   1::bigint,
-  'un snapshot immuable est conservé'
+  'la première composition conserve un snapshot immuable'
+);
+
+select is(
+  public.admin_publish_match_composition(
+    current_setting('test.composition_match')::uuid,
+    false,
+    'Compatibilité ancienne publication'
+  ) #>> '{version}',
+  '1',
+  'un ancien appel publish après save reste un no-op compatible'
 );
 
 reset role;
@@ -342,7 +344,7 @@ select is(
     current_setting('test.composition_match')::uuid
   ) #>> '{version}',
   '1',
-  'un profil actif lit uniquement la publication courante'
+  'un profil actif lit la composition immédiatement publiée'
 );
 
 reset role;
@@ -360,9 +362,9 @@ select is(
     pg_temp.composition_payload('goalkeeper_bench'),
     false,
     'Gardien sur le banc'
-  ) #>> '{has_unpublished_changes}',
-  'true',
-  'une modification reste un brouillon non publié'
+  ) #>> '{version}',
+  '2',
+  'une modification valide est publiée immédiatement en version 2'
 );
 
 select is(
@@ -371,18 +373,18 @@ select is(
     from public.match_composition_publications
     where match_id = current_setting('test.composition_match')::uuid
   ),
-  1::bigint,
-  'modifier le brouillon ne change pas le snapshot publié'
+  2::bigint,
+  'chaque modification immédiate conserve un snapshot immuable'
 );
 
 select is(
   public.admin_publish_match_composition(
     current_setting('test.composition_match')::uuid,
     false,
-    'Republication'
+    'Compatibilité republication'
   ) #>> '{version}',
   '2',
-  'la republication crée une nouvelle version'
+  'un ancien appel de republication après save reste un no-op compatible'
 );
 
 select is(
@@ -421,7 +423,7 @@ select is(
     'Exception explicite'
   ) #>> '{squad_size_exception_approved}',
   'true',
-  'une confirmation explicite autorise le dépassement'
+  'une confirmation explicite autorise le dépassement et publie immédiatement'
 );
 
 reset role;
@@ -430,23 +432,17 @@ set squad_size_limit = 14
 where match_id = current_setting('test.composition_match')::uuid;
 set local role authenticated;
 
-select public.admin_save_match_composition(
-  current_setting('test.composition_match')::uuid,
-  '4-3-3',
-  pg_temp.composition_payload('unresolved'),
-  false,
-  'Brouillon volontairement incomplet'
-);
-
 select throws_ok(
-  $$select public.admin_publish_match_composition(
+  $$select public.admin_save_match_composition(
     current_setting('test.composition_match')::uuid,
+    '4-3-3',
+    pg_temp.composition_payload('unresolved'),
     false,
-    'Publication incomplète'
+    'Composition volontairement incomplète'
   )$$,
   '22023',
   'Every selected player must be placed on the field or bench before publication',
-  'un joueur convoqué non placé bloque la publication'
+  'un joueur convoqué non placé bloque l’enregistrement immédiat'
 );
 
 reset role;

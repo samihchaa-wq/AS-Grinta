@@ -13,6 +13,14 @@ String? resolveAuthRedirect({
     return location == '/auth/loading' ? null : '/auth/loading';
   }
 
+  // Un compte nouvellement inscrit garde sa session mais reste uniquement sur
+  // l'écran d'attente. Dès que le profil passe active, le refresh du routeur
+  // le fait entrer normalement dans l'application.
+  final isPending = authState.profile?.isPending == true;
+  if (isPending) {
+    return location == '/auth/loading' ? null : '/auth/loading';
+  }
+
   if (location == '/auth/loading' && !authState.isAuthenticated) {
     return '/auth/sign-in';
   }
@@ -63,9 +71,6 @@ String? resolveAuthRedirect({
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
-  // Le module « Modérateur », la gestion des comptes qu'il contient et celle
-  // des badges : un admin garde tous ses autres droits mais n'entre pas ici,
-  // même par l'URL.
   final isModeratorRoute = const {
     '/admin',
     '/admin/administration',

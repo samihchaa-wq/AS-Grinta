@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
@@ -10,9 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 void main() {
   group('AuthController', () {
     test('loads an active profile on startup', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_activeProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -59,10 +57,23 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('inactive profiles are signed out and rejected', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_inactiveProfile],
-      );
+    test('pending profiles keep their session and waiting profile', () async {
+      final repository = _FakeAuthRepository(fetchResults: [_pendingProfile]);
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+
+      await _flushAsync();
+
+      expect(repository.signOutCalls, 0);
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.profile, same(_pendingProfile));
+      expect(controller.state.profile?.isPending, isTrue);
+      expect(controller.state.error, isNull);
+    });
+
+    test('archived profiles are signed out and rejected', () async {
+      final repository = _FakeAuthRepository(fetchResults: [_archivedProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -72,10 +83,7 @@ void main() {
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
       expect(controller.state.profile, isNull);
-      expect(
-        controller.state.error,
-        'Ton compte doit être validé par l’admin avant de pouvoir te connecter.',
-      );
+      expect(controller.state.error, 'Ce compte n’est pas actif.');
     });
 
     test('signIn exposes a stable user-facing error on failure', () async {
@@ -102,9 +110,7 @@ void main() {
     });
 
     test('signOut clears the authenticated state', () async {
-      final repository = _FakeAuthRepository(
-        fetchResults: [_activeProfile],
-      );
+      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
       await _flushAsync();
@@ -118,25 +124,23 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test(
-      'ignores a refresh result that became stale after signedOut',
-      () async {
-        final pendingRefresh = Completer<AuthProfile?>();
-        final repository = _FakeAuthRepository(
-          fetchResults: [pendingRefresh.future],
-        );
-        final controller = AuthController(repository);
-        addTearDown(controller.dispose);
+    test('ignores a refresh result that became stale after signedOut',
+        () async {
+      final pendingRefresh = Completer<AuthProfile?>();
+      final repository = _FakeAuthRepository(
+        fetchResults: [pendingRefresh.future],
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
 
-        repository.emit(supabase.AuthChangeEvent.signedOut);
-        pendingRefresh.complete(_activeProfile);
-        await _flushAsync();
+      repository.emit(supabase.AuthChangeEvent.signedOut);
+      pendingRefresh.complete(_activeProfile);
+      await _flushAsync();
 
-        expect(controller.state.isLoading, isFalse);
-        expect(controller.state.isAuthenticated, isFalse);
-        expect(controller.state.profile, isNull);
-      },
-    );
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.profile, isNull);
+    });
   });
 }
 
@@ -148,10 +152,11 @@ const _activeProfile = AuthProfile(
   role: AuthRole.admin,
   isGoalkeeper: false,
   isActive: true,
+  status: 'active',
   mustChangePassword: false,
 );
 
-const _inactiveProfile = AuthProfile(
+const _pendingProfile = AuthProfile(
   id: 'pending-user',
   username: 'pending',
   firstName: 'Pending',
@@ -159,6 +164,19 @@ const _inactiveProfile = AuthProfile(
   role: AuthRole.pronostiqueur,
   isGoalkeeper: false,
   isActive: false,
+  status: 'pending',
+  mustChangePassword: false,
+);
+
+const _archivedProfile = AuthProfile(
+  id: 'archived-user',
+  username: 'archived',
+  firstName: 'Archived',
+  lastName: 'User',
+  role: AuthRole.pronostiqueur,
+  isGoalkeeper: false,
+  isActive: false,
+  status: 'archived',
   mustChangePassword: false,
 );
 

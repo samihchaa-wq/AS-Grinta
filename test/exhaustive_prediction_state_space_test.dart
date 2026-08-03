@@ -49,7 +49,6 @@ void main() {
       }
 
       expect(cases, 9604);
-      // Visible dans l'artefact CI pour quantifier réellement la campagne.
       // ignore: avoid_print
       print('STATE_SPACE prediction_scoring cases=$cases status=passed');
     });
@@ -155,37 +154,10 @@ void main() {
       print('STATE_SPACE prediction_score_edit cases=$cases status=passed');
     });
 
-    test('x2 exhausts wallet and current-selection combinations', () async {
-      var cases = 0;
-      for (final available in [0, 1, 2]) {
-        for (final initiallyUsed in [false, true]) {
-          cases += 1;
-          final repository = _ScenarioPredictionsRepository(
-            items: [_item(x2Available: available, useX2: initiallyUsed)],
-          );
-          final controller = PredictionsController(repository);
-          await controller.load();
-          controller.toggleX2('match');
-          final observed = controller.state.items.single.useX2;
-          final expected = initiallyUsed ? false : available > 0;
-          expect(
-            observed,
-            expected,
-            reason: 'available=$available initiallyUsed=$initiallyUsed',
-          );
-          controller.dispose();
-        }
-      }
-
-      expect(cases, 6);
-      // ignore: avoid_print
-      print('STATE_SPACE prediction_x2 cases=$cases status=passed');
-    });
-
     test('a slow save is non-reentrant and produces one mutation', () async {
       final gate = Completer<void>();
       final repository = _ScenarioPredictionsRepository(
-        items: [_item(scoreGrinta: 3, scoreOpponent: 2, useX2: true)],
+        items: [_item(scoreGrinta: 3, scoreOpponent: 2)],
         saveGate: gate,
       );
       final controller = PredictionsController(repository);
@@ -213,7 +185,7 @@ void main() {
       'save failure preserves the complete form and permits retry',
       () async {
         final repository = _ScenarioPredictionsRepository(
-          items: [_item(scoreGrinta: 4, scoreOpponent: 3, useX2: true)],
+          items: [_item(scoreGrinta: 4, scoreOpponent: 3)],
           saveError: StateError('network unavailable'),
         );
         final controller = PredictionsController(repository);
@@ -224,7 +196,6 @@ void main() {
         final afterFailure = controller.state.items.single;
         expect(afterFailure.scoreGrinta, 4);
         expect(afterFailure.scoreOpponent, 3);
-        expect(afterFailure.useX2, isTrue);
         expect(afterFailure.isFilled, isFalse);
         expect(controller.state.error, isNotNull);
         expect(controller.state.savingMatchId, isNull);
@@ -247,7 +218,6 @@ void main() {
       addTearDown(controller.dispose);
       await controller.load();
       controller.changeScore(matchId: 'match', grinta: true, delta: 2);
-      controller.toggleX2('match');
 
       repository.fetchError = StateError('offline');
       await controller.load();
@@ -255,7 +225,6 @@ void main() {
       final item = controller.state.items.single;
       expect(item.scoreGrinta, 3);
       expect(item.scoreOpponent, 1);
-      expect(item.useX2, isTrue);
       expect(controller.state.error, isNotNull);
       // ignore: avoid_print
       print('STATE_SPACE prediction_failed_refresh cases=1 status=passed');
@@ -294,8 +263,6 @@ MatchPredictionItem _item({
   int scoreGrinta = 0,
   int scoreOpponent = 0,
   bool isFilled = false,
-  bool useX2 = false,
-  int x2Available = 1,
   DateTime? predictionsClosedAt,
 }) {
   return MatchPredictionItem(
@@ -306,8 +273,6 @@ MatchPredictionItem _item({
     scoreGrinta: scoreGrinta,
     scoreOpponent: scoreOpponent,
     isFilled: isFilled,
-    useX2: useX2,
-    x2Available: x2Available,
     oddsWin: 2,
     oddsDraw: 3,
     oddsLoss: 4,
@@ -352,7 +317,6 @@ class _ScenarioPredictionsRepository implements PredictionsRepository {
     required String matchId,
     required int scoreGrinta,
     required int scoreOpponent,
-    required bool useX2,
   }) async {
     saveCalls += 1;
     final error = saveError;

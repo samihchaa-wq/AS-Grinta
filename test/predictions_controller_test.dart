@@ -96,61 +96,14 @@ void main() {
       await controller.load();
 
       controller.changeScore(matchId: 'match', grinta: true, delta: 1);
-      controller.toggleX2('match');
 
-      final item = controller.state.items.single;
-      expect(item.scoreGrinta, 2);
-      expect(item.useX2, isFalse);
-    });
-
-    test('enables x2 only with an available token', () async {
-      final repository = _FakePredictionsRepository(
-        fetchResult: [_editableItem(x2Available: 1)],
-      );
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-      await controller.load();
-
-      controller.toggleX2('match');
-
-      expect(controller.state.items.single.useX2, isTrue);
-    });
-
-    test('cannot enable x2 without a token', () async {
-      final repository = _FakePredictionsRepository(
-        fetchResult: [_editableItem(x2Available: 0)],
-      );
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-      await controller.load();
-
-      controller.toggleX2('match');
-
-      expect(controller.state.items.single.useX2, isFalse);
-    });
-
-    test('can disable an already selected x2 even when none remain', () async {
-      final repository = _FakePredictionsRepository(
-        fetchResult: [_editableItem(useX2: true, x2Available: 0)],
-      );
-      final controller = PredictionsController(repository);
-      addTearDown(controller.dispose);
-      await controller.load();
-
-      controller.toggleX2('match');
-
-      expect(controller.state.items.single.useX2, isFalse);
+      expect(controller.state.items.single.scoreGrinta, 2);
     });
 
     test('saves the current values and marks the prediction filled', () async {
       final repository = _FakePredictionsRepository(
         fetchResult: [
-          _editableItem(
-            scoreGrinta: 3,
-            scoreOpponent: 1,
-            useX2: true,
-            x2Available: 1,
-          ),
+          _editableItem(scoreGrinta: 3, scoreOpponent: 1),
         ],
       );
       final controller = PredictionsController(repository);
@@ -162,7 +115,6 @@ void main() {
       expect(repository.savedMatchId, 'match');
       expect(repository.savedScoreGrinta, 3);
       expect(repository.savedScoreOpponent, 1);
-      expect(repository.savedUseX2, isTrue);
       expect(controller.state.items.single.isFilled, isTrue);
       expect(controller.state.savingMatchId, isNull);
       expect(controller.state.error, isNull);
@@ -209,15 +161,11 @@ void main() {
 MatchPredictionItem _editableItem({
   int scoreGrinta = 0,
   int scoreOpponent = 0,
-  bool useX2 = false,
-  int x2Available = 0,
 }) {
   return _item(
     kickoffAt: DateTime.now().add(const Duration(days: 1)),
     scoreGrinta: scoreGrinta,
     scoreOpponent: scoreOpponent,
-    useX2: useX2,
-    x2Available: x2Available,
   );
 }
 
@@ -227,8 +175,6 @@ MatchPredictionItem _item({
   int scoreGrinta = 0,
   int scoreOpponent = 0,
   bool isFilled = false,
-  bool useX2 = false,
-  int x2Available = 0,
   DateTime? predictionsClosedAt,
 }) {
   return MatchPredictionItem(
@@ -239,8 +185,6 @@ MatchPredictionItem _item({
     scoreGrinta: scoreGrinta,
     scoreOpponent: scoreOpponent,
     isFilled: isFilled,
-    useX2: useX2,
-    x2Available: x2Available,
     oddsWin: 2,
     oddsDraw: 3,
     oddsLoss: 4,
@@ -265,7 +209,6 @@ class _FakePredictionsRepository implements PredictionsRepository {
   String? savedMatchId;
   int? savedScoreGrinta;
   int? savedScoreOpponent;
-  bool? savedUseX2;
 
   @override
   Future<List<MatchPredictionItem>> fetchMyMatchPredictions() async {
@@ -283,13 +226,11 @@ class _FakePredictionsRepository implements PredictionsRepository {
     required String matchId,
     required int scoreGrinta,
     required int scoreOpponent,
-    required bool useX2,
   }) async {
     saveCalls += 1;
     savedMatchId = matchId;
     savedScoreGrinta = scoreGrinta;
     savedScoreOpponent = scoreOpponent;
-    savedUseX2 = useX2;
     if (saveError != null) throw saveError!;
   }
 }

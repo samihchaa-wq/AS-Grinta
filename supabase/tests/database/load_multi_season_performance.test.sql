@@ -214,7 +214,6 @@ insert into public.match_predictions(
   predicted_score_as_grinta,
   predicted_score_adverse,
   is_filled,
-  use_x2,
   created_at,
   updated_at
 )
@@ -224,8 +223,6 @@ select
   (lm.match_index + lp.player_index) % 5,
   (lm.match_index * 2 + lp.player_index) % 4,
   true,
-  lm.match_index % 10 = 0
-    and lp.player_index = ((lm.match_index - 1) % 60) + 1,
   now(),
   now()
 from load_matches lm
@@ -416,7 +413,7 @@ with match_scores as (
              = sign(m.score_as_grinta - m.score_adverse) then 100
           else 0
         end
-      ) * case when mp.use_x2 then 2 else 1 end
+      )
     )::bigint as match_points,
     count(*) filter (
       where mp.is_filled

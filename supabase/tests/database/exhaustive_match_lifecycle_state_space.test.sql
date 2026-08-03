@@ -86,7 +86,6 @@ select throws_ok($$select public.create_match_with_odds(null,'e3000000-0000-0000
 select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000-000000000001',null,date '2099-01-01',time '18:00','domicile',2,3,4)$$,'22023','adversaire nul refusé');
 select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000001',null,time '18:00','domicile',2,3,4)$$,'22023','date nulle refusée');
 select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000001',date '2099-01-01',null,'domicile',2,3,4)$$,'22023','heure nulle refusée');
-
 reset role;
 select set_config('request.jwt.claims','{"sub":"e1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
@@ -105,18 +104,21 @@ select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000
 
 reset role;
 select set_config('request.jwt.claims','{}',true);
+-- This lifecycle fixture deliberately uses a far-future match. Bypass only the
+-- prediction-window trigger while seeding the row; timing behavior is covered
+-- independently by prediction-window tests.
+set local session_replication_role = replica;
 insert into public.match_predictions(
-  match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,
-  is_filled,use_x2
+  match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,is_filled
 ) values(
   current_setting('test.lifecycle_collision_match')::uuid,
-  'e1000000-0000-0000-0000-000000000002',2,1,true,false
+  'e1000000-0000-0000-0000-000000000002',2,1,true
 )
 on conflict(match_id,profile_id) do update
 set predicted_score_as_grinta=excluded.predicted_score_as_grinta,
     predicted_score_adverse=excluded.predicted_score_adverse,
-    is_filled=excluded.is_filled,
-    use_x2=excluded.use_x2;
+    is_filled=excluded.is_filled;
+set local session_replication_role = origin;
 select is(
   (
     select profile_id::text

@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CompositionPitch extends StatefulWidget {
   const CompositionPitch({
@@ -317,7 +318,6 @@ class CompositionPlayerTile extends StatelessWidget {
                     size: 52,
                   ),
                 ),
-                // La couronne de l'HDM passe derrière les ballons.
                 if (entry.isMotm)
                   const Positioned(
                     top: 6,
@@ -356,7 +356,6 @@ class CompositionPlayerTile extends StatelessWidget {
   }
 }
 
-/// Petits ballons collés au-dessus de la photo indiquant le nombre de buts.
 class _GoalBalls extends StatelessWidget {
   const _GoalBalls({required this.goals});
 
@@ -388,10 +387,6 @@ class _GoalBalls extends StatelessWidget {
   }
 }
 
-/// Petit repère en bas à droite de l'avatar : nombre de fois où ce joueur a
-/// déjà été noté remplaçant dans un match terminé. Affiché uniquement dans
-/// l'écran de composition d'un match à venir, pour aider l'admin à
-/// équilibrer le temps de jeu. Invisible quand le compteur est à zéro.
 class SubstituteHistoryBadge extends StatelessWidget {
   const SubstituteHistoryBadge({super.key, required this.count});
 
@@ -420,8 +415,6 @@ class SubstituteHistoryBadge extends StatelessWidget {
   }
 }
 
-/// Vignette d'un joueur : photo si disponible, sinon initiales.
-/// Utilisée uniquement sur les compositions.
 class PlayerAvatar extends StatefulWidget {
   const PlayerAvatar({
     super.key,
@@ -441,9 +434,6 @@ class PlayerAvatar extends StatefulWidget {
 }
 
 class _PlayerAvatarState extends State<PlayerAvatar> {
-  // Palette d'avatars « aléatoires » (stables par joueur, dérivés du nom).
-  // Volontairement sans jaune ni orange : ces teintes se confondaient avec
-  // la couronne dorée de l'Homme du Match posée sur l'avatar.
   static const _avatarPalette = <List<Color>>[
     [Color(0xFF7C4DFF), Color(0xFF5E35B1)],
     [Color(0xFF2E86DE), Color(0xFF1B4F91)],
@@ -457,13 +447,24 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     [Color(0xFF546E7A), Color(0xFF37474F)],
   ];
 
-  // Compteur de tentatives : on réessaie le chargement en cas d'échec.
   int _attempt = 0;
+  String? _resolvedPhotoUrl;
+  bool _resolvingPhoto = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvePhoto();
+  }
 
   @override
   void didUpdateWidget(PlayerAvatar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.photoUrl != widget.photoUrl) _attempt = 0;
+    if (oldWidget.photoUrl != widget.photoUrl) {
+      _attempt = 0;
+      _resolvedPhotoUrl = null;
+      _resolvePhoto();
+    }
   }
 
   List<Color> get _avatarColors {
@@ -475,15 +476,60 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
     return _avatarPalette[hash % _avatarPalette.length];
   }
 
+  String? _profilePhotoPath(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      return trimmed.replaceFirst(RegExp(r'^/+'), '');
+    }
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null) return null;
+    const markers = [
+      '/storage/v1/object/public/profile-photos/',
+      '/storage/v1/object/sign/profile-photos/',
+      '/storage/v1/object/authenticated/profile-photos/',
+    ];
+    for (final marker in markers) {
+      final index = uri.path.indexOf(marker);
+      if (index >= 0) {
+        return Uri.decodeComponent(uri.path.substring(index + marker.length));
+      }
+    }
+    return null;
+  }
+
+  Future<void> _resolvePhoto() async {
+    final original = widget.photoUrl?.trim();
+    if (original == null || original.isEmpty || _resolvingPhoto) return;
+    final path = _profilePhotoPath(original);
+    if (path == null) {
+      if (mounted) setState(() => _resolvedPhotoUrl = original);
+      return;
+    }
+    _resolvingPhoto = true;
+    try {
+      final signed = await Supabase.instance.client.storage
+          .from('profile-photos')
+          .createSignedUrl(path, 3600);
+      if (mounted && widget.photoUrl?.trim() == original) {
+        setState(() => _resolvedPhotoUrl = signed);
+      }
+    } catch (_) {
+      if (mounted && widget.photoUrl?.trim() == original) {
+        setState(() => _resolvedPhotoUrl = null);
+      }
+    } finally {
+      _resolvingPhoto = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
     final border = widget.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
-    final url = widget.photoUrl;
-    final hasPhoto = url != null && url.isNotEmpty;
-    // Avec une photo : pas de cadre ni de fond, pour que la photo occupe tout
-    // le carré et qu'un fond transparent (PNG) laisse voir le terrain derrière.
-    // Sans photo : carré coloré bordé avec les initiales.
+    final original = widget.photoUrl?.trim();
+    final hasPhoto = original != null && original.isNotEmpty;
+    final url = _resolvedPhotoUrl;
     return Container(
       width: size,
       height: size,
@@ -492,12 +538,10 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
         border: hasPhoto ? null : Border.all(color: border, width: 2),
       ),
       clipBehavior: Clip.antiAlias,
-      child: hasPhoto ? _photo(url) : _initials(),
+      child: hasPhoto && url != null ? _photo(url) : _initials(),
     );
   }
 
-  /// Carré coloré des initiales, réutilisé aussi pendant le chargement ou en
-  /// cas d'échec d'une photo (pour ne jamais laisser des lettres flottantes).
   Widget _initials() {
     final word = widget.name.trim().split(RegExp(r'\s+')).first;
     final initials = word.isEmpty
@@ -528,27 +572,25 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   Widget _photo(String url) {
     return Image.network(
       url,
-      // La clé change à chaque tentative pour forcer un nouveau chargement.
       key: ValueKey('$url#$_attempt'),
       width: widget.size,
       height: widget.size,
       fit: BoxFit.cover,
       gaplessPlayback: true,
       filterQuality: FilterQuality.medium,
-      // Sur le web, on rend TOUJOURS la photo via un vrai élément HTML <img>
-      // (et non via le canevas CanvasKit qui échouait par intermittence à
-      // décoder l'image malgré une URL valide) : affichage constant.
       webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
-      // Pendant le chargement : on montre les initiales, jamais du vide.
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : _initials(),
-      // En cas d'échec (fréquent sur le web quand plusieurs photos chargent
-      // en même temps), on réessaie quelques fois avant de rester sur les
-      // initiales.
       errorBuilder: (context, error, stack) {
         if (_attempt < 3) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _attempt += 1);
+            if (mounted) {
+              setState(() {
+                _attempt += 1;
+                _resolvedPhotoUrl = null;
+              });
+              _resolvePhoto();
+            }
           });
         }
         return _initials();

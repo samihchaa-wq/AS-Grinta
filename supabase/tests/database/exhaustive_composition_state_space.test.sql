@@ -183,20 +183,20 @@ select is(public.admin_publish_match_effectif(
   'b5000000-0000-0000-0000-000000000001',16,pg_temp.effectif_payload(16),'publication complète')#>>'{convocation_version}',
   '1','publication initiale des convocations version 1');
 select is(public.admin_save_match_composition(
-  'b5000000-0000-0000-0000-000000000001','4-3-3',pg_temp.composition_payload(16,11),false,'brouillon initial')#>>'{field_count}',
-  '11','brouillon initial valide');
+  'b5000000-0000-0000-0000-000000000001','4-3-3',pg_temp.composition_payload(16,11),false,'enregistrement initial')#>>'{field_count}',
+  '11','enregistrement initial valide');
 select is(public.admin_publish_match_composition(
-  'b5000000-0000-0000-0000-000000000001',false,'publication initiale')#>>'{version}',
-  '1','publication initiale version 1');
+  'b5000000-0000-0000-0000-000000000001',false,'synchronisation initiale')#>>'{version}',
+  '1','synchronisation initiale version 1');
 select is(public.admin_publish_match_effectif(
   'b5000000-0000-0000-0000-000000000001',14,pg_temp.effectif_payload(14),'réduction à quatorze')#>>'{convocation_version}',
   '2','republication des convocations version 2');
 select is(public.admin_save_match_composition(
   'b5000000-0000-0000-0000-000000000001','4-4-2',pg_temp.composition_payload(14,10),false,'modification')#>>'{has_unpublished_changes}',
-  'true','modification non publiée détectée');
+  'false','modification immédiatement persistée');
 select is(public.admin_publish_match_composition(
-  'b5000000-0000-0000-0000-000000000001',false,'republication')#>>'{version}',
-  '2','republication version 2');
+  'b5000000-0000-0000-0000-000000000001',false,'synchronisation')#>>'{version}',
+  '2','synchronisation version 2');
 reset role;
 
 update public.match_sport_participants

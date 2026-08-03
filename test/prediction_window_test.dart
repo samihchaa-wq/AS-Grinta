@@ -70,8 +70,6 @@ MatchPredictionItem _item({
     scoreGrinta: 0,
     scoreOpponent: 0,
     isFilled: false,
-    useX2: false,
-    x2Available: 1,
     oddsWin: 2,
     oddsDraw: 3,
     oddsLoss: 4,
@@ -99,7 +97,6 @@ class _FakePredictionsRepository implements PredictionsRepository {
     required String matchId,
     required int scoreGrinta,
     required int scoreOpponent,
-    required bool useX2,
   }) async {
     saveCalls += 1;
     savedMatchId = matchId;

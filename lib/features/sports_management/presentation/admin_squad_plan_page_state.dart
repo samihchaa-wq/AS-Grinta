@@ -13,9 +13,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   AvailabilityReminderSummary? _reminders;
   late _AdminStep _step;
   late final TextEditingController _limitController;
+  Timer? _effectifSaveDebounce;
   bool _loading = true;
   bool _busy = false;
-  bool _effectifDirty = false;
   String? _error;
 
   _AdminStep _stepFrom(String? value) {
@@ -48,6 +48,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   @override
   void dispose() {
+    _effectifSaveDebounce?.cancel();
     _limitController.dispose();
     super.dispose();
   }
@@ -59,12 +60,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     return kickoff != null && !DateTime.now().isBefore(kickoff);
   }
 
-  bool get _effectifHasPendingPublication =>
-      _effectifDirty || (_convocations?.hasUnpublishedChanges ?? false);
-
   bool get _effectifReadyForComposition =>
-      _postMatch ||
-      (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));
+      _postMatch || (_convocations?.isReadyForComposition ?? false);
 
   bool get _compositionLocked =>
       _busy || (!_postMatch && (_locked || !_effectifReadyForComposition));
@@ -162,7 +159,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                     player.participantId,
               };
         _limitController.text = '${convocations.squadSizeLimit}';
-        _effectifDirty = false;
       });
     } catch (error) {
       if (mounted) setState(() => _error = humanizeError(error));
@@ -238,9 +234,6 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         ? null
         : ref.watch(matchInfoProvider(_selectedMatchId!)).valueOrNull;
     final isInternal = matchInfo?.isInternal ?? false;
-
-    // À plus de six jours du coup d'envoi, seul l'onglet Info est ouvert :
-    // l'effectif n'est pas encore sollicité et la compo n'a pas de sens.
     final tooFarAway = isMatchTooFarAway(
       matchInfo?.kickoffAt ?? _convocations?.kickoffAt,
     );

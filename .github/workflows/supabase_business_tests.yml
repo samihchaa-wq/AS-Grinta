@@ -268,6 +268,12 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260802040000_timeline_uses_display_names.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803010000_remove_x2_and_private_profile_photos.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803011000_immediate_effectif_and_composition.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803012000_live_recap_freezes_real_composition.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/season_lifecycle_acl.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/match_delete_rpc_grants.sql
@@ -288,16 +294,16 @@ jobs:
             test_count=$((test_count + 1))
           done < <(find supabase/tests/database -maxdepth 1 -type f -name '*.test.sql' -print | sort)
           if [ "$test_count" -eq 0 ]; then
-            echo 'Aucun test Supabase trouvé.' >&2
+            echo 'No database tests discovered under supabase/tests/database.' >&2
             exit 1
           fi
-          echo "Tests Supabase exécutés : $test_count"
 
       - name: Lint database functions
         shell: bash
         run: |
           set -o pipefail
-          supabase db lint --level error 2>&1 | tee supabase-lint.log
+          DB_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+          supabase db lint --db-url "$DB_URL" --level error 2>&1 | tee supabase-db-lint.log
 
       - name: Upload database diagnostics
         if: always()
@@ -308,10 +314,10 @@ jobs:
             supabase-start.log
             supabase-schema.log
             supabase-tests.log
-            supabase-lint.log
+            supabase-db-lint.log
           if-no-files-found: warn
 
       - name: Stop isolated Supabase stack
         if: always()
         shell: bash
-        run: supabase stop || true
+        run: supabase stop --no-backup || true
