@@ -3,12 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('fenêtre d’ouverture d’un match', () {
-    // Un coup d'envoi du vendredi soir ouvre toute la fiche le samedi
-    // précédent à midi, indépendamment de l'heure du match.
-    final kickoff = DateTime(2026, 8, 7, 20, 30);
-    final opensAt = DateTime(2026, 8, 1, 12);
+    // Vendredi 7 août 2026 à 20:30 à Paris = 18:30 UTC.
+    // J-6 à midi à Paris = samedi 1er août à 10:00 UTC.
+    final kickoff = DateTime.utc(2026, 8, 7, 18, 30);
+    final opensAt = DateTime.utc(2026, 8, 1, 10);
 
-    test('l’ouverture est fixée à midi le jour J-6', () {
+    test('l’ouverture est fixée à midi Paris le jour J-6', () {
       expect(matchFeaturesOpenAt(kickoff), opensAt);
       expect(
         isMatchTooFarAway(
@@ -21,23 +21,41 @@ void main() {
     });
 
     test('l’heure du coup d’envoi ne décale pas le midi de J-6', () {
+      // 09:00 Paris = 07:00 UTC ; 23:45 Paris = 21:45 UTC en août.
       expect(
-        matchFeaturesOpenAt(DateTime(2026, 8, 7, 9)),
-        DateTime(2026, 8, 1, 12),
+        matchFeaturesOpenAt(DateTime.utc(2026, 8, 7, 7)),
+        opensAt,
       );
       expect(
-        matchFeaturesOpenAt(DateTime(2026, 8, 7, 23, 45)),
-        DateTime(2026, 8, 1, 12),
+        matchFeaturesOpenAt(DateTime.utc(2026, 8, 7, 21, 45)),
+        opensAt,
+      );
+    });
+
+    test('le fuseau hiver Europe/Paris est pris en compte', () {
+      // Samedi 10 janvier 2026 à 20:30 Paris = 19:30 UTC.
+      // J-6 dimanche 4 janvier à 12:00 Paris = 11:00 UTC.
+      expect(
+        matchFeaturesOpenAt(DateTime.utc(2026, 1, 10, 19, 30)),
+        DateTime.utc(2026, 1, 4, 11),
+      );
+    });
+
+    test('le changement d’heure de mars est pris en compte', () {
+      // Le 30 mars 2026 Paris est en UTC+2. J-6 tombe le 24 mars, encore UTC+1.
+      expect(
+        matchFeaturesOpenAt(DateTime.utc(2026, 3, 30, 18, 30)),
+        DateTime.utc(2026, 3, 24, 11),
       );
     });
 
     test('un match proche ou déjà joué est ouvert', () {
       expect(
-        isMatchTooFarAway(kickoff, now: DateTime(2026, 8, 5, 12)),
+        isMatchTooFarAway(kickoff, now: DateTime.utc(2026, 8, 5, 10)),
         isFalse,
       );
       expect(
-        isMatchTooFarAway(kickoff, now: DateTime(2026, 8, 8, 12)),
+        isMatchTooFarAway(kickoff, now: DateTime.utc(2026, 8, 8, 10)),
         isFalse,
       );
     });
@@ -48,8 +66,8 @@ void main() {
   });
 
   group('fenêtre du Live', () {
-    final kickoff = DateTime(2026, 8, 7, 20, 30);
-    final opensAt = DateTime(2026, 8, 7, 20, 15);
+    final kickoff = DateTime.utc(2026, 8, 7, 18, 30);
+    final opensAt = DateTime.utc(2026, 8, 7, 18, 15);
 
     test('le Live ouvre exactement quinze minutes avant', () {
       expect(matchLiveOpensAt(kickoff), opensAt);
