@@ -48,10 +48,6 @@ class AuthController extends StateNotifier<AuthState> {
       unawaited(_refreshProfile(retryAfterSignIn: true));
     });
     unawaited(_refreshProfile());
-    // Filet de sécurité : l'écran de chargement ne doit JAMAIS rester bloqué.
-    // Si le profil n'est pas résolu au bout de 15 s (réponse jamais reçue en
-    // mode PWA standalone, boucle de retry…), on bascule sur l'écran de
-    // connexion pour que l'utilisateur puisse repartir.
     _loadingFallback = Timer(const Duration(seconds: 15), () {
       if (state.isLoading) {
         state = const AuthState(isLoading: false);
@@ -85,9 +81,6 @@ class AuthController extends StateNotifier<AuthState> {
     });
   }
 
-  /// Revalide le profil courant sans recréer la session Supabase. Utilisé par
-  /// la synchronisation inter-modules pour prendre immédiatement en compte un
-  /// changement distant de rôle ou de statut.
   Future<void> refreshProfile() => _refreshProfile();
 
   Future<void> _drainRefreshQueue({
@@ -119,6 +112,12 @@ class AuthController extends StateNotifier<AuthState> {
         clearProfile: profile == null,
         clearError: true,
       );
+
+      // Un compte en attente conserve sa session Supabase. Il reste cantonné
+      // à l'écran d'attente par le routeur jusqu'à validation du modérateur.
+      if (profile?.isPending == true) return;
+
+      // Un compte archivé/inactif ne doit en revanche conserver aucune session.
       if (profile != null && !profile.isActive) {
         await _repository.signOut();
         if (refreshGeneration != _authGeneration) return;
@@ -126,8 +125,7 @@ class AuthController extends StateNotifier<AuthState> {
           isLoading: false,
           isAuthenticated: false,
           clearProfile: true,
-          error: 'Ton compte doit être validé par l’admin avant de pouvoir '
-              'te connecter.',
+          error: 'Ce compte n’est pas actif.',
         );
       }
     } catch (_) {
@@ -254,31 +252,20 @@ final authControllerProvider =
   return AuthController(repository);
 });
 
-/// Aperçu « utilisateur lambda » : quand actif, l'admin voit l'application
-/// sans aucun contrôle réservé à l'admin, pour vérifier ce que voient les
-/// joueurs. N'affecte QUE l'affichage — les droits côté serveur restent ceux
-/// de l'admin.
 final viewAsUserProvider = StateProvider<bool>((ref) => false);
 
-/// Vrai si le compte connecté est réellement admin, sans tenir compte de
-/// l'aperçu. Sert à afficher le bouton d'aperçu et la bannière de sortie.
 final isRealAdminProvider = Provider<bool>((ref) {
   return ref.watch(authControllerProvider).profile?.role.isStaff == true;
 });
 
-/// Vrai si les contrôles admin doivent être visibles : compte admin ET pas en
-/// mode aperçu utilisateur. À utiliser pour TOUTE décision d'affichage admin.
 final isAdminViewProvider = Provider<bool>((ref) {
   return ref.watch(isRealAdminProvider) && !ref.watch(viewAsUserProvider);
 });
 
-/// Vrai si le compte connecté est modérateur, sans tenir compte de l'aperçu.
 final isRealModeratorProvider = Provider<bool>((ref) {
   return ref.watch(authControllerProvider).profile?.role.isModerator == true;
 });
 
-/// Vrai si le module « Modérateur » doit être visible : seul ce rôle y accède,
-/// et l'aperçu utilisateur le masque comme le reste.
 final isModeratorViewProvider = Provider<bool>((ref) {
   return ref.watch(isRealModeratorProvider) && !ref.watch(viewAsUserProvider);
 });
