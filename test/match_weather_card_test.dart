@@ -95,8 +95,10 @@ Widget _app({
 }
 
 void main() {
-  final kickoff = DateTime(2040, 1, 7, 20);
-  final opensAt = DateTime(2040, 1, 1, 12);
+  // 7 janvier 2040 à 20:00 Paris = 19:00 UTC.
+  // J-6 à 12:00 Paris = 1er janvier à 11:00 UTC.
+  final kickoff = DateTime.utc(2040, 1, 7, 19);
+  final opensAt = DateTime.utc(2040, 1, 1, 11);
 
   testWidgets('la carte reste invisible avant J-6 à midi', (tester) async {
     final repository = _FakeWeatherRepository(_weather(kickoff: kickoff));
