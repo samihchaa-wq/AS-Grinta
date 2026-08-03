@@ -72,15 +72,6 @@ class PredictionsController extends StateNotifier<PredictionsState> {
     state = state.copyWith(items: items, clearError: true);
   }
 
-  void toggleX2(String matchId) {
-    final items = state.items.map((item) {
-      if (item.matchId != matchId || !item.canEdit) return item;
-      if (!item.useX2 && item.x2Available <= 0) return item;
-      return item.updated(useX2: !item.useX2);
-    }).toList();
-    state = state.copyWith(items: items, clearError: true);
-  }
-
   Future<void> save(String matchId) async {
     if (state.savingMatchId != null) return;
 
@@ -94,7 +85,6 @@ class PredictionsController extends StateNotifier<PredictionsState> {
         matchId: matchId,
         scoreGrinta: item.scoreGrinta,
         scoreOpponent: item.scoreOpponent,
-        useX2: item.useX2,
       );
       final items = state.items
           .map(
@@ -124,8 +114,6 @@ extension MatchPredictionItemUpdate on MatchPredictionItem {
     int? scoreGrinta,
     int? scoreOpponent,
     bool? isFilled,
-    bool? useX2,
-    int? x2Available,
   }) {
     return MatchPredictionItem(
       matchId: matchId,
@@ -136,8 +124,6 @@ extension MatchPredictionItemUpdate on MatchPredictionItem {
       scoreGrinta: scoreGrinta ?? this.scoreGrinta,
       scoreOpponent: scoreOpponent ?? this.scoreOpponent,
       isFilled: isFilled ?? this.isFilled,
-      useX2: useX2 ?? this.useX2,
-      x2Available: x2Available ?? this.x2Available,
       oddsWin: oddsWin,
       oddsDraw: oddsDraw,
       oddsLoss: oddsLoss,
