@@ -1,0 +1,159 @@
+name: Update business RLS no-x2 contract
+
+on:
+  push:
+    branches: [agent/simplify-match-workflows]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/simplify-match-workflows
+      - name: Update prediction fixtures and assertions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/business_rls.test.sql')
+          text = path.read_text()
+
+          text = text.replace(
+              "-- Match d'abord ouvert : les pronostics historiques sont donc acceptés par le\n-- garde serveur. Il est ensuite marqué terminé pour créditer un x2 à Alice.",
+              "-- Match dans la fenêtre J-6 : deux pronostics sont saisis puis le match est\n-- marqué terminé afin de vérifier la révélation des pronostics après résultat.",
+          )
+          text = text.replace(
+              "date '2097-12-01', time '20:00', 'domicile', 90, 'a_venir',",
+              "((now() at time zone 'Europe/Paris') + interval '1 day')::date,\n  ((now() at time zone 'Europe/Paris') + interval '1 day')::time,\n  'domicile', 90, 'a_venir',",
+              1,
+          )
+          text = text.replace(
+              "-- Deux matchs ouverts dans un ordre déterministe.",
+              "-- Deux autres matchs ouverts simultanément dans la fenêtre J-6.",
+          )
+          text = text.replace(
+              "('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', date '2098-01-10', time '20:00', 'domicile', 90, 'a_venir', '10000000-0000-0000-0000-000000000001'),\n  ('50000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', date '2098-01-11', time '20:00', 'exterieur', 90, 'a_venir', '10000000-0000-0000-0000-000000000001');",
+              "('50000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', ((now() at time zone 'Europe/Paris') + interval '2 days')::date, ((now() at time zone 'Europe/Paris') + interval '2 days')::time, 'domicile', 90, 'a_venir', '10000000-0000-0000-0000-000000000001'),\n  ('50000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', ((now() at time zone 'Europe/Paris') + interval '3 days')::date, ((now() at time zone 'Europe/Paris') + interval '3 days')::time, 'exterieur', 90, 'a_venir', '10000000-0000-0000-0000-000000000001');",
+          )
+
+          start = text.index('-- Premier match et compte actif/inactif.')
+          end = text.index('-- Création réservée au staff et match+cotes atomiques.')
+          replacement = r'''-- Plusieurs matchs ouverts et compte actif/inactif.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select ok(
+  public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 0),
+  'un match dans la fenêtre J-6 accepte le pronostic'
+);
+select ok(
+  public.save_match_prediction('50000000-0000-0000-0000-000000000004', 1, 0),
+  'plusieurs matchs ouverts sont pronostiquables indépendamment'
+);
+
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000004","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 0, 0)$$,
+  '42501',
+  'un profil inactif ne peut pas pronostiquer'
+);
+
+-- L’ancienne signature à quatre paramètres reste compatible pendant la
+-- transition, mais le booléen historique x2 n’a plus aucun effet.
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000003","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select ok(
+  public.save_match_prediction('50000000-0000-0000-0000-000000000003', 1, 1, true),
+  'l’ancienne signature reste compatible sans bonus x2'
+);
+select throws_ok(
+  $$select public.close_match_predictions('50000000-0000-0000-0000-000000000003')$$,
+  '42501',
+  'un pronostiqueur ne peut pas fermer les pronostics'
+);
+
+-- Fermeture manuelle et H-5.
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select ok(
+  public.close_match_predictions('50000000-0000-0000-0000-000000000003'),
+  'un administrateur peut fermer les pronostics'
+);
+
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000003', 2, 0)$$,
+  '22023',
+  'un pronostic fermé manuellement ne peut plus être modifié'
+);
+select ok(
+  public.save_match_prediction('50000000-0000-0000-0000-000000000004', 2, 1),
+  'la fermeture d’un match ne ferme pas les autres matchs ouverts'
+);
+
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select ok(
+  public.close_match_predictions('50000000-0000-0000-0000-000000000004'),
+  'le staff peut fermer le deuxième match'
+);
+
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select throws_ok(
+  $$select public.save_match_prediction('50000000-0000-0000-0000-000000000002', 0, 0)$$,
+  '22023',
+  'un match situé à moins de cinq minutes est exclu de la fenêtre de pronostic'
+);
+
+'''
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text)
+          PY
+      - name: Commit contract update and remove helper
+        run: |
+          rm .github/workflows/patch_business_rls_for_no_x2.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update business RLS test for predictions without x2"
+          git push origin HEAD:agent/simplify-match-workflows
