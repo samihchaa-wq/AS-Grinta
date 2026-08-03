@@ -38,7 +38,7 @@ class MatchPredictionItem {
   final DateTime? predictionsClosedAt;
 
   DateTime get opensAt => matchFeaturesOpenAt(kickoffAt);
-  DateTime get closesAt => kickoffAt.subtract(const Duration(minutes: 5));
+  DateTime get closesAt => matchPredictionClosesAt(kickoffAt);
 
   bool isClosedAt(DateTime now) =>
       status != 'a_venir' ||
