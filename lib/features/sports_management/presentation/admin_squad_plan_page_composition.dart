@@ -91,14 +91,16 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 isGoalkeeper: base.isGoalkeeper,
                 zone: base.canBeSelected
                     ? previous.zone == MatchCompositionZone.field
-                        ? MatchCompositionZone.field
-                        : MatchCompositionZone.bench
+                          ? MatchCompositionZone.field
+                          : MatchCompositionZone.bench
                     : MatchCompositionZone.notSelected,
-                x: base.canBeSelected &&
+                x:
+                    base.canBeSelected &&
                         previous.zone == MatchCompositionZone.field
                     ? previous.x
                     : null,
-                y: base.canBeSelected &&
+                y:
+                    base.canBeSelected &&
                         previous.zone == MatchCompositionZone.field
                     ? previous.y
                     : null,
@@ -111,8 +113,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 convocationStatus: base.convocationStatus,
                 selectionStatus: base.canBeSelected
                     ? previous.zone == MatchCompositionZone.field
-                        ? 'starter'
-                        : 'substitute'
+                          ? 'starter'
+                          : 'substitute'
                     : 'not_selected',
               )
             else
@@ -322,8 +324,9 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
   void _moveToBench(MatchCompositionEntry moving) {
     final composition = _composition;
     if (composition == null || _compositionLocked) return;
-    final benchCount =
-        composition.entriesFor(MatchCompositionZone.bench).length;
+    final benchCount = composition
+        .entriesFor(MatchCompositionZone.bench)
+        .length;
     _updateState(() {
       _composition = composition.copyWith(
         entries: [
@@ -376,12 +379,13 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     _updateState(() => _busy = true);
     try {
       final repository = ref.read(matchCompositionRepositoryProvider);
-      final limit = int.tryParse(_limitController.text) ??
+      final limit =
+          int.tryParse(_limitController.text) ??
           _convocations?.squadSizeLimit ??
           14;
       final selectedCount =
           ready.entriesFor(MatchCompositionZone.field).length +
-              ready.entriesFor(MatchCompositionZone.bench).length;
+          ready.entriesFor(MatchCompositionZone.bench).length;
       final allowException = selectedCount > limit;
       late final MatchComposition result;
       if (_postMatch) {
@@ -435,7 +439,9 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Text('Enregistre d’abord l’effectif pour préparer la composition.'),
+          child: Text(
+            'Enregistre d’abord l’effectif pour préparer la composition.',
+          ),
         ),
       );
     }
@@ -451,10 +457,9 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               children: [
                 Text(
                   'Composition',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 Text(
@@ -498,8 +503,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                   Text(
                     'Remplaçants (${bench.length})',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (bench.isEmpty)
@@ -516,7 +521,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                             finishedBenchCount: _postMatch
                                 ? 0
                                 : _finishedBenchCounts[entry.participantId] ??
-                                    0,
+                                      0,
                           ),
                       ],
                     ),
