@@ -65,13 +65,21 @@ class MatchLineupPage extends ConsumerWidget {
     final tooFarAway = isMatchTooFarAway(matchInfo?.kickoffAt);
     final liveTooEarly = isMatchLiveTooEarly(matchInfo?.kickoffAt);
 
-    final showInfo = section == 'info' || tooFarAway;
-    final showEffectif = section == 'effectif' && !tooFarAway;
-    final showComposition = section == 'composition' && !tooFarAway;
-    final showLive =
-        section == 'live' && !isInternal && !tooFarAway && !liveTooEarly;
-    final showPrediction =
-        section == 'prediction' && !isInternal && !tooFarAway;
+    // Une URL directe peut demander un onglet qui n'est pas disponible à cet
+    // instant. On résout une seule section valide puis on l'utilise à la fois
+    // pour l'onglet sélectionné ET pour le contenu, afin d'éviter un écran vide.
+    final resolvedSection = tooFarAway
+        ? 'info'
+        : ((section == 'live' && (isInternal || liveTooEarly)) ||
+                (section == 'prediction' && isInternal))
+            ? 'effectif'
+            : section;
+
+    final showInfo = resolvedSection == 'info';
+    final showEffectif = resolvedSection == 'effectif';
+    final showComposition = resolvedSection == 'composition';
+    final showLive = resolvedSection == 'live';
+    final showPrediction = resolvedSection == 'prediction';
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Fiche du match')),
@@ -126,15 +134,7 @@ class MatchLineupPage extends ConsumerWidget {
                     label: Text('Prono'),
                   ),
               ],
-              selected: {
-                if (tooFarAway)
-                  'info'
-                else if ((isInternal && section == 'prediction') ||
-                    (section == 'live' && !showLive))
-                  'effectif'
-                else
-                  section,
-              },
+              selected: {resolvedSection},
               onSelectionChanged: (selection) => context.go(
                 '/matches/$matchId/lineup?section=${selection.first}',
               ),
@@ -259,7 +259,9 @@ class PublishedLineupPreview extends ConsumerWidget {
       padding: EdgeInsets.only(top: topSpacing, bottom: bottomSpacing),
       child: lineup.when(
         loading: () => const SizedBox.shrink(),
-        error: (_, __) => const SizedBox.shrink(),
+        error: (_, __) => const _MatchModuleError(
+          message: 'Composition momentanément indisponible.',
+        ),
         data: (composition) {
           if (composition == null) {
             if (fallbackToEffectif) {
@@ -399,6 +401,29 @@ class PublishedLineupPreview extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _MatchModuleError extends StatelessWidget {
+  const _MatchModuleError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.cardPadding),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline),
+            const SizedBox(width: AppSpacing.contentGap),
+            Expanded(child: Text(message)),
+          ],
+        ),
       ),
     );
   }
