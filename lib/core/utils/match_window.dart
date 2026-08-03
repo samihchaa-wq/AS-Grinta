@@ -6,9 +6,26 @@
 const int kMatchOpensDaysBefore = 6;
 const int kMatchOpensLocalHour = 12;
 
-/// Le module de suivi en direct devient accessible quinze minutes avant le
-/// coup d'envoi.
+/// Le module Live devient accessible quinze minutes avant le coup d'envoi.
 const Duration kMatchLiveOpensBeforeKickoff = Duration(minutes: 15);
+
+/// Les pronostics ferment au même instant que l'ouverture du Live. Cette
+/// frontière unique évite le chevauchement historique Live + prono.
+const Duration kMatchPredictionClosesBeforeKickoff = Duration(minutes: 15);
+
+/// Marge civile ajoutée à la durée sportive planifiée lorsqu'aucune session
+/// Live ne nous donne explicitement « fin du match ». Pour un match de 90 min,
+/// cela place l'état « À valider » à T+1h45.
+const Duration kMatchPostgameBuffer = Duration(minutes: 15);
+
+enum MatchDisplayPhase {
+  upcoming,
+  next,
+  live,
+  awaitingValidation,
+  past,
+  cancelled,
+}
 
 /// Instant absolu d'ouverture de l'effectif, de la composition et du prono :
 /// J-6 à 12 h, heure de Paris.
@@ -24,9 +41,22 @@ DateTime matchFeaturesOpenAt(DateTime kickoffAt) {
   return localOpenDate.subtract(_parisOffsetForLocalNoon(localOpenDate));
 }
 
-/// Instant d'ouverture du module Live.
+/// Instant commun d'ouverture du Live et de fermeture des pronostics.
 DateTime matchLiveOpensAt(DateTime kickoffAt) =>
     kickoffAt.toUtc().subtract(kMatchLiveOpensBeforeKickoff);
+
+DateTime matchPredictionClosesAt(DateTime kickoffAt) =>
+    kickoffAt.toUtc().subtract(kMatchPredictionClosesBeforeKickoff);
+
+/// Heure de repli vers « À valider » si aucun Live n'a explicitement été
+/// terminé. La durée sportive ne contient pas la pause, d'où la marge de 15 min.
+DateTime matchExpectedValidationAt(
+  DateTime kickoffAt,
+  int plannedDurationMinutes,
+) =>
+    kickoffAt.toUtc().add(
+          Duration(minutes: plannedDurationMinutes) + kMatchPostgameBuffer,
+        );
 
 /// `true` tant que la fiche complète n'est pas encore ouverte.
 ///
@@ -43,6 +73,59 @@ bool isMatchLiveTooEarly(DateTime? kickoffAt, {DateTime? now}) {
   if (kickoffAt == null) return false;
   final reference = (now ?? DateTime.now()).toUtc();
   return reference.isBefore(matchLiveOpensAt(kickoffAt));
+}
+
+/// `true` dès T-15. Utilisé par l'UI en complément du garde-fou Supabase.
+bool isMatchPredictionClosed(DateTime? kickoffAt, {DateTime? now}) {
+  if (kickoffAt == null) return true;
+  final reference = (now ?? DateTime.now()).toUtc();
+  return !reference.isBefore(matchPredictionClosesAt(kickoffAt));
+}
+
+/// Les actions qui changent l'identité du match (date, adversaire, annulation,
+/// suppression) sont figées à T-15. Les corrections post-match utilisent leur
+/// workflow dédié et ne passent pas par l'édition classique du match.
+bool isMatchAdminEditLocked(DateTime? kickoffAt, {DateTime? now}) {
+  if (kickoffAt == null) return false;
+  final reference = (now ?? DateTime.now()).toUtc();
+  return !reference.isBefore(matchLiveOpensAt(kickoffAt));
+}
+
+/// Phase d'affichage unique pour l'onglet Matchs.
+///
+/// `liveState == finished` prévaut sur l'heure théorique : dès que le coach a
+/// terminé le Tableau Blanc, le match attend sa validation. Sans Live, on
+/// bascule après durée planifiée + 15 minutes.
+MatchDisplayPhase matchDisplayPhase({
+  required DateTime kickoffAt,
+  required String status,
+  required int plannedDurationMinutes,
+  String? liveState,
+  DateTime? now,
+}) {
+  if (status == 'annule') return MatchDisplayPhase.cancelled;
+  if (status == 'termine' || status == 'archive') {
+    return MatchDisplayPhase.past;
+  }
+
+  final reference = (now ?? DateTime.now()).toUtc();
+  final kickoff = kickoffAt.toUtc();
+
+  if (reference.isBefore(matchFeaturesOpenAt(kickoff))) {
+    return MatchDisplayPhase.upcoming;
+  }
+  if (reference.isBefore(matchLiveOpensAt(kickoff))) {
+    return MatchDisplayPhase.next;
+  }
+  if (liveState == 'finished') {
+    return MatchDisplayPhase.awaitingValidation;
+  }
+  if (!reference.isBefore(
+    matchExpectedValidationAt(kickoff, plannedDurationMinutes),
+  )) {
+    return MatchDisplayPhase.awaitingValidation;
+  }
+  return MatchDisplayPhase.live;
 }
 
 /// Europe/Paris suit actuellement les règles européennes : UTC+1 en hiver et
