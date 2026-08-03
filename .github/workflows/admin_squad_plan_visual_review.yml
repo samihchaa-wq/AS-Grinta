@@ -8,7 +8,6 @@ on:
       - 'lib/features/sports_management/domain/sport_waitlist_models.dart'
       - 'lib/features/sports_management/domain/match_composition.dart'
       - 'test/admin_squad_plan_visual_review_test.dart'
-      - 'test/effectif_publication_contract_test.dart'
       - '.github/workflows/admin_squad_plan_visual_review.yml'
   workflow_dispatch:
 
@@ -20,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  format-preview:
+  render:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -36,19 +35,26 @@ jobs:
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
 
-      - name: Format changed Dart files
-        run: |
-          dart format \
-            lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart \
-            lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart \
-            test/effectif_publication_contract_test.dart
+      - name: Check visual test formatting
+        run: dart format --output=none --set-exit-if-changed test/admin_squad_plan_visual_review_test.dart
 
-      - name: Upload formatted files
+      - name: Render admin squad plan states
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p build/visual-review
+          timeout --signal=TERM 180s flutter test \
+            --reporter expanded \
+            --timeout 30s \
+            test/admin_squad_plan_visual_review_test.dart \
+            2>&1 | tee build/visual-review/visual-test.log
+
+      - name: Upload visual review
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: formatted-explicit-save-files
+          name: admin-squad-plan-visual-review
           path: |
-            lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart
-            lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart
-            test/effectif_publication_contract_test.dart
+            build/visual-review/*.png
+            build/visual-review/visual-test.log
           if-no-files-found: error
