@@ -18,7 +18,7 @@ class MatchInfoTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final infoAsync = ref.watch(matchInfoProvider(matchId));
+    final infoAsync = ref.watch(matchDetailedInfoProvider(matchId));
     return infoAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
       error: (_, __) => const Card(
