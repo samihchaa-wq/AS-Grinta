@@ -219,8 +219,8 @@ select is(
     join public.matches match on match.id = election.match_id
     where election.match_id = current_setting('test.motm_match')::uuid
   ),
-  7200,
-  'le scrutin automatique ouvre deux heures après le coup d’envoi'
+  6300,
+  'le scrutin automatique ouvre une heure quarante-cinq minutes après le coup d’envoi'
 );
 select is(
   (
@@ -238,8 +238,8 @@ select is(
     from public.match_sport_motm_elections
     where match_id = current_setting('test.motm_match')::uuid
   ),
-  79200,
-  'la fenêtre utile automatique dure vingt-deux heures'
+  80100,
+  'la fenêtre utile automatique dure vingt-deux heures et quinze minutes'
 );
 
 select set_config(
