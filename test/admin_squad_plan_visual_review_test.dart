@@ -21,92 +21,48 @@ const _matchId = 'match-visual-review';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the unpublished effectif draft and confirmation', (
-    tester,
-  ) async {
+  testWidgets('captures the effectif with immediate persistence', (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
-      convocations: _pendingConvocations(),
+      convocations: _convocations(),
       initialStep: 'effectif',
     );
 
-    expect(find.text('Brouillon enregistré, non publié'), findsOneWidget);
     expect(
-      find.text('Les joueurs voient encore la précédente publication.'),
+      find.textContaining('Chaque changement est enregistré immédiatement.'),
       findsOneWidget,
     );
-    await _capture(tester, 'effectif_brouillon_non_publie.png');
-
-    final publishButton = find.widgetWithText(
-      FilledButton,
-      'Enregistrer les modifications',
-    );
-    await tester.ensureVisible(publishButton);
-    await _pumpFrames(tester, count: 4);
-    await tester.tap(publishButton);
-    await _pumpFrames(tester, count: 4);
-
-    expect(find.text('Enregistrer les modifications ?'), findsOneWidget);
     expect(
-      find.textContaining('La composition restera privée'),
-      findsOneWidget,
+      find.widgetWithText(FilledButton, 'Enregistrer les modifications'),
+      findsNothing,
     );
-    await _capture(tester, 'effectif_confirmation_publication.png');
+    expect(find.textContaining('Brouillon'), findsNothing);
+    await _capture(tester, 'effectif_enregistrement_immediat.png');
   });
 
-  testWidgets('captures the composition locked by unpublished convocations', (
-    tester,
-  ) async {
+  testWidgets('captures the composition with immediate persistence',
+      (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
-      convocations: _pendingConvocations(),
+      convocations: _convocations(),
       initialStep: 'composition',
     );
 
     expect(
-      find.text('Convocations à publier avant la composition'),
+      find.textContaining(
+        'Chaque modification est enregistrée immédiatement et visible par les joueurs.',
+      ),
       findsOneWidget,
     );
-    final publishButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Publier la composition'),
-    );
-    expect(publishButton.onPressed, isNull);
-    await _capture(tester, 'composition_verrouillee.png');
-  });
-
-  testWidgets('captures the unlocked composition and publication confirmation',
-      (
-    tester,
-  ) async {
-    await _setPhoneViewport(tester);
-    await _pumpWorkspace(
-      tester,
-      convocations: _publishedConvocations(),
-      initialStep: 'composition',
-    );
-
-    expect(find.text('Brouillon de composition non publié'), findsOneWidget);
     expect(find.text('Remplaçants (3)'), findsOneWidget);
-    final publishButton = find.widgetWithText(
-      FilledButton,
-      'Publier la composition',
-    );
-    expect(tester.widget<FilledButton>(publishButton).onPressed, isNotNull);
-    await _capture(tester, 'composition_deverrouillee.png');
-
-    await tester.ensureVisible(publishButton);
-    await _pumpFrames(tester, count: 4);
-    await tester.tap(publishButton);
-    await _pumpFrames(tester, count: 4);
-
-    expect(find.text('Publier la composition ?'), findsOneWidget);
     expect(
-      find.textContaining('Les convocations ne seront pas modifiées'),
-      findsOneWidget,
+      find.widgetWithText(FilledButton, 'Publier la composition'),
+      findsNothing,
     );
-    await _capture(tester, 'composition_confirmation_publication.png');
+    expect(find.textContaining('Brouillon'), findsNothing);
+    await _capture(tester, 'composition_enregistrement_immediat.png');
   });
 }
 
@@ -183,113 +139,56 @@ Future<void> _capture(WidgetTester tester, String fileName) async {
   });
 }
 
-MatchConvocations _pendingConvocations() {
-  return _convocations(
-    hasUnpublishedChanges: true,
-    players: [
-      _player(
-        id: 'p1',
-        seasonPlayerId: 'sp1',
-        name: 'Alex',
-        isGoalkeeper: true,
-        status: ConvocationStatus.convoked,
-        publishedStatus: ConvocationStatus.convoked,
-        waitlistPosition: 1,
-      ),
-      _player(
-        id: 'p2',
-        seasonPlayerId: 'sp2',
-        name: 'Bruno',
-        status: ConvocationStatus.convoked,
-        publishedStatus: ConvocationStatus.notConvoked,
-        waitlistPosition: 2,
-      ),
-      _player(
-        id: 'p3',
-        seasonPlayerId: 'sp3',
-        name: 'Clara',
-        status: ConvocationStatus.notConvoked,
-        publishedStatus: ConvocationStatus.notConvoked,
-        waitlistPosition: 3,
-      ),
-      _player(
-        id: 'p4',
-        seasonPlayerId: 'sp4',
-        name: 'Diego',
-        availabilityStatus: 'absent',
-        status: ConvocationStatus.notApplicable,
-        publishedStatus: ConvocationStatus.notApplicable,
-      ),
-      _player(
-        id: 'p5',
-        seasonPlayerId: 'sp5',
-        name: 'Emma',
-        availabilityStatus: 'no_response',
-        status: ConvocationStatus.notApplicable,
-        publishedStatus: ConvocationStatus.notApplicable,
-      ),
-    ],
-  );
-}
+MatchConvocations _convocations() {
+  final players = [
+    _player(
+      id: 'p1',
+      seasonPlayerId: 'sp1',
+      name: 'Alex',
+      isGoalkeeper: true,
+      status: ConvocationStatus.convoked,
+      waitlistPosition: 1,
+    ),
+    _player(
+      id: 'p2',
+      seasonPlayerId: 'sp2',
+      name: 'Bruno',
+      status: ConvocationStatus.convoked,
+      waitlistPosition: 2,
+    ),
+    _player(
+      id: 'p3',
+      seasonPlayerId: 'sp3',
+      name: 'Clara',
+      status: ConvocationStatus.convoked,
+      waitlistPosition: 3,
+    ),
+    _player(
+      id: 'p4',
+      seasonPlayerId: 'sp4',
+      name: 'Diego',
+      availabilityStatus: 'absent',
+      status: ConvocationStatus.notApplicable,
+    ),
+    _player(
+      id: 'p5',
+      seasonPlayerId: 'sp5',
+      name: 'Emma',
+      availabilityStatus: 'no_response',
+      status: ConvocationStatus.notApplicable,
+    ),
+  ];
 
-MatchConvocations _publishedConvocations() {
-  return _convocations(
-    hasUnpublishedChanges: false,
-    players: [
-      _player(
-        id: 'p1',
-        seasonPlayerId: 'sp1',
-        name: 'Alex',
-        isGoalkeeper: true,
-        status: ConvocationStatus.convoked,
-        publishedStatus: ConvocationStatus.convoked,
-        waitlistPosition: 1,
-      ),
-      _player(
-        id: 'p2',
-        seasonPlayerId: 'sp2',
-        name: 'Bruno',
-        status: ConvocationStatus.convoked,
-        publishedStatus: ConvocationStatus.convoked,
-        waitlistPosition: 2,
-      ),
-      _player(
-        id: 'p3',
-        seasonPlayerId: 'sp3',
-        name: 'Clara',
-        status: ConvocationStatus.convoked,
-        publishedStatus: ConvocationStatus.convoked,
-        waitlistPosition: 3,
-      ),
-      _player(
-        id: 'p4',
-        seasonPlayerId: 'sp4',
-        name: 'Diego',
-        availabilityStatus: 'absent',
-        status: ConvocationStatus.notApplicable,
-        publishedStatus: ConvocationStatus.notApplicable,
-      ),
-    ],
-  );
-}
-
-MatchConvocations _convocations({
-  required bool hasUnpublishedChanges,
-  required List<ConvocationPlayer> players,
-}) {
   return MatchConvocations(
     matchId: _matchId,
     opponentName: 'Olympique Test',
-    // Dans la fenêtre d'ouverture du match (six jours) : au-delà, la fiche
-    // ne montre plus que l'onglet Info et il n'y a ni effectif ni compo à
-    // capturer. Le coup d'envoi reste à venir, donc rien n'est verrouillé.
     kickoffAt: DateTime.now().add(const Duration(days: 2)),
     seasonId: 'season-visual',
     squadSizeLimit: 14,
     publishedSquadSizeLimit: 14,
     convocationState: 'published',
     convocationVersion: 2,
-    hasUnpublishedChanges: hasUnpublishedChanges,
+    hasUnpublishedChanges: false,
     lateWithdrawalCutoffAt: null,
     availableCount: players.where((player) => player.isAvailable).length,
     convokedCount: players.where((player) => player.isConvoked).length,
@@ -303,7 +202,6 @@ ConvocationPlayer _player({
   required String seasonPlayerId,
   required String name,
   required ConvocationStatus status,
-  required ConvocationStatus publishedStatus,
   String availabilityStatus = 'available',
   bool isGoalkeeper = false,
   int? waitlistPosition,
@@ -315,7 +213,7 @@ ConvocationPlayer _player({
     lastName: 'Grinta',
     availabilityStatus: availabilityStatus,
     convocationStatus: status,
-    publishedConvocationStatus: publishedStatus,
+    publishedConvocationStatus: status,
     manualOverride: true,
     waitlistPosition: waitlistPosition,
     recommendedNotConvoked: false,
