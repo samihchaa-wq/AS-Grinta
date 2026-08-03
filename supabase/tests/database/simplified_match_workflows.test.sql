@@ -14,6 +14,16 @@ select ok(
   'l’ancienne signature reste disponible temporairement pour compatibilité'
 );
 
+select is(
+  (
+    select prosecdef
+    from pg_proc
+    where oid = 'public.save_match_prediction(uuid,integer,integer,boolean)'::regprocedure
+  ),
+  false,
+  'la signature de compatibilité x2 reste SECURITY INVOKER'
+);
+
 select ok(
   to_regprocedure('public.enforce_match_prediction_x2()') is null,
   'le garde serveur du bonus x2 a disparu'
