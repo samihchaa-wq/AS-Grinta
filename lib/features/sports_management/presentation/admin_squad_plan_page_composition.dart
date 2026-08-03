@@ -270,8 +270,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               entry,
         ],
       );
+      _compositionDirty = true;
     });
-    unawaited(_persistComposition());
   }
 
   void _dropOnSlot(MatchCompositionEntry moving, FootballFormationSlot slot) {
@@ -315,8 +315,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               entry,
         ],
       );
+      _compositionDirty = true;
     });
-    unawaited(_persistComposition());
   }
 
   void _moveToBench(MatchCompositionEntry moving) {
@@ -338,8 +338,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               entry,
         ],
       );
+      _compositionDirty = true;
     });
-    unawaited(_persistComposition());
   }
 
   MatchComposition _compositionReadyToSave() {
@@ -367,7 +367,11 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
 
   Future<void> _persistComposition() async {
     final composition = _composition;
-    if (composition == null || _compositionLocked) return;
+    if (composition == null ||
+        _compositionLocked ||
+        !_compositionDirty) {
+      return;
+    }
     if (!_postMatch && !_effectifReadyForComposition) {
       _showMessage('L’effectif doit être enregistré avant la composition.');
       return;
@@ -389,7 +393,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             ? await repository.updatePostMatchComposition(
                 composition: ready,
                 allowSquadSizeException: allowException,
-                reason: 'Composition réelle modifiée',
+                reason: 'Composition réelle enregistrée',
               )
             : await repository.createPostMatchComposition(
                 composition: ready,
@@ -400,25 +404,24 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         await repository.saveComposition(
           composition: ready,
           allowSquadSizeException: allowException,
-          reason: 'Mise à jour immédiate de la composition',
+          reason: 'Composition enregistrée',
         );
         result = await repository.publishComposition(
           matchId: ready.matchId,
           allowSquadSizeException: allowException,
-          reason: 'Mise à jour immédiate de la composition',
+          reason: 'Composition enregistrée',
         );
       }
       if (!mounted) return;
       _updateState(() {
         _composition = result;
+        _compositionDirty = false;
         if (_postMatch) _compositionExisted = true;
       });
       ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
+      _showMessage('Composition enregistrée.');
     } catch (error) {
-      if (mounted) {
-        _showMessage(humanizeError(error));
-        await _loadWorkspace(ready.matchId);
-      }
+      if (mounted) _showMessage(humanizeError(error));
     } finally {
       if (mounted) _updateState(() => _busy = false);
     }
@@ -460,8 +463,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                 const SizedBox(height: 5),
                 Text(
                   _postMatch
-                      ? 'Choisis le dispositif réellement joué. Chaque modification est enregistrée immédiatement.'
-                      : 'Choisis un dispositif, puis glisse les joueurs sur les postes. Chaque modification est enregistrée immédiatement et visible par les joueurs.',
+                      ? 'Choisis le dispositif réellement joué, puis appuie sur Enregistrer.'
+                      : 'Choisis un dispositif, glisse les joueurs sur les postes, puis appuie sur Enregistrer.',
                 ),
                 const SizedBox(height: 14),
                 _FormationDropdown(
@@ -525,6 +528,14 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _compositionLocked || !_compositionDirty
+              ? null
+              : _persistComposition,
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Enregistrer'),
         ),
         if (_locked && !_postMatch)
           const Padding(
