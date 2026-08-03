@@ -46,3 +46,5 @@ Les envois automatiques suivants ne font plus partie du contrat :
 ## Exploitation
 
 Le coupe-circuit global `notifications_paused` reste prioritaire sur tout envoi. Les tâches planifiées ne doivent pas consommer définitivement un événement à envoyer lorsque ce coupe-circuit est actif.
+
+Les déclencheurs automatiques sont portés par la base afin que les mêmes règles s'appliquent quelle que soit l'interface utilisée pour modifier un match.
