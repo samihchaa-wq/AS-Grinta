@@ -8,6 +8,409 @@ on:
       - 'lib/features/sports_management/domain/sport_waitlist_models.dart'
       - 'lib/features/sports_management/domain/match_composition.dart'
       - 'test/admin_squad_plan_visual_review_test.dart'
+      - 'test/effectif_publication_contract_test.dart'
+      - '.github/workflows/admin_squad_plan_visual_review.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: admin-squad-plan-visual-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  restore-editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout head branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore compact editor and explicit save buttons
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.head_ref }}
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 occurrence, found {count}')
+              return text.replace(old, new, 1)
+
+          def replace_between(text, start_marker, end_marker, replacement, label):
+              start = text.find(start_marker)
+              if start < 0:
+                  raise SystemExit(f'{label}: start marker not found')
+              end = text.find(end_marker, start)
+              if end < 0:
+                  raise SystemExit(f'{label}: end marker not found')
+              return text[:start] + replacement + text[end:]
+
+          # Shared state: local modifications remain local until Enregistrer.
+          path = Path('lib/features/sports_management/presentation/admin_squad_plan_page_state.dart')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "  Timer? _effectifSaveDebounce;\n  bool _loading = true;\n  bool _busy = false;",
+              "  bool _effectifDirty = false;\n  bool _compositionDirty = false;\n  bool _loading = true;\n  bool _busy = false;",
+              'state flags',
+          )
+          text = replace_once(
+              text,
+              "  void dispose() {\n    _effectifSaveDebounce?.cancel();\n    _limitController.dispose();",
+              "  void dispose() {\n    _limitController.dispose();",
+              'state dispose',
+          )
+          text = replace_once(
+              text,
+              "  bool get _effectifReadyForComposition =>\n      _postMatch || (_convocations?.isReadyForComposition ?? false);",
+              "  bool get _effectifReadyForComposition =>\n      _postMatch ||\n      (!_effectifDirty && (_convocations?.isReadyForComposition ?? false));",
+              'effectif readiness',
+          )
+          text = replace_once(
+              text,
+              "        _limitController.text = '${convocations.squadSizeLimit}';",
+              "        _limitController.text = '${convocations.squadSizeLimit}';\n        _effectifDirty = false;\n        _compositionDirty = false;",
+              'dirty reset',
+          )
+          path.write_text(text)
+
+          # Effectif: compact drag/drop stays local until the single save button.
+          path = Path('lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart')
+          text = path.read_text()
+          old = """  void _setConvoked(ConvocationPlayer player, bool value) {
+    if (_busy || _locked || player.isGuest) return;
+    _updateState(() {
+      if (value) {
+        _desiredConvoked.add(player.participantId);
+      } else {
+        _desiredConvoked.remove(player.participantId);
+      }
+    });
+    unawaited(_persistEffectif());
+  }
+
+  void _scheduleEffectifSave() {
+    _effectifSaveDebounce?.cancel();
+    _effectifSaveDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (mounted) unawaited(_persistEffectif());
+    });
+  }
+
+"""
+          new = """  void _setConvoked(ConvocationPlayer player, bool value) {
+    if (_busy || _locked || player.isGuest) return;
+    _updateState(() {
+      if (value) {
+        _desiredConvoked.add(player.participantId);
+      } else {
+        _desiredConvoked.remove(player.participantId);
+      }
+      _effectifDirty = true;
+    });
+  }
+
+"""
+          text = replace_once(text, old, new, 'effectif local edit')
+          effectif_save = """  Future<void> _persistEffectif() async {
+    final convocations = _convocations;
+    if (convocations == null ||
+        _busy ||
+        _locked ||
+        !_effectifDirty) {
+      return;
+    }
+    final limit = _validatedSquadLimit();
+    if (limit == null) return;
+
+    _updateState(() => _busy = true);
+    try {
+      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
+            matchId: convocations.matchId,
+            squadSizeLimit: limit,
+            decisions: _effectifDecisions(convocations),
+            reason: 'Effectif enregistré depuis le match',
+          );
+      ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
+      await _loadWorkspace(convocations.matchId);
+      if (mounted) _showMessage('Effectif enregistré.');
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
+    } finally {
+      if (mounted) _updateState(() => _busy = false);
+    }
+  }
+
+"""
+          text = replace_between(
+              text,
+              '  Future<void> _persistEffectif() async {',
+              '  Future<void> _sendReminder',
+              effectif_save,
+              'effectif save function',
+          )
+          text = replace_once(
+              text,
+              "                  'Glisse-le pour changer de colonne. Chaque changement est '\n                  'enregistré immédiatement.',",
+              "                  'Glisse-le pour changer de colonne. Chaque changement reste '\n                  'sur cet écran jusqu’à ce que tu appuies sur Enregistrer.',",
+              'effectif helper text',
+          )
+          text = replace_once(
+              text,
+              "                  onChanged: (_) => _scheduleEffectifSave(),",
+              "                  onChanged: (_) =>\n                      _updateState(() => _effectifDirty = true),",
+              'effectif limit dirty',
+          )
+          anchor = """        if (_locked)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text('Effectif verrouillé au coup d’envoi.'),
+          ),
+"""
+          button = """        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _busy || _locked || !_effectifDirty
+              ? null
+              : _persistEffectif,
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Enregistrer'),
+        ),
+"""
+          text = replace_once(text, anchor, button + anchor, 'effectif save button')
+          path.write_text(text)
+
+          # Composition: all moves remain local until the single save button.
+          path = Path('lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart')
+          text = path.read_text()
+          pattern = """      );
+    });
+    unawaited(_persistComposition());
+"""
+          count = text.count(pattern)
+          if count != 3:
+              raise SystemExit(f'composition local edits: expected 3 occurrences, found {count}')
+          text = text.replace(
+              pattern,
+              """      );
+      _compositionDirty = true;
+    });
+""",
+          )
+          composition_save = """  Future<void> _persistComposition() async {
+    final composition = _composition;
+    if (composition == null ||
+        _compositionLocked ||
+        !_compositionDirty) {
+      return;
+    }
+    if (!_postMatch && !_effectifReadyForComposition) {
+      _showMessage('L’effectif doit être enregistré avant la composition.');
+      return;
+    }
+    final ready = _compositionReadyToSave();
+    _updateState(() => _busy = true);
+    try {
+      final repository = ref.read(matchCompositionRepositoryProvider);
+      final limit = int.tryParse(_limitController.text) ??
+          _convocations?.squadSizeLimit ??
+          14;
+      final selectedCount =
+          ready.entriesFor(MatchCompositionZone.field).length +
+              ready.entriesFor(MatchCompositionZone.bench).length;
+      final allowException = selectedCount > limit;
+      late final MatchComposition result;
+      if (_postMatch) {
+        result = _compositionExisted
+            ? await repository.updatePostMatchComposition(
+                composition: ready,
+                allowSquadSizeException: allowException,
+                reason: 'Composition réelle enregistrée',
+              )
+            : await repository.createPostMatchComposition(
+                composition: ready,
+                allowSquadSizeException: allowException,
+                reason: 'Composition réelle enregistrée',
+              );
+      } else {
+        await repository.saveComposition(
+          composition: ready,
+          allowSquadSizeException: allowException,
+          reason: 'Composition enregistrée',
+        );
+        result = await repository.publishComposition(
+          matchId: ready.matchId,
+          allowSquadSizeException: allowException,
+          reason: 'Composition enregistrée',
+        );
+      }
+      if (!mounted) return;
+      _updateState(() {
+        _composition = result;
+        _compositionDirty = false;
+        if (_postMatch) _compositionExisted = true;
+      });
+      ref.invalidate(publishedMatchCompositionProvider(ready.matchId));
+      _showMessage('Composition enregistrée.');
+    } catch (error) {
+      if (mounted) _showMessage(humanizeError(error));
+    } finally {
+      if (mounted) _updateState(() => _busy = false);
+    }
+  }
+
+"""
+          text = replace_between(
+              text,
+              '  Future<void> _persistComposition() async {',
+              '  Widget _buildComposition()',
+              composition_save,
+              'composition save function',
+          )
+          text = replace_once(
+              text,
+              "                      ? 'Choisis le dispositif réellement joué. Chaque modification est enregistrée immédiatement.'\n                      : 'Choisis un dispositif, puis glisse les joueurs sur les postes. Chaque modification est enregistrée immédiatement et visible par les joueurs.',",
+              "                      ? 'Choisis le dispositif réellement joué, puis appuie sur Enregistrer.'\n                      : 'Choisis un dispositif, glisse les joueurs sur les postes, puis appuie sur Enregistrer.',",
+              'composition helper text',
+          )
+          anchor = """        if (_locked && !_postMatch)
+          const Padding(
+            padding: EdgeInsets.only(top: 10),
+            child: Text('Composition verrouillée au coup d’envoi.'),
+          ),
+"""
+          button = """        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _compositionLocked || !_compositionDirty
+              ? null
+              : _persistComposition,
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Enregistrer'),
+        ),
+"""
+          text = replace_once(text, anchor, button + anchor, 'composition save button')
+          path.write_text(text)
+
+          # dart:async is no longer needed after removing debounce/unawaited.
+          path = Path('lib/features/sports_management/presentation/admin_squad_plan_page.dart')
+          text = path.read_text()
+          text = replace_once(text, "import 'dart:async';\n\n", '', 'remove dart async')
+          path.write_text(text)
+
+          # Contract test: one save button, no draft/publication split.
+          path = Path('test/effectif_publication_contract_test.dart')
+          text = path.read_text()
+          old = """    expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
+    expect(effectifSource, isNot(contains('Enregistrer les convocations')));
+    expect(effectifSource, contains('Chaque changement est'));
+    expect(effectifSource, contains('.publishEffectif('));
+    expect(repositorySource, contains(\"'admin_publish_match_effectif'\"));
+
+    expect(compositionSource, contains('Chaque modification est enregistrée'));
+    expect(
+      compositionSource,
+      isNot(contains(\"label: const Text('Publier la composition')\")),
+    );
+    expect(
+      compositionSource,
+      isNot(contains(
+          'Les convocations ne seront pas modifiées par cette action.')),
+    );
+"""
+          new = """    expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
+    expect(effectifSource, isNot(contains('Enregistrer les convocations')));
+    expect(effectifSource, contains(\"label: const Text('Enregistrer')\"));
+    expect(effectifSource, contains('jusqu’à ce que tu appuies sur Enregistrer'));
+    expect(effectifSource, contains('.publishEffectif('));
+    expect(repositorySource, contains(\"'admin_publish_match_effectif'\"));
+
+    expect(compositionSource, contains(\"label: const Text('Enregistrer')\"));
+    expect(compositionSource, contains('puis appuie sur Enregistrer'));
+    expect(
+      compositionSource,
+      isNot(contains(\"label: const Text('Publier la composition')\")),
+    );
+    expect(
+      compositionSource,
+      isNot(contains(
+          'Les convocations ne seront pas modifiées par cette action.')),
+    );
+"""
+          text = replace_once(text, old, new, 'contract expectations')
+          text = text.replace(
+              "test('the admin flow has no draft or publication step'",
+              "test('the admin flow has one save button and no draft or publication step'",
+          )
+          path.write_text(text)
+
+          # Visual review now expects compact cards and the explicit button.
+          path = Path('test/admin_squad_plan_visual_review_test.dart')
+          text = path.read_text()
+          text = replace_once(
+              text,
+              "  testWidgets('captures the effectif with immediate persistence',",
+              "  testWidgets('captures the compact effectif with explicit save',",
+              'visual effectif title',
+          )
+          text = replace_once(
+              text,
+              "      find.textContaining('Chaque changement est enregistré immédiatement.'),",
+              "      find.textContaining('jusqu’à ce que tu appuies sur Enregistrer.'),",
+              'visual effectif text',
+          )
+          text = replace_once(
+              text,
+              "      find.widgetWithText(FilledButton, 'Enregistrer les modifications'),\n      findsNothing,",
+              "      find.widgetWithText(FilledButton, 'Enregistrer'),\n      findsOneWidget,",
+              'visual effectif button',
+          )
+          text = replace_once(
+              text,
+              "    await _capture(tester, 'effectif_enregistrement_immediat.png');",
+              "    await _capture(tester, 'effectif_compact_enregistrer.png');",
+              'visual effectif capture',
+          )
+          text = replace_once(
+              text,
+              "  testWidgets('captures the composition with immediate persistence',",
+              "  testWidgets('captures the composition with explicit save',",
+              'visual composition title',
+          )
+          text = replace_once(
+              text,
+              "        'Chaque modification est enregistrée immédiatement et visible par les joueurs.',",
+              "        'puis appuie sur Enregistrer.',",
+              'visual composition text',
+          )
+          text = replace_once(
+              text,
+              "    expect(find.text('Remplaçants (3)'), findsOneWidget);",
+              "    expect(find.text('Remplaçants (3)'), findsOneWidget);\n    expect(\n      find.widgetWithText(FilledButton, 'Enregistrer'),\n      findsOneWidget,\n    );",
+              'visual composition button',
+          )
+          text = replace_once(
+              text,
+              "    await _capture(tester, 'composition_enregistrement_immediat.png');",
+              "    await _capture(tester, 'composition_enregistrer.png');",
+              'visual composition capture',
+          )
+          path.write_text(text)
+
+          original_workflow = """name: Admin squad plan visual review
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/features/sports_management/presentation/admin_squad_plan_page*.dart'
+      - 'lib/features/sports_management/domain/sport_waitlist_models.dart'
+      - 'lib/features/sports_management/domain/match_composition.dart'
+      - 'test/admin_squad_plan_visual_review_test.dart'
       - '.github/workflows/admin_squad_plan_visual_review.yml'
   workflow_dispatch:
 
@@ -43,10 +446,10 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p build/visual-review
-          timeout --signal=TERM 180s flutter test \
-            --reporter expanded \
-            --timeout 30s \
-            test/admin_squad_plan_visual_review_test.dart \
+          timeout --signal=TERM 180s flutter test \\
+            --reporter expanded \\
+            --timeout 30s \\
+            test/admin_squad_plan_visual_review_test.dart \\
             2>&1 | tee build/visual-review/visual-test.log
 
       - name: Upload visual review
@@ -58,3 +461,20 @@ jobs:
             build/visual-review/*.png
             build/visual-review/visual-test.log
           if-no-files-found: error
+"""
+          Path('.github/workflows/admin_squad_plan_visual_review.yml').write_text(original_workflow)
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/admin_squad_plan_visual_review.yml \
+            lib/features/sports_management/presentation/admin_squad_plan_page.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page_state.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page_effectif.dart \
+            lib/features/sports_management/presentation/admin_squad_plan_page_composition.dart \
+            test/effectif_publication_contract_test.dart \
+            test/admin_squad_plan_visual_review_test.dart
+          git diff --cached --check
+          git commit -m "Restore compact editor with explicit save"
+          git push origin "HEAD:${HEAD_BRANCH}"
