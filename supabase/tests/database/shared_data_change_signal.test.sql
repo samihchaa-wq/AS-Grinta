@@ -17,17 +17,10 @@ create table public.shared_data_change_signals (
 );
 
 -- Le bootstrap métier CI n'installe pas tout le catalogue réellement présent
--- en production. Des tables minimales suffisent ici pour vérifier le contrat
--- des triggers sans dupliquer leurs schémas métier complets.
+-- en production. Une table minimale suffit ici pour le seul objet encore absent.
+-- Les compositions internes font désormais partie de la baseline CI afin que
+-- le durcissement courant soit testé sur leur vrai schéma et leurs vraies RLS.
 create table public.badges (
-  id uuid primary key
-);
-
-create table public.match_internal_compositions (
-  id uuid primary key
-);
-
-create table public.match_internal_composition_entries (
   id uuid primary key
 );
 

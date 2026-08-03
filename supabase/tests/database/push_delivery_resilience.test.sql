@@ -225,7 +225,7 @@ values
   (
     9001,
     current_setting('test.push_resilience_match')::uuid,
-    'result_validated',
+    'motm_open',
     'e3000000-0000-0000-0000-000000000001',
     'push.invalid',
     true,
@@ -237,7 +237,7 @@ values
   (
     9002,
     current_setting('test.push_resilience_match')::uuid,
-    'result_validated',
+    'motm_open',
     'e3000000-0000-0000-0000-000000000001',
     'push.invalid',
     true,
@@ -249,7 +249,7 @@ values
   (
     9003,
     current_setting('test.push_resilience_match')::uuid,
-    'result_validated',
+    'motm_open',
     'e3000000-0000-0000-0000-000000000002',
     'push.invalid',
     false,
@@ -261,7 +261,7 @@ values
   (
     9004,
     current_setting('test.push_resilience_match')::uuid,
-    'result_validated',
+    'motm_open',
     'e3000000-0000-0000-0000-000000000002',
     'push.invalid',
     false,

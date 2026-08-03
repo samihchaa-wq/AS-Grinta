@@ -1,3 +1,14 @@
+-- La baseline CI omet volontairement certaines anciennes migrations devenues
+-- trop larges pour être rejouées en fin de chaîne. On restaure ici uniquement
+-- le schéma minimal de composition interne requis par le durcissement courant.
+\ir internal_composition_schema.sql
+
+-- La migration propre à la branche est appliquée ici, après le replay complet
+-- de la baseline de production et avant l'exécution des contrats pgTAP.
+-- Cette inclusion est volontairement côté bootstrap CI : `supabase test db`
+-- n'expose pas les fichiers de migrations aux scripts de test individuels.
+\ir ../../migrations/20260803183000_harden_notifications_motm_and_hot_paths.sql
+
 -- Les tests changent volontairement de rôle en cours de transaction. Le verrou
 -- applicatif ne doit pas empêcher l’exécution des assertions pgTAP dans la base
 -- éphémère de CI. Production ne possède pas cette extension.

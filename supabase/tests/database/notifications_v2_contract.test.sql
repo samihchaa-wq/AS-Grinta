@@ -83,15 +83,15 @@ select is(
 
 select ok(
   position(
-    'interval ''2 hours''' in
+    'interval ''1 hour 45 minutes''' in
     pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
   ) > 0
   and position(
-    'greatest' in lower(
+    'match_sport_finalization_versions' in lower(
       pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
     )
-  ) > 0,
-  'l’ouverture HDM utilise H+2 et ne peut pas précéder le coup d’envoi'
+  ) = 0,
+  'l’ouverture HDM est strictement fixée à H+1h45, indépendamment de la finalisation'
 );
 
 select ok(
