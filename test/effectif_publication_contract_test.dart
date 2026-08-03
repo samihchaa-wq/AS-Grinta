@@ -4,17 +4,17 @@ import 'package:as_grinta/features/sports_management/domain/sport_waitlist_model
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('parses separate draft and published convocation states', () {
+  test('parses the immediate published convocation state', () {
     final convocations = MatchConvocations.fromRpc({
       'match_id': 'match-1',
       'opponent_name': 'Contrat FC',
       'kickoff_at': '2026-08-01T18:00:00Z',
       'season_id': 'season-1',
       'squad_size_limit': 15,
-      'published_squad_size_limit': 14,
+      'published_squad_size_limit': 15,
       'convocation_state': 'published',
-      'convocation_version': 2,
-      'has_unpublished_changes': true,
+      'convocation_version': 3,
+      'has_unpublished_changes': false,
       'available_count': 1,
       'convoked_count': 1,
       'not_convoked_count': 0,
@@ -26,7 +26,7 @@ void main() {
           'last_name': 'Grinta',
           'availability_status': 'available',
           'convocation_status': 'convoked',
-          'published_convocation_status': 'not_convoked',
+          'published_convocation_status': 'convoked',
           'manual_override': true,
           'recommended_not_convoked': false,
           'turn_should_consume': false,
@@ -36,42 +36,44 @@ void main() {
     });
 
     expect(convocations.squadSizeLimit, 15);
-    expect(convocations.publishedSquadSizeLimit, 14);
-    expect(convocations.hasUnpublishedChanges, isTrue);
-    expect(convocations.isReadyForComposition, isFalse);
+    expect(convocations.publishedSquadSizeLimit, 15);
+    expect(convocations.hasUnpublishedChanges, isFalse);
+    expect(convocations.isReadyForComposition, isTrue);
     expect(convocations.players.single.isConvoked, isTrue);
     expect(
       convocations.players.single.publishedConvocationStatus,
-      ConvocationStatus.notConvoked,
+      ConvocationStatus.convoked,
     );
-    expect(convocations.players.single.hasUnpublishedConvocationChange, isTrue);
+    expect(convocations.players.single.hasUnpublishedConvocationChange, isFalse);
   });
 
-  // Garde le contrat d’interface séparé du détail d’implémentation Supabase.
-  test(
-    'the admin flow keeps effectif and composition publications separate',
-    () {
-      final effectifSource = File(
-        'lib/features/sports_management/presentation/'
-        'admin_squad_plan_page_effectif.dart',
-      ).readAsStringSync();
-      final compositionSource = File(
-        'lib/features/sports_management/presentation/'
-        'admin_squad_plan_page_composition.dart',
-      ).readAsStringSync();
-      final repositorySource = File(
-        'lib/features/sports_management/data/sport_waitlist_repository.dart',
-      ).readAsStringSync();
+  test('the admin flow has no draft or publication step', () {
+    final effectifSource = File(
+      'lib/features/sports_management/presentation/'
+      'admin_squad_plan_page_effectif.dart',
+    ).readAsStringSync();
+    final compositionSource = File(
+      'lib/features/sports_management/presentation/'
+      'admin_squad_plan_page_composition.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/features/sports_management/data/sport_waitlist_repository.dart',
+    ).readAsStringSync();
 
-      expect(effectifSource, contains('Enregistrer le brouillon'));
-      expect(effectifSource, contains('Enregistrer les convocations'));
-      expect(effectifSource, contains('.publishEffectif('));
-      expect(repositorySource, contains("'admin_publish_match_effectif'"));
-      expect(compositionSource, isNot(contains('.publishMatch(')));
-      expect(
-        compositionSource,
-        contains('Les convocations ne seront pas modifiées par cette action.'),
-      );
-    },
-  );
+    expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
+    expect(effectifSource, isNot(contains('Enregistrer les convocations')));
+    expect(effectifSource, contains('Chaque changement est'));
+    expect(effectifSource, contains('.publishEffectif('));
+    expect(repositorySource, contains("'admin_publish_match_effectif'"));
+
+    expect(compositionSource, contains('Chaque modification est enregistrée'));
+    expect(
+      compositionSource,
+      isNot(contains("label: const Text('Publier la composition')")),
+    );
+    expect(
+      compositionSource,
+      isNot(contains('Les convocations ne seront pas modifiées par cette action.')),
+    );
+  });
 }
