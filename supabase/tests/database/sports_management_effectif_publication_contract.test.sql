@@ -4,19 +4,9 @@ set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
 select ok(
-  to_regclass('private.match_effectif_drafts') is not null
-  and to_regclass('private.match_effectif_draft_entries') is not null,
-  'les brouillons d’effectif sont stockés dans le schéma privé'
-);
-
-select ok(
-  not has_table_privilege(
-    'authenticated', 'private.match_effectif_drafts', 'SELECT'
-  )
-  and not has_table_privilege(
-    'authenticated', 'private.match_effectif_draft_entries', 'SELECT'
-  ),
-  'les brouillons ne sont jamais accessibles directement au client'
+  to_regclass('private.match_effectif_drafts') is null
+  and to_regclass('private.match_effectif_draft_entries') is null,
+  'les tables privées de brouillon d’effectif ont disparu'
 );
 
 select is(
@@ -36,10 +26,15 @@ select is(
 select ok(
   not has_function_privilege(
     'anon',
+    'public.admin_save_match_effectif(uuid,integer,jsonb,text)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
     'public.admin_publish_match_effectif(uuid,integer,jsonb,text)',
     'EXECUTE'
   ),
-  'la publication de l’effectif n’est jamais exposée au rôle anonyme'
+  'les écritures d’effectif ne sont jamais exposées au rôle anonyme'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)
@@ -80,7 +75,7 @@ insert into public.seasons(id, name, status)
 values ('b2000000-0000-0000-0000-000000000001', '2101-2102', 'open');
 
 insert into public.opponents(id, name)
-values ('b3000000-0000-0000-0000-000000000001', 'Brouillon FC');
+values ('b3000000-0000-0000-0000-000000000001', 'Immediat FC');
 
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper,
@@ -90,19 +85,19 @@ values
   (
     'b4000000-0000-0000-0000-000000000001',
     'b2000000-0000-0000-0000-000000000001',
-    'Alice', 'Brouillon', false, true, 1,
+    'Alice', 'Immediat', false, true, 1,
     'b1000000-0000-0000-0000-000000000002'
   ),
   (
     'b4000000-0000-0000-0000-000000000002',
     'b2000000-0000-0000-0000-000000000001',
-    'Bruno', 'Brouillon', false, true, 2,
+    'Bruno', 'Immediat', false, true, 2,
     'b1000000-0000-0000-0000-000000000003'
   ),
   (
     'b4000000-0000-0000-0000-000000000003',
     'b2000000-0000-0000-0000-000000000001',
-    'Chloé', 'Brouillon', false, true, 3,
+    'Chloé', 'Immediat', false, true, 3,
     'b1000000-0000-0000-0000-000000000004'
   );
 
@@ -159,36 +154,26 @@ as $function$
   where player.season_id = 'b2000000-0000-0000-0000-000000000001';
 $function$;
 
-create or replace function pg_temp.effectif_composition_payload()
-returns jsonb
-language sql
-stable
-as $function$
-  with ranked as (
-    select participant.id,
-      participant.convocation_status,
-      row_number() over (order by player.position, participant.id) as number
-    from public.match_sport_participants participant
-    join public.season_players player on player.id = participant.season_player_id
-    where participant.match_id = current_setting('test.effectif_match')::uuid
-  )
-  select jsonb_agg(
-    jsonb_build_object(
-      'participant_id', id,
-      'zone', case
-        when convocation_status = 'not_convoked' then 'not_selected'
-        when number = 1 then 'field'
-        else 'bench'
-      end,
-      'x', case when number = 1 then 0.50 else null end,
-      'y', case when number = 1 then 0.90 else null end,
-      'slot_label', case when number = 1 then 'ATT' else null end,
-      'sort_order', number
-    ) order by number
-  )
-  from ranked;
-$function$;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"b1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
 
+select throws_ok(
+  $$select public.admin_save_match_effectif(
+    current_setting('test.effectif_match')::uuid,
+    2,
+    pg_temp.effectif_decisions(1),
+    'Tentative joueur'
+  )$$,
+  '42501',
+  'Active administrator role required',
+  'un joueur ne peut pas modifier l’effectif'
+);
+
+reset role;
 select set_config(
   'request.jwt.claims',
   '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -201,31 +186,10 @@ select is(
     current_setting('test.effectif_match')::uuid,
     2,
     pg_temp.effectif_decisions(1),
-    'Premier brouillon'
-  ) #>> '{has_unpublished_changes}',
-  'true',
-  'enregistrer crée un brouillon privé non publié'
-);
-
-select is(
-  (
-    select convocation_state::text || '/' || convocation_version::text
-    from public.match_sport_workflows
-    where match_id = current_setting('test.effectif_match')::uuid
-  ),
-  'draft/0',
-  'le brouillon ne publie ni état ni nouvelle version'
-);
-
-select is(
-  public.admin_publish_match_effectif(
-    current_setting('test.effectif_match')::uuid,
-    2,
-    pg_temp.effectif_decisions(1),
-    'Publication initiale'
+    'Première décision immédiate'
   ) #>> '{has_unpublished_changes}',
   'false',
-  'la publication explicite nettoie le marqueur de brouillon'
+  'enregistrer ne crée aucun brouillon privé'
 );
 
 select is(
@@ -235,54 +199,7 @@ select is(
     where match_id = current_setting('test.effectif_match')::uuid
   ),
   'published/1',
-  'la première publication crée exactement la version 1'
-);
-
-select is(
-  public.admin_save_match_composition(
-    current_setting('test.effectif_match')::uuid,
-    '4-4-2',
-    pg_temp.effectif_composition_payload(),
-    false,
-    'Brouillon de composition'
-  ) #>> '{field_count}',
-  '1',
-  'la composition peut être préparée après publication des convocations'
-);
-
-reset role;
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"b1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-select is(
-  public.get_my_match_availability(
-    current_setting('test.effectif_match')::uuid
-  ) #>> '{convocation_status}',
-  'convoked',
-  'Alice voit la première convocation publiée'
-);
-
-reset role;
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-select is(
-  public.admin_save_match_effectif(
-    current_setting('test.effectif_match')::uuid,
-    2,
-    pg_temp.effectif_decisions(2),
-    'Modification non publiée'
-  ) #>> '{has_unpublished_changes}',
-  'true',
-  'une modification après publication reste privée'
+  'le premier save publie immédiatement la version 1'
 );
 
 select is(
@@ -296,29 +213,8 @@ select is(
     where player ->> 'season_player_id'
       = 'b4000000-0000-0000-0000-000000000001'
   ),
-  'not_convoked',
-  'l’administration relit la décision du brouillon'
-);
-
-select is(
-  (
-    select convocation_version
-    from public.match_sport_workflows
-    where match_id = current_setting('test.effectif_match')::uuid
-  ),
-  1,
-  'enregistrer une modification ne crée pas de version publiée'
-);
-
-select throws_ok(
-  $$select public.admin_publish_match_composition(
-    current_setting('test.effectif_match')::uuid,
-    false,
-    'Publication interdite'
-  )$$,
-  '22023',
-  'Publish pending convocation changes before publishing the composition',
-  'une composition ne peut pas contourner un brouillon d’effectif en attente'
+  'convoked',
+  'l’administration relit immédiatement la décision enregistrée'
 );
 
 reset role;
@@ -334,7 +230,7 @@ select is(
     current_setting('test.effectif_match')::uuid
   ) #>> '{convocation_status}',
   'convoked',
-  'le joueur conserve la dernière décision publiée pendant le brouillon'
+  'Alice voit immédiatement sa convocation'
 );
 
 reset role;
@@ -346,14 +242,24 @@ select set_config(
 set local role authenticated;
 
 select is(
-  public.admin_publish_match_effectif(
+  public.admin_save_match_effectif(
     current_setting('test.effectif_match')::uuid,
     2,
     pg_temp.effectif_decisions(2),
-    'Publication de la mise à jour'
-  ) #>> '{convocation_version}',
-  '2',
-  'la seconde publication crée exactement la version 2'
+    'Deuxième décision immédiate'
+  ) #>> '{has_unpublished_changes}',
+  'false',
+  'une modification après publication reste immédiatement visible'
+);
+
+select is(
+  (
+    select convocation_state::text || '/' || convocation_version::text
+    from public.match_sport_workflows
+    where match_id = current_setting('test.effectif_match')::uuid
+  ),
+  'published/2',
+  'le deuxième save publie immédiatement la version 2'
 );
 
 reset role;
@@ -369,7 +275,7 @@ select is(
     current_setting('test.effectif_match')::uuid
   ) #>> '{convocation_status}',
   'not_convoked',
-  'le joueur voit la nouvelle décision uniquement après publication'
+  'Alice voit immédiatement la nouvelle décision sans étape de publication'
 );
 
 reset role;
@@ -378,15 +284,9 @@ select ok(
     select 1
     from private.sport_admin_audit_log audit
     where audit.match_id = current_setting('test.effectif_match')::uuid
-      and audit.action = 'save_match_effectif_draft'
-  )
-  and exists (
-    select 1
-    from private.sport_admin_audit_log audit
-    where audit.match_id = current_setting('test.effectif_match')::uuid
-      and audit.action = 'publish_match_effectif'
+      and audit.action = 'update_match_effectif'
   ),
-  'les enregistrements et publications restent audités séparément'
+  'les modifications immédiates restent auditées'
 );
 
 select * from finish();
