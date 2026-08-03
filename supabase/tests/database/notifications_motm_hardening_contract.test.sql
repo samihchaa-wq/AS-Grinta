@@ -32,7 +32,7 @@ select ok(
 
 select ok(
   position(
-    'opens_at = LEAST' in upper(
+    'OPENS_AT = LEAST' in upper(
       pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
     )
   ) > 0
