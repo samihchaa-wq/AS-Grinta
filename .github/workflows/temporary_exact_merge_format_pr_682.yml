@@ -1,0 +1,61 @@
+name: Temporary exact merge formatter PR 682
+
+on:
+  push:
+    branches:
+      - agent/match-temporality-notifications
+
+permissions:
+  contents: write
+
+jobs:
+  exact-merge-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/682/merge
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Capture exact formatter output and apply to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            lib/features/notifications/presentation/notifications_page.dart
+            lib/features/predictions/data/predictions_repository.dart
+            lib/features/predictions/presentation/merged_matches_view.dart
+            lib/features/sports_management/presentation/admin_squad_plan_page_state.dart
+            lib/features/sports_management/presentation/match_lineup_page.dart
+            test/exhaustive_prediction_state_space_test.dart
+            test/match_weather_card_test.dart
+          )
+
+          dart format "${files[@]}"
+          tar -cf /tmp/formatted-pr-682.tar "${files[@]}"
+
+          git fetch origin agent/match-temporality-notifications
+          git checkout -B agent/match-temporality-notifications \
+            origin/agent/match-temporality-notifications
+          tar -xf /tmp/formatted-pr-682.tar
+          git rm .github/workflows/temporary_exact_merge_format_pr_682.yml
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "${files[@]}"
+
+          if git diff --cached --quiet; then
+            echo 'No formatter changes after merge-state capture.'
+            exit 1
+          fi
+
+          git commit -m 'Apply formatter from PR merge state'
+          git push origin HEAD:agent/match-temporality-notifications
