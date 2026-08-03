@@ -1,5 +1,3 @@
-\ir ../../migrations/20260803183000_harden_notifications_motm_and_hot_paths.sql
-
 begin;
 
 set local search_path = public, extensions, pg_catalog;
