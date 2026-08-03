@@ -117,7 +117,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final isAdmin = ref.watch(isAdminViewProvider);
     final now = DateTime.now();
 
-    final scheduled = state.matches.where((match) => !match.isFinished).toList();
+    final scheduled =
+        state.matches.where((match) => !match.isFinished).toList();
     final futureScheduled = scheduled
         .where((match) => match.kickoffAt.isAfter(now))
         .toList()
