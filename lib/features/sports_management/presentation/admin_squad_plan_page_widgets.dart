@@ -78,16 +78,14 @@ class _EffectifColumn extends StatelessWidget {
                 locked: locked,
                 color: color,
                 onToggle: onToggle == null ? null : () => onToggle!(player),
-                onRemoveGuest: onRemoveGuest == null
+                onRemoveGuest:
+                    onRemoveGuest == null ? null : () => onRemoveGuest!(player),
+                onShowInfo:
+                    onShowInfo == null ? null : () => onShowInfo!(player),
+                onRelance: onRelance == null ||
+                        player.availabilityStatus != 'no_response'
                     ? null
-                    : () => onRemoveGuest!(player),
-                onShowInfo: onShowInfo == null
-                    ? null
-                    : () => onShowInfo!(player),
-                onRelance:
-                    onRelance == null || player.availabilityStatus != 'no_response'
-                        ? null
-                        : () => onRelance!(player),
+                    : () => onRelance!(player),
               ),
               const SizedBox(height: 7),
             ],
