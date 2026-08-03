@@ -1,60 +1,5 @@
 part of 'admin_squad_plan_page.dart';
 
-class _PublicationStatusCard extends StatelessWidget {
-  const _PublicationStatusCard({
-    required this.title,
-    required this.detail,
-    required this.pending,
-  });
-
-  final String title;
-  final String detail;
-  final bool pending;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = pending ? Colors.orange : const Color(0xFF168A52);
-    final icon = pending ? Icons.edit_note_rounded : Icons.public_rounded;
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: .12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(detail),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _EffectifColumn extends StatelessWidget {
   const _EffectifColumn({
     required this.title,
@@ -86,371 +31,219 @@ class _EffectifColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DragTarget<ConvocationPlayer>(
-      onWillAcceptWithDetails: (details) =>
-          acceptsDrops && !locked && !details.data.isGuest,
-      onAcceptWithDetails: (details) => onAccept?.call(details.data),
-      builder: (context, candidates, rejected) => AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Color.alphaBlend(
-            color.withValues(alpha: candidates.isNotEmpty ? .18 : .07),
-            Theme.of(context).colorScheme.surface,
-          ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: candidates.isNotEmpty ? color : color.withValues(alpha: .35),
-            width: candidates.isNotEmpty ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    '$title (${players.length})',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.w900,
-                        ),
+    final body = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: .6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  '$title (${players.length})',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (onRelanceAll != null && players.isNotEmpty)
-                  TextButton.icon(
-                    onPressed: locked ? null : onRelanceAll,
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    icon: const Icon(
-                      Icons.notifications_active_outlined,
-                      size: 16,
-                    ),
-                    label: const Text('Relancer tous'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 9),
-            if (players.isEmpty)
-              Text(
-                'Aucun joueur.',
-                style: Theme.of(context).textTheme.bodySmall,
-              )
-            else
-              _EffectifPlayerGrid(
-                players: players,
-                color: color,
-                locked: locked,
-                draggable: !locked && onToggle != null,
-                onRemoveGuest: onRemoveGuest,
-                onShowInfo: onShowInfo,
-                onRelance: onRelance,
               ),
-          ],
-        ),
+              if (onRelanceAll != null)
+                Tooltip(
+                  message: 'Relancer tous les sans réponse',
+                  child: IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: locked ? null : onRelanceAll,
+                    icon: const Icon(Icons.notifications_active_outlined),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (players.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 6),
+              child: Text('Aucun joueur.'),
+            )
+          else
+            for (final player in players) ...[
+              _EffectifPlayerTile(
+                player: player,
+                locked: locked,
+                color: color,
+                onToggle: onToggle == null ? null : () => onToggle!(player),
+                onRemoveGuest: onRemoveGuest == null
+                    ? null
+                    : () => onRemoveGuest!(player),
+                onShowInfo: onShowInfo == null
+                    ? null
+                    : () => onShowInfo!(player),
+                onRelance:
+                    onRelance == null || player.availabilityStatus != 'no_response'
+                        ? null
+                        : () => onRelance!(player),
+              ),
+              const SizedBox(height: 7),
+            ],
+        ],
+      ),
+    );
+    if (!acceptsDrops || onAccept == null) return body;
+    return DragTarget<ConvocationPlayer>(
+      onWillAcceptWithDetails: (details) => !locked && !details.data.isGuest,
+      onAcceptWithDetails: (details) => onAccept!(details.data),
+      builder: (context, candidates, rejected) => AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        decoration: candidates.isEmpty
+            ? null
+            : BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: .28),
+                    blurRadius: 16,
+                  ),
+                ],
+              ),
+        child: body,
       ),
     );
   }
 }
 
-/// Grille à colonnes de largeur égale, pour que les joueurs restent
-/// toujours alignés côte à côte quelle que soit la longueur de leur nom ou
-/// de leurs infos (un `Wrap` classique les alignerait de façon inégale selon
-/// la largeur intrinsèque de chaque puce).
-class _EffectifPlayerGrid extends StatelessWidget {
-  const _EffectifPlayerGrid({
-    required this.players,
-    required this.color,
+class _EffectifPlayerTile extends StatelessWidget {
+  const _EffectifPlayerTile({
+    required this.player,
     required this.locked,
-    required this.draggable,
+    required this.color,
+    this.onToggle,
     this.onRemoveGuest,
     this.onShowInfo,
     this.onRelance,
   });
 
-  final List<ConvocationPlayer> players;
-  final Color color;
-  final bool locked;
-  final bool draggable;
-  final ValueChanged<ConvocationPlayer>? onRemoveGuest;
-  final ValueChanged<ConvocationPlayer>? onShowInfo;
-  final ValueChanged<ConvocationPlayer>? onRelance;
-
-  Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
-        player: player,
-        color: color,
-        draggable: draggable && !player.isGuest,
-        onTap: player.isGuest
-            ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
-            : (onShowInfo == null ? null : () => onShowInfo!(player)),
-        onRelance: (player.isGuest || onRelance == null)
-            ? null
-            : () => onRelance!(player),
-      );
-
-  static const int _columns = 4;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < players.length; i += _columns) ...[
-          if (i > 0) const SizedBox(height: 5),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var col = 0; col < _columns; col++) ...[
-                if (col > 0) const SizedBox(width: 5),
-                Expanded(
-                  child: i + col < players.length
-                      ? _chip(players[i + col])
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _EffectifPlayerChip extends StatelessWidget {
-  const _EffectifPlayerChip({
-    required this.player,
-    required this.color,
-    required this.draggable,
-    this.onTap,
-    this.onRelance,
-  });
-
   final ConvocationPlayer player;
+  final bool locked;
   final Color color;
-  final bool draggable;
-  final VoidCallback? onTap;
+  final VoidCallback? onToggle;
+  final VoidCallback? onRemoveGuest;
+  final VoidCallback? onShowInfo;
   final VoidCallback? onRelance;
 
   @override
   Widget build(BuildContext context) {
-    final chip = ActionChip(
-      avatar: player.isGuest
-          ? const Icon(Icons.person_add_alt_1_outlined, size: 16)
-          : player.hasUnpublishedConvocationChange
-              ? const Icon(Icons.edit_outlined, size: 16)
-              : null,
-      label: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
+    final card = Material(
+      color: Colors.black.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onShowInfo,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+          child: Row(
             children: [
-              Flexible(
-                child: Text(
-                  // Le nom résolu par le serveur d'abord : un joueur rattaché
-                  // à un compte s'appelle comme il l'a décidé dessus, pas
-                  // comme il a été saisi dans l'effectif.
-                  player.shortName,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: const TextStyle(fontSize: 12.5),
+              _EffectifPlayerAvatar(player: player, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      player.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    if (player.waitlistPosition != null)
+                      Text(
+                        'Liste d’attente · ${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ],
                 ),
               ),
-              if (player.isGuest && onTap != null) ...[
-                const SizedBox(width: 4),
-                Icon(Icons.close, size: 15, color: color.withValues(alpha: .8)),
-              ],
+              if (onRelance != null)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Relancer ce joueur',
+                  onPressed: locked ? null : onRelance,
+                  icon: const Icon(Icons.notifications_active_outlined),
+                ),
+              if (player.isGuest && onRemoveGuest != null)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Retirer l’invité',
+                  onPressed: locked ? null : onRemoveGuest,
+                  icon: const Icon(Icons.person_remove_outlined),
+                )
+              else if (onToggle != null)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Changer de colonne',
+                  onPressed: locked ? null : onToggle,
+                  icon: const Icon(Icons.swap_horiz_rounded),
+                ),
             ],
           ),
-        ],
-      ),
-      onPressed: onTap,
-      side: BorderSide(color: color.withValues(alpha: .55)),
-      backgroundColor: Color.alphaBlend(
-        color.withValues(alpha: .16),
-        Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-    Widget content = chip;
-    if (draggable) {
-      final autoScroll = DragAutoScroller(context);
-      content = LongPressDraggable<ConvocationPlayer>(
-        data: player,
-        feedback: Material(type: MaterialType.transparency, child: chip),
-        childWhenDragging: Opacity(opacity: .3, child: chip),
-        onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-        onDragEnd: (_) => autoScroll.stop(),
-        onDraggableCanceled: (_, __) => autoScroll.stop(),
-        child: chip,
-      );
-    }
-    if (onRelance == null) return content;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        content,
-        Positioned(
-          top: -6,
-          right: -6,
-          child: Tooltip(
-            message: 'Relancer ${player.displayName}',
-            child: Material(
-              color: color,
-              shape: const CircleBorder(),
-              elevation: 1,
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: onRelance,
-                child: const Padding(
-                  padding: EdgeInsets.all(5),
-                  child: Icon(
-                    Icons.notifications_active_rounded,
-                    size: 13,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
-      ],
+      ),
+    );
+
+    if (locked || player.isGuest || onToggle == null) return card;
+    return LongPressDraggable<ConvocationPlayer>(
+      data: player,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: Material(
+        type: MaterialType.transparency,
+        child: SizedBox(width: 250, child: card),
+      ),
+      childWhenDragging: Opacity(opacity: .35, child: card),
+      child: card,
     );
   }
 }
 
-class _GuestInput {
-  const _GuestInput(this.firstName, this.lastName, this.goalkeeper);
+class _EffectifPlayerAvatar extends StatelessWidget {
+  const _EffectifPlayerAvatar({required this.player, required this.color});
 
-  final String firstName;
-  final String lastName;
-  final bool goalkeeper;
-}
-
-class _BenchBox extends StatelessWidget {
-  const _BenchBox({
-    required this.entry,
-    required this.draggable,
-    this.finishedBenchCount = 0,
-  });
-
-  final MatchCompositionEntry entry;
-  final bool draggable;
-
-  /// Nombre de fois où ce joueur a déjà été noté remplaçant dans un match
-  /// terminé.
-  final int finishedBenchCount;
+  final ConvocationPlayer player;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    final box = SizedBox(
-      width: 64,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              PlayerAvatar(
-                photoUrl: entry.photoUrl,
-                name: entry.displayName,
-                isGoalkeeper: entry.isGoalkeeper,
-                size: 58,
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: color.withValues(alpha: .18),
+      child: player.isGuest
+          ? const Icon(Icons.person_outline_rounded, size: 18)
+          : Text(
+              _initials(player.displayName),
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
               ),
-              if (finishedBenchCount > 0)
-                Positioned(
-                  right: -2,
-                  bottom: -2,
-                  child: SubstituteHistoryBadge(count: finishedBenchCount),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            entry.displayName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-    if (!draggable) return box;
-    final autoScroll = DragAutoScroller(context);
-    return LongPressDraggable<MatchCompositionEntry>(
-      data: entry,
-      feedback: Material(color: Colors.transparent, child: box),
-      childWhenDragging: Opacity(opacity: .3, child: box),
-      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
-      onDragEnd: (_) => autoScroll.stop(),
-      onDraggableCanceled: (_, __) => autoScroll.stop(),
-      child: box,
+            ),
     );
   }
-}
 
-class _FormationDropdown extends StatelessWidget {
-  const _FormationDropdown({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final headerStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          letterSpacing: .4,
-        );
-    final items = <DropdownMenuItem<String>>[];
-    int? lastLine;
-    for (final formation in footballFormations) {
-      if (formation.defenderLine != lastLine) {
-        lastLine = formation.defenderLine;
-        items.add(
-          DropdownMenuItem<String>(
-            enabled: false,
-            value: '__hdr_${formation.defenderLine}',
-            child: Text(
-              '${formation.defenderLine} DÉFENSEURS',
-              style: headerStyle,
-            ),
-          ),
-        );
-      }
-      items.add(
-        DropdownMenuItem<String>(
-          value: formation.code,
-          child: Text(formation.code),
-        ),
-      );
+  String _initials(String value) {
+    final words = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.isEmpty) return '?';
+    if (words.length == 1) {
+      return words.first.substring(0, 1).toUpperCase();
     }
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      isExpanded: true,
-      decoration: const InputDecoration(
-        labelText: 'Dispositif',
-        prefixIcon: Icon(Icons.grid_view_rounded),
-        border: OutlineInputBorder(),
-      ),
-      items: items,
-      onChanged: onChanged == null
-          ? null
-          : (selected) {
-              if (selected == null || selected.startsWith('__hdr_')) return;
-              onChanged!(selected);
-            },
-    );
+    return '${words.first[0]}${words.last[0]}'.toUpperCase();
   }
 }
 
@@ -472,25 +265,105 @@ class _PlayerInfoRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: color, size: 22),
-        const SizedBox(width: 12),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 19),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text(detail, style: Theme.of(context).textTheme.bodyMedium),
+              Text(detail, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
       ],
     );
   }
+}
+
+class _FormationDropdown extends StatelessWidget {
+  const _FormationDropdown({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Dispositif',
+        border: OutlineInputBorder(),
+      ),
+      items: [
+        for (final formation in footballFormations)
+          DropdownMenuItem(
+            value: formation.code,
+            child: Text(formation.label),
+          ),
+      ],
+      onChanged: onChanged == null
+          ? null
+          : (value) {
+              if (value != null) onChanged!(value);
+            },
+    );
+  }
+}
+
+class _BenchBox extends StatelessWidget {
+  const _BenchBox({
+    required this.entry,
+    required this.draggable,
+    required this.finishedBenchCount,
+  });
+
+  final MatchCompositionEntry entry;
+  final bool draggable;
+  final int finishedBenchCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final tile = SizedBox(
+      width: 70,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CompositionPlayerTile(entry: entry),
+          if (finishedBenchCount > 0)
+            Positioned(
+              top: 0,
+              right: -2,
+              child: SubstituteHistoryBadge(count: finishedBenchCount),
+            ),
+        ],
+      ),
+    );
+    if (!draggable) return tile;
+    return LongPressDraggable<MatchCompositionEntry>(
+      data: entry,
+      dragAnchorStrategy: pointerDragAnchorStrategy,
+      feedback: Material(type: MaterialType.transparency, child: tile),
+      childWhenDragging: Opacity(opacity: .35, child: tile),
+      child: tile,
+    );
+  }
+}
+
+class _GuestInput {
+  const _GuestInput(this.firstName, this.lastName, this.goalkeeper);
+
+  final String firstName;
+  final String lastName;
+  final bool goalkeeper;
 }
