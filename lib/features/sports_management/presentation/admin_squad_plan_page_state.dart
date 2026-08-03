@@ -77,7 +77,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           .read(sportWaitlistRepositoryProvider)
           .fetchUpcomingMatches();
       if (!mounted) return;
-      final selected = _selectedMatchId != null &&
+      final selected =
+          _selectedMatchId != null &&
               matches.any((match) => match.id == _selectedMatchId)
           ? _selectedMatchId
           : (matches.isEmpty ? null : matches.first.id);
@@ -122,10 +123,11 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
       final kickoffPassed = !DateTime.now().isBefore(convocations.kickoffAt);
       final finalization = kickoffPassed
           ? await ref
-              .read(sportMatchFinalizationRepositoryProvider)
-              .fetchAdminContext(matchId)
+                .read(sportMatchFinalizationRepositoryProvider)
+                .fetchAdminContext(matchId)
           : null;
-      final postMatch = finalization != null &&
+      final postMatch =
+          finalization != null &&
           finalization.isValidated &&
           (finalization.matchStatus == 'termine' ||
               finalization.matchStatus == 'archive');
@@ -228,7 +230,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         child: GrintaEmptyState(
           icon: Icons.event_busy_rounded,
           title: 'Aucun match disponible',
-          message: 'Crée un match depuis l’onglet Matchs pour préparer '
+          message:
+              'Crée un match depuis l’onglet Matchs pour préparer '
               'l’effectif et la composition.',
         ),
       );
@@ -243,8 +246,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final step = tooFarAway
         ? _AdminStep.info
         : (_step == _AdminStep.live && liveTooEarly
-            ? _AdminStep.effectif
-            : _step);
+              ? _AdminStep.effectif
+              : _step);
 
     return RefreshIndicator(
       onRefresh: _loadMatches,
@@ -285,8 +288,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                 ),
             ],
             selected: {step},
-            onSelectionChanged:
-                _busy ? null : (value) => setState(() => _step = value.first),
+            onSelectionChanged: _busy
+                ? null
+                : (value) => setState(() => _step = value.first),
           ),
           if (_busy) ...[
             const SizedBox(height: AppSpacing.contentGap),
