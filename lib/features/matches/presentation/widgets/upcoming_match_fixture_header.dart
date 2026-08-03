@@ -1,4 +1,4 @@
-import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,20 +9,6 @@ class UpcomingMatchFixtureData {
     required this.opponentName,
     this.isInternal = false,
   });
-
-  factory UpcomingMatchFixtureData.fromJson(Map<String, dynamic> json) {
-    final opponent = json['opponents'];
-    final opponentName =
-        opponent is Map ? opponent['name']?.toString().trim() : null;
-    return UpcomingMatchFixtureData(
-      status: (json['status'] ?? '').toString(),
-      location: (json['location'] ?? 'domicile').toString(),
-      opponentName: opponentName == null || opponentName.isEmpty
-          ? 'Adversaire'
-          : opponentName,
-      isInternal: json['match_type'] == 'entre_nous',
-    );
-  }
 
   final String status;
   final String location;
@@ -40,14 +26,14 @@ final upcomingMatchFixtureProvider =
   ref,
   matchId,
 ) async {
-  final client = ref.watch(supabaseClientProvider);
-  final row = await client
-      .from('matches')
-      .select('status, location, match_type, opponents(name)')
-      .eq('id', matchId)
-      .maybeSingle();
-  if (row == null) return null;
-  return UpcomingMatchFixtureData.fromJson(Map<String, dynamic>.from(row));
+  final core = await ref.watch(matchCoreProvider(matchId).future);
+  if (core == null) return null;
+  return UpcomingMatchFixtureData(
+    status: core.status,
+    location: core.location,
+    opponentName: core.opponentName,
+    isInternal: core.isInternal,
+  );
 });
 
 /// Affiche les équipes d'un match à venir au-dessus des onglets de sa fiche.
