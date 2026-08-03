@@ -15,8 +15,8 @@ begin
 
   v_kickoff := (new.match_date + new.match_time) at time zone 'Europe/Paris';
 
-  if new.status in ('termine', 'archive') and v_kickoff > now() then
-    raise exception 'Un match futur ne peut pas être marqué terminé ou archivé.'
+  if new.status = 'termine' and v_kickoff > now() then
+    raise exception 'Un match futur ne peut pas être marqué terminé.'
       using errcode = '22023';
   end if;
 
