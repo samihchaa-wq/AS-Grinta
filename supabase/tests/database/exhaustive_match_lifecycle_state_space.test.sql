@@ -104,6 +104,10 @@ select throws_ok($$select public.create_match_with_odds('e2000000-0000-0000-0000
 
 reset role;
 select set_config('request.jwt.claims','{}',true);
+-- This lifecycle fixture deliberately uses a far-future match. Bypass only the
+-- prediction-window trigger while seeding the row; timing behavior is covered
+-- independently by prediction-window tests.
+set local session_replication_role = replica;
 insert into public.match_predictions(
   match_id,profile_id,predicted_score_as_grinta,predicted_score_adverse,is_filled
 ) values(
@@ -114,6 +118,7 @@ on conflict(match_id,profile_id) do update
 set predicted_score_as_grinta=excluded.predicted_score_as_grinta,
     predicted_score_adverse=excluded.predicted_score_adverse,
     is_filled=excluded.is_filled;
+set local session_replication_role = origin;
 select is(
   (
     select profile_id::text
