@@ -1,12 +1,26 @@
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/features/auth/data/auth_repository.dart';
+import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
   testWidgets('loading screen displays the authentication loader',
       (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: AuthLoadingPage()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(_LoadingAuthRepository()),
+          ),
+        ],
+        child: const MaterialApp(home: AuthLoadingPage()),
+      ),
+    );
 
     final loader = find.byType(GrintaLoader);
     expect(loader, findsOneWidget);
@@ -61,4 +75,16 @@ void main() {
     expect(paint, findsOneWidget);
     expect(tester.getSize(paint), const Size.square(92));
   });
+}
+
+class _LoadingAuthRepository extends AuthRepository {
+  _LoadingAuthRepository()
+      : super(supabase.SupabaseClient('http://localhost', 'test-anon-key'));
+
+  @override
+  Stream<supabase.AuthState> get authStateChanges => const Stream.empty();
+
+  @override
+  Future<AuthProfile?> fetchProfile({bool retryAfterSignIn = false}) =>
+      Completer<AuthProfile?>().future;
 }
