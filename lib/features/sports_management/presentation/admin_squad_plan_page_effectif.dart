@@ -7,7 +7,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           (player) => _postMatch
               ? _actualPresent.contains(player.participantId)
               : (player.isAvailable || player.isGuest) &&
-                  _desiredConvoked.contains(player.participantId),
+                    _desiredConvoked.contains(player.participantId),
         )
         .toList();
     players.sort(_convokedOrder);
@@ -122,13 +122,14 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
     _updateState(() => _busy = true);
     try {
-      final updated =
-          await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
-                matchId: convocations.matchId,
-                squadSizeLimit: limit,
-                decisions: _effectifDecisions(convocations),
-                reason: 'Mise à jour immédiate de l’effectif depuis le match',
-              );
+      final updated = await ref
+          .read(sportWaitlistRepositoryProvider)
+          .publishEffectif(
+            matchId: convocations.matchId,
+            squadSizeLimit: limit,
+            decisions: _effectifDecisions(convocations),
+            reason: 'Mise à jour immédiate de l’effectif depuis le match',
+          );
       if (!mounted) return;
       _updateState(() {
         _convocations = updated;
@@ -169,8 +170,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text(
         isCollective
             ? '${reminders.noResponseCount} joueur'
-                '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
+                  '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                  'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
             : 'Une notification de disponibilité sera envoyée. Un second envoi est bloqué pendant dix minutes.',
       ),
     );
@@ -223,8 +224,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final availabilityDetail = player.isGuest
         ? 'Invité ajouté manuellement.'
         : hasResponded && updatedAt != null
-            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
-            : 'Aucune réponse enregistrée pour l’instant.';
+        ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+        : 'Aucune réponse enregistrée pour l’instant.';
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
@@ -232,11 +233,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final convocationDetail = player.isGuest
         ? 'Invité sélectionné pour ce match'
         : isConvoked
-            ? 'Convoqué pour ce match'
-            : player.isAvailable
-                ? 'Non convoqué pour ce match'
-                : 'Aucune décision de convocation applicable';
-    final canRelance = !player.isGuest &&
+        ? 'Convoqué pour ce match'
+        : player.isAvailable
+        ? 'Non convoqué pour ce match'
+        : 'Aucune décision de convocation applicable';
+    final canRelance =
+        !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
         (_reminders?.canRemind ?? false);
@@ -253,10 +255,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
             children: [
               Text(
                 player.displayName,
-                style: Theme.of(sheetContext)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),
               _PlayerInfoRow(
@@ -331,7 +332,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 ),
                 TextField(
                   controller: lastName,
-                  decoration: const InputDecoration(labelText: 'Nom facultatif'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nom facultatif',
+                  ),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -368,7 +371,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (input == null) return;
     _updateState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .createAndAddGuest(
             matchId: matchId,
             firstName: input.firstName,
             lastName: input.lastName,
@@ -395,7 +400,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!confirmed || !mounted) return;
     _updateState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).removeGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .removeGuest(
             matchId: matchId,
             participantId: player.participantId,
             reason: 'Retrait depuis Effectif',
@@ -423,10 +430,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               children: [
                 Text(
                   'Effectif',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 5),
                 const Text(
