@@ -37,11 +37,6 @@ class MatchLiveTab extends ConsumerWidget {
       data: (bundle) {
         final canEdit = canEditAsync.valueOrNull ?? false;
 
-        // Filet de sécurité temporaire : un bug déjà corrigé faisait
-        // disparaître cet onglet sans aucun message en cas d'exception
-        // pendant la construction. On affiche désormais le détail brut au
-        // lieu de rien, le temps de confirmer qu'aucune autre exception ne
-        // se cache encore ici.
         try {
           if (!bundle.session.sessionExists) {
             if (!canEdit) {
@@ -76,12 +71,20 @@ class MatchLiveTab extends ConsumerWidget {
             canEdit: canEdit,
           );
         } catch (error, stackTrace) {
-          return Center(
+          FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: error,
+              stack: stackTrace,
+              library: 'match_live',
+              context: ErrorDescription('construction du Tableau Blanc'),
+            ),
+          );
+          return const Center(
             child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: SelectableText(
-                'Diagnostic Tableau Blanc :\n$error\n\n$stackTrace',
-                textAlign: TextAlign.left,
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Impossible d’afficher le Live pour le moment. Réessaie.',
+                textAlign: TextAlign.center,
               ),
             ),
           );
