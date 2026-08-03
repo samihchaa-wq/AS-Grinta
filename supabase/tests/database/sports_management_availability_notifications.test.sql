@@ -302,34 +302,33 @@ select is(
       where id = current_setting('test.notification_match')::uuid
     )
   ) #>> '{notifications_created}',
-  '1',
-  'à J−3 seule la joueuse sans réponse est relancée'
+  '0',
+  'aucun rappel automatique n’est envoyé à J−3'
 );
 
 select is(
   (
-    select profile_id
+    select count(*)
     from public.sport_availability_notification_events
     where match_id = current_setting('test.notification_match')::uuid
-      and kind = 'availability_j3'
+      and kind in ('availability_j3', 'availability_j1')
+      and source = 'automatic'
   ),
-  '81000000-0000-0000-0000-000000000003'::uuid,
-  'la relance J−3 appartient bien au seul profil sans réponse'
+  0::bigint,
+  'aucun événement automatique J−3/J−1 n’est historisé'
 );
 
-select is(
-  jsonb_array_length(
-    public.internal_sport_push_dispatch(
-      'availability_j3',
-      current_setting('test.notification_match')::uuid,
-      array[
-        '81000000-0000-0000-0000-000000000002'::uuid,
-        '81000000-0000-0000-0000-000000000003'::uuid
-      ]
-    ) -> 'subscriptions'
-  ),
-  1,
-  'la préparation du push revérifie la réponse avant tout envoi'
+select throws_ok(
+  $$select public.internal_sport_push_dispatch(
+    'availability_j3',
+    current_setting('test.notification_match')::uuid,
+    array[
+      '81000000-0000-0000-0000-000000000002'::uuid,
+      '81000000-0000-0000-0000-000000000003'::uuid
+    ]
+  )$$,
+  '22023',
+  'les anciens types de rappel automatique ne sont plus dispatchables'
 );
 
 select is(
@@ -340,8 +339,8 @@ select is(
       where id = current_setting('test.notification_match')::uuid
     )
   ) #>> '{notifications_created}',
-  '1',
-  'à J−1 le seul joueur toujours sans réponse reçoit le dernier rappel'
+  '0',
+  'aucun rappel automatique n’est envoyé à J−1'
 );
 
 select is(
@@ -353,7 +352,7 @@ select is(
     )
   ) #>> '{notifications_created}',
   '0',
-  'le rappel J−1 ne peut pas être envoyé deux fois'
+  'les passages suivants restent sans rappel automatique'
 );
 
 select set_config(
@@ -405,8 +404,8 @@ select is(
   public.admin_get_match_availability_reminders(
     current_setting('test.notification_match')::uuid
   ) #>> '{j3_sent_count}',
-  '1',
-  'le résumé expose les relances automatiques déjà effectuées'
+  '0',
+  'le résumé confirme l’absence de relance automatique J−3'
 );
 
 reset role;
@@ -478,8 +477,8 @@ select is(
     from public.sport_availability_notification_events
     where match_id = current_setting('test.notification_match')::uuid
   ),
-  5::bigint,
-  'la désactivation conserve tout l’historique sans créer de nouvelle donnée'
+  3::bigint,
+  'la désactivation conserve l’ouverture et la relance manuelle sans rappels automatiques'
 );
 
 select * from finish();
