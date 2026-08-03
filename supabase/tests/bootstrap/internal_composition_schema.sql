@@ -15,6 +15,14 @@ create table public.match_internal_compositions (
 
 alter table public.match_internal_compositions enable row level security;
 
+create policy active_authenticated_profile_only
+  on public.match_internal_compositions
+  as restrictive
+  for all
+  to authenticated
+  using ((select private.is_active_profile()))
+  with check ((select private.is_active_profile()));
+
 create policy match_internal_compositions_select
   on public.match_internal_compositions for select
   to authenticated
@@ -42,6 +50,14 @@ create table public.match_internal_composition_entries (
 );
 
 alter table public.match_internal_composition_entries enable row level security;
+
+create policy active_authenticated_profile_only
+  on public.match_internal_composition_entries
+  as restrictive
+  for all
+  to authenticated
+  using ((select private.is_active_profile()))
+  with check ((select private.is_active_profile()));
 
 create policy match_internal_composition_entries_select
   on public.match_internal_composition_entries for select
