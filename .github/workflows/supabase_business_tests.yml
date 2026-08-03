@@ -276,6 +276,12 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803120455_match_temporality_noon_live_and_notifications.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803142018_notifications_v2_match_events_preferences.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803142514_convocation_push_via_targeted_custom_transport.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803142625_motm_open_never_before_kickoff.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/season_lifecycle_acl.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/match_delete_rpc_grants.sql
