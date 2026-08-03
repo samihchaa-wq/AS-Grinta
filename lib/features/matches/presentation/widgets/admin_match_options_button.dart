@@ -123,8 +123,9 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     final canCancel = !editLocked && !match.isCancelled;
     final canDelete = !editLocked;
     final canEnterStats = !match.isInternal &&
+        !match.isArchived &&
         (phase == MatchDisplayPhase.awaitingValidation ||
-            phase == MatchDisplayPhase.past);
+            (phase == MatchDisplayPhase.past && match.status == 'termine'));
     final canFinishInternal = match.isInternal &&
         !match.isFinished &&
         !match.isCancelled &&
