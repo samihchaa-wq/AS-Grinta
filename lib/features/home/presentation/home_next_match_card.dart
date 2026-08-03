@@ -8,17 +8,21 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/match_
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Carte complète du prochain match, réutilisable sur l'accueil historique et
-/// dans le nouvel onglet Matchs fusionné.
+/// Carte forte d'un match actif, réutilisable pour « Prochain », « En direct »
+/// et « À valider ».
 class HomeNextMatchCard extends StatelessWidget {
   const HomeNextMatchCard({
     required this.match,
     required this.isAdmin,
+    this.initialSection = 'info',
+    this.showAvailability = true,
     super.key,
   });
 
   final MatchModel match;
   final bool isAdmin;
+  final String initialSection;
+  final bool showAvailability;
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +113,9 @@ class HomeNextMatchCard extends StatelessWidget {
               ),
             ),
             InkWell(
-              onTap: () =>
-                  context.push('/matches/${match.id}/lineup?section=info'),
+              onTap: () => context.push(
+                '/matches/${match.id}/lineup?section=$initialSection',
+              ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
                 child: Column(
@@ -157,12 +162,14 @@ class HomeNextMatchCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 8),
-                    MatchAvailabilitySelector(
-                      matchId: match.id,
-                      embeddedOnDark: true,
-                      topSpacing: 16,
-                    ),
+                    if (showAvailability) ...[
+                      const SizedBox(height: 8),
+                      MatchAvailabilitySelector(
+                        matchId: match.id,
+                        embeddedOnDark: true,
+                        topSpacing: 16,
+                      ),
+                    ],
                   ],
                 ),
               ),
