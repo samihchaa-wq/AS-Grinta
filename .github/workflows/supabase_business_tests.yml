@@ -268,6 +268,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260802040000_timeline_uses_display_names.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260802050000_match_weather.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803010000_remove_x2_and_private_profile_photos.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803011000_immediate_effectif_and_composition.sql
@@ -281,6 +283,10 @@ jobs:
               -f supabase/migrations/20260803142514_convocation_push_via_targeted_custom_transport.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803142625_motm_open_never_before_kickoff.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803150057_availability_workflow_independent_from_push_pause.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803151200_motm_strict_h2_without_source_dependency.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/season_lifecycle_acl.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
