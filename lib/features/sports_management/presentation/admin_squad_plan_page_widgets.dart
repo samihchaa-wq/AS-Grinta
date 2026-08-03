@@ -297,7 +297,7 @@ class _FormationDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       decoration: const InputDecoration(
         labelText: 'Dispositif',
@@ -307,7 +307,7 @@ class _FormationDropdown extends StatelessWidget {
         for (final formation in footballFormations)
           DropdownMenuItem(
             value: formation.code,
-            child: Text(formation.label),
+            child: Text(formation.code),
           ),
       ],
       onChanged: onChanged == null
