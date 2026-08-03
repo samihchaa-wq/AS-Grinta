@@ -154,8 +154,9 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
   matchId,
 ) async {
   final client = ref.watch(supabaseClientProvider);
+  final baseInfo = await ref.watch(matchInfoProvider(matchId).future);
   final core = await ref.watch(matchCoreProvider(matchId).future);
-  if (core == null) return _emptyMatchInfo;
+  if (core == null) return baseInfo;
 
   final encounters = <MatchEncounter>[];
   if (core.opponentId != null && core.opponentId!.isNotEmpty) {
@@ -175,5 +176,11 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
     }
   }
 
-  return _infoFromCore(core, encounters: encounters);
+  return MatchInfo(
+    kickoffAt: baseInfo.kickoffAt,
+    address: baseInfo.address,
+    lastEncounters: encounters,
+    matchType: baseInfo.matchType,
+    jerseyNote: baseInfo.jerseyNote,
+  );
 });
