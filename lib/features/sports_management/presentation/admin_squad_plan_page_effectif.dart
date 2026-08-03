@@ -105,10 +105,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   Future<void> _persistEffectif() async {
     final convocations = _convocations;
-    if (convocations == null ||
-        _busy ||
-        _locked ||
-        !_effectifDirty) {
+    if (convocations == null || _busy || _locked || !_effectifDirty) {
       return;
     }
     final limit = _validatedSquadLimit();
@@ -426,8 +423,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     labelText: 'Nombre de joueurs souhaité',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (_) =>
-                      _updateState(() => _effectifDirty = true),
+                  onChanged: (_) => _updateState(() => _effectifDirty = true),
                 ),
                 if (over) ...[
                   const SizedBox(height: 10),
@@ -528,9 +524,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed: _busy || _locked || !_effectifDirty
-              ? null
-              : _persistEffectif,
+          onPressed:
+              _busy || _locked || !_effectifDirty ? null : _persistEffectif,
           icon: const Icon(Icons.save_outlined),
           label: const Text('Enregistrer'),
         ),
