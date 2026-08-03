@@ -21,7 +21,8 @@ const _matchId = 'match-visual-review';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the effectif with immediate persistence', (tester) async {
+  testWidgets('captures the effectif with immediate persistence',
+      (tester) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
