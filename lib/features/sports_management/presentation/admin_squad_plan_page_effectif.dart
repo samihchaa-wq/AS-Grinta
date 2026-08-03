@@ -74,14 +74,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       } else {
         _desiredConvoked.remove(player.participantId);
       }
-    });
-    unawaited(_persistEffectif());
-  }
-
-  void _scheduleEffectifSave() {
-    _effectifSaveDebounce?.cancel();
-    _effectifSaveDebounce = Timer(const Duration(milliseconds: 450), () {
-      if (mounted) unawaited(_persistEffectif());
+      _effectifDirty = true;
     });
   }
 
@@ -112,38 +105,28 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   Future<void> _persistEffectif() async {
     final convocations = _convocations;
-    if (convocations == null || _locked) return;
-    if (_busy) {
-      _scheduleEffectifSave();
+    if (convocations == null ||
+        _busy ||
+        _locked ||
+        !_effectifDirty) {
       return;
     }
-    final limit = _validatedSquadLimit(showError: false);
+    final limit = _validatedSquadLimit();
     if (limit == null) return;
 
     _updateState(() => _busy = true);
     try {
-      final updated =
-          await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
-                matchId: convocations.matchId,
-                squadSizeLimit: limit,
-                decisions: _effectifDecisions(convocations),
-                reason: 'Mise à jour immédiate de l’effectif depuis le match',
-              );
-      if (!mounted) return;
-      _updateState(() {
-        _convocations = updated;
-        _desiredConvoked = {
-          for (final player in updated.players)
-            if ((player.isAvailable || player.isGuest) && player.isConvoked)
-              player.participantId,
-        };
-      });
+      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
+            matchId: convocations.matchId,
+            squadSizeLimit: limit,
+            decisions: _effectifDecisions(convocations),
+            reason: 'Effectif enregistré depuis le match',
+          );
       ref.invalidate(matchAvailabilityBoardProvider(convocations.matchId));
+      await _loadWorkspace(convocations.matchId);
+      if (mounted) _showMessage('Effectif enregistré.');
     } catch (error) {
-      if (mounted) {
-        _showMessage(humanizeError(error));
-        await _loadWorkspace(convocations.matchId);
-      }
+      if (mounted) _showMessage(humanizeError(error));
     } finally {
       if (mounted) _updateState(() => _busy = false);
     }
@@ -431,8 +414,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 const SizedBox(height: 5),
                 const Text(
                   'Touche un joueur pour voir sa disponibilité et son rang. '
-                  'Glisse-le pour changer de colonne. Chaque changement est '
-                  'enregistré immédiatement.',
+                  'Glisse-le pour changer de colonne. Chaque changement reste '
+                  'sur cet écran jusqu’à ce que tu appuies sur Enregistrer.',
                 ),
                 const SizedBox(height: 14),
                 TextField(
@@ -443,7 +426,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                     labelText: 'Nombre de joueurs souhaité',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (_) => _scheduleEffectifSave(),
+                  onChanged: (_) =>
+                      _updateState(() => _effectifDirty = true),
                 ),
                 if (over) ...[
                   const SizedBox(height: 10),
@@ -541,6 +525,14 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
               ],
             );
           },
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _busy || _locked || !_effectifDirty
+              ? null
+              : _persistEffectif,
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Enregistrer'),
         ),
         if (_locked)
           const Padding(
