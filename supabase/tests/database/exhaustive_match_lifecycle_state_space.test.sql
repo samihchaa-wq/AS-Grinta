@@ -72,7 +72,7 @@ begin
               and v_date between date '2000-01-01' and date '2100-12-31'
               and v_odds between 1.01 and 100,
             v_ok,v_state,v_message);
-          if v_match is not null then perform public.delete_match(v_match); end if;
+          if v_match is not null then delete from public.matches where id = v_match; end if;
         end loop;
       end loop;
     end loop;
