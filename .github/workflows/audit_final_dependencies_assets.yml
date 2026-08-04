@@ -1,0 +1,131 @@
+name: Final dependency and asset audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit_final_dependencies_assets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Audit direct Dart dependencies and declared assets
+        shell: python
+        run: |
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          pubspec = Path('pubspec.yaml').read_text(encoding='utf-8')
+          dep_block = pubspec.split('\ndependencies:\n', 1)[1].split('\ndev_dependencies:\n', 1)[0]
+          deps = []
+          for line in dep_block.splitlines():
+              m = re.match(r'^  ([a-zA-Z0-9_]+):', line)
+              if m:
+                  deps.append(m.group(1))
+          sdk_deps = {'flutter', 'flutter_localizations'}
+
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          tracked = [p for p in tracked if p]
+          dart_files = [p for p in tracked if p.endswith('.dart')]
+          text_files = []
+          for p in tracked:
+              path = Path(p)
+              try:
+                  raw = path.read_bytes()
+              except OSError:
+                  continue
+              if b'\0' in raw:
+                  continue
+              try:
+                  text_files.append((p, raw.decode('utf-8')))
+              except UnicodeDecodeError:
+                  pass
+
+          dependencies = {}
+          for dep in deps:
+              if dep in sdk_deps:
+                  continue
+              needle = f'package:{dep}/'
+              refs = []
+              for p in dart_files:
+                  text = Path(p).read_text(encoding='utf-8')
+                  count = text.count(needle)
+                  if count:
+                      refs.append({'path': p, 'count': count})
+              dependencies[dep] = {
+                  'reference_count': sum(x['count'] for x in refs),
+                  'files': refs,
+              }
+
+          asset_lines = []
+          in_assets = False
+          for line in pubspec.splitlines():
+              if line.strip() == 'assets:':
+                  in_assets = True
+                  continue
+              if in_assets:
+                  m = re.match(r'^    - (.+)$', line)
+                  if m:
+                      asset_lines.append(m.group(1).strip())
+                  elif line.strip() and not line.startswith('    '):
+                      break
+
+          asset_files = [p for p in tracked if p.startswith('assets/')]
+          assets = []
+          for p in asset_files:
+              basename = Path(p).name
+              full_refs = []
+              base_refs = []
+              for tp, text in text_files:
+                  if tp == p:
+                      continue
+                  if p in text:
+                      full_refs.append(tp)
+                  elif basename in text:
+                      base_refs.append(tp)
+              assets.append({
+                  'path': p,
+                  'full_path_refs': sorted(set(full_refs)),
+                  'basename_refs': sorted(set(base_refs)),
+              })
+
+          report = {
+              'direct_dependencies': dependencies,
+              'zero_reference_direct_dependencies': sorted(
+                  dep for dep, info in dependencies.items()
+                  if info['reference_count'] == 0
+              ),
+              'declared_asset_entries': asset_lines,
+              'tracked_asset_files': len(asset_files),
+              'asset_files_without_literal_path_or_basename_reference': sorted(
+                  a['path'] for a in assets
+                  if not a['full_path_refs'] and not a['basename_refs']
+              ),
+              'assets': assets,
+          }
+          Path('dependency_asset_audit.json').write_text(
+              json.dumps(report, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps({
+              'zero_reference_direct_dependencies': report['zero_reference_direct_dependencies'],
+              'declared_asset_entries': report['declared_asset_entries'],
+              'tracked_asset_files': report['tracked_asset_files'],
+              'asset_files_without_literal_path_or_basename_reference': report['asset_files_without_literal_path_or_basename_reference'],
+          }, indent=2, ensure_ascii=False))
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-dependency-asset-audit
+          path: dependency_asset_audit.json
+          if-no-files-found: error
