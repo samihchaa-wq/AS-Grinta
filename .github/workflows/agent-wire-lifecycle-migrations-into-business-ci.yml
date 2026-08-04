@@ -1,6 +1,8 @@
 name: Agent wire lifecycle migrations into business CI
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches:
       - agent/match-lifecycle-cleanup
