@@ -1,1 +1,0 @@
-Trigger CI on the clean PR head after the automated fixture correction.
