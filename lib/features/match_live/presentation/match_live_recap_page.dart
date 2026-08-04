@@ -211,7 +211,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
             participants: value.participants,
             reason: 'Export depuis le Tableau Blanc',
           );
-      ref..invalidate(matchDetailsProvider(widget.matchId));
+      ref.invalidate(matchDetailsProvider(widget.matchId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Match publié dans le compte rendu.')),
