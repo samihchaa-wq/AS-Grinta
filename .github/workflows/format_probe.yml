@@ -21,15 +21,21 @@ jobs:
           flutter-version: '3.44.8'
           channel: stable
           cache: true
-      - name: Show exact formatter diff
+      - name: Format target files
         shell: bash
         run: |
           set -euo pipefail
-          files=(
+          dart format \
+            lib/features/matches/presentation/matches_page.dart \
+            lib/features/matches/presentation/widgets/admin_match_options_button.dart \
+            lib/features/predictions/presentation/merged_matches_view.dart
+      - name: Export formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-dart-files
+          path: |
             lib/features/matches/presentation/matches_page.dart
             lib/features/matches/presentation/widgets/admin_match_options_button.dart
             lib/features/predictions/presentation/merged_matches_view.dart
-          )
-          dart format "${files[@]}"
-          git diff --no-ext-diff --unified=4 -- "${files[@]}"
-          test -z "$(git status --porcelain -- "${files[@]}")"
+          if-no-files-found: error
+          retention-days: 1
