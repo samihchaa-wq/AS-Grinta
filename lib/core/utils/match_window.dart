@@ -93,9 +93,9 @@ bool isMatchAdminEditLocked(DateTime? kickoffAt, {DateTime? now}) {
 
 /// Phase d'affichage unique pour l'onglet Matchs.
 ///
-/// `liveState == finished` prévaut sur l'heure théorique : dès que le coach a
-/// terminé le Tableau Blanc, le match attend sa validation. Sans Live, on
-/// bascule après durée planifiée + 15 minutes.
+/// Une session Live active reste autoritaire même si le match dépasse son heure
+/// de fin théorique. `finished` bascule immédiatement vers « À valider ». Sans
+/// Live actif, la durée planifiée + 15 minutes sert de repli.
 MatchDisplayPhase matchDisplayPhase({
   required DateTime kickoffAt,
   required String status,
@@ -119,6 +119,11 @@ MatchDisplayPhase matchDisplayPhase({
   }
   if (liveState == 'finished') {
     return MatchDisplayPhase.awaitingValidation;
+  }
+  if (liveState == 'running' ||
+      liveState == 'paused' ||
+      liveState == 'halftime') {
+    return MatchDisplayPhase.live;
   }
   if (!reference.isBefore(
     matchExpectedValidationAt(kickoff, plannedDurationMinutes),
