@@ -202,8 +202,6 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260729161500_manual_waitlist_count.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260729170000_internal_matches.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260730044106_fix_prepare_deletion_effectif_draft_updated_by.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260730044911_notifications_admin_kill_switch.sql
