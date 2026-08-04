@@ -152,8 +152,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                   child: GrintaEmptyState(
                     icon: Icons.stadium_rounded,
                     title: 'Aucun match cette saison',
-                    message:
-                        'Les matchs de la saison apparaîtront ici dès '
+                    message: 'Les matchs de la saison apparaîtront ici dès '
                         'qu\'ils seront programmés.',
                     compact: true,
                   ),
@@ -230,11 +229,11 @@ class _MatchesTimeline extends StatelessWidget {
                         match.isFinished
                             ? Icons.check_rounded
                             : match.phase(now: now) == MatchDisplayPhase.live
-                            ? Icons.sensors_rounded
-                            : match.phase(now: now) ==
-                                  MatchDisplayPhase.awaitingValidation
-                            ? Icons.fact_check_outlined
-                            : Icons.sports_soccer_rounded,
+                                ? Icons.sensors_rounded
+                                : match.phase(now: now) ==
+                                        MatchDisplayPhase.awaitingValidation
+                                    ? Icons.fact_check_outlined
+                                    : Icons.sports_soccer_rounded,
                         size: 13,
                         color: match.id == target?.id
                             ? Colors.white
@@ -290,8 +289,8 @@ class _MatchCard extends StatelessWidget {
     final cardColor = isFocus
         ? AppTheme.surfaceHero
         : isPast
-        ? AppTheme.surface
-        : AppTheme.surfaceHigh;
+            ? AppTheme.surface
+            : AppTheme.surfaceHigh;
 
     return Card(
       color: cardColor,
@@ -380,20 +379,20 @@ class _MatchCard extends StatelessWidget {
         return () => context.push('/matches/${match.id}');
       case MatchDisplayPhase.upcoming:
         return () => context.push(
-          '/matches/${match.id}/lineup?section=info&infoOnly=true',
-        );
+              '/matches/${match.id}/lineup?section=info&infoOnly=true',
+            );
       case MatchDisplayPhase.next:
         return () => context.push('/matches/${match.id}/lineup?section=info');
       case MatchDisplayPhase.live:
         return () => context.push(
-          '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
-        );
+              '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
+            );
       case MatchDisplayPhase.awaitingValidation:
         final section = match.liveState == null
             ? 'info'
             : match.isInternal
-            ? 'composition'
-            : 'live';
+                ? 'composition'
+                : 'live';
         return () =>
             context.push('/matches/${match.id}/lineup?section=$section');
       case MatchDisplayPhase.cancelled:

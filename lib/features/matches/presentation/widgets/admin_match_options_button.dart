@@ -25,8 +25,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Annuler ce match ?'),
@@ -56,8 +55,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   }
 
   Future<void> _finish(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Terminer ce match ?'),
@@ -89,8 +87,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
@@ -126,13 +123,11 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     final canEditIdentity = !editLocked && !match.isCancelled;
     final canCancel = !editLocked && !match.isCancelled;
     final canDelete = !editLocked;
-    final canEnterStats =
-        !match.isInternal &&
+    final canEnterStats = !match.isInternal &&
         !match.isArchived &&
         (phase == MatchDisplayPhase.awaitingValidation ||
             (phase == MatchDisplayPhase.past && match.status == 'termine'));
-    final canFinishInternal =
-        match.isInternal &&
+    final canFinishInternal = match.isInternal &&
         !match.isFinished &&
         !match.isCancelled &&
         !DateTime.now().isBefore(match.kickoffAt) &&
