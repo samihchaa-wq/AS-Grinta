@@ -1,12 +1,12 @@
 name: Temporary Dart format probe
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/match-lifecycle-cleanup
+      - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   probe:
@@ -26,18 +26,13 @@ jobs:
             lib/features/matches/presentation/matches_page.dart \
             lib/features/matches/presentation/widgets/admin_match_options_button.dart \
             lib/features/predictions/presentation/merged_matches_view.dart
-      - name: Commit formatter output
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            lib/features/matches/presentation/matches_page.dart \
-            lib/features/matches/presentation/widgets/admin_match_options_button.dart \
+      - name: Export formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-dart-files-pr-merge
+          path: |
+            lib/features/matches/presentation/matches_page.dart
+            lib/features/matches/presentation/widgets/admin_match_options_button.dart
             lib/features/predictions/presentation/merged_matches_view.dart
-          git commit -m "Format match lifecycle files"
-          git push origin HEAD:agent/match-lifecycle-cleanup
+          if-no-files-found: error
+          retention-days: 1
