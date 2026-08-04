@@ -89,3 +89,4 @@ jobs:
           if-no-files-found: warn
 
 # Production deployment authorized on 2026-07-21.
+# Match lifecycle deployment trigger: 2026-08-04.
