@@ -36,12 +36,18 @@ grant select, insert, update, delete
 on pg_temp.match_creation_state_space to authenticated;
 
 -- This matrix tests create_match_with_odds date/odds validation, including the
--- historical lower bound year 2000. Temporarily disable only the UPDATE/DELETE
--- lifecycle trigger and grant DELETE only inside this rollback-only fixture so
--- each successful case can be removed before the next matrix case. Both are
--- restored before any lifecycle/delete authorization assertion below.
+-- historical lower bound year 2000. Cleanup must bypass both the lifecycle
+-- trigger and RLS, but only inside this rollback-only pgTAP transaction.
+create or replace function pg_temp.delete_match_creation_fixture(p_match_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $function$
+  delete from public.matches where id = p_match_id;
+$function$;
+grant execute on function pg_temp.delete_match_creation_fixture(uuid) to authenticated;
 alter table public.matches disable trigger trg_guard_match_lifecycle_write;
-grant delete on public.matches to authenticated;
 
 select set_config('request.jwt.claims',
   '{"sub":"e1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
@@ -74,7 +80,9 @@ begin
               and v_date between date '2000-01-01' and date '2100-12-31'
               and v_odds between 1.01 and 100,
             v_ok,v_state,v_message);
-          if v_match is not null then delete from public.matches where id = v_match; end if;
+          if v_match is not null then
+            perform pg_temp.delete_match_creation_fixture(v_match);
+          end if;
         end loop;
       end loop;
     end loop;
@@ -83,7 +91,6 @@ end;
 $state_space$;
 
 reset role;
-revoke delete on public.matches from authenticated;
 alter table public.matches enable trigger trg_guard_match_lifecycle_write;
 set local role authenticated;
 
