@@ -118,17 +118,21 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final phase = match.phase();
-    final editLocked = isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
+    final editLocked =
+        isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
     final canEditIdentity = !editLocked && !match.isCancelled;
     final canCancel = !editLocked && !match.isCancelled;
     final canDelete = !editLocked;
-    final canEnterStats = !match.isInternal &&
+    final canEnterStats =
+        !match.isInternal &&
         !match.isArchived &&
         (phase == MatchDisplayPhase.awaitingValidation ||
             (phase == MatchDisplayPhase.past && match.status == 'termine'));
-    final canFinishInternal = match.isInternal &&
+    final canFinishInternal =
+        match.isInternal &&
         !match.isFinished &&
         !match.isCancelled &&
+        !DateTime.now().isBefore(match.kickoffAt) &&
         (phase == MatchDisplayPhase.live ||
             phase == MatchDisplayPhase.awaitingValidation);
 
@@ -216,7 +220,9 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             child: ListTile(
               leading: Icon(Icons.lock_outline_rounded),
               title: Text('Match verrouillé'),
-              subtitle: Text('Utilise le Live ou la correction du compte rendu.'),
+              subtitle: Text(
+                'Utilise le Live ou la correction du compte rendu.',
+              ),
               contentPadding: EdgeInsets.zero,
             ),
           ),
