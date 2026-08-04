@@ -1,0 +1,46 @@
+name: Audit Supabase CI migration gap
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit_supabase_ci_gap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit-supabase-ci-gap
+      - name: List recent migrations missing from business-test bootstrap
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          workflow = Path('.github/workflows/supabase_business_tests.yml').read_text()
+          referenced = set(re.findall(r'supabase/migrations/([^\s]+\.sql)', workflow))
+          recent = sorted(
+              p.name for p in Path('supabase/migrations').glob('202608*.sql')
+          )
+          missing = [name for name in recent if name not in referenced]
+
+          print(f'RECENT_TOTAL={len(recent)}')
+          print(f'REFERENCED={len(recent) - len(missing)}')
+          print(f'MISSING={len(missing)}')
+          print('--- MISSING RECENT MIGRATIONS ---')
+          for name in missing:
+              print(name)
+
+          Path('supabase-ci-gap.txt').write_text(
+              '\n'.join(missing) + ('\n' if missing else ''),
+              encoding='utf-8',
+          )
+      - uses: actions/upload-artifact@v4
+        with:
+          name: supabase-ci-gap
+          path: supabase-ci-gap.txt
