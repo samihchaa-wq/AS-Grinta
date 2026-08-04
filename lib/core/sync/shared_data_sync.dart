@@ -24,19 +24,34 @@ import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+enum SharedDataRefreshScope { sports, all }
+
+class SharedDataRefreshDecision {
+  const SharedDataRefreshDecision({
+    required this.scope,
+    required this.refreshProfile,
+  });
+
+  final SharedDataRefreshScope scope;
+  final bool refreshProfile;
+}
+
 class SharedDataChangeSignal {
   const SharedDataChangeSignal({
     required this.revision,
     required this.profileRevision,
+    required this.sportsRevision,
     required this.updatedAt,
   });
 
   factory SharedDataChangeSignal.fromRow(Map<String, dynamic> row) {
     final revision = row['revision'];
     final profileRevision = row['profile_revision'];
+    final sportsRevision = row['sports_revision'];
     final updatedAt = row['updated_at'];
     if (revision is! num ||
         (profileRevision != null && profileRevision is! num) ||
+        (sportsRevision != null && sportsRevision is! num) ||
         updatedAt is! String) {
       throw const FormatException('Signal de synchronisation invalide.');
     }
@@ -46,45 +61,68 @@ class SharedDataChangeSignal {
       // comportement historique : chaque signal recharge aussi le profil.
       profileRevision:
           profileRevision is num ? profileRevision.toInt() : revision.toInt(),
+      // Sans sports_revision, aucun lot ne peut être prouvé 100 % sportif :
+      // le client garde donc le refresh global historique.
+      sportsRevision: sportsRevision is num ? sportsRevision.toInt() : 0,
       updatedAt: DateTime.parse(updatedAt).toUtc(),
     );
   }
 
   final int revision;
   final int profileRevision;
+  final int sportsRevision;
   final DateTime updatedAt;
 }
 
-/// Suit les deux révisions sans dépendre de Riverpod afin que la décision de
-/// recharger le profil puisse être testée séparément du flux Realtime.
+/// Suit les révisions sans dépendre de Riverpod afin que la portée du refresh
+/// puisse être testée séparément du flux Realtime.
 class SharedDataSignalCursor {
   int? _lastRevision;
   int? _lastProfileRevision;
+  int? _lastSportsRevision;
 
-  /// Retourne `null` lorsque le signal est initial ou obsolète. Sinon, le booléen
-  /// indique si le profil authentifié doit être rechargé avec les autres caches.
-  bool? register(SharedDataChangeSignal signal) {
+  /// Retourne `null` lorsque le signal est initial ou obsolète. Un refresh
+  /// sportif n'est retenu que si toutes les révisions manquées sont sportives.
+  SharedDataRefreshDecision? register(SharedDataChangeSignal signal) {
     final previousRevision = _lastRevision;
     if (previousRevision == null) {
       _lastRevision = signal.revision;
       _lastProfileRevision = signal.profileRevision;
+      _lastSportsRevision = signal.sportsRevision;
       return null;
     }
     if (signal.revision <= previousRevision) return null;
 
     final previousProfileRevision = _lastProfileRevision ?? previousRevision;
+    final previousSportsRevision = _lastSportsRevision ?? 0;
     final refreshProfile = signal.profileRevision > previousProfileRevision;
+    final revisionDelta = signal.revision - previousRevision;
+    final sportsDelta = signal.sportsRevision - previousSportsRevision;
+    final sportsOnly =
+        !refreshProfile && sportsDelta > 0 && sportsDelta == revisionDelta;
+
     _lastRevision = signal.revision;
     if (_lastProfileRevision == null ||
         signal.profileRevision > _lastProfileRevision!) {
       _lastProfileRevision = signal.profileRevision;
     }
-    return refreshProfile;
+    if (_lastSportsRevision == null ||
+        signal.sportsRevision > _lastSportsRevision!) {
+      _lastSportsRevision = signal.sportsRevision;
+    }
+
+    return SharedDataRefreshDecision(
+      scope: sportsOnly
+          ? SharedDataRefreshScope.sports
+          : SharedDataRefreshScope.all,
+      refreshProfile: refreshProfile,
+    );
   }
 
   void reset() {
     _lastRevision = null;
     _lastProfileRevision = null;
+    _lastSportsRevision = null;
   }
 }
 
@@ -116,44 +154,69 @@ final sharedDataSignalProvider = StreamProvider<SharedDataChangeSignal?>((ref) {
   return ref.watch(sharedDataSyncRepositoryProvider).watchChanges();
 });
 
-/// Invalide les caches de lecture partagés puis recharge les deux contrôleurs
-/// longue durée qui ne sont pas des FutureProvider. C'est volontairement
-/// centralisé : une écriture dans un module ne doit plus connaître à la main
-/// la liste des autres écrans qu'elle impacte.
+/// Invalide les caches de lecture partagés puis recharge les contrôleurs longue
+/// durée uniquement lorsque le domaine touché le nécessite.
 class SharedDataRefreshCoordinator {
   SharedDataRefreshCoordinator(this._ref);
 
   final Ref _ref;
   Future<void>? _refreshInFlight;
-  bool _refreshQueued = false;
+  SharedDataRefreshScope? _queuedScope;
+  bool _refreshProfileQueued = false;
 
   Future<void> refreshAll({bool refreshProfile = true}) {
-    _refreshQueued = true;
+    return refresh(
+      scope: SharedDataRefreshScope.all,
+      refreshProfile: refreshProfile,
+    );
+  }
+
+  Future<void> refresh({
+    required SharedDataRefreshScope scope,
+    required bool refreshProfile,
+  }) {
+    final queuedScope = _queuedScope;
+    if (queuedScope == null ||
+        (queuedScope == SharedDataRefreshScope.sports &&
+            scope == SharedDataRefreshScope.all)) {
+      _queuedScope = scope;
+    }
+    _refreshProfileQueued = _refreshProfileQueued || refreshProfile;
+
     final existing = _refreshInFlight;
     if (existing != null) return existing;
 
-    final refresh = _drain(refreshProfile: refreshProfile);
+    final refresh = _drain();
     _refreshInFlight = refresh;
     return refresh.whenComplete(() {
       if (identical(_refreshInFlight, refresh)) _refreshInFlight = null;
     });
   }
 
-  Future<void> _drain({required bool refreshProfile}) async {
-    var shouldRefreshProfile = refreshProfile;
-    while (_refreshQueued) {
-      _refreshQueued = false;
-      await _refreshOnce(refreshProfile: shouldRefreshProfile);
-      shouldRefreshProfile = true;
+  Future<void> _drain() async {
+    while (_queuedScope != null) {
+      final scope = _queuedScope!;
+      final refreshProfile = _refreshProfileQueued;
+      _queuedScope = null;
+      _refreshProfileQueued = false;
+      await _refreshOnce(scope: scope, refreshProfile: refreshProfile);
     }
   }
 
-  Future<void> _refreshOnce({required bool refreshProfile}) async {
+  Future<void> _refreshOnce({
+    required SharedDataRefreshScope scope,
+    required bool refreshProfile,
+  }) async {
     if (!_ref.read(authControllerProvider).isAuthenticated) return;
 
     if (refreshProfile) {
       await _ref.read(authControllerProvider.notifier).refreshProfile();
       if (!_ref.read(authControllerProvider).isAuthenticated) return;
+    }
+
+    if (scope == SharedDataRefreshScope.sports) {
+      _invalidateSportsCaches();
+      return;
     }
 
     _invalidateSharedCaches();
@@ -174,9 +237,17 @@ class SharedDataRefreshCoordinator {
     _ref.invalidate(predictionsControllerProvider);
   }
 
-  void _invalidateSharedCaches() {
+  void _invalidateSportsCaches() {
     _ref
       ..invalidate(matchDetailsProvider)
+      ..invalidate(myMatchAvailabilityProvider)
+      ..invalidate(matchAvailabilityBoardProvider)
+      ..invalidate(publishedMatchCompositionProvider);
+  }
+
+  void _invalidateSharedCaches() {
+    _invalidateSportsCaches();
+    _ref
       ..invalidate(matchInfoProvider)
       ..invalidate(inlineMatchPredictionProvider)
       ..invalidate(statisticsPeriodProvider)
@@ -192,9 +263,6 @@ class SharedDataRefreshCoordinator {
       ..invalidate(myFeaturedCodesProvider)
       ..invalidate(featuredBadgesProvider)
       ..invalidate(hasUnseenBadgeProvider)
-      ..invalidate(myMatchAvailabilityProvider)
-      ..invalidate(matchAvailabilityBoardProvider)
-      ..invalidate(publishedMatchCompositionProvider)
       ..invalidate(publishedSportMatchResultProvider)
       ..invalidate(sportMotmVoteProvider);
   }
@@ -211,6 +279,7 @@ final sharedDataRefreshCoordinatorProvider =
 final sharedDataSyncListenerProvider = Provider<void>((ref) {
   Timer? debounce;
   final cursor = SharedDataSignalCursor();
+  SharedDataRefreshScope? refreshScopeQueued;
   bool refreshProfileQueued = false;
   String? lastProfileId = ref.read(authControllerProvider).profile?.id;
 
@@ -220,18 +289,28 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
       final signal = next.valueOrNull;
       if (signal == null) return;
 
-      final refreshProfile = cursor.register(signal);
-      if (refreshProfile == null) return;
-      refreshProfileQueued = refreshProfileQueued || refreshProfile;
+      final decision = cursor.register(signal);
+      if (decision == null) return;
+      refreshProfileQueued = refreshProfileQueued || decision.refreshProfile;
+      if (refreshScopeQueued == null ||
+          decision.scope == SharedDataRefreshScope.all) {
+        refreshScopeQueued = decision.scope;
+      }
 
       debounce?.cancel();
       debounce = Timer(const Duration(milliseconds: 350), () {
+        final scope = refreshScopeQueued;
+        if (scope == null) return;
         final shouldRefreshProfile = refreshProfileQueued;
+        refreshScopeQueued = null;
         refreshProfileQueued = false;
         unawaited(
           ref
               .read(sharedDataRefreshCoordinatorProvider)
-              .refreshAll(refreshProfile: shouldRefreshProfile),
+              .refresh(
+                scope: scope,
+                refreshProfile: shouldRefreshProfile,
+              ),
         );
       });
     },
@@ -243,6 +322,7 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
       if (next == lastProfileId) return;
       lastProfileId = next;
       cursor.reset();
+      refreshScopeQueued = null;
       refreshProfileQueued = false;
       debounce?.cancel();
       ref
