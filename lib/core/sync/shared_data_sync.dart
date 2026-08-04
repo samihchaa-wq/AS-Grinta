@@ -59,8 +59,9 @@ class SharedDataChangeSignal {
       revision: revision.toInt(),
       // Avant le déploiement de profile_revision, le fallback conserve le
       // comportement historique : chaque signal recharge aussi le profil.
-      profileRevision:
-          profileRevision is num ? profileRevision.toInt() : revision.toInt(),
+      profileRevision: profileRevision is num
+          ? profileRevision.toInt()
+          : revision.toInt(),
       // Sans sports_revision, aucun lot ne peut être prouvé 100 % sportif :
       // le client garde donc le refresh global historique.
       sportsRevision: sportsRevision is num ? sportsRevision.toInt() : 0,
@@ -141,8 +142,9 @@ class SharedDataSyncRepository {
   }
 }
 
-final sharedDataSyncRepositoryProvider =
-    Provider<SharedDataSyncRepository>((ref) {
+final sharedDataSyncRepositoryProvider = Provider<SharedDataSyncRepository>((
+  ref,
+) {
   return SharedDataSyncRepository(ref.watch(supabaseClientProvider));
 });
 
@@ -270,8 +272,8 @@ class SharedDataRefreshCoordinator {
 
 final sharedDataRefreshCoordinatorProvider =
     Provider<SharedDataRefreshCoordinator>((ref) {
-  return SharedDataRefreshCoordinator(ref);
-});
+      return SharedDataRefreshCoordinator(ref);
+    });
 
 /// Écoute le petit signal Realtime public-safe. Les écritures métier restent
 /// autoritaires dans leurs tables/RPC ; ce flux ne transporte que des révisions.
@@ -283,38 +285,35 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
   bool refreshProfileQueued = false;
   String? lastProfileId = ref.read(authControllerProvider).profile?.id;
 
-  ref.listen<AsyncValue<SharedDataChangeSignal?>>(
-    sharedDataSignalProvider,
-    (previous, next) {
-      final signal = next.valueOrNull;
-      if (signal == null) return;
+  ref.listen<AsyncValue<SharedDataChangeSignal?>>(sharedDataSignalProvider, (
+    previous,
+    next,
+  ) {
+    final signal = next.valueOrNull;
+    if (signal == null) return;
 
-      final decision = cursor.register(signal);
-      if (decision == null) return;
-      refreshProfileQueued = refreshProfileQueued || decision.refreshProfile;
-      if (refreshScopeQueued == null ||
-          decision.scope == SharedDataRefreshScope.all) {
-        refreshScopeQueued = decision.scope;
-      }
+    final decision = cursor.register(signal);
+    if (decision == null) return;
+    refreshProfileQueued = refreshProfileQueued || decision.refreshProfile;
+    if (refreshScopeQueued == null ||
+        decision.scope == SharedDataRefreshScope.all) {
+      refreshScopeQueued = decision.scope;
+    }
 
-      debounce?.cancel();
-      debounce = Timer(const Duration(milliseconds: 350), () {
-        final scope = refreshScopeQueued;
-        if (scope == null) return;
-        final shouldRefreshProfile = refreshProfileQueued;
-        refreshScopeQueued = null;
-        refreshProfileQueued = false;
-        unawaited(
-          ref
-              .read(sharedDataRefreshCoordinatorProvider)
-              .refresh(
-                scope: scope,
-                refreshProfile: shouldRefreshProfile,
-              ),
-        );
-      });
-    },
-  );
+    debounce?.cancel();
+    debounce = Timer(const Duration(milliseconds: 350), () {
+      final scope = refreshScopeQueued;
+      if (scope == null) return;
+      final shouldRefreshProfile = refreshProfileQueued;
+      refreshScopeQueued = null;
+      refreshProfileQueued = false;
+      unawaited(
+        ref
+            .read(sharedDataRefreshCoordinatorProvider)
+            .refresh(scope: scope, refreshProfile: shouldRefreshProfile),
+      );
+    });
+  });
 
   ref.listen<String?>(
     authControllerProvider.select((state) => state.profile?.id),
