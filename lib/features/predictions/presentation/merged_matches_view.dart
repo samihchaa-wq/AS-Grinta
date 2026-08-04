@@ -66,7 +66,10 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     });
   }
 
-  Future<void> _positionRelevantMatch(String signature, {int attempt = 0}) async {
+  Future<void> _positionRelevantMatch(
+    String signature, {
+    int attempt = 0,
+  }) async {
     if (!mounted || _lastFocusSignature != signature) return;
 
     final targetContext = _focusMatchKey.currentContext;
@@ -177,7 +180,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       requestToken: '$focusRequest',
     );
 
-    final visibleCardCount = upcomingMatches.length +
+    final visibleCardCount =
+        upcomingMatches.length +
         nextMatches.length +
         liveMatches.length +
         awaitingValidationMatches.length +
@@ -354,10 +358,12 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                           child: HomeNextMatchCard(
                             match: liveMatches[index],
                             isAdmin: isAdmin,
-                            initialSection:
-                                liveMatches[index].isInternal ? 'composition' : 'live',
-                            showAvailability:
-                                now.isBefore(liveMatches[index].kickoffAt),
+                            initialSection: liveMatches[index].isInternal
+                                ? 'composition'
+                                : 'live',
+                            showAvailability: now.isBefore(
+                              liveMatches[index].kickoffAt,
+                            ),
                           ),
                         ),
                         childCount: liveMatches.length,
@@ -388,29 +394,27 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                       horizontal: AppSpacing.screenGutter,
                     ),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final match = awaitingValidationMatches[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index == awaitingValidationMatches.length - 1
-                                  ? 0
-                                  : AppSpacing.contentGap,
-                            ),
-                            child: HomeNextMatchCard(
-                              match: match,
-                              isAdmin: isAdmin,
-                              initialSection: match.liveState == null
-                                  ? 'info'
-                                  : match.isInternal
-                                      ? 'composition'
-                                      : 'live',
-                              showAvailability: false,
-                            ),
-                          );
-                        },
-                        childCount: awaitingValidationMatches.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final match = awaitingValidationMatches[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom:
+                                index == awaitingValidationMatches.length - 1
+                                ? 0
+                                : AppSpacing.contentGap,
+                          ),
+                          child: HomeNextMatchCard(
+                            match: match,
+                            isAdmin: isAdmin,
+                            initialSection: match.liveState == null
+                                ? 'info'
+                                : match.isInternal
+                                ? 'composition'
+                                : 'live',
+                            showAvailability: false,
+                          ),
+                        );
+                      }, childCount: awaitingValidationMatches.length),
                     ),
                   ),
                   const SliverToBoxAdapter(
@@ -552,12 +556,12 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
             Text(
               title,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: emphasized
-                        ? AppTheme.textPrimary
-                        : AppTheme.textSecondary,
-                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
-                    letterSpacing: emphasized ? -.15 : 0,
-                  ),
+                color: emphasized
+                    ? AppTheme.textPrimary
+                    : AppTheme.textSecondary,
+                fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
+                letterSpacing: emphasized ? -.15 : 0,
+              ),
             ),
           ],
         ),
@@ -586,7 +590,8 @@ class _UpcomingMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final now = DateTime.now();
     final availabilityOpensAt = matchFeaturesOpenAt(match.kickoffAt);
-    final availabilityIsOpen = !match.isCancelled &&
+    final availabilityIsOpen =
+        !match.isCancelled &&
         !now.isBefore(availabilityOpensAt) &&
         now.isBefore(match.kickoffAt);
     final detailsRoute = availabilityIsOpen
@@ -602,20 +607,20 @@ class _UpcomingMatchCard extends StatelessWidget {
                   '⚽ Match entre nous',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
                 )
               : MatchFixture(
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: match.isHome,
                   nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 16,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                  ),
                   foreground: match.isCancelled
                       ? AppTheme.textFaint
                       : AppTheme.textPrimary,
@@ -630,9 +635,9 @@ class _UpcomingMatchCard extends StatelessWidget {
           Text(
             'Annulé',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFFE5555A),
-                  fontWeight: FontWeight.w800,
-                ),
+              color: const Color(0xFFE5555A),
+              fontWeight: FontWeight.w800,
+            ),
           )
         else
           const Icon(
@@ -655,8 +660,9 @@ class _UpcomingMatchCard extends StatelessWidget {
         children: [
           MatchDateHeader(
             kickoffAt: match.kickoffAt,
-            foreground:
-                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
+            foreground: match.isCancelled
+                ? AppTheme.textFaint
+                : AppTheme.textPrimary,
             secondary: AppTheme.textSecondary,
             dividerColor: AppTheme.outline.withValues(alpha: .55),
             child: fixtureRow,
@@ -683,9 +689,9 @@ class _UpcomingMatchCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textFaint,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: AppTheme.textFaint,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
