@@ -27,23 +27,66 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SharedDataChangeSignal {
   const SharedDataChangeSignal({
     required this.revision,
+    required this.profileRevision,
     required this.updatedAt,
   });
 
   factory SharedDataChangeSignal.fromRow(Map<String, dynamic> row) {
     final revision = row['revision'];
+    final profileRevision = row['profile_revision'];
     final updatedAt = row['updated_at'];
-    if (revision is! num || updatedAt is! String) {
+    if (revision is! num ||
+        (profileRevision != null && profileRevision is! num) ||
+        updatedAt is! String) {
       throw const FormatException('Signal de synchronisation invalide.');
     }
     return SharedDataChangeSignal(
       revision: revision.toInt(),
+      // Avant le déploiement de profile_revision, le fallback conserve le
+      // comportement historique : chaque signal recharge aussi le profil.
+      profileRevision:
+          profileRevision is num ? profileRevision.toInt() : revision.toInt(),
       updatedAt: DateTime.parse(updatedAt).toUtc(),
     );
   }
 
   final int revision;
+  final int profileRevision;
   final DateTime updatedAt;
+}
+
+/// Suit les deux révisions sans dépendre de Riverpod afin que la décision de
+/// recharger le profil puisse être testée séparément du flux Realtime.
+class SharedDataSignalCursor {
+  int? _lastRevision;
+  int? _lastProfileRevision;
+
+  /// Retourne `null` lorsque le signal est initial ou obsolète. Sinon, le booléen
+  /// indique si le profil authentifié doit être rechargé avec les autres caches.
+  bool? register(SharedDataChangeSignal signal) {
+    final previousRevision = _lastRevision;
+    if (previousRevision == null) {
+      _lastRevision = signal.revision;
+      _lastProfileRevision = signal.profileRevision;
+      return null;
+    }
+    if (signal.revision <= previousRevision) return null;
+
+    final previousProfileRevision =
+        _lastProfileRevision ?? previousRevision;
+    final refreshProfile = signal.profileRevision > previousProfileRevision;
+    _lastRevision = signal.revision;
+    if (_lastProfileRevision == null ||
+        signal.profileRevision > _lastProfileRevision!) {
+      _lastProfileRevision = signal.profileRevision;
+    }
+    return refreshProfile;
+  }
+
+  void reset() {
+    _lastRevision = null;
+    _lastProfileRevision = null;
+  }
 }
 
 class SharedDataSyncRepository {
@@ -164,11 +207,12 @@ final sharedDataRefreshCoordinatorProvider =
 });
 
 /// Écoute le petit signal Realtime public-safe. Les écritures métier restent
-/// autoritaires dans leurs tables/RPC ; ce flux ne transporte qu'une révision.
+/// autoritaires dans leurs tables/RPC ; ce flux ne transporte que des révisions.
 /// Un debounce absorbe les nombreuses écritures d'une finalisation de match.
 final sharedDataSyncListenerProvider = Provider<void>((ref) {
   Timer? debounce;
-  int? lastRevision;
+  final cursor = SharedDataSignalCursor();
+  bool refreshProfileQueued = false;
   String? lastProfileId = ref.read(authControllerProvider).profile?.id;
 
   ref.listen<AsyncValue<SharedDataChangeSignal?>>(
@@ -177,16 +221,19 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
       final signal = next.valueOrNull;
       if (signal == null) return;
 
-      if (lastRevision == null) {
-        lastRevision = signal.revision;
-        return;
-      }
-      if (signal.revision <= lastRevision!) return;
-      lastRevision = signal.revision;
+      final refreshProfile = cursor.register(signal);
+      if (refreshProfile == null) return;
+      refreshProfileQueued = refreshProfileQueued || refreshProfile;
 
       debounce?.cancel();
       debounce = Timer(const Duration(milliseconds: 350), () {
-        unawaited(ref.read(sharedDataRefreshCoordinatorProvider).refreshAll());
+        final shouldRefreshProfile = refreshProfileQueued;
+        refreshProfileQueued = false;
+        unawaited(
+          ref
+              .read(sharedDataRefreshCoordinatorProvider)
+              .refreshAll(refreshProfile: shouldRefreshProfile),
+        );
       });
     },
   );
@@ -196,7 +243,8 @@ final sharedDataSyncListenerProvider = Provider<void>((ref) {
     (previous, next) {
       if (next == lastProfileId) return;
       lastProfileId = next;
-      lastRevision = null;
+      cursor.reset();
+      refreshProfileQueued = false;
       debounce?.cancel();
       ref
           .read(sharedDataRefreshCoordinatorProvider)
