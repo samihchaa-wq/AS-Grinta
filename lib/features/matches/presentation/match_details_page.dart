@@ -112,20 +112,10 @@ class MatchDetailsPage extends ConsumerWidget {
                 ],
                 if (isAdmin) ...[
                   const SizedBox(height: 16),
-                  if (sportsEnabled) ...[
-                    OutlinedButton.icon(
-                      onPressed: () => context.push(
-                        '/matches/$matchId/composition?step=composition',
-                      ),
-                      icon: const Icon(Icons.dashboard_customize_outlined),
-                      label: const Text('Gérer la composition'),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  FilledButton.icon(
-                    onPressed: () => context.push('/matches/$matchId/finalize'),
-                    icon: const Icon(Icons.edit_note_outlined),
-                    label: const Text('Modifier les statistiques'),
+                  _PostgameAdminActions(
+                    details: details,
+                    matchId: matchId,
+                    sportsEnabled: sportsEnabled,
                   ),
                 ],
               ],
@@ -134,6 +124,140 @@ class MatchDetailsPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _PostgameAdminActions extends ConsumerWidget {
+  const _PostgameAdminActions({
+    required this.details,
+    required this.matchId,
+    required this.sportsEnabled,
+  });
+
+  final MatchDetailsData details;
+  final String matchId;
+  final bool sportsEnabled;
+
+  Widget _actions(BuildContext context, DateTime deadline) {
+    return _PostgameDeadlineGate(
+      deadline: deadline,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (sportsEnabled) ...[
+            OutlinedButton.icon(
+              onPressed: () => context.push(
+                '/matches/$matchId/composition?step=composition',
+              ),
+              icon: const Icon(Icons.dashboard_customize_outlined),
+              label: const Text('Gérer la composition'),
+            ),
+            const SizedBox(height: 10),
+          ],
+          FilledButton.icon(
+            onPressed: () => context.push('/matches/$matchId/finalize'),
+            icon: const Icon(Icons.edit_note_outlined),
+            label: const Text('Modifier les statistiques'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  DateTime? _deadlineFromVote(DateTime anchor, Object? rawVote) {
+    final vote = rawVote;
+    if (vote == null) return anchor;
+
+    var deadline = anchor;
+    if (vote case final dynamic typedVote) {
+      final closesAt = typedVote.closesAt as DateTime?;
+      if (closesAt != null && closesAt.isBefore(deadline)) {
+        deadline = closesAt;
+      }
+      final isClosed = typedVote.isClosed == true;
+      final closedAt = isClosed ? typedVote.closedAt as DateTime? : null;
+      if (closedAt != null && closedAt.isBefore(deadline)) {
+        deadline = closedAt;
+      }
+    }
+    return deadline;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (details.status == 'archive') return const SizedBox.shrink();
+
+    final validatedAt = details.resultValidatedAt;
+    if (validatedAt == null) return const SizedBox.shrink();
+    final anchor = validatedAt.add(const Duration(hours: 24));
+
+    if (!sportsEnabled) return _actions(context, anchor);
+
+    return ref.watch(sportMotmVoteProvider(matchId)).when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (vote) {
+            final deadline = _deadlineFromVote(anchor, vote);
+            if (deadline == null) return const SizedBox.shrink();
+            return _actions(context, deadline);
+          },
+        );
+  }
+}
+
+class _PostgameDeadlineGate extends StatefulWidget {
+  const _PostgameDeadlineGate({
+    required this.deadline,
+    required this.child,
+  });
+
+  final DateTime deadline;
+  final Widget child;
+
+  @override
+  State<_PostgameDeadlineGate> createState() => _PostgameDeadlineGateState();
+}
+
+class _PostgameDeadlineGateState extends State<_PostgameDeadlineGate> {
+  int _generation = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleDeadlineRefresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PostgameDeadlineGate oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.deadline.isAtSameMomentAs(widget.deadline)) {
+      _scheduleDeadlineRefresh();
+    }
+  }
+
+  void _scheduleDeadlineRefresh() {
+    final generation = ++_generation;
+    final delay = widget.deadline.difference(DateTime.now());
+    if (delay <= Duration.zero) return;
+
+    Future<void>.delayed(delay, () {
+      if (!mounted || generation != _generation) return;
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _generation += 1;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!DateTime.now().isBefore(widget.deadline)) {
+      return const SizedBox.shrink();
+    }
+    return widget.child;
   }
 }
 
