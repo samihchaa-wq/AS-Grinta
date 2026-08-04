@@ -1,0 +1,213 @@
+name: Final cleanup metrics
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/final_cleanup_metrics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute baseline and current metrics with identical method
+        shell: python
+        run: |
+          import json
+          import re
+          import shutil
+          import subprocess
+          from collections import defaultdict
+          from pathlib import Path
+
+          repo = Path.cwd()
+          baseline_sha = '0ddfd9d7fa195b324e8f71928ce399b927387c4a'
+          subprocess.run(['git', 'fetch', 'origin', 'main'], check=True)
+          current_sha = subprocess.check_output(
+              ['git', 'rev-parse', 'origin/main'], text=True
+          ).strip()
+
+          work_root = Path('/tmp/as-grinta-metrics')
+          shutil.rmtree(work_root, ignore_errors=True)
+          baseline_root = work_root / 'baseline'
+          current_root = work_root / 'current'
+          subprocess.run(
+              ['git', 'worktree', 'add', '--detach', str(baseline_root), baseline_sha],
+              check=True,
+          )
+          subprocess.run(
+              ['git', 'worktree', 'add', '--detach', str(current_root), current_sha],
+              check=True,
+          )
+
+          binary_ext = {
+              '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip',
+              '.woff', '.woff2', '.ttf', '.otf', '.mp3', '.mp4', '.mov', '.svgz',
+          }
+          code_ext = {'.dart', '.sql', '.ts', '.js', '.py', '.sh', '.yml', '.yaml', '.toml'}
+          groups = {
+              'flutter_dart': lambda p: p.startswith('lib/') and p.endswith('.dart'),
+              'flutter_tests': lambda p: p.startswith('test/') and p.endswith('.dart'),
+              'supabase_migrations': lambda p: p.startswith('supabase/migrations/') and p.endswith('.sql'),
+              'supabase_tests': lambda p: p.startswith('supabase/tests/'),
+              'edge_functions': lambda p: p.startswith('supabase/functions/') and Path(p).suffix in {'.ts', '.js'},
+              'github_actions': lambda p: p.startswith('.github/workflows/') and Path(p).suffix in {'.yml', '.yaml'},
+              'documentation': lambda p: p.startswith('docs/') or p in {'README.md', 'AGENTS.md', 'CHANGELOG.md'},
+          }
+          migration_pattern = re.compile(r'^supabase/migrations/(\d{14})_[a-z0-9_]+\.sql$')
+
+          def compute(root: Path, sha: str):
+              files = subprocess.check_output(
+                  ['git', '-C', str(root), 'ls-files', '-z']
+              ).decode().split('\0')
+              files = [p for p in files if p]
+              result = {
+                  'sha': sha,
+                  'tracked_files': len(files),
+                  'text_files': 0,
+                  'physical_text_lines': 0,
+                  'code_files': 0,
+                  'physical_code_lines': 0,
+                  'groups': {name: {'files': 0, 'lines': 0} for name in groups},
+              }
+              versions = defaultdict(list)
+              nonconforming = []
+              migration_files = [
+                  p for p in files
+                  if p.startswith('supabase/migrations/') and p.endswith('.sql')
+              ]
+              for path in files:
+                  match = migration_pattern.match(path)
+                  if match:
+                      versions[match.group(1)].append(path)
+                  elif path in migration_files:
+                      nonconforming.append(path)
+
+                  file = root / path
+                  if file.suffix.lower() in binary_ext:
+                      continue
+                  try:
+                      raw = file.read_bytes()
+                      if b'\0' in raw:
+                          continue
+                      text = raw.decode('utf-8')
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  lines = len(text.splitlines())
+                  result['text_files'] += 1
+                  result['physical_text_lines'] += lines
+                  if file.suffix.lower() in code_ext:
+                      result['code_files'] += 1
+                      result['physical_code_lines'] += lines
+                  for name, matches in groups.items():
+                      if matches(path):
+                          result['groups'][name]['files'] += 1
+                          result['groups'][name]['lines'] += lines
+
+              duplicates = {
+                  version: paths for version, paths in versions.items() if len(paths) > 1
+              }
+              result['local_migration_versions'] = len(versions)
+              result['duplicate_migration_versions'] = len(duplicates)
+              result['duplicate_migration_file_surplus'] = sum(
+                  len(paths) - 1 for paths in duplicates.values()
+              )
+              result['nonconforming_migration_files'] = len(nonconforming)
+              return result
+
+          baseline = compute(baseline_root, baseline_sha)
+          current = compute(current_root, current_sha)
+
+          delta = {
+              'baseline_sha': baseline_sha,
+              'current_sha': current_sha,
+              'tracked_files': current['tracked_files'] - baseline['tracked_files'],
+              'text_files': current['text_files'] - baseline['text_files'],
+              'physical_text_lines': current['physical_text_lines'] - baseline['physical_text_lines'],
+              'code_files': current['code_files'] - baseline['code_files'],
+              'physical_code_lines': current['physical_code_lines'] - baseline['physical_code_lines'],
+              'groups': {},
+          }
+          for name in groups:
+              delta['groups'][name] = {
+                  'files': current['groups'][name]['files'] - baseline['groups'][name]['files'],
+                  'lines': current['groups'][name]['lines'] - baseline['groups'][name]['lines'],
+              }
+
+          numstat = subprocess.check_output(
+              ['git', 'diff', '--numstat', '--find-renames', baseline_sha, current_sha],
+              text=True,
+          ).splitlines()
+          additions = deletions = 0
+          text_changed_files = 0
+          binary_changed_files = 0
+          for line in numstat:
+              added, deleted, _ = line.split('\t', 2)
+              if added == '-' or deleted == '-':
+                  binary_changed_files += 1
+                  continue
+              additions += int(added)
+              deletions += int(deleted)
+              text_changed_files += 1
+          delta['git_diff'] = {
+              'text_changed_files': text_changed_files,
+              'binary_changed_files': binary_changed_files,
+              'additions': additions,
+              'deletions': deletions,
+              'net': additions - deletions,
+          }
+
+          stale_patterns = {
+              'hdm_h_plus_1h45': re.compile(r'(?i)(1\s*h\s*45|1\s*hour\s*45|1\s*heure\s*45)'),
+              'prediction_h_minus_5': re.compile(r'(?i)(H-5|H−5)'),
+              'claims_no_live': re.compile(r'(?i)(aucun.{0,30}live|live.{0,30}absent|pas de live)'),
+              'design_v1_reference': re.compile(r'DESIGN_V1'),
+          }
+          stale_hits = []
+          for path in subprocess.check_output(
+              ['git', '-C', str(current_root), 'ls-files'], text=True
+          ).splitlines():
+              if path.startswith('supabase/migrations/'):
+                  continue
+              file = current_root / path
+              if file.suffix.lower() in binary_ext:
+                  continue
+              try:
+                  text = file.read_text(encoding='utf-8')
+              except (UnicodeDecodeError, OSError):
+                  continue
+              for kind, pattern in stale_patterns.items():
+                  for match in pattern.finditer(text):
+                      stale_hits.append({
+                          'kind': kind,
+                          'path': path,
+                          'line': text.count('\n', 0, match.start()) + 1,
+                          'text': match.group(0)[:120],
+                      })
+          delta['stale_markers_outside_migrations'] = stale_hits
+
+          Path('baseline_metrics.json').write_text(json.dumps(baseline, indent=2) + '\n')
+          Path('current_metrics.json').write_text(json.dumps(current, indent=2) + '\n')
+          Path('cleanup_delta.json').write_text(json.dumps(delta, indent=2) + '\n')
+          print('BASELINE')
+          print(json.dumps(baseline, indent=2))
+          print('CURRENT')
+          print(json.dumps(current, indent=2))
+          print('DELTA')
+          print(json.dumps(delta, indent=2))
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-cleanup-metrics-current-main
+          path: |
+            baseline_metrics.json
+            current_metrics.json
+            cleanup_delta.json
+          if-no-files-found: error
