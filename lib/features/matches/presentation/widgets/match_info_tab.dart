@@ -83,13 +83,6 @@ class MatchInfoTab extends ConsumerWidget {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const TextSpan(
-                            text: '  (30 min avant)',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                          ),
                         ],
                       ),
                     ),
