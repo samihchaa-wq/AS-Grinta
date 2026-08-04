@@ -12,7 +12,7 @@ class AppPreferences {
   /// Prévenir à J−5 lorsqu'un pronostic n'est pas encore rempli.
   final bool predictionNotifications;
 
-  /// Prévenir lorsque le vote Homme du match s'ouvre.
+  /// Prévenir à l'ouverture du vote Homme du match et à son résultat.
   final bool motmVoteNotifications;
 
   /// Prévenir lorsqu'un joueur passe de la liste d'attente aux convoqués.
