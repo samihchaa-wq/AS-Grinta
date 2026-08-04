@@ -172,7 +172,9 @@ class _OptionalNotificationsCard extends ConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     secondary: const Icon(Icons.workspace_premium_outlined),
                     title: const Text('Vote Homme du match'),
-                    subtitle: const Text('Prévenu dès que le vote est ouvert.'),
+                    subtitle: const Text(
+                      'Prévenu à l’ouverture du vote et quand le résultat tombe.',
+                    ),
                     value: preferences.motmVoteNotifications,
                     onChanged: (value) => _update(
                       context,
