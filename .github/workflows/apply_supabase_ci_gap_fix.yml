@@ -1,0 +1,121 @@
+name: Apply Supabase CI gap fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply_supabase_ci_gap_fix.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-supabase-ci-gap-fix
+  cancel-in-progress: true
+
+jobs:
+  patch:
+    if: github.head_ref == 'cleanup/close-supabase-ci-gap'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/close-supabase-ci-gap
+          fetch-depth: 0
+      - name: Add the eight missing August migrations to isolated business schema
+        shell: python
+        run: |
+          from pathlib import Path
+
+          workflow_path = Path('.github/workflows/supabase_business_tests.yml')
+          text = workflow_path.read_text()
+
+          def insert_after(marker, addition):
+              global text
+              if text.count(marker) != 1:
+                  raise SystemExit(f'Expected one marker, found {text.count(marker)}: {marker}')
+              text = text.replace(marker, marker + addition, 1)
+
+          insert_after(
+              """            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260802050000_match_weather.sql\n""",
+              """            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260802193000_player_team_clean_sheets_statistics.sql\n            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260802210000_correct_samih_all_time_goal.sql\n            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260803000000_shared_data_change_signal.sql\n""",
+          )
+          insert_after(
+              """            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260803161358_match_weather_security_floor.sql\n""",
+              """            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260803183000_harden_notifications_motm_and_hot_paths.sql\n            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260804003000_match_state_integrity_and_push_retention.sql\n""",
+          )
+          insert_after(
+              """            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260804183000_anchor_motm_to_validation.sql\n""",
+              """            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260804190000_match_live_add_late_players.sql\n            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260804190500_preserve_live_t15_after_late_players.sql\n            psql \"$DB_URL\" -v ON_ERROR_STOP=1 \\
+              -f supabase/migrations/20260804201000_motm_result_notifications.sql\n""",
+          )
+          workflow_path.write_text(text)
+
+      - name: Align the notification contract test with production
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/notifications_v2_contract.test.sql')
+          text = path.read_text()
+          old = """select ok(
+  not exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.match_sport_motm_elections'::regclass
+      and tgname = 'trg_push_on_motm_election_closed'
+      and not tgisinternal
+  ),
+  'la fermeture HDM ne déclenche plus de notification de résultat'
+);
+"""
+          new = """select ok(
+  exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.match_sport_motm_elections'::regclass
+      and tgname = 'trg_push_on_motm_election_closed'
+      and not tgisinternal
+  ),
+  'la fermeture HDM déclenche la notification de résultat actuelle'
+);
+
+select ok(
+  to_regprocedure(
+    'private.match_motm_result_notification_payloads(uuid)'
+  ) is not null
+  and to_regprocedure(
+    'private.push_due_motm_result_notifications(timestamptz)'
+  ) is not null,
+  'les notifications de résultat HDM et leur rattrapage sont installés'
+);
+"""
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one obsolete HDM assertion, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+
+      - name: Validate patch shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '20260804201000_motm_result_notifications.sql' .github/workflows/supabase_business_tests.yml
+          grep -q 'la fermeture HDM déclenche la notification de résultat actuelle' supabase/tests/database/notifications_v2_contract.test.sql
+          git diff --check
+      - name: Remove temporary patch workflow
+        run: rm .github/workflows/apply_supabase_ci_gap_fix.yml
+      - name: Commit CI contract repair
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "Close Supabase business-test migration gap"
+          git push origin HEAD:cleanup/close-supabase-ci-gap
