@@ -37,7 +37,7 @@ La prévisualisation est servie sur le port 5000.
 - après un changement Flutter, exécuter formatage, analyse, tests et build ;
 - après un changement Supabase, conserver les tests métier/RLS et le lint SQL au vert.
 
-Les documents fonctionnels courants sont référencés depuis le `README.md`. L’ancien `DESIGN_V1.md` n’est plus une spécification active.
+Les documents fonctionnels courants sont référencés depuis le `README.md`. Les anciennes spécifications restent consultables dans l’historique Git uniquement.
 
 ## Déploiement
 
