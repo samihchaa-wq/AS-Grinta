@@ -57,7 +57,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
 
   bool get _locked {
     final kickoff = _convocations?.kickoffAt;
-    return kickoff != null && !DateTime.now().isBefore(kickoff);
+    return kickoff != null && isMatchAdminEditLocked(kickoff);
   }
 
   bool get _effectifReadyForComposition =>
@@ -240,11 +240,16 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     final kickoffAt = matchInfo?.kickoffAt ?? _convocations?.kickoffAt;
     final tooFarAway = isMatchTooFarAway(kickoffAt);
     final liveTooEarly = isMatchLiveTooEarly(kickoffAt);
+    final predictionClosed = isMatchPredictionClosed(kickoffAt);
     final step = tooFarAway
         ? _AdminStep.info
-        : (_step == _AdminStep.live && liveTooEarly
+        : (_step == _AdminStep.live && liveTooEarly)
             ? _AdminStep.effectif
-            : _step);
+            : (_step == _AdminStep.prediction && predictionClosed)
+                ? (!isInternal && !liveTooEarly
+                    ? _AdminStep.live
+                    : _AdminStep.effectif)
+                : _step;
 
     return RefreshIndicator(
       onRefresh: _loadMatches,
@@ -278,7 +283,10 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
                   value: _AdminStep.live,
                   label: Text('Live'),
                 ),
-              if (widget.showPredictionStep && !isInternal && !tooFarAway)
+              if (widget.showPredictionStep &&
+                  !isInternal &&
+                  !tooFarAway &&
+                  !predictionClosed)
                 const ButtonSegment(
                   value: _AdminStep.prediction,
                   label: Text('Prono'),
@@ -308,7 +316,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
               _selectedMatchId != null)
             InternalTeamCompositionView(
               matchId: _selectedMatchId!,
-              editable: true,
+              editable: !_locked,
             )
           else if (_convocations != null && _composition != null)
             step == _AdminStep.effectif
