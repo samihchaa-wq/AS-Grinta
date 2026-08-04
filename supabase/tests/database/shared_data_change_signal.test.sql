@@ -4,18 +4,21 @@ set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
 -- Le bootstrap métier léger de la CI s'arrête à la dernière migration déjà
--- déployée. Cette copie transactionnelle de la migration en cours permet d'en
+-- déployée. Cette copie transactionnelle des migrations en cours permet d'en
 -- exercer le comportement puis est entièrement annulée à la fin du test.
 alter table public.shared_data_change_signals
-  add column if not exists profile_revision bigint;
+  add column if not exists profile_revision bigint,
+  add column if not exists sports_revision bigint;
 
 update public.shared_data_change_signals
-set profile_revision = revision
-where profile_revision is null;
+set profile_revision = coalesce(profile_revision, revision),
+    sports_revision = coalesce(sports_revision, revision);
 
 alter table public.shared_data_change_signals
   alter column profile_revision set default 1,
-  alter column profile_revision set not null;
+  alter column profile_revision set not null,
+  alter column sports_revision set default 1,
+  alter column sports_revision set not null;
 
 do $block$
 begin
@@ -29,6 +32,17 @@ begin
       add constraint shared_data_change_signals_profile_revision_valid
       check (profile_revision > 0 and profile_revision <= revision);
   end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.shared_data_change_signals'::regclass
+      and conname = 'shared_data_change_signals_sports_revision_valid'
+  ) then
+    alter table public.shared_data_change_signals
+      add constraint shared_data_change_signals_sports_revision_valid
+      check (sports_revision > 0 and sports_revision <= revision);
+  end if;
 end;
 $block$;
 
@@ -40,23 +54,40 @@ set search_path = ''
 as $function$
 declare
   v_profile_increment bigint := 0;
+  v_sports_increment bigint := 0;
 begin
   if tg_table_schema = 'public' and tg_table_name = 'profiles' then
     v_profile_increment := 1;
+  end if;
+
+  if tg_table_schema = 'public' and tg_table_name = any (array[
+    'guest_players',
+    'match_compositions',
+    'match_composition_entries',
+    'match_composition_publications',
+    'sport_waitlist_entries',
+    'match_sport_participants',
+    'match_sport_workflows'
+  ]) then
+    v_sports_increment := 1;
   end if;
 
   insert into public.shared_data_change_signals(
     key,
     revision,
     profile_revision,
+    sports_revision,
     updated_at
   )
-  values ('global', 1, 1, now())
+  values ('global', 1, 1, 1, now())
   on conflict (key) do update
   set revision = public.shared_data_change_signals.revision + 1,
       profile_revision =
         public.shared_data_change_signals.profile_revision
         + v_profile_increment,
+      sports_revision =
+        public.shared_data_change_signals.sports_revision
+        + v_sports_increment,
       updated_at = excluded.updated_at;
   return null;
 end;
@@ -81,6 +112,19 @@ select ok(
       and attnotnull
   ),
   'le compteur dédié aux changements de profil existe et reste obligatoire'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_attribute
+    where attrelid = 'public.shared_data_change_signals'::regclass
+      and attname = 'sports_revision'
+      and attnum > 0
+      and not attisdropped
+      and attnotnull
+  ),
+  'le compteur dédié aux changements sportifs existe et reste obligatoire'
 );
 
 select ok(
@@ -213,7 +257,7 @@ select is(
 
 reset role;
 select set_config(
-  'test.shared_revision_before',
+  'test.shared_revision_before_sports',
   (
     select revision::text
     from public.shared_data_change_signals
@@ -222,9 +266,81 @@ select set_config(
   true
 );
 select set_config(
-  'test.profile_revision_before',
+  'test.profile_revision_before_sports',
   (
     select profile_revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+select set_config(
+  'test.sports_revision_before_sports',
+  (
+    select sports_revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+
+insert into public.guest_players(first_name, created_by, updated_by)
+values (
+  'Signal sportif pgTAP',
+  'fb000000-0000-0000-0000-000000000001',
+  'fb000000-0000-0000-0000-000000000001'
+);
+
+select ok(
+  (
+    select revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ) > current_setting('test.shared_revision_before_sports')::bigint,
+  'une écriture sportive incrémente la révision globale'
+);
+
+select is(
+  (
+    select profile_revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  current_setting('test.profile_revision_before_sports')::bigint,
+  'une écriture sportive ne demande pas de rechargement du profil'
+);
+
+select ok(
+  (
+    select sports_revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ) > current_setting('test.sports_revision_before_sports')::bigint,
+  'une écriture sportive incrémente son compteur dédié'
+);
+
+select set_config(
+  'test.shared_revision_before_opponent',
+  (
+    select revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+select set_config(
+  'test.profile_revision_before_opponent',
+  (
+    select profile_revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+select set_config(
+  'test.sports_revision_before_opponent',
+  (
+    select sports_revision::text
     from public.shared_data_change_signals
     where key = 'global'
   ),
@@ -239,7 +355,7 @@ select ok(
     select revision
     from public.shared_data_change_signals
     where key = 'global'
-  ) > current_setting('test.shared_revision_before')::bigint,
+  ) > current_setting('test.shared_revision_before_opponent')::bigint,
   'une écriture métier incrémente la révision globale'
 );
 
@@ -249,8 +365,18 @@ select is(
     from public.shared_data_change_signals
     where key = 'global'
   ),
-  current_setting('test.profile_revision_before')::bigint,
+  current_setting('test.profile_revision_before_opponent')::bigint,
   'une écriture hors profils ne demande pas de rechargement du profil'
+);
+
+select is(
+  (
+    select sports_revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  current_setting('test.sports_revision_before_opponent')::bigint,
+  'une écriture hors sport ne demande pas de refresh sportif ciblé'
 );
 
 select set_config(
@@ -266,6 +392,15 @@ select set_config(
   'test.profile_revision_after_opponent',
   (
     select profile_revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+select set_config(
+  'test.sports_revision_after_opponent',
+  (
+    select sports_revision::text
     from public.shared_data_change_signals
     where key = 'global'
   ),
@@ -292,6 +427,16 @@ select ok(
     where key = 'global'
   ) > current_setting('test.profile_revision_after_opponent')::bigint,
   'une écriture de profil demande explicitement son rechargement'
+);
+
+select is(
+  (
+    select sports_revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  current_setting('test.sports_revision_after_opponent')::bigint,
+  'une écriture de profil ne devient pas un refresh sportif ciblé'
 );
 
 select * from finish();
