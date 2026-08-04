@@ -1,0 +1,69 @@
+name: Run current HDM cleanup
+
+on:
+  push:
+    branches:
+      - cleanup/current-hdm-and-dead-wrappers
+
+permissions:
+  contents: write
+
+concurrency:
+  group: run-current-hdm-cleanup
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/current-hdm-and-dead-wrappers
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Apply strict patch
+        run: python3 tooling/apply_cleanup_current_hdm.py
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/sports_management/data/sport_waitlist_repository.dart \
+            lib/features/predictions/presentation/widgets/match_history_card.dart \
+            lib/features/matches/domain/match_model.dart \
+            lib/features/matches/data/matches_repository.dart \
+            lib/features/admin/presentation/admin_sports_management_section.dart \
+            lib/features/sports_management/presentation/sport_motm_vote_page.dart \
+            test/matches_test.dart
+
+      - name: Verify cleanup invariants
+        run: |
+          set -euo pipefail
+          ! git grep -n 'historyMatchPredictionProvider' -- ':!supabase/migrations/**'
+          ! git grep -n 'adminSportMatchesProvider' -- ':!supabase/migrations/**'
+          ! git grep -n 'sportWaitlistProvider' -- ':!supabase/migrations/**'
+          ! git grep -n 'matchConvocationsProvider' -- ':!supabase/migrations/**'
+          ! git grep -n 'availabilityReminderSummaryProvider' -- ':!supabase/migrations/**'
+          ! git grep -n '1 h 45 après le coup' -- 'lib/**' 'test/**'
+          test ! -e supabase/tests/bootstrap/internal_composition_schema.sql
+          git grep -n 'result_validated_at' -- lib/features/matches test/matches_test.dart
+
+      - name: Commit final diff without temporary applicators
+        run: |
+          set -euo pipefail
+          rm -f \
+            .github/workflows/apply_cleanup_current_hdm.yml \
+            .github/workflows/run_cleanup_current_hdm.yml \
+            tooling/apply_cleanup_current_hdm.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Nettoyage 8 : retirer les wrappers morts et réaligner le HDM'
+          git push origin HEAD:cleanup/current-hdm-and-dead-wrappers
