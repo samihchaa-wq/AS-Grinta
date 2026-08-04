@@ -35,6 +35,20 @@ create temporary table pg_temp.match_creation_state_space(
 grant select, insert, update, delete
 on pg_temp.match_creation_state_space to authenticated;
 
+-- This matrix tests create_match_with_odds date/odds validation, including the
+-- historical lower bound year 2000. Cleanup must bypass both the lifecycle
+-- trigger and RLS, but only inside this rollback-only pgTAP transaction.
+create or replace function pg_temp.delete_match_creation_fixture(p_match_id uuid)
+returns void
+language sql
+security definer
+set search_path = ''
+as $function$
+  delete from public.matches where id = p_match_id;
+$function$;
+grant execute on function pg_temp.delete_match_creation_fixture(uuid) to authenticated;
+alter table public.matches disable trigger trg_guard_match_lifecycle_write;
+
 select set_config('request.jwt.claims',
   '{"sub":"e1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
@@ -66,13 +80,19 @@ begin
               and v_date between date '2000-01-01' and date '2100-12-31'
               and v_odds between 1.01 and 100,
             v_ok,v_state,v_message);
-          if v_match is not null then perform public.delete_match(v_match); end if;
+          if v_match is not null then
+            perform pg_temp.delete_match_creation_fixture(v_match);
+          end if;
         end loop;
       end loop;
     end loop;
   end loop;
 end;
 $state_space$;
+
+reset role;
+alter table public.matches enable trigger trg_guard_match_lifecycle_write;
+set local role authenticated;
 
 select diag(format(
   'STATE_SPACE match_create season=%s location=%s date=%s odds=%s expected=%s observed=%s sqlstate=%s message=%s',
@@ -166,7 +186,7 @@ begin
         case when v_status='a_venir' then 3 else null end,
         case when v_status='a_venir' then 4 else null end);
     exception when others then v_ok:=false;v_state:=sqlstate;v_message:=sqlerrm; end;
-    insert into pg_temp.match_status_state_space values(v_status,v_status in ('a_venir','termine','archive'),v_ok,v_state,v_message);
+    insert into pg_temp.match_status_state_space values(v_status,v_status = 'a_venir',v_ok,v_state,v_message);
   end loop;
 end;
 $state_space$;
@@ -174,10 +194,25 @@ select diag(format('STATE_SPACE match_status proposed=%s expected=%s observed=%s
 from pg_temp.match_status_state_space order by proposed_status;
 select is((select count(*) from pg_temp.match_status_state_space where expected_success is distinct from observed_success),0::bigint,'contrat des sept statuts stable');
 
+select throws_ok(
+  format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),
+  '22023',
+  'un match à venir ne peut pas être archivé'
+);
+
+-- Move the still-editable fixture into the past first. The following status
+-- transition then exercises the real post-game validation window.
 select public.update_match_with_odds(
   current_setting('test.lifecycle_replacement_match')::uuid,
   'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',
-  date '2099-03-01',time '21:00','exterieur','termine',null,null,null);
+  date '2000-01-02',time '21:00','exterieur','a_venir',2,3,4);
+-- Seed a genuinely finished row as test setup. The generic edit RPC is
+-- intentionally no longer allowed to perform lifecycle transitions.
+reset role;
+update public.matches
+set status = 'termine', updated_at = now()
+where id = current_setting('test.lifecycle_replacement_match')::uuid;
+set local role authenticated;
 select ok(public.archive_match(current_setting('test.lifecycle_replacement_match')::uuid),'archivage initial réussi');
 select throws_ok(format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),'P0002','double archivage refusé');
 

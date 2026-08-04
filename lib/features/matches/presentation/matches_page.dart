@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -6,6 +7,7 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +21,7 @@ class MatchesPage extends ConsumerStatefulWidget {
 
 class _MatchesPageState extends ConsumerState<MatchesPage> {
   final _scrollController = ScrollController();
-  final _nextMatchKey = GlobalKey();
+  final _focusMatchKey = GlobalKey();
   String? _anchoredMatchId;
 
   @override
@@ -38,22 +40,31 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
+    final now = DateTime.now();
     final matches = [...state.matches]
       ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
 
     MatchModel? target;
-    for (final match in matches) {
-      if (!match.isFinished) {
-        target = match;
-        break;
+    for (final wantedPhase in const [
+      MatchDisplayPhase.live,
+      MatchDisplayPhase.awaitingValidation,
+      MatchDisplayPhase.next,
+      MatchDisplayPhase.upcoming,
+    ]) {
+      for (final match in matches) {
+        if (match.phase(now: now) == wantedPhase) {
+          target = match;
+          break;
+        }
       }
+      if (target != null) break;
     }
     target ??= matches.isNotEmpty ? matches.last : null;
 
     if (!state.isLoading && target != null && target.id != _anchoredMatchId) {
       final targetId = target.id;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final targetContext = _nextMatchKey.currentContext;
+        final targetContext = _focusMatchKey.currentContext;
         if (targetContext != null) {
           Scrollable.ensureVisible(
             targetContext,
@@ -148,8 +159,9 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 _MatchesTimeline(
                   matches: matches,
                   target: target,
-                  nextMatchKey: _nextMatchKey,
+                  focusMatchKey: _focusMatchKey,
                   isAdmin: isAdmin,
+                  now: now,
                 ),
             ],
           ),
@@ -163,14 +175,16 @@ class _MatchesTimeline extends StatelessWidget {
   const _MatchesTimeline({
     required this.matches,
     required this.target,
-    required this.nextMatchKey,
+    required this.focusMatchKey,
     required this.isAdmin,
+    required this.now,
   });
 
   final List<MatchModel> matches;
   final MatchModel? target;
-  final GlobalKey nextMatchKey;
+  final GlobalKey focusMatchKey;
   final bool isAdmin;
+  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -199,11 +213,11 @@ class _MatchesTimeline extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 18),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: match.id == target?.id && !match.isFinished
+                        color: match.id == target?.id
                             ? AppTheme.primary
                             : AppTheme.surfaceHigh,
                         border: Border.all(
-                          color: match.id == target?.id && !match.isFinished
+                          color: match.id == target?.id
                               ? AppTheme.primaryBright
                               : AppTheme.outline,
                           width: 1.5,
@@ -212,9 +226,14 @@ class _MatchesTimeline extends StatelessWidget {
                       child: Icon(
                         match.isFinished
                             ? Icons.check_rounded
-                            : Icons.sports_soccer_rounded,
+                            : match.phase(now: now) == MatchDisplayPhase.live
+                                ? Icons.sensors_rounded
+                                : match.phase(now: now) ==
+                                        MatchDisplayPhase.awaitingValidation
+                                    ? Icons.fact_check_outlined
+                                    : Icons.sports_soccer_rounded,
                         size: 13,
-                        color: match.id == target?.id && !match.isFinished
+                        color: match.id == target?.id
                             ? Colors.white
                             : AppTheme.textFaint,
                       ),
@@ -222,12 +241,11 @@ class _MatchesTimeline extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _MatchCard(
-                        key: match.id == target?.id ? nextMatchKey : null,
+                        key: match.id == target?.id ? focusMatchKey : null,
                         match: match,
-                        isNext: match.id == target?.id && !match.isFinished,
-                        canEdit: isAdmin,
-                        canFinalize: isAdmin && !match.isInternal,
-                        canDelete: isAdmin,
+                        isFocus: match.id == target?.id,
+                        isAdmin: isAdmin,
+                        now: now,
                       ),
                     ),
                   ],
@@ -244,48 +262,50 @@ class _MatchCard extends StatelessWidget {
   const _MatchCard({
     super.key,
     required this.match,
-    required this.canDelete,
-    required this.canEdit,
-    required this.canFinalize,
-    required this.isNext,
+    required this.isFocus,
+    required this.isAdmin,
+    required this.now,
   });
 
   final MatchModel match;
-  final bool canDelete;
-  final bool canEdit;
-  final bool canFinalize;
-  final bool isNext;
+  final bool isFocus;
+  final bool isAdmin;
+  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
-    final isFinished = match.isFinished;
+    final phase = match.phase(now: now);
+    final isPast = phase == MatchDisplayPhase.past;
     final resultColor = _resultColor();
-    final cardColor = isNext
+    final badgeColor = switch (phase) {
+      MatchDisplayPhase.live => AppTheme.error,
+      MatchDisplayPhase.awaitingValidation => AppTheme.reward,
+      MatchDisplayPhase.past => resultColor,
+      MatchDisplayPhase.cancelled => AppTheme.error,
+      _ => AppTheme.primaryBright,
+    };
+    final cardColor = isFocus
         ? AppTheme.surfaceHero
-        : isFinished
+        : isPast
             ? AppTheme.surface
             : AppTheme.surfaceHigh;
 
     return Card(
       color: cardColor,
-      elevation: isNext ? 1 : 0,
+      elevation: isFocus ? 1 : 0,
       shape: AppTheme.cardShape(
-        radius: isNext ? AppTheme.radiusLg : AppTheme.radiusMd,
-        borderColor: isNext
+        radius: isFocus ? AppTheme.radiusLg : AppTheme.radiusMd,
+        borderColor: isFocus
             ? AppTheme.primaryBright.withValues(alpha: .34)
             : AppTheme.outline.withValues(alpha: .28),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(
-          isNext ? AppTheme.radiusLg : AppTheme.radiusMd,
+          isFocus ? AppTheme.radiusLg : AppTheme.radiusMd,
         ),
-        onTap: isFinished
-            ? () => context.push('/matches/${match.id}')
-            : isNext
-                ? () => context.push('/matches/${match.id}/lineup?section=info')
-                : null,
+        onTap: _onTap(context, phase),
         child: Padding(
-          padding: EdgeInsets.all(isNext ? 18 : 14),
+          padding: EdgeInsets.all(isFocus ? 18 : 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -296,7 +316,7 @@ class _MatchCard extends StatelessWidget {
                     child: Text(
                       _scoreLine(),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: isFinished ? 18 : 17,
+                        fontSize: isPast ? 18 : 17,
                         fontWeight: FontWeight.w900,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
@@ -309,22 +329,13 @@ class _MatchCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: isFinished
-                          ? resultColor.withValues(alpha: .12)
-                          : AppTheme.primary.withValues(
-                              alpha: isNext ? .16 : .09,
-                            ),
+                      color: badgeColor.withValues(alpha: .12),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      isFinished
-                          ? 'Terminé'
-                          : isNext
-                              ? 'Prochain'
-                              : 'À venir',
+                      match.statusLabel,
                       style: TextStyle(
-                        color:
-                            isFinished ? resultColor : AppTheme.primaryBright,
+                        color: badgeColor,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
@@ -341,75 +352,16 @@ class _MatchCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (canEdit || canFinalize || canDelete) ...[
+              if (isAdmin) ...[
                 const SizedBox(height: 12),
                 Divider(
                   height: 1,
                   color: AppTheme.outline.withValues(alpha: .26),
                 ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (canEdit)
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => MatchFormPage(match: match),
-                          ),
-                        ),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Modifier'),
-                      ),
-                    if (canFinalize)
-                      OutlinedButton.icon(
-                        onPressed: () =>
-                            context.push('/matches/${match.id}/finalize'),
-                        icon: const Icon(Icons.query_stats_outlined, size: 18),
-                        label: const Text('Stats'),
-                      ),
-                    if (canDelete)
-                      TextButton.icon(
-                        onPressed: () async {
-                          final confirmed = await showDialog<bool>(
-                                context: context,
-                                builder: (dialogContext) => AlertDialog(
-                                  title: const Text('Supprimer ce match ?'),
-                                  content: const Text(
-                                    'Le match, ses pronostics et ses statistiques '
-                                    'seront définitivement supprimés.',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(dialogContext, false),
-                                      child: const Text('Annuler'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () =>
-                                          Navigator.pop(dialogContext, true),
-                                      child: const Text('Supprimer'),
-                                    ),
-                                  ],
-                                ),
-                              ) ??
-                              false;
-                          if (!confirmed || !context.mounted) return;
-                          await ProviderScope.containerOf(context)
-                              .read(matchesControllerProvider.notifier)
-                              .deleteMatch(match.id);
-                        },
-                        icon: const Icon(
-                          Icons.delete_outline_rounded,
-                          size: 18,
-                        ),
-                        label: const Text('Supprimer'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppTheme.error,
-                        ),
-                      ),
-                  ],
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: AdminMatchOptionsButton(match: match),
                 ),
               ],
             ],
@@ -417,6 +369,33 @@ class _MatchCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  VoidCallback? _onTap(BuildContext context, MatchDisplayPhase phase) {
+    switch (phase) {
+      case MatchDisplayPhase.past:
+        return () => context.push('/matches/${match.id}');
+      case MatchDisplayPhase.upcoming:
+        return () => context.push(
+              '/matches/${match.id}/lineup?section=info&infoOnly=true',
+            );
+      case MatchDisplayPhase.next:
+        return () => context.push('/matches/${match.id}/lineup?section=info');
+      case MatchDisplayPhase.live:
+        return () => context.push(
+              '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
+            );
+      case MatchDisplayPhase.awaitingValidation:
+        final section = match.liveState == null
+            ? 'info'
+            : match.isInternal
+                ? 'composition'
+                : 'live';
+        return () =>
+            context.push('/matches/${match.id}/lineup?section=$section');
+      case MatchDisplayPhase.cancelled:
+        return null;
+    }
   }
 
   Color _resultColor() {

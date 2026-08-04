@@ -214,23 +214,14 @@ select is(
 reset role;
 select is(
   (
-    select extract(epoch from (opens_at - match.kickoff_at))::integer
+    select extract(epoch from (election.opens_at - finalization.validated_at))::integer
     from public.match_sport_motm_elections election
-    join public.matches match on match.id = election.match_id
+    join public.match_sport_finalizations finalization
+      on finalization.match_id = election.match_id
     where election.match_id = current_setting('test.motm_match')::uuid
   ),
-  6300,
-  'le scrutin automatique ouvre une heure quarante-cinq minutes après le coup d’envoi'
-);
-select is(
-  (
-    select extract(epoch from (closes_at - match.kickoff_at))::integer
-    from public.match_sport_motm_elections election
-    join public.matches match on match.id = election.match_id
-    where election.match_id = current_setting('test.motm_match')::uuid
-  ),
-  86400,
-  'le scrutin automatique clôture vingt-quatre heures après le coup d’envoi'
+  0,
+  'le scrutin automatique ouvre à la validation du compte rendu'
 );
 select is(
   (
@@ -238,8 +229,8 @@ select is(
     from public.match_sport_motm_elections
     where match_id = current_setting('test.motm_match')::uuid
   ),
-  80100,
-  'la fenêtre utile automatique dure vingt-deux heures et quinze minutes'
+  86400,
+  'la fenêtre automatique de vote dure vingt-quatre heures pleines'
 );
 
 select set_config(

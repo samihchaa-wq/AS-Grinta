@@ -212,8 +212,8 @@ class _InlineMatchPredictionCardState
                 notOpenYet
                     ? 'Disponible à partir de J−6 à 12 h, heure de Paris.'
                     : closed
-                        ? 'Pronostic fermé 5 minutes avant le coup d’envoi.'
-                        : 'Modifiable jusqu’à 5 minutes avant le coup d’envoi.',
+                        ? 'Pronostic fermé : le Live est désormais ouvert.'
+                        : 'Modifiable jusqu’à 15 minutes avant le coup d’envoi.',
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,

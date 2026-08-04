@@ -1,3 +1,5 @@
+import 'package:as_grinta/core/utils/match_window.dart';
+
 class MatchModel {
   const MatchModel({
     required this.id,
@@ -10,6 +12,9 @@ class MatchModel {
     required this.grintaScore,
     required this.opponentScore,
     this.predictionsClosedAt,
+    this.liveState,
+    this.liveFinishedAt,
+    this.liveExported = false,
     this.oddsWin,
     this.oddsDraw,
     this.oddsLoss,
@@ -33,6 +38,12 @@ class MatchModel {
   final int? grintaScore;
   final int? opponentScore;
   final DateTime? predictionsClosedAt;
+
+  /// État du Tableau Blanc, s'il a été ouvert pour ce match.
+  final String? liveState;
+  final DateTime? liveFinishedAt;
+  final bool liveExported;
+
   final double? oddsWin;
   final double? oddsDraw;
   final double? oddsLoss;
@@ -57,6 +68,8 @@ class MatchModel {
   bool get isCancelled => status == 'annule';
   bool get isFriendly => matchType == 'amical';
   bool get isInternal => matchType == 'entre_nous';
+  bool get isLiveSessionFinished => liveState == 'finished';
+
   String get matchTypeLabel {
     if (isInternal) return 'Match entre nous';
     return isFriendly ? 'Match amical' : 'Championnat';
@@ -65,21 +78,32 @@ class MatchModel {
   /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
   bool get pronosClosed => predictionsClosedAt != null;
 
-  /// Coup d'envoi passé mais résultat pas encore saisi : le match attend
-  /// que l'admin enregistre les statistiques (aucune clôture automatique).
-  bool get isAwaitingResult =>
-      status == 'a_venir' && DateTime.now().isAfter(kickoffAt);
+  MatchDisplayPhase phase({DateTime? now}) => matchDisplayPhase(
+        kickoffAt: kickoffAt,
+        status: status,
+        plannedDurationMinutes: plannedDurationMinutes,
+        liveState: liveState,
+        now: now,
+      );
+
+  /// Le match est fini sportivement mais son compte rendu n'est pas encore
+  /// validé. On ne le mélange plus avec les matchs passés.
+  bool get isAwaitingResult => phase() == MatchDisplayPhase.awaitingValidation;
 
   String get statusLabel {
-    switch (status) {
-      case 'termine':
-        return 'Terminé';
-      case 'archive':
-        return 'Archivé';
-      case 'annule':
+    switch (phase()) {
+      case MatchDisplayPhase.upcoming:
+        return 'À venir';
+      case MatchDisplayPhase.next:
+        return 'Prochain';
+      case MatchDisplayPhase.live:
+        return 'En direct';
+      case MatchDisplayPhase.awaitingValidation:
+        return 'À valider';
+      case MatchDisplayPhase.past:
+        return isArchived ? 'Archivé' : 'Terminé';
+      case MatchDisplayPhase.cancelled:
         return 'Annulé';
-      default:
-        return isAwaitingResult ? 'En attente' : 'À venir';
     }
   }
 
@@ -96,6 +120,12 @@ class MatchModel {
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
             ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
+    final liveRaw = json['match_live_sessions'];
+    final live = liveRaw is List && liveRaw.isNotEmpty
+        ? Map<String, dynamic>.from(liveRaw.first as Map)
+        : liveRaw is Map
+            ? Map<String, dynamic>.from(liveRaw)
             : const <String, dynamic>{};
 
     return MatchModel(
@@ -116,6 +146,10 @@ class MatchModel {
       predictionsClosedAt: DateTime.tryParse(
         '${json['predictions_closed_at'] ?? ''}',
       )?.toLocal(),
+      liveState: live['state']?.toString(),
+      liveFinishedAt:
+          DateTime.tryParse('${live['finished_at'] ?? ''}')?.toLocal(),
+      liveExported: live['exported'] == true,
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
       oddsLoss: (odds['odds_victoire_adverse'] as num?)?.toDouble(),

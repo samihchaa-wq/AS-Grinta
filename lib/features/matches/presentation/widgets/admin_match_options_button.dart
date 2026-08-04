@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
@@ -13,9 +14,9 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   final MatchModel match;
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => MatchFormPage(match: match)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref
       ..invalidate(homeDashboardProvider)
@@ -60,7 +61,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             title: const Text('Terminer ce match ?'),
             content: const Text(
               'Le match entre nous sera marqué comme terminé et sortira des '
-              'matchs à venir. Cette action ne peut pas être annulée depuis '
+              'matchs en cours. Cette action ne peut pas être annulée depuis '
               'l’application.',
             ),
             actions: [
@@ -116,6 +117,23 @@ class AdminMatchOptionsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final phase = match.phase();
+    final editLocked =
+        isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
+    final canEditIdentity = !editLocked && !match.isCancelled;
+    final canCancel = !editLocked && !match.isCancelled;
+    final canDelete = !editLocked;
+    final canEnterStats = !match.isInternal &&
+        !match.isArchived &&
+        (phase == MatchDisplayPhase.awaitingValidation ||
+            (phase == MatchDisplayPhase.past && match.status == 'termine'));
+    final canFinishInternal = match.isInternal &&
+        !match.isFinished &&
+        !match.isCancelled &&
+        !DateTime.now().isBefore(match.kickoffAt) &&
+        (phase == MatchDisplayPhase.live ||
+            phase == MatchDisplayPhase.awaitingValidation);
+
     return PopupMenuButton<String>(
       tooltip: 'Options du match',
       icon: const Icon(Icons.edit_outlined),
@@ -141,24 +159,29 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'edit',
-          child: ListTile(
-            leading: Icon(Icons.settings_outlined),
-            title: Text('Modifier'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        if (!match.isInternal)
+        if (canEditIdentity)
           const PopupMenuItem(
-            value: 'stats',
+            value: 'edit',
             child: ListTile(
-              leading: Icon(Icons.query_stats_outlined),
-              title: Text('Stats'),
+              leading: Icon(Icons.settings_outlined),
+              title: Text('Modifier'),
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (match.isInternal && !match.isFinished && !match.isCancelled)
+        if (canEnterStats)
+          PopupMenuItem(
+            value: 'stats',
+            child: ListTile(
+              leading: const Icon(Icons.query_stats_outlined),
+              title: Text(
+                phase == MatchDisplayPhase.past
+                    ? 'Corriger le compte rendu'
+                    : 'Saisir les stats',
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        if (canFinishInternal)
           const PopupMenuItem(
             value: 'finish',
             child: ListTile(
@@ -167,7 +190,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        if (!match.isCancelled)
+        if (canCancel)
           const PopupMenuItem(
             value: 'cancel',
             child: ListTile(
@@ -176,14 +199,31 @@ class AdminMatchOptionsButton extends ConsumerWidget {
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: ListTile(
-            leading: Icon(Icons.delete_outline),
-            title: Text('Supprimer'),
-            contentPadding: EdgeInsets.zero,
+        if (canDelete)
+          const PopupMenuItem(
+            value: 'delete',
+            child: ListTile(
+              leading: Icon(Icons.delete_outline),
+              title: Text('Supprimer'),
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
-        ),
+        if (!canEditIdentity &&
+            !canEnterStats &&
+            !canFinishInternal &&
+            !canCancel &&
+            !canDelete)
+          const PopupMenuItem(
+            enabled: false,
+            child: ListTile(
+              leading: Icon(Icons.lock_outline_rounded),
+              title: Text('Match verrouillé'),
+              subtitle: Text(
+                'Utilise le Live ou la correction du compte rendu.',
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
       ],
     );
   }

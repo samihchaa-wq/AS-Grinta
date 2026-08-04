@@ -34,8 +34,8 @@ class MatchLineupPage extends ConsumerWidget {
     }
 
     // Sans le module de gestion sportive, il n'y a ni effectif ni compo : on
-    // ne prive pas le joueur de son prono pour autant. On bascule sur la page
-    // « Ton prono » autonome, indépendante du module.
+    // ne prive pas le joueur de son prono pour autant. La fenêtre de saisie
+    // reste protégée côté Supabase, y compris à T-15.
     if (!ref.watch(sportsManagementEnabledProvider)) {
       return UpcomingMatchPredictionPage(matchId: matchId);
     }
@@ -52,28 +52,35 @@ class MatchLineupPage extends ConsumerWidget {
     final matchInfo = ref.watch(matchInfoProvider(matchId)).valueOrNull;
     final isInternal = matchInfo?.isInternal ?? false;
 
+    // Une seule frontière temporelle : à T-15 le prono disparaît au moment
+    // exact où le Live devient disponible.
+    final tooFarAway = isMatchTooFarAway(matchInfo?.kickoffAt);
+    final liveTooEarly = isMatchLiveTooEarly(matchInfo?.kickoffAt);
+    final predictionClosed = isMatchPredictionClosed(matchInfo?.kickoffAt);
+
     if (isAdmin) {
+      final adminSection = section == 'prediction' && predictionClosed
+          ? (!isInternal && !liveTooEarly ? 'live' : 'effectif')
+          : section == 'live' && (isInternal || liveTooEarly)
+              ? 'effectif'
+              : section;
       return AdminSquadPlanPage(
         initialMatchId: matchId,
-        initialStep: section,
-        showPredictionStep: !isInternal,
+        initialStep: adminSection,
+        showPredictionStep: !isInternal && !predictionClosed,
       );
     }
 
-    // Avant J-6 à midi, seul l'onglet Info est disponible. Le Live possède sa
-    // propre fenêtre et reste masqué jusqu'à quinze minutes avant le match.
-    final tooFarAway = isMatchTooFarAway(matchInfo?.kickoffAt);
-    final liveTooEarly = isMatchLiveTooEarly(matchInfo?.kickoffAt);
-
-    // Une URL directe peut demander un onglet qui n'est pas disponible à cet
-    // instant. On résout une seule section valide puis on l'utilise à la fois
-    // pour l'onglet sélectionné ET pour le contenu, afin d'éviter un écran vide.
+    // Avant J-6 à midi, seul l'onglet Info est disponible. À partir de T-15,
+    // une URL directe vers Prono est redirigée vers Live plutôt que d'afficher
+    // un module désormais fermé.
     final resolvedSection = tooFarAway
         ? 'info'
-        : ((section == 'live' && (isInternal || liveTooEarly)) ||
-                (section == 'prediction' && isInternal))
+        : section == 'live' && (isInternal || liveTooEarly)
             ? 'effectif'
-            : section;
+            : section == 'prediction' && (isInternal || predictionClosed)
+                ? (!isInternal && !liveTooEarly ? 'live' : 'effectif')
+                : section;
 
     final showInfo = resolvedSection == 'info';
     final showEffectif = resolvedSection == 'effectif';
@@ -128,7 +135,7 @@ class MatchLineupPage extends ConsumerWidget {
                   ),
                 if (!isInternal && !tooFarAway && !liveTooEarly)
                   const ButtonSegment(value: 'live', label: Text('Live')),
-                if (!isInternal && !tooFarAway)
+                if (!isInternal && !tooFarAway && !predictionClosed)
                   const ButtonSegment(
                     value: 'prediction',
                     label: Text('Prono'),

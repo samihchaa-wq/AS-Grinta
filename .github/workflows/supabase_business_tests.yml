@@ -198,6 +198,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260729123500_grant_waitlist_history_enrich_execute.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260729160000_match_type_and_jersey.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260729161500_manual_waitlist_count.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260730044106_fix_prepare_deletion_effectif_draft_updated_by.sql
@@ -289,6 +291,20 @@ jobs:
               -f supabase/migrations/20260803151200_motm_strict_h2_without_source_dependency.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803161358_match_weather_security_floor.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804180000_match_lifecycle_cleanup.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804180500_live_coach_finalize_context.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804181000_lock_prematch_sport_edits.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804181500_harden_legacy_archive_lifecycle.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804182000_harden_missing_match_duration.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804182500_lock_generic_match_status_updates.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804183000_anchor_motm_to_validation.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/season_lifecycle_acl.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \

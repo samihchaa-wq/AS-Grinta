@@ -83,15 +83,20 @@ select is(
 
 select ok(
   position(
-    'interval ''1 hour 45 minutes''' in
-    pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
-  ) > 0
-  and position(
-    'match_sport_finalization_versions' in lower(
+    'match_sport_finalizations' in lower(
       pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
     )
+  ) > 0
+  and position(
+    'validated_at' in lower(
+      pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
+    )
+  ) > 0
+  and position(
+    'interval ''1 hour 45 minutes''' in
+    pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
   ) = 0,
-  'l’ouverture HDM est strictement fixée à H+1h45, indépendamment de la finalisation'
+  'l’ouverture HDM est ancrée à la validation du compte rendu'
 );
 
 select ok(

@@ -22,8 +22,8 @@ import 'package:go_router/go_router.dart';
 
 /// Contenu de l'onglet Matchs.
 ///
-/// Tous les matchs ayant franchi J-6 à midi passent ensemble dans la section
-/// « Prochain match ». Les rencontres plus lointaines restent dans « À venir ».
+/// Une seule machine temporelle alimente désormais les sections :
+/// À venir → Prochain match → Match en direct → À valider → Matchs passés.
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key});
 
@@ -32,7 +32,7 @@ class MergedMatchesView extends ConsumerStatefulWidget {
 }
 
 class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
-  final GlobalKey _nextMatchKey = GlobalKey();
+  final GlobalKey _focusMatchKey = GlobalKey();
   String? _lastFocusSignature;
 
   @override
@@ -50,7 +50,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         .load(seasonId: state.selectedSeasonId, allSeasons: true);
   }
 
-  void _focusNextMatch({
+  void _focusRelevantMatch({
     required String? matchId,
     required bool cardIsReady,
     required String requestToken,
@@ -62,14 +62,17 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     _lastFocusSignature = signature;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _positionNextMatch(signature);
+      _positionRelevantMatch(signature);
     });
   }
 
-  Future<void> _positionNextMatch(String signature, {int attempt = 0}) async {
+  Future<void> _positionRelevantMatch(
+    String signature, {
+    int attempt = 0,
+  }) async {
     if (!mounted || _lastFocusSignature != signature) return;
 
-    final targetContext = _nextMatchKey.currentContext;
+    final targetContext = _focusMatchKey.currentContext;
     if (targetContext == null) {
       if (attempt >= 8) {
         _lastFocusSignature = null;
@@ -79,7 +82,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       await Future<void>.delayed(Duration(milliseconds: 20 + (attempt * 15)));
       if (!mounted || _lastFocusSignature != signature) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _positionNextMatch(signature, attempt: attempt + 1);
+        _positionRelevantMatch(signature, attempt: attempt + 1);
       });
       return;
     }
@@ -93,7 +96,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     await Future<void>.delayed(const Duration(milliseconds: 120));
     if (!mounted || _lastFocusSignature != signature) return;
-    final settledContext = _nextMatchKey.currentContext;
+    final settledContext = _focusMatchKey.currentContext;
     if (settledContext == null || !settledContext.mounted) return;
     await Scrollable.ensureVisible(
       settledContext,
@@ -117,42 +120,72 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final isAdmin = ref.watch(isAdminViewProvider);
     final now = DateTime.now();
 
-    final scheduled =
-        state.matches.where((match) => !match.isFinished).toList();
-    final futureScheduled = scheduled
-        .where((match) => match.kickoffAt.isAfter(now))
-        .toList()
-      ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
-    final nextMatches = futureScheduled
-        .where(
-          (match) =>
-              !match.isCancelled &&
-              !isMatchTooFarAway(match.kickoffAt, now: now),
-        )
-        .toList();
-    final laterUpcoming = futureScheduled
-        .where(
-          (match) =>
-              match.isCancelled || isMatchTooFarAway(match.kickoffAt, now: now),
-        )
-        .toList();
-    final pastSection = [
-      ...scheduled.where((match) => !match.kickoffAt.isAfter(now)),
-      ...state.matches.where((match) => match.isFinished),
-    ]..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final upcomingMatches = <MatchModel>[];
+    final nextMatches = <MatchModel>[];
+    final liveMatches = <MatchModel>[];
+    final awaitingValidationMatches = <MatchModel>[];
+    final pastMatches = <MatchModel>[];
 
-    final firstNextMatchId = nextMatches.isEmpty ? null : nextMatches.first.id;
+    for (final match in state.matches) {
+      switch (match.phase(now: now)) {
+        case MatchDisplayPhase.upcoming:
+          upcomingMatches.add(match);
+        case MatchDisplayPhase.next:
+          nextMatches.add(match);
+        case MatchDisplayPhase.live:
+          liveMatches.add(match);
+        case MatchDisplayPhase.awaitingValidation:
+          awaitingValidationMatches.add(match);
+        case MatchDisplayPhase.past:
+          pastMatches.add(match);
+        case MatchDisplayPhase.cancelled:
+          if (match.kickoffAt.isAfter(now)) {
+            upcomingMatches.add(match);
+          } else {
+            pastMatches.add(match);
+          }
+      }
+    }
+
+    upcomingMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    nextMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    liveMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    awaitingValidationMatches.sort(
+      (a, b) => a.kickoffAt.compareTo(b.kickoffAt),
+    );
+    pastMatches.sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+
+    final MatchDisplayPhase? focusPhase;
+    final String? focusMatchId;
+    if (liveMatches.isNotEmpty) {
+      focusPhase = MatchDisplayPhase.live;
+      focusMatchId = liveMatches.first.id;
+    } else if (awaitingValidationMatches.isNotEmpty) {
+      focusPhase = MatchDisplayPhase.awaitingValidation;
+      focusMatchId = awaitingValidationMatches.first.id;
+    } else if (nextMatches.isNotEmpty) {
+      focusPhase = MatchDisplayPhase.next;
+      focusMatchId = nextMatches.first.id;
+    } else {
+      focusPhase = null;
+      focusMatchId = null;
+    }
+
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    final nextCardIsReady = nextMatches.isNotEmpty && !state.isLoading;
+    final focusCardIsReady = focusMatchId != null && !state.isLoading;
 
-    _focusNextMatch(
-      matchId: firstNextMatchId,
-      cardIsReady: nextCardIsReady,
+    _focusRelevantMatch(
+      matchId: focusMatchId,
+      cardIsReady: focusCardIsReady,
       requestToken: '$focusRequest',
     );
 
-    final cacheExtent =
-        1000.0 + ((laterUpcoming.length + nextMatches.length) * 360.0);
+    final visibleCardCount = upcomingMatches.length +
+        nextMatches.length +
+        liveMatches.length +
+        awaitingValidationMatches.length +
+        pastMatches.length;
+    final cacheExtent = 1000.0 + (visibleCardCount * 360.0);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -221,7 +254,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ),
             )
           else ...[
-            if (laterUpcoming.isNotEmpty)
+            if (upcomingMatches.isNotEmpty)
               SliverMainAxisGroup(
                 slivers: [
                   const SliverPersistentHeader(
@@ -242,11 +275,11 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                             bottom: AppSpacing.contentGap,
                           ),
                           child: _UpcomingMatchCard(
-                            match: laterUpcoming[index],
+                            match: upcomingMatches[index],
                             isAdmin: isAdmin,
                           ),
                         ),
-                        childCount: laterUpcoming.length,
+                        childCount: upcomingMatches.length,
                       ),
                     ),
                   ),
@@ -259,7 +292,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               SliverMainAxisGroup(
                 slivers: [
                   SliverPersistentHeader(
-                    key: _nextMatchKey,
+                    key: focusPhase == MatchDisplayPhase.next
+                        ? _focusMatchKey
+                        : null,
                     pinned: true,
                     delegate: const _SectionHeaderDelegate(
                       icon: Icons.bolt_rounded,
@@ -286,6 +321,99 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                         ),
                         childCount: nextMatches.length,
                       ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.sectionGap),
+                  ),
+                ],
+              ),
+            if (liveMatches.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  SliverPersistentHeader(
+                    key: focusPhase == MatchDisplayPhase.live
+                        ? _focusMatchKey
+                        : null,
+                    pinned: true,
+                    delegate: const _SectionHeaderDelegate(
+                      icon: Icons.sensors_rounded,
+                      title: 'Match en direct',
+                      emphasized: true,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == liveMatches.length - 1
+                                ? 0
+                                : AppSpacing.contentGap,
+                          ),
+                          child: HomeNextMatchCard(
+                            match: liveMatches[index],
+                            isAdmin: isAdmin,
+                            initialSection: liveMatches[index].isInternal
+                                ? 'composition'
+                                : 'live',
+                            showAvailability: now.isBefore(
+                              liveMatches[index].kickoffAt,
+                            ),
+                          ),
+                        ),
+                        childCount: liveMatches.length,
+                      ),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.sectionGap),
+                  ),
+                ],
+              ),
+            if (awaitingValidationMatches.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  SliverPersistentHeader(
+                    key: focusPhase == MatchDisplayPhase.awaitingValidation
+                        ? _focusMatchKey
+                        : null,
+                    pinned: true,
+                    delegate: const _SectionHeaderDelegate(
+                      icon: Icons.fact_check_outlined,
+                      title: 'À valider',
+                      emphasized: true,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final match = awaitingValidationMatches[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom:
+                                index == awaitingValidationMatches.length - 1
+                                    ? 0
+                                    : AppSpacing.contentGap,
+                          ),
+                          child: HomeNextMatchCard(
+                            match: match,
+                            isAdmin: isAdmin,
+                            initialSection: match.liveState == null
+                                ? 'info'
+                                : match.isInternal
+                                    ? 'composition'
+                                    : 'live',
+                            showAvailability: false,
+                          ),
+                        );
+                      }, childCount: awaitingValidationMatches.length),
                     ),
                   ),
                   const SliverToBoxAdapter(
@@ -325,10 +453,10 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   pinned: true,
                   delegate: _SectionHeaderDelegate(
                     icon: Icons.history_rounded,
-                    title: 'Résultats',
+                    title: 'Matchs passés',
                   ),
                 ),
-                if (pastSection.isEmpty)
+                if (pastMatches.isEmpty)
                   const SliverPadding(
                     padding: EdgeInsets.symmetric(
                       horizontal: AppSpacing.screenGutter,
@@ -348,7 +476,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        final match = pastSection[index];
+                        final match = pastMatches[index];
                         final card = match.isFinished
                             ? MatchHistoryCard(match: match)
                             : _UpcomingMatchCard(
@@ -361,7 +489,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                           ),
                           child: card,
                         );
-                      }, childCount: pastSection.length),
+                      }, childCount: pastMatches.length),
                     ),
                   ),
               ],

@@ -161,7 +161,7 @@ set local role authenticated;
 select throws_ok($$select public.admin_finalize_match_sport_postgame(
   current_setting('test.postmatch_match')::uuid,2,1,
   pg_temp.postmatch_payload(13,11,2,'equal','none'),'joueur')$$,
-  '42501','Active administrator role required','un joueur ne peut pas corriger le match');
+  '42501','Active administrator role or validated Live coach context required','un joueur ne peut pas corriger le match');
 reset role;
 select set_config('request.jwt.claims','{"sub":"f1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;

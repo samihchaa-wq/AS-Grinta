@@ -5,35 +5,57 @@ select no_plan();
 
 select ok(
   position(
-    'interval ''1 hour 45 minutes''' in
+    'match_sport_finalizations' in
     pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
   ) > 0
   and position(
-    'match_sport_finalization_versions' in
+    'validated_at' in
+    pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
+  ) > 0
+  and position(
+    'interval ''1 hour 45 minutes''' in
     pg_get_functiondef('private.match_motm_opens_at(uuid)'::regprocedure)
   ) = 0,
-  'le HDM ouvre strictement à H+1 h 45 sans dépendre d’une finalisation Stats/Live'
+  'le HDM s’ancre exclusivement sur la validation du compte rendu'
 );
 
 select ok(
   position(
     'interval ''1 hour 45 minutes''' in
     pg_get_functiondef('private.close_due_match_motm_elections()'::regprocedure)
+  ) = 0
+  and position(
+    'match_sport_motm_elections' in
+    pg_get_functiondef('private.close_due_match_motm_elections()'::regprocedure)
   ) > 0,
-  'le job périodique crée le scrutin dès H+1 h 45'
+  'le job périodique ne crée plus de scrutin avant la validation'
 );
 
 select ok(
   position(
     'interval ''24 hours''' in
     pg_get_functiondef('private.ensure_match_motm_election(uuid)'::regprocedure)
+  ) > 0
+  and position(
+    'match_motm_opens_at' in
+    pg_get_functiondef('private.ensure_match_motm_election(uuid)'::regprocedure)
   ) > 0,
-  'la fermeture HDM reste ancrée à H+24 après le coup d’envoi'
+  'la fermeture HDM est fixée à vingt-quatre heures après la validation'
 );
 
 select ok(
   position(
     'OPENS_AT = V_OPENS_AT' in upper(
+      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+    )
+  ) > 0
+  and position(
+    'CLOSES_AT = V_OPENS_AT' in upper(
+      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+    )
+  ) > 0
+  and position(
+    '24 HOURS' in upper(
       pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
     )
   ) > 0
@@ -46,7 +68,7 @@ select ok(
     'transition_match_motm_election' in
     pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
   ) > 0,
-  'une validation Stats/Live synchronise le scrutin sans avancer l’ouverture avant H+1 h 45'
+  'une validation Stats/Live impose exactement la fenêtre validation plus vingt-quatre heures'
 );
 
 select ok(

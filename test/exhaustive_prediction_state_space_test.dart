@@ -57,7 +57,7 @@ void main() {
     test('all match statuses and every prediction-window boundary', () {
       final kickoff = DateTime(2026, 8, 7, 20, 30);
       final open = matchFeaturesOpenAt(kickoff);
-      final close = kickoff.subtract(const Duration(minutes: 5));
+      final close = matchPredictionClosesAt(kickoff);
       final instants = <String, DateTime>{
         'before_open': open.subtract(const Duration(milliseconds: 1)),
         'at_open': open,
