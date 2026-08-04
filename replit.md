@@ -1,55 +1,44 @@
-# AS Grinta
+# AS Grinta — Replit
 
-Application mobile Flutter pour l'équipe de football amateur AS Grinta, avec une cible web pour Replit.
+Le dépôt conserve une configuration Replit pour lancer une prévisualisation Flutter Web locale. Replit n’est pas la source de vérité fonctionnelle ni le mécanisme de déploiement de production.
 
-## Stack
+## Lancement
 
-- **Flutter 3.32.0** (installé via Nix, `stable-25_05`)
-- **Supabase** — Auth, PostgreSQL, Realtime, Storage
-- **Riverpod** — gestion d'état
-- **go_router** — navigation
-- **Architecture feature-first** (`lib/features/`)
+Le bouton **Project** exécute le workflow `Start application` défini dans `.replit` :
 
-## How to run
-
-The workflow `Start application` builds and serves the Flutter web app on port 5000:
-
-```
-flutter build web --release && python3 -m http.server 5000 --directory build/web
+```bash
+flutter build web \
+  --release \
+  --dart-define-from-file=config/production.json \
+  --dart-define=APP_VERSION=dev
+python3 -m http.server 5000 --directory build/web
 ```
 
-The app is served at `http://localhost:5000` (Replit preview pane).
+La prévisualisation est servie sur le port 5000.
 
-## Supabase credentials
+`config/production.json` contient uniquement la configuration cliente publique nécessaire au build (URL Supabase, clé publique/publishable et URL de l’application). Les secrets serveur et la clé `service_role` ne doivent jamais être ajoutés au client ou à Replit.
 
-The app ships with hardcoded default values in `lib/core/config/supabase_config.dart` (read from `--dart-define` at build time). No secrets need to be set for the Replit preview to work.
+## Architecture
 
-## Project structure
+- Flutter avec Riverpod et `go_router` ;
+- architecture feature-first sous `lib/features/` ;
+- configuration cliente sous `lib/core/config/app_config.dart` ;
+- Supabase pour Auth, PostgreSQL, Realtime, Storage et Edge Functions ;
+- production Flutter Web déployée par GitHub Pages.
 
-```
-lib/
-  app/          # Router, shell, root widget
-  core/         # Config, theme, providers, network
-  features/     # auth, admin, home, live, matches, predictions, profile, statistics
-  shared/       # Shared widgets
-web/            # Flutter web entry point (index.html, manifest.json)
-supabase/       # Edge functions and migrations (reference only — remote DB is source of truth)
-docs/           # DESIGN_V1.md — functional specification
-```
+## Règles de travail
 
-## Key rules (from AGENTS.md)
+`AGENTS.md` contient les règles obligatoires du dépôt. En particulier :
 
-- Supabase remote is the source of truth for schema — never conclude a table is missing from local migrations.
-- Never modify the Supabase schema without explicit request.
-- Never use `service_role` key in Flutter.
-- Run `flutter analyze` and `flutter test` before committing.
-- No hardcoded players, fictional accounts, or IDs.
+- la production distante est la référence de ce qui fonctionne réellement ;
+- une ancienne migration Supabase est un historique immuable, pas du code mort ;
+- ne jamais utiliser `service_role` dans Flutter ;
+- ne jamais conclure qu’une fonctionnalité est active uniquement parce que son code existe ;
+- après un changement Flutter, exécuter formatage, analyse, tests et build ;
+- après un changement Supabase, conserver les tests métier/RLS et le lint SQL au vert.
 
-## GitHub deployment
+Les documents fonctionnels courants sont référencés depuis le `README.md`. Les anciennes spécifications restent consultables dans l’historique Git uniquement.
 
-The repo has a `.github/workflows/deploy_pages.yml` workflow that deploys to GitHub Pages at `/AS-Grinta/`. The `web/index.html` source uses relative paths (`flutter_bootstrap.js`, `manifest.json`) so both the Replit server (base `/`) and GitHub Pages build (`--base-href /AS-Grinta/`) work correctly.
+## Déploiement
 
-## User preferences
-
-- Fix all compilation errors without simplifying or removing features.
-- Keep existing architecture (feature-first, Riverpod, go_router).
+`.github/workflows/deploy_pages.yml` publie Flutter Web sur GitHub Pages après validation de `Flutter CI` sur `main`, puis exécute les contrôles publics prévus. La prévisualisation Replit ne remplace pas ce pipeline.
