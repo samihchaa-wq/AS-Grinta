@@ -126,6 +126,7 @@ select is(
     join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public'
       and c.relkind in ('r', 'p')
+      and c.relname <> 'shared_data_change_signals'
       and not exists (
         select 1
         from pg_depend dependency
@@ -143,7 +144,27 @@ select is(
       and policy.cmd = 'ALL'
       and policy.roles = array['authenticated']::name[]
   ),
-  'chaque table applicative publique exige un profil authentifié actif'
+  'chaque table métier publique exige un profil authentifié actif'
+);
+
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.shared_data_change_signals'::regclass)
+  and not has_table_privilege('anon', 'public.shared_data_change_signals', 'SELECT')
+  and has_table_privilege('authenticated', 'public.shared_data_change_signals', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.shared_data_change_signals', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.shared_data_change_signals', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.shared_data_change_signals', 'DELETE')
+  and exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'shared_data_change_signals'
+      and policyname = 'shared_data_change_signals_active_read'
+      and cmd = 'SELECT'
+      and roles = array['authenticated']::name[]
+      and qual ~ 'private\.is_active_profile'
+  ),
+  'le signal Realtime partagé reste en lecture seule et réservé aux profils actifs'
 );
 
 select ok(
