@@ -50,7 +50,12 @@ select ok(
     )
   ) > 0
   and position(
-    'CLOSES_AT = V_OPENS_AT + ''24:00:00''::INTERVAL' in upper(
+    'CLOSES_AT = V_OPENS_AT' in upper(
+      pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
+    )
+  ) > 0
+  and position(
+    '24 HOURS' in upper(
       pg_get_functiondef('private.trg_reset_match_motm_after_finalization()'::regprocedure)
     )
   ) > 0
