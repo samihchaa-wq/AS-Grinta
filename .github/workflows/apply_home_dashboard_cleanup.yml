@@ -3,13 +3,17 @@ name: Apply home dashboard compatibility cleanup
 on:
   push:
     branches: [cleanup/remove-home-dashboard-compat]
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply_home_dashboard_cleanup.yml'
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: ${{ !contains(github.event.head_commit.message, '[home-dashboard-cleanup]') }}
+    if: ${{ github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[home-dashboard-cleanup]') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout cleanup branch
