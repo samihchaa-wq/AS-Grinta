@@ -3,6 +3,29 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
+-- Le bootstrap métier léger de la CI ne contient pas toutes les fonctions
+-- historiques des badges. En production et dans un rejeu complet, cette
+-- dépendance existe déjà. Le substitut ci-dessous ne vit que dans cette
+-- transaction et permet de tester le contrat de la nouvelle requête.
+do $bootstrap$
+begin
+  if to_regprocedure('public.profile_badge_stars(uuid)') is null then
+    execute $ddl$
+      create function public.profile_badge_stars(p_profile_id uuid)
+      returns table(badge_code text, stars integer)
+      language sql
+      stable
+      security invoker
+      set search_path to 'public'
+      as $function$
+        select null::text, null::integer
+        where false
+      $function$
+    $ddl$;
+  end if;
+end
+$bootstrap$;
+
 -- Le bootstrap métier s'arrête à la dernière migration déjà déployée.
 -- Ce remplacement est exécuté dans la transaction pgTAP puis annulé.
 create or replace function public.featured_badges()
@@ -41,6 +64,9 @@ as $function$
   where profile_badge.featured
   order by profile_badge.profile_id, badge.sort_order;
 $function$;
+
+revoke execute on function public.featured_badges() from public, anon;
+grant execute on function public.featured_badges() to authenticated, service_role;
 
 select ok(
   (
