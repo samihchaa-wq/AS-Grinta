@@ -35,6 +35,12 @@ create temporary table pg_temp.match_creation_state_space(
 grant select, insert, update, delete
 on pg_temp.match_creation_state_space to authenticated;
 
+-- This matrix tests create_match_with_odds date/odds validation, including the
+-- historical lower bound year 2000. Temporarily disable only the UPDATE/DELETE
+-- lifecycle trigger so each successful fixture can be removed before the next
+-- matrix case. It is re-enabled before any lifecycle/delete assertion below.
+alter table public.matches disable trigger trg_guard_match_lifecycle_write;
+
 select set_config('request.jwt.claims',
   '{"sub":"e1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
@@ -73,6 +79,10 @@ begin
   end loop;
 end;
 $state_space$;
+
+reset role;
+alter table public.matches enable trigger trg_guard_match_lifecycle_write;
+set local role authenticated;
 
 select diag(format(
   'STATE_SPACE match_create season=%s location=%s date=%s odds=%s expected=%s observed=%s sqlstate=%s message=%s',
