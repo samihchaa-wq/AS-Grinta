@@ -61,11 +61,18 @@ jobs:
 
           version_files = defaultdict(list)
           migration_pattern = re.compile(r'^supabase/migrations/(\d{14})_[a-z0-9_]+\.sql$')
+          migration_files = [
+              path for path in files
+              if path.startswith('supabase/migrations/') and path.endswith('.sql')
+          ]
+          nonconforming_migrations = []
 
           for path in files:
               match = migration_pattern.match(path)
               if match:
                   version_files[match.group(1)].append(path)
+              elif path in migration_files:
+                  nonconforming_migrations.append(path)
 
               file = Path(path)
               if file.suffix.lower() in binary_ext:
@@ -98,6 +105,7 @@ jobs:
           result['local_migration_versions'] = len(local_versions)
           result['duplicate_migration_versions'] = len(duplicates)
           result['duplicate_migration_file_surplus'] = sum(len(paths) - 1 for paths in duplicates.values())
+          result['nonconforming_migration_files'] = len(nonconforming_migrations)
 
           Path('baseline_metrics.json').write_text(
               json.dumps(result, indent=2, ensure_ascii=False) + '\n',
@@ -111,6 +119,10 @@ jobs:
               json.dumps(duplicates, indent=2, ensure_ascii=False) + '\n',
               encoding='utf-8',
           )
+          Path('nonconforming_migrations.txt').write_text(
+              ''.join(f'{path}\n' for path in sorted(nonconforming_migrations)),
+              encoding='utf-8',
+          )
           print(Path('baseline_metrics.json').read_text())
 
       - name: Upload baseline metrics
@@ -121,4 +133,5 @@ jobs:
             baseline_metrics.json
             local_migration_versions.txt
             local_migration_duplicates.json
+            nonconforming_migrations.txt
           if-no-files-found: error
