@@ -1,16 +1,12 @@
 # AS Grinta
 
-AS Grinta est l’application de pronostics et de gestion sportive de l’équipe.
-Elle est utilisée en production sous forme de PWA Flutter avec Supabase comme
-source de vérité métier.
+AS Grinta est l’application de pronostics et de gestion sportive de l’équipe. Elle est utilisée en production sous forme de PWA Flutter avec Supabase comme source de vérité métier.
 
 ## Source de vérité
 
-Le fonctionnement réel de la production prévaut sur les anciens documents et
-sur les anciennes migrations.
+Le fonctionnement réel de la production prévaut sur la documentation et sur les anciennes migrations.
 
-Les migrations Supabase déjà appliquées restent dans le dépôt comme historique.
-Elles peuvent donc décrire d’anciennes règles qui ne sont plus actives.
+Les migrations Supabase déjà appliquées restent dans le dépôt comme historique immuable. Elles peuvent donc décrire d’anciennes règles qui ne sont plus actives.
 
 ## Comptes et rôles
 
@@ -22,18 +18,12 @@ Elles peuvent donc décrire d’anciennes règles qui ne sont plus actives.
 
 ## Cycle actuel d’un match
 
-- **J-6 à 12 h, Europe/Paris** : le match entre dans la fenêtre « Prochain
-  match » et les disponibilités s’ouvrent.
-- **J-6 à 12 h → T-15** : pronostics, Effectif et Composition sont disponibles
-  selon les droits de l’utilisateur.
-- **T-15** : les pronostics ferment, Effectif/Composition sont gelés et le Live
-  peut être ouvert.
-- **Live** : chronomètre, événements, buts, remplacements et gestion de la
-  composition réelle.
-- Un joueur ou invité ajouté tardivement pendant le Live arrive directement sur
-  le banc.
-- La validation du récapitulatif Live finalise le match avant son passage normal
-  en match passé.
+- **J-6 à 12 h, Europe/Paris** : le match entre dans la fenêtre « Prochain match » et les disponibilités s’ouvrent.
+- **J-6 à 12 h → T-15** : pronostics, Effectif et Composition sont disponibles selon les droits de l’utilisateur.
+- **T-15** : les pronostics ferment, Effectif/Composition sont gelés et le Live peut être ouvert.
+- **Live** : chronomètre, événements, buts, remplacements et gestion de la composition réelle.
+- Un joueur ou invité ajouté tardivement pendant le Live arrive directement sur le banc.
+- La validation du récapitulatif Live finalise le match avant son passage normal en match passé.
 - Le vote Homme du match ouvre après cette validation et reste ouvert **24 h**.
 
 ## Pronostics
@@ -41,8 +31,7 @@ Elles peuvent donc décrire d’anciennes règles qui ne sont plus actives.
 - Pronostics de match ouverts dans la fenêtre active du match jusqu’à T-15.
 - Les pronostics restent privés avant la validation du résultat.
 - Le multiplicateur / portefeuille **×2 ne fait plus partie du produit actuel**.
-- Les anciennes migrations et certaines signatures de compatibilité peuvent
-  encore contenir des traces de ×2.
+- Les anciennes migrations et certaines signatures de compatibilité peuvent encore contenir des traces de ×2.
 - Les pronostics de saison restent gérés séparément.
 
 ## Gestion sportive
@@ -82,21 +71,16 @@ Le contrat détaillé est dans `docs/NOTIFICATIONS_V2.md`.
 
 ## Architecture
 
-- Flutter.
-- Riverpod.
-- go_router.
-- Supabase Auth.
-- PostgreSQL / Supabase.
-- Supabase Storage.
-- Supabase Realtime pour les flux concernés.
-- Edge Functions pour les opérations serveur nécessaires.
-- GitHub Actions pour les contrôles et déploiements.
+- Flutter, Riverpod et `go_router` ;
+- Supabase Auth et PostgreSQL ;
+- Supabase Storage et Realtime ;
+- Edge Functions pour les opérations serveur nécessaires ;
+- GitHub Actions pour les contrôles et déploiements ;
 - GitHub Pages pour la version Web publique.
 
 ## Configuration locale
 
-Les valeurs publiques de production sont centralisées dans
-`config/production.json`.
+Les valeurs clientes publiques de production sont centralisées dans `config/production.json`.
 
 ```bash
 flutter run \
@@ -115,5 +99,20 @@ Les changements applicatifs importants doivent passer au minimum :
 - contrôles Supabase/RLS concernés ;
 - tests runtime / smoke tests applicables.
 
-Ne jamais considérer un contrôle vert comme preuve suffisante si son environnement
-de test ne reproduit pas encore la règle de production concernée.
+La CI Supabase construit un schéma isolé avec les migrations courantes nécessaires puis exécute l’ensemble des tests pgTAP/RLS découverts et le lint SQL. Un contrôle vert n’est toutefois pas une raison pour ignorer un écart observé directement en production.
+
+## Documentation courante
+
+Les documents à maintenir comme références actuelles sont :
+
+- `docs/NOTIFICATIONS_V2.md` — contrat des notifications ;
+- `docs/MATCH_WEATHER.md` — météo du prochain match ;
+- `docs/business-security-matrix.md` — invariants de sécurité métier ;
+- `docs/privacy-and-retention.md` — données personnelles et conservation ;
+- `docs/database-release-process.md` — livraison Supabase et migrations ;
+- `docs/production-operations.md` — exploitation et diagnostic de production ;
+- `docs/observability.md` — références d’incident ;
+- `docs/repository-protection.md` — protections GitHub ;
+- `docs/ui-foundations.md` — fondations UI encore utilisées.
+
+Les comptes rendus de lancement et anciennes spécifications restent consultables dans l’historique Git mais ne sont pas conservés comme documentation active.
