@@ -73,9 +73,14 @@ select ok(
 
 select ok(
   to_regprocedure('private.push_due_motm_reminders(timestamptz)') is null
-  and to_regprocedure('public.push_on_motm_election_closed()') is null
   and to_regprocedure('public.push_on_match_result()') is null,
-  'les anciens traitements automatiques HDM/résultat ont été supprimés'
+  'les anciens rappels HDM et push automatiques de score final restent supprimés'
+);
+
+select ok(
+  to_regprocedure('public.push_on_motm_election_closed()') is not null
+  and to_regprocedure('private.push_due_motm_result_notifications(timestamptz)') is not null,
+  'le résultat HDM actuel et son rattrapage sont installés'
 );
 
 select ok(
