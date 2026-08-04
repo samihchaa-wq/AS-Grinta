@@ -293,12 +293,11 @@ abstract final class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          // La fiche du match affiche jusqu'à cinq onglets sur la largeur
-          // d'un téléphone : marges resserrées et libellé compact pour que
-          // « Effectif » et « Compo » tiennent sur une seule ligne.
+          // Les onglets principaux doivent rester lisibles sur téléphone,
+          // y compris lorsque la fiche du match en affiche cinq côte à côte.
           minimumSize: WidgetStateProperty.all(const Size(48, 42)),
           textStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
