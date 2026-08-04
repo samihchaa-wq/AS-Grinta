@@ -67,6 +67,29 @@ jobs:
                   'files': refs,
               }
 
+          symbol_needles = [
+              'CupertinoIcons',
+              'keeper_logo',
+              'scorer_logo',
+              'module_backgrounds',
+              'stats_black',
+              'matches_blue',
+              'as_grinta_global_hd',
+              'assets/images/',
+          ]
+          symbol_refs = {}
+          for needle in symbol_needles:
+              refs = []
+              for p, text in text_files:
+                  if needle not in text:
+                      continue
+                  lines = [
+                      i for i, line in enumerate(text.splitlines(), 1)
+                      if needle in line
+                  ]
+                  refs.append({'path': p, 'lines': lines})
+              symbol_refs[needle] = refs
+
           asset_lines = []
           in_assets = False
           for line in pubspec.splitlines():
@@ -95,6 +118,7 @@ jobs:
                       base_refs.append(tp)
               assets.append({
                   'path': p,
+                  'bytes': Path(p).stat().st_size,
                   'full_path_refs': sorted(set(full_refs)),
                   'basename_refs': sorted(set(base_refs)),
               })
@@ -105,6 +129,7 @@ jobs:
                   dep for dep, info in dependencies.items()
                   if info['reference_count'] == 0
               ),
+              'symbol_refs': symbol_refs,
               'declared_asset_entries': asset_lines,
               'tracked_asset_files': len(asset_files),
               'asset_files_without_literal_path_or_basename_reference': sorted(
@@ -119,7 +144,7 @@ jobs:
           )
           print(json.dumps({
               'zero_reference_direct_dependencies': report['zero_reference_direct_dependencies'],
-              'declared_asset_entries': report['declared_asset_entries'],
+              'symbol_refs': report['symbol_refs'],
               'tracked_asset_files': report['tracked_asset_files'],
               'asset_files_without_literal_path_or_basename_reference': report['asset_files_without_literal_path_or_basename_reference'],
           }, indent=2, ensure_ascii=False))
