@@ -1,0 +1,99 @@
+name: Apply unused asset cleanup
+
+on:
+  push:
+    branches: [cleanup/remove-unused-assets-dependency]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/remove-unused-assets-dependency
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Remove only proven-unused dependency and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('pubspec.yaml')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              '  cupertino_icons: ^1.0.8\n': '',
+              '    - assets/images/scorer_logo.png\n': '',
+              '    - assets/images/keeper_logo.png\n': '',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one occurrence: {old!r}')
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          assets=(
+            assets/images/keeper_logo.png
+            assets/images/scorer_logo.png
+            assets/images/module_backgrounds/as_grinta_global_hd.png
+            assets/images/module_backgrounds/matches_blue.webp
+            assets/images/module_backgrounds/matches_blue_original.jpeg
+            assets/images/module_backgrounds/stats_black.webp.b64.00
+            assets/images/module_backgrounds/stats_black.webp.b64.01
+            assets/images/module_backgrounds/stats_black.webp.b64.02
+            assets/images/module_backgrounds/stats_black.webp.b64.03
+            assets/images/module_backgrounds/stats_black.webp.b64.04
+            assets/images/module_backgrounds/stats_black.webp.b64.05
+          )
+          for asset in "${assets[@]}"; do
+            test -f "$asset"
+          done
+          git rm -- "${assets[@]}"
+
+          flutter pub get
+          git diff --check
+
+          git rm .github/workflows/apply_cleanup_unused_assets.yml
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          expected=(
+            assets/images/keeper_logo.png
+            assets/images/module_backgrounds/as_grinta_global_hd.png
+            assets/images/module_backgrounds/matches_blue.webp
+            assets/images/module_backgrounds/matches_blue_original.jpeg
+            assets/images/module_backgrounds/stats_black.webp.b64.00
+            assets/images/module_backgrounds/stats_black.webp.b64.01
+            assets/images/module_backgrounds/stats_black.webp.b64.02
+            assets/images/module_backgrounds/stats_black.webp.b64.03
+            assets/images/module_backgrounds/stats_black.webp.b64.04
+            assets/images/module_backgrounds/stats_black.webp.b64.05
+            assets/images/scorer_logo.png
+            pubspec.lock
+            pubspec.yaml
+          )
+          mapfile -t expected_sorted < <(printf '%s\n' "${expected[@]}" | sort)
+          if [ "$(printf '%s\n' "${changed[@]}")" != "$(printf '%s\n' "${expected_sorted[@]}")" ]; then
+            printf 'Unexpected changed files:\n%s\n' "${changed[*]}"
+            exit 1
+          fi
+
+          if grep -q '^  cupertino_icons:' pubspec.yaml; then
+            echo 'cupertino_icons still declared' >&2
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Nettoyage 9 : retirer les assets et la dépendance inutilisés'
+          git push origin HEAD:cleanup/remove-unused-assets-dependency
