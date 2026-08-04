@@ -166,7 +166,7 @@ begin
         case when v_status='a_venir' then 3 else null end,
         case when v_status='a_venir' then 4 else null end);
     exception when others then v_ok:=false;v_state:=sqlstate;v_message:=sqlerrm; end;
-    insert into pg_temp.match_status_state_space values(v_status,v_status in ('a_venir','termine','archive'),v_ok,v_state,v_message);
+    insert into pg_temp.match_status_state_space values(v_status,v_status = 'a_venir',v_ok,v_state,v_message);
   end loop;
 end;
 $state_space$;
@@ -174,10 +174,22 @@ select diag(format('STATE_SPACE match_status proposed=%s expected=%s observed=%s
 from pg_temp.match_status_state_space order by proposed_status;
 select is((select count(*) from pg_temp.match_status_state_space where expected_success is distinct from observed_success),0::bigint,'contrat des sept statuts stable');
 
+select throws_ok(
+  format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),
+  '22023',
+  'un match à venir ne peut pas être archivé'
+);
+
+-- Move the still-editable fixture into the past first. The following status
+-- transition then exercises the real post-game validation window.
 select public.update_match_with_odds(
   current_setting('test.lifecycle_replacement_match')::uuid,
   'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',
-  date '2099-03-01',time '21:00','exterieur','termine',null,null,null);
+  date '2000-01-02',time '21:00','exterieur','a_venir',2,3,4);
+select public.update_match_with_odds(
+  current_setting('test.lifecycle_replacement_match')::uuid,
+  'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',
+  date '2000-01-02',time '21:00','exterieur','termine',null,null,null);
 select ok(public.archive_match(current_setting('test.lifecycle_replacement_match')::uuid),'archivage initial réussi');
 select throws_ok(format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),'P0002','double archivage refusé');
 

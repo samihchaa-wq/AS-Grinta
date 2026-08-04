@@ -92,6 +92,14 @@ where match_id = '50000000-0000-0000-0000-000000000001'
     '10000000-0000-0000-0000-000000000003'
   );
 
+-- Make the fixture lifecycle-realistic: reschedule while the match is still
+-- editable, then finalize only after the planned duration + 15 minute buffer.
+update public.matches
+set match_date = ((now() - interval '2 hours') at time zone 'Europe/Paris')::date,
+    match_time = ((now() - interval '2 hours') at time zone 'Europe/Paris')::time,
+    updated_at = now()
+where id = '50000000-0000-0000-0000-000000000001';
+
 update public.matches
 set status = 'termine',
     score_as_grinta = 2,
@@ -101,7 +109,7 @@ set status = 'termine',
     updated_at = now()
 where id = '50000000-0000-0000-0000-000000000001';
 
--- Match situé dans la fenêtre H-5.
+-- Match situé dans la fenêtre T-15.
 insert into public.matches (
   id, season_id, opponent_id, match_date, match_time, location,
   planned_duration_minutes, status, created_by
@@ -228,7 +236,7 @@ select throws_ok(
   'un pronostiqueur ne peut pas fermer les pronostics'
 );
 
--- Fermeture manuelle et H-5.
+-- Fermeture manuelle et T-15.
 reset role;
 select set_config(
   'request.jwt.claims',
@@ -280,7 +288,7 @@ set local role authenticated;
 select throws_ok(
   $$select public.save_match_prediction('50000000-0000-0000-0000-000000000002', 0, 0)$$,
   '22023',
-  'un match situé à moins de cinq minutes est exclu de la fenêtre de pronostic'
+  'un match situé à moins de quinze minutes est exclu de la fenêtre de pronostic'
 );
 
 -- Création réservée au staff et match+cotes atomiques.
