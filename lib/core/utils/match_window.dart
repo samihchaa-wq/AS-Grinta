@@ -94,8 +94,8 @@ bool isMatchAdminEditLocked(DateTime? kickoffAt, {DateTime? now}) {
 /// Phase d'affichage unique pour l'onglet Matchs.
 ///
 /// Une session Live active reste autoritaire même si le match dépasse son heure
-/// de fin théorique. `finished` bascule immédiatement vers « À valider ». Sans
-/// Live actif, la durée planifiée + 15 minutes sert de repli.
+/// de fin théorique. `finished` bascule vers « À valider » seulement à partir
+/// du coup d'envoi. Sans Live actif, la durée planifiée + 15 minutes sert de repli.
 MatchDisplayPhase matchDisplayPhase({
   required DateTime kickoffAt,
   required String status,
@@ -117,7 +117,7 @@ MatchDisplayPhase matchDisplayPhase({
   if (reference.isBefore(matchLiveOpensAt(kickoff))) {
     return MatchDisplayPhase.next;
   }
-  if (liveState == 'finished') {
+  if (liveState == 'finished' && !reference.isBefore(kickoff)) {
     return MatchDisplayPhase.awaitingValidation;
   }
   if (liveState == 'running' ||
