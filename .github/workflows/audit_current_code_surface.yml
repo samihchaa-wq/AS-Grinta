@@ -1,0 +1,174 @@
+name: Audit current code surface
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit_current_code_surface.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/current-code-surface
+          fetch-depth: 0
+
+      - name: Inventory current code surface
+        shell: python
+        run: |
+          from pathlib import Path
+          from collections import Counter
+          import json
+          import re
+          import subprocess
+
+          audit_path = '.github/workflows/audit_current_code_surface.yml'
+          tracked = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
+          tracked = [p for p in tracked if p != audit_path]
+
+          def line_count(path):
+              try:
+                  data = Path(path).read_bytes()
+              except OSError:
+                  return 0
+              if not data:
+                  return 0
+              return data.count(b'\n') + (0 if data.endswith(b'\n') else 1)
+
+          loc = {p: line_count(p) for p in tracked}
+          dart_files = sorted(p for p in tracked if p.startswith('lib/') and p.endswith('.dart'))
+          dart_test_files = sorted(p for p in tracked if (p.startswith('test/') or p.startswith('integration_test/')) and p.endswith('.dart'))
+          migration_files = sorted(p for p in tracked if p.startswith('supabase/migrations/') and p.endswith('.sql'))
+          db_test_files = sorted(p for p in tracked if p.startswith('supabase/tests/database/') and p.endswith('.test.sql'))
+          bootstrap_files = sorted(p for p in tracked if p.startswith('supabase/tests/bootstrap/') and p.endswith('.sql'))
+          edge_ts_files = sorted(p for p in tracked if p.startswith('supabase/functions/') and p.endswith('.ts'))
+          workflow_files = sorted(p for p in tracked if p.startswith('.github/workflows/') and p.endswith(('.yml', '.yaml')))
+          doc_files = sorted(p for p in tracked if p.startswith('docs/') and p.endswith('.md'))
+
+          dart_sources = {}
+          for path in dart_files + dart_test_files:
+              dart_sources[path] = Path(path).read_text(encoding='utf-8')
+          searchable_dart = '\n'.join(dart_sources.values())
+
+          declaration_patterns = [
+              re.compile(r'^\s*(?:abstract\s+|base\s+|final\s+|sealed\s+|interface\s+)?class\s+([A-Za-z]\w*)', re.M),
+              re.compile(r'^\s*enum\s+([A-Za-z]\w*)', re.M),
+              re.compile(r'^\s*mixin\s+([A-Za-z]\w*)', re.M),
+              re.compile(r'^\s*typedef\s+([A-Za-z]\w*)', re.M),
+          ]
+          declarations = []
+          for path in dart_files:
+              text = dart_sources[path]
+              for pattern in declaration_patterns:
+                  for match in pattern.finditer(text):
+                      name = match.group(1)
+                      if not name.startswith('_'):
+                          declarations.append((name, path))
+
+          symbol_candidates = []
+          for name, path in sorted(set(declarations)):
+              refs = len(re.findall(rf'\b{re.escape(name)}\b', searchable_dart))
+              if refs <= 2:
+                  symbol_candidates.append({'symbol': name, 'path': path, 'dart_refs': refs})
+
+          provider_names = []
+          for path in dart_files:
+              text = dart_sources[path]
+              for name in re.findall(r'\b([A-Za-z]\w*Provider)\s*=', text):
+                  provider_names.append((name, path))
+          providers = []
+          for name, path in sorted(set(provider_names)):
+              providers.append({
+                  'name': name,
+                  'path': path,
+                  'dart_refs': len(re.findall(rf'\b{re.escape(name)}\b', searchable_dart)),
+              })
+
+          rpc_calls = Counter()
+          edge_invokes = Counter()
+          for path, text in dart_sources.items():
+              if not path.startswith('lib/'):
+                  continue
+              for name in re.findall(r"\.rpc\(\s*['\"]([^'\"]+)['\"]", text):
+                  rpc_calls[name] += 1
+              for name in re.findall(r"\.functions\.invoke\(\s*['\"]([^'\"]+)['\"]", text):
+                  edge_invokes[name] += 1
+
+          route_paths = Counter()
+          for path in dart_files:
+              if '/router/' not in path and not path.endswith('app_router.dart'):
+                  continue
+              for route in re.findall(r"\bpath\s*:\s*['\"]([^'\"]+)['\"]", dart_sources[path]):
+                  route_paths[route] += 1
+
+          edge_dirs = sorted({p.split('/')[2] for p in tracked if p.startswith('supabase/functions/') and len(p.split('/')) > 3})
+
+          # Reference every bootstrap filename from other tracked text files.
+          text_paths = [p for p in tracked if Path(p).suffix.lower() in {'.sql','.yml','.yaml','.md','.py','.dart','.ts','.json','.toml'}]
+          text_cache = {}
+          for path in text_paths:
+              try:
+                  text_cache[path] = Path(path).read_text(encoding='utf-8')
+              except (UnicodeDecodeError, OSError):
+                  pass
+          bootstrap_refs = []
+          for path in bootstrap_files:
+              base = Path(path).name
+              refs = []
+              for other, text in text_cache.items():
+                  if other == path:
+                      continue
+                  count = text.count(base)
+                  if count:
+                      refs.append({'path': other, 'count': count})
+              bootstrap_refs.append({'path': path, 'references': refs, 'reference_count': sum(x['count'] for x in refs)})
+
+          stale_patterns = {
+              'h_minus_5': re.compile(r'(?i)(H-5|H−5|5\s*minutes? avant)'),
+              'h_plus_1h45': re.compile(r'(?i)(1\s*h\s*45|1\s*hour\s*45|1\s*heure\s*45)'),
+              'no_live': re.compile(r'(?i)(aucun.{0,30}live|live.{0,30}absent|pas de live)'),
+              'x2_current': re.compile(r'(?i)(portefeuille.{0,20}[×x]2|multiplicateur.{0,20}[×x]2)'),
+          }
+          stale_hits = []
+          for path, text in text_cache.items():
+              if path.startswith('supabase/migrations/'):
+                  continue
+              for label, pattern in stale_patterns.items():
+                  for match in pattern.finditer(text):
+                      line = text.count('\n', 0, match.start()) + 1
+                      stale_hits.append({'kind': label, 'path': path, 'line': line, 'text': match.group(0)[:120]})
+
+          result = {
+              'tracked_files': len(tracked),
+              'physical_lines': sum(loc.values()),
+              'areas': {
+                  'lib_dart': {'files': len(dart_files), 'lines': sum(loc[p] for p in dart_files)},
+                  'dart_tests': {'files': len(dart_test_files), 'lines': sum(loc[p] for p in dart_test_files)},
+                  'migrations': {'files': len(migration_files), 'lines': sum(loc[p] for p in migration_files)},
+                  'supabase_database_tests': {'files': len(db_test_files), 'lines': sum(loc[p] for p in db_test_files)},
+                  'supabase_bootstrap': {'files': len(bootstrap_files), 'lines': sum(loc[p] for p in bootstrap_files)},
+                  'edge_ts': {'files': len(edge_ts_files), 'lines': sum(loc[p] for p in edge_ts_files)},
+                  'workflows': {'files': len(workflow_files), 'lines': sum(loc[p] for p in workflow_files)},
+                  'docs': {'files': len(doc_files), 'lines': sum(loc[p] for p in doc_files)},
+              },
+              'low_reference_dart_symbols': symbol_candidates,
+              'providers': providers,
+              'flutter_rpc_calls': dict(sorted(rpc_calls.items())),
+              'flutter_edge_invokes': dict(sorted(edge_invokes.items())),
+              'router_paths': dict(sorted(route_paths.items())),
+              'edge_function_source_dirs': edge_dirs,
+              'bootstrap_references': bootstrap_refs,
+              'stale_markers_outside_migrations': stale_hits,
+          }
+          Path('current-code-surface.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(result, ensure_ascii=False, indent=2))
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-code-surface
+          path: current-code-surface.json
