@@ -120,13 +120,23 @@ select ok(
 );
 
 select ok(
-  not exists (
+  exists (
     select 1 from pg_trigger
     where tgrelid = 'public.match_sport_motm_elections'::regclass
       and tgname = 'trg_push_on_motm_election_closed'
       and not tgisinternal
   ),
-  'la fermeture HDM ne déclenche plus de notification de résultat'
+  'la fermeture HDM déclenche la notification de résultat actuelle'
+);
+
+select ok(
+  to_regprocedure(
+    'private.match_motm_result_notification_payloads(uuid)'
+  ) is not null
+  and to_regprocedure(
+    'private.push_due_motm_result_notifications(timestamptz)'
+  ) is not null,
+  'les notifications de résultat HDM et leur rattrapage sont installés'
 );
 
 select ok(
