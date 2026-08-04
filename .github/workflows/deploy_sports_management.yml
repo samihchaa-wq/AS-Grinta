@@ -1,4 +1,4 @@
-name: Deploy sports management disabled
+name: Deploy Supabase production
 
 on:
   pull_request_target:
@@ -39,7 +39,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.111.0
 
       - name: Link Production
         shell: bash
@@ -82,10 +82,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sports-management-production-deployment
+          name: supabase-production-deployment
           path: |
             migration-before.txt
             migration-after.txt
           if-no-files-found: warn
 
-# Production deployment authorized on 2026-07-21.
+# Workflow de déploiement production : utiliser uniquement une release autorisée
+# après validation des contrôles Flutter et Supabase correspondants.
