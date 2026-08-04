@@ -3,9 +3,23 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
--- Le schéma métier de CI peut précéder la migration en cours. On reproduit
--- transactionnellement la nouvelle version de la fonction afin de tester son
--- comportement réel sans modifier le bootstrap partagé.
+-- Le bootstrap métier léger de la CI peut précéder les migrations Realtime
+-- déjà déployées. On reproduit transactionnellement leurs deux compteurs avant
+-- de tester la migration en cours, puis tout est annulé à la fin du test.
+alter table public.shared_data_change_signals
+  add column if not exists profile_revision bigint,
+  add column if not exists sports_revision bigint;
+
+update public.shared_data_change_signals
+set profile_revision = coalesce(profile_revision, revision),
+    sports_revision = coalesce(sports_revision, revision);
+
+alter table public.shared_data_change_signals
+  alter column profile_revision set default 1,
+  alter column profile_revision set not null,
+  alter column sports_revision set default 1,
+  alter column sports_revision set not null;
+
 create or replace function private.signal_shared_data_change()
 returns trigger
 language plpgsql
