@@ -23,7 +23,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "flutter build web --release && python3 -m http.server 5000 --directory build/web"
+args = "flutter build web --release --dart-define-from-file=config/production.json --dart-define=APP_VERSION=dev && python3 -m http.server 5000 --directory build/web"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
