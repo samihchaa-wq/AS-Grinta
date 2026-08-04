@@ -317,29 +317,3 @@ final sportWaitlistRepositoryProvider = Provider<SportWaitlistRepository>((
 ) {
   return SupabaseSportWaitlistRepository(ref.watch(supabaseClientProvider));
 });
-
-final adminSportMatchesProvider =
-    FutureProvider.autoDispose<List<AdminSportMatch>>((ref) {
-  return ref.watch(sportWaitlistRepositoryProvider).fetchUpcomingMatches();
-});
-
-final sportWaitlistProvider =
-    FutureProvider.autoDispose.family<SportWaitlist, String?>((ref, seasonId) {
-  return ref
-      .watch(sportWaitlistRepositoryProvider)
-      .fetchWaitlist(seasonId: seasonId);
-});
-
-final matchConvocationsProvider = FutureProvider.autoDispose
-    .family<MatchConvocations, String>((ref, matchId) {
-  return ref
-      .watch(sportWaitlistRepositoryProvider)
-      .fetchMatchConvocations(matchId);
-});
-
-final availabilityReminderSummaryProvider = FutureProvider.autoDispose
-    .family<AvailabilityReminderSummary, String>((ref, matchId) {
-  return ref
-      .watch(sportWaitlistRepositoryProvider)
-      .fetchReminderSummary(matchId);
-});

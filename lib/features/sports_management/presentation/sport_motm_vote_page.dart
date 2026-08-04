@@ -225,13 +225,13 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
             title: 'Scrutin annulé',
             message:
                 'Aucun Homme du match collectif n’est attribué pour le moment.',
-          )
+          ),
         ] else ...[
           const _MessageCard(
             icon: Icons.schedule_outlined,
             title: 'Scrutin bientôt ouvert',
-            message: 'Le vote s’ouvre 1 h 45 après le coup d’envoi.',
-          )
+            message: 'Le vote s’ouvre après la validation du compte rendu.',
+          ),
         ],
         if (_error != null) ...[
           const SizedBox(height: 12),
@@ -390,8 +390,9 @@ class _Results extends StatelessWidget {
       children: [
         Text('Résultats', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        for (final candidate
-            in vote.candidates.where((c) => (c.votesCount ?? 0) > 0))
+        for (final candidate in vote.candidates.where(
+          (c) => (c.votesCount ?? 0) > 0,
+        ))
           Card(
             child: ListTile(
               leading: candidate.isWinner

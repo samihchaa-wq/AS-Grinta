@@ -12,6 +12,7 @@ class MatchModel {
     required this.grintaScore,
     required this.opponentScore,
     this.predictionsClosedAt,
+    this.resultValidatedAt,
     this.liveState,
     this.liveFinishedAt,
     this.liveExported = false,
@@ -38,6 +39,7 @@ class MatchModel {
   final int? grintaScore;
   final int? opponentScore;
   final DateTime? predictionsClosedAt;
+  final DateTime? resultValidatedAt;
 
   /// État du Tableau Blanc, s'il a été ouvert pour ce match.
   final String? liveState;
@@ -146,9 +148,13 @@ class MatchModel {
       predictionsClosedAt: DateTime.tryParse(
         '${json['predictions_closed_at'] ?? ''}',
       )?.toLocal(),
+      resultValidatedAt: DateTime.tryParse(
+        '${json['result_validated_at'] ?? ''}',
+      )?.toLocal(),
       liveState: live['state']?.toString(),
-      liveFinishedAt:
-          DateTime.tryParse('${live['finished_at'] ?? ''}')?.toLocal(),
+      liveFinishedAt: DateTime.tryParse(
+        '${live['finished_at'] ?? ''}',
+      )?.toLocal(),
       liveExported: live['exported'] == true,
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
