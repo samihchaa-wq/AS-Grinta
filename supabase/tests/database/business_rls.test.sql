@@ -92,11 +92,11 @@ where match_id = '50000000-0000-0000-0000-000000000001'
     '10000000-0000-0000-0000-000000000003'
   );
 
--- Make the fixture lifecycle-realistic: reschedule while the match is still
--- editable, then finalize only after the planned duration + 15 minute buffer.
+-- Make the fixture lifecycle-realistic on an isolated fixed past date:
+-- reschedule while editable, then finalize after the planned end window.
 update public.matches
-set match_date = ((now() - interval '2 hours') at time zone 'Europe/Paris')::date,
-    match_time = ((now() - interval '2 hours') at time zone 'Europe/Paris')::time,
+set match_date = date '2000-01-02',
+    match_time = time '20:00',
     updated_at = now()
 where id = '50000000-0000-0000-0000-000000000001';
 
