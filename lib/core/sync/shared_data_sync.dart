@@ -59,9 +59,8 @@ class SharedDataChangeSignal {
       revision: revision.toInt(),
       // Avant le déploiement de profile_revision, le fallback conserve le
       // comportement historique : chaque signal recharge aussi le profil.
-      profileRevision: profileRevision is num
-          ? profileRevision.toInt()
-          : revision.toInt(),
+      profileRevision:
+          profileRevision is num ? profileRevision.toInt() : revision.toInt(),
       // Sans sports_revision, aucun lot ne peut être prouvé 100 % sportif :
       // le client garde donc le refresh global historique.
       sportsRevision: sportsRevision is num ? sportsRevision.toInt() : 0,
@@ -272,8 +271,8 @@ class SharedDataRefreshCoordinator {
 
 final sharedDataRefreshCoordinatorProvider =
     Provider<SharedDataRefreshCoordinator>((ref) {
-      return SharedDataRefreshCoordinator(ref);
-    });
+  return SharedDataRefreshCoordinator(ref);
+});
 
 /// Écoute le petit signal Realtime public-safe. Les écritures métier restent
 /// autoritaires dans leurs tables/RPC ; ce flux ne transporte que des révisions.
