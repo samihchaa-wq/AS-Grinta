@@ -78,6 +78,7 @@ class MatchDetailsData {
     required this.isInternal,
     required this.kickoffAt,
     required this.status,
+    required this.resultValidatedAt,
     required this.location,
     required this.scoreGrinta,
     required this.scoreOpponent,
@@ -102,6 +103,10 @@ class MatchDetailsData {
   final bool isInternal;
   final DateTime kickoffAt;
   final String status;
+
+  /// Instant de la première validation du compte rendu. Le serveur empêche les
+  /// corrections ultérieures de déplacer cette ancre.
+  final DateTime? resultValidatedAt;
   final String location;
   final int? scoreGrinta;
   final int? scoreOpponent;
@@ -125,7 +130,8 @@ class MatchDetailsRepository {
   Future<MatchDetailsData> fetch(String matchId) async {
     final match = await _client.from('matches').select('''
       id, opponent_id, match_date, match_time, kickoff_at, status, location,
-      match_type, score_as_grinta, score_adverse, opponents(name),
+      match_type, score_as_grinta, score_adverse, result_validated_at,
+      opponents(name),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
     ''').eq('id', matchId).maybeSingle();
     if (match == null) {
@@ -314,6 +320,9 @@ class MatchDetailsRepository {
       isInternal: isInternal,
       kickoffAt: kickoffAt,
       status: status,
+      resultValidatedAt: DateTime.tryParse(
+        '${match['result_validated_at'] ?? ''}',
+      )?.toLocal(),
       location: (match['location'] ?? 'domicile').toString(),
       scoreGrinta: match['score_as_grinta'] == null
           ? null
