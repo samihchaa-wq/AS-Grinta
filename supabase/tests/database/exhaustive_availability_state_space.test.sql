@@ -338,11 +338,6 @@ select set_config(
   '{"sub":"a1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
   true
 );
-update public.matches
-set match_date = ((now() + interval '2 days') at time zone 'Europe/Paris')::date,
-    match_time = ((now() + interval '2 days') at time zone 'Europe/Paris')::time,
-    kickoff_at = now() + interval '2 days'
-where id = 'a5000000-0000-0000-0000-000000000001';
 update public.profiles
 set status = 'pending'
 where id = 'a1000000-0000-0000-0000-000000000002';
