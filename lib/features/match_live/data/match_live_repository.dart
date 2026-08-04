@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/match_live/domain/match_live_add_player_options.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_timeline.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
@@ -8,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 abstract interface class MatchLiveRepository {
   Future<MatchLiveStateBundle> fetchLiveState(String matchId);
   Future<MatchLiveTimeline?> fetchTimeline(String matchId);
+  Future<MatchLiveAddPlayerOptions> fetchAddPlayerOptions(String matchId);
 
   Future<MatchLiveStateBundle> openWorkspace({
     required String matchId,
@@ -27,6 +29,12 @@ abstract interface class MatchLiveRepository {
     required String team,
     required int delta,
     String? scorerParticipantId,
+  });
+
+  Future<MatchLiveStateBundle> addLivePlayers({
+    required String matchId,
+    required List<MatchLiveAddPlayerRequest> players,
+    String? reason,
   });
 
   /// [substitutions] peut contenir plusieurs changements : ils sont alors
@@ -107,6 +115,17 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
   }
 
   @override
+  Future<MatchLiveAddPlayerOptions> fetchAddPlayerOptions(
+    String matchId,
+  ) async {
+    final response = await _client.rpc(
+      'get_match_live_add_player_options',
+      params: {'p_match_id': matchId},
+    );
+    return MatchLiveAddPlayerOptions.fromRpc(response);
+  }
+
+  @override
   Future<MatchLiveStateBundle> openWorkspace({
     required String matchId,
     int? plannedDurationMinutes,
@@ -164,6 +183,23 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
         'p_team': team,
         'p_delta': delta,
         'p_scorer_participant_id': scorerParticipantId,
+      },
+    );
+    return MatchLiveStateBundle.fromRpc(response);
+  }
+
+  @override
+  Future<MatchLiveStateBundle> addLivePlayers({
+    required String matchId,
+    required List<MatchLiveAddPlayerRequest> players,
+    String? reason,
+  }) async {
+    final response = await _client.rpc(
+      'coach_add_match_live_players',
+      params: {
+        'p_match_id': matchId,
+        'p_players': [for (final player in players) player.toRpcJson()],
+        'p_reason': _clean(reason),
       },
     );
     return MatchLiveStateBundle.fromRpc(response);
