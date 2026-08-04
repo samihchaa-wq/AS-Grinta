@@ -55,14 +55,14 @@ jobs:
                   if 'homeDashboardProvider' in line:
                       changed = True
                       stripped = line.strip()
-                      if stripped == 'ref.invalidate(homeDashboardProvider);':
+                      if stripped.endswith('.invalidate(homeDashboardProvider);') and not stripped.startswith('..'):
                           continue
                       if stripped == '..invalidate(homeDashboardProvider)':
                           continue
                       if stripped == '..invalidate(homeDashboardProvider);':
                           if out and out[-1].lstrip().startswith('..invalidate('):
                               out[-1] = out[-1].rstrip('\n').rstrip() + ';\n'
-                          elif out and out[-1].strip() == 'ref':
+                          elif out and out[-1].strip() in {'ref', '_ref'}:
                               out.pop()
                           continue
                       raise SystemExit(f'Unexpected homeDashboardProvider usage in {path}: {line!r}')
