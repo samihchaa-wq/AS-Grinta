@@ -6,12 +6,12 @@ void main() {
   group('MatchPredictionItem timing', () {
     final kickoff = DateTime.utc(2026, 7, 14, 20);
 
-    test('closes exactly five minutes before kickoff', () {
+    test('closes exactly fifteen minutes before kickoff', () {
       final item = _item(kickoffAt: kickoff);
 
-      expect(item.closesAt, DateTime.utc(2026, 7, 14, 19, 55));
+      expect(item.closesAt, DateTime.utc(2026, 7, 14, 19, 45));
       expect(
-        item.isClosedAt(DateTime.utc(2026, 7, 14, 19, 54, 59, 999)),
+        item.isClosedAt(DateTime.utc(2026, 7, 14, 19, 44, 59, 999)),
         isFalse,
       );
       expect(item.isClosedAt(item.closesAt), isTrue);
