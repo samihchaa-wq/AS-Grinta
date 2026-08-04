@@ -123,6 +123,14 @@ values (
   true
 );
 
+-- L'ajout d'un joueur de saison préremplit automatiquement le pronostic du
+-- profil actif. On retire cette fixture auto-générée pour isoler l'INSERT que
+-- ce test veut mesurer ; le DELETE lui-même est déjà couvert par le même
+-- signal supprimé et la transaction finale est entièrement annulée.
+delete from public.season_predictions
+where season_id = 'fb100000-0000-0000-0000-000000000010'
+  and predictor_profile_id = 'fb100000-0000-0000-0000-000000000001';
+
 select set_config(
   'test.shared_revision_before_prediction',
   (
