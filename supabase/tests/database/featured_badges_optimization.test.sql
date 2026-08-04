@@ -98,13 +98,13 @@ insert into public.badges(
 values
   ('fd100000-0000-0000-0000-000000000001', 'test_featured_alpha',
    'Test alpha', 'Badge de test alpha', 'A', 'joueur', false, 9101,
-   'manual', 'all_time'),
+   'titre', 'joueur_all_time'),
   ('fd100000-0000-0000-0000-000000000002', 'test_featured_beta',
    'Test beta', 'Badge de test beta', 'B', 'joueur', false, 9102,
-   'manual', 'all_time'),
+   'titre', 'joueur_all_time'),
   ('fd100000-0000-0000-0000-000000000003', 'test_featured_gamma',
    'Test gamma', 'Badge de test gamma', 'C', 'joueur', false, 9103,
-   'manual', 'all_time');
+   'titre', 'joueur_all_time');
 
 insert into public.profile_badges(profile_id, badge_id, source, featured)
 values
