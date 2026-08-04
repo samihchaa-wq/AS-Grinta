@@ -68,14 +68,9 @@ jobs:
               }
 
           symbol_needles = [
-              'CupertinoIcons',
-              'keeper_logo',
-              'scorer_logo',
-              'module_backgrounds',
-              'stats_black',
-              'matches_blue',
-              'as_grinta_global_hd',
-              'assets/images/',
+              'CupertinoIcons', 'keeper_logo', 'scorer_logo',
+              'module_backgrounds', 'stats_black', 'matches_blue',
+              'as_grinta_global_hd', 'assets/images/',
           ]
           symbol_refs = {}
           for needle in symbol_needles:
@@ -83,12 +78,20 @@ jobs:
               for p, text in text_files:
                   if needle not in text:
                       continue
-                  lines = [
-                      i for i, line in enumerate(text.splitlines(), 1)
-                      if needle in line
-                  ]
+                  lines = [i for i, line in enumerate(text.splitlines(), 1) if needle in line]
                   refs.append({'path': p, 'lines': lines})
               symbol_refs[needle] = refs
+
+          loader_tokens = [
+              'Image.asset', 'AssetImage', 'ExactAssetImage', 'rootBundle.',
+              '.png', '.webp', '.jpeg', '.jpg', '.b64', "'assets/", '"assets/',
+          ]
+          asset_loader_lines = []
+          for p in dart_files:
+              text = Path(p).read_text(encoding='utf-8')
+              for i, line in enumerate(text.splitlines(), 1):
+                  if any(token in line for token in loader_tokens):
+                      asset_loader_lines.append({'path': p, 'line': i, 'text': line.strip()})
 
           asset_lines = []
           in_assets = False
@@ -126,26 +129,23 @@ jobs:
           report = {
               'direct_dependencies': dependencies,
               'zero_reference_direct_dependencies': sorted(
-                  dep for dep, info in dependencies.items()
-                  if info['reference_count'] == 0
+                  dep for dep, info in dependencies.items() if info['reference_count'] == 0
               ),
               'symbol_refs': symbol_refs,
+              'asset_loader_lines': asset_loader_lines,
               'declared_asset_entries': asset_lines,
               'tracked_asset_files': len(asset_files),
               'asset_files_without_literal_path_or_basename_reference': sorted(
-                  a['path'] for a in assets
-                  if not a['full_path_refs'] and not a['basename_refs']
+                  a['path'] for a in assets if not a['full_path_refs'] and not a['basename_refs']
               ),
               'assets': assets,
           }
           Path('dependency_asset_audit.json').write_text(
-              json.dumps(report, indent=2, ensure_ascii=False) + '\n',
-              encoding='utf-8',
+              json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
           )
           print(json.dumps({
               'zero_reference_direct_dependencies': report['zero_reference_direct_dependencies'],
-              'symbol_refs': report['symbol_refs'],
-              'tracked_asset_files': report['tracked_asset_files'],
+              'asset_loader_lines': report['asset_loader_lines'],
               'asset_files_without_literal_path_or_basename_reference': report['asset_files_without_literal_path_or_basename_reference'],
           }, indent=2, ensure_ascii=False))
 
