@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:as_grinta/core/sync/shared_data_sync.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -13,6 +14,11 @@ void main() {
       expect(sync, contains("from('shared_data_change_signals')"));
       expect(sync, contains(".eq('key', 'global')"));
       expect(sync, contains('const Duration(milliseconds: 350)'));
+      expect(sync, contains('profileRevision'));
+      expect(
+        sync,
+        contains('refreshAll(refreshProfile: shouldRefreshProfile)'),
+      );
 
       for (final provider in <String>[
         'matchDetailsProvider',
@@ -61,6 +67,9 @@ void main() {
       final migration = await File(
         'supabase/migrations/20260803000000_shared_data_change_signal.sql',
       ).readAsString();
+      final scopedProfileMigration = await File(
+        'supabase/migrations/20260804220000_scope_profile_refresh_signal.sql',
+      ).readAsString();
 
       expect(
         migration,
@@ -87,6 +96,16 @@ void main() {
       );
       expect(migration, contains('alter publication supabase_realtime'));
 
+      expect(scopedProfileMigration, contains('profile_revision'));
+      expect(
+        scopedProfileMigration,
+        contains("tg_table_name = 'profiles'"),
+      );
+      expect(
+        scopedProfileMigration,
+        contains('profile_revision <= revision'),
+      );
+
       for (final table in <String>[
         'matches',
         'season_players',
@@ -101,5 +120,34 @@ void main() {
         expect(migration, contains("'$table'"));
       }
     },
+  );
+
+  test('non-profile signals skip only the profile refresh', () {
+    final cursor = SharedDataSignalCursor();
+
+    expect(cursor.register(_signal(revision: 10, profileRevision: 4)), isNull);
+    expect(cursor.register(_signal(revision: 11, profileRevision: 4)), isFalse);
+    expect(cursor.register(_signal(revision: 12, profileRevision: 5)), isTrue);
+    expect(cursor.register(_signal(revision: 12, profileRevision: 5)), isNull);
+  });
+
+  test('legacy signal rows preserve the previous refresh behavior', () {
+    final signal = SharedDataChangeSignal.fromRow({
+      'revision': 27,
+      'updated_at': '2026-08-04T17:20:00Z',
+    });
+
+    expect(signal.profileRevision, signal.revision);
+  });
+}
+
+SharedDataChangeSignal _signal({
+  required int revision,
+  required int profileRevision,
+}) {
+  return SharedDataChangeSignal(
+    revision: revision,
+    profileRevision: profileRevision,
+    updatedAt: DateTime.utc(2026, 8, 4),
   );
 }
