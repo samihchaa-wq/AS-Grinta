@@ -88,8 +88,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
         .where((entry) => entry.participantId == participant.participantId)
         .firstOrNull;
     if (liveEntry == null) return participant;
-    final present =
-        liveEntry.zone == MatchCompositionZone.field ||
+    final present = liveEntry.zone == MatchCompositionZone.field ||
         liveEntry.zone == MatchCompositionZone.bench;
     return participant.copyWith(
       present: present,
@@ -178,8 +177,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
       return;
     }
 
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Exporter vers compte rendu ?'),
@@ -206,9 +204,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
 
     setState(() => _saving = true);
     try {
-      await ref
-          .read(matchLiveRepositoryProvider)
-          .publishRecap(
+      await ref.read(matchLiveRepositoryProvider).publishRecap(
             matchId: widget.matchId,
             scoreAsGrinta: value.scoreAsGrinta,
             scoreAdverse: value.scoreAdverse,
@@ -283,8 +279,8 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
                 Text(
                   'Score final',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+                        fontWeight: FontWeight.w900,
+                      ),
                 ),
                 const SizedBox(height: 12),
                 _ScoreLine(
