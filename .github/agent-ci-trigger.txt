@@ -1,1 +1,0 @@
-Trigger CI for the lifecycle cleanup after the one-shot test fixture update.
