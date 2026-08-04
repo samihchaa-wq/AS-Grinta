@@ -123,3 +123,4 @@ jobs:
 
 # Workflow de déploiement production : utiliser uniquement une release autorisée
 # après validation des contrôles Flutter et Supabase correspondants.
+# Test des repository secrets Supabase configure le 5 aout 2026.
