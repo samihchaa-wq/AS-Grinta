@@ -3,112 +3,9 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
--- Comme le test météo, ce contrat reconstruit la surface ajoutée par la
--- migration afin de rester indépendant de la liste manuelle de migrations du
--- bootstrap CI. Le fichier de migration est contrôlé séparément côté Flutter.
-create table public.shared_data_change_signals (
-  key text primary key,
-  revision bigint not null default 1,
-  updated_at timestamptz not null default now(),
-  constraint shared_data_change_signals_key_format
-    check (key ~ '^[a-z][a-z0-9_]*$'),
-  constraint shared_data_change_signals_revision_positive
-    check (revision > 0)
-);
-
--- Le bootstrap métier CI n'installe pas tout le catalogue réellement présent
--- en production. Une table minimale suffit ici pour le seul objet encore absent.
--- Les compositions internes font désormais partie de la baseline CI afin que
--- le durcissement courant soit testé sur leur vrai schéma et leurs vraies RLS.
-create table public.badges (
-  id uuid primary key
-);
-
-alter table public.shared_data_change_signals enable row level security;
-revoke all on table public.shared_data_change_signals
-  from public, anon, authenticated;
-grant select on table public.shared_data_change_signals
-  to authenticated, service_role;
-
-create policy shared_data_change_signals_active_read
-on public.shared_data_change_signals
-for select
-to authenticated
-using ((select private.is_active_profile()));
-
-insert into public.shared_data_change_signals(key, revision, updated_at)
-values ('global', 1, now());
-
-create or replace function private.signal_shared_data_change()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $function$
-begin
-  insert into public.shared_data_change_signals(key, revision, updated_at)
-  values ('global', 1, now())
-  on conflict (key) do update
-  set revision = public.shared_data_change_signals.revision + 1,
-      updated_at = excluded.updated_at;
-  return null;
-end;
-$function$;
-
-revoke execute on function private.signal_shared_data_change()
-  from public, anon, authenticated;
-
-do $block$
-declare
-  v_table text;
-begin
-  foreach v_table in array array[
-    'matches',
-    'match_odds',
-    'opponents',
-    'seasons',
-    'season_players',
-    'profiles',
-    'match_player_stats',
-    'match_attendance',
-    'match_man_of_match',
-    'profile_badges',
-    'badges',
-    'season_predictions',
-    'guest_players',
-    'match_compositions',
-    'match_composition_entries',
-    'match_composition_publications',
-    'match_internal_compositions',
-    'match_internal_composition_entries',
-    'sport_waitlist_entries',
-    'match_sport_participants',
-    'match_sport_workflows',
-    'match_sport_finalizations',
-    'match_sport_motm_results'
-  ]
-  loop
-    execute format(
-      'create trigger trg_shared_data_change '
-      'after insert or update or delete on public.%I '
-      'for each statement execute function private.signal_shared_data_change()',
-      v_table
-    );
-  end loop;
-end;
-$block$;
-
-do $block$
-begin
-  if exists (
-    select 1 from pg_publication where pubname = 'supabase_realtime'
-  ) then
-    alter publication supabase_realtime
-      add table public.shared_data_change_signals;
-  end if;
-end;
-$block$;
-
+-- La CI installe désormais la vraie migration shared_data_change_signal avant
+-- les tests. Ce contrat exerce donc directement les objets de production au
+-- lieu d'en maintenir une copie locale qui peut dériver.
 select ok(
   to_regclass('public.shared_data_change_signals') is not null,
   'la table de signal inter-modules existe'
@@ -140,6 +37,20 @@ select ok(
     'authenticated', 'public.shared_data_change_signals', 'DELETE'
   ),
   'les clients authentifiés ne peuvent que lire le signal'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'shared_data_change_signals'
+      and policyname = 'shared_data_change_signals_active_read'
+      and roles = array['authenticated']::name[]
+      and cmd = 'SELECT'
+      and qual ~ 'private\.is_active_profile'
+  ),
+  'la lecture du signal reste limitée aux profils actifs'
 );
 
 select ok(
