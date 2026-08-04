@@ -1,0 +1,90 @@
+name: Audit baseline metrics
+
+on:
+  push:
+    branches: [audit-baseline-metrics]
+
+permissions:
+  contents: read
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frozen baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 0ddfd9d7fa195b324e8f71928ce399b927387c4a
+          fetch-depth: 1
+
+      - name: Count files and physical lines
+        shell: python
+        run: |
+          import json
+          import subprocess
+          from pathlib import Path
+
+          files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          files = [path for path in files if path]
+
+          binary_ext = {
+              '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip',
+              '.woff', '.woff2', '.ttf', '.otf', '.mp3', '.mp4', '.mov', '.svgz',
+          }
+          code_ext = {'.dart', '.sql', '.ts', '.js', '.py', '.sh', '.yml', '.yaml', '.toml'}
+
+          groups = {
+              'flutter_dart': lambda p: p.startswith('lib/') and p.endswith('.dart'),
+              'flutter_tests': lambda p: p.startswith('test/') and p.endswith('.dart'),
+              'supabase_migrations': lambda p: p.startswith('supabase/migrations/') and p.endswith('.sql'),
+              'supabase_tests': lambda p: p.startswith('supabase/tests/'),
+              'edge_functions': lambda p: p.startswith('supabase/functions/') and Path(p).suffix in {'.ts', '.js'},
+              'github_actions': lambda p: p.startswith('.github/workflows/') and Path(p).suffix in {'.yml', '.yaml'},
+              'documentation': lambda p: p.startswith('docs/') or p in {'README.md', 'AGENTS.md', 'CHANGELOG.md'},
+          }
+
+          result = {
+              'baseline_sha': '0ddfd9d7fa195b324e8f71928ce399b927387c4a',
+              'tracked_files': len(files),
+              'text_files': 0,
+              'physical_text_lines': 0,
+              'code_files': 0,
+              'physical_code_lines': 0,
+              'groups': {name: {'files': 0, 'lines': 0} for name in groups},
+          }
+
+          for path in files:
+              file = Path(path)
+              if file.suffix.lower() in binary_ext:
+                  continue
+              try:
+                  raw = file.read_bytes()
+                  if b'\0' in raw:
+                      continue
+                  text = raw.decode('utf-8')
+              except (UnicodeDecodeError, OSError):
+                  continue
+
+              lines = len(text.splitlines())
+              result['text_files'] += 1
+              result['physical_text_lines'] += lines
+              if file.suffix.lower() in code_ext:
+                  result['code_files'] += 1
+                  result['physical_code_lines'] += lines
+              for name, matches in groups.items():
+                  if matches(path):
+                      result['groups'][name]['files'] += 1
+                      result['groups'][name]['lines'] += lines
+
+          Path('baseline_metrics.json').write_text(
+              json.dumps(result, indent=2, ensure_ascii=False) + '\n',
+              encoding='utf-8',
+          )
+          print(Path('baseline_metrics.json').read_text())
+
+      - name: Upload baseline metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: as-grinta-baseline-metrics
+          path: baseline_metrics.json
+          if-no-files-found: error
