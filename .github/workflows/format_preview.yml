@@ -1,0 +1,26 @@
+name: Temporary Dart format preview
+
+on:
+  push:
+    branches: [agent/scope-sports-realtime-refresh]
+
+permissions:
+  contents: read
+
+jobs:
+  format-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Print formatted shared data sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib/core/sync/shared_data_sync.dart
+          echo '---BEGIN_FORMATTED_FILE---'
+          cat lib/core/sync/shared_data_sync.dart
+          echo '---END_FORMATTED_FILE---'
