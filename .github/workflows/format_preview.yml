@@ -1,6 +1,11 @@
 name: Temporary Dart format preview
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/core/sync/shared_data_sync.dart'
+      - '.github/workflows/format_preview.yml'
   push:
     branches: [agent/scope-sports-realtime-refresh]
 
