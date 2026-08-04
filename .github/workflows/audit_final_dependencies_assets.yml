@@ -67,21 +67,6 @@ jobs:
                   'files': refs,
               }
 
-          symbol_needles = [
-              'CupertinoIcons', 'keeper_logo', 'scorer_logo',
-              'module_backgrounds', 'stats_black', 'matches_blue',
-              'as_grinta_global_hd', 'assets/images/',
-          ]
-          symbol_refs = {}
-          for needle in symbol_needles:
-              refs = []
-              for p, text in text_files:
-                  if needle not in text:
-                      continue
-                  lines = [i for i, line in enumerate(text.splitlines(), 1) if needle in line]
-                  refs.append({'path': p, 'lines': lines})
-              symbol_refs[needle] = refs
-
           loader_tokens = [
               'Image.asset', 'AssetImage', 'ExactAssetImage', 'rootBundle.',
               '.png', '.webp', '.jpeg', '.jpg', '.b64', "'assets/", '"assets/',
@@ -92,19 +77,6 @@ jobs:
               for i, line in enumerate(text.splitlines(), 1):
                   if any(token in line for token in loader_tokens):
                       asset_loader_lines.append({'path': p, 'line': i, 'text': line.strip()})
-
-          asset_lines = []
-          in_assets = False
-          for line in pubspec.splitlines():
-              if line.strip() == 'assets:':
-                  in_assets = True
-                  continue
-              if in_assets:
-                  m = re.match(r'^    - (.+)$', line)
-                  if m:
-                      asset_lines.append(m.group(1).strip())
-                  elif line.strip() and not line.startswith('    '):
-                      break
 
           asset_files = [p for p in tracked if p.startswith('assets/')]
           assets = []
@@ -131,9 +103,7 @@ jobs:
               'zero_reference_direct_dependencies': sorted(
                   dep for dep, info in dependencies.items() if info['reference_count'] == 0
               ),
-              'symbol_refs': symbol_refs,
               'asset_loader_lines': asset_loader_lines,
-              'declared_asset_entries': asset_lines,
               'tracked_asset_files': len(asset_files),
               'asset_files_without_literal_path_or_basename_reference': sorted(
                   a['path'] for a in assets if not a['full_path_refs'] and not a['basename_refs']
@@ -143,14 +113,39 @@ jobs:
           Path('dependency_asset_audit.json').write_text(
               json.dumps(report, indent=2, ensure_ascii=False) + '\n', encoding='utf-8'
           )
-          print(json.dumps({
-              'zero_reference_direct_dependencies': report['zero_reference_direct_dependencies'],
-              'asset_loader_lines': report['asset_loader_lines'],
-              'asset_files_without_literal_path_or_basename_reference': report['asset_files_without_literal_path_or_basename_reference'],
-          }, indent=2, ensure_ascii=False))
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate candidate pubspec and lockfile without writing Git
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('pubspec.yaml')
+          text = path.read_text(encoding='utf-8')
+          for old in (
+              '  cupertino_icons: ^1.0.8\n',
+              '    - assets/images/scorer_logo.png\n',
+              '    - assets/images/keeper_logo.png\n',
+          ):
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one occurrence: {old!r}')
+              text = text.replace(old, '')
+          path.write_text(text, encoding='utf-8')
+          PY
+          flutter pub get
+          cp pubspec.yaml pubspec.cleaned.yaml
+          cp pubspec.lock pubspec.cleaned.lock
 
       - uses: actions/upload-artifact@v4
         with:
           name: final-dependency-asset-audit
-          path: dependency_asset_audit.json
+          path: |
+            dependency_asset_audit.json
+            pubspec.cleaned.yaml
+            pubspec.cleaned.lock
           if-no-files-found: error
