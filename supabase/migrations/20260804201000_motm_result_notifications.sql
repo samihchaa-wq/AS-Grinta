@@ -431,6 +431,22 @@ alter table public.push_notification_log
     'match_rescheduled_time'::text
   ])) not valid;
 
+-- Ne jamais envoyer rétroactivement le résultat des scrutins fermés avant ce
+-- déploiement. Les deux marqueurs sont précréés dans la même transaction que
+-- l'installation du retry ; seuls les futurs cycles restent éligibles.
+insert into public.push_notification_log(match_id, kind, sent_at)
+select
+  election.match_id,
+  marker.kind,
+  coalesce(election.closed_at, now())
+from public.match_sport_motm_elections election
+cross join (values
+  ('motm_result_general'::text),
+  ('motm_result_winner'::text)
+) as marker(kind)
+where election.state = 'closed'
+on conflict do nothing;
+
 revoke all on function private.match_motm_result_notification_payloads(uuid)
   from public, anon, authenticated;
 revoke all on function private.dispatch_motm_result_notification(text, uuid)
