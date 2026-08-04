@@ -27,6 +27,7 @@ jobs:
           import json
           import re
           import subprocess
+          from collections import defaultdict
           from pathlib import Path
 
           files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
@@ -58,13 +59,13 @@ jobs:
               'groups': {name: {'files': 0, 'lines': 0} for name in groups},
           }
 
-          local_versions = []
+          version_files = defaultdict(list)
           migration_pattern = re.compile(r'^supabase/migrations/(\d{14})_[a-z0-9_]+\.sql$')
 
           for path in files:
               match = migration_pattern.match(path)
               if match:
-                  local_versions.append(match.group(1))
+                  version_files[match.group(1)].append(path)
 
               file = Path(path)
               if file.suffix.lower() in binary_ext:
@@ -88,8 +89,15 @@ jobs:
                       result['groups'][name]['files'] += 1
                       result['groups'][name]['lines'] += lines
 
-          local_versions = sorted(set(local_versions))
+          local_versions = sorted(version_files)
+          duplicates = {
+              version: sorted(paths)
+              for version, paths in sorted(version_files.items())
+              if len(paths) > 1
+          }
           result['local_migration_versions'] = len(local_versions)
+          result['duplicate_migration_versions'] = len(duplicates)
+          result['duplicate_migration_file_surplus'] = sum(len(paths) - 1 for paths in duplicates.values())
 
           Path('baseline_metrics.json').write_text(
               json.dumps(result, indent=2, ensure_ascii=False) + '\n',
@@ -97,6 +105,10 @@ jobs:
           )
           Path('local_migration_versions.txt').write_text(
               ''.join(f'{version}\n' for version in local_versions),
+              encoding='utf-8',
+          )
+          Path('local_migration_duplicates.json').write_text(
+              json.dumps(duplicates, indent=2, ensure_ascii=False) + '\n',
               encoding='utf-8',
           )
           print(Path('baseline_metrics.json').read_text())
@@ -108,4 +120,5 @@ jobs:
           path: |
             baseline_metrics.json
             local_migration_versions.txt
+            local_migration_duplicates.json
           if-no-files-found: error
