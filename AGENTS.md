@@ -18,6 +18,14 @@ Les anciennes migrations dans `supabase/migrations/` sont l'historique immuable
 de la base. Une migration appliquée ne doit jamais être modifiée ou supprimée,
 même si elle décrit un comportement qui a depuis été remplacé.
 
+**Attention : l'historique des fichiers de migration GitHub et le registre de
+migrations enregistré par Supabase ne sont pas historiquement 1:1.** Ne jamais
+tenter de les « réaligner » en renommant, supprimant, rejouant ou marquant
+arbitrairement d'anciennes migrations comme appliquées. Avant tout déploiement
+SQL, inspecter l'état distant (`supabase migration list`) et analyser tout écart
+comme un sujet dédié. Une réparation d'historique ne fait jamais partie d'un
+simple nettoyage de code.
+
 Les documents historiques, notamment `docs/DESIGN_V1.md`, ne sont **pas** la
 source de vérité du produit actuel. En cas de contradiction, la production et
 l'implémentation active prévalent.
