@@ -109,7 +109,7 @@ begin
   end if;
   if v_status = 'a_venir'
      and v_kickoff_at is not null
-     and now() >= private.match_prediction_closes_at(v_kickoff_at) then
+     and now() >= v_kickoff_at - interval '15 minutes' then
     raise exception 'L’effectif est figé depuis l’ouverture du Live.' using errcode = '22023';
   end if;
 
@@ -147,7 +147,7 @@ begin
   end if;
   if v_status = 'a_venir'
      and v_kickoff_at is not null
-     and now() >= private.match_prediction_closes_at(v_kickoff_at) then
+     and now() >= v_kickoff_at - interval '15 minutes' then
     raise exception 'La composition est figée depuis l’ouverture du Live.' using errcode = '22023';
   end if;
 
@@ -189,7 +189,7 @@ begin
   end if;
   if v_status = 'a_venir'
      and v_kickoff_at is not null
-     and now() >= private.match_prediction_closes_at(v_kickoff_at) then
+     and now() >= v_kickoff_at - interval '15 minutes' then
     raise exception 'La composition est figée depuis l’ouverture du Live.' using errcode = '22023';
   end if;
 
@@ -227,7 +227,7 @@ begin
   end if;
   if v_status = 'a_venir'
      and v_kickoff_at is not null
-     and now() >= private.match_prediction_closes_at(v_kickoff_at) then
+     and now() >= v_kickoff_at - interval '15 minutes' then
     raise exception 'L’effectif est figé depuis l’ouverture du Live.' using errcode = '22023';
   end if;
 
@@ -265,7 +265,7 @@ begin
   end if;
   if v_status = 'a_venir'
      and v_kickoff_at is not null
-     and now() >= private.match_prediction_closes_at(v_kickoff_at) then
+     and now() >= v_kickoff_at - interval '15 minutes' then
     raise exception 'L’effectif est figé depuis l’ouverture du Live.' using errcode = '22023';
   end if;
 
