@@ -136,14 +136,34 @@ void main() {
       );
     });
 
-    test('une fin Live bascule immédiatement à valider', () {
+    test('une fin Live bascule à valider dès le coup d’envoi', () {
       expect(
         phaseAt(
-          DateTime.utc(2026, 8, 7, 19),
+          DateTime.utc(2026, 8, 7, 18, 20),
+          liveState: 'finished',
+        ),
+        MatchDisplayPhase.live,
+      );
+      expect(
+        phaseAt(
+          DateTime.utc(2026, 8, 7, 18, 30),
           liveState: 'finished',
         ),
         MatchDisplayPhase.awaitingValidation,
       );
+    });
+
+    test('un Live actif reste en direct au-delà de la fin théorique', () {
+      for (final state in ['running', 'paused', 'halftime']) {
+        expect(
+          phaseAt(
+            DateTime.utc(2026, 8, 7, 21),
+            liveState: state,
+          ),
+          MatchDisplayPhase.live,
+          reason: 'state=$state',
+        );
+      }
     });
 
     test('la validation serveur l’emporte sur toute temporalité', () {
