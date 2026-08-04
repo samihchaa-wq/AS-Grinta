@@ -4,12 +4,10 @@ Ce document résume les composants à privilégier pour conserver une interface 
 
 ## Structure des pages
 
-- `GrintaResponsiveContent` limite la largeur du contenu et adapte les marges au mobile, à la tablette et au web.
-- `GrintaResponsiveGrid` répartit les cartes selon l’espace disponible.
 - `GrintaAdaptiveForm` organise les champs sur une ou deux colonnes selon la largeur.
 - `GrintaAuthSurface` fournit la structure commune des écrans d’authentification.
 
-Éviter les largeurs fixes directement dans les pages lorsque l’un de ces composants couvre le besoin.
+Éviter les largeurs fixes directement dans les pages lorsqu’un composant partagé actuel couvre le besoin.
 
 ## États et retours utilisateur
 
