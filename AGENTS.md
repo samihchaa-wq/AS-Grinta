@@ -2,54 +2,96 @@
 
 ## Source de vérité
 
-Le projet Supabase distant est la source de vérité pour le schéma de données.
-Les migrations présentes dans `supabase/migrations/` peuvent être incomplètes et
-ne doivent jamais servir à conclure qu'une table ou une fonction n'existe pas :
-vérifier toujours le schéma distant.
+La **production actuelle** est la référence fonctionnelle de AS Grinta.
 
-Le document fonctionnel prioritaire est `docs/DESIGN_V1.md`. En cas de
-contradiction avec un document antérieur, les décisions validées et les
-correctifs placés en tête de `docs/DESIGN_V1.md` prévalent.
+Pour toute conclusion sur une fonctionnalité :
 
-Domaines couverts par le schéma actuel : comptes et profils, saisons et
-effectif, adversaires et matchs, cotes, pronostics de match et de saison,
-portefeuille ×2, disponibilités, listes d'attente, convocations, invités,
-compositions versionnées, finalisation de match, vote collectif de l'homme du
-match, statistiques, badges et titres, notifications push.
+1. vérifier ce qui fonctionne réellement en production ;
+2. vérifier le schéma et les objets Supabase distants ;
+3. vérifier que le code GitHub actuel est réellement appelé ;
+4. utiliser l'historique Git/PR uniquement pour comprendre pourquoi un élément existe.
 
-> Historique : le « tableau du coach » et toute l'infrastructure temps réel
-> (sessions Live, positions live, remplacements en direct, rôle « Modérateur »)
-> ont été retirés. Ne pas s'appuyer sur ces notions ni sur les tables associées.
+Ne jamais conclure qu'une fonctionnalité existe simplement parce que son code est
+présent dans le dépôt.
 
-## Décisions fonctionnelles prioritaires
+Les anciennes migrations dans `supabase/migrations/` sont l'historique immuable
+de la base. Une migration appliquée ne doit jamais être modifiée ou supprimée,
+même si elle décrit un comportement qui a depuis été remplacé.
 
-- Le classement général utilise uniquement la somme directe : `total = somme(points matchs) + somme(points saison)`.
-- Les pourcentages du maximum théorique et la répartition indicative d'environ 65 % matchs / 35 % saison sont des indicateurs d'affichage uniquement. Ils ne recalculent, ne normalisent et ne pondèrent jamais le total.
-- Tout `match_predictions.is_filled = false` rapporte toujours 0 point, y compris si le résultat réel est 0-0.
-- Tout `season_predictions.is_filled = false` rapporte toujours 0 point, y compris si la valeur réelle est 0.
-- Les cotes suggérées reflètent la forme du moment : buts marqués/encaissés des 4 derniers matchs pondérés 40/30/20/10 %, nul indépendant, sans marge bookmaker (cotes équitables 1 / probabilité, arrondies à une décimale), ajustables par l'admin avant enregistrement.
-- L'homme du match est désigné par un **vote collectif anonyme**, ouvert après la validation du résultat et clôturé automatiquement (sans intervention admin). Il peut y avoir des co-vainqueurs en cas d'égalité.
-- Nom affiché partout : surnom s'il est renseigné, sinon prénom (repli prénom + nom), résolu côté serveur et affiché sans troncature.
-- Un Admin peut annuler ou archiver un match non archivé, et le supprimer définitivement.
-- Aucun joueur fictif, compte fictif ou identifiant codé en dur ne doit être utilisé dans l'application.
-- Supabase reste l'unique source de vérité pour toutes les données métier.
-- Un cache local temporaire est autorisé uniquement pour l'interface. Il doit être reconstructible intégralement depuis Supabase et ne doit jamais devenir une source de vérité.
-- Les notifications push existent (infrastructure en place). Ne pas étendre le périmètre notifications sans demande explicite.
+**Attention : l'historique des fichiers de migration GitHub et le registre de
+migrations enregistré par Supabase ne sont pas historiquement 1:1.** Ne jamais
+tenter de les « réaligner » en renommant, supprimant, rejouant ou marquant
+arbitrairement d'anciennes migrations comme appliquées. Avant tout déploiement
+SQL, inspecter l'état distant (`supabase migration list`) et analyser tout écart
+comme un sujet dédié. Une réparation d'historique ne fait jamais partie d'un
+simple nettoyage de code.
 
-## Règles impératives
+Les documents historiques, notamment `docs/DESIGN_V1.md`, ne sont **pas** la
+source de vérité du produit actuel. En cas de contradiction, la production et
+l'implémentation active prévalent.
 
-- Utiliser Supabase pour les compositions, buts, cotes, pronostics, présences, convocations et vote HDM.
-- Ne jamais modifier le schéma Supabase sans demande explicite.
+## État fonctionnel actuel à préserver
+
+- Rôles actifs : `pronostiqueur`, `admin` et `moderateur`.
+- Le module `sports_management` est en production.
+- Le module **Live** est actuel et utilisé : sessions, chronomètre, événements,
+  remplacements et validation du récapitulatif font partie du produit.
+- Un match entre dans la fenêtre « Prochain match » à **J-6 à 12 h**, heure
+  Europe/Paris.
+- Les disponibilités ouvrent à **J-6 à 12 h**.
+- Les pronostics ferment à **T-15**.
+- Le Live ouvre à **T-15**.
+- Effectif et Composition sont gelés à **T-15**.
+- Un match Live doit être validé avant son passage normal en match passé.
+- Le vote Homme du match ouvre après la validation du compte rendu et reste
+  ouvert **24 heures**.
+- Un joueur ajouté tardivement au Live est ajouté directement sur le banc.
+- Le réglage utilisateur HDM couvre l'ouverture du vote **et** son résultat.
+- Le portefeuille / multiplicateur **×2 a été retiré du produit actuel**. Des
+  migrations ou signatures de compatibilité peuvent encore en garder la trace.
+
+Les valeurs opérationnelles comme les feature flags ou le coupe-circuit des
+notifications peuvent changer : toujours les lire en production avant d'en
+conclure l'état.
+
+## Règle de nettoyage
+
+Pour chaque élément suspect, distinguer :
+
+- **A — actuel et utilisé** : ne pas toucher ;
+- **B — historique nécessaire** : conserver ;
+- **C — code mort confirmé** : suppression possible ;
+- **D — ancienne implémentation remplacée** : suppression possible après preuve
+  qu'aucune dépendance actuelle ne l'utilise ;
+- **E — doublon** : conserver l'implémentation actuelle ;
+- **F — documentation/commentaire obsolète** : corriger ou supprimer ;
+- **G — incertain** : ne rien supprimer.
+
+**En cas de doute, ne pas supprimer.** Un nom comme `legacy`, `old`, `v2`, `v3`
+ou un compteur d'utilisation nul ne constitue jamais une preuve suffisante.
+Tenir compte des anciens clients, deep-links et contrats de compatibilité avant
+de retirer une RPC, une route ou une Edge Function.
+
+## Règles techniques
+
+- Supabase reste l'unique source de vérité pour les données métier.
 - Ne jamais utiliser la clé `service_role` dans Flutter.
 - Respecter Riverpod, go_router et l'architecture feature-first.
-- Avant chaque lot, analyser le code déjà présent et éviter de dupliquer les fonctionnalités.
-- Exécuter `flutter analyze` et `flutter test` avant tout commit lorsque l'environnement d'exécution le permet.
-- Produire un seul commit par tâche lorsque l'outil GitHub utilisé le permet.
+- Toute évolution de schéma doit passer par une **nouvelle migration additive ou
+  corrective** ; ne jamais réécrire une migration déjà appliquée.
+- Avant chaque lot, tracer les références et dépendances de chaque suppression.
+- Faire des lots petits et cohérents.
+- Après chaque lot important : formatage Dart, analyse statique, tests Flutter,
+  build web et contrôles Supabase/RLS concernés.
+- Ne jamais fusionner une PR dont les contrôles requis sont rouges.
 
 ## Verrou de migrations
 
-Le fichier `supabase/production_migrations.lock` reflète l'état de la production
-(nombre de migrations, dernière version, empreinte). Le garde-fou nocturne
-`migration_inventory.yml` compare la prod à ce verrou. Après avoir appliqué de
-nouvelles migrations en production, resynchroniser le verrou via la branche
-dédiée `ci/supabase-migration-drift-guard` (seule autorisée à le modifier).
+Le fichier `supabase/production_migrations.lock` reflète l'état vérifié de la
+production : nombre de migrations, dernière version et empreinte de la liste des
+versions.
+
+Le workflow `migration_inventory.yml` compare périodiquement la production à ce
+verrou. Après un déploiement de migrations vérifié, resynchroniser le lock via
+la branche dédiée `ci/supabase-migration-drift-guard`, seule autorisée à le
+modifier.
