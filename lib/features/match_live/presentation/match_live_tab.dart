@@ -4,6 +4,7 @@ import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_pre_kickoff_page.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_providers.dart';
 import 'package:as_grinta/features/match_live/presentation/match_live_running_page.dart';
+import 'package:as_grinta/features/match_live/presentation/widgets/match_live_add_player_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,17 +59,32 @@ class MatchLiveTab extends ConsumerWidget {
           }
 
           if (bundle.session.state == MatchLiveState.notStarted) {
-            return MatchLivePreKickoffPage(
+            final page = MatchLivePreKickoffPage(
               matchId: matchId,
               bundle: bundle,
               canEdit: canEdit,
             );
+            return canEdit
+                ? _LiveAddPlayerAction(
+                    matchId: matchId,
+                    compact: false,
+                    child: page,
+                  )
+                : page;
           }
 
-          return MatchLiveRunningPage(
+          final page = MatchLiveRunningPage(
             matchId: matchId,
             bundle: bundle,
             canEdit: canEdit,
+          );
+          if (!canEdit || bundle.session.state == MatchLiveState.finished) {
+            return page;
+          }
+          return _LiveAddPlayerAction(
+            matchId: matchId,
+            compact: true,
+            child: page,
           );
         } catch (error, stackTrace) {
           FlutterError.reportError(
@@ -90,6 +106,66 @@ class MatchLiveTab extends ConsumerWidget {
           );
         }
       },
+    );
+  }
+}
+
+class _LiveAddPlayerAction extends ConsumerWidget {
+  const _LiveAddPlayerAction({
+    required this.matchId,
+    required this.compact,
+    required this.child,
+  });
+
+  final String matchId;
+  final bool compact;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final action = compact
+        ? Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox.square(
+              dimension: 34,
+              child: IconButton.filledTonal(
+                tooltip: 'Ajouter un joueur',
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                onPressed: () => showMatchLiveAddPlayerSheet(
+                  context,
+                  ref,
+                  matchId: matchId,
+                ),
+                icon: const Icon(Icons.add_rounded, size: 20),
+              ),
+            ),
+          )
+        : SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => showMatchLiveAddPlayerSheet(
+                context,
+                ref,
+                matchId: matchId,
+              ),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Ajouter un joueur'),
+            ),
+          );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: compact
+              ? const EdgeInsets.fromLTRB(12, 4, 12, 0)
+              : const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          child: action,
+        ),
+        child,
+      ],
     );
   }
 }
