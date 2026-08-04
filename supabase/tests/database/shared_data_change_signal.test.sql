@@ -12,6 +12,19 @@ select ok(
 );
 
 select ok(
+  exists (
+    select 1
+    from pg_attribute
+    where attrelid = 'public.shared_data_change_signals'::regclass
+      and attname = 'profile_revision'
+      and attnum > 0
+      and not attisdropped
+      and attnotnull
+  ),
+  'le compteur dédié aux changements de profil existe et reste obligatoire'
+);
+
+select ok(
   (
     select relrowsecurity
     from pg_class
@@ -149,6 +162,15 @@ select set_config(
   ),
   true
 );
+select set_config(
+  'test.profile_revision_before',
+  (
+    select profile_revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
 
 insert into public.opponents(name)
 values ('Signal inter-modules pgTAP');
@@ -160,6 +182,57 @@ select ok(
     where key = 'global'
   ) > current_setting('test.shared_revision_before')::bigint,
   'une écriture métier incrémente la révision globale'
+);
+
+select is(
+  (
+    select profile_revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  current_setting('test.profile_revision_before')::bigint,
+  'une écriture hors profils ne demande pas de rechargement du profil'
+);
+
+select set_config(
+  'test.shared_revision_after_opponent',
+  (
+    select revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+select set_config(
+  'test.profile_revision_after_opponent',
+  (
+    select profile_revision::text
+    from public.shared_data_change_signals
+    where key = 'global'
+  ),
+  true
+);
+
+update public.profiles
+set updated_at = clock_timestamp()
+where id = 'fb000000-0000-0000-0000-000000000001';
+
+select ok(
+  (
+    select revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ) > current_setting('test.shared_revision_after_opponent')::bigint,
+  'une écriture de profil continue d’incrémenter la révision globale'
+);
+
+select ok(
+  (
+    select profile_revision
+    from public.shared_data_change_signals
+    where key = 'global'
+  ) > current_setting('test.profile_revision_after_opponent')::bigint,
+  'une écriture de profil demande explicitement son rechargement'
 );
 
 select * from finish();
