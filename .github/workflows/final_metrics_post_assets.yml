@@ -1,0 +1,129 @@
+name: Final metrics after asset cleanup
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/final_metrics_post_assets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Count baseline and current with identical method
+        shell: python
+        run: |
+          import json
+          import shutil
+          import subprocess
+          from pathlib import Path
+
+          baseline_sha = '0ddfd9d7fa195b324e8f71928ce399b927387c4a'
+          subprocess.run(['git', 'fetch', 'origin', 'main'], check=True)
+          current_sha = subprocess.check_output(['git', 'rev-parse', 'origin/main'], text=True).strip()
+          root = Path('/tmp/as-grinta-final-metrics')
+          shutil.rmtree(root, ignore_errors=True)
+          baseline_root = root / 'baseline'
+          current_root = root / 'current'
+          subprocess.run(['git', 'worktree', 'add', '--detach', str(baseline_root), baseline_sha], check=True)
+          subprocess.run(['git', 'worktree', 'add', '--detach', str(current_root), current_sha], check=True)
+
+          binary_ext = {
+              '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.zip',
+              '.woff', '.woff2', '.ttf', '.otf', '.mp3', '.mp4', '.mov', '.svgz',
+          }
+          code_ext = {'.dart', '.sql', '.ts', '.js', '.py', '.sh', '.yml', '.yaml', '.toml'}
+          groups = {
+              'flutter_dart': lambda p: p.startswith('lib/') and p.endswith('.dart'),
+              'flutter_tests': lambda p: p.startswith('test/') and p.endswith('.dart'),
+              'supabase_migrations': lambda p: p.startswith('supabase/migrations/') and p.endswith('.sql'),
+              'supabase_tests': lambda p: p.startswith('supabase/tests/'),
+              'edge_functions': lambda p: p.startswith('supabase/functions/') and Path(p).suffix in {'.ts', '.js'},
+              'github_actions': lambda p: p.startswith('.github/workflows/') and Path(p).suffix in {'.yml', '.yaml'},
+              'documentation': lambda p: p.startswith('docs/') or p in {'README.md', 'AGENTS.md', 'CHANGELOG.md'},
+          }
+
+          def compute(tree, sha):
+              files = subprocess.check_output(['git', '-C', str(tree), 'ls-files', '-z']).decode().split('\0')
+              files = [p for p in files if p]
+              result = {
+                  'sha': sha,
+                  'tracked_files': len(files),
+                  'text_files': 0,
+                  'physical_text_lines': 0,
+                  'code_files': 0,
+                  'physical_code_lines': 0,
+                  'groups': {k: {'files': 0, 'lines': 0} for k in groups},
+              }
+              for p in files:
+                  f = tree / p
+                  if f.suffix.lower() in binary_ext:
+                      continue
+                  try:
+                      raw = f.read_bytes()
+                      if b'\0' in raw:
+                          continue
+                      text = raw.decode('utf-8')
+                  except (UnicodeDecodeError, OSError):
+                      continue
+                  lines = len(text.splitlines())
+                  result['text_files'] += 1
+                  result['physical_text_lines'] += lines
+                  if f.suffix.lower() in code_ext:
+                      result['code_files'] += 1
+                      result['physical_code_lines'] += lines
+                  for name, matches in groups.items():
+                      if matches(p):
+                          result['groups'][name]['files'] += 1
+                          result['groups'][name]['lines'] += lines
+              return result
+
+          baseline = compute(baseline_root, baseline_sha)
+          current = compute(current_root, current_sha)
+          delta = {
+              'tracked_files': current['tracked_files'] - baseline['tracked_files'],
+              'text_files': current['text_files'] - baseline['text_files'],
+              'physical_text_lines': current['physical_text_lines'] - baseline['physical_text_lines'],
+              'code_files': current['code_files'] - baseline['code_files'],
+              'physical_code_lines': current['physical_code_lines'] - baseline['physical_code_lines'],
+              'groups': {
+                  name: {
+                      'files': current['groups'][name]['files'] - baseline['groups'][name]['files'],
+                      'lines': current['groups'][name]['lines'] - baseline['groups'][name]['lines'],
+                  }
+                  for name in groups
+              },
+          }
+          numstat = subprocess.check_output(['git', 'diff', '--numstat', baseline_sha, current_sha], text=True).splitlines()
+          additions = deletions = binary_changed = text_changed = 0
+          for row in numstat:
+              a, d, _ = row.split('\t', 2)
+              if a == '-' or d == '-':
+                  binary_changed += 1
+              else:
+                  additions += int(a)
+                  deletions += int(d)
+                  text_changed += 1
+          delta['git_diff'] = {
+              'text_changed_files': text_changed,
+              'binary_changed_files': binary_changed,
+              'additions': additions,
+              'deletions': deletions,
+              'net': additions - deletions,
+          }
+          report = {'baseline': baseline, 'current': current, 'delta': delta}
+          Path('final_metrics.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-metrics-post-assets
+          path: final_metrics.json
+          if-no-files-found: error
