@@ -90,3 +90,4 @@ jobs:
 
 # Workflow de déploiement production : utiliser uniquement une release autorisée
 # après validation des contrôles Flutter et Supabase correspondants.
+# Déploiement pronostics saison Realtime autorisé le 2026-08-04.
