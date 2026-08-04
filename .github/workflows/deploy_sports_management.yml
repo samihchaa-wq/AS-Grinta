@@ -90,3 +90,4 @@ jobs:
 
 # Workflow de déploiement production : utiliser uniquement une release autorisée
 # après validation des contrôles Flutter et Supabase correspondants.
+# Release trigger: deploy 20260804213000 and 20260804220000.
