@@ -244,7 +244,9 @@ class SharedDataRefreshCoordinator {
       ..invalidate(matchDetailsProvider)
       ..invalidate(myMatchAvailabilityProvider)
       ..invalidate(matchAvailabilityBoardProvider)
-      ..invalidate(publishedMatchCompositionProvider);
+      ..invalidate(publishedMatchCompositionProvider)
+      ..invalidate(publishedSportMatchResultProvider)
+      ..invalidate(sportMotmVoteProvider);
   }
 
   void _invalidateSharedCaches() {
@@ -264,9 +266,7 @@ class SharedDataRefreshCoordinator {
       ..invalidate(myArmoireProvider)
       ..invalidate(myFeaturedCodesProvider)
       ..invalidate(featuredBadgesProvider)
-      ..invalidate(hasUnseenBadgeProvider)
-      ..invalidate(publishedSportMatchResultProvider)
-      ..invalidate(sportMotmVoteProvider);
+      ..invalidate(hasUnseenBadgeProvider);
   }
 }
 
