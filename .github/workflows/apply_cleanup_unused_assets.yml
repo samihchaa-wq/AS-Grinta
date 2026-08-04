@@ -65,9 +65,7 @@ jobs:
           flutter pub get
           git diff --check
 
-          git rm .github/workflows/apply_cleanup_unused_assets.yml
-
-          mapfile -t changed < <(git diff --name-only | sort)
+          mapfile -t changed < <(git diff --name-only HEAD | sort)
           expected=(
             assets/images/keeper_logo.png
             assets/images/module_backgrounds/as_grinta_global_hd.png
@@ -93,6 +91,8 @@ jobs:
             echo 'cupertino_icons still declared' >&2
             exit 1
           fi
+
+          git rm .github/workflows/apply_cleanup_unused_assets.yml
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
