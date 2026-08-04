@@ -1,0 +1,49 @@
+name: Format cleanup 8
+
+on:
+  push:
+    branches:
+      - cleanup/current-hdm-and-dead-wrappers
+
+permissions:
+  contents: write
+
+concurrency:
+  group: format-cleanup-8
+  cancel-in-progress: true
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/current-hdm-and-dead-wrappers
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: |
+          dart format \
+            lib/features/matches/data/matches_repository.dart \
+            lib/features/matches/domain/match_model.dart \
+            lib/features/predictions/presentation/widgets/match_history_card.dart \
+            lib/features/sports_management/data/sport_waitlist_repository.dart \
+            lib/features/sports_management/presentation/sport_motm_vote_page.dart
+      - run: |
+          set -euo pipefail
+          rm .github/workflows/format_cleanup_8.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'No formatting changes needed.'
+            exit 0
+          fi
+          git commit -m 'Format cleanup 8 with resolved Flutter config'
+          git push origin HEAD:cleanup/current-hdm-and-dead-wrappers
