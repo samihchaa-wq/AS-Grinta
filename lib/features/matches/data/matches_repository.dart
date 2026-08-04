@@ -22,6 +22,7 @@ class MatchesRepository {
       score_as_grinta,
       score_adverse,
       predictions_closed_at,
+      result_validated_at,
       address,
       match_type,
       jersey_note,
@@ -55,8 +56,10 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response =
-        await _client.from('seasons').select('id, name, status').order('name');
+    final response = await _client
+        .from('seasons')
+        .select('id, name, status')
+        .order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();

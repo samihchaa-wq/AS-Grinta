@@ -38,6 +38,24 @@ void main() {
       expect(match.kickoffAt.toUtc(), DateTime.utc(2026, 8, 20, 18, 45));
     });
 
+    test('keeps the server result validation instant', () {
+      final match = MatchModel.fromJson({
+        'id': '1',
+        'season_id': 'season-1',
+        'opponent_id': 'opp-1',
+        'kickoff_at': '2026-08-20T18:45:00Z',
+        'location': 'domicile',
+        'planned_duration_minutes': 90,
+        'status': 'termine',
+        'result_validated_at': '2026-08-20T20:42:10Z',
+      });
+
+      expect(
+        match.resultValidatedAt?.toUtc(),
+        DateTime.utc(2026, 8, 20, 20, 42, 10),
+      );
+    });
+
     test('keeps the legacy local fields as a migration fallback', () {
       final match = MatchModel.fromJson({
         'id': '1',
