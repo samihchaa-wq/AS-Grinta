@@ -385,6 +385,24 @@ select is(
 );
 
 -- Finalisation réservée au staff, rollback complet, puis succès.
+-- Replacer le match de finalisation dans le passé pendant qu'il est encore éditable.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"10000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select ok(
+  public.update_match_with_odds(
+    (select id from public.matches where match_date = date '2098-02-01'),
+    '20000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    date '2000-01-03', time '20:30', 'exterieur', 'a_venir', 2.20, 3.30, 4.40
+  ),
+  'la fixture de finalisation est replacée après sa fenêtre de fin planifiée'
+);
+reset role;
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"10000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
@@ -392,7 +410,7 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$select public.finalize_match_postgame_with_lineup((select id from public.matches where match_date = date '2098-02-01'), 0, '[]'::jsonb, '40000000-0000-0000-0000-000000000001', 0, array['40000000-0000-0000-0000-000000000001']::uuid[], '40000000-0000-0000-0000-000000000001')$$,
+  $$select public.finalize_match_postgame_with_lineup((select id from public.matches where match_date = date '2000-01-03'), 0, '[]'::jsonb, '40000000-0000-0000-0000-000000000001', 0, array['40000000-0000-0000-0000-000000000001']::uuid[], '40000000-0000-0000-0000-000000000001')$$,
   '42501',
   'un pronostiqueur ne peut pas finaliser un match'
 );
@@ -405,13 +423,13 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$select public.finalize_match_postgame_with_lineup((select id from public.matches where match_date = date '2098-02-01'), 0, jsonb_build_array(jsonb_build_object('season_player_id', '40000000-0000-0000-0000-000000000002', 'goals', 2)), '40000000-0000-0000-0000-000000000001', 1, array['40000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002']::uuid[], '40000000-0000-0000-0000-000000000001')$$,
+  $$select public.finalize_match_postgame_with_lineup((select id from public.matches where match_date = date '2000-01-03'), 0, jsonb_build_array(jsonb_build_object('season_player_id', '40000000-0000-0000-0000-000000000002', 'goals', 2)), '40000000-0000-0000-0000-000000000001', 1, array['40000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000002']::uuid[], '40000000-0000-0000-0000-000000000001')$$,
   '22023',
   'une incohérence de score fait échouer la finalisation'
 );
 reset role;
 select is(
-  (select concat_ws('|', m.status, count(distinct a.season_player_id)::text, count(distinct mvp.season_player_id)::text) from public.matches m left join public.match_attendance a on a.match_id = m.id left join public.match_man_of_match mvp on mvp.match_id = m.id where m.match_date = date '2098-02-01' group by m.id, m.status),
+  (select concat_ws('|', m.status, count(distinct a.season_player_id)::text, count(distinct mvp.season_player_id)::text) from public.matches m left join public.match_attendance a on a.match_id = m.id left join public.match_man_of_match mvp on mvp.match_id = m.id where m.match_date = date '2000-01-03' group by m.id, m.status),
   'a_venir|0|0',
   'l’échec de finalisation annule présence, MVP et résultat'
 );
@@ -424,7 +442,7 @@ select set_config(
 set local role authenticated;
 select ok(
   public.finalize_match_postgame_with_lineup(
-    (select id from public.matches where match_date = date '2098-02-01'),
+    (select id from public.matches where match_date = date '2000-01-03'),
     0,
     '[]'::jsonb,
     '40000000-0000-0000-0000-000000000001',
@@ -436,7 +454,7 @@ select ok(
 );
 reset role;
 select is(
-  (select concat_ws('|', m.status, m.score_as_grinta::text, m.score_adverse::text, count(distinct a.season_player_id)::text, count(distinct mvp.season_player_id)::text, count(distinct case when stats.clean_sheet then stats.season_player_id end)::text) from public.matches m left join public.match_attendance a on a.match_id = m.id left join public.match_man_of_match mvp on mvp.match_id = m.id left join public.match_player_stats stats on stats.match_id = m.id where m.match_date = date '2098-02-01' group by m.id, m.status, m.score_as_grinta, m.score_adverse),
+  (select concat_ws('|', m.status, m.score_as_grinta::text, m.score_adverse::text, count(distinct a.season_player_id)::text, count(distinct mvp.season_player_id)::text, count(distinct case when stats.clean_sheet then stats.season_player_id end)::text) from public.matches m left join public.match_attendance a on a.match_id = m.id left join public.match_man_of_match mvp on mvp.match_id = m.id left join public.match_player_stats stats on stats.match_id = m.id where m.match_date = date '2000-01-03' group by m.id, m.status, m.score_as_grinta, m.score_adverse),
   'termine|0|0|1|1|1',
   'la finalisation enregistre résultat, présence, MVP et clean sheet'
 );
