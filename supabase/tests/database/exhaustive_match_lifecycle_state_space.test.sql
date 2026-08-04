@@ -37,9 +37,11 @@ on pg_temp.match_creation_state_space to authenticated;
 
 -- This matrix tests create_match_with_odds date/odds validation, including the
 -- historical lower bound year 2000. Temporarily disable only the UPDATE/DELETE
--- lifecycle trigger so each successful fixture can be removed before the next
--- matrix case. It is re-enabled before any lifecycle/delete assertion below.
+-- lifecycle trigger and grant DELETE only inside this rollback-only fixture so
+-- each successful case can be removed before the next matrix case. Both are
+-- restored before any lifecycle/delete authorization assertion below.
 alter table public.matches disable trigger trg_guard_match_lifecycle_write;
+grant delete on public.matches to authenticated;
 
 select set_config('request.jwt.claims',
   '{"sub":"e1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
@@ -81,6 +83,7 @@ end;
 $state_space$;
 
 reset role;
+revoke delete on public.matches from authenticated;
 alter table public.matches enable trigger trg_guard_match_lifecycle_write;
 set local role authenticated;
 
