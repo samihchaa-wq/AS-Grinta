@@ -251,17 +251,21 @@ class BadgeEmblem extends StatelessWidget {
                     width: size * 0.018,
                   ),
                 ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: size * 0.045),
-                    child: Text(
-                      bareme,
-                      style: TextStyle(
-                        fontSize: size * 0.24,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                child: Transform.translate(
+                  offset: Offset(0, -size * 0.018),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: size * 0.045),
+                      child: Text(
+                        bareme,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: size * 0.24,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
