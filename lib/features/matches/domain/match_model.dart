@@ -81,12 +81,12 @@ class MatchModel {
   bool get pronosClosed => predictionsClosedAt != null;
 
   MatchDisplayPhase phase({DateTime? now}) => matchDisplayPhase(
-    kickoffAt: kickoffAt,
-    status: status,
-    plannedDurationMinutes: plannedDurationMinutes,
-    liveState: liveState,
-    now: now,
-  );
+        kickoffAt: kickoffAt,
+        status: status,
+        plannedDurationMinutes: plannedDurationMinutes,
+        liveState: liveState,
+        now: now,
+      );
 
   /// Le match est fini sportivement mais son compte rendu n'est pas encore
   /// validé. On ne le mélange plus avec les matchs passés.
@@ -121,14 +121,14 @@ class MatchModel {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-        ? Map<String, dynamic>.from(oddsRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
     final liveRaw = json['match_live_sessions'];
     final live = liveRaw is List && liveRaw.isNotEmpty
         ? Map<String, dynamic>.from(liveRaw.first as Map)
         : liveRaw is Map
-        ? Map<String, dynamic>.from(liveRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(liveRaw)
+            : const <String, dynamic>{};
 
     return MatchModel(
       id: json['id']?.toString() ?? '',
@@ -165,9 +165,8 @@ class MatchModel {
       opponentName: json['opponents'] is Map
           ? json['opponents']['name']?.toString()
           : null,
-      seasonName: json['seasons'] is Map
-          ? json['seasons']['name']?.toString()
-          : null,
+      seasonName:
+          json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
       address: (json['address']?.toString().trim().isNotEmpty ?? false)
           ? json['address'].toString()
           : null,

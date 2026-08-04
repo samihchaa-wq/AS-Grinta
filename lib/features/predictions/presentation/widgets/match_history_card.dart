@@ -22,8 +22,7 @@ class MatchHistoryCard extends ConsumerWidget {
     final now = DateTime.now();
     final validationAt = match.resultValidatedAt;
     final voteWindowEnd = validationAt?.add(const Duration(hours: 24));
-    final voteMayStillBeOpen =
-        validationAt != null &&
+    final voteMayStillBeOpen = validationAt != null &&
         voteWindowEnd != null &&
         !now.isBefore(validationAt) &&
         now.isBefore(voteWindowEnd);
@@ -31,18 +30,15 @@ class MatchHistoryCard extends ConsumerWidget {
         ? ref.watch(sportMotmVoteProvider(match.id)).valueOrNull
         : null;
     final isAdmin = ref.watch(isAdminViewProvider);
-    final actions =
-        adminActions ??
+    final actions = adminActions ??
         (isAdmin ? AdminMatchOptionsButton(match: match) : null);
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
-    final homeScore = match.isHome
-        ? match.grintaScore ?? 0
-        : match.opponentScore ?? 0;
-    final awayScore = match.isHome
-        ? match.opponentScore ?? 0
-        : match.grintaScore ?? 0;
+    final homeScore =
+        match.isHome ? match.grintaScore ?? 0 : match.opponentScore ?? 0;
+    final awayScore =
+        match.isHome ? match.opponentScore ?? 0 : match.grintaScore ?? 0;
 
     return Card(
       color: const Color(0xFF20242C),
@@ -72,7 +68,9 @@ class MatchHistoryCard extends ConsumerWidget {
                         homeScore: homeScore,
                         awayScore: awayScore,
                         finished: true,
-                        nameStyle: Theme.of(context).textTheme.titleMedium
+                        nameStyle: Theme.of(context)
+                            .textTheme
+                            .titleMedium
                             ?.copyWith(fontSize: 17, height: 1.1),
                         scoreFontSize: 20,
                         textAlign: TextAlign.center,
@@ -115,7 +113,9 @@ class MatchHistoryCard extends ConsumerWidget {
                             vote.hasVoted
                                 ? 'Appuie pour consulter le scrutin.'
                                 : 'Choisis un joueur depuis la composition.',
-                            style: Theme.of(context).textTheme.bodySmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
                                 ?.copyWith(color: AppTheme.textSecondary),
                           ),
                         ],
