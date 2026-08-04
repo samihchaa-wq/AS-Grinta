@@ -72,8 +72,7 @@ class SharedDataSignalCursor {
     }
     if (signal.revision <= previousRevision) return null;
 
-    final previousProfileRevision =
-        _lastProfileRevision ?? previousRevision;
+    final previousProfileRevision = _lastProfileRevision ?? previousRevision;
     final refreshProfile = signal.profileRevision > previousProfileRevision;
     _lastRevision = signal.revision;
     if (_lastProfileRevision == null ||
