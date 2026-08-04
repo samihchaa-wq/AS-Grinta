@@ -3,6 +3,10 @@ name: Audit baseline metrics
 on:
   push:
     branches: [audit-baseline-metrics]
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit_baseline_metrics.yml'
 
 permissions:
   contents: read
