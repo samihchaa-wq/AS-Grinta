@@ -1,0 +1,72 @@
+name: Fix cleanup 695 single cascades
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix_cleanup_695_cascades.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-cleanup-695-cascades
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    if: github.head_ref == 'cleanup/remove-home-dashboard-compat'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cleanup/remove-home-dashboard-compat
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Replace exactly the five obsolete single cascades
+        shell: python
+        run: |
+          from pathlib import Path
+
+          replacements = {
+              Path('lib/features/matches/presentation/widgets/admin_match_options_button.dart'): (
+                  'ref..invalidate(matchDetailsProvider(match.id));',
+                  'ref.invalidate(matchDetailsProvider(match.id));',
+                  4,
+              ),
+              Path('lib/features/match_live/presentation/match_live_recap_page.dart'): (
+                  'ref..invalidate(matchDetailsProvider(widget.matchId));',
+                  'ref.invalidate(matchDetailsProvider(widget.matchId));',
+                  1,
+              ),
+          }
+
+          for path, (old, new, expected) in replacements.items():
+              text = path.read_text()
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(
+                      f'{path}: expected {expected} occurrences of {old!r}, found {count}'
+                  )
+              path.write_text(text.replace(old, new))
+
+      - name: Format and analyze exactly as project CI
+        run: |
+          dart format \
+            lib/features/match_live/presentation/match_live_recap_page.dart \
+            lib/features/matches/presentation/widgets/admin_match_options_button.dart
+          flutter analyze --fatal-warnings --fatal-infos
+      - name: Remove temporary fixer
+        run: rm .github/workflows/fix_cleanup_695_cascades.yml
+      - name: Commit verified fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --check
+          git commit -m "Fix lint after home dashboard cleanup"
+          git push origin HEAD:cleanup/remove-home-dashboard-compat
