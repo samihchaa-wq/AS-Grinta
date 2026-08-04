@@ -31,6 +31,8 @@ class MatchCore {
   bool get isFriendly => matchType == 'amical';
   bool get isInternal => matchType == 'entre_nous';
   bool get isUpcoming => status == 'a_venir';
+  bool get isFinished => status == 'termine' || status == 'archive';
+  bool get isCancelled => status == 'annule';
   bool get grintaIsHome => location == 'domicile';
 }
 
