@@ -272,6 +272,12 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260802050000_match_weather.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260802193000_player_team_clean_sheets_statistics.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260802210000_correct_samih_all_time_goal.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803000000_shared_data_change_signal.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803010000_remove_x2_and_private_profile_photos.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803011000_immediate_effectif_and_composition.sql
@@ -292,6 +298,10 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260803161358_match_weather_security_floor.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260803183000_harden_notifications_motm_and_hot_paths.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804003000_match_state_integrity_and_push_retention.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804180000_match_lifecycle_cleanup.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804180500_live_coach_finalize_context.sql
@@ -305,6 +315,12 @@ jobs:
               -f supabase/migrations/20260804182500_lock_generic_match_status_updates.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804183000_anchor_motm_to_validation.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804190000_match_live_add_late_players.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804190500_preserve_live_t15_after_late_players.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260804201000_motm_result_notifications.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/season_lifecycle_acl.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
