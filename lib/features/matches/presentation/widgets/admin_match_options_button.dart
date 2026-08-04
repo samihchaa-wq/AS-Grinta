@@ -1,5 +1,4 @@
 import 'package:as_grinta/core/utils/match_window.dart';
-import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
@@ -19,7 +18,6 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref
-      ..invalidate(homeDashboardProvider)
       ..invalidate(matchDetailsProvider(match.id));
     await ref.read(matchesControllerProvider.notifier).load(allSeasons: true);
   }
@@ -50,7 +48,6 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     if (!confirmed || !context.mounted) return;
     await ref.read(matchesControllerProvider.notifier).cancelMatch(match.id);
     ref
-      ..invalidate(homeDashboardProvider)
       ..invalidate(matchDetailsProvider(match.id));
   }
 
@@ -82,7 +79,6 @@ class AdminMatchOptionsButton extends ConsumerWidget {
         .read(matchesControllerProvider.notifier)
         .finishInternalMatch(match.id);
     ref
-      ..invalidate(homeDashboardProvider)
       ..invalidate(matchDetailsProvider(match.id));
   }
 
@@ -111,7 +107,6 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     if (!confirmed || !context.mounted) return;
     await ref.read(matchesControllerProvider.notifier).deleteMatch(match.id);
     ref
-      ..invalidate(homeDashboardProvider)
       ..invalidate(matchDetailsProvider(match.id));
   }
 

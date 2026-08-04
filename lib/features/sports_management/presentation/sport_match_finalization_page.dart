@@ -1,7 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
-import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
@@ -210,7 +209,6 @@ class _SportMatchFinalizationPageState
       if (!mounted) return;
       setState(() => _finalization = saved);
       ref.invalidate(matchDetailsProvider(widget.matchId));
-      ref.invalidate(homeDashboardProvider);
       ref.invalidate(publishedSportMatchResultProvider(widget.matchId));
       _showMessage(
         saved.version == 1

@@ -1,6 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
@@ -215,8 +214,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
             reason: 'Export depuis le Tableau Blanc',
           );
       ref
-        ..invalidate(matchDetailsProvider(widget.matchId))
-        ..invalidate(homeDashboardProvider);
+        ..invalidate(matchDetailsProvider(widget.matchId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Match publié dans le compte rendu.')),
