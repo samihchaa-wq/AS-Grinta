@@ -1,0 +1,32 @@
+name: Temporary Dart format probe
+
+on:
+  push:
+    branches:
+      - agent/match-lifecycle-cleanup
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.8'
+          channel: stable
+          cache: true
+      - name: Show exact formatter diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            lib/features/matches/presentation/matches_page.dart
+            lib/features/matches/presentation/widgets/admin_match_options_button.dart
+            lib/features/predictions/presentation/merged_matches_view.dart
+          )
+          dart format "${files[@]}"
+          git diff --no-ext-diff --unified=4 -- "${files[@]}"
+          test -z "$(git status --porcelain -- "${files[@]}")"
