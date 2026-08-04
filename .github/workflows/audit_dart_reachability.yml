@@ -1,0 +1,86 @@
+name: Audit Dart reachability
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit_dart_reachability.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit-dart-reachability
+      - name: Compute static import reachability from lib/main.dart
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+          import re
+
+          root = Path('lib')
+          files = sorted(root.rglob('*.dart'))
+          by_rel = {p.as_posix(): p for p in files}
+          imports = {}
+          pattern = re.compile(r"^\s*(?:import|export|part)\s+['\"]([^'\"]+)['\"]", re.M)
+
+          def resolve(source: Path, uri: str):
+              if uri.startswith('dart:') or uri.startswith('package:flutter') or uri.startswith('package:riverpod') or uri.startswith('package:flutter_') or uri.startswith('package:go_router') or uri.startswith('package:supabase_') or uri.startswith('package:shared_') or uri.startswith('package:web') or uri.startswith('package:') and not uri.startswith('package:as_grinta/'):
+                  return None
+              if uri.startswith('package:as_grinta/'):
+                  target = root / uri[len('package:as_grinta/'):]
+              else:
+                  target = (source.parent / uri).resolve()
+                  try:
+                      target = target.relative_to(Path.cwd().resolve())
+                  except ValueError:
+                      return None
+              target = Path(target)
+              key = target.as_posix()
+              return key if key in by_rel else None
+
+          for path in files:
+              text = path.read_text(encoding='utf-8')
+              deps = []
+              for uri in pattern.findall(text):
+                  target = resolve(path, uri)
+                  if target:
+                      deps.append(target)
+              imports[path.as_posix()] = sorted(set(deps))
+
+          entrypoints = ['lib/main.dart']
+          reachable = set()
+          stack = list(entrypoints)
+          while stack:
+              current = stack.pop()
+              if current in reachable or current not in imports:
+                  continue
+              reachable.add(current)
+              stack.extend(imports[current])
+
+          unreachable = sorted(set(by_rel) - reachable)
+          incoming = {key: 0 for key in by_rel}
+          for deps in imports.values():
+              for dep in deps:
+                  incoming[dep] += 1
+
+          result = {
+              'total_dart_files': len(files),
+              'reachable_from_main': len(reachable),
+              'unreachable_from_main': len(unreachable),
+              'unreachable': [
+                  {'path': path, 'incoming_imports': incoming[path]}
+                  for path in unreachable
+              ],
+          }
+          Path('dart-reachability.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(Path('dart-reachability.json').read_text())
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dart-reachability
+          path: dart-reachability.json
