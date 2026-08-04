@@ -186,10 +186,13 @@ select public.update_match_with_odds(
   current_setting('test.lifecycle_replacement_match')::uuid,
   'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',
   date '2000-01-02',time '21:00','exterieur','a_venir',2,3,4);
-select public.update_match_with_odds(
-  current_setting('test.lifecycle_replacement_match')::uuid,
-  'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000002',
-  date '2000-01-02',time '21:00','exterieur','termine',null,null,null);
+-- Seed a genuinely finished row as test setup. The generic edit RPC is
+-- intentionally no longer allowed to perform lifecycle transitions.
+reset role;
+update public.matches
+set status = 'termine', updated_at = now()
+where id = current_setting('test.lifecycle_replacement_match')::uuid;
+set local role authenticated;
 select ok(public.archive_match(current_setting('test.lifecycle_replacement_match')::uuid),'archivage initial réussi');
 select throws_ok(format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),'P0002','double archivage refusé');
 
