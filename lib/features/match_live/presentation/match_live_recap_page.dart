@@ -1,6 +1,5 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/features/home/data/home_repository.dart';
 import 'package:as_grinta/features/match_live/data/match_live_repository.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/presentation/widgets/live_substitution_line.dart';
@@ -86,9 +85,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
     Map<String, int> goalsByParticipant,
   ) {
     final liveEntry = lineup?.entries
-        .where(
-          (entry) => entry.participantId == participant.participantId,
-        )
+        .where((entry) => entry.participantId == participant.participantId)
         .firstOrNull;
     if (liveEntry == null) return participant;
     final present = liveEntry.zone == MatchCompositionZone.field ||
@@ -214,9 +211,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
             participants: value.participants,
             reason: 'Export depuis le Tableau Blanc',
           );
-      ref
-        ..invalidate(matchDetailsProvider(widget.matchId))
-        ..invalidate(homeDashboardProvider);
+      ref.invalidate(matchDetailsProvider(widget.matchId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Match publié dans le compte rendu.')),
@@ -283,10 +278,9 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
               children: [
                 Text(
                   'Score final',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                 ),
                 const SizedBox(height: 12),
                 _ScoreLine(
@@ -400,10 +394,9 @@ class _ScoreLine extends StatelessWidget {
             name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
         ),
         IconButton.filledTonal(
@@ -465,9 +458,7 @@ class _RecapParticipantCard extends StatelessWidget {
                 participant.displayName.trim(),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
-              subtitle: Text(
-                participant.isGuest ? 'Invité' : 'Effectif',
-              ),
+              subtitle: Text(participant.isGuest ? 'Invité' : 'Effectif'),
             ),
             if (participant.present) ...[
               const Divider(),
