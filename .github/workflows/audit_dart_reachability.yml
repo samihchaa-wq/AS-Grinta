@@ -22,6 +22,7 @@ jobs:
           from pathlib import Path
           import json
           import re
+          import subprocess
 
           root = Path('lib')
           files = sorted(root.rglob('*.dart'))
@@ -69,6 +70,25 @@ jobs:
               for dep in deps:
                   incoming[dep] += 1
 
+          candidates = {
+              'lib/core/widgets/grinta_form_section.dart': ['GrintaFormSection', 'grinta_form_section.dart'],
+              'lib/core/widgets/grinta_responsive_content.dart': ['GrintaResponsiveContent', 'GrintaResponsiveGrid', 'grinta_responsive_content.dart'],
+          }
+          references = {}
+          for candidate, needles in candidates.items():
+              found = []
+              for needle in needles:
+                  proc = subprocess.run(
+                      ['git', 'grep', '-n', '-F', needle, '--', ':!'+candidate],
+                      text=True,
+                      capture_output=True,
+                  )
+                  if proc.returncode not in (0, 1):
+                      raise SystemExit(proc.stderr)
+                  if proc.stdout.strip():
+                      found.extend(proc.stdout.strip().splitlines())
+              references[candidate] = sorted(set(found))
+
           result = {
               'total_dart_files': len(files),
               'reachable_from_main': len(reachable),
@@ -77,6 +97,7 @@ jobs:
                   {'path': path, 'incoming_imports': incoming[path]}
                   for path in unreachable
               ],
+              'whole_repo_references_excluding_definition': references,
           }
           Path('dart-reachability.json').write_text(json.dumps(result, indent=2) + '\n')
           print(Path('dart-reachability.json').read_text())
