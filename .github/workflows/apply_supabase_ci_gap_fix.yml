@@ -119,3 +119,5 @@ select ok(
           git diff --cached --check
           git commit -m "Close Supabase business-test migration gap"
           git push origin HEAD:cleanup/close-supabase-ci-gap
+
+# Temporary workflow: self-removes after the verified patch.
