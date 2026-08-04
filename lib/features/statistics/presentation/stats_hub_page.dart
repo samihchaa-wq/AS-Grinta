@@ -124,6 +124,7 @@ enum _PlayerStatCol {
 }
 
 const _playerValueFlex = 1;
+const _playerHeaderFontSize = 14.0;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
@@ -270,7 +271,9 @@ class _PlayersPinnedHeader extends StatelessWidget {
         active: sort == _PlayerStatCol.name,
         descending: descending,
         onTap: () => onSort(_PlayerStatCol.name),
-        style: grintaTableHeaderTextStyle(context),
+        style: grintaTableHeaderTextStyle(context).copyWith(
+          fontSize: _playerHeaderFontSize,
+        ),
       ),
     );
   }
@@ -289,7 +292,9 @@ class _PlayersScrollableHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = grintaTableHeaderTextStyle(context);
+    final style = grintaTableHeaderTextStyle(context).copyWith(
+      fontSize: _playerHeaderFontSize,
+    );
 
     Widget valueCell(String label, _PlayerStatCol column) {
       return SortableHeaderCell(
