@@ -69,13 +69,6 @@ jobs:
             fi
 
             if [[ "$version" < "$previous" || "$version" == "$previous" ]]; then
-              if [ "${{ github.head_ref }}" = 'ci/supabase-migration-drift-guard' ] && \
-                 [[ "$version" = '20260804225114' || \
-                    "$version" = '20260804225719' || \
-                    "$version" = '20260804235037' ]]; then
-                echo "Restoring production migration history entry $version on the dedicated reconciliation branch."
-                continue
-              fi
               echo "Migration $name is not newer than $previous." >&2
               echo "New migrations must be strictly ordered after the base branch history." >&2
               exit 1
