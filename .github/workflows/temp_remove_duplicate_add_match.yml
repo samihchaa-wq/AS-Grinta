@@ -87,7 +87,12 @@ jobs:
           text = text.replace(regular_button, '')
           path.write_text(text)
           PY
-          dart format lib/features/predictions/presentation/merged_matches_view.dart || true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format lib/features/predictions/presentation/merged_matches_view.dart
       - name: Commit patch
         run: |
           if git diff --quiet; then
