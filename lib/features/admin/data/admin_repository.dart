@@ -98,17 +98,20 @@ class AdminRepository {
     final profilesRaw = await _client.rpc('staff_list_profiles');
     final profiles = (profilesRaw as List)
         .map((row) => Map<String, dynamic>.from(row))
-        .map(
-          (row) => AdminProfileItem(
+        .map((row) {
+          final rawRole = (row['role'] ?? 'pronostiqueur').toString();
+          return AdminProfileItem(
             id: row['id'].toString(),
             firstName: (row['first_name'] ?? '').toString(),
             lastName: (row['last_name'] ?? '').toString(),
             username: (row['username'] ?? '').toString(),
             passwordSet: row['password_set'] != false,
-            role: (row['role'] ?? 'pronostiqueur').toString(),
+            // Compatibilité pendant la transition de production : l'ancien
+            // rôle « moderateur » est présenté comme Admin.
+            role: rawRole == 'moderateur' ? 'admin' : rawRole,
             status: (row['status'] ?? 'active').toString(),
-          ),
-        )
+          );
+        })
         .toList();
 
     return AdminDashboardData(
@@ -196,10 +199,9 @@ class AdminRepository {
     await _updatePrivilegedProfileFields(profileId: profileId, status: status);
   }
 
-  /// Attribue un rôle. Distribuer ou retirer « moderateur » est refusé côté
-  /// serveur à quelqu'un qui ne l'est pas lui-même.
+  /// Attribue l'un des deux niveaux d'accès applicatifs.
   Future<void> updateProfileRole(String profileId, String role) async {
-    if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
+    if (!const ['pronostiqueur', 'admin'].contains(role)) {
       throw ArgumentError('Rôle invalide.');
     }
     await _updatePrivilegedProfileFields(profileId: profileId, role: role);
