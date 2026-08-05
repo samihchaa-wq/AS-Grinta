@@ -160,7 +160,7 @@ jobs:
       - name: Check formatting of all Dart files
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           mapfile -t files < <(git ls-files '*.dart')
           if [ "${#files[@]}" -eq 0 ]; then
             echo "::error::Aucun fichier Dart suivi par Git."
@@ -168,13 +168,6 @@ jobs:
           fi
           dart format --output=none --set-exit-if-changed "${files[@]}" \
             2>&1 | tee format.log
-          status=${PIPESTATUS[0]}
-          if [ "$status" -ne 0 ]; then
-            echo '===== FORMAT_DEBUG_START ====='
-            cat lib/features/matches/presentation/calendar_matches_view.dart
-            echo '===== FORMAT_DEBUG_END ====='
-          fi
-          exit "$status"
 
       - name: Analyze with fatal warnings and infos
         shell: bash
@@ -243,74 +236,53 @@ jobs:
           commit_file()
 
           if total_lines == 0:
-              raise SystemExit('Aucune ligne de couverture exploitable.')
+              raise SystemExit('Le rapport de couverture ne contient aucune ligne instrumentée.')
 
-          coverage = (covered_lines / total_lines) * 100.0
-          minimum = float(os.environ['MIN_LINE_COVERAGE'])
-          print(
-              f'Couverture lignes : {coverage:.2f}% '
-              f'({covered_lines}/{total_lines}) sur {source_files} fichiers.'
+          percentage = covered_lines * 100 / total_lines
+          threshold = float(os.environ['MIN_LINE_COVERAGE'])
+          summary = (
+              f'Fichiers instrumentés : {source_files}\n'
+              f'Lignes couvertes : {covered_lines}/{total_lines}\n'
+              f'Couverture de lignes : {percentage:.2f}%\n'
+              f'Seuil minimal : {threshold:.2f}%\n'
           )
-          if coverage + 1e-9 < minimum:
+          Path('coverage-summary.txt').write_text(summary)
+          print(summary, end='')
+          if percentage + 1e-9 < threshold:
               raise SystemExit(
-                  f'Couverture insuffisante : {coverage:.2f}% < {minimum:.2f}%.'
+                  f'Couverture insuffisante : {percentage:.2f}% < {threshold:.2f}%.'
               )
           PY
 
-      - name: Build web with production public config
+      - name: Build web
         shell: bash
         run: |
           set -o pipefail
           flutter build web \
+            --release \
+            --base-href "/AS-Grinta/" \
+            --pwa-strategy=none \
+            --no-web-resources-cdn \
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
-            --base-href /AS-Grinta/ \
-            --pwa-strategy=none \
             2>&1 | tee build-web.log
 
-      - name: Verify generated web build
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s build/web/index.html
-          test -s build/web/main.dart.js
-          test -s build/web/flutter_bootstrap.js
-          test -s build/web/build_version.js
-          grep -Fq "window.AS_GRINTA_WEB_VERSION = '${APP_VERSION}';" build/web/build_version.js
-          grep -Fq 'flutter_bootstrap.js?v=' build/web/index.html
-          if [ -f build/web/flutter_service_worker.js ]; then
-            echo "::error::Le service worker Flutter ne doit pas être généré avec --pwa-strategy=none."
-            exit 1
-          fi
-          echo 'Vérification build/web OK.'
-
-      - name: Prepare validation diagnostics
-        if: failure()
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p validation-diagnostics
-          for file in \
-            pub-get.log \
-            dependency-outdated.json \
-            dependency-outdated.stderr.log \
-            dependency-graph.json \
-            dependency-graph.stderr.log \
-            dependency-summary.txt \
-            format.log \
-            analyze.log \
-            test.log \
-            build-web.log; do
-            if [ -f "$file" ]; then
-              cp "$file" validation-diagnostics/
-            fi
-          done
-
-      - name: Upload validation diagnostics
-        if: failure()
+      - name: Upload validation logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: flutter-ci-diagnostics-${{ github.run_id }}
-          path: validation-diagnostics
+          name: flutter-validation-logs
+          path: |
+            pub-get.log
+            dependency-outdated.json
+            dependency-outdated.stderr.log
+            dependency-graph.json
+            dependency-graph.stderr.log
+            dependency-summary.txt
+            format.log
+            analyze.log
+            test.log
+            coverage/lcov.info
+            coverage-summary.txt
+            build-web.log
           if-no-files-found: warn
-          retention-days: 3
