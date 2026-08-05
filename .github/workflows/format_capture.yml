@@ -1,0 +1,25 @@
+name: Temporary format capture
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format calendar source
+        run: dart format lib/features/matches/presentation/calendar_matches_view.dart
+      - name: Upload formatted source
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-calendar-source
+          path: lib/features/matches/presentation/calendar_matches_view.dart
