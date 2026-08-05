@@ -1,0 +1,101 @@
+name: Temp remove duplicate add match
+
+on:
+  push:
+    branches:
+      - agent/club-events-ui
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove legacy add-match buttons
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/predictions/presentation/merged_matches_view.dart')
+          text = path.read_text()
+          text = text.replace("import 'package:as_grinta/features/matches/presentation/match_form_page.dart';\n", '')
+          method = """  Future<void> _openMatchForm(BuildContext context) async {
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const MatchFormPage()));
+            if (!context.mounted) return;
+            await _refresh();
+          }
+
+          """
+          if method not in text:
+            raise SystemExit('legacy _openMatchForm block not found')
+          text = text.replace(method, '')
+          empty_button = """                    if (isAdmin) ...[
+                      const SizedBox(height: AppSpacing.sectionGap),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.tonalIcon(
+                          onPressed: () => _openMatchForm(context),
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Ajouter un match'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.cardPadding,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ),
+                    ],
+          """
+          if empty_button not in text:
+            raise SystemExit('empty-state add button block not found')
+          text = text.replace(empty_button, '')
+          regular_button = """            if (isAdmin)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.screenGutter,
+                  0,
+                  AppSpacing.screenGutter,
+                  AppSpacing.sectionGap,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => _openMatchForm(context),
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Ajouter un match'),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 42),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.cardPadding,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          """
+          if regular_button not in text:
+            raise SystemExit('regular add button block not found')
+          text = text.replace(regular_button, '')
+          path.write_text(text)
+          PY
+          dart format lib/features/predictions/presentation/merged_matches_view.dart || true
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then
+            echo "Aucun changement."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/predictions/presentation/merged_matches_view.dart
+          git commit -m "Déplace définitivement le bouton Ajouter un match"
+          git push origin HEAD:agent/club-events-ui
