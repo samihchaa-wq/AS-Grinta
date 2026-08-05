@@ -6,7 +6,7 @@ on:
       - agent/club-events-ui
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format-diff:
@@ -18,13 +18,23 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
-      - name: Show exact Dart formatter diff
+      - name: Format exact Dart files
         run: |
           dart format \
             lib/features/matches/presentation/calendar_entry_form_page.dart \
             lib/features/matches/presentation/calendar_matches_view.dart \
             test/calendar_export_test.dart
-          git diff -- \
+      - name: Commit formatter result when needed
+        run: |
+          if git diff --quiet; then
+            echo "Aucun formatage restant."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
             lib/features/matches/presentation/calendar_entry_form_page.dart \
             lib/features/matches/presentation/calendar_matches_view.dart \
             test/calendar_export_test.dart
+          git commit -m "Formate les événements du calendrier"
+          git push origin HEAD:agent/club-events-ui
