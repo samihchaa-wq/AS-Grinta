@@ -5,6 +5,7 @@ import 'package:as_grinta/core/network/connectivity_service.dart';
 import 'package:as_grinta/core/sync/shared_data_sync.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
+import 'package:as_grinta/core/widgets/grinta_app_background.dart';
 import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -87,15 +88,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
           child: GrintaAccessibilityScope(
             child: Stack(
               children: [
-                const Positioned.fill(
-                  child: Image(
-                    image: AssetImage('assets/images/app_background.webp'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const Positioned.fill(
-                  child: ColoredBox(color: Color(0x33050B17)),
-                ),
+                const Positioned.fill(child: GrintaAppBackground()),
                 Column(
                   children: [
                     if (!isOnline)
