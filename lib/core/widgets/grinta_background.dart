@@ -17,7 +17,7 @@ class GrintaBackground extends StatefulWidget {
 
 class _GrintaBackgroundState extends State<GrintaBackground> {
   static const _backgroundAsset =
-      'assets/images/module_backgrounds/as_grinta_global_small.webp.b64';
+      'assets/images/module_backgrounds/sporteasy_grinta_global_v2.webp.b64';
 
   MemoryImage? _background;
 
