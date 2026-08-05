@@ -6,6 +6,17 @@ on:
     paths:
       - '.github/workflows/deploy_sports_management.yml'
   workflow_dispatch:
+    inputs:
+      apply_migrations:
+        description: 'Apply pending database migrations after a successful dry-run'
+        required: true
+        default: false
+        type: boolean
+      deploy_send_push:
+        description: 'Deploy the send-push Edge Function'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -88,6 +99,7 @@ jobs:
             --dry-run
 
       - name: Apply pending migrations
+        if: github.event_name == 'workflow_dispatch' && inputs.apply_migrations
         shell: bash
         run: |
           set -euo pipefail
@@ -95,13 +107,14 @@ jobs:
             --password "$SUPABASE_DB_PASSWORD" \
             --yes
 
-      - name: Record migration state after deployment
+      - name: Record migration state after preflight or deployment
         shell: bash
         run: |
           set -euo pipefail
           supabase migration list | tee migration-after.txt
 
       - name: Deploy send-push
+        if: github.event_name == 'workflow_dispatch' && inputs.deploy_send_push
         shell: bash
         run: |
           set -euo pipefail
@@ -121,5 +134,5 @@ jobs:
             migration-after.txt
           if-no-files-found: warn
 
-# Workflow de déploiement production : utiliser uniquement une release autorisée
-# après validation des contrôles Flutter et Supabase correspondants.
+# Production release PRs are dry-run only. Real database or Edge Function writes
+# require an explicit manual workflow_dispatch opt-in.
