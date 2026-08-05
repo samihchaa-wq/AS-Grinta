@@ -108,7 +108,13 @@ class AdminMatchOptionsButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final phase = match.phase();
+    final now = DateTime.now();
+    final phase = match.phase(now: now);
+    final isPastCalendarEntry = phase == MatchDisplayPhase.past ||
+        (phase == MatchDisplayPhase.cancelled &&
+            !now.isBefore(match.kickoffAt));
+    if (isPastCalendarEntry) return const SizedBox.shrink();
+
     final editLocked =
         isMatchAdminEditLocked(match.kickoffAt) || match.isFinished;
     final canEditIdentity = !editLocked && !match.isCancelled;
@@ -116,12 +122,11 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     final canDelete = !editLocked;
     final canEnterStats = !match.isInternal &&
         !match.isArchived &&
-        (phase == MatchDisplayPhase.awaitingValidation ||
-            (phase == MatchDisplayPhase.past && match.status == 'termine'));
+        phase == MatchDisplayPhase.awaitingValidation;
     final canFinishInternal = match.isInternal &&
         !match.isFinished &&
         !match.isCancelled &&
-        !DateTime.now().isBefore(match.kickoffAt) &&
+        !now.isBefore(match.kickoffAt) &&
         (phase == MatchDisplayPhase.live ||
             phase == MatchDisplayPhase.awaitingValidation);
 
@@ -160,15 +165,11 @@ class AdminMatchOptionsButton extends ConsumerWidget {
             ),
           ),
         if (canEnterStats)
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'stats',
             child: ListTile(
-              leading: const Icon(Icons.query_stats_outlined),
-              title: Text(
-                phase == MatchDisplayPhase.past
-                    ? 'Corriger le compte rendu'
-                    : 'Saisir les stats',
-              ),
+              leading: Icon(Icons.query_stats_outlined),
+              title: Text('Saisir les stats'),
               contentPadding: EdgeInsets.zero,
             ),
           ),
