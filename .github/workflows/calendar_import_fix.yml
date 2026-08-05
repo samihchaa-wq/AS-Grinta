@@ -1,0 +1,48 @@
+name: Temporary calendar import fix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Add existing admin provider import
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('lib/features/matches/presentation/calendar_matches_view.dart')
+          text = path.read_text()
+          needle = "import 'package:as_grinta/core/widgets/match_fixture.dart';\n"
+          addition = needle + "import 'package:as_grinta/features/auth/presentation/auth_state.dart';\n"
+          if "features/auth/presentation/auth_state.dart" not in text:
+              if needle not in text:
+                  raise SystemExit('Import anchor not found')
+              path.write_text(text.replace(needle, addition, 1))
+      - name: Format and validate file
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+          dart format lib/features/matches/presentation/calendar_matches_view.dart
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/calendar_matches_view.dart
+          if git diff --cached --quiet; then
+            echo "No source change needed."
+            exit 0
+          fi
+          git commit -m "Corrige l’accès Admin de la vue mensuelle"
+          git push origin HEAD:${{ github.head_ref }}
