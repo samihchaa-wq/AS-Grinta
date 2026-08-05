@@ -79,12 +79,12 @@ class _GrintaTitleBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 44,
+            width: 52,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Image.asset(
-                'assets/images/mpg_logo_bar.png',
-                height: 38,
+                'assets/images/sporteasy_grinta_icon.png',
+                height: 32,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
               ),
