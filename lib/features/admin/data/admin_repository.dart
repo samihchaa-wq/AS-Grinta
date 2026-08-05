@@ -99,20 +99,19 @@ class AdminRepository {
     final profiles = (profilesRaw as List)
         .map((row) => Map<String, dynamic>.from(row))
         .map((row) {
-          final rawRole = (row['role'] ?? 'pronostiqueur').toString();
-          return AdminProfileItem(
-            id: row['id'].toString(),
-            firstName: (row['first_name'] ?? '').toString(),
-            lastName: (row['last_name'] ?? '').toString(),
-            username: (row['username'] ?? '').toString(),
-            passwordSet: row['password_set'] != false,
-            // Compatibilité pendant la transition de production : l'ancien
-            // rôle « moderateur » est présenté comme Admin.
-            role: rawRole == 'moderateur' ? 'admin' : rawRole,
-            status: (row['status'] ?? 'active').toString(),
-          );
-        })
-        .toList();
+      final rawRole = (row['role'] ?? 'pronostiqueur').toString();
+      return AdminProfileItem(
+        id: row['id'].toString(),
+        firstName: (row['first_name'] ?? '').toString(),
+        lastName: (row['last_name'] ?? '').toString(),
+        username: (row['username'] ?? '').toString(),
+        passwordSet: row['password_set'] != false,
+        // Compatibilité pendant la transition de production : l'ancien
+        // rôle « moderateur » est présenté comme Admin.
+        role: rawRole == 'moderateur' ? 'admin' : rawRole,
+        status: (row['status'] ?? 'active').toString(),
+      );
+    }).toList();
 
     return AdminDashboardData(
       profiles: profiles,

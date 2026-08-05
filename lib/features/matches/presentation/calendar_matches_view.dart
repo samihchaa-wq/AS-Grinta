@@ -39,9 +39,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         _historyFuture = null;
       } else {
         _historySeasonName = seasonName;
-        _historyFuture = ref
-            .read(calendarHistoryRepositoryProvider)
-            .fetchSeason(seasonName);
+        _historyFuture =
+            ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
       }
     });
   }
@@ -50,9 +49,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final seasonName = _historySeasonName;
     if (seasonName == null) return;
     setState(() {
-      _historyFuture = ref
-          .read(calendarHistoryRepositoryProvider)
-          .fetchSeason(seasonName);
+      _historyFuture =
+          ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
     });
   }
 
@@ -101,17 +99,15 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final seasons = [...state.seasons]
       ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
-      (season) => season?['status']?.toString() == 'open',
-      orElse: () => null,
-    );
+          (season) => season?['status']?.toString() == 'open',
+          orElse: () => null,
+        );
     final currentSeasonName = currentSeason?['name']?.toString();
     final currentSeasonId = currentSeason?['id']?.toString();
-    final selectedSeasonName =
-        _selectedSeasonName ??
+    final selectedSeasonName = _selectedSeasonName ??
         currentSeasonName ??
         (seasons.isNotEmpty ? seasons.first['name']?.toString() : null);
-    final showCurrentSeason =
-        selectedSeasonName == null ||
+    final showCurrentSeason = selectedSeasonName == null ||
         currentSeasonName == null ||
         selectedSeasonName == currentSeasonName;
 
@@ -123,14 +119,13 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
             selectedSeasonName: selectedSeasonName,
             currentSeasonName: currentSeasonName,
             onSeasonChanged: (value) => _selectSeason(value, currentSeasonName),
-            onExport:
-                showCurrentSeason &&
+            onExport: showCurrentSeason &&
                     currentSeasonId != null &&
                     currentSeasonName != null
                 ? () => _exportCurrentSeason(
-                    seasonId: currentSeasonId,
-                    seasonName: currentSeasonName,
-                  )
+                      seasonId: currentSeasonId,
+                      seasonName: currentSeasonName,
+                    )
                 : null,
           ),
         Expanded(
@@ -149,8 +144,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                           future: _historySeasonName == selectedSeasonName
                               ? _historyFuture
                               : ref
-                                    .read(calendarHistoryRepositoryProvider)
-                                    .fetchSeason(selectedSeasonName),
+                                  .read(calendarHistoryRepositoryProvider)
+                                  .fetchSeason(selectedSeasonName),
                           onRefresh: () async => _refreshHistory(),
                         ),
                 ),
@@ -372,13 +367,13 @@ class _HistoricalMatchCard extends StatelessWidget {
     final resultColor = match.isWin
         ? AppTheme.success
         : match.isLoss
-        ? AppTheme.error
-        : AppTheme.reward;
+            ? AppTheme.error
+            : AppTheme.reward;
     final resultLabel = match.isWin
         ? 'Victoire'
         : match.isLoss
-        ? 'Défaite'
-        : 'Nul';
+            ? 'Défaite'
+            : 'Nul';
 
     return Card(
       child: Padding(
@@ -391,9 +386,9 @@ class _HistoricalMatchCard extends StatelessWidget {
                 _formatDate(match.date),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppTheme.textFaint,
-                  fontWeight: FontWeight.w700,
-                ),
+                      color: AppTheme.textFaint,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
             const SizedBox(width: AppSpacing.contentGap),
@@ -404,16 +399,16 @@ class _HistoricalMatchCard extends StatelessWidget {
                   Text(
                     'AS Grinta - ${match.opponentName}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     resultLabel,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: resultColor,
-                      fontWeight: FontWeight.w800,
-                    ),
+                          color: resultColor,
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                 ],
               ),
@@ -422,9 +417,9 @@ class _HistoricalMatchCard extends StatelessWidget {
             Text(
               '${match.grintaScore} - ${match.opponentScore}',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: resultColor,
-              ),
+                    fontWeight: FontWeight.w900,
+                    color: resultColor,
+                  ),
             ),
           ],
         ),

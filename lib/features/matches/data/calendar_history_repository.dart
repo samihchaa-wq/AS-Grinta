@@ -36,16 +36,15 @@ class CalendarHistoryRepository {
     return (response as List? ?? const [])
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map((row) {
-          final rawDate = row['match_date']?.toString() ?? '';
-          return HistoricalMatchResult(
-            id: row['id']?.toString() ?? '',
-            date: DateTime.tryParse(rawDate) ?? DateTime(1970),
-            opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
-            grintaScore: (row['score_as_grinta'] as num?)?.toInt() ?? 0,
-            opponentScore: (row['score_adverse'] as num?)?.toInt() ?? 0,
-          );
-        })
-        .toList(growable: false);
+      final rawDate = row['match_date']?.toString() ?? '';
+      return HistoricalMatchResult(
+        id: row['id']?.toString() ?? '',
+        date: DateTime.tryParse(rawDate) ?? DateTime(1970),
+        opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
+        grintaScore: (row['score_as_grinta'] as num?)?.toInt() ?? 0,
+        opponentScore: (row['score_adverse'] as num?)?.toInt() ?? 0,
+      );
+    }).toList(growable: false);
   }
 }
 

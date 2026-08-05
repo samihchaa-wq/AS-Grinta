@@ -26,8 +26,8 @@ String buildSeasonIcs({
     final summary = match.isInternal
         ? 'AS Grinta — Match entre nous'
         : match.isHome
-        ? 'AS Grinta - $opponent'
-        : '$opponent - AS Grinta';
+            ? 'AS Grinta - $opponent'
+            : '$opponent - AS Grinta';
 
     buffer
       ..write('BEGIN:VEVENT\r\n')
@@ -77,9 +77,8 @@ String _foldIcsLine(String value) {
   final buffer = StringBuffer();
   var offset = 0;
   while (offset < value.length) {
-    final end = (offset + maxChars < value.length)
-        ? offset + maxChars
-        : value.length;
+    final end =
+        (offset + maxChars < value.length) ? offset + maxChars : value.length;
     if (offset > 0) buffer.write(' ');
     buffer.write(value.substring(offset, end));
     buffer.write('\r\n');

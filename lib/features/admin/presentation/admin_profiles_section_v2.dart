@@ -254,9 +254,8 @@ class _ProfileCard extends ConsumerWidget {
                     );
                   },
                   onArchiveToggle: () async {
-                    final nextStatus = policy.isArchived
-                        ? 'active'
-                        : 'archived';
+                    final nextStatus =
+                        policy.isArchived ? 'active' : 'archived';
                     if (!policy.isArchived) {
                       final confirmed = await _confirm(
                         context,
@@ -377,9 +376,8 @@ class _ProfileCard extends ConsumerWidget {
               onPressed: () => Navigator.pop(
                 dialogContext,
                 _ProfileValidationChoice(
-                  seasonPlayerId: selectedPlayerId.isEmpty
-                      ? null
-                      : selectedPlayerId,
+                  seasonPlayerId:
+                      selectedPlayerId.isEmpty ? null : selectedPlayerId,
                   seasonId: seasonId,
                 ),
               ),
