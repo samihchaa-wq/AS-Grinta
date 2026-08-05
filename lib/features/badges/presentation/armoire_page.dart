@@ -42,14 +42,14 @@ class ArmoirePage extends ConsumerWidget {
     final featured = ref
         .watch(myFeaturedCodesProvider)
         .maybeWhen(data: (codes) => codes, orElse: () => const <String>{});
-    // Le palmarès est une décision de club : seul le modérateur y touche.
-    final isModerator = ref.watch(isModeratorViewProvider);
+    // La gestion du palmarès est réservée aux administrateurs du club.
+    final isAdmin = ref.watch(isAdminViewProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Armoire à badges'),
         actions: [
-          if (isModerator)
+          if (isAdmin)
             IconButton(
               tooltip: 'Gérer les badges',
               icon: const Icon(Icons.admin_panel_settings_outlined),
@@ -98,51 +98,44 @@ class ArmoirePage extends ConsumerWidget {
                 ),
               if (armoire.validated.isNotEmpty) ...[
                 _SectionTitle(
-                  title: 'Débloqués',
+                  title: 'Validés',
                   count: armoire.validated.length,
-                  icon: Icons.workspace_premium_rounded,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Sélectionne jusqu’à 2 badges à afficher près de ton prénom.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 _BadgeGrid(
-                  badges: armoire.validated,
-                  featuredCodes: featured,
-                  onToggleFeatured: (code, nowFeatured) =>
-                      _toggleFeatured(context, ref, code, nowFeatured),
+                  items: armoire.validated,
+                  featured: featured,
+                  onToggleFeatured: (code, value) =>
+                      _toggleFeatured(context, ref, code, value),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
               ],
               if (armoire.inProgress.isNotEmpty) ...[
                 _SectionTitle(
-                  title: 'En progression',
+                  title: 'En cours',
                   count: armoire.inProgress.length,
-                  icon: Icons.trending_up_rounded,
                 ),
-                const SizedBox(height: 14),
-                ...armoire.inProgress.map((b) => _InProgressTile(badge: b)),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
+                _BadgeGrid(
+                  items: armoire.inProgress,
+                  featured: featured,
+                  onToggleFeatured: (code, value) =>
+                      _toggleFeatured(context, ref, code, value),
+                ),
+                const SizedBox(height: 24),
               ],
               if (armoire.locked.isNotEmpty) ...[
                 _SectionTitle(
-                  title: 'À découvrir',
+                  title: 'À débloquer',
                   count: armoire.locked.length,
-                  icon: Icons.lock_outline_rounded,
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Continue à jouer pour révéler ces récompenses.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
+                const SizedBox(height: 10),
+                _BadgeGrid(
+                  items: armoire.locked,
+                  featured: featured,
+                  onToggleFeatured: (code, value) =>
+                      _toggleFeatured(context, ref, code, value),
                 ),
-                const SizedBox(height: 14),
-                _BadgeGrid(badges: armoire.locked, locked: true),
               ],
             ],
           ),
@@ -160,96 +153,63 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.outline.withValues(alpha: .56)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppTheme.reward.withValues(alpha: .12),
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              border: Border.all(color: AppTheme.reward.withValues(alpha: .34)),
-            ),
-            child: const Icon(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            const Icon(
               Icons.emoji_events_rounded,
               color: AppTheme.reward,
-              size: 28,
+              size: 34,
             ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Ma collection',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$validated débloqué${validated > 1 ? 's' : ''} · '
-                  '$inProgress en progression',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
-                ),
-              ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$validated badge${validated > 1 ? 's' : ''} débloqué${validated > 1 ? 's' : ''}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  if (inProgress > 0)
+                    Text(
+                      '$inProgress en cours',
+                      style: const TextStyle(color: AppTheme.textFaint),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.count,
-    required this.icon,
-  });
+  const _SectionTitle({required this.title, required this.count});
 
   final String title;
   final int count;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppTheme.primaryBright),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceHigh,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: AppTheme.outline.withValues(alpha: .46)),
-          ),
+        Expanded(
           child: Text(
-            '$count',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w900,
-                  color: AppTheme.textSecondary,
                 ),
           ),
+        ),
+        Chip(
+          visualDensity: VisualDensity.compact,
+          label: Text('$count'),
         ),
       ],
     );
@@ -258,280 +218,121 @@ class _SectionTitle extends StatelessWidget {
 
 class _BadgeGrid extends StatelessWidget {
   const _BadgeGrid({
-    required this.badges,
-    this.locked = false,
-    this.featuredCodes,
-    this.onToggleFeatured,
+    required this.items,
+    required this.featured,
+    required this.onToggleFeatured,
   });
 
-  final List<ArmoireBadge> badges;
-  final bool locked;
-  final Set<String>? featuredCodes;
-  final void Function(String code, bool nowFeatured)? onToggleFeatured;
+  final List<ArmoireBadge> items;
+  final Set<String> featured;
+  final Future<void> Function(String code, bool nowFeatured) onToggleFeatured;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 16,
-      children: [
-        for (final b in badges)
-          _BadgeTile(
-            badge: b,
-            locked: locked,
-            featured: featuredCodes?.contains(b.def.code) ?? false,
-            onToggleFeatured: onToggleFeatured,
-          ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 900
+            ? 5
+            : constraints.maxWidth >= 620
+                ? 4
+                : 3;
+        final spacing = columns == 3 ? 10.0 : 14.0;
+        final tileWidth =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final item in items)
+              SizedBox(
+                width: tileWidth,
+                child: _BadgeTile(
+                  item: item,
+                  featured: featured.contains(item.code),
+                  onToggleFeatured: onToggleFeatured,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
 
-String? baremeThreshold(BadgeDef def) =>
-    baremeLabelFor(def.metric, def.threshold);
-
-class _BadgeTile extends ConsumerWidget {
+class _BadgeTile extends StatelessWidget {
   const _BadgeTile({
-    required this.badge,
-    this.locked = false,
-    this.featured = false,
-    this.onToggleFeatured,
+    required this.item,
+    required this.featured,
+    required this.onToggleFeatured,
   });
 
-  final ArmoireBadge badge;
-  final bool locked;
+  final ArmoireBadge item;
   final bool featured;
-  final void Function(String code, bool nowFeatured)? onToggleFeatured;
+  final Future<void> Function(String code, bool nowFeatured) onToggleFeatured;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    const columns = 4;
-    final tile =
-        (MediaQuery.of(context).size.width - 32 - (columns - 1) * 12) / columns;
-    final emblem = tile < 58 ? tile : 58.0;
-
-    if (locked) {
-      return SizedBox(
-        width: tile,
+  Widget build(BuildContext context) {
+    final unlocked = item.unlocked;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => showBadgeDetailSheet(
+        context,
+        item: item,
+        featured: featured,
+        onToggleFeatured: unlocked
+            ? (value) => onToggleFeatured(item.code, value)
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              height: emblem,
-              width: emblem,
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceHigh,
-                borderRadius: BorderRadius.circular(emblem * .24),
-                border: Border.all(
-                  color: AppTheme.outline.withValues(alpha: .38),
-                ),
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.lock_outline_rounded,
-                color: AppTheme.textFaint,
-                size: 22,
-              ),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              'Mystère',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textFaint,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final canFeature = onToggleFeatured != null;
-    final bareme = baremeThreshold(badge.def);
-    return SizedBox(
-      width: tile,
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              if (badge.isNew) {
-                final uid =
-                    ref.read(supabaseClientProvider).auth.currentUser?.id;
-                if (uid != null) {
-                  ref
-                      .read(badgeRepositoryProvider)
-                      .markBadgeSeen(uid, badge.def.code);
-                  ref.invalidate(myArmoireProvider);
-                }
-              }
-              showBadgeDetailSheet(
-                context,
-                badge.def,
-                isFeatured: featured,
-                onToggleFeatured: canFeature
-                    ? () => onToggleFeatured!(badge.def.code, !featured)
-                    : null,
-              );
-            },
-            child: Stack(
+            Stack(
               clipBehavior: Clip.none,
               children: [
                 BadgeEmblem(
-                  emoji: badge.def.emoji,
-                  imageUrl: badge.def.imageUrl,
-                  color: badge.def.color,
-                  baremeLabel: bareme,
-                  showStar: badge.def.hasStar,
-                  starCount: badge.stars,
-                  starsMultiplyBareme: isCareerBadgeCategory(
-                    badge.def.category,
-                  ),
-                  size: emblem,
+                  imageUrl: item.imageUrl,
+                  emoji: item.emoji,
+                  colorHex: item.color,
+                  hasStar: item.hasStar,
+                  unlocked: unlocked,
+                  size: 72,
                 ),
-                if (badge.isNew)
-                  Positioned(
-                    top: -2,
-                    left: -2,
-                    child: Container(
-                      width: 11,
-                      height: 11,
-                      decoration: BoxDecoration(
-                        color: AppTheme.accent,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppTheme.background,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
                 if (featured)
-                  Positioned(
-                    top: -3,
-                    right: -3,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: AppTheme.reward,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppTheme.background,
-                          width: 2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.star_rounded,
-                        size: 12,
-                        color: AppTheme.background,
-                      ),
+                  const Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Icon(
+                      Icons.push_pin_rounded,
+                      size: 18,
+                      color: AppTheme.reward,
                     ),
                   ),
               ],
             ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            badge.def.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InProgressTile extends StatelessWidget {
-  const _InProgressTile({required this.badge});
-
-  final ArmoireBadge badge;
-
-  @override
-  Widget build(BuildContext context) {
-    final showProgress = badge.target != null;
-    return GestureDetector(
-      onTap: () => showBadgeDetailSheet(context, badge.def),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          border: Border.all(color: AppTheme.outline.withValues(alpha: .52)),
-        ),
-        child: Row(
-          children: [
-            BadgeEmblem(
-              emoji: badge.def.emoji,
-              imageUrl: badge.def.imageUrl,
-              color: badge.def.color,
-              baremeLabel: baremeThreshold(badge.def),
-              showStar: badge.def.hasStar,
-              starCount: badge.stars,
-              starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
-              size: 54,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    badge.def.name,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+            const SizedBox(height: 8),
+            Text(
+              item.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: unlocked
+                        ? AppTheme.textPrimary
+                        : AppTheme.textFaint,
                   ),
-                  if (badge.def.description.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      badge.def.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textFaint,
-                          ),
-                    ),
-                  ],
-                  if (showProgress) ...[
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: GrintaLinearProgressIndicator(
-                              value: badge.progress ?? 0,
-                              minHeight: 6,
-                              backgroundColor: AppTheme.surfaceHigh,
-                              valueColor: const AlwaysStoppedAnimation(
-                                AppTheme.primaryBright,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          '${badge.current}/${badge.target}',
-                          style:
-                              Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: AppTheme.textSecondary,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: AppTheme.textFaint),
+            if (!unlocked && item.progress != null) ...[
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                value: item.progress!.clamp(0, 1),
+                minHeight: 4,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ],
           ],
         ),
       ),
