@@ -10,10 +10,8 @@ import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
-import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
-import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -104,14 +102,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
       duration: Duration.zero,
     );
-  }
-
-  Future<void> _openMatchForm(BuildContext context) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const MatchFormPage()));
-    if (!context.mounted) return;
-    await _refresh();
   }
 
   @override
@@ -231,24 +221,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                       message:
                           'Le premier match apparaîtra ici dès qu’il sera créé.',
                     ),
-                    if (isAdmin) ...[
-                      const SizedBox(height: AppSpacing.sectionGap),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.tonalIcon(
-                          onPressed: () => _openMatchForm(context),
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: const Text('Ajouter un match'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 42),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.cardPadding,
-                            ),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -421,79 +393,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   ),
                 ],
               ),
-            if (isAdmin)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screenGutter,
-                  0,
-                  AppSpacing.screenGutter,
-                  AppSpacing.sectionGap,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.tonalIcon(
-                      onPressed: () => _openMatchForm(context),
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Ajouter un match'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.cardPadding,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            SliverMainAxisGroup(
-              slivers: [
-                const SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _SectionHeaderDelegate(
-                    icon: Icons.history_rounded,
-                    title: 'Matchs passés',
-                  ),
-                ),
-                if (pastMatches.isEmpty)
-                  const SliverPadding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: _MessageCard(
-                        title: 'Aucun match joué',
-                        message:
-                            'Les résultats, buteurs, HDM et points de prono apparaîtront ici.',
-                      ),
-                    ),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final match = pastMatches[index];
-                        final card = match.isFinished
-                            ? MatchHistoryCard(match: match)
-                            : _UpcomingMatchCard(
-                                match: match,
-                                isAdmin: isAdmin,
-                              );
-                        return Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppSpacing.contentGap,
-                          ),
-                          child: card,
-                        );
-                      }, childCount: pastMatches.length),
-                    ),
-                  ),
-              ],
-            ),
           ],
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
