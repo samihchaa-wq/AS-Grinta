@@ -1,0 +1,52 @@
+name: Temporary replace global background
+
+on:
+  push:
+    branches: [agent/replace-global-background]
+
+permissions:
+  contents: write
+
+jobs:
+  replace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/replace-global-background
+      - name: Assemble and validate background
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .tmp_bg/chunk0 .tmp_bg/chunk1 .tmp_bg/chunk2 .tmp_bg/chunk3 > assets/images/module_backgrounds/as_grinta_global_small.webp.b64
+          python - <<'PY'
+          import base64
+          import hashlib
+          from pathlib import Path
+
+          path = Path('assets/images/module_backgrounds/as_grinta_global_small.webp.b64')
+          encoded = path.read_text().strip()
+          raw = base64.b64decode(encoded, validate=True)
+          expected_sha = 'd3ac70b08777d19fe12c75e0ed07276ce408b1c167b1f7d8cf912f96e991b320'
+          if len(encoded) != 34504:
+              raise SystemExit(f'Unexpected base64 length: {len(encoded)}')
+          if len(raw) != 25878:
+              raise SystemExit(f'Unexpected WebP length: {len(raw)}')
+          if raw[:4] != b'RIFF' or raw[8:12] != b'WEBP':
+              raise SystemExit('Background is not a valid WebP container')
+          actual_sha = hashlib.sha256(raw).hexdigest()
+          if actual_sha != expected_sha:
+              raise SystemExit(f'Unexpected SHA256: {actual_sha}')
+          print('Background integrity OK:', actual_sha)
+          PY
+      - name: Commit final background
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp_bg
+          rm -f .github/workflows/replace_global_background.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/images/module_backgrounds/as_grinta_global_small.webp.b64 .tmp_bg .github/workflows/replace_global_background.yml
+          git commit -m "Remplace le fond global de l’application"
+          git push origin HEAD:agent/replace-global-background
