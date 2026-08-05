@@ -24,83 +24,53 @@ jobs:
           from pathlib import Path
           path = Path('lib/features/matches/presentation/calendar_matches_view.dart')
           text = path.read_text()
-          old = '''            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                MatchFixture(
-                  homeName: homeName,
-                  awayName: awayName,
-                  grintaIsHome: match.isHome,
-                  finished: false,
-                  nameStyle: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.1),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        match.statusLabel,
-                        textAlign: TextAlign.center,
-                        style:
-                            Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: statusColor,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                      ),
-                    ),
-                    if (adminActions != null) ...[
-                      const SizedBox(width: 4),
-                      SizedBox(width: 38, child: adminActions),
-                    ],
-                  ],
-                ),
-              ],
-            ),'''
-          new = '''            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (adminActions != null) const SizedBox(width: 42),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      MatchFixture(
-                        homeName: homeName,
-                        awayName: awayName,
-                        grintaIsHome: match.isHome,
-                        finished: false,
-                        nameStyle: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontSize: 17, height: 1.1),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        match.statusLabel,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (adminActions != null) ...[
-                  const SizedBox(width: 4),
-                  SizedBox(width: 38, child: adminActions),
-                ],
-              ],
-            ),'''
-          if old not in text:
-              raise SystemExit('Monthly match card block not found')
-          path.write_text(text.replace(old, new, 1))
+          class_pos = text.index('class _MonthlyMatchCard')
+          start_marker = "            child: Column(\n              crossAxisAlignment: CrossAxisAlignment.stretch,\n              children: [\n                MatchFixture("
+          end_marker = "                  ],\n                ),\n              ],\n            ),"
+          start = text.index(start_marker, class_pos)
+          end = text.index(end_marker, start) + len(end_marker)
+          new = "\n".join([
+              "            child: Row(",
+              "              crossAxisAlignment: CrossAxisAlignment.center,",
+              "              children: [",
+              "                if (adminActions != null) const SizedBox(width: 42),",
+              "                Expanded(",
+              "                  child: Column(",
+              "                    mainAxisSize: MainAxisSize.min,",
+              "                    mainAxisAlignment: MainAxisAlignment.center,",
+              "                    crossAxisAlignment: CrossAxisAlignment.stretch,",
+              "                    children: [",
+              "                      MatchFixture(",
+              "                        homeName: homeName,",
+              "                        awayName: awayName,",
+              "                        grintaIsHome: match.isHome,",
+              "                        finished: false,",
+              "                        nameStyle: Theme.of(context)",
+              "                            .textTheme",
+              "                            .titleMedium",
+              "                            ?.copyWith(fontSize: 17, height: 1.1),",
+              "                        textAlign: TextAlign.center,",
+              "                      ),",
+              "                      const SizedBox(height: 8),",
+              "                      Text(",
+              "                        match.statusLabel,",
+              "                        textAlign: TextAlign.center,",
+              "                        style: Theme.of(context).textTheme.labelMedium?.copyWith(",
+              "                              color: statusColor,",
+              "                              fontWeight: FontWeight.w900,",
+              "                            ),",
+              "                      ),",
+              "                    ],",
+              "                  ),",
+              "                ),",
+              "                if (adminActions != null) ...[",
+              "                  const SizedBox(width: 4),",
+              "                  SizedBox(width: 38, child: adminActions),",
+              "                ],",
+              "              ],",
+              "            ),",
+          ])
+          path.write_text(text[:start] + new + text[end:])
       - name: Format and commit
         shell: bash
         run: |
