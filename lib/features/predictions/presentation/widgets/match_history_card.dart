@@ -27,7 +27,7 @@ class MatchHistoryCard extends ConsumerWidget {
     final vote = voteMayStillBeOpen
         ? ref.watch(sportMotmVoteProvider(match.id)).valueOrNull
         : null;
-    final actions = adminActions;
+    final actions = match.isFinished ? null : adminActions;
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
