@@ -1,0 +1,30 @@
+name: Temp club events format
+
+on:
+  push:
+    branches:
+      - agent/club-events-ui
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Show exact Dart formatter diff
+        run: |
+          dart format \
+            lib/features/matches/presentation/calendar_entry_form_page.dart \
+            lib/features/matches/presentation/calendar_matches_view.dart \
+            test/calendar_export_test.dart
+          git diff -- \
+            lib/features/matches/presentation/calendar_entry_form_page.dart \
+            lib/features/matches/presentation/calendar_matches_view.dart \
+            test/calendar_export_test.dart
