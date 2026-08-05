@@ -26,8 +26,8 @@ String buildSeasonIcs({
     final summary = match.isInternal
         ? 'AS Grinta — Match entre nous'
         : match.isHome
-            ? 'AS Grinta - $opponent'
-            : '$opponent - AS Grinta';
+        ? 'AS Grinta - $opponent'
+        : '$opponent - AS Grinta';
 
     buffer
       ..write('BEGIN:VEVENT\r\n')

@@ -254,7 +254,9 @@ class _ProfileCard extends ConsumerWidget {
                     );
                   },
                   onArchiveToggle: () async {
-                    final nextStatus = policy.isArchived ? 'active' : 'archived';
+                    final nextStatus = policy.isArchived
+                        ? 'active'
+                        : 'archived';
                     if (!policy.isArchived) {
                       final confirmed = await _confirm(
                         context,
@@ -269,8 +271,9 @@ class _ProfileCard extends ConsumerWidget {
                         profile.id,
                         nextStatus,
                       ),
-                      success:
-                          policy.isArchived ? 'Compte réactivé.' : 'Compte archivé.',
+                      success: policy.isArchived
+                          ? 'Compte réactivé.'
+                          : 'Compte archivé.',
                     );
                   },
                   onDelete: () async {
@@ -374,8 +377,9 @@ class _ProfileCard extends ConsumerWidget {
               onPressed: () => Navigator.pop(
                 dialogContext,
                 _ProfileValidationChoice(
-                  seasonPlayerId:
-                      selectedPlayerId.isEmpty ? null : selectedPlayerId,
+                  seasonPlayerId: selectedPlayerId.isEmpty
+                      ? null
+                      : selectedPlayerId,
                   seasonId: seasonId,
                 ),
               ),
@@ -514,9 +518,9 @@ Future<void> _resetPassword(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: link));
               if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Lien copié.')),
-                );
+                ScaffoldMessenger.of(
+                  dialogContext,
+                ).showSnackBar(const SnackBar(content: Text('Lien copié.')));
               }
             },
             icon: const Icon(Icons.copy_outlined),
@@ -590,10 +594,8 @@ Future<_HistoricalChoice?> _pickHistorical(
             child: const Text('Annuler'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(
-              dialogContext,
-              _HistoricalChoice(selectedId),
-            ),
+            onPressed: () =>
+                Navigator.pop(dialogContext, _HistoricalChoice(selectedId)),
             child: const Text('Enregistrer'),
           ),
         ],
