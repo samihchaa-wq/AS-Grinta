@@ -52,9 +52,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
   Future<void> _refreshHistory(String seasonName) async {
     setState(() {
-      _historyLoads[seasonName] = ref
-          .read(calendarHistoryRepositoryProvider)
-          .fetchSeason(seasonName);
+      _historyLoads[seasonName] =
+          ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
     });
     await _historyLoads[seasonName];
   }
@@ -108,9 +107,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   void _selectSeason(String? seasonName, List<Map<String, dynamic>> seasons) {
     if (seasonName == null) return;
     final season = seasons.cast<Map<String, dynamic>?>().firstWhere(
-      (item) => item?['name']?.toString() == seasonName,
-      orElse: () => null,
-    );
+          (item) => item?['name']?.toString() == seasonName,
+          orElse: () => null,
+        );
     if (season == null) return;
     setState(() => _monthCursor = _initialMonthForSeason(season));
   }
@@ -133,9 +132,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final seasons = [...state.seasons]
       ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
-      (season) => season?['status']?.toString() == 'open',
-      orElse: () => null,
-    );
+          (season) => season?['status']?.toString() == 'open',
+          orElse: () => null,
+        );
     final currentSeasonName = currentSeason?['name']?.toString();
     final currentSeasonId = currentSeason?['id']?.toString();
     final selectedSeason =
@@ -148,9 +147,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
     final exportAction = currentSeasonId != null && currentSeasonName != null
         ? () => _exportCurrentSeason(
-            seasonId: currentSeasonId,
-            seasonName: currentSeasonName,
-          )
+              seasonId: currentSeasonId,
+              seasonName: currentSeasonName,
+            )
         : null;
 
     return Column(
@@ -461,9 +460,10 @@ class _ModernMonthView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminViewProvider);
-    final monthMatches =
-        matches.where((match) => _sameMonth(match.kickoffAt, month)).toList()
-          ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final monthMatches = matches
+        .where((match) => _sameMonth(match.kickoffAt, month))
+        .toList()
+      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
 
     if (monthMatches.isEmpty) {
       return RefreshIndicator(
@@ -496,9 +496,8 @@ class _ModernMonthView extends ConsumerWidget {
         itemCount: monthMatches.length,
         itemBuilder: (context, index) {
           final match = monthMatches[index];
-          final adminActions = isAdmin
-              ? AdminMatchOptionsButton(match: match)
-              : null;
+          final adminActions =
+              isAdmin ? AdminMatchOptionsButton(match: match) : null;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
             child: match.isFinished
@@ -550,11 +549,10 @@ class _HistoricalMonthView extends StatelessWidget {
           );
         }
 
-        final matches =
-            (snapshot.data ?? const <HistoricalMatchResult>[])
-                .where((match) => _sameMonth(match.date, month))
-                .toList()
-              ..sort((a, b) => b.date.compareTo(a.date));
+        final matches = (snapshot.data ?? const <HistoricalMatchResult>[])
+            .where((match) => _sameMonth(match.date, month))
+            .toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
 
         if (matches.isEmpty) {
           return RefreshIndicator(
@@ -653,11 +651,11 @@ class _MonthlyMatchCard extends StatelessWidget {
                       child: Text(
                         match.statusLabel,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w900,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w900,
+                                ),
                       ),
                     ),
                     if (adminActions != null) ...[
@@ -680,20 +678,20 @@ class _MonthlyMatchCard extends StatelessWidget {
         return () => context.push('/matches/${match.id}');
       case MatchDisplayPhase.upcoming:
         return () => context.push(
-          '/matches/${match.id}/lineup?section=info&infoOnly=true',
-        );
+              '/matches/${match.id}/lineup?section=info&infoOnly=true',
+            );
       case MatchDisplayPhase.next:
         return () => context.push('/matches/${match.id}/lineup?section=info');
       case MatchDisplayPhase.live:
         return () => context.push(
-          '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
-        );
+              '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
+            );
       case MatchDisplayPhase.awaitingValidation:
         final section = match.liveState == null
             ? 'info'
             : match.isInternal
-            ? 'composition'
-            : 'live';
+                ? 'composition'
+                : 'live';
         return () =>
             context.push('/matches/${match.id}/lineup?section=$section');
       case MatchDisplayPhase.cancelled:
@@ -765,15 +763,15 @@ class _HistoricalDateColumn extends StatelessWidget {
     const soft = AppTheme.textSecondary;
 
     Widget line(String text, {bool bold = false}) => Text(
-      text,
-      textAlign: TextAlign.center,
-      style: TextStyle(
-        color: bold ? main : soft,
-        fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
-        fontSize: 14,
-        height: 1.15,
-      ),
-    );
+          text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: bold ? main : soft,
+            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+            fontSize: 14,
+            height: 1.15,
+          ),
+        );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
