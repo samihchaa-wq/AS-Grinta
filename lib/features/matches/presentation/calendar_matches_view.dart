@@ -52,18 +52,18 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
   Future<void> _refreshHistory(String seasonName) async {
     setState(() {
-      _historyLoads[seasonName] =
-          ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
+      _historyLoads[seasonName] = ref
+          .read(calendarHistoryRepositoryProvider)
+          .fetchSeason(seasonName);
     });
     await _historyLoads[seasonName];
   }
 
   Future<void> _refreshModernMatches() async {
     final state = ref.read(matchesControllerProvider);
-    await ref.read(matchesControllerProvider.notifier).load(
-          seasonId: state.selectedSeasonId,
-          allSeasons: true,
-        );
+    await ref
+        .read(matchesControllerProvider.notifier)
+        .load(seasonId: state.selectedSeasonId, allSeasons: true);
   }
 
   Future<void> _exportCurrentSeason({
@@ -84,10 +84,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     }
 
     try {
-      final contents = buildSeasonIcs(
-        seasonName: seasonName,
-        matches: matches,
-      );
+      final contents = buildSeasonIcs(seasonName: seasonName, matches: matches);
       await downloadIcsFile(
         contents: contents,
         filename: 'sporteasy-grinta-$seasonName.ics',
@@ -102,29 +99,23 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
   }
 
-  void _selectSeason(
-    String? seasonName,
-    List<Map<String, dynamic>> seasons,
-  ) {
+  void _selectSeason(String? seasonName, List<Map<String, dynamic>> seasons) {
     if (seasonName == null) return;
     final season = seasons.cast<Map<String, dynamic>?>().firstWhere(
-          (item) => item?['name']?.toString() == seasonName,
-          orElse: () => null,
-        );
+      (item) => item?['name']?.toString() == seasonName,
+      orElse: () => null,
+    );
     if (season == null) return;
     setState(() => _monthCursor = _initialMonthForSeason(season));
   }
 
-  void _moveMonth(
-    int delta,
-    List<Map<String, dynamic>> seasons,
-  ) {
+  void _moveMonth(int delta, List<Map<String, dynamic>> seasons) {
     if (seasons.isEmpty) return;
     final candidate = DateTime(_monthCursor.year, _monthCursor.month + delta);
     final bounds = _monthBounds(seasons);
@@ -139,13 +130,12 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
-    final seasons = [...state.seasons]..sort(
-        (a, b) => b['name'].toString().compareTo(a['name'].toString()),
-      );
+    final seasons = [...state.seasons]
+      ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
-          (season) => season?['status']?.toString() == 'open',
-          orElse: () => null,
-        );
+      (season) => season?['status']?.toString() == 'open',
+      orElse: () => null,
+    );
     final currentSeasonName = currentSeason?['name']?.toString();
     final currentSeasonId = currentSeason?['id']?.toString();
     final selectedSeason =
@@ -158,9 +148,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
     final exportAction = currentSeasonId != null && currentSeasonName != null
         ? () => _exportCurrentSeason(
-              seasonId: currentSeasonId,
-              seasonName: currentSeasonName,
-            )
+            seasonId: currentSeasonId,
+            seasonName: currentSeasonName,
+          )
         : null;
 
     return Column(
@@ -441,9 +431,9 @@ class _MonthNavigator extends StatelessWidget {
             child: Text(
               _monthLabel(month),
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
           ),
           IconButton(
@@ -471,10 +461,9 @@ class _ModernMonthView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminViewProvider);
-    final monthMatches = matches
-        .where((match) => _sameMonth(match.kickoffAt, month))
-        .toList()
-      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final monthMatches =
+        matches.where((match) => _sameMonth(match.kickoffAt, month)).toList()
+          ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
 
     if (monthMatches.isEmpty) {
       return RefreshIndicator(
@@ -507,19 +496,14 @@ class _ModernMonthView extends ConsumerWidget {
         itemCount: monthMatches.length,
         itemBuilder: (context, index) {
           final match = monthMatches[index];
-          final adminActions =
-              isAdmin ? AdminMatchOptionsButton(match: match) : null;
+          final adminActions = isAdmin
+              ? AdminMatchOptionsButton(match: match)
+              : null;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
             child: match.isFinished
-                ? MatchHistoryCard(
-                    match: match,
-                    adminActions: adminActions,
-                  )
-                : _MonthlyMatchCard(
-                    match: match,
-                    adminActions: adminActions,
-                  ),
+                ? MatchHistoryCard(match: match, adminActions: adminActions)
+                : _MonthlyMatchCard(match: match, adminActions: adminActions),
           );
         },
       ),
@@ -566,10 +550,11 @@ class _HistoricalMonthView extends StatelessWidget {
           );
         }
 
-        final matches = (snapshot.data ?? const <HistoricalMatchResult>[])
-            .where((match) => _sameMonth(match.date, month))
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
+        final matches =
+            (snapshot.data ?? const <HistoricalMatchResult>[])
+                .where((match) => _sameMonth(match.date, month))
+                .toList()
+              ..sort((a, b) => b.date.compareTo(a.date));
 
         if (matches.isEmpty) {
           return RefreshIndicator(
@@ -613,10 +598,7 @@ class _HistoricalMonthView extends StatelessWidget {
 }
 
 class _MonthlyMatchCard extends StatelessWidget {
-  const _MonthlyMatchCard({
-    required this.match,
-    required this.adminActions,
-  });
+  const _MonthlyMatchCard({required this.match, required this.adminActions});
 
   final MatchModel match;
   final Widget? adminActions;
@@ -659,10 +641,9 @@ class _MonthlyMatchCard extends StatelessWidget {
                   awayName: awayName,
                   grintaIsHome: match.isHome,
                   finished: false,
-                  nameStyle: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontSize: 17, height: 1.1),
+                  nameStyle: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.1),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 10),
@@ -672,7 +653,8 @@ class _MonthlyMatchCard extends StatelessWidget {
                       child: Text(
                         match.statusLabel,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
                               color: statusColor,
                               fontWeight: FontWeight.w900,
                             ),
@@ -698,21 +680,22 @@ class _MonthlyMatchCard extends StatelessWidget {
         return () => context.push('/matches/${match.id}');
       case MatchDisplayPhase.upcoming:
         return () => context.push(
-              '/matches/${match.id}/lineup?section=info&infoOnly=true',
-            );
+          '/matches/${match.id}/lineup?section=info&infoOnly=true',
+        );
       case MatchDisplayPhase.next:
         return () => context.push('/matches/${match.id}/lineup?section=info');
       case MatchDisplayPhase.live:
         return () => context.push(
-              '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
-            );
+          '/matches/${match.id}/lineup?section=${match.isInternal ? 'composition' : 'live'}',
+        );
       case MatchDisplayPhase.awaitingValidation:
         final section = match.liveState == null
             ? 'info'
             : match.isInternal
-                ? 'composition'
-                : 'live';
-        return () => context.push('/matches/${match.id}/lineup?section=$section');
+            ? 'composition'
+            : 'live';
+        return () =>
+            context.push('/matches/${match.id}/lineup?section=$section');
       case MatchDisplayPhase.cancelled:
         return null;
     }
@@ -756,10 +739,9 @@ class _HistoricalMatchCard extends StatelessWidget {
                   homeScore: match.grintaScore,
                   awayScore: match.opponentScore,
                   finished: true,
-                  nameStyle: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontSize: 17, height: 1.1),
+                  nameStyle: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.1),
                   scoreFontSize: 20,
                   textAlign: TextAlign.center,
                 ),
@@ -783,15 +765,15 @@ class _HistoricalDateColumn extends StatelessWidget {
     const soft = AppTheme.textSecondary;
 
     Widget line(String text, {bool bold = false}) => Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: bold ? main : soft,
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
-            fontSize: 14,
-            height: 1.15,
-          ),
-        );
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: bold ? main : soft,
+        fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+        fontSize: 14,
+        height: 1.15,
+      ),
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -807,10 +789,7 @@ class _HistoricalDateColumn extends StatelessWidget {
 }
 
 class _MonthEmptyState extends StatelessWidget {
-  const _MonthEmptyState({
-    required this.title,
-    required this.message,
-  });
+  const _MonthEmptyState({required this.title, required this.message});
 
   final String title;
   final String message;
