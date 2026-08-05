@@ -3,31 +3,37 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Profile role handling', () {
-    test('le rôle modérateur est reconnu, y compris son ancienne graphie', () {
-      for (final value in const ['moderateur', 'moderator']) {
-        final profile = AuthProfile.fromJson({
-          'first_name': 'Célia',
-          'last_name': 'Martin',
-          'role': value,
-          'is_goalkeeper': false,
-          'is_active': true,
-        });
+    test(
+      'les anciennes valeurs modérateur restent compatibles comme admin',
+      () {
+        for (final value in const ['moderateur', 'moderator']) {
+          final profile = AuthProfile.fromJson({
+            'first_name': 'Célia',
+            'last_name': 'Martin',
+            'role': value,
+            'is_goalkeeper': false,
+            'is_active': true,
+          });
 
-        expect(profile.role, AuthRole.moderateur, reason: value);
-        expect(profile.fullName, 'Célia Martin');
-      }
-    });
+          expect(profile.role, AuthRole.admin, reason: value);
+          expect(profile.fullName, 'Célia Martin');
+        }
+      },
+    );
 
-    test('les deux rôles privilégiés sont staff, le joueur non', () {
+    test('seul le rôle admin possède les droits de gestion', () {
       expect(AuthRole.admin.isStaff, isTrue);
-      expect(AuthRole.moderateur.isStaff, isTrue);
+      expect(AuthRole.admin.isAdmin, isTrue);
       expect(AuthRole.pronostiqueur.isStaff, isFalse);
+      expect(AuthRole.pronostiqueur.isAdmin, isFalse);
     });
 
-    test('seul le modérateur ouvre le module « Modérateur »', () {
-      expect(AuthRole.moderateur.isModerator, isTrue);
-      expect(AuthRole.admin.isModerator, isFalse);
-      expect(AuthRole.pronostiqueur.isModerator, isFalse);
-    });
+    test(
+      'le libellé utilisateur ne modifie pas la valeur serveur historique',
+      () {
+        expect(AuthRole.pronostiqueur.label, 'Utilisateur');
+        expect(AuthRole.admin.label, 'Admin');
+      },
+    );
   });
 }

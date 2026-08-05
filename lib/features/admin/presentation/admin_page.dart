@@ -14,7 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 part 'admin_season_section.dart';
-part 'admin_profiles_section.dart';
+part 'admin_profiles_section_v2.dart';
 
 /// Lien public d'auto-inscription à partager dans la conversation du club.
 const _registerLink = 'https://samihchaa-wq.github.io/AS-Grinta/auth/register';
@@ -63,14 +63,14 @@ class AdminPage extends ConsumerWidget {
                 _SeasonCard(dashboard: dashboard),
                 const SizedBox(height: 20),
                 Text(
-                  'Pronostiqueurs',
+                  'Utilisateurs',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Chacun crée son compte via le lien. Tu valides ensuite les '
-                  'nouveaux comptes ci-dessous. (L’effectif des joueurs se '
-                  'gère dans « Registre des joueurs ».)',
+                  'nouveaux comptes ci-dessous. L’effectif des joueurs se '
+                  'gère dans « Effectif ».',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 8),

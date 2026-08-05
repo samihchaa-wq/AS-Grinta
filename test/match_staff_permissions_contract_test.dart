@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('match management honors moderator admin rights', () async {
+  test('match management honors admin rights', () async {
     final form = await File(
       'lib/features/matches/presentation/match_form_page.dart',
     ).readAsString();
@@ -31,8 +31,8 @@ void main() {
     await for (final entity in Directory('lib').list(recursive: true)) {
       if (entity is! File || !entity.path.endsWith('.dart')) continue;
       // La définition centrale du rôle doit naturellement comparer l'enum afin
-      // d'implémenter isAdmin. Partout ailleurs, le code doit passer par les
-      // capacités isAdmin/isStaff/isModerator pour éviter les divergences.
+      // d'implémenter isAdmin. Partout ailleurs, le code passe par les
+      // capacités isAdmin/isStaff pour éviter les divergences.
       if (entity.path.replaceAll('\\', '/').endsWith(
             'features/auth/domain/auth_profile.dart',
           )) {
@@ -45,8 +45,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Utiliser role.isAdmin/isStaff/isModerator au lieu de comparer '
-          'directement AuthRole.admin : ${offenders.join(', ')}',
+      reason: 'Utiliser role.isAdmin/isStaff au lieu de comparer directement '
+          'AuthRole.admin : ${offenders.join(', ')}',
     );
   });
 }

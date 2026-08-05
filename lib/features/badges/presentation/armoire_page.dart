@@ -42,14 +42,14 @@ class ArmoirePage extends ConsumerWidget {
     final featured = ref
         .watch(myFeaturedCodesProvider)
         .maybeWhen(data: (codes) => codes, orElse: () => const <String>{});
-    // Le palmarès est une décision de club : seul le modérateur y touche.
-    final isModerator = ref.watch(isModeratorViewProvider);
+    // Le palmarès est une décision de club : seuls les admins y touchent.
+    final isAdmin = ref.watch(isAdminViewProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Armoire à badges'),
         actions: [
-          if (isModerator)
+          if (isAdmin)
             IconButton(
               tooltip: 'Gérer les badges',
               icon: const Icon(Icons.admin_panel_settings_outlined),

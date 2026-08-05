@@ -12,11 +12,11 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/presentation/calendar_matches_view.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/predictions/data/predictions_repository.dart';
 import 'package:as_grinta/features/predictions/presentation/colorful_season_predictions_page.dart';
-import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
 import 'package:as_grinta/features/predictions/presentation/predictions_controller.dart';
 import 'package:as_grinta/features/predictions/presentation/season_gauges_providers.dart';
 import 'package:as_grinta/features/predictions/presentation/season_ranking_panel.dart';
@@ -76,7 +76,7 @@ class _PronosHubPageState extends ConsumerState<PronosHubPage> {
     final reduceMotion =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final content = switch (_category) {
-      _PronosCategory.matches => const MergedMatchesView(),
+      _PronosCategory.matches => const CalendarMatchesView(),
       _PronosCategory.scorers => const _ScorerRankingView(),
       _PronosCategory.general => _GeneralRankingsSection(
           initialView: widget.initialView,

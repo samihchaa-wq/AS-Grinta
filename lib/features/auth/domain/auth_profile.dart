@@ -1,22 +1,19 @@
 import 'package:as_grinta/core/utils/name_validation.dart';
 
-enum AuthRole { pronostiqueur, admin, moderateur }
+enum AuthRole { pronostiqueur, admin }
 
 extension AuthRoleX on AuthRole {
   String get label {
     switch (this) {
-      case AuthRole.moderateur:
-        return 'Modérateur';
       case AuthRole.admin:
         return 'Admin';
       case AuthRole.pronostiqueur:
-        return 'Joueur';
+        return 'Utilisateur';
     }
   }
 
   bool get isPronostiqueur => this == AuthRole.pronostiqueur;
-  bool get isModerator => this == AuthRole.moderateur;
-  bool get isAdmin => this == AuthRole.admin || isModerator;
+  bool get isAdmin => this == AuthRole.admin;
   bool get isStaff => isAdmin;
 }
 
@@ -67,9 +64,10 @@ class AuthProfile {
   factory AuthProfile.fromJson(Map<String, dynamic> json) {
     final roleValue =
         (json['role'] ?? 'pronostiqueur').toString().toLowerCase();
+    // Compatibilité de transition : un ancien profil « moderateur » est traité
+    // comme admin côté client jusqu'à la migration de production.
     final role = switch (roleValue) {
-      'moderateur' || 'moderator' => AuthRole.moderateur,
-      'admin' => AuthRole.admin,
+      'admin' || 'moderateur' || 'moderator' => AuthRole.admin,
       _ => AuthRole.pronostiqueur,
     };
 

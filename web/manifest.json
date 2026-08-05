@@ -1,12 +1,12 @@
 {
-  "name": "Ma Petite Grinta",
-  "short_name": "MPG",
+  "name": "SportEasy Grinta",
+  "short_name": "SE Grinta",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "background_color": "#07142E",
   "theme_color": "#07142E",
-  "description": "Ma Petite Grinta — les pronos de l'AS Grinta",
+  "description": "SportEasy Grinta — l'application de l'AS Grinta",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [

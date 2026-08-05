@@ -1,4 +1,4 @@
-// Service worker Ma Petite Grinta : cache réseau-d'abord, mise à jour automatique
+// Service worker SportEasy Grinta : cache réseau-d'abord, mise à jour automatique
 // et réception des notifications Web Push.
 // Révision de déploiement 0.3.2+96 : force la prise en compte du bundle courant.
 importScripts('build_version.js');
@@ -92,7 +92,7 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Ma Petite Grinta', {
+    self.registration.showNotification(data.title || 'SportEasy Grinta', {
       body: data.body || '',
       icon: 'icons/Icon-192.png',
       badge: 'icons/Icon-192.png',

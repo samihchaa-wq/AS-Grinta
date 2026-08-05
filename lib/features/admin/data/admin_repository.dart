@@ -98,18 +98,20 @@ class AdminRepository {
     final profilesRaw = await _client.rpc('staff_list_profiles');
     final profiles = (profilesRaw as List)
         .map((row) => Map<String, dynamic>.from(row))
-        .map(
-          (row) => AdminProfileItem(
-            id: row['id'].toString(),
-            firstName: (row['first_name'] ?? '').toString(),
-            lastName: (row['last_name'] ?? '').toString(),
-            username: (row['username'] ?? '').toString(),
-            passwordSet: row['password_set'] != false,
-            role: (row['role'] ?? 'pronostiqueur').toString(),
-            status: (row['status'] ?? 'active').toString(),
-          ),
-        )
-        .toList();
+        .map((row) {
+      final rawRole = (row['role'] ?? 'pronostiqueur').toString();
+      return AdminProfileItem(
+        id: row['id'].toString(),
+        firstName: (row['first_name'] ?? '').toString(),
+        lastName: (row['last_name'] ?? '').toString(),
+        username: (row['username'] ?? '').toString(),
+        passwordSet: row['password_set'] != false,
+        // Compatibilité pendant la transition de production : l'ancien
+        // rôle « moderateur » est présenté comme Admin.
+        role: rawRole == 'moderateur' ? 'admin' : rawRole,
+        status: (row['status'] ?? 'active').toString(),
+      );
+    }).toList();
 
     return AdminDashboardData(
       profiles: profiles,
@@ -196,10 +198,9 @@ class AdminRepository {
     await _updatePrivilegedProfileFields(profileId: profileId, status: status);
   }
 
-  /// Attribue un rôle. Distribuer ou retirer « moderateur » est refusé côté
-  /// serveur à quelqu'un qui ne l'est pas lui-même.
+  /// Attribue l'un des deux niveaux d'accès applicatifs.
   Future<void> updateProfileRole(String profileId, String role) async {
-    if (!const ['pronostiqueur', 'admin', 'moderateur'].contains(role)) {
+    if (!const ['pronostiqueur', 'admin'].contains(role)) {
       throw ArgumentError('Rôle invalide.');
     }
     await _updatePrivilegedProfileFields(profileId: profileId, role: role);
@@ -211,10 +212,7 @@ class AdminRepository {
   }) async {
     final result = await _client.rpc(
       'staff_validate_profile',
-      params: {
-        'p_profile_id': profileId,
-        'p_season_player_id': seasonPlayerId,
-      },
+      params: {'p_profile_id': profileId, 'p_season_player_id': seasonPlayerId},
     );
     if (result != true) {
       throw StateError('Le compte n’a pas pu être validé.');
@@ -246,10 +244,7 @@ class AdminRepository {
   }) async {
     final result = await _client.rpc(
       'staff_set_historical_profile',
-      params: {
-        'p_profile_id': profileId,
-        'p_historical_id': historicalId,
-      },
+      params: {'p_profile_id': profileId, 'p_historical_id': historicalId},
     );
     if (result != true) {
       throw StateError("L'historique n'a pas pu être rattaché.");
@@ -315,11 +310,7 @@ class AdminRepository {
   }) async {
     final result = await _client.rpc(
       'admin_send_custom_push',
-      params: {
-        'p_title': title,
-        'p_body': body,
-        'p_profile_ids': profileIds,
-      },
+      params: {'p_title': title, 'p_body': body, 'p_profile_ids': profileIds},
     );
     return (result as num?)?.toInt() ?? 0;
   }

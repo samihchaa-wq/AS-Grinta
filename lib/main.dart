@@ -110,7 +110,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
 
           if (snapshot.hasError) {
             return IncidentErrorView(
-              title: 'Impossible de démarrer Ma Petite Grinta',
+              title: 'Impossible de démarrer SportEasy Grinta',
               message: 'La configuration ou le service est momentanément '
                   'indisponible. Réessaie dans un instant.',
               incidentReference:
@@ -129,26 +129,18 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 320),
+                        constraints: const BoxConstraints(maxWidth: 420),
                         child: Image.asset(
-                          'assets/images/mpg_logo.png',
+                          'assets/images/sporteasy_grinta_logo.png',
                           width: double.infinity,
-                          fit: BoxFit.fitWidth,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Ma Petite Grinta',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
                         ),
                       ),
                       const SizedBox(height: 26),
                       const GrintaLoader.inline(
                         message: 'Échauffement en cours…',
-                        semanticLabel: 'Démarrage de Ma Petite Grinta',
+                        semanticLabel: 'Démarrage de SportEasy Grinta',
                       ),
                     ],
                   ),

@@ -1,6 +1,6 @@
-# AS Grinta
+# SportEasy Grinta
 
-AS Grinta est l’application de pronostics et de gestion sportive de l’équipe. Elle est utilisée en production sous forme de PWA Flutter avec Supabase comme source de vérité métier.
+SportEasy Grinta est l’application de gestion sportive et de vie de club de l’AS Grinta. Elle conserve également les pronostics comme fonctionnalité complémentaire. Elle est utilisée sous forme de PWA Flutter avec Supabase comme source de vérité métier.
 
 ## Source de vérité
 
@@ -11,10 +11,21 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 ## Comptes et rôles
 
 - Auto-inscription puis validation du compte.
-- Trois rôles actuels : `pronostiqueur`, `admin` et `moderateur`.
+- Deux niveaux d’accès applicatifs : `pronostiqueur` (Utilisateur) et `admin`.
+- Un Admin possède tous les droits d’administration du club.
+- Coach et gardien sont des attributs sportifs et n’accordent aucun droit applicatif supplémentaire.
+- Les anciennes valeurs `moderateur` sont converties en `admin` ; les anciens clients restent tolérés pendant la transition.
 - Les comptes inactifs ne peuvent pas utiliser les fonctions métier protégées.
 - Les joueurs de l’effectif peuvent être liés à un compte.
 - Les invités de match n’ont pas besoin de compte permanent.
+
+## Calendrier et historique
+
+- La saison ouverte utilise le cycle complet des matchs.
+- Le calendrier permet d’ouvrir les saisons archivées et d’afficher les anciens résultats en lecture seule.
+- Les résultats importés restent volontairement séparés des matchs modernes afin de ne pas créer de faux pronostics, compositions, Live ou notifications.
+- La saison actuelle peut être exportée au format `.ics` pour être ajoutée à un agenda compatible.
+- La version PC/PWA limite la largeur utile du calendrier et utilise une navigation latérale sur les grands écrans.
 
 ## Cycle actuel d’un match
 

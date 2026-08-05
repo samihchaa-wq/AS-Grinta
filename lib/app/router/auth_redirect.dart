@@ -64,27 +64,20 @@ String? resolveAuthRedirect({
 
   final role = authState.profile?.role;
   final isAdmin = role?.isAdmin == true;
-  final isModerator = role?.isModerator == true;
-  final isStaff = role?.isStaff == true;
   final segments =
       uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
   final isFinalizationRoute =
       location.startsWith('/matches/') && location.endsWith('/finalize');
   final isAdminRoute = location == '/admin' || location.startsWith('/admin/');
-  final isModeratorRoute = const {
-    '/admin',
-    '/admin/administration',
-    '/admin/badges',
-  }.contains(location);
   final isMatchAdminRoute = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(segments.last);
   final isPlayersRoute = location == '/players';
 
   if (isFinalizationRoute && !isAdmin) return '/matches';
-  if ((isAdminRoute || isMatchAdminRoute) && !isStaff) return '/matches';
-  if (isModeratorRoute && !isModerator) return '/matches';
-  if (isPlayersRoute && !isStaff) return '/matches';
+  if ((isAdminRoute || isMatchAdminRoute || isPlayersRoute) && !isAdmin) {
+    return '/matches';
+  }
   return null;
 }
 
