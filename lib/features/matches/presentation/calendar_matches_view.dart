@@ -39,9 +39,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         _historyFuture = null;
       } else {
         _historySeasonName = seasonName;
-        _historyFuture = ref
-            .read(calendarHistoryRepositoryProvider)
-            .fetchSeason(seasonName);
+        _historyFuture =
+            ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
       }
     });
   }
@@ -50,9 +49,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final seasonName = _historySeasonName;
     if (seasonName == null) return;
     setState(() {
-      _historyFuture = ref
-          .read(calendarHistoryRepositoryProvider)
-          .fetchSeason(seasonName);
+      _historyFuture =
+          ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
     });
   }
 
@@ -101,8 +99,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
-    final seasons = [...state.seasons]
-      ..sort(
+    final seasons = [...state.seasons]..sort(
         (a, b) => b['name'].toString().compareTo(a['name'].toString()),
       );
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
@@ -125,8 +122,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
             seasons: seasons,
             selectedSeasonName: selectedSeasonName,
             currentSeasonName: currentSeasonName,
-            onSeasonChanged: (value) =>
-                _selectSeason(value, currentSeasonName),
+            onSeasonChanged: (value) => _selectSeason(value, currentSeasonName),
             onExport: showCurrentSeason &&
                     currentSeasonId != null &&
                     currentSeasonName != null
