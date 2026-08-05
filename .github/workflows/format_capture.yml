@@ -5,21 +5,31 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   capture:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Format calendar source
-        run: dart format lib/features/matches/presentation/calendar_matches_view.dart
-      - name: Upload formatted source
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-calendar-source
-          path: lib/features/matches/presentation/calendar_matches_view.dart
+      - name: Format and commit calendar source
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib/features/matches/presentation/calendar_matches_view.dart
+          if git diff --quiet -- lib/features/matches/presentation/calendar_matches_view.dart; then
+            echo "Calendar source already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/calendar_matches_view.dart
+          git commit -m "Formatte la nouvelle vue calendrier"
+          git push origin HEAD:${{ github.head_ref }}
