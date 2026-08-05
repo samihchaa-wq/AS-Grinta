@@ -114,7 +114,7 @@ class AuthController extends StateNotifier<AuthState> {
       );
 
       // Un compte en attente conserve sa session Supabase. Il reste cantonné
-      // à l'écran d'attente par le routeur jusqu'à validation du modérateur.
+      // à l'écran d'attente par le routeur jusqu'à validation par un admin.
       if (profile?.isPending == true) return;
 
       // Un compte archivé/inactif ne doit en revanche conserver aucune session.
@@ -255,17 +255,9 @@ final authControllerProvider =
 final viewAsUserProvider = StateProvider<bool>((ref) => false);
 
 final isRealAdminProvider = Provider<bool>((ref) {
-  return ref.watch(authControllerProvider).profile?.role.isStaff == true;
+  return ref.watch(authControllerProvider).profile?.role.isAdmin == true;
 });
 
 final isAdminViewProvider = Provider<bool>((ref) {
   return ref.watch(isRealAdminProvider) && !ref.watch(viewAsUserProvider);
-});
-
-final isRealModeratorProvider = Provider<bool>((ref) {
-  return ref.watch(authControllerProvider).profile?.role.isModerator == true;
-});
-
-final isModeratorViewProvider = Provider<bool>((ref) {
-  return ref.watch(isRealModeratorProvider) && !ref.watch(viewAsUserProvider);
 });
