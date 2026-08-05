@@ -12,8 +12,11 @@ import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
+import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/domain/calendar_export.dart';
+import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
@@ -24,13 +27,6 @@ import 'package:go_router/go_router.dart';
 
 enum _CalendarDisplayMode { scroll, month }
 
-/// Calendrier principal du club.
-///
-/// Deux lectures coexistent :
-/// - Défilé : cycle temporel complet (à venir, prochain, live, à valider,
-///   passés), identique au fonctionnement historique de l'application ;
-/// - Par mois : une saison et un mois à la fois, sans section métier, avec une
-///   navigation continue qui traverse automatiquement les saisons disponibles.
 class CalendarMatchesView extends ConsumerStatefulWidget {
   const CalendarMatchesView({super.key});
 
@@ -56,14 +52,24 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       _historyLoads[seasonName] =
           ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
     });
+    ref.invalidate(clubEventsProvider);
     await _historyLoads[seasonName];
   }
 
   Future<void> _refreshModernMatches() async {
     final state = ref.read(matchesControllerProvider);
+    ref.invalidate(clubEventsProvider);
     await ref
         .read(matchesControllerProvider.notifier)
         .load(seasonId: state.selectedSeasonId, allSeasons: true);
+  }
+
+  Future<void> _openCreate() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CalendarEntryFormPage()),
+    );
+    if (!mounted || changed != true) return;
+    await _refreshModernMatches();
   }
 
   Future<void> _exportCurrentSeason({
@@ -74,17 +80,29 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final matches = state.matches
         .where((match) => match.seasonId == seasonId)
         .toList(growable: false);
+    List<ClubEvent> events;
+    try {
+      events = (await ref.read(clubEventsProvider.future))
+          .where((event) => event.seasonId == seasonId)
+          .toList(growable: false);
+    } catch (_) {
+      events = const <ClubEvent>[];
+    }
 
-    if (matches.isEmpty) {
+    if (matches.isEmpty && events.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun match à ajouter au calendrier.')),
+        const SnackBar(content: Text('Aucun élément à ajouter au calendrier.')),
       );
       return;
     }
 
     try {
-      final contents = buildSeasonIcs(seasonName: seasonName, matches: matches);
+      final contents = buildSeasonIcs(
+        seasonName: seasonName,
+        matches: matches,
+        events: events,
+      );
       await downloadIcsFile(
         contents: contents,
         filename: 'sporteasy-grinta-$seasonName.ics',
@@ -130,6 +148,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
+    final isAdmin = ref.watch(isAdminViewProvider);
+    final events = ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
     final seasons = [...state.seasons]
       ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
@@ -161,6 +181,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
             setState(() => _displayMode = mode);
           },
           onExport: exportAction,
+          onCreate: isAdmin ? _openCreate : null,
           seasons: seasons,
           selectedSeasonName: selectedSeasonName,
           currentSeasonName: currentSeasonName,
@@ -187,6 +208,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                           selectedSeason: selectedSeason,
                           selectedSeasonName: selectedSeasonName,
                           selectedSeasonId: selectedSeasonId,
+                          events: events,
                         ),
                 ),
               );
@@ -202,6 +224,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     required Map<String, dynamic>? selectedSeason,
     required String? selectedSeasonName,
     required String? selectedSeasonId,
+    required List<ClubEvent> events,
   }) {
     if (state.isLoading && state.seasons.isEmpty) {
       return const Center(child: GrintaProgressIndicator());
@@ -232,6 +255,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final modernMatches = state.matches
         .where((match) => match.seasonId == selectedSeasonId)
         .toList(growable: false);
+    final seasonEvents = events
+        .where((event) => event.seasonId == selectedSeasonId)
+        .toList(growable: false);
     final isOpenSeason = selectedSeason['status']?.toString() == 'open';
     final usesModernMatches = isOpenSeason || modernMatches.isNotEmpty;
 
@@ -239,6 +265,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       return _ModernMonthView(
         month: _monthCursor,
         matches: modernMatches,
+        events: seasonEvents,
         onRefresh: _refreshModernMatches,
       );
     }
@@ -247,6 +274,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       month: _monthCursor,
       seasonName: selectedSeasonName,
       future: _historyForSeason(selectedSeasonName),
+      events: seasonEvents,
       onRefresh: () => _refreshHistory(selectedSeasonName),
     );
   }
@@ -257,6 +285,7 @@ class _CalendarToolbar extends StatelessWidget {
     required this.displayMode,
     required this.onDisplayModeChanged,
     required this.onExport,
+    required this.onCreate,
     required this.seasons,
     required this.selectedSeasonName,
     required this.currentSeasonName,
@@ -271,6 +300,7 @@ class _CalendarToolbar extends StatelessWidget {
   final _CalendarDisplayMode displayMode;
   final ValueChanged<_CalendarDisplayMode> onDisplayModeChanged;
   final VoidCallback? onExport;
+  final VoidCallback? onCreate;
   final List<Map<String, dynamic>> seasons;
   final String? selectedSeasonName;
   final String? currentSeasonName;
@@ -316,6 +346,11 @@ class _CalendarToolbar extends StatelessWidget {
           icon: const Icon(Icons.calendar_month_outlined, size: 18),
           label: const Text('Ajouter à mon calendrier (.ics)'),
         );
+        final createButton = FilledButton.tonalIcon(
+          onPressed: onCreate,
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Ajouter un match'),
+        );
 
         final seasonSelector = selectedSeasonName == null || seasons.isEmpty
             ? null
@@ -349,6 +384,18 @@ class _CalendarToolbar extends StatelessWidget {
           onNext: onNextMonth,
         );
 
+        final actions = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (onExport != null) exportButton,
+            if (onCreate != null) ...[
+              if (onExport != null)
+                const SizedBox(height: AppSpacing.microGap),
+              createButton,
+            ],
+          ],
+        );
+
         return Padding(
           padding: EdgeInsets.fromLTRB(
             outerInset,
@@ -361,16 +408,18 @@ class _CalendarToolbar extends StatelessWidget {
             children: [
               if (compact) ...[
                 modeSelector,
-                if (onExport != null) ...[
+                if (onExport != null || onCreate != null) ...[
                   const SizedBox(height: AppSpacing.microGap),
-                  exportButton,
+                  actions,
                 ],
               ] else
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     modeSelector,
                     const Spacer(),
-                    if (onExport != null) exportButton,
+                    if (onExport != null || onCreate != null)
+                      SizedBox(width: 310, child: actions),
                   ],
                 ),
               if (displayMode == _CalendarDisplayMode.month) ...[
@@ -451,22 +500,28 @@ class _ModernMonthView extends ConsumerWidget {
   const _ModernMonthView({
     required this.month,
     required this.matches,
+    required this.events,
     required this.onRefresh,
   });
 
   final DateTime month;
   final List<MatchModel> matches;
+  final List<ClubEvent> events;
   final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminViewProvider);
-    final monthMatches = matches
-        .where((match) => _sameMonth(match.kickoffAt, month))
-        .toList()
-      ..sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final entries = <_ModernMonthEntry>[
+      for (final match in matches)
+        if (_sameMonth(match.kickoffAt, month))
+          _ModernMonthEntry.match(match),
+      for (final event in events)
+        if (_sameMonth(event.startsAt, month))
+          _ModernMonthEntry.event(event),
+    ]..sort((a, b) => b.date.compareTo(a.date));
 
-    if (monthMatches.isEmpty) {
+    if (entries.isEmpty) {
       return RefreshIndicator(
         onRefresh: onRefresh,
         child: ListView(
@@ -475,7 +530,7 @@ class _ModernMonthView extends ConsumerWidget {
             SizedBox(
               height: 360,
               child: _MonthEmptyState(
-                title: 'Aucun match en ${_monthLabel(month)}',
+                title: 'Aucun rendez-vous en ${_monthLabel(month)}',
                 message: 'Change de mois avec les flèches pour continuer.',
               ),
             ),
@@ -494,16 +549,25 @@ class _ModernMonthView extends ConsumerWidget {
           AppSpacing.screenGutter,
           32,
         ),
-        itemCount: monthMatches.length,
+        itemCount: entries.length,
         itemBuilder: (context, index) {
-          final match = monthMatches[index];
-          final adminActions =
-              isAdmin ? AdminMatchOptionsButton(match: match) : null;
+          final entry = entries[index];
+          final match = entry.match;
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
-            child: match.isFinished
-                ? MatchHistoryCard(match: match, adminActions: adminActions)
-                : _MonthlyMatchCard(match: match, adminActions: adminActions),
+            child: match != null
+                ? match.isFinished
+                    ? MatchHistoryCard(
+                        match: match,
+                        adminActions:
+                            isAdmin ? AdminMatchOptionsButton(match: match) : null,
+                      )
+                    : _MonthlyMatchCard(
+                        match: match,
+                        adminActions:
+                            isAdmin ? AdminMatchOptionsButton(match: match) : null,
+                      )
+                : _ClubEventCard(event: entry.event!, isAdmin: isAdmin),
           );
         },
       ),
@@ -511,17 +575,33 @@ class _ModernMonthView extends ConsumerWidget {
   }
 }
 
+class _ModernMonthEntry {
+  const _ModernMonthEntry._({this.match, this.event, required this.date});
+
+  final MatchModel? match;
+  final ClubEvent? event;
+  final DateTime date;
+
+  factory _ModernMonthEntry.match(MatchModel match) =>
+      _ModernMonthEntry._(match: match, date: match.kickoffAt);
+
+  factory _ModernMonthEntry.event(ClubEvent event) =>
+      _ModernMonthEntry._(event: event, date: event.startsAt);
+}
+
 class _HistoricalMonthView extends StatelessWidget {
   const _HistoricalMonthView({
     required this.month,
     required this.seasonName,
     required this.future,
+    required this.events,
     required this.onRefresh,
   });
 
   final DateTime month;
   final String seasonName;
   final Future<List<HistoricalMatchResult>> future;
+  final List<ClubEvent> events;
   final Future<void> Function() onRefresh;
 
   @override
@@ -550,12 +630,16 @@ class _HistoricalMonthView extends StatelessWidget {
           );
         }
 
-        final matches = (snapshot.data ?? const <HistoricalMatchResult>[])
-            .where((match) => _sameMonth(match.date, month))
-            .toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
+        final entries = <_HistoricalMonthEntry>[
+          for (final match in snapshot.data ?? const <HistoricalMatchResult>[])
+            if (_sameMonth(match.date, month))
+              _HistoricalMonthEntry.match(match),
+          for (final event in events)
+            if (_sameMonth(event.startsAt, month))
+              _HistoricalMonthEntry.event(event),
+        ]..sort((a, b) => b.date.compareTo(a.date));
 
-        if (matches.isEmpty) {
+        if (entries.isEmpty) {
           return RefreshIndicator(
             onRefresh: onRefresh,
             child: ListView(
@@ -564,7 +648,7 @@ class _HistoricalMonthView extends StatelessWidget {
                 SizedBox(
                   height: 360,
                   child: _MonthEmptyState(
-                    title: 'Aucun match en ${_monthLabel(month)}',
+                    title: 'Aucun rendez-vous en ${_monthLabel(month)}',
                     message:
                         'Historique $seasonName — change de mois avec les flèches.',
                   ),
@@ -584,14 +668,120 @@ class _HistoricalMonthView extends StatelessWidget {
               AppSpacing.screenGutter,
               32,
             ),
-            itemCount: matches.length,
-            itemBuilder: (context, index) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
-              child: _HistoricalMatchCard(match: matches[index]),
-            ),
+            itemCount: entries.length,
+            itemBuilder: (context, index) {
+              final entry = entries[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
+                child: entry.match != null
+                    ? _HistoricalMatchCard(match: entry.match!)
+                    : _ClubEventCard(event: entry.event!),
+              );
+            },
           ),
         );
       },
+    );
+  }
+}
+
+class _HistoricalMonthEntry {
+  const _HistoricalMonthEntry._({this.match, this.event, required this.date});
+
+  final HistoricalMatchResult? match;
+  final ClubEvent? event;
+  final DateTime date;
+
+  factory _HistoricalMonthEntry.match(HistoricalMatchResult match) =>
+      _HistoricalMonthEntry._(match: match, date: match.date);
+
+  factory _HistoricalMonthEntry.event(ClubEvent event) =>
+      _HistoricalMonthEntry._(event: event, date: event.startsAt);
+}
+
+class _ClubEventCard extends ConsumerWidget {
+  const _ClubEventCard({required this.event, this.isAdmin = false});
+
+  final ClubEvent event;
+  final bool isAdmin;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> edit() async {
+      final changed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => CalendarEntryFormPage(event: event)),
+      );
+      if (changed == true) ref.invalidate(clubEventsProvider);
+    }
+
+    return Card(
+      color: const Color(0xFF20242C),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
+        child: MatchDateHeader(
+          kickoffAt: event.startsAt,
+          secondary: AppTheme.textSecondary,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (isAdmin) const SizedBox(width: 42),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.event_rounded, size: 20),
+                    const SizedBox(height: 5),
+                    Text(
+                      event.title,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            height: 1.1,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      event.location,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Événement',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: AppTheme.primaryBright,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isAdmin) ...[
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 38,
+                  child: IconButton(
+                    tooltip: 'Modifier l’événement',
+                    onPressed: edit,
+                    icon: const Icon(Icons.edit_rounded),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
