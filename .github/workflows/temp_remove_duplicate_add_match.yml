@@ -17,74 +17,60 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('lib/features/predictions/presentation/merged_matches_view.dart')
           text = path.read_text()
+          original = text
           text = text.replace("import 'package:as_grinta/features/matches/presentation/match_form_page.dart';\n", '')
-          method = """  Future<void> _openMatchForm(BuildContext context) async {
-            await Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const MatchFormPage()));
-            if (!context.mounted) return;
-            await _refresh();
-          }
+          text, method_count = re.subn(
+              r"\n  Future<void> _openMatchForm\(BuildContext context\) async \{.*?\n  \}\n",
+              "\n",
+              text,
+              count=1,
+              flags=re.S,
+          )
 
-          """
-          if method not in text:
-            raise SystemExit('legacy _openMatchForm block not found')
-          text = text.replace(method, '')
-          empty_button = """                    if (isAdmin) ...[
-                      const SizedBox(height: AppSpacing.sectionGap),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.tonalIcon(
-                          onPressed: () => _openMatchForm(context),
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: const Text('Ajouter un match'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(0, 42),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.cardPadding,
-                            ),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                      ),
-                    ],
-          """
-          if empty_button not in text:
-            raise SystemExit('empty-state add button block not found')
-          text = text.replace(empty_button, '')
-          regular_button = """            if (isAdmin)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.screenGutter,
-                  0,
-                  AppSpacing.screenGutter,
-                  AppSpacing.sectionGap,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton.tonalIcon(
-                      onPressed: () => _openMatchForm(context),
-                      icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Ajouter un match'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.cardPadding,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          """
-          if regular_button not in text:
-            raise SystemExit('regular add button block not found')
-          text = text.replace(regular_button, '')
+          lines = text.splitlines(keepends=True)
+          output = []
+          i = 0
+          removed_buttons = 0
+          while i < len(lines):
+              line = lines[i]
+              stripped = line.strip()
+              indent = len(line) - len(line.lstrip(' '))
+              window = ''.join(lines[i:i + 45])
+              has_add_match = "label: const Text('Ajouter un match')" in window
+              if has_add_match and stripped == 'if (isAdmin) ...[':
+                  i += 1
+                  while i < len(lines):
+                      current = lines[i]
+                      if (len(current) - len(current.lstrip(' ')) == indent and current.strip() == '],'):
+                          i += 1
+                          break
+                      i += 1
+                  removed_buttons += 1
+                  continue
+              if has_add_match and stripped == 'if (isAdmin)':
+                  i += 1
+                  while i < len(lines):
+                      current = lines[i]
+                      if (len(current) - len(current.lstrip(' ')) == indent and current.strip() == '),'):
+                          i += 1
+                          break
+                      i += 1
+                  removed_buttons += 1
+                  continue
+              output.append(line)
+              i += 1
+
+          text = ''.join(output)
+          if method_count != 1:
+              raise SystemExit(f'expected 1 legacy method, removed {method_count}')
+          if removed_buttons != 2:
+              raise SystemExit(f'expected 2 legacy buttons, removed {removed_buttons}')
+          if text == original:
+              raise SystemExit('no source change produced')
           path.write_text(text)
           PY
       - uses: subosito/flutter-action@v2
