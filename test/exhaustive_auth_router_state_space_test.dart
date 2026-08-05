@@ -14,14 +14,10 @@ void main() {
         'anonymous',
         AuthState(isLoading: false, isAuthenticated: false),
       ),
-      _AuthScenario('player', _authenticated(_profile(AuthRole.pronostiqueur))),
+      _AuthScenario('user', _authenticated(_profile(AuthRole.pronostiqueur))),
       _AuthScenario('admin', _authenticated(_profile(AuthRole.admin))),
       _AuthScenario(
-        'moderator',
-        _authenticated(_profile(AuthRole.moderateur)),
-      ),
-      _AuthScenario(
-        'player_password_change',
+        'user_password_change',
         _authenticated(
           _profile(AuthRole.pronostiqueur, mustChangePassword: true),
         ),
@@ -187,20 +183,11 @@ String? _expectedRedirect({
     return '/matches';
   }
 
-  final role = authState.profile?.role;
-  final admin = role == AuthRole.admin || role == AuthRole.moderateur;
-  final moderator = role == AuthRole.moderateur;
+  final admin = authState.profile?.role == AuthRole.admin;
   final finalization = matchedLocation.startsWith('/matches/') &&
       matchedLocation.endsWith('/finalize');
   final adminRoot =
       matchedLocation == '/admin' || matchedLocation.startsWith('/admin/');
-  // Le module « Modérateur » et la gestion des badges : réservés, même en
-  // tapant l'URL.
-  final moderatorOnly = const {
-    '/admin',
-    '/admin/administration',
-    '/admin/badges',
-  }.contains(matchedLocation);
   final matchAdmin = segments.length == 3 &&
       segments.first == 'matches' &&
       const {'composition', 'guests'}.contains(suffix);
@@ -209,7 +196,6 @@ String? _expectedRedirect({
   if ((adminRoot || matchAdmin || matchedLocation == '/players') && !admin) {
     return '/matches';
   }
-  if (moderatorOnly && !moderator) return '/matches';
   return null;
 }
 
