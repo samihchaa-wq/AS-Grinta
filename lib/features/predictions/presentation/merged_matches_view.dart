@@ -9,7 +9,11 @@ import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
+import 'package:as_grinta/features/matches/data/club_events_repository.dart';
+import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/presentation/calendar_matches_view.dart'
+    show ClubEventCard;
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
@@ -43,6 +47,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
   Future<void> _refresh() async {
     final state = ref.read(matchesControllerProvider);
+    ref.invalidate(clubEventsProvider);
     await ref
         .read(matchesControllerProvider.notifier)
         .load(seasonId: state.selectedSeasonId, allSeasons: true);
@@ -108,7 +113,13 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
+    final events =
+        ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
     final now = DateTime.now();
+
+    final upcomingEvents = events
+        .where((event) => event.startsAt.isAfter(now))
+        .toList(growable: false);
 
     final upcomingMatches = <MatchModel>[];
     final nextMatches = <MatchModel>[];
@@ -138,6 +149,10 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     }
 
     upcomingMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    final upcomingEntries = <_UpcomingEntry>[
+      ...upcomingMatches.map(_UpcomingEntry.match),
+      ...upcomingEvents.map(_UpcomingEntry.event),
+    ]..sort((a, b) => a.date.compareTo(b.date));
     nextMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     liveMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     awaitingValidationMatches.sort(
@@ -207,7 +222,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               ),
             )
-          else if (state.matches.isEmpty)
+          else if (state.matches.isEmpty && upcomingEvents.isEmpty)
             SliverPadding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.screenGutter,
@@ -226,7 +241,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
               ),
             )
           else ...[
-            if (upcomingMatches.isNotEmpty)
+            if (upcomingEntries.isNotEmpty)
               SliverMainAxisGroup(
                 slivers: [
                   const SliverPersistentHeader(
@@ -242,16 +257,25 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppSpacing.contentGap,
-                          ),
-                          child: _UpcomingMatchCard(
-                            match: upcomingMatches[index],
-                            isAdmin: isAdmin,
-                          ),
-                        ),
-                        childCount: upcomingMatches.length,
+                        (context, index) {
+                          final entry = upcomingEntries[index];
+                          final match = entry.match;
+                          return Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.contentGap,
+                            ),
+                            child: match != null
+                                ? _UpcomingMatchCard(
+                                    match: match,
+                                    isAdmin: isAdmin,
+                                  )
+                                : ClubEventCard(
+                                    event: entry.event!,
+                                    isAdmin: isAdmin,
+                                  ),
+                          );
+                        },
+                        childCount: upcomingEntries.length,
                       ),
                     ),
                   ),
@@ -621,6 +645,20 @@ class _UpcomingMatchCard extends StatelessWidget {
           : InkWell(onTap: () => context.push(detailsRoute), child: content),
     );
   }
+}
+
+class _UpcomingEntry {
+  const _UpcomingEntry._({this.match, this.event, required this.date});
+
+  final MatchModel? match;
+  final ClubEvent? event;
+  final DateTime date;
+
+  factory _UpcomingEntry.match(MatchModel match) =>
+      _UpcomingEntry._(match: match, date: match.kickoffAt);
+
+  factory _UpcomingEntry.event(ClubEvent event) =>
+      _UpcomingEntry._(event: event, date: event.startsAt);
 }
 
 class _LoadingCard extends StatelessWidget {

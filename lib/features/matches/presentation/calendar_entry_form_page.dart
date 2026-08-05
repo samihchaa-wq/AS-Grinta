@@ -119,6 +119,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             ? 'Ajouter au calendrier'
             : 'Modifier l’événement'),
         admin: true,
+        actions: [
+          if (widget.event != null && isAdmin)
+            IconButton(
+              tooltip: 'Supprimer l’événement',
+              onPressed: busy ? null : _confirmDeleteEvent,
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
       ),
       body: Form(
         key: _formKey,
@@ -200,6 +208,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                   : const Icon(Icons.save_outlined),
               label: Text(widget.event == null ? 'Ajouter' : 'Enregistrer'),
             ),
+            if (widget.event != null && isAdmin) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: busy ? null : _confirmDeleteEvent,
+                icon: const Icon(Icons.delete_forever_outlined),
+                label: const Text('Supprimer définitivement l’événement'),
+              ),
+            ],
           ],
         ),
       ),
@@ -652,6 +671,46 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             );
         if (ref.read(matchesControllerProvider).error != null) return;
       }
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _confirmDeleteEvent() async {
+    final event = widget.event;
+    if (event == null) return;
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Supprimer cet événement ?'),
+            content: const Text(
+              'Cette action est irréversible.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Annuler'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Supprimer'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(clubEventsRepositoryProvider).deleteEvent(event.id);
+      ref.invalidate(clubEventsProvider);
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (error) {

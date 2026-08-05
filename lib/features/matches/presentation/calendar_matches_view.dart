@@ -567,7 +567,7 @@ class _ModernMonthView extends ConsumerWidget {
                             ? AdminMatchOptionsButton(match: match)
                             : null,
                       )
-                : _ClubEventCard(event: entry.event!, isAdmin: isAdmin),
+                : ClubEventCard(event: entry.event!, isAdmin: isAdmin),
           );
         },
       ),
@@ -675,7 +675,7 @@ class _HistoricalMonthView extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
                 child: entry.match != null
                     ? _HistoricalMatchCard(match: entry.match!)
-                    : _ClubEventCard(event: entry.event!),
+                    : ClubEventCard(event: entry.event!),
               );
             },
           ),
@@ -699,8 +699,8 @@ class _HistoricalMonthEntry {
       _HistoricalMonthEntry._(event: event, date: event.startsAt);
 }
 
-class _ClubEventCard extends ConsumerWidget {
-  const _ClubEventCard({required this.event, this.isAdmin = false});
+class ClubEventCard extends ConsumerWidget {
+  const ClubEventCard({super.key, required this.event, this.isAdmin = false});
 
   final ClubEvent event;
   final bool isAdmin;
