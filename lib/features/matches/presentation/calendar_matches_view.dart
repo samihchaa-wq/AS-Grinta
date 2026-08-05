@@ -149,7 +149,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
-    final events = ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
+    final events =
+        ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
     final seasons = [...state.seasons]
       ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
@@ -389,8 +390,7 @@ class _CalendarToolbar extends StatelessWidget {
           children: [
             if (onExport != null) exportButton,
             if (onCreate != null) ...[
-              if (onExport != null)
-                const SizedBox(height: AppSpacing.microGap),
+              if (onExport != null) const SizedBox(height: AppSpacing.microGap),
               createButton,
             ],
           ],
@@ -514,11 +514,9 @@ class _ModernMonthView extends ConsumerWidget {
     final isAdmin = ref.watch(isAdminViewProvider);
     final entries = <_ModernMonthEntry>[
       for (final match in matches)
-        if (_sameMonth(match.kickoffAt, month))
-          _ModernMonthEntry.match(match),
+        if (_sameMonth(match.kickoffAt, month)) _ModernMonthEntry.match(match),
       for (final event in events)
-        if (_sameMonth(event.startsAt, month))
-          _ModernMonthEntry.event(event),
+        if (_sameMonth(event.startsAt, month)) _ModernMonthEntry.event(event),
     ]..sort((a, b) => b.date.compareTo(a.date));
 
     if (entries.isEmpty) {
@@ -559,13 +557,15 @@ class _ModernMonthView extends ConsumerWidget {
                 ? match.isFinished
                     ? MatchHistoryCard(
                         match: match,
-                        adminActions:
-                            isAdmin ? AdminMatchOptionsButton(match: match) : null,
+                        adminActions: isAdmin
+                            ? AdminMatchOptionsButton(match: match)
+                            : null,
                       )
                     : _MonthlyMatchCard(
                         match: match,
-                        adminActions:
-                            isAdmin ? AdminMatchOptionsButton(match: match) : null,
+                        adminActions: isAdmin
+                            ? AdminMatchOptionsButton(match: match)
+                            : null,
                       )
                 : _ClubEventCard(event: entry.event!, isAdmin: isAdmin),
           );

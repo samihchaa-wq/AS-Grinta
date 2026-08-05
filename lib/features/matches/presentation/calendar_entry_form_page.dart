@@ -24,8 +24,7 @@ class CalendarEntryFormPage extends ConsumerStatefulWidget {
       _CalendarEntryFormPageState();
 }
 
-class _CalendarEntryFormPageState
-    extends ConsumerState<CalendarEntryFormPage> {
+class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _eventTitleController = TextEditingController();
   final _addressController = TextEditingController();
@@ -116,7 +115,9 @@ class _CalendarEntryFormPageState
 
     return Scaffold(
       appBar: GrintaAppBar(
-        title: Text(widget.event == null ? 'Ajouter au calendrier' : 'Modifier l’événement'),
+        title: Text(widget.event == null
+            ? 'Ajouter au calendrier'
+            : 'Modifier l’événement'),
         admin: true,
       ),
       body: Form(
@@ -286,10 +287,10 @@ class _CalendarEntryFormPageState
                   });
                   _suggestOdds();
                 },
-                validator: (value) => _isNormalMatch &&
-                        (value == null || value.isEmpty)
-                    ? 'Sélectionnez un adversaire'
-                    : null,
+                validator: (value) =>
+                    _isNormalMatch && (value == null || value.isEmpty)
+                        ? 'Sélectionnez un adversaire'
+                        : null,
               ),
             ),
             const SizedBox(width: 8),
@@ -627,12 +628,12 @@ class _CalendarEntryFormPageState
         final draw = _oddsDraw;
         final loss = _oddsLoss;
         if (win == null || draw == null || loss == null) {
-          throw StateError('Sélectionne un adversaire pour calculer les cotes.');
+          throw StateError(
+              'Sélectionne un adversaire pour calculer les cotes.');
         }
         final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-        final squadSizeLimit = sportsEnabled
-            ? int.parse(_squadSizeController.text.trim())
-            : null;
+        final squadSizeLimit =
+            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
         await ref.read(matchesControllerProvider.notifier).createMatch(
               seasonId: _seasonId,
               opponentId: _opponentId,
