@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
@@ -16,7 +17,9 @@ class GrintaBackground extends StatefulWidget {
 }
 
 class _GrintaBackgroundState extends State<GrintaBackground> {
-  static const _backgroundAsset =
+  static const _hdBackgroundAsset =
+      'assets/images/module_backgrounds/as_grinta_global_hd.png';
+  static const _fallbackBackgroundAsset =
       'assets/images/module_backgrounds/as_grinta_global_small.webp.b64';
 
   MemoryImage? _background;
@@ -29,8 +32,7 @@ class _GrintaBackgroundState extends State<GrintaBackground> {
 
   Future<void> _loadBackground() async {
     try {
-      final encoded = await rootBundle.loadString(_backgroundAsset);
-      final bytes = base64Decode(encoded.trim());
+      final bytes = await _loadPreferredBytes();
       final image = MemoryImage(bytes);
 
       if (!mounted) return;
@@ -41,6 +43,17 @@ class _GrintaBackgroundState extends State<GrintaBackground> {
       });
     } catch (error, stackTrace) {
       AppLogger.error('ui.global_background', error, stackTrace);
+    }
+  }
+
+  Future<Uint8List> _loadPreferredBytes() async {
+    try {
+      final data = await rootBundle.load(_hdBackgroundAsset);
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    } catch (error, stackTrace) {
+      AppLogger.error('ui.global_background_hd', error, stackTrace);
+      final encoded = await rootBundle.loadString(_fallbackBackgroundAsset);
+      return base64Decode(encoded.trim());
     }
   }
 
