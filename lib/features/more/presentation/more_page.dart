@@ -13,7 +13,6 @@ class MorePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(authControllerProvider).profile;
     final isRealAdmin = ref.watch(isRealAdminProvider);
-    final isModerator = ref.watch(isRealModeratorProvider);
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
 
@@ -61,33 +60,23 @@ class MorePage extends ConsumerWidget {
               ),
             ),
           ],
-          // L'effectif vivait dans le menu « Modérateur ». Les admins gardent
-          // les droits qu'ils avaient : il leur reste donc accessible ici.
           if (isRealAdmin && !viewingAsUser) ...[
             const SizedBox(height: 10),
             Card(
               child: ListTile(
-                leading: const Icon(Icons.groups_outlined),
-                title: const Text('Effectif'),
-                subtitle: const Text('Gérer les joueurs de l’équipe'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push('/players'),
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          if (isModerator && !viewingAsUser)
-            Card(
-              child: ListTile(
-                leading: const Text('👑', style: TextStyle(fontSize: 22)),
+                leading: const Icon(Icons.admin_panel_settings_outlined),
                 title: const Text(
-                  'Modérateur',
+                  'Administration',
                   style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                subtitle: const Text(
+                  'Comptes, saison, matchs et gestion de l’effectif',
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/admin'),
               ),
             ),
+          ],
           if (isRealAdmin) ...[
             const SizedBox(height: 10),
             Card(
@@ -98,7 +87,7 @@ class MorePage extends ConsumerWidget {
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
                 subtitle: const Text(
-                  'Vois l’app comme un joueur : tous les contrôles admin '
+                  'Vois l’app comme un utilisateur : tous les contrôles admin '
                   'sont masqués. Tes droits ne changent pas.',
                 ),
                 value: viewingAsUser,
@@ -110,7 +99,7 @@ class MorePage extends ConsumerWidget {
           const SizedBox(height: 24),
           Center(
             child: Text(
-              'Ma Petite Grinta • version ${AppConfig.version}',
+              'SportEasy Grinta • version ${AppConfig.version}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
