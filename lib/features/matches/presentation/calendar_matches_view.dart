@@ -39,8 +39,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         _historyFuture = null;
       } else {
         _historySeasonName = seasonName;
-        _historyFuture =
-            ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
+        _historyFuture = ref
+            .read(calendarHistoryRepositoryProvider)
+            .fetchSeason(seasonName);
       }
     });
   }
@@ -49,8 +50,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final seasonName = _historySeasonName;
     if (seasonName == null) return;
     setState(() {
-      _historyFuture =
-          ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
+      _historyFuture = ref
+          .read(calendarHistoryRepositoryProvider)
+          .fetchSeason(seasonName);
     });
   }
 
@@ -72,7 +74,10 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     }
 
     try {
-      final contents = buildSeasonIcs(seasonName: seasonName, matches: matches);
+      final contents = buildSeasonIcs(
+        seasonName: seasonName,
+        matches: matches,
+      );
       await downloadIcsFile(
         contents: contents,
         filename: 'sporteasy-grinta-$seasonName.ics',
@@ -87,9 +92,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(humanizeError(error))),
+      );
     }
   }
 
@@ -97,7 +102,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
     final seasons = [...state.seasons]
-      ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
+      ..sort(
+        (a, b) => b['name'].toString().compareTo(a['name'].toString()),
+      );
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
           (season) => season?['status']?.toString() == 'open',
           orElse: () => null,
@@ -118,7 +125,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
             seasons: seasons,
             selectedSeasonName: selectedSeasonName,
             currentSeasonName: currentSeasonName,
-            onSeasonChanged: (value) => _selectSeason(value, currentSeasonName),
+            onSeasonChanged: (value) =>
+                _selectSeason(value, currentSeasonName),
             onExport: showCurrentSeason &&
                     currentSeasonId != null &&
                     currentSeasonName != null
@@ -140,7 +148,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
                   child: showCurrentSeason
                       ? const MergedMatchesView()
                       : _HistoricalSeasonView(
-                          seasonName: selectedSeasonName!,
+                          seasonName: selectedSeasonName,
                           future: _historySeasonName == selectedSeasonName
                               ? _historyFuture
                               : ref
@@ -345,9 +353,9 @@ class _HistoricalNotice extends StatelessWidget {
             Expanded(
               child: Text(
                 'Historique importé — consultation uniquement.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textFaint,
+                    ),
               ),
             ),
           ],
