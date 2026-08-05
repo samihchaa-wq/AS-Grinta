@@ -632,24 +632,29 @@ class _MonthlyMatchCard extends StatelessWidget {
           child: MatchDateHeader(
             kickoffAt: match.kickoffAt,
             secondary: AppTheme.textSecondary,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                MatchFixture(
-                  homeName: homeName,
-                  awayName: awayName,
-                  grintaIsHome: match.isHome,
-                  finished: false,
-                  nameStyle: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.1),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
+                if (adminActions != null) const SizedBox(width: 42),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      MatchFixture(
+                        homeName: homeName,
+                        awayName: awayName,
+                        grintaIsHome: match.isHome,
+                        finished: false,
+                        nameStyle: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontSize: 17, height: 1.1),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
                         match.statusLabel,
                         textAlign: TextAlign.center,
                         style:
@@ -658,13 +663,13 @@ class _MonthlyMatchCard extends StatelessWidget {
                                   fontWeight: FontWeight.w900,
                                 ),
                       ),
-                    ),
-                    if (adminActions != null) ...[
-                      const SizedBox(width: 4),
-                      SizedBox(width: 38, child: adminActions),
                     ],
-                  ],
+                  ),
                 ),
+                if (adminActions != null) ...[
+                  const SizedBox(width: 4),
+                  SizedBox(width: 38, child: adminActions),
+                ],
               ],
             ),
           ),
