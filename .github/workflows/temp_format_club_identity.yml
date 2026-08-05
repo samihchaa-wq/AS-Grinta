@@ -1,0 +1,51 @@
+name: Temporary format club identity
+
+on:
+  push:
+    branches:
+      - agent/club-identity-calendar
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/club-identity-calendar
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Load locked package language versions
+        run: flutter pub get --enforce-lockfile
+
+      - name: Format changed Dart files
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            lib/features/admin/data/admin_repository.dart
+            lib/features/admin/presentation/admin_profiles_section_v2.dart
+            lib/features/matches/data/calendar_history_repository.dart
+            lib/features/matches/domain/calendar_export.dart
+            lib/features/matches/presentation/calendar_matches_view.dart
+            test/profile_test.dart
+          )
+          dart format "${files[@]}"
+          if git diff --quiet -- "${files[@]}"; then
+            echo "Aucun changement de formatage nécessaire."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${files[@]}"
+          git commit -m "style: align formatting with project language version"
+          git push origin HEAD:agent/club-identity-calendar
