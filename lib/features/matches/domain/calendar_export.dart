@@ -1,8 +1,10 @@
+import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 
 String buildSeasonIcs({
   required String seasonName,
   required Iterable<MatchModel> matches,
+  Iterable<ClubEvent> events = const <ClubEvent>[],
   DateTime? generatedAt,
 }) {
   final now = (generatedAt ?? DateTime.now()).toUtc();
@@ -14,10 +16,10 @@ String buildSeasonIcs({
     ..write('METHOD:PUBLISH\r\n')
     ..write(_foldIcsLine('X-WR-CALNAME:SportEasy Grinta $seasonName'));
 
-  final ordered = matches.where((match) => !match.isCancelled).toList()
+  final orderedMatches = matches.where((match) => !match.isCancelled).toList()
     ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
 
-  for (final match in ordered) {
+  for (final match in orderedMatches) {
     final start = match.kickoffAt.toUtc();
     final end = start.add(Duration(minutes: match.plannedDurationMinutes));
     final opponent = match.opponentName?.trim().isNotEmpty == true
@@ -48,6 +50,25 @@ String buildSeasonIcs({
     }
 
     buffer.write('END:VEVENT\r\n');
+  }
+
+  final orderedEvents = events.toList()
+    ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+  for (final event in orderedEvents) {
+    final start = event.startsAt.toUtc();
+    final end = start.add(const Duration(hours: 1));
+    buffer
+      ..write('BEGIN:VEVENT\r\n')
+      ..write(
+        _foldIcsLine('UID:event-${_escapeIcs(event.id)}@sporteasy-grinta'),
+      )
+      ..write('DTSTAMP:${_formatUtc(now)}\r\n')
+      ..write('DTSTART:${_formatUtc(start)}\r\n')
+      ..write('DTEND:${_formatUtc(end)}\r\n')
+      ..write(_foldIcsLine('SUMMARY:${_escapeIcs(event.title)}'))
+      ..write(_foldIcsLine('DESCRIPTION:SportEasy Grinta — Événement'))
+      ..write(_foldIcsLine('LOCATION:${_escapeIcs(event.location)}'))
+      ..write('END:VEVENT\r\n');
   }
 
   buffer.write('END:VCALENDAR\r\n');
