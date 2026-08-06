@@ -41,6 +41,8 @@ class PlayerStatistics {
     required this.hdm,
     required this.cleanSheets,
     this.teamCleanSheets = 0,
+    this.isActive = false,
+    this.careerMatchesPlayed,
   });
 
   final StatisticsPeriod period;
@@ -65,6 +67,13 @@ class PlayerStatistics {
 
   /// Matchs joués sans but encaissé, tous postes confondus.
   final int teamCleanSheets;
+
+  /// `true` si ce joueur fait toujours partie de l'effectif actuel.
+  final bool isActive;
+
+  /// Matchs joués toutes saisons confondues, affiché quel que soit le
+  /// filtre Actuelle/Précédente/Toutes sélectionné (repère de carrière).
+  final int? careerMatchesPlayed;
 
   bool get hasHistoricalBreakdown => matchesPlayed != null;
 }
@@ -147,8 +156,7 @@ class StatisticsRepository {
 
   final SupabaseClient _client;
 
-  Future<StatisticsPeriodData> fetchPlayers(StatisticsPeriod period) async {
-    final response = await _client.from('v_statistics_players').select('''
+  static const _playerColumns = '''
           period_key,
           period_label,
           display_rank,
@@ -164,7 +172,51 @@ class StatisticsRepository {
           clean_sheets,
           team_clean_sheets,
           profile_id
-        ''').eq('period_key', period.databaseKey);
+        ''';
+
+  /// Clé de rapprochement carrière entre les lignes d'une même personne à
+  /// travers les périodes : le profil s'il existe, sinon le nom (import
+  /// historique sans compte lié).
+  String _careerKey(Map<String, dynamic> map) {
+    final profileId = map['profile_id']?.toString();
+    if (profileId != null && profileId.isNotEmpty) return 'p:$profileId';
+    return 'n:${(map['player_name'] ?? '').toString().trim().toLowerCase()}';
+  }
+
+  Future<StatisticsPeriodData> fetchPlayers(StatisticsPeriod period) async {
+    final response = await _client
+        .from('v_statistics_players')
+        .select(_playerColumns)
+        .eq('period_key', period.databaseKey);
+
+    final needsCurrent = period != StatisticsPeriod.current;
+    final needsAllTime = period != StatisticsPeriod.allTime;
+    final currentRowsFuture = needsCurrent
+        ? _client
+            .from('v_statistics_players')
+            .select('profile_id, player_name')
+            .eq('period_key', StatisticsPeriod.current.databaseKey)
+        : null;
+    final allTimeRowsFuture = needsAllTime
+        ? _client
+            .from('v_statistics_players')
+            .select('profile_id, player_name, matches_played')
+            .eq('period_key', StatisticsPeriod.allTime.databaseKey)
+        : null;
+    final currentRows =
+        currentRowsFuture == null ? null : await currentRowsFuture;
+    final allTimeRows =
+        allTimeRowsFuture == null ? null : await allTimeRowsFuture;
+
+    final activeKeys = <String>{
+      for (final row in (currentRows ?? response) as List)
+        _careerKey(Map<String, dynamic>.from(row as Map)),
+    };
+    final careerMatches = <String, int>{
+      for (final row in ((allTimeRows ?? response) as List)
+          .map((row) => Map<String, dynamic>.from(row as Map)))
+        _careerKey(row): (row['matches_played'] as num?)?.toInt() ?? 0,
+    };
 
     // Un seul classement, gardiens et joueurs de champ confondus, trié par
     // matchs joués (puis buts, puis nom). Le rang est recalculé ici (ex æquo
@@ -197,6 +249,7 @@ class StatisticsRepository {
         prevMatches = matches ?? 0;
       }
       final name = _firstName((map['player_name'] ?? 'Joueur').toString());
+      final careerKey = _careerKey(map);
       players.add(
         PlayerStatistics(
           period: period,
@@ -214,6 +267,8 @@ class StatisticsRepository {
           hdm: (map['hdm'] as num?)?.toInt(),
           cleanSheets: (map['clean_sheets'] as num?)?.toInt() ?? 0,
           teamCleanSheets: (map['team_clean_sheets'] as num?)?.toInt() ?? 0,
+          isActive: activeKeys.contains(careerKey),
+          careerMatchesPlayed: careerMatches[careerKey],
         ),
       );
     }

@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
@@ -114,6 +115,8 @@ class _StatsHubPageState extends State<StatsHubPage> {
 
 enum _PlayerStatCol {
   name,
+  active,
+  career,
   played,
   goals,
   cleanSheets,
@@ -151,6 +154,8 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
 
   num _value(_PlayerStatCol column, PlayerStatistics player) {
     return switch (column) {
+      _PlayerStatCol.active => player.isActive ? 1 : 0,
+      _PlayerStatCol.career => player.careerMatchesPlayed ?? 0,
       _PlayerStatCol.played => player.matchesPlayed ?? 0,
       _PlayerStatCol.goals => player.goals,
       _PlayerStatCol.cleanSheets => player.teamCleanSheets,
@@ -262,15 +267,32 @@ class _PlayersPinnedHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final style = grintaTableHeaderTextStyle(context);
     return Padding(
       padding: grintaTablePinnedHeaderPadding,
-      child: SortableHeaderCell(
-        label: 'Joueur',
-        align: TextAlign.start,
-        active: sort == _PlayerStatCol.name,
-        descending: descending,
-        onTap: () => onSort(_PlayerStatCol.name),
-        style: grintaTableHeaderTextStyle(context),
+      child: Row(
+        children: [
+          Expanded(
+            child: SortableHeaderCell(
+              label: 'Joueur',
+              align: TextAlign.start,
+              active: sort == _PlayerStatCol.name,
+              descending: descending,
+              onTap: () => onSort(_PlayerStatCol.name),
+              style: style,
+            ),
+          ),
+          SizedBox(
+            width: 46,
+            child: SortableHeaderCell(
+              label: 'Actif',
+              active: sort == _PlayerStatCol.active,
+              descending: descending,
+              onTap: () => onSort(_PlayerStatCol.active),
+              style: style,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -306,6 +328,7 @@ class _PlayersScrollableHeader extends StatelessWidget {
       padding: grintaTableScrollableHeaderPadding,
       child: Row(
         children: [
+          valueCell('Historique', _PlayerStatCol.career),
           valueCell('J', _PlayerStatCol.played),
           valueCell('B', _PlayerStatCol.goals),
           valueCell('CS', _PlayerStatCol.cleanSheets),
@@ -350,6 +373,18 @@ StickyTableRow _playersRow(
             badgeSize: 28,
           ),
         ),
+        SizedBox(
+          width: 46,
+          child: Icon(
+            player.isActive ? Icons.check_circle : Icons.remove_circle_outline,
+            size: 18,
+            color: player.isActive
+                ? AppTheme.success
+                : Theme.of(context).colorScheme.outline,
+            semanticLabel:
+                player.isActive ? 'Joueur actif' : 'Ancien joueur',
+          ),
+        ),
       ],
     ),
   );
@@ -358,6 +393,7 @@ StickyTableRow _playersRow(
     padding: grintaTableScrollableRowPadding,
     child: Row(
       children: [
+        value(player.careerMatchesPlayed ?? player.matchesPlayed ?? 0),
         value(player.matchesPlayed ?? 0),
         value(player.goals),
         value(player.teamCleanSheets),
