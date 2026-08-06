@@ -324,8 +324,6 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804201000_motm_result_notifications.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804213000_optimize_featured_badges.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804220000_scope_profile_refresh_signal.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804223000_scope_sports_refresh_signal.sql
@@ -335,8 +333,6 @@ jobs:
               -f supabase/migrations/20260804225719_postmatch_correction_window_motm_sync.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804230000_suppress_season_prediction_refresh_signal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804233000_optimize_featured_badge_star_scope.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260804235037_motm_exact_24h_window.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
