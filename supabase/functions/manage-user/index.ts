@@ -1,4 +1,4 @@
-// Gestion des comptes par le modérateur : invitation par identifiant,
+// Gestion des comptes par un admin : invitation par identifiant,
 // réinitialisation par lien à usage unique et suppression.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.95.0";
@@ -110,10 +110,10 @@ Deno.serve(async (req: Request) => {
       .single();
     if (
       profileError ||
-      String(callerProfile?.role) !== "moderateur" ||
+      String(callerProfile?.role) !== "admin" ||
       callerProfile?.status !== "active"
     ) {
-      return jsonResponse({ error: "Active moderator role required" }, 403);
+      return jsonResponse({ error: "Active admin role required" }, 403);
     }
 
     const body = await req.json();
@@ -295,18 +295,18 @@ Deno.serve(async (req: Request) => {
       }
 
       if (
-        targetProfile.role === "moderateur" &&
+        targetProfile.role === "admin" &&
         targetProfile.status === "active"
       ) {
         const { count, error: countError } = await admin
           .from("profiles")
           .select("id", { count: "exact", head: true })
-          .eq("role", "moderateur")
+          .eq("role", "admin")
           .eq("status", "active");
         if (countError) throw countError;
         if ((count ?? 0) <= 1) {
           return jsonResponse(
-            { error: "The last active moderator cannot be deleted" },
+            { error: "The last active admin cannot be deleted" },
             409,
           );
         }
