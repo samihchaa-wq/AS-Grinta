@@ -11,6 +11,8 @@ import 'package:as_grinta/features/auth/presentation/forced_password_change_page
 import 'package:as_grinta/features/badges/presentation/armoire_page.dart';
 import 'package:as_grinta/features/badges/presentation/badge_admin_page.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
+import 'package:as_grinta/features/matches/presentation/historical_match_detail_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
@@ -77,6 +79,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/matches/:matchId',
                 builder: (context, state) => MatchDetailsPage(
                   matchId: state.pathParameters['matchId'] ?? '',
+                ),
+              ),
+              GoRoute(
+                path: '/matches/history/:matchId',
+                builder: (context, state) => HistoricalMatchDetailPage(
+                  matchId: state.pathParameters['matchId'] ?? '',
+                  initialMatch: state.extra is HistoricalMatchResult
+                      ? state.extra as HistoricalMatchResult
+                      : null,
                 ),
               ),
               GoRoute(

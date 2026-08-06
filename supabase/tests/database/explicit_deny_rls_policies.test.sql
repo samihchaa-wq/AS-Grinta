@@ -13,6 +13,7 @@ values
   ('private', 'app_feature_flag_audit'),
   ('private', 'app_feature_flags'),
   ('private', 'sport_admin_audit_log'),
+  ('public', 'historical_match_details'),
   ('public', 'historical_match_scores'),
   ('public', 'match_composition_entries'),
   ('public', 'match_compositions'),
@@ -35,8 +36,8 @@ select is(
      and relation.relkind = 'r'
     where relation.relrowsecurity
   ),
-  12::bigint,
-  'RLS reste activée sur les douze tables internes'
+  13::bigint,
+  'RLS reste activée sur les treize tables internes'
 );
 
 select is(
@@ -53,7 +54,7 @@ select is(
       and regexp_replace(coalesce(policy.qual, ''), '[()[:space:]]', '', 'g') = 'false'
       and regexp_replace(coalesce(policy.with_check, ''), '[()[:space:]]', '', 'g') = 'false'
   ),
-  12::bigint,
+  13::bigint,
   'chaque table possède une politique restrictive de refus client'
 );
 
@@ -86,7 +87,7 @@ select is(
       'SELECT,INSERT,UPDATE,DELETE'
     )
   ),
-  12::bigint,
+  13::bigint,
   'le service interne conserve tous les privilèges nécessaires'
 );
 

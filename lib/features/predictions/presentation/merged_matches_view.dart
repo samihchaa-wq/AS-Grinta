@@ -155,12 +155,22 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       }
     }
 
+    // Deux matchs rapprochés peuvent tous les deux avoir leurs fonctionnalités
+    // ouvertes (fenêtre J-6) avant que le premier n'ait eu lieu : sans ce tri,
+    // ils se retrouveraient tous les deux affichés sous « Prochain match ».
+    // Seul le plus proche garde ce statut ; les autres redescendent en « À
+    // venir ».
+    nextMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
+    if (nextMatches.length > 1) {
+      upcomingMatches.addAll(nextMatches.skip(1));
+      nextMatches.removeRange(1, nextMatches.length);
+    }
+
     upcomingMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     final upcomingEntries = <_UpcomingEntry>[
       ...upcomingMatches.map(_UpcomingEntry.match),
       ...upcomingEvents.map(_UpcomingEntry.event),
     ]..sort((a, b) => a.date.compareTo(b.date));
-    nextMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     liveMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
     awaitingValidationMatches.sort(
       (a, b) => a.kickoffAt.compareTo(b.kickoffAt),

@@ -10,6 +10,15 @@ String _firstName(String fullName) {
   return normalizedName.split(RegExp(r'\s+')).first;
 }
 
+/// Première lettre du nom de famille, pour départager deux joueurs affichés
+/// sous le même prénom (ex : « Julien C. » / « Julien D. »).
+String? _lastNameInitial(String fullName) {
+  final parts = fullName.trim().split(RegExp(r'\s+'));
+  if (parts.length < 2) return null;
+  final lastName = parts.sublist(1).join(' ');
+  return lastName.isEmpty ? null : lastName[0].toUpperCase();
+}
+
 extension StatisticsPeriodKey on StatisticsPeriod {
   String get databaseKey => switch (this) {
         StatisticsPeriod.current => 'current',
@@ -191,6 +200,16 @@ class StatisticsRepository {
             );
       });
 
+    final firstNames = [
+      for (final row in rows)
+        _firstName((row['player_name'] ?? 'Joueur').toString()),
+    ];
+    final firstNameCounts = <String, int>{};
+    for (final firstName in firstNames) {
+      final key = firstName.toLowerCase();
+      firstNameCounts[key] = (firstNameCounts[key] ?? 0) + 1;
+    }
+
     final players = <PlayerStatistics>[];
     var rank = 0;
     int? prevMatches;
@@ -201,7 +220,13 @@ class StatisticsRepository {
         rank = i + 1;
         prevMatches = matches ?? 0;
       }
-      final name = _firstName((map['player_name'] ?? 'Joueur').toString());
+      final fullName = (map['player_name'] ?? 'Joueur').toString();
+      final firstName = firstNames[i];
+      final lastNameInitial = _lastNameInitial(fullName);
+      final isHomonym = firstNameCounts[firstName.toLowerCase()]! > 1;
+      final name = isHomonym && lastNameInitial != null
+          ? '$firstName $lastNameInitial.'
+          : firstName;
       players.add(
         PlayerStatistics(
           period: period,

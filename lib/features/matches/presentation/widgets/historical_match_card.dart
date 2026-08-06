@@ -3,10 +3,11 @@ import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-/// Carte de rencontre en lecture seule pour un match de l'historique importé
-/// (pas de navigation vers une fiche match : ces rencontres n'ont ni
-/// composition, ni pronostics, ni vote HDM en base).
+/// Carte de rencontre en lecture seule pour un match de l'historique importé.
+/// Un tap ouvre la fiche archivée (composition, buteurs, HDM) quand elle
+/// existe ; ces rencontres n'ont ni pronostics ni vote HDM en base.
 class HistoricalMatchCard extends StatelessWidget {
   const HistoricalMatchCard({required this.match, super.key});
 
@@ -21,39 +22,43 @@ class HistoricalMatchCard extends StatelessWidget {
         side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 52,
-                child: _HistoricalDateColumn(date: match.date),
-              ),
-              Container(
-                width: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                color: AppTheme.textSecondary.withValues(alpha: .25),
-              ),
-              Expanded(
-                child: MatchFixture(
-                  homeName: match.isHome ? 'AS Grinta' : match.opponentName,
-                  awayName: match.isHome ? match.opponentName : 'AS Grinta',
-                  grintaIsHome: match.isHome,
-                  homeScore:
-                      match.isHome ? match.grintaScore : match.opponentScore,
-                  awayScore:
-                      match.isHome ? match.opponentScore : match.grintaScore,
-                  finished: true,
-                  nameStyle: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.1),
-                  scoreFontSize: 20,
-                  textAlign: TextAlign.center,
+      child: InkWell(
+        onTap: () => context.push('/matches/history/${match.id}', extra: match),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 52,
+                  child: _HistoricalDateColumn(date: match.date),
                 ),
-              ),
-            ],
+                Container(
+                  width: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  color: AppTheme.textSecondary.withValues(alpha: .25),
+                ),
+                Expanded(
+                  child: MatchFixture(
+                    homeName: match.isHome ? 'AS Grinta' : match.opponentName,
+                    awayName: match.isHome ? match.opponentName : 'AS Grinta',
+                    grintaIsHome: match.isHome,
+                    homeScore:
+                        match.isHome ? match.grintaScore : match.opponentScore,
+                    awayScore:
+                        match.isHome ? match.opponentScore : match.grintaScore,
+                    finished: true,
+                    nameStyle: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontSize: 17, height: 1.1),
+                    scoreFontSize: 20,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
