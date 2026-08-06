@@ -16,6 +16,7 @@ import 'package:as_grinta/features/matches/presentation/calendar_matches_view.da
     show ClubEventCard;
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
+import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -414,6 +415,43 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.sectionGap),
+                  ),
+                ],
+              ),
+            if (pastMatches.isNotEmpty)
+              SliverMainAxisGroup(
+                slivers: [
+                  const SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _SectionHeaderDelegate(
+                      icon: Icons.history_rounded,
+                      title: 'Matchs passés',
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenGutter,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == pastMatches.length - 1
+                                ? 0
+                                : AppSpacing.contentGap,
+                          ),
+                          child: MatchHistoryCard(
+                            match: pastMatches[index],
+                            adminActions: isAdmin
+                                ? AdminMatchOptionsButton(
+                                    match: pastMatches[index],
+                                  )
+                                : null,
+                          ),
+                        ),
+                        childCount: pastMatches.length,
+                      ),
+                    ),
                   ),
                 ],
               ),
