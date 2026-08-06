@@ -9,6 +9,7 @@ import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/home/presentation/home_next_match_card.dart';
+import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
@@ -16,6 +17,7 @@ import 'package:as_grinta/features/matches/presentation/calendar_matches_view.da
     show ClubEventCard;
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
@@ -49,6 +51,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   Future<void> _refresh() async {
     final state = ref.read(matchesControllerProvider);
     ref.invalidate(clubEventsProvider);
+    ref.invalidate(allHistoricalMatchesProvider);
     await ref
         .read(matchesControllerProvider.notifier)
         .load(seasonId: state.selectedSeasonId, allSeasons: true);
@@ -116,6 +119,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final isAdmin = ref.watch(isAdminViewProvider);
     final events =
         ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
+    final historicalMatches = ref.watch(allHistoricalMatchesProvider).valueOrNull ??
+        const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
     final upcomingEvents = events
@@ -160,6 +165,10 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       (a, b) => a.kickoffAt.compareTo(b.kickoffAt),
     );
     pastMatches.sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
+    final pastEntries = <_PastEntry>[
+      ...pastMatches.map(_PastEntry.match),
+      ...historicalMatches.map(_PastEntry.historical),
+    ]..sort((a, b) => b.date.compareTo(a.date));
 
     final MatchDisplayPhase? focusPhase;
     final String? focusMatchId;
@@ -190,7 +199,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         nextMatches.length +
         liveMatches.length +
         awaitingValidationMatches.length +
-        pastMatches.length;
+        pastEntries.length;
     final cacheExtent = 1000.0 + (visibleCardCount * 360.0);
 
     return RefreshIndicator(
@@ -418,7 +427,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   ),
                 ],
               ),
-            if (pastMatches.isNotEmpty)
+            if (pastEntries.isNotEmpty)
               SliverMainAxisGroup(
                 slivers: [
                   const SliverPersistentHeader(
@@ -434,22 +443,28 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                     ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: EdgeInsets.only(
-                            bottom: index == pastMatches.length - 1
-                                ? 0
-                                : AppSpacing.contentGap,
-                          ),
-                          child: MatchHistoryCard(
-                            match: pastMatches[index],
-                            adminActions: isAdmin
-                                ? AdminMatchOptionsButton(
-                                    match: pastMatches[index],
+                        (context, index) {
+                          final entry = pastEntries[index];
+                          final match = entry.match;
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom: index == pastEntries.length - 1
+                                  ? 0
+                                  : AppSpacing.contentGap,
+                            ),
+                            child: match != null
+                                ? MatchHistoryCard(
+                                    match: match,
+                                    adminActions: isAdmin
+                                        ? AdminMatchOptionsButton(match: match)
+                                        : null,
                                   )
-                                : null,
-                          ),
-                        ),
-                        childCount: pastMatches.length,
+                                : HistoricalMatchCard(
+                                    match: entry.historical!,
+                                  ),
+                          );
+                        },
+                        childCount: pastEntries.length,
                       ),
                     ),
                   ),
@@ -697,6 +712,23 @@ class _UpcomingEntry {
 
   factory _UpcomingEntry.event(ClubEvent event) =>
       _UpcomingEntry._(event: event, date: event.startsAt);
+}
+
+/// Fusionne les matchs passés « live » (issus de `matches`, tappables, avec
+/// vote HDM) et les résultats importés de l'historique du club (lecture
+/// seule, sans fiche match associée) dans une seule liste triée par date.
+class _PastEntry {
+  const _PastEntry._({this.match, this.historical, required this.date});
+
+  final MatchModel? match;
+  final HistoricalMatchResult? historical;
+  final DateTime date;
+
+  factory _PastEntry.match(MatchModel match) =>
+      _PastEntry._(match: match, date: match.kickoffAt);
+
+  factory _PastEntry.historical(HistoricalMatchResult historical) =>
+      _PastEntry._(historical: historical, date: historical.date);
 }
 
 class _LoadingCard extends StatelessWidget {
