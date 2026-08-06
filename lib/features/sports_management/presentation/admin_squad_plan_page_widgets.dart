@@ -149,9 +149,12 @@ class _EffectifPlayerGrid extends StatelessWidget {
               for (var col = 0; col < _columns; col++) ...[
                 if (col > 0) const SizedBox(width: 5),
                 Expanded(
-                  child: i + col < players.length
-                      ? _chip(players[i + col])
-                      : const SizedBox.shrink(),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: i + col < players.length
+                        ? _chip(players[i + col])
+                        : const SizedBox.shrink(),
+                  ),
                 ),
               ],
             ],

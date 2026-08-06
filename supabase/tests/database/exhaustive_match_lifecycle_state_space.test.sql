@@ -216,6 +216,45 @@ set local role authenticated;
 select ok(public.archive_match(current_setting('test.lifecycle_replacement_match')::uuid),'archivage initial réussi');
 select throws_ok(format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),'P0002','double archivage refusé');
 
+-- admin_create_match_complete() finalise la création par des UPDATE
+-- (adresse/type/maillot) dans la même transaction que l'INSERT. Un coup
+-- d'envoi déjà passé ne doit pas faire échouer ces UPDATE de finition via le
+-- verrou pensé pour un match déjà annoncé (regression du correctif
+-- 20260805190000_allow_backdated_match_creation).
+set local role authenticated;
+select lives_ok(
+  $$select set_config('test.lifecycle_backdated_match',public.admin_create_match_complete(
+    'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000001',
+    date '2000-06-15',time '18:00','domicile',2,3,4,null,
+    '1 Rue du Passé',false,'amical','orange')::text,true)$$,
+  'création d’un match à coup d’envoi déjà passé acceptée'
+);
+reset role;
+select is(
+  (select address from public.matches where id=current_setting('test.lifecycle_backdated_match')::uuid),
+  '1 Rue du Passé',
+  'adresse de finition appliquée malgré le coup d’envoi passé'
+);
+select is(
+  (select match_type from public.matches where id=current_setting('test.lifecycle_backdated_match')::uuid),
+  'amical',
+  'type de finition appliqué malgré le coup d’envoi passé'
+);
+
+-- Le verrou doit rester actif pour un match réellement ancien (créé hors de
+-- la fenêtre de grâce de création), pas seulement pour celui qu'on vient de
+-- créer.
+update public.matches
+set created_at = now() - interval '1 day'
+where id = current_setting('test.lifecycle_backdated_match')::uuid;
+set local role authenticated;
+select throws_ok(
+  $$select public.admin_set_match_address(current_setting('test.lifecycle_backdated_match')::uuid,'2 Rue du Verrou',false)$$,
+  '22023',
+  'un match ancien déjà passé T-15 reste verrouillé en modification'
+);
+reset role;
+
 select ok(public.delete_match(current_setting('test.lifecycle_collision_match')::uuid),'suppression du match reporté');
 reset role;
 select is((select count(*) from public.matches where id=current_setting('test.lifecycle_collision_match')::uuid),0::bigint,'match supprimé');

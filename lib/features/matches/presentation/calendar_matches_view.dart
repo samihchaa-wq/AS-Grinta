@@ -4,7 +4,6 @@ import 'package:as_grinta/core/calendar/ics_calendar_export.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
-import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -19,6 +18,7 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/merged_matches_view.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:flutter/material.dart';
@@ -567,7 +567,7 @@ class _ModernMonthView extends ConsumerWidget {
                             ? AdminMatchOptionsButton(match: match)
                             : null,
                       )
-                : _ClubEventCard(event: entry.event!, isAdmin: isAdmin),
+                : ClubEventCard(event: entry.event!, isAdmin: isAdmin),
           );
         },
       ),
@@ -674,8 +674,8 @@ class _HistoricalMonthView extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.contentGap),
                 child: entry.match != null
-                    ? _HistoricalMatchCard(match: entry.match!)
-                    : _ClubEventCard(event: entry.event!),
+                    ? HistoricalMatchCard(match: entry.match!)
+                    : ClubEventCard(event: entry.event!),
               );
             },
           ),
@@ -699,8 +699,8 @@ class _HistoricalMonthEntry {
       _HistoricalMonthEntry._(event: event, date: event.startsAt);
 }
 
-class _ClubEventCard extends ConsumerWidget {
-  const _ClubEventCard({required this.event, this.isAdmin = false});
+class ClubEventCard extends ConsumerWidget {
+  const ClubEventCard({super.key, required this.event, this.isAdmin = false});
 
   final ClubEvent event;
   final bool isAdmin;
@@ -893,92 +893,6 @@ class _MonthlyMatchCard extends StatelessWidget {
       case MatchDisplayPhase.cancelled:
         return null;
     }
-  }
-}
-
-class _HistoricalMatchCard extends StatelessWidget {
-  const _HistoricalMatchCard({required this.match});
-
-  final HistoricalMatchResult match;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: const Color(0xFF20242C),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 52,
-                child: _HistoricalDateColumn(date: match.date),
-              ),
-              Container(
-                width: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                color: AppTheme.textSecondary.withValues(alpha: .25),
-              ),
-              Expanded(
-                child: MatchFixture(
-                  homeName: 'AS Grinta',
-                  awayName: match.opponentName,
-                  grintaIsHome: true,
-                  homeScore: match.grintaScore,
-                  awayScore: match.opponentScore,
-                  finished: true,
-                  nameStyle: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.1),
-                  scoreFontSize: 20,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HistoricalDateColumn extends StatelessWidget {
-  const _HistoricalDateColumn({required this.date});
-
-  final DateTime date;
-
-  @override
-  Widget build(BuildContext context) {
-    final main = Theme.of(context).textTheme.bodyMedium?.color;
-    const soft = AppTheme.textSecondary;
-
-    Widget line(String text, {bool bold = false}) => Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: bold ? main : soft,
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
-            fontSize: 14,
-            height: 1.15,
-          ),
-        );
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        line(AppFormats.weekdayShort(date)),
-        line(AppFormats.dayNumber(date), bold: true),
-        line(AppFormats.monthShort(date)),
-        line('${date.year}'),
-      ],
-    );
   }
 }
 
