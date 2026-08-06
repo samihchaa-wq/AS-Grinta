@@ -119,8 +119,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final isAdmin = ref.watch(isAdminViewProvider);
     final events =
         ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
-    final historicalMatches = ref.watch(allHistoricalMatchesProvider).valueOrNull ??
-        const <HistoricalMatchResult>[];
+    final historicalMatches =
+        ref.watch(allHistoricalMatchesProvider).valueOrNull ??
+            const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
     final upcomingEvents = events

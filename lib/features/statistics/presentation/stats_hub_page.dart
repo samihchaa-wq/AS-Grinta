@@ -381,8 +381,7 @@ StickyTableRow _playersRow(
             color: player.isActive
                 ? AppTheme.success
                 : Theme.of(context).colorScheme.outline,
-            semanticLabel:
-                player.isActive ? 'Joueur actif' : 'Ancien joueur',
+            semanticLabel: player.isActive ? 'Joueur actif' : 'Ancien joueur',
           ),
         ),
       ],
