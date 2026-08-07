@@ -126,8 +126,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     // cartes autour de cette position, puis on affine avec ensureVisible.
     if (_scrollController.hasClients && totalEntries > 0) {
       final position = _scrollController.position;
-      final estimated =
-          position.maxScrollExtent * (focusIndex / totalEntries);
+      final estimated = position.maxScrollExtent * (focusIndex / totalEntries);
       if ((position.pixels - estimated).abs() > 200) {
         position.jumpTo(estimated.clamp(0.0, position.maxScrollExtent));
       }
@@ -185,7 +184,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
     final historicalMatches =
         ref.watch(allHistoricalMatchesProvider).valueOrNull ??
-            const <HistoricalMatchResult>[];
+        const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
     final upcomingEvents = events
@@ -333,23 +332,20 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   horizontal: AppSpacing.screenGutter,
                 ),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final entry = entries[index];
-                      final isFocusCard =
-                          focusKey != null && _entryKey(entry) == focusKey;
-                      return Padding(
-                        key: isFocusCard ? _focusMatchKey : null,
-                        padding: EdgeInsets.only(
-                          bottom: index == entries.length - 1
-                              ? 0
-                              : AppSpacing.contentGap,
-                        ),
-                        child: _buildEntryCard(entry, isAdmin, now),
-                      );
-                    },
-                    childCount: entries.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final entry = entries[index];
+                    final isFocusCard =
+                        focusKey != null && _entryKey(entry) == focusKey;
+                    return Padding(
+                      key: isFocusCard ? _focusMatchKey : null,
+                      padding: EdgeInsets.only(
+                        bottom: index == entries.length - 1
+                            ? 0
+                            : AppSpacing.contentGap,
+                      ),
+                      child: _buildEntryCard(entry, isAdmin, now),
+                    );
+                  }, childCount: entries.length),
                 ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
@@ -396,8 +392,8 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
         initialSection: match.liveState == null
             ? 'info'
             : match.isInternal
-                ? 'composition'
-                : 'live',
+            ? 'composition'
+            : 'live',
         showAvailability: false,
       );
     case _FeedKind.pastMatch:
@@ -426,7 +422,8 @@ class _UpcomingMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final now = DateTime.now();
     final availabilityOpensAt = matchFeaturesOpenAt(match.kickoffAt);
-    final availabilityIsOpen = !match.isCancelled &&
+    final availabilityIsOpen =
+        !match.isCancelled &&
         !now.isBefore(availabilityOpensAt) &&
         now.isBefore(match.kickoffAt);
     final detailsRoute = availabilityIsOpen
@@ -442,20 +439,20 @@ class _UpcomingMatchCard extends StatelessWidget {
                   '⚽ Match entre nous',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
                 )
               : MatchFixture(
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: match.isHome,
                   nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontSize: 16,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                  ),
                   foreground: match.isCancelled
                       ? AppTheme.textFaint
                       : AppTheme.textPrimary,
@@ -470,9 +467,9 @@ class _UpcomingMatchCard extends StatelessWidget {
           Text(
             'Annulé',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFFE5555A),
-                  fontWeight: FontWeight.w800,
-                ),
+              color: const Color(0xFFE5555A),
+              fontWeight: FontWeight.w800,
+            ),
           )
         else
           const Icon(
@@ -495,8 +492,9 @@ class _UpcomingMatchCard extends StatelessWidget {
         children: [
           MatchDateHeader(
             kickoffAt: match.kickoffAt,
-            foreground:
-                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
+            foreground: match.isCancelled
+                ? AppTheme.textFaint
+                : AppTheme.textPrimary,
             secondary: AppTheme.textSecondary,
             dividerColor: AppTheme.outline.withValues(alpha: .55),
             child: fixtureRow,
@@ -523,9 +521,9 @@ class _UpcomingMatchCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textFaint,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: AppTheme.textFaint,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -595,11 +593,8 @@ class _FeedEntry {
   factory _FeedEntry.match(MatchModel match, _FeedKind kind) =>
       _FeedEntry._(kind: kind, date: match.kickoffAt, match: match);
 
-  factory _FeedEntry.event(ClubEvent event) => _FeedEntry._(
-        kind: _FeedKind.event,
-        date: event.startsAt,
-        event: event,
-      );
+  factory _FeedEntry.event(ClubEvent event) =>
+      _FeedEntry._(kind: _FeedKind.event, date: event.startsAt, event: event);
 
   factory _FeedEntry.historical(HistoricalMatchResult historical) =>
       _FeedEntry._(
