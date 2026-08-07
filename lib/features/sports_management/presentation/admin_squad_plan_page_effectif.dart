@@ -208,14 +208,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
-    final isConvoked = _desiredConvoked.contains(player.participantId);
-    final convocationDetail = player.isGuest
-        ? 'Invité sélectionné pour ce match'
-        : isConvoked
-            ? 'Convoqué pour ce match'
-            : player.isAvailable
-                ? 'Non convoqué pour ce match'
-                : 'Aucune décision de convocation applicable';
     final canRelance = !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
@@ -243,13 +235,6 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 color: availabilityColor,
                 title: availabilityLabel,
                 detail: availabilityDetail,
-              ),
-              const SizedBox(height: 12),
-              _PlayerInfoRow(
-                icon: Icons.groups_rounded,
-                color: isConvoked ? const Color(0xFF168A52) : Colors.blueGrey,
-                title: 'Convocation',
-                detail: convocationDetail,
               ),
               const SizedBox(height: 12),
               _PlayerInfoRow(
