@@ -1,23 +1,9 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum StatisticsPeriod { current, previous, allTime }
-
-String _firstName(String fullName) {
-  final normalizedName = fullName.trim();
-  if (normalizedName.isEmpty) return fullName;
-  return normalizedName.split(RegExp(r'\s+')).first;
-}
-
-/// Première lettre du nom de famille, pour départager deux joueurs affichés
-/// sous le même prénom (ex : « Julien C. » / « Julien D. »).
-String? _lastNameInitial(String fullName) {
-  final parts = fullName.trim().split(RegExp(r'\s+'));
-  if (parts.length < 2) return null;
-  final lastName = parts.sublist(1).join(' ');
-  return lastName.isEmpty ? null : lastName[0].toUpperCase();
-}
 
 extension StatisticsPeriodKey on StatisticsPeriod {
   String get databaseKey => switch (this) {
@@ -193,16 +179,16 @@ class StatisticsRepository {
         final ga = (a['goals'] as num?)?.toInt() ?? 0;
         final gb = (b['goals'] as num?)?.toInt() ?? 0;
         if (gb != ga) return gb.compareTo(ga);
-        return _firstName((a['player_name'] ?? '').toString())
+        return firstNameOf((a['player_name'] ?? '').toString())
             .toLowerCase()
             .compareTo(
-              _firstName((b['player_name'] ?? '').toString()).toLowerCase(),
+              firstNameOf((b['player_name'] ?? '').toString()).toLowerCase(),
             );
       });
 
     final firstNames = [
       for (final row in rows)
-        _firstName((row['player_name'] ?? 'Joueur').toString()),
+        firstNameOf((row['player_name'] ?? 'Joueur').toString()),
     ];
     final firstNameCounts = <String, int>{};
     for (final firstName in firstNames) {
@@ -222,7 +208,7 @@ class StatisticsRepository {
       }
       final fullName = (map['player_name'] ?? 'Joueur').toString();
       final firstName = firstNames[i];
-      final lastNameInitial = _lastNameInitial(fullName);
+      final lastNameInitial = lastNameInitialOf(fullName);
       final isHomonym = firstNameCounts[firstName.toLowerCase()]! > 1;
       final name = isHomonym && lastNameInitial != null
           ? '$firstName $lastNameInitial.'

@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -68,11 +69,35 @@ class HistoricalMatchDetailRepository {
     if (rows.isEmpty) return null;
     final row = rows.first;
 
-    final fieldPlayers = (row['field_players'] as List? ?? const [])
+    final fieldPlayersRaw = (row['field_players'] as List? ?? const [])
         .map((entry) => Map<String, dynamic>.from(entry as Map))
+        .toList(growable: false);
+    final scorersRaw = (row['scorers'] as List? ?? const [])
+        .map((entry) => Map<String, dynamic>.from(entry as Map))
+        .toList(growable: false);
+
+    List<String> stringList(Object? value) => (value as List? ?? const [])
+        .map((e) => e.toString())
+        .toList(growable: false);
+    final benchPlayersRaw = stringList(row['bench_players']);
+    final presentNamesRaw = stringList(row['present_names']);
+    final motmNamesRaw = stringList(row['motm_names']);
+
+    // L'archive stocke le nom complet des joueurs, contrairement aux matchs
+    // courants où l'appli n'expose que le prénom (lié au profil). On applique
+    // ici la même réduction « prénom, + initiale du nom si homonyme exact »
+    // que la page Statistiques, pour que la composition d'un match archivé se
+    // lise exactement comme celle d'un match courant.
+    final shortName = _shortNameResolver({
+      ...fieldPlayersRaw.map((entry) => (entry['name'] ?? '').toString()),
+      ...benchPlayersRaw,
+      ...presentNamesRaw,
+    });
+
+    final fieldPlayers = fieldPlayersRaw
         .map(
           (entry) => HistoricalFieldPlayer(
-            name: (entry['name'] ?? '').toString(),
+            name: shortName((entry['name'] ?? '').toString()),
             positionLabel: (entry['position_label'] ?? '').toString(),
             xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
             yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
@@ -81,29 +106,45 @@ class HistoricalMatchDetailRepository {
         )
         .toList(growable: false);
 
-    final scorers = (row['scorers'] as List? ?? const [])
-        .map((entry) => Map<String, dynamic>.from(entry as Map))
+    final scorers = scorersRaw
         .map(
           (entry) => HistoricalScorer(
-            name: (entry['name'] ?? '').toString(),
+            name: shortName((entry['name'] ?? '').toString()),
             goals: (entry['goals'] as num?)?.toInt() ?? 1,
           ),
         )
         .toList(growable: false);
 
-    List<String> stringList(Object? value) => (value as List? ?? const [])
-        .map((e) => e.toString())
-        .toList(growable: false);
-
     return HistoricalMatchDetail(
       formation: (row['formation'] as String?),
       fieldPlayers: fieldPlayers,
-      benchPlayers: stringList(row['bench_players']),
-      presentNames: stringList(row['present_names']),
+      benchPlayers: benchPlayersRaw.map(shortName).toList(growable: false),
+      presentNames: presentNamesRaw.map(shortName).toList(growable: false),
       scorers: scorers,
-      motmNames: stringList(row['motm_names']),
+      motmNames: motmNamesRaw.map(shortName).toList(growable: false),
     );
   }
+}
+
+/// Construit un « prénom, + initiale si homonyme exact » à partir de
+/// l'ensemble des noms complets d'un même match : deux « Xavier » sur la
+/// même feuille de match deviennent « Xavier G. » / « Xavier L. », sinon un
+/// « Xavier » seul reste juste « Xavier ».
+String Function(String) _shortNameResolver(Iterable<String> fullNames) {
+  final firstNameCounts = <String, int>{};
+  for (final fullName in fullNames) {
+    final key = firstNameOf(fullName).toLowerCase();
+    if (key.isEmpty) continue;
+    firstNameCounts[key] = (firstNameCounts[key] ?? 0) + 1;
+  }
+  return (fullName) {
+    final firstName = firstNameOf(fullName);
+    final isHomonym = (firstNameCounts[firstName.toLowerCase()] ?? 0) > 1;
+    final lastInitial = lastNameInitialOf(fullName);
+    return isHomonym && lastInitial != null
+        ? '$firstName $lastInitial.'
+        : firstName;
+  };
 }
 
 final historicalMatchDetailRepositoryProvider =
