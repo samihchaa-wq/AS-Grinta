@@ -27,8 +27,10 @@ int _lastSunday(int year, int month) {
 
 /// Décalage Europe/Paris à un instant absolu donné.
 Duration _offsetAt(DateTime utc) {
-  final start = DateTime.utc(utc.year, DateTime.march, _lastSunday(utc.year, DateTime.march), 1);
-  final end = DateTime.utc(utc.year, DateTime.october, _lastSunday(utc.year, DateTime.october), 1);
+  final start = DateTime.utc(
+      utc.year, DateTime.march, _lastSunday(utc.year, DateTime.march), 1);
+  final end = DateTime.utc(
+      utc.year, DateTime.october, _lastSunday(utc.year, DateTime.october), 1);
   final summer = !utc.isBefore(start) && utc.isBefore(end);
   return Duration(hours: summer ? 2 : 1);
 }
@@ -71,7 +73,8 @@ void main() {
             for (var day = 1; day <= daysInMonth; day++) {
               for (final hour in kickoffHoursUtc) {
                 for (final minute in const [0, 30, 45]) {
-                  final kickoffUtc = DateTime.utc(year, month, day, hour, minute);
+                  final kickoffUtc =
+                      DateTime.utc(year, month, day, hour, minute);
                   final openAt = matchFeaturesOpenAt(kickoffUtc);
 
                   // 1. L'ouverture doit être un midi civil parisien.
@@ -82,8 +85,10 @@ void main() {
                     reason: 'coup d’envoi $kickoffUtc → ouverture $openAt '
                         '(heure Paris ${openLocal.hour}h${openLocal.minute})',
                   );
-                  expect(openLocal.minute, 0, reason: 'coup d’envoi $kickoffUtc');
-                  expect(openLocal.second, 0, reason: 'coup d’envoi $kickoffUtc');
+                  expect(openLocal.minute, 0,
+                      reason: 'coup d’envoi $kickoffUtc');
+                  expect(openLocal.second, 0,
+                      reason: 'coup d’envoi $kickoffUtc');
 
                   // 2. Ce midi doit être exactement six jours civils parisiens
                   // avant le jour civil parisien du coup d’envoi.
@@ -94,7 +99,8 @@ void main() {
                     kickoffLocal.day,
                   ).subtract(const Duration(days: kMatchOpensDaysBefore));
                   expect(
-                    DateTime.utc(openLocal.year, openLocal.month, openLocal.day),
+                    DateTime.utc(
+                        openLocal.year, openLocal.month, openLocal.day),
                     expectedDate,
                     reason: 'coup d’envoi $kickoffUtc (Paris $kickoffLocal) : '
                         'ouverture attendue le $expectedDate',
@@ -250,7 +256,8 @@ void main() {
         }
 
         // ignore: avoid_print
-        print('STATE_SPACE match_guard_consistency cases=$checked status=passed');
+        print(
+            'STATE_SPACE match_guard_consistency cases=$checked status=passed');
       },
     );
 
@@ -268,7 +275,9 @@ void main() {
             'halftime',
             'finished',
           ]) {
-            for (var offset = -10 * 24 * 60; offset <= 10 * 24 * 60; offset += 60) {
+            for (var offset = -10 * 24 * 60;
+                offset <= 10 * 24 * 60;
+                offset += 60) {
               final phase = matchDisplayPhase(
                 kickoffAt: kickoff,
                 status: status,
@@ -281,7 +290,8 @@ void main() {
                 status == 'annule'
                     ? MatchDisplayPhase.cancelled
                     : MatchDisplayPhase.past,
-                reason: 'statut $status ignoré à T${offset}min (live $liveState)',
+                reason:
+                    'statut $status ignoré à T${offset}min (live $liveState)',
               );
               checked++;
             }

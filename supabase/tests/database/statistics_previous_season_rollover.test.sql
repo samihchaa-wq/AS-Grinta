@@ -86,7 +86,7 @@ select is(
     where period_key = 'previous'
     limit 1
   ),
-  'Joueur',
+  'Joueur Application',
   'un effectif applicatif remplace immédiatement l’import historique'
 );
 
@@ -95,7 +95,7 @@ select is(
     select matches_played
     from public.v_statistics_players
     where period_key = 'previous'
-      and player_name = 'Joueur'
+      and player_name = 'Joueur Application'
   ),
   0,
   'la saison précédente apparaît même sans statistique de match'
@@ -158,10 +158,31 @@ select is(
     select count(*)
     from public.v_statistics_players
     where period_key = 'previous'
-      and player_name = 'Nouvelle'
+      and player_name = 'Nouvelle Précédente'
   ),
   1::bigint,
   'la nouvelle saison précédente est utilisée même avec zéro match'
+);
+
+-- Contrat de nommage : la vue expose toujours le nom complet du joueur, y
+-- compris pour un effectif applicatif. C'est le client qui en dérive le
+-- prénom affiché et, en cas d'homonymes exacts, l'initiale du nom de
+-- famille. Auparavant la vue renvoyait le seul prénom pour les lignes
+-- applicatives et le nom complet pour l'import historique : cette
+-- incohérence empêchait le départage des homonymes sur la saison en cours
+-- et faisait silencieusement échouer le tri par buts de la saison
+-- précédente dans les pronostics de saison, qui cherche sur « Prénom Nom ».
+select is(
+  (
+    select v.player_name
+    from public.v_statistics_players v
+    join public.season_players sp
+      on sp.id = '72000000-0000-0000-0000-000000000002'
+    where v.period_key = 'previous'
+      and v.player_name = concat_ws(' ', sp.first_name, sp.last_name)
+  ),
+  'Nouvelle Précédente',
+  'un effectif applicatif est exposé avec son prénom ET son nom'
 );
 
 select * from finish();
