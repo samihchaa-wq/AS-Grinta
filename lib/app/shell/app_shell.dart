@@ -24,24 +24,15 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   bool _matchFocusScheduled = false;
+  // On mémorise nous-même l'index affiché à la frame précédente : le prop
+  // `navigationShell` est le MÊME objet à chaque rebuild (StatefulShellRoute
+  // ne le remplace pas), donc comparer `oldWidget.navigationShell.currentIndex`
+  // à `widget.navigationShell.currentIndex` ne détecte jamais de transition —
+  // les deux lisent l'état actuel du shell.
+  int? _previousShellIndex;
 
   Uri get _uri => Uri.parse(widget.location);
   int get _selectedIndex => widget.navigationShell.currentIndex;
-
-  @override
-  void didUpdateWidget(covariant AppShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Toute bascule vers l'onglet Matchs déclenche un re-focus sur le
-    // prochain match — que le changement vienne du bottom nav, d'un retour
-    // système, ou d'une navigation `goBranch` faite ailleurs. Sans ce
-    // hook, revenir à l'onglet Matchs par un autre chemin conservait la
-    // position de scroll précédente (souvent 2014 en tête de liste).
-    final wasMatches = oldWidget.navigationShell.currentIndex == 0;
-    final isMatches = widget.navigationShell.currentIndex == 0;
-    if (isMatches && !wasMatches) {
-      _scheduleMatchFocus();
-    }
-  }
 
   void _scheduleMatchFocus() {
     if (_matchFocusScheduled) return;
@@ -77,6 +68,18 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Toute bascule vers l'onglet Matchs déclenche un re-focus sur le
+    // prochain match — bottom nav, retour système ou goBranch tiers.
+    // Sans ça, revenir par un autre chemin conservait la position de
+    // scroll précédente (souvent 2014 en tête de liste).
+    final currentShellIndex = widget.navigationShell.currentIndex;
+    if (_previousShellIndex != null &&
+        _previousShellIndex != 0 &&
+        currentShellIndex == 0) {
+      _scheduleMatchFocus();
+    }
+    _previousShellIndex = currentShellIndex;
+
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final moduleTheme = Theme.of(
       context,
