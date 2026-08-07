@@ -184,7 +184,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         ref.watch(clubEventsProvider).valueOrNull ?? const <ClubEvent>[];
     final historicalMatches =
         ref.watch(allHistoricalMatchesProvider).valueOrNull ??
-        const <HistoricalMatchResult>[];
+            const <HistoricalMatchResult>[];
     final now = DateTime.now();
 
     final upcomingEvents = events
@@ -392,8 +392,8 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
         initialSection: match.liveState == null
             ? 'info'
             : match.isInternal
-            ? 'composition'
-            : 'live',
+                ? 'composition'
+                : 'live',
         showAvailability: false,
       );
     case _FeedKind.pastMatch:
@@ -422,8 +422,7 @@ class _UpcomingMatchCard extends StatelessWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final now = DateTime.now();
     final availabilityOpensAt = matchFeaturesOpenAt(match.kickoffAt);
-    final availabilityIsOpen =
-        !match.isCancelled &&
+    final availabilityIsOpen = !match.isCancelled &&
         !now.isBefore(availabilityOpensAt) &&
         now.isBefore(match.kickoffAt);
     final detailsRoute = availabilityIsOpen
@@ -439,20 +438,20 @@ class _UpcomingMatchCard extends StatelessWidget {
                   '⚽ Match entre nous',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
                 )
               : MatchFixture(
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: match.isHome,
                   nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontSize: 16,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                  ),
+                        fontSize: 16,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                      ),
                   foreground: match.isCancelled
                       ? AppTheme.textFaint
                       : AppTheme.textPrimary,
@@ -467,9 +466,9 @@ class _UpcomingMatchCard extends StatelessWidget {
           Text(
             'Annulé',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFFE5555A),
-              fontWeight: FontWeight.w800,
-            ),
+                  color: const Color(0xFFE5555A),
+                  fontWeight: FontWeight.w800,
+                ),
           )
         else
           const Icon(
@@ -492,9 +491,8 @@ class _UpcomingMatchCard extends StatelessWidget {
         children: [
           MatchDateHeader(
             kickoffAt: match.kickoffAt,
-            foreground: match.isCancelled
-                ? AppTheme.textFaint
-                : AppTheme.textPrimary,
+            foreground:
+                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
             secondary: AppTheme.textSecondary,
             dividerColor: AppTheme.outline.withValues(alpha: .55),
             child: fixtureRow,
@@ -521,9 +519,9 @@ class _UpcomingMatchCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textFaint,
-                          fontWeight: FontWeight.w600,
-                        ),
+                              color: AppTheme.textFaint,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                   ],
