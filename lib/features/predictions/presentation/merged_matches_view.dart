@@ -27,8 +27,13 @@ import 'package:go_router/go_router.dart';
 
 /// Contenu de l'onglet Matchs.
 ///
-/// Une seule machine temporelle alimente désormais les sections :
-/// À venir → Prochain match → Match en direct → À valider → Matchs passés.
+/// Règle stricte : un unique flux chronologique, sans regroupement par
+/// catégorie. Chaque carte a au-dessus d'elle une carte moins avancée dans
+/// le temps et en dessous une carte plus avancée dans le temps — matchs
+/// passés, en direct, à venir et événements confondus, du plus ancien (haut)
+/// au plus futur (bas). Le statut d'un match (Live, à valider, dans la
+/// fenêtre J-6…) continue de piloter ses fonctionnalités et son habillage de
+/// carte, seule la section/en-tête dédiée a disparu.
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key});
 
@@ -128,73 +133,53 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         .where((event) => event.startsAt.isAfter(now))
         .toList(growable: false);
 
-    final upcomingMatches = <MatchModel>[];
-    final nextMatches = <MatchModel>[];
-    final liveMatches = <MatchModel>[];
-    final awaitingValidationMatches = <MatchModel>[];
-    final pastMatches = <MatchModel>[];
-
+    final entries = <_FeedEntry>[];
     for (final match in state.matches) {
       switch (match.phase(now: now)) {
         case MatchDisplayPhase.upcoming:
-          upcomingMatches.add(match);
+          entries.add(_FeedEntry.match(match, _FeedKind.upcomingMatch));
         case MatchDisplayPhase.next:
-          nextMatches.add(match);
+          entries.add(_FeedEntry.match(match, _FeedKind.nextMatch));
         case MatchDisplayPhase.live:
-          liveMatches.add(match);
+          entries.add(_FeedEntry.match(match, _FeedKind.liveMatch));
         case MatchDisplayPhase.awaitingValidation:
-          awaitingValidationMatches.add(match);
+          entries.add(
+            _FeedEntry.match(match, _FeedKind.awaitingValidationMatch),
+          );
         case MatchDisplayPhase.past:
-          pastMatches.add(match);
+          entries.add(_FeedEntry.match(match, _FeedKind.pastMatch));
         case MatchDisplayPhase.cancelled:
-          if (match.kickoffAt.isAfter(now)) {
-            upcomingMatches.add(match);
-          } else {
-            pastMatches.add(match);
-          }
+          entries.add(
+            _FeedEntry.match(
+              match,
+              match.kickoffAt.isAfter(now)
+                  ? _FeedKind.upcomingMatch
+                  : _FeedKind.pastMatch,
+            ),
+          );
       }
     }
+    entries.addAll(upcomingEvents.map(_FeedEntry.event));
+    entries.addAll(historicalMatches.map(_FeedEntry.historical));
 
-    // Deux matchs rapprochés peuvent tous les deux avoir leurs fonctionnalités
-    // ouvertes (fenêtre J-6) avant que le premier n'ait eu lieu : sans ce tri,
-    // ils se retrouveraient tous les deux affichés sous « Prochain match ».
-    // Seul le plus proche garde ce statut ; les autres redescendent en « À
-    // venir ».
-    nextMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
-    if (nextMatches.length > 1) {
-      upcomingMatches.addAll(nextMatches.skip(1));
-      nextMatches.removeRange(1, nextMatches.length);
-    }
+    // Règle stricte : un seul tri chronologique croissant pour tout le flux.
+    // Le plus ancien (passé) en haut, le plus futur en bas — aucune carte
+    // n'est promue ou reléguée en dehors de sa place chronologique.
+    entries.sort((a, b) => a.date.compareTo(b.date));
 
-    upcomingMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
-    final upcomingEntries = <_UpcomingEntry>[
-      ...upcomingMatches.map(_UpcomingEntry.match),
-      ...upcomingEvents.map(_UpcomingEntry.event),
-    ]..sort((a, b) => a.date.compareTo(b.date));
-    liveMatches.sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
-    awaitingValidationMatches.sort(
-      (a, b) => a.kickoffAt.compareTo(b.kickoffAt),
-    );
-    pastMatches.sort((a, b) => b.kickoffAt.compareTo(a.kickoffAt));
-    final pastEntries = <_PastEntry>[
-      ...pastMatches.map(_PastEntry.match),
-      ...historicalMatches.map(_PastEntry.historical),
-    ]..sort((a, b) => b.date.compareTo(a.date));
-
-    final MatchDisplayPhase? focusPhase;
-    final String? focusMatchId;
-    if (liveMatches.isNotEmpty) {
-      focusPhase = MatchDisplayPhase.live;
-      focusMatchId = liveMatches.first.id;
-    } else if (awaitingValidationMatches.isNotEmpty) {
-      focusPhase = MatchDisplayPhase.awaitingValidation;
-      focusMatchId = awaitingValidationMatches.first.id;
-    } else if (nextMatches.isNotEmpty) {
-      focusPhase = MatchDisplayPhase.next;
-      focusMatchId = nextMatches.first.id;
-    } else {
-      focusPhase = null;
-      focusMatchId = null;
+    String? focusMatchId;
+    for (final kind in const [
+      _FeedKind.liveMatch,
+      _FeedKind.awaitingValidationMatch,
+      _FeedKind.nextMatch,
+    ]) {
+      for (final entry in entries) {
+        if (entry.kind == kind) {
+          focusMatchId = entry.match!.id;
+          break;
+        }
+      }
+      if (focusMatchId != null) break;
     }
 
     final focusRequest = ref.watch(matchesFocusRequestProvider);
@@ -206,12 +191,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       requestToken: '$focusRequest',
     );
 
-    final visibleCardCount = upcomingMatches.length +
-        nextMatches.length +
-        liveMatches.length +
-        awaitingValidationMatches.length +
-        pastEntries.length;
-    final cacheExtent = 1000.0 + (visibleCardCount * 360.0);
+    final cacheExtent = 1000.0 + (entries.length * 360.0);
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -243,9 +223,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               ),
             )
-          else if (state.matches.isEmpty &&
-              upcomingEvents.isEmpty &&
-              historicalMatches.isEmpty)
+          else if (entries.isEmpty)
             SliverPadding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.screenGutter,
@@ -263,227 +241,31 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               ),
             )
-          else ...[
-            if (upcomingEntries.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  const SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SectionHeaderDelegate(
-                      icon: Icons.calendar_month_outlined,
-                      title: 'À venir',
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final entry = upcomingEntries[index];
-                          final match = entry.match;
-                          return Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppSpacing.contentGap,
-                            ),
-                            child: match != null
-                                ? _UpcomingMatchCard(
-                                    match: match,
-                                    isAdmin: isAdmin,
-                                  )
-                                : ClubEventCard(
-                                    event: entry.event!,
-                                    isAdmin: isAdmin,
-                                  ),
-                          );
-                        },
-                        childCount: upcomingEntries.length,
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenGutter,
+              ),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final entry = entries[index];
+                    final isFocusCard =
+                        focusMatchId != null && entry.match?.id == focusMatchId;
+                    return Padding(
+                      key: isFocusCard ? _focusMatchKey : null,
+                      padding: EdgeInsets.only(
+                        bottom: index == entries.length - 1
+                            ? 0
+                            : AppSpacing.contentGap,
                       ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.contentGap),
-                  ),
-                ],
+                      child: _buildEntryCard(entry, isAdmin, now),
+                    );
+                  },
+                  childCount: entries.length,
+                ),
               ),
-            if (nextMatches.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  SliverPersistentHeader(
-                    key: focusPhase == MatchDisplayPhase.next
-                        ? _focusMatchKey
-                        : null,
-                    pinned: true,
-                    delegate: const _SectionHeaderDelegate(
-                      icon: Icons.bolt_rounded,
-                      title: 'Prochain match',
-                      emphasized: true,
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: EdgeInsets.only(
-                            bottom: index == nextMatches.length - 1
-                                ? 0
-                                : AppSpacing.contentGap,
-                          ),
-                          child: HomeNextMatchCard(
-                            match: nextMatches[index],
-                            isAdmin: isAdmin,
-                          ),
-                        ),
-                        childCount: nextMatches.length,
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.sectionGap),
-                  ),
-                ],
-              ),
-            if (liveMatches.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  SliverPersistentHeader(
-                    key: focusPhase == MatchDisplayPhase.live
-                        ? _focusMatchKey
-                        : null,
-                    pinned: true,
-                    delegate: const _SectionHeaderDelegate(
-                      icon: Icons.sensors_rounded,
-                      title: 'Match en direct',
-                      emphasized: true,
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => Padding(
-                          padding: EdgeInsets.only(
-                            bottom: index == liveMatches.length - 1
-                                ? 0
-                                : AppSpacing.contentGap,
-                          ),
-                          child: HomeNextMatchCard(
-                            match: liveMatches[index],
-                            isAdmin: isAdmin,
-                            initialSection: liveMatches[index].isInternal
-                                ? 'composition'
-                                : 'live',
-                            showAvailability: now.isBefore(
-                              liveMatches[index].kickoffAt,
-                            ),
-                          ),
-                        ),
-                        childCount: liveMatches.length,
-                      ),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.sectionGap),
-                  ),
-                ],
-              ),
-            if (awaitingValidationMatches.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  SliverPersistentHeader(
-                    key: focusPhase == MatchDisplayPhase.awaitingValidation
-                        ? _focusMatchKey
-                        : null,
-                    pinned: true,
-                    delegate: const _SectionHeaderDelegate(
-                      icon: Icons.fact_check_outlined,
-                      title: 'À valider',
-                      emphasized: true,
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final match = awaitingValidationMatches[index];
-                        return Padding(
-                          padding: EdgeInsets.only(
-                            bottom:
-                                index == awaitingValidationMatches.length - 1
-                                    ? 0
-                                    : AppSpacing.contentGap,
-                          ),
-                          child: HomeNextMatchCard(
-                            match: match,
-                            isAdmin: isAdmin,
-                            initialSection: match.liveState == null
-                                ? 'info'
-                                : match.isInternal
-                                    ? 'composition'
-                                    : 'live',
-                            showAvailability: false,
-                          ),
-                        );
-                      }, childCount: awaitingValidationMatches.length),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.sectionGap),
-                  ),
-                ],
-              ),
-            if (pastEntries.isNotEmpty)
-              SliverMainAxisGroup(
-                slivers: [
-                  const SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _SectionHeaderDelegate(
-                      icon: Icons.history_rounded,
-                      title: 'Matchs passés',
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenGutter,
-                    ),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final entry = pastEntries[index];
-                          final match = entry.match;
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index == pastEntries.length - 1
-                                  ? 0
-                                  : AppSpacing.contentGap,
-                            ),
-                            child: match != null
-                                ? MatchHistoryCard(
-                                    match: match,
-                                    adminActions: isAdmin
-                                        ? AdminMatchOptionsButton(match: match)
-                                        : null,
-                                  )
-                                : HistoricalMatchCard(
-                                    match: entry.historical!,
-                                  ),
-                          );
-                        },
-                        childCount: pastEntries.length,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
+            ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
@@ -491,77 +273,45 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   }
 }
 
-class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _SectionHeaderDelegate({
-    required this.icon,
-    required this.title,
-    this.emphasized = false,
-  });
-
-  static const double _height = 38;
-
-  final IconData icon;
-  final String title;
-  final bool emphasized;
-
-  @override
-  double get minExtent => _height;
-
-  @override
-  double get maxExtent => _height;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final background = AppTheme.background;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: background,
-        border: Border(
-          bottom: BorderSide(
-            color: AppTheme.outline.withValues(
-              alpha: overlapsContent ? .5 : .2,
-            ),
-          ),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenGutter,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: emphasized ? 18 : 17,
-              color: emphasized ? AppTheme.primaryBright : AppTheme.textFaint,
-            ),
-            const SizedBox(width: 7),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: emphasized
-                        ? AppTheme.textPrimary
-                        : AppTheme.textSecondary,
-                    fontWeight: emphasized ? FontWeight.w900 : FontWeight.w800,
-                    letterSpacing: emphasized ? -.15 : 0,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _SectionHeaderDelegate oldDelegate) {
-    return oldDelegate.icon != icon ||
-        oldDelegate.title != title ||
-        oldDelegate.emphasized != emphasized;
+/// Choisit la carte adaptée au statut de l'entrée, sans plus jamais dépendre
+/// d'une section : la fonctionnalité (disponibilité, Live, composition…)
+/// reste pilotée par `entry.kind`, seul l'habillage groupé a disparu.
+Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
+  switch (entry.kind) {
+    case _FeedKind.upcomingMatch:
+      return _UpcomingMatchCard(match: entry.match!, isAdmin: isAdmin);
+    case _FeedKind.nextMatch:
+      return HomeNextMatchCard(match: entry.match!, isAdmin: isAdmin);
+    case _FeedKind.liveMatch:
+      final match = entry.match!;
+      return HomeNextMatchCard(
+        match: match,
+        isAdmin: isAdmin,
+        initialSection: match.isInternal ? 'composition' : 'live',
+        showAvailability: now.isBefore(match.kickoffAt),
+      );
+    case _FeedKind.awaitingValidationMatch:
+      final match = entry.match!;
+      return HomeNextMatchCard(
+        match: match,
+        isAdmin: isAdmin,
+        initialSection: match.liveState == null
+            ? 'info'
+            : match.isInternal
+                ? 'composition'
+                : 'live',
+        showAvailability: false,
+      );
+    case _FeedKind.pastMatch:
+      final match = entry.match!;
+      return MatchHistoryCard(
+        match: match,
+        adminActions: isAdmin ? AdminMatchOptionsButton(match: match) : null,
+      );
+    case _FeedKind.historicalMatch:
+      return HistoricalMatchCard(match: entry.historical!);
+    case _FeedKind.event:
+      return ClubEventCard(event: entry.event!, isAdmin: isAdmin);
   }
 }
 
@@ -713,35 +463,52 @@ class _UpcomingMatchCard extends StatelessWidget {
   }
 }
 
-class _UpcomingEntry {
-  const _UpcomingEntry._({this.match, this.event, required this.date});
-
-  final MatchModel? match;
-  final ClubEvent? event;
-  final DateTime date;
-
-  factory _UpcomingEntry.match(MatchModel match) =>
-      _UpcomingEntry._(match: match, date: match.kickoffAt);
-
-  factory _UpcomingEntry.event(ClubEvent event) =>
-      _UpcomingEntry._(event: event, date: event.startsAt);
+/// Le statut affiché d'une entrée du flux — pilote uniquement le choix de
+/// carte et ses fonctionnalités, plus jamais son placement (déterminé
+/// exclusivement par `_FeedEntry.date`).
+enum _FeedKind {
+  upcomingMatch,
+  nextMatch,
+  liveMatch,
+  awaitingValidationMatch,
+  pastMatch,
+  historicalMatch,
+  event,
 }
 
-/// Fusionne les matchs passés « live » (issus de `matches`, tappables, avec
-/// vote HDM) et les résultats importés de l'historique du club (lecture
-/// seule, sans fiche match associée) dans une seule liste triée par date.
-class _PastEntry {
-  const _PastEntry._({this.match, this.historical, required this.date});
+/// Une entrée du flux chronologique unique : match (live ou importé de
+/// l'historique du club) ou événement, toutes comparables par `date` pour
+/// respecter la règle stricte de tri.
+class _FeedEntry {
+  const _FeedEntry._({
+    required this.kind,
+    required this.date,
+    this.match,
+    this.event,
+    this.historical,
+  });
 
-  final MatchModel? match;
-  final HistoricalMatchResult? historical;
+  final _FeedKind kind;
   final DateTime date;
+  final MatchModel? match;
+  final ClubEvent? event;
+  final HistoricalMatchResult? historical;
 
-  factory _PastEntry.match(MatchModel match) =>
-      _PastEntry._(match: match, date: match.kickoffAt);
+  factory _FeedEntry.match(MatchModel match, _FeedKind kind) =>
+      _FeedEntry._(kind: kind, date: match.kickoffAt, match: match);
 
-  factory _PastEntry.historical(HistoricalMatchResult historical) =>
-      _PastEntry._(historical: historical, date: historical.date);
+  factory _FeedEntry.event(ClubEvent event) => _FeedEntry._(
+        kind: _FeedKind.event,
+        date: event.startsAt,
+        event: event,
+      );
+
+  factory _FeedEntry.historical(HistoricalMatchResult historical) =>
+      _FeedEntry._(
+        kind: _FeedKind.historicalMatch,
+        date: historical.date,
+        historical: historical,
+      );
 }
 
 class _LoadingCard extends StatelessWidget {

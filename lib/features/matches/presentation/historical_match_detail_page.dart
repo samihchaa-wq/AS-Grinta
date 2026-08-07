@@ -1,19 +1,23 @@
-import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/core/widgets/match_fixture.dart';
+import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
-import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
+import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Fiche en lecture seule d'un match de l'historique importé : composition
-/// (quand elle est connue), buteurs et HDM. Contrairement à [MatchDetailsPage],
-/// il n'y a ici ni pronostics, ni vote, ni action d'administration : tout est
-/// figé, importé depuis les archives du club.
+/// Fiche en lecture seule d'un match de l'historique importé : même gabarit
+/// que [MatchDetailsPage] pour un match terminé (en-tête, composition,
+/// homme du match), rempli avec ce que l'archive du club sait réellement
+/// dire. Contrairement à [MatchDetailsPage], il n'y a ici ni pronostics, ni
+/// vote, ni action d'administration : tout est figé, importé depuis les
+/// archives du club — les sections sans donnée disponible sont simplement
+/// masquées plutôt que de simuler une fonctionnalité qui n'existe pas pour
+/// un match archivé.
 ///
 /// [initialMatch] évite un aller-retour réseau quand on arrive depuis une
 /// carte du calendrier qui l'a déjà chargé ; sans lui (arrivée directe sur
@@ -71,7 +75,10 @@ class HistoricalMatchDetailPage extends ConsumerWidget {
                     ),
                   );
                 }
-                return _HistoricalMatchDetailBody(detail: detail);
+                return _HistoricalMatchDetailBody(
+                  matchId: matchId,
+                  detail: detail,
+                );
               },
             ),
           ],
@@ -93,7 +100,7 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final match = initialMatch;
-    if (match != null) return _HistoricalMatchHeader(match: match);
+    if (match != null) return _historicalHeader(match);
 
     final allAsync = ref.watch(allHistoricalMatchesProvider);
     return allAsync.when(
@@ -117,359 +124,172 @@ class _HistoricalMatchHeaderSection extends ConsumerWidget {
             ),
           );
         }
-        return _HistoricalMatchHeader(match: found);
+        return _historicalHeader(found);
       },
     );
   }
-}
 
-class _HistoricalMatchHeader extends StatelessWidget {
-  const _HistoricalMatchHeader({required this.match});
-
-  final HistoricalMatchResult match;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              AppFormats.date(match.date),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary.withValues(alpha: .7),
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-            const SizedBox(height: 12),
-            MatchFixture(
-              homeName: match.isHome ? 'AS Grinta' : match.opponentName,
-              awayName: match.isHome ? match.opponentName : 'AS Grinta',
-              grintaIsHome: match.isHome,
-              homeScore: match.isHome ? match.grintaScore : match.opponentScore,
-              awayScore: match.isHome ? match.opponentScore : match.grintaScore,
-              finished: true,
-              nameStyle: Theme.of(context).textTheme.titleLarge,
-              scoreFontSize: 26,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+  Widget _historicalHeader(HistoricalMatchResult match) {
+    return MatchDetailHeaderCard(
+      homeName: match.isHome ? 'AS Grinta' : match.opponentName,
+      awayName: match.isHome ? match.opponentName : 'AS Grinta',
+      grintaIsHome: match.isHome,
+      homeScore: match.isHome ? match.grintaScore : match.opponentScore,
+      awayScore: match.isHome ? match.opponentScore : match.grintaScore,
+      dateLabel: AppFormats.date(match.date),
     );
   }
 }
 
 class _HistoricalMatchDetailBody extends StatelessWidget {
-  const _HistoricalMatchDetailBody({required this.detail});
+  const _HistoricalMatchDetailBody({
+    required this.matchId,
+    required this.detail,
+  });
 
+  final String matchId;
   final HistoricalMatchDetail detail;
 
   @override
   Widget build(BuildContext context) {
+    final composition = _compositionFromHistorical(matchId, detail);
+    final fallbackPlayers = _fallbackPlayersFromHistorical(detail);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (detail.hasComposition) ...[
-          _SectionCard(
-            title: 'Composition',
-            subtitle: detail.formation,
-            child: _HistoricalPitch(
-              players: detail.fieldPlayers,
-              scorers: detail.scorers,
-              motmNames: detail.motmNames,
-            ),
-          ),
-          if (detail.benchPlayers.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _SectionCard(
-              title: 'Banc',
-              child: _NameChips(names: detail.benchPlayers),
-            ),
-          ],
-        ] else if (detail.presentNames.isNotEmpty) ...[
-          _SectionCard(
-            title: 'Présents',
-            child: _NameChips(names: detail.presentNames),
-          ),
-        ],
-        if (detail.scorers.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _SectionCard(
-            title: 'Buteurs',
-            child: _ScorersList(scorers: detail.scorers),
-          ),
-        ],
+        CompletedCompositionCard(
+          composition: composition,
+          fallbackPlayers: fallbackPlayers,
+        ),
         if (detail.motmNames.isNotEmpty) ...[
           const SizedBox(height: 16),
-          _SectionCard(
-            title: 'Homme du match',
-            child: _NameChips(names: detail.motmNames, highlighted: true),
-          ),
+          _HistoricalMotmCard(names: detail.motmNames),
         ],
       ],
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.title, this.subtitle, required this.child});
+/// Reconstruit une [MatchComposition] à partir de l'archive historique, afin
+/// que le terrain partagé ([CompletedCompositionCard]) affiche une fiche
+/// archivée exactement comme une fiche de match courant. `null` quand
+/// l'archive ne connaît pas les positions des titulaires : la carte bascule
+/// alors elle-même sur son repli « Joueurs (n) ».
+MatchComposition? _compositionFromHistorical(
+  String matchId,
+  HistoricalMatchDetail detail,
+) {
+  if (!detail.hasComposition) return null;
 
-  final String title;
-  final String? subtitle;
-  final Widget child;
+  int goalsFor(String name) => detail.scorers
+      .where((scorer) => scorer.name == name)
+      .fold<int>(0, (total, scorer) => total + scorer.goals);
 
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondary.withValues(alpha: .7),
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            child,
-          ],
-        ),
+  final entries = <MatchCompositionEntry>[
+    for (var i = 0; i < detail.fieldPlayers.length; i += 1)
+      _entryFromHistorical(
+        detail.fieldPlayers[i],
+        zone: MatchCompositionZone.field,
+        sortOrder: i,
+        goals: goalsFor(detail.fieldPlayers[i].name),
+        isMotm: detail.motmNames.contains(detail.fieldPlayers[i].name),
       ),
-    );
-  }
+    for (var i = 0; i < detail.benchPlayers.length; i += 1)
+      _entryFromHistorical(
+        detail.benchPlayers[i],
+        zone: MatchCompositionZone.bench,
+        sortOrder: i,
+        goals: goalsFor(detail.benchPlayers[i].name),
+        isMotm: detail.motmNames.contains(detail.benchPlayers[i].name),
+      ),
+  ];
+
+  return MatchComposition(
+    matchId: matchId,
+    formationCode: detail.formation,
+    status: 'published',
+    version: 1,
+    hasUnpublishedChanges: false,
+    squadSizeExceptionApproved: false,
+    entries: entries,
+  );
 }
 
-class _NameChips extends StatelessWidget {
-  const _NameChips({required this.names, this.highlighted = false});
+MatchCompositionEntry _entryFromHistorical(
+  HistoricalFieldPlayer player, {
+  required MatchCompositionZone zone,
+  required int sortOrder,
+  required int goals,
+  required bool isMotm,
+}) {
+  final isField = zone == MatchCompositionZone.field;
+  return MatchCompositionEntry(
+    participantId: 'historical-${zone.wireValue}-$sortOrder-${player.name}',
+    seasonPlayerId: player.name,
+    displayName: player.name,
+    isGoalkeeper: player.isGoalkeeper,
+    zone: zone,
+    sortOrder: sortOrder,
+    availabilityStatus: 'available',
+    convocationStatus: 'convoked',
+    selectionStatus: isField ? 'starter' : 'substitute',
+    x: isField ? player.xPct / 100 : null,
+    y: isField ? player.yPct / 100 : null,
+    photoUrl: player.photoUrl,
+    goals: goals,
+    isMotm: isMotm,
+  );
+}
+
+/// Repli « Joueurs (n) » quand l'archive ne connaît pas les positions :
+/// fusionne présents et buteurs, comme le fait la fiche d'un match courant
+/// pour un match sans données Live détaillées.
+List<CompletedPlayerSummary> _fallbackPlayersFromHistorical(
+  HistoricalMatchDetail detail,
+) {
+  final playersByName = <String, CompletedPlayerSummary>{};
+
+  void addPlayer(String rawName, int goals) {
+    final name = rawName.trim();
+    if (name.isEmpty) return;
+    final key = name.toLowerCase();
+    final existing = playersByName[key];
+    if (existing == null || goals > existing.goals) {
+      playersByName[key] = CompletedPlayerSummary(name: name, goals: goals);
+    }
+  }
+
+  for (final name in detail.presentNames) {
+    addPlayer(name, 0);
+  }
+  for (final scorer in detail.scorers) {
+    addPlayer(scorer.name, scorer.goals);
+  }
+
+  return playersByName.values.toList()
+    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+}
+
+/// Même habillage que [MatchMotmVoteCard] une fois le vote clos (icône,
+/// titre, sous-titre), mais statique : une archive n'a pas de scrutin à
+/// rouvrir, donc pas de flèche ni d'action au tap.
+class _HistoricalMotmCard extends StatelessWidget {
+  const _HistoricalMotmCard({required this.names});
 
   final List<String> names;
-  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final name in names)
-          Chip(
-            label: Text(name),
-            avatar: highlighted
-                ? const Text('👑', style: TextStyle(fontSize: 14))
-                : null,
-            backgroundColor: highlighted
-                ? AppTheme.reward.withValues(alpha: .18)
-                : AppTheme.surfaceHigh,
-            side: BorderSide(
-              color: highlighted
-                  ? AppTheme.reward.withValues(alpha: .5)
-                  : AppTheme.outline,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ScorersList extends StatelessWidget {
-  const _ScorersList({required this.scorers});
-
-  final List<HistoricalScorer> scorers;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final scorer in scorers)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    scorer.name,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                ),
-                Text(
-                  '⚽' * scorer.goals.clamp(1, 6) +
-                      (scorer.goals > 6 ? ' +${scorer.goals - 6}' : ''),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Terrain de la fiche archivée, redessiné avec les mêmes briques que la
-/// composition Live ([PitchPainter], [PlayerAvatar], `GoalBallsRow`) pour
-/// qu'une fiche de match archivé et une fiche de match courant se
-/// ressemblent trait pour trait.
-class _HistoricalPitch extends StatelessWidget {
-  const _HistoricalPitch({
-    required this.players,
-    required this.scorers,
-    required this.motmNames,
-  });
-
-  final List<HistoricalFieldPlayer> players;
-  final List<HistoricalScorer> scorers;
-  final List<String> motmNames;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 540),
-      child: AspectRatio(
-        aspectRatio: 0.68,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF174936),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFF6DAD8B), width: 1.5),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
-                child: Stack(
-                  clipBehavior: Clip.hardEdge,
-                  children: [
-                    const Positioned.fill(
-                      child: CustomPaint(painter: PitchPainter()),
-                    ),
-                    for (final player in players)
-                      _positionedPlayer(player, constraints.biggest),
-                  ],
-                ),
-              ),
-            );
-          },
+    if (names.isEmpty) return const SizedBox.shrink();
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.emoji_events_outlined),
+        title: Text(
+          names.length > 1 ? 'Co-Hommes du match' : 'Homme du match',
         ),
+        subtitle: Text(names.join(' · ')),
       ),
-    );
-  }
-
-  Widget _positionedPlayer(HistoricalFieldPlayer player, Size size) {
-    const markerWidth = 64.0;
-    const markerHeight = 84.0;
-    final x = (player.xPct / 100).clamp(0.08, 0.92).toDouble();
-    final y = (player.yPct / 100).clamp(0.06, 0.94).toDouble();
-    final left = (x * size.width - markerWidth / 2)
-        .clamp(0.0, size.width - markerWidth)
-        .toDouble();
-    final top = (y * size.height - markerHeight / 2)
-        .clamp(0.0, size.height - markerHeight)
-        .toDouble();
-
-    final goals = scorers
-        .where((scorer) => scorer.name == player.name)
-        .fold<int>(0, (total, scorer) => total + scorer.goals);
-
-    return Positioned(
-      left: left,
-      top: top,
-      width: markerWidth,
-      height: markerHeight,
-      child: _PlayerMarker(
-        player: player,
-        goals: goals,
-        isMotm: motmNames.contains(player.name),
-      ),
-    );
-  }
-}
-
-class _PlayerMarker extends StatelessWidget {
-  const _PlayerMarker({
-    required this.player,
-    required this.goals,
-    required this.isMotm,
-  });
-
-  final HistoricalFieldPlayer player;
-  final int goals;
-  final bool isMotm;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 60,
-          height: 64,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: PlayerAvatar(
-                  photoUrl: player.photoUrl,
-                  name: player.name,
-                  isGoalkeeper: player.isGoalkeeper,
-                  size: 52,
-                ),
-              ),
-              if (isMotm)
-                const Positioned(
-                  top: 6,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: Text('👑', style: TextStyle(fontSize: 18)),
-                  ),
-                ),
-              if (goals > 0)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Center(child: GoalBallsRow(goals: goals)),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          player.name,
-          maxLines: 2,
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            height: 1.1,
-            shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
-          ),
-        ),
-      ],
     );
   }
 }
