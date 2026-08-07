@@ -138,16 +138,20 @@ class _EffectifPlayerGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Les pastilles de relance débordent au-dessus et à droite de chaque
+    // puce : sans marge supplémentaire, elles chevauchent le nom du joueur
+    // suivant (colonne) ou du dessus (ligne).
+    final gap = onRelance != null ? 16.0 : 5.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (var i = 0; i < players.length; i += _columns) ...[
-          if (i > 0) const SizedBox(height: 5),
+          if (i > 0) SizedBox(height: gap),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (var col = 0; col < _columns; col++) ...[
-                if (col > 0) const SizedBox(width: 5),
+                if (col > 0) SizedBox(width: gap),
                 Expanded(
                   child: Align(
                     alignment: Alignment.centerLeft,
@@ -236,8 +240,8 @@ class _EffectifPlayerChip extends StatelessWidget {
       children: [
         content,
         Positioned(
-          top: -6,
-          right: -6,
+          top: -10,
+          right: -10,
           child: Tooltip(
             message: 'Relancer ${player.displayName}',
             child: Material(
@@ -248,10 +252,10 @@ class _EffectifPlayerChip extends StatelessWidget {
                 customBorder: const CircleBorder(),
                 onTap: onRelance,
                 child: const Padding(
-                  padding: EdgeInsets.all(5),
+                  padding: EdgeInsets.all(4),
                   child: Icon(
                     Icons.notifications_active_rounded,
-                    size: 13,
+                    size: 11,
                     color: Colors.white,
                   ),
                 ),

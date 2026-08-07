@@ -75,16 +75,16 @@ def main() -> int:
         'authHeader?.startsWith("Bearer ")',
         "contentLength > 16_384",
         "callerClient.auth.getUser(token)",
-        'String(callerProfile?.role) !== "moderateur"',
+        'String(callerProfile?.role) !== "admin"',
         'callerProfile?.status !== "active"',
-        'targetProfile.role === "moderateur"',
-        '.eq("role", "moderateur")',
-        '"The last active moderator cannot be deleted"',
+        'targetProfile.role === "admin"',
+        '.eq("role", "admin")',
+        '"The last active admin cannot be deleted"',
     ):
         require(marker in manage, f"manage-user: garde absente: {marker}")
     require(
-        'String(callerProfile?.role) !== "admin"' not in manage,
-        "manage-user ne doit jamais revenir à un garde strict admin",
+        'String(callerProfile?.role) !== "moderateur"' not in manage,
+        "manage-user ne doit plus référencer le rôle moderateur retiré",
     )
     require_in_order(
         manage,
@@ -96,13 +96,13 @@ def main() -> int:
         manage,
         'callerProfile?.status !== "active"',
         "const body = await req.json()",
-        "manage-user doit vérifier le modérateur actif avant de traiter le corps",
+        "manage-user doit vérifier l’admin actif avant de traiter le corps",
     )
     require_in_order(
         manage,
-        'targetProfile.role === "moderateur"',
+        'targetProfile.role === "admin"',
         'admin.rpc(\n        "prepare_profile_for_hard_deletion"',
-        "manage-user doit protéger le dernier modérateur avant toute suppression",
+        "manage-user doit protéger le dernier admin avant toute suppression",
     )
 
     register = source("register-account")
