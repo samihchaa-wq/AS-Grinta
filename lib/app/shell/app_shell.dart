@@ -31,6 +31,13 @@ class _AppShellState extends ConsumerState<AppShell> {
   // les deux lisent l'état actuel du shell.
   int? _previousShellIndex;
 
+  // Une grande partie de l'application (fiche match, administration, profil,
+  // notifications…) vit dans la même branche que le Calendrier. Dans ces cas,
+  // revenir en arrière vers `/matches` ne change pas `currentIndex` : sans
+  // mémoriser aussi le chemin précédent, aucun nouveau focus n'était demandé
+  // et la liste pouvait réapparaître tout en haut de l'historique.
+  String? _previousLocationPath;
+
   Uri get _uri => Uri.parse(widget.location);
   int get _selectedIndex => widget.navigationShell.currentIndex;
 
@@ -68,17 +75,24 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    // Toute bascule vers l'onglet Matchs déclenche un re-focus sur le
-    // prochain match — bottom nav, retour système ou goBranch tiers.
-    // Sans ça, revenir par un autre chemin conservait la position de
-    // scroll précédente (souvent 2014 en tête de liste).
+    // Toute arrivée sur la racine du Calendrier doit déclencher un re-focus
+    // sur l'élément pertinent : changement d'onglet, retour système depuis
+    // une fiche/admin/profil, ou goBranch tiers. Le seul index de branche ne
+    // suffit pas puisque ces écrans partagent la branche 0 avec `/matches`.
     final currentShellIndex = widget.navigationShell.currentIndex;
-    if (_previousShellIndex != null &&
+    final currentLocationPath = _uri.path;
+    final switchedToMatchesBranch = _previousShellIndex != null &&
         _previousShellIndex != 0 &&
-        currentShellIndex == 0) {
+        currentShellIndex == 0;
+    final returnedToMatchesRoot = _previousLocationPath != null &&
+        _previousLocationPath != '/matches' &&
+        currentLocationPath == '/matches';
+
+    if (switchedToMatchesBranch || returnedToMatchesRoot) {
       _scheduleMatchFocus();
     }
     _previousShellIndex = currentShellIndex;
+    _previousLocationPath = currentLocationPath;
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
     final moduleTheme = Theme.of(
