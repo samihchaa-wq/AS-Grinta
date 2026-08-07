@@ -756,6 +756,8 @@ class ClubEventCard extends ConsumerWidget {
                       event.title,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 17,
+                            height: 1.1,
                             fontWeight: FontWeight.w900,
                           ),
                     ),
