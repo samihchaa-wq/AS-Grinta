@@ -65,7 +65,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
     final isOnline = onlineAsync.valueOrNull ?? true;
 
     return MaterialApp.router(
-      title: 'AS La Grinta',
+      title: 'ASG',
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr', 'FR'),
       supportedLocales: const [Locale('fr', 'FR')],

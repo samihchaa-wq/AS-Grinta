@@ -206,7 +206,11 @@ class MatchInfoTab extends ConsumerWidget {
                     },
                   ),
                 ],
-                if (info.kickoffAt != null)
+                // On ne récupère la météo au coup d'envoi que quand une
+                // adresse est renseignée : sinon la carte affichait la météo
+                // d'un lieu par défaut (généralement Toulouse), sans rapport
+                // avec le match — trompeur.
+                if (info.kickoffAt != null && info.address != null)
                   MatchWeatherCard(
                     matchId: matchId,
                     kickoffAt: info.kickoffAt!,
