@@ -21,6 +21,7 @@ import 'package:as_grinta/features/matches/presentation/widgets/historical_match
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -47,8 +48,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   bool _userScrollInterrupted = false;
 
   bool _handleScrollNotification(ScrollNotification notification) {
-    // On abandonne toute campagne d'auto-focus dès que l'utilisateur
-    // touche le scroll : ne pas lui arracher la position sous les doigts.
     if (notification is ScrollStartNotification &&
         notification.dragDetails != null) {
       _userScrollInterrupted = true;
@@ -91,8 +90,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final signature = '$focusKey:$requestToken';
     if (_lastFocusSignature == signature) return;
     _lastFocusSignature = signature;
-    // Nouvelle campagne de re-focus : la précédente rétention de scroll
-    // manuel ne compte plus (l'utilisateur revient sur l'onglet).
     _userScrollInterrupted = false;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -116,13 +113,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       return;
     }
 
-    // La SliverList construit ses cartes paresseusement. Si la carte cible
-    // est très loin dans la liste (index ~340/350), elle n'est jamais dans
-    // le cache tant qu'on n'a pas scrollé jusque-là — et sans son
-    // BuildContext, Scrollable.ensureVisible ne peut rien faire. On force
-    // donc d'abord un jumpTo vers une position estimée (fraction de la
-    // hauteur totale de scroll), ce qui déclenche la construction des
-    // cartes autour de cette position, puis on affine avec ensureVisible.
     if (_scrollController.hasClients && totalEntries > 0) {
       final position = _scrollController.position;
       final estimated = position.maxScrollExtent * (focusIndex / totalEntries);
@@ -154,9 +144,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       return;
     }
 
-    // Affinage : jusqu'à ce que la disposition converge (le jumpTo
-    // ci-dessus a une précision limitée quand les cartes ont des tailles
-    // très variables — carte de composition Live vs simple ligne d'archive).
     for (var i = 0; i < 6; i += 1) {
       if (!mounted ||
           _lastFocusSignature != signature ||
@@ -218,18 +205,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     }
     entries.addAll(upcomingEvents.map(_FeedEntry.event));
     entries.addAll(historicalMatches.map(_FeedEntry.historical));
-
-    // Règle stricte : un seul tri chronologique croissant pour tout le flux.
-    // Le plus ancien (passé) en haut, le plus futur en bas — aucune carte
-    // n'est promue ou reléguée en dehors de sa place chronologique.
     entries.sort((a, b) => a.date.compareTo(b.date));
 
-    // Choix de la carte sur laquelle le calendrier s'aligne à l'ouverture :
-    //   1. la carte prioritaire (Live > à valider > J-6) si elle existe ;
-    //   2. sinon, le premier élément chronologiquement à venir — le vrai
-    //      « prochain match » du point de vue de l'utilisateur, même quand
-    //      il est hors fenêtre J-6, pour éviter d'ouvrir sur 2014 ;
-    //   3. sinon (tout est passé), la dernière carte.
     int? focusIndex;
     const priorityKinds = [
       _FeedKind.liveMatch,
@@ -269,9 +246,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       requestToken: '$focusRequest',
     );
 
-    // Cache large : les cartes hors viewport restent construites afin que le
-    // GlobalKey de la carte cible soit toujours joignable pour l'auto-focus,
-    // même quand on part de scroll = 0 et que la cible est loin en bas.
     final cacheExtent = 1000.0 + (entries.length * 360.0);
 
     return RefreshIndicator(
@@ -355,10 +329,6 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   }
 }
 
-/// Identifiant stable d'une entrée du flux, indépendant de sa position dans
-/// la liste : sert d'ancre à l'auto-scroll pour rouvrir le calendrier
-/// toujours sur la même carte (le prochain match chronologique par défaut),
-/// que d'autres entrées soient ajoutées ou retirées entre deux builds.
 String _entryKey(_FeedEntry entry) {
   if (entry.match != null) return 'match:${entry.match!.id}';
   if (entry.event != null) return 'event:${entry.event!.id}';
@@ -366,9 +336,6 @@ String _entryKey(_FeedEntry entry) {
   return 'unknown';
 }
 
-/// Choisit la carte adaptée au statut de l'entrée, sans plus jamais dépendre
-/// d'une section : la fonctionnalité (disponibilité, Live, composition…)
-/// reste pilotée par `entry.kind`, seul l'habillage groupé a disparu.
 Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
   switch (entry.kind) {
     case _FeedKind.upcomingMatch:
@@ -556,9 +523,6 @@ class _UpcomingMatchCard extends StatelessWidget {
   }
 }
 
-/// Le statut affiché d'une entrée du flux — pilote uniquement le choix de
-/// carte et ses fonctionnalités, plus jamais son placement (déterminé
-/// exclusivement par `_FeedEntry.date`).
 enum _FeedKind {
   upcomingMatch,
   nextMatch,
@@ -569,9 +533,6 @@ enum _FeedKind {
   event,
 }
 
-/// Une entrée du flux chronologique unique : match (live ou importé de
-/// l'historique du club) ou événement, toutes comparables par `date` pour
-/// respecter la règle stricte de tri.
 class _FeedEntry {
   const _FeedEntry._({
     required this.kind,
