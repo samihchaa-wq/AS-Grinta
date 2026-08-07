@@ -1,6 +1,6 @@
-# SportEasy Grinta
+# AS Grinta
 
-SportEasy Grinta est l’application de gestion sportive et de vie de club de l’AS Grinta. Elle conserve également les pronostics comme fonctionnalité complémentaire. Elle est utilisée sous forme de PWA Flutter avec Supabase comme source de vérité métier.
+AS Grinta est l’application de gestion sportive et de vie de club de l’AS Grinta. Elle conserve également les pronostics comme fonctionnalité complémentaire. Elle est utilisée sous forme de PWA Flutter avec Supabase comme source de vérité métier.
 
 ## Source de vérité
 

@@ -73,7 +73,7 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
 
     final authState = ref.watch(authControllerProvider);
     return GrintaAuthSurface(
-      subtitle: 'Le petit prono maison de l’AS Grinta.',
+      subtitle: 'L’application de gestion sportive de l’AS Grinta.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
