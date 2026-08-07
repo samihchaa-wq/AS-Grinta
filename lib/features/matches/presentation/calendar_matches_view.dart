@@ -347,9 +347,6 @@ class _CalendarToolbar extends StatelessWidget {
           },
         );
 
-        // Boutons d'action compactes (icônes seules avec tooltip) : la barre
-        // du haut est désormais partagée à 2/3 pour le mode d'affichage
-        // Défilé/Par mois et à 1/3 pour ces deux actions.
         final exportIconButton = IconButton.outlined(
           onPressed: onExport,
           tooltip: 'Ajouter au calendrier ics',
@@ -415,10 +412,6 @@ class _CalendarToolbar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Une seule rangée : 2/3 pour le sélecteur Défilé/Par mois,
-              // 1/3 pour les deux actions en icônes (ajouter un événement +
-              // ajouter au calendrier ics). Même agencement en compact et
-              // en large — on gagne une ligne d'écran sur mobile.
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -524,7 +517,7 @@ class _ModernMonthView extends ConsumerWidget {
         if (_sameMonth(match.kickoffAt, month)) _ModernMonthEntry.match(match),
       for (final event in events)
         if (_sameMonth(event.startsAt, month)) _ModernMonthEntry.event(event),
-    ]..sort((a, b) => b.date.compareTo(a.date));
+    ]..sort((a, b) => a.date.compareTo(b.date));
 
     if (entries.isEmpty) {
       return RefreshIndicator(
@@ -644,7 +637,7 @@ class _HistoricalMonthView extends StatelessWidget {
           for (final event in events)
             if (_sameMonth(event.startsAt, month))
               _HistoricalMonthEntry.event(event),
-        ]..sort((a, b) => b.date.compareTo(a.date));
+        ]..sort((a, b) => a.date.compareTo(b.date));
 
         if (entries.isEmpty) {
           return RefreshIndicator(
