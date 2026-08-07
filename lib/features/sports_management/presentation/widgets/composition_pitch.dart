@@ -320,17 +320,17 @@ class CompositionPlayerTile extends StatelessWidget {
                 ),
                 if (entry.isMotm)
                   const Positioned(
-                    top: 6,
+                    top: -4,
                     left: 0,
                     right: 0,
                     child: Center(
-                      child: Text('👑', style: TextStyle(fontSize: 18)),
+                      child: Text('👑', style: TextStyle(fontSize: 20)),
                     ),
                   ),
                 if (entry.goals > 0)
                   Positioned(
-                    left: -4,
-                    top: 28,
+                    left: -2,
+                    top: 32,
                     child: GoalBadge(goals: entry.goals),
                   ),
               ],
@@ -355,12 +355,12 @@ class CompositionPlayerTile extends StatelessWidget {
   }
 }
 
-/// Pastille « but » accrochée sur le côté de la photo d'un joueur, sur le
-/// modèle des feuilles de match Flashscore : un unique ballon ⚽ (peu importe
-/// le nombre de buts), avec un petit chiffre en surimpression au-dessus quand
-/// le joueur a inscrit plus d'un but. Utilisée à la fois par la composition
-/// Live et par la fiche d'un match archivé afin que les deux affichages
-/// restent visuellement identiques.
+/// Ballon « but » posé sur le côté de la photo d'un joueur, sur le modèle
+/// des feuilles de match Flashscore : un unique ⚽ (peu importe le nombre
+/// de buts), sans pastille ni contour, avec un petit chiffre en
+/// surimpression au coin supérieur quand le joueur a inscrit plus d'un
+/// but. Partagé par la composition Live et la fiche d'un match archivé
+/// pour que les deux affichages restent visuellement identiques.
 class GoalBadge extends StatelessWidget {
   const GoalBadge({super.key, required this.goals});
 
@@ -371,22 +371,11 @@ class GoalBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            color: const Color(0xE61A1F2B),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.white24, width: 0.6),
-          ),
-          child: const Center(
-            child: Text('⚽', style: TextStyle(fontSize: 12, height: 1)),
-          ),
-        ),
+        const Text('⚽', style: TextStyle(fontSize: 18, height: 1)),
         if (goals > 1)
           Positioned(
             top: -6,
-            right: -6,
+            right: -8,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
