@@ -22,26 +22,26 @@ class _GrintaPageTransitionsBuilder extends PageTransitionsBuilder {
 }
 
 abstract final class AppTheme {
-  // Palette sémantique : bleu nuit, bleu électrique, rose récompense, or trophée.
-  static const Color background = Color(0xFF050B17);
-  static const Color surface = Color(0xFF0B1628);
-  static const Color surfaceHigh = Color(0xFF12213A);
-  static const Color surfaceHero = Color(0xFF172C4A);
-  static const Color outline = Color(0xFF263D5C);
-  static const Color primary = Color(0xFF2F73F6);
-  static const Color primaryBright = Color(0xFF76A9FF);
-  static const Color accent = Color(0xFFF2528B);
-  static const Color reward = Color(0xFFF2C15B);
+  // Palette du blason AS La Grinta : bleu nuit, bleu royal, jaune club et blanc.
+  static const Color background = Color(0xFF041224);
+  static const Color surface = Color(0xFF091B33);
+  static const Color surfaceHigh = Color(0xFF102A4A);
+  static const Color surfaceHero = Color(0xFF173D6E);
+  static const Color outline = Color(0xFF2A527E);
+  static const Color primary = Color(0xFF3475C9);
+  static const Color primaryBright = Color(0xFF67A9F3);
+  static const Color accent = Color(0xFFFBE80C);
+  static const Color reward = Color(0xFFFFD84A);
   static const Color success = Color(0xFF48C98B);
   static const Color warning = Color(0xFFF0A34A);
-  static const Color admin = Color(0xFF8A72E8);
+  static const Color admin = Color(0xFF5C9CE6);
   static const Color error = Color(0xFFFF6F7D);
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFFFFFFF);
-  static const Color textFaint = Color(0xFFFFFFFF);
+  static const Color textPrimary = Color(0xFFF8FBFF);
+  static const Color textSecondary = Color(0xFFDCE8F7);
+  static const Color textFaint = Color(0xFF9FB4CC);
 
-  // Très fin liseré noir appliqué au texte neutre blanc pour qu'il reste
-  // net et lisible quel que soit ce qui se trouve derrière (fond photo).
+  // Très fin liseré noir appliqué au texte clair pour qu'il reste
+  // net et lisible quel que soit ce qui se trouve derrière.
   static const List<Shadow> textOutline = [
     Shadow(offset: Offset(-.6, -.6), color: Colors.black),
     Shadow(offset: Offset(.6, -.6), color: Colors.black),
@@ -78,9 +78,9 @@ abstract final class AppTheme {
       primaryContainer: surfaceHero,
       onPrimaryContainer: textPrimary,
       secondary: accent,
-      onSecondary: Colors.white,
-      secondaryContainer: Color(0xFF39172B),
-      onSecondaryContainer: Color(0xFFFFD9E6),
+      onSecondary: background,
+      secondaryContainer: Color(0xFF393506),
+      onSecondaryContainer: Color(0xFFFFF6A8),
       tertiary: reward,
       onTertiary: background,
       surface: surface,
@@ -90,7 +90,7 @@ abstract final class AppTheme {
       error: error,
       onError: Colors.white,
       outline: outline,
-      outlineVariant: Color(0xFF1B304B),
+      outlineVariant: Color(0xFF173755),
     );
 
     final base = ThemeData(
@@ -301,7 +301,7 @@ abstract final class AppTheme {
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
-                ? const Color(0xFF1E3A66)
+                ? const Color(0xFF17457A)
                 : surfaceHigh;
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
@@ -332,15 +332,15 @@ abstract final class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 62,
-        backgroundColor: const Color(0xFF0A1425),
-        indicatorColor: primary.withValues(alpha: .14),
+        backgroundColor: const Color(0xFF07182D),
+        indicatorColor: accent.withValues(alpha: .13),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
             size: selected ? 25 : 21,
-            color: selected ? primaryBright : textFaint,
+            color: selected ? accent : textFaint,
           );
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
@@ -371,7 +371,7 @@ abstract final class AppTheme {
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: primaryBright,
+        color: accent,
         circularTrackColor: surfaceHigh,
         linearTrackColor: surfaceHigh,
         linearMinHeight: 4,
