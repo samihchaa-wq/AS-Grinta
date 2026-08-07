@@ -430,7 +430,7 @@ class _PlayerMarker extends StatelessWidget {
               Align(
                 alignment: Alignment.bottomCenter,
                 child: PlayerAvatar(
-                  photoUrl: null,
+                  photoUrl: player.photoUrl,
                   name: player.name,
                   isGoalkeeper: player.isGoalkeeper,
                   size: 52,

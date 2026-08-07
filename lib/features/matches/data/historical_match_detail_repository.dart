@@ -10,6 +10,7 @@ class HistoricalFieldPlayer {
     required this.xPct,
     required this.yPct,
     required this.isGoalkeeper,
+    required this.photoUrl,
   });
 
   final String name;
@@ -17,6 +18,7 @@ class HistoricalFieldPlayer {
   final double xPct;
   final double yPct;
   final bool isGoalkeeper;
+  final String? photoUrl;
 }
 
 class HistoricalScorer {
@@ -82,6 +84,9 @@ class HistoricalMatchDetailRepository {
     final benchPlayersRaw = stringList(row['bench_players']);
     final presentNamesRaw = stringList(row['present_names']);
     final motmNamesRaw = stringList(row['motm_names']);
+    final photoUrlsByName = Map<String, dynamic>.from(
+      row['photo_urls'] as Map? ?? const {},
+    );
 
     // L'archive stocke le nom complet des joueurs, contrairement aux matchs
     // courants où l'appli n'expose que le prénom (lié au profil). On applique
@@ -94,17 +99,19 @@ class HistoricalMatchDetailRepository {
       ...presentNamesRaw,
     });
 
-    final fieldPlayers = fieldPlayersRaw
-        .map(
-          (entry) => HistoricalFieldPlayer(
-            name: shortName((entry['name'] ?? '').toString()),
-            positionLabel: (entry['position_label'] ?? '').toString(),
-            xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
-            yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
-            isGoalkeeper: entry['is_gk'] as bool? ?? false,
-          ),
-        )
-        .toList(growable: false);
+    final fieldPlayers = fieldPlayersRaw.map(
+      (entry) {
+        final fullName = (entry['name'] ?? '').toString();
+        return HistoricalFieldPlayer(
+          name: shortName(fullName),
+          positionLabel: (entry['position_label'] ?? '').toString(),
+          xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
+          yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
+          isGoalkeeper: entry['is_gk'] as bool? ?? false,
+          photoUrl: photoUrlsByName[fullName] as String?,
+        );
+      },
+    ).toList(growable: false);
 
     final scorers = scorersRaw
         .map(
