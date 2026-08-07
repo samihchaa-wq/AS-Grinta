@@ -54,7 +54,7 @@ void main() {
     );
 
     expect(ics, contains('BEGIN:VCALENDAR'));
-    expect(ics, contains('X-WR-CALNAME:SportEasy Grinta 2026-2027'));
+    expect(ics, contains('X-WR-CALNAME:AS La Grinta 2026-2027'));
     expect(ics, contains('SUMMARY:AS Grinta - FC Test'));
     expect(ics, contains('LOCATION:Stade Test\\, Toulouse'));
     expect(ics, contains('DTSTART:20260905T193000Z'));
