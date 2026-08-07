@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/calendar/ics_calendar_export.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
@@ -147,6 +148,14 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(matchesFocusRequestProvider, (previous, next) {
+      if (_displayMode != _CalendarDisplayMode.month) return;
+      final now = DateTime.now();
+      final currentMonth = DateTime(now.year, now.month);
+      if (_monthCursor == currentMonth) return;
+      setState(() => _monthCursor = currentMonth);
+    });
+
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
     final events =
