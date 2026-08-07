@@ -32,4 +32,27 @@ void main() {
       expect(capitalizePersonName('  steph  '), 'Steph');
     });
   });
+
+  group('Prénom et initiale extraits d’un nom complet', () {
+    // Ces deux fonctions sont la seule règle de réduction « Prénom Nom » →
+    // affichage court, partagée entre les Statistiques et la fiche d'un
+    // match archivé : elles doivent rester d'accord sur le même cas réel.
+    test('firstNameOf isole le premier mot', () {
+      expect(firstNameOf('Xavier Grossin'), 'Xavier');
+      expect(firstNameOf('  Milan   Couzin  '), 'Milan');
+      expect(firstNameOf('Solo'), 'Solo');
+      expect(firstNameOf(''), '');
+    });
+
+    test('lastNameInitialOf renvoie la première lettre du nom', () {
+      expect(lastNameInitialOf('Xavier Grossin'), 'G');
+      expect(lastNameInitialOf('Xavier Lacaze'), 'L');
+      expect(lastNameInitialOf('Jean Paul Deux Mots'), 'P');
+    });
+
+    test('lastNameInitialOf est absent sans nom de famille', () {
+      expect(lastNameInitialOf('Solo'), isNull);
+      expect(lastNameInitialOf(''), isNull);
+    });
+  });
 }
