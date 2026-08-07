@@ -243,7 +243,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               ),
             )
-          else if (state.matches.isEmpty && upcomingEvents.isEmpty)
+          else if (state.matches.isEmpty &&
+              upcomingEvents.isEmpty &&
+              historicalMatches.isEmpty)
             SliverPadding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.screenGutter,
