@@ -70,7 +70,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
                       clipBehavior: Clip.hardEdge,
                       children: [
                         const Positioned.fill(
-                          child: CustomPaint(painter: _PitchPainter()),
+                          child: CustomPaint(painter: PitchPainter()),
                         ),
                         for (final entry in widget.entries)
                           _positionedPlayer(
@@ -332,7 +332,7 @@ class CompositionPlayerTile extends StatelessWidget {
                     top: 0,
                     left: 0,
                     right: 0,
-                    child: Center(child: _GoalBalls(goals: entry.goals)),
+                    child: Center(child: GoalBallsRow(goals: entry.goals)),
                   ),
               ],
             ),
@@ -356,8 +356,11 @@ class CompositionPlayerTile extends StatelessWidget {
   }
 }
 
-class _GoalBalls extends StatelessWidget {
-  const _GoalBalls({required this.goals});
+/// Rangée d'icônes ballon indiquant le nombre de buts d'un joueur. Utilisée
+/// à la fois par la composition Live et par la fiche d'un match archivé afin
+/// que les deux affichages restent visuellement identiques.
+class GoalBallsRow extends StatelessWidget {
+  const GoalBallsRow({super.key, required this.goals});
 
   final int goals;
 
@@ -599,8 +602,11 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 }
 
-class _PitchPainter extends CustomPainter {
-  const _PitchPainter();
+/// Traçage des lignes d'un terrain de foot. Public afin d'être partagé par
+/// la composition Live et par la fiche d'un match archivé : les deux
+/// affichages doivent rester visuellement identiques.
+class PitchPainter extends CustomPainter {
+  const PitchPainter();
 
   @override
   void paint(Canvas canvas, Size size) {

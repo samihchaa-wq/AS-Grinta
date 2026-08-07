@@ -6,6 +6,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/data/historical_match_detail_repository.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -176,7 +177,11 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
           _SectionCard(
             title: 'Composition',
             subtitle: detail.formation,
-            child: _HistoricalPitch(players: detail.fieldPlayers),
+            child: _HistoricalPitch(
+              players: detail.fieldPlayers,
+              scorers: detail.scorers,
+              motmNames: detail.motmNames,
+            ),
           ),
           if (detail.benchPlayers.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -321,10 +326,20 @@ class _ScorersList extends StatelessWidget {
   }
 }
 
+/// Terrain de la fiche archivée, redessiné avec les mêmes briques que la
+/// composition Live ([PitchPainter], [PlayerAvatar], `GoalBallsRow`) pour
+/// qu'une fiche de match archivé et une fiche de match courant se
+/// ressemblent trait pour trait.
 class _HistoricalPitch extends StatelessWidget {
-  const _HistoricalPitch({required this.players});
+  const _HistoricalPitch({
+    required this.players,
+    required this.scorers,
+    required this.motmNames,
+  });
 
   final List<HistoricalFieldPlayer> players;
+  final List<HistoricalScorer> scorers;
+  final List<String> motmNames;
 
   @override
   Widget build(BuildContext context) {
@@ -346,7 +361,7 @@ class _HistoricalPitch extends StatelessWidget {
                   clipBehavior: Clip.hardEdge,
                   children: [
                     const Positioned.fill(
-                      child: CustomPaint(painter: _HistoricalPitchPainter()),
+                      child: CustomPaint(painter: PitchPainter()),
                     ),
                     for (final player in players)
                       _positionedPlayer(player, constraints.biggest),
@@ -361,8 +376,8 @@ class _HistoricalPitch extends StatelessWidget {
   }
 
   Widget _positionedPlayer(HistoricalFieldPlayer player, Size size) {
-    const markerWidth = 76.0;
-    const markerHeight = 56.0;
+    const markerWidth = 64.0;
+    const markerHeight = 84.0;
     final x = (player.xPct / 100).clamp(0.08, 0.92).toDouble();
     final y = (player.yPct / 100).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -372,36 +387,72 @@ class _HistoricalPitch extends StatelessWidget {
         .clamp(0.0, size.height - markerHeight)
         .toDouble();
 
+    final goals = scorers
+        .where((scorer) => scorer.name == player.name)
+        .fold<int>(0, (total, scorer) => total + scorer.goals);
+
     return Positioned(
       left: left,
       top: top,
       width: markerWidth,
       height: markerHeight,
-      child: _PlayerMarker(player: player),
+      child: _PlayerMarker(
+        player: player,
+        goals: goals,
+        isMotm: motmNames.contains(player.name),
+      ),
     );
   }
 }
 
 class _PlayerMarker extends StatelessWidget {
-  const _PlayerMarker({required this.player});
+  const _PlayerMarker({
+    required this.player,
+    required this.goals,
+    required this.isMotm,
+  });
 
   final HistoricalFieldPlayer player;
+  final int goals;
+  final bool isMotm;
 
   @override
   Widget build(BuildContext context) {
-    final border = player.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: player.isGoalkeeper
-                ? const Color(0xFFE59A1F)
-                : AppTheme.primary,
-            border: Border.all(color: border, width: 1.5),
+        SizedBox(
+          width: 60,
+          height: 64,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: PlayerAvatar(
+                  photoUrl: null,
+                  name: player.name,
+                  isGoalkeeper: player.isGoalkeeper,
+                  size: 52,
+                ),
+              ),
+              if (isMotm)
+                const Positioned(
+                  top: 6,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Text('👑', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+              if (goals > 0)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Center(child: GoalBallsRow(goals: goals)),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 2),
@@ -412,7 +463,7 @@ class _PlayerMarker extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
             height: 1.1,
             shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
@@ -421,50 +472,4 @@ class _PlayerMarker extends StatelessWidget {
       ],
     );
   }
-}
-
-class _HistoricalPitchPainter extends CustomPainter {
-  const _HistoricalPitchPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xAAFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final inset = size.shortestSide * 0.045;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-    );
-    canvas.drawRect(rect, paint);
-    canvas.drawLine(
-      Offset(rect.left, rect.center.dy),
-      Offset(rect.right, rect.center.dy),
-      paint,
-    );
-    canvas.drawCircle(rect.center, size.width * 0.13, paint);
-    canvas.drawCircle(rect.center, 2.5, paint..style = PaintingStyle.fill);
-    paint.style = PaintingStyle.stroke;
-
-    final penaltyWidth = rect.width * 0.58;
-    final penaltyHeight = rect.height * 0.16;
-    final topPenalty = Rect.fromCenter(
-      center: Offset(rect.center.dx, rect.top + penaltyHeight / 2),
-      width: penaltyWidth,
-      height: penaltyHeight,
-    );
-    final bottomPenalty = Rect.fromCenter(
-      center: Offset(rect.center.dx, rect.bottom - penaltyHeight / 2),
-      width: penaltyWidth,
-      height: penaltyHeight,
-    );
-    canvas.drawRect(topPenalty, paint);
-    canvas.drawRect(bottomPenalty, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
