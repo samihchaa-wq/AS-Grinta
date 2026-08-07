@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/calendar/ics_calendar_export.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
