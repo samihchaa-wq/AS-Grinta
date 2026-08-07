@@ -110,7 +110,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
 
           if (snapshot.hasError) {
             return IncidentErrorView(
-              title: 'Impossible de démarrer AS La Grinta',
+              title: 'Impossible de démarrer ASG',
               message: 'La configuration ou le service est momentanément '
                   'indisponible. Réessaie dans un instant.',
               incidentReference:
@@ -140,7 +140,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                       const SizedBox(height: 26),
                       const GrintaLoader.inline(
                         message: 'Échauffement en cours…',
-                        semanticLabel: 'Démarrage de AS La Grinta',
+                        semanticLabel: 'Démarrage de ASG',
                       ),
                     ],
                   ),
