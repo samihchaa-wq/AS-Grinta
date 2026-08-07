@@ -99,21 +99,19 @@ class HistoricalMatchDetailRepository {
       ...presentNamesRaw,
     });
 
-    final fieldPlayers = fieldPlayersRaw
-        .map(
-          (entry) {
-            final fullName = (entry['name'] ?? '').toString();
-            return HistoricalFieldPlayer(
-              name: shortName(fullName),
-              positionLabel: (entry['position_label'] ?? '').toString(),
-              xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
-              yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
-              isGoalkeeper: entry['is_gk'] as bool? ?? false,
-              photoUrl: photoUrlsByName[fullName] as String?,
-            );
-          },
-        )
-        .toList(growable: false);
+    final fieldPlayers = fieldPlayersRaw.map(
+      (entry) {
+        final fullName = (entry['name'] ?? '').toString();
+        return HistoricalFieldPlayer(
+          name: shortName(fullName),
+          positionLabel: (entry['position_label'] ?? '').toString(),
+          xPct: (entry['x_pct'] as num?)?.toDouble() ?? 50,
+          yPct: (entry['y_pct'] as num?)?.toDouble() ?? 50,
+          isGoalkeeper: entry['is_gk'] as bool? ?? false,
+          photoUrl: photoUrlsByName[fullName] as String?,
+        );
+      },
+    ).toList(growable: false);
 
     final scorers = scorersRaw
         .map(
