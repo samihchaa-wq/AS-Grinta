@@ -21,7 +21,6 @@ import 'package:as_grinta/features/matches/presentation/widgets/historical_match
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -281,7 +280,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         onNotification: _handleScrollNotification,
         child: CustomScrollView(
           controller: _scrollController,
-          cacheExtent: cacheExtent,
+          scrollCacheExtent: cacheExtent,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(
