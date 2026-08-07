@@ -3,11 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 /// Fait défiler automatiquement le [Scrollable] ancêtre le plus proche
-/// lorsque le doigt approche du bord haut ou bas de l'écran pendant un
-/// glisser-déposer. `Draggable`/`LongPressDraggable` n'ont pas ce
+/// lorsque le doigt approche du bord haut ou bas de sa zone visible pendant
+/// un glisser-déposer. `Draggable`/`LongPressDraggable` n'ont pas ce
 /// comportement par défaut : sans lui, il est impossible de déposer un
 /// élément sur une cible actuellement hors écran (ex. glisser un joueur du
 /// banc, en bas, vers le terrain, en haut).
+///
+/// La zone de déclenchement est calculée depuis le viewport du [Scrollable]
+/// plutôt que depuis les bords physiques de l'écran. Cela permet notamment
+/// de déclencher le défilement avant que le doigt n'entre dans une AppBar ou
+/// une barre de navigation fixe qui recouvre le contenu défilable.
 ///
 /// Utilisation : créer une instance dans `onDragUpdate`, appeler
 /// [update] à chaque déplacement, et [stop] dans `onDragEnd` /
@@ -38,23 +43,47 @@ class DragAutoScroller {
       stop();
       return;
     }
-    final height = MediaQuery.sizeOf(context).height;
+
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable == null) {
+      stop();
+      return;
+    }
+
+    final viewportBounds = _viewportBounds(scrollable);
     final dy = globalPosition.dy;
     double velocity = 0;
-    if (dy < _edgeSize) {
-      velocity = -_maxPixelsPerTick * (1 - dy / _edgeSize);
-    } else if (dy > height - _edgeSize) {
-      final fromBottom = height - dy;
-      velocity = _maxPixelsPerTick * (1 - fromBottom / _edgeSize);
+
+    final topTrigger = viewportBounds.top + _edgeSize;
+    final bottomTrigger = viewportBounds.bottom - _edgeSize;
+    if (dy < topTrigger) {
+      final intensity = ((topTrigger - dy) / _edgeSize).clamp(0.0, 1.0);
+      velocity = -_maxPixelsPerTick * intensity;
+    } else if (dy > bottomTrigger) {
+      final intensity = ((dy - bottomTrigger) / _edgeSize).clamp(0.0, 1.0);
+      velocity = _maxPixelsPerTick * intensity;
     }
+
     _velocity = velocity;
-    _scrollable = Scrollable.maybeOf(context);
+    _scrollable = scrollable;
     if (velocity == 0) {
       stop();
     } else {
       _timer ??=
           Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
     }
+  }
+
+  Rect _viewportBounds(ScrollableState scrollable) {
+    final renderObject = scrollable.context.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      final topLeft = renderObject.localToGlobal(Offset.zero);
+      return topLeft & renderObject.size;
+    }
+
+    // Garde-fou pour un appel exceptionnel avant le layout : on conserve
+    // alors l'ancien comportement fondé sur la taille de l'écran.
+    return Offset.zero & MediaQuery.sizeOf(context);
   }
 
   void _tick() {
