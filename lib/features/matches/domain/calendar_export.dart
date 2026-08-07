@@ -11,10 +11,10 @@ String buildSeasonIcs({
   final buffer = StringBuffer()
     ..write('BEGIN:VCALENDAR\r\n')
     ..write('VERSION:2.0\r\n')
-    ..write('PRODID:-//SportEasy Grinta//Calendrier $seasonName//FR\r\n')
+    ..write('PRODID:-//AS La Grinta//Calendrier $seasonName//FR\r\n')
     ..write('CALSCALE:GREGORIAN\r\n')
     ..write('METHOD:PUBLISH\r\n')
-    ..write(_foldIcsLine('X-WR-CALNAME:SportEasy Grinta $seasonName'));
+    ..write(_foldIcsLine('X-WR-CALNAME:AS La Grinta $seasonName'));
 
   final orderedMatches = matches.where((match) => !match.isCancelled).toList()
     ..sort((a, b) => a.kickoffAt.compareTo(b.kickoffAt));
@@ -33,6 +33,8 @@ String buildSeasonIcs({
 
     buffer
       ..write('BEGIN:VEVENT\r\n')
+      // On conserve le domaine historique de l'UID pour ne pas dupliquer les
+      // événements chez les utilisateurs qui avaient déjà importé le calendrier.
       ..write(_foldIcsLine('UID:${_escapeIcs(match.id)}@sporteasy-grinta'))
       ..write('DTSTAMP:${_formatUtc(now)}\r\n')
       ..write('DTSTART:${_formatUtc(start)}\r\n')
@@ -40,7 +42,7 @@ String buildSeasonIcs({
       ..write(_foldIcsLine('SUMMARY:${_escapeIcs(summary)}'))
       ..write(
         _foldIcsLine(
-          'DESCRIPTION:${_escapeIcs('SportEasy Grinta — ${match.matchTypeLabel}')}',
+          'DESCRIPTION:${_escapeIcs('AS La Grinta — ${match.matchTypeLabel}')}',
         ),
       );
 
@@ -66,7 +68,7 @@ String buildSeasonIcs({
       ..write('DTSTART:${_formatUtc(start)}\r\n')
       ..write('DTEND:${_formatUtc(end)}\r\n')
       ..write(_foldIcsLine('SUMMARY:${_escapeIcs(event.title)}'))
-      ..write(_foldIcsLine('DESCRIPTION:SportEasy Grinta — Événement'))
+      ..write(_foldIcsLine('DESCRIPTION:AS La Grinta — Événement'))
       ..write(_foldIcsLine('LOCATION:${_escapeIcs(event.location)}'))
       ..write('END:VEVENT\r\n');
   }
