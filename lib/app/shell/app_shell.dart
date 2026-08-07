@@ -28,6 +28,21 @@ class _AppShellState extends ConsumerState<AppShell> {
   Uri get _uri => Uri.parse(widget.location);
   int get _selectedIndex => widget.navigationShell.currentIndex;
 
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Toute bascule vers l'onglet Matchs déclenche un re-focus sur le
+    // prochain match — que le changement vienne du bottom nav, d'un retour
+    // système, ou d'une navigation `goBranch` faite ailleurs. Sans ce
+    // hook, revenir à l'onglet Matchs par un autre chemin conservait la
+    // position de scroll précédente (souvent 2014 en tête de liste).
+    final wasMatches = oldWidget.navigationShell.currentIndex == 0;
+    final isMatches = widget.navigationShell.currentIndex == 0;
+    if (isMatches && !wasMatches) {
+      _scheduleMatchFocus();
+    }
+  }
+
   void _scheduleMatchFocus() {
     if (_matchFocusScheduled) return;
     _matchFocusScheduled = true;

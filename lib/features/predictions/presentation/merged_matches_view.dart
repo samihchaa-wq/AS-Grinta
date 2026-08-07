@@ -44,6 +44,17 @@ class MergedMatchesView extends ConsumerStatefulWidget {
 class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   final GlobalKey _focusMatchKey = GlobalKey();
   String? _lastFocusSignature;
+  bool _userScrollInterrupted = false;
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    // On abandonne toute campagne d'auto-focus dès que l'utilisateur
+    // touche le scroll : ne pas lui arracher la position sous les doigts.
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      _userScrollInterrupted = true;
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -72,6 +83,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     final signature = '$focusKey:$requestToken';
     if (_lastFocusSignature == signature) return;
     _lastFocusSignature = signature;
+    // Nouvelle campagne de re-focus : la précédente rétention de scroll
+    // manuel ne compte plus (l'utilisateur revient sur l'onglet).
+    _userScrollInterrupted = false;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _positionRelevantMatch(signature);
@@ -99,23 +113,27 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       return;
     }
 
-    await Scrollable.ensureVisible(
-      targetContext,
-      alignment: 0,
-      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
-      duration: Duration.zero,
-    );
-
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    if (!mounted || _lastFocusSignature != signature) return;
-    final settledContext = _focusMatchKey.currentContext;
-    if (settledContext == null || !settledContext.mounted) return;
-    await Scrollable.ensureVisible(
-      settledContext,
-      alignment: 0,
-      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
-      duration: Duration.zero,
-    );
+    // La SliverList charge ses cartes paresseusement : un premier
+    // ensureVisible peut se baser sur des hauteurs estimées et laisser la
+    // carte cible partiellement recouverte par la fin de la carte
+    // précédente (par exemple la barre « Voter pour l'homme du match »).
+    // On répète plusieurs fois pour laisser la disposition converger.
+    for (var i = 0; i < 6; i += 1) {
+      if (!mounted ||
+          _lastFocusSignature != signature ||
+          _userScrollInterrupted) {
+        return;
+      }
+      final ctx = _focusMatchKey.currentContext;
+      if (ctx == null || !ctx.mounted) return;
+      await Scrollable.ensureVisible(
+        ctx,
+        alignment: 0,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+        duration: Duration.zero,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+    }
   }
 
   @override
@@ -214,7 +232,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: CustomScrollView(
+      child: NotificationListener<ScrollNotification>(
+        onNotification: _handleScrollNotification,
+        child: CustomScrollView(
         scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -287,6 +307,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
+      ),
       ),
     );
   }
