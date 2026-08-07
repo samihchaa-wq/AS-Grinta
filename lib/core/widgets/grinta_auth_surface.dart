@@ -49,10 +49,10 @@ class GrintaAuthSurface extends StatelessWidget {
                           children: [
                             Semantics(
                               header: true,
-                              label: 'SportEasy Grinta',
+                              label: 'AS La Grinta',
                               child: Image.asset(
-                                'assets/images/sporteasy_grinta_logo.png',
-                                height: 78,
+                                'assets/images/as_grinta_logo.webp',
+                                height: 138,
                                 fit: BoxFit.contain,
                                 filterQuality: FilterQuality.high,
                               ),

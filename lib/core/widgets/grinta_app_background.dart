@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 /// Fond global de l'application.
 ///
-/// Il est dessiné directement par Flutter pour éviter le cache d'un ancien
-/// fichier d'image. Il ne contient volontairement ni lettre, ni logo, ni
-/// ballon : uniquement une ambiance sombre bleue et rose.
+/// Il reprend les couleurs du blason AS La Grinta sans afficher le logo :
+/// bleu nuit, bleu royal et touches jaunes très légères.
 class GrintaAppBackground extends StatelessWidget {
   const GrintaAppBackground({super.key});
 
@@ -21,10 +20,10 @@ class GrintaAppBackground extends StatelessWidget {
 class _GrintaAppBackgroundPainter extends CustomPainter {
   const _GrintaAppBackgroundPainter();
 
-  static const _blue = Color(0xFF1685FF);
-  static const _blueBright = Color(0xFF35B8FF);
-  static const _pink = Color(0xFFFF1975);
-  static const _pinkBright = Color(0xFFFF4CA3);
+  static const _blue = Color(0xFF3475C9);
+  static const _blueBright = Color(0xFF67A9F3);
+  static const _gold = Color(0xFFFBE80C);
+  static const _goldBright = Color(0xFFFFF36A);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -39,9 +38,9 @@ class _GrintaAppBackgroundPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF02040C),
-            Color(0xFF06132B),
-            Color(0xFF030711),
+            Color(0xFF020914),
+            Color(0xFF071B34),
+            Color(0xFF030B18),
           ],
           stops: [0, 0.52, 1],
         ).createShader(rect),
@@ -50,39 +49,39 @@ class _GrintaAppBackgroundPainter extends CustomPainter {
     _drawGlow(
       canvas,
       rect,
-      center: Offset(size.width * -0.06, size.height * 0.31),
-      radius: size.longestSide * 0.55,
-      color: _blue,
-      opacity: 0.38,
-    );
-    _drawGlow(
-      canvas,
-      rect,
-      center: Offset(size.width * 1.04, size.height * 0.68),
+      center: Offset(size.width * -0.08, size.height * 0.28),
       radius: size.longestSide * 0.58,
-      color: _pink,
-      opacity: 0.34,
+      color: _blue,
+      opacity: 0.43,
     );
     _drawGlow(
       canvas,
       rect,
-      center: Offset(size.width * 0.48, size.height * 0.78),
-      radius: size.longestSide * 0.38,
-      color: const Color(0xFF4730FF),
-      opacity: 0.13,
+      center: Offset(size.width * 1.04, size.height * 0.66),
+      radius: size.longestSide * 0.54,
+      color: _gold,
+      opacity: 0.17,
+    );
+    _drawGlow(
+      canvas,
+      rect,
+      center: Offset(size.width * 0.52, size.height * 0.82),
+      radius: size.longestSide * 0.42,
+      color: const Color(0xFF1D5A9D),
+      opacity: 0.18,
     );
 
     _drawBlueTrails(canvas, size);
-    _drawPinkTrails(canvas, size);
+    _drawGoldTrails(canvas, size);
 
     canvas.drawRect(
       rect,
       Paint()
         ..shader = const RadialGradient(
-          center: Alignment(0, -0.12),
-          radius: 1.05,
-          colors: [Color(0x00000000), Color(0x8A00030A)],
-          stops: [0.46, 1],
+          center: Alignment(0, -0.1),
+          radius: 1.08,
+          colors: [Color(0x00000000), Color(0x8F00040B)],
+          stops: [0.45, 1],
         ).createShader(rect),
     );
 
@@ -92,7 +91,7 @@ class _GrintaAppBackgroundPainter extends CustomPainter {
         ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0x22000000), Color(0x00000000), Color(0x3D000000)],
+          colors: [Color(0x18000000), Color(0x00000000), Color(0x47000000)],
           stops: [0, 0.42, 1],
         ).createShader(rect),
     );
@@ -146,40 +145,40 @@ class _GrintaAppBackgroundPainter extends CustomPainter {
         path,
         color: index.isEven ? _blueBright : _blue,
         width: 1.1 + intensity * 1.7,
-        opacity: 0.18 + intensity * 0.24,
+        opacity: 0.16 + intensity * 0.24,
       );
     }
   }
 
-  void _drawPinkTrails(Canvas canvas, Size size) {
-    for (var index = 0; index < 8; index++) {
-      final shift = index * size.height * 0.026;
+  void _drawGoldTrails(Canvas canvas, Size size) {
+    for (var index = 0; index < 6; index++) {
+      final shift = index * size.height * 0.031;
       final path = Path()
-        ..moveTo(size.width * 1.17, size.height * 0.56 + shift)
+        ..moveTo(size.width * 1.15, size.height * 0.58 + shift)
         ..cubicTo(
-          size.width * 0.88,
-          size.height * 0.62 + shift,
-          size.width * 0.81,
-          size.height * 0.90 + shift,
-          size.width * 0.44,
+          size.width * 0.89,
+          size.height * 0.63 + shift,
+          size.width * 0.80,
+          size.height * 0.88 + shift,
+          size.width * 0.47,
           size.height * 0.76 + shift,
         )
         ..cubicTo(
-          size.width * 0.24,
+          size.width * 0.27,
           size.height * 0.69 + shift,
           size.width * 0.10,
-          size.height * 0.66 + shift,
-          -size.width * 0.18,
+          size.height * 0.67 + shift,
+          -size.width * 0.16,
           size.height * 0.73 + shift,
         );
 
-      final intensity = (1 - index / 10).clamp(0.25, 1.0);
+      final intensity = (1 - index / 8).clamp(0.25, 1.0);
       _drawLightTrail(
         canvas,
         path,
-        color: index.isEven ? _pinkBright : _pink,
-        width: 1.0 + intensity * 1.8,
-        opacity: 0.17 + intensity * 0.25,
+        color: index.isEven ? _goldBright : _gold,
+        width: .9 + intensity * 1.4,
+        opacity: 0.08 + intensity * 0.15,
       );
     }
   }
@@ -194,7 +193,7 @@ class _GrintaAppBackgroundPainter extends CustomPainter {
     canvas.drawPath(
       path,
       Paint()
-        ..color = color.withValues(alpha: opacity * 0.25)
+        ..color = color.withValues(alpha: opacity * 0.24)
         ..style = PaintingStyle.stroke
         ..strokeWidth = width * 7
         ..strokeCap = StrokeCap.round

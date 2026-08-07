@@ -1,12 +1,12 @@
 {
-  "name": "SportEasy Grinta",
-  "short_name": "SE Grinta",
+  "name": "AS La Grinta",
+  "short_name": "AS Grinta",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
-  "background_color": "#07142E",
-  "theme_color": "#07142E",
-  "description": "SportEasy Grinta — l'application de l'AS Grinta",
+  "background_color": "#041224",
+  "theme_color": "#041224",
+  "description": "AS La Grinta — l'application officielle du club",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [

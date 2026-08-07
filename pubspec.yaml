@@ -1,5 +1,5 @@
 name: as_grinta
-description: Application officielle AS Grinta.
+description: Application officielle AS La Grinta.
 publish_to: "none"
 version: 0.3.2+96
 
@@ -29,6 +29,5 @@ flutter:
 
   assets:
     - assets/images/module_backgrounds/
-    - assets/images/sporteasy_grinta_logo.png
-    - assets/images/sporteasy_grinta_icon.png
+    - assets/images/as_grinta_logo.webp
     - assets/images/jerseys/

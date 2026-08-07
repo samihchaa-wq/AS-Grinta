@@ -42,13 +42,13 @@ class _HeaderBackdrop extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                AppTheme.surface.withValues(alpha: .9),
-                AppTheme.surface.withValues(alpha: .7),
+                AppTheme.surface.withValues(alpha: .94),
+                AppTheme.surface.withValues(alpha: .74),
               ],
             ),
             border: Border(
               bottom: BorderSide(
-                color: AppTheme.outline.withValues(alpha: .24),
+                color: AppTheme.accent.withValues(alpha: .22),
               ),
             ),
           ),
@@ -79,12 +79,12 @@ class _GrintaTitleBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: 52,
+            width: 48,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Image.asset(
-                'assets/images/sporteasy_grinta_icon.png',
-                height: 32,
+                'assets/images/as_grinta_logo.webp',
+                height: 42,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
               ),
