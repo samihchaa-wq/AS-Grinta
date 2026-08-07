@@ -43,6 +43,7 @@ class MergedMatchesView extends ConsumerStatefulWidget {
 
 class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   final GlobalKey _focusMatchKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
   String? _lastFocusSignature;
   bool _userScrollInterrupted = false;
 
@@ -64,6 +65,12 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     );
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _refresh() async {
     final state = ref.read(matchesControllerProvider);
     ref.invalidate(clubEventsProvider);
@@ -75,10 +82,12 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
   void _focusRelevantMatch({
     required String? focusKey,
+    required int? focusIndex,
+    required int totalEntries,
     required bool cardIsReady,
     required String requestToken,
   }) {
-    if (focusKey == null || !cardIsReady) return;
+    if (focusKey == null || focusIndex == null || !cardIsReady) return;
 
     final signature = '$focusKey:$requestToken';
     if (_lastFocusSignature == signature) return;
@@ -88,36 +97,68 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     _userScrollInterrupted = false;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _positionRelevantMatch(signature);
+      _positionRelevantMatch(
+        signature,
+        focusIndex: focusIndex,
+        totalEntries: totalEntries,
+      );
     });
   }
 
   Future<void> _positionRelevantMatch(
     String signature, {
+    required int focusIndex,
+    required int totalEntries,
     int attempt = 0,
   }) async {
-    if (!mounted || _lastFocusSignature != signature) return;
+    if (!mounted ||
+        _lastFocusSignature != signature ||
+        _userScrollInterrupted) {
+      return;
+    }
+
+    // La SliverList construit ses cartes paresseusement. Si la carte cible
+    // est très loin dans la liste (index ~340/350), elle n'est jamais dans
+    // le cache tant qu'on n'a pas scrollé jusque-là — et sans son
+    // BuildContext, Scrollable.ensureVisible ne peut rien faire. On force
+    // donc d'abord un jumpTo vers une position estimée (fraction de la
+    // hauteur totale de scroll), ce qui déclenche la construction des
+    // cartes autour de cette position, puis on affine avec ensureVisible.
+    if (_scrollController.hasClients && totalEntries > 0) {
+      final position = _scrollController.position;
+      final estimated =
+          position.maxScrollExtent * (focusIndex / totalEntries);
+      if ((position.pixels - estimated).abs() > 200) {
+        position.jumpTo(estimated.clamp(0.0, position.maxScrollExtent));
+      }
+    }
 
     final targetContext = _focusMatchKey.currentContext;
     if (targetContext == null) {
-      if (attempt >= 8) {
+      if (attempt >= 20) {
         _lastFocusSignature = null;
         return;
       }
-
-      await Future<void>.delayed(Duration(milliseconds: 20 + (attempt * 15)));
-      if (!mounted || _lastFocusSignature != signature) return;
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      if (!mounted ||
+          _lastFocusSignature != signature ||
+          _userScrollInterrupted) {
+        return;
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _positionRelevantMatch(signature, attempt: attempt + 1);
+        _positionRelevantMatch(
+          signature,
+          focusIndex: focusIndex,
+          totalEntries: totalEntries,
+          attempt: attempt + 1,
+        );
       });
       return;
     }
 
-    // La SliverList charge ses cartes paresseusement : un premier
-    // ensureVisible peut se baser sur des hauteurs estimées et laisser la
-    // carte cible partiellement recouverte par la fin de la carte
-    // précédente (par exemple la barre « Voter pour l'homme du match »).
-    // On répète plusieurs fois pour laisser la disposition converger.
+    // Affinage : jusqu'à ce que la disposition converge (le jumpTo
+    // ci-dessus a une précision limitée quand les cartes ont des tailles
+    // très variables — carte de composition Live vs simple ligne d'archive).
     for (var i = 0; i < 6; i += 1) {
       if (!mounted ||
           _lastFocusSignature != signature ||
@@ -224,10 +265,15 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
     _focusRelevantMatch(
       focusKey: focusKey,
+      focusIndex: focusIndex,
+      totalEntries: entries.length,
       cardIsReady: focusCardIsReady,
       requestToken: '$focusRequest',
     );
 
+    // Cache large : les cartes hors viewport restent construites afin que le
+    // GlobalKey de la carte cible soit toujours joignable pour l'auto-focus,
+    // même quand on part de scroll = 0 et que la cible est loin en bas.
     final cacheExtent = 1000.0 + (entries.length * 360.0);
 
     return RefreshIndicator(
@@ -235,7 +281,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       child: NotificationListener<ScrollNotification>(
         onNotification: _handleScrollNotification,
         child: CustomScrollView(
-          scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
+          controller: _scrollController,
+          cacheExtent: cacheExtent,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(
