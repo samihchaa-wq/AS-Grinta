@@ -49,10 +49,11 @@ class HistoricalMatchCard extends StatelessWidget {
                     awayScore:
                         match.isHome ? match.opponentScore : match.grintaScore,
                     finished: true,
-                    nameStyle: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontSize: 17, height: 1.1),
+                    nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontSize: 16,
+                          height: 1.1,
+                          fontWeight: FontWeight.w800,
+                        ),
                     scoreFontSize: 20,
                     textAlign: TextAlign.center,
                   ),
