@@ -40,7 +40,7 @@ class HistoricalMatchDetail {
 
   final String? formation;
   final List<HistoricalFieldPlayer> fieldPlayers;
-  final List<String> benchPlayers;
+  final List<HistoricalFieldPlayer> benchPlayers;
   final List<String> presentNames;
   final List<HistoricalScorer> scorers;
   final List<String> motmNames;
@@ -113,6 +113,23 @@ class HistoricalMatchDetailRepository {
       },
     ).toList(growable: false);
 
+    // Le banc n'est stocké que sous forme de noms, contrairement aux
+    // titulaires (positions x/y) : on réutilise quand même [HistoricalFieldPlayer]
+    // (x/y ignorés hors terrain) pour que la carte de composition partagée
+    // affiche la même tuile joueur — avec photo — que sur le terrain.
+    final benchPlayers = benchPlayersRaw
+        .map(
+          (fullName) => HistoricalFieldPlayer(
+            name: shortName(fullName),
+            positionLabel: '',
+            xPct: 50,
+            yPct: 50,
+            isGoalkeeper: false,
+            photoUrl: photoUrlsByName[fullName] as String?,
+          ),
+        )
+        .toList(growable: false);
+
     final scorers = scorersRaw
         .map(
           (entry) => HistoricalScorer(
@@ -125,7 +142,7 @@ class HistoricalMatchDetailRepository {
     return HistoricalMatchDetail(
       formation: (row['formation'] as String?),
       fieldPlayers: fieldPlayers,
-      benchPlayers: benchPlayersRaw.map(shortName).toList(growable: false),
+      benchPlayers: benchPlayers,
       presentNames: presentNamesRaw.map(shortName).toList(growable: false),
       scorers: scorers,
       motmNames: motmNamesRaw.map(shortName).toList(growable: false),

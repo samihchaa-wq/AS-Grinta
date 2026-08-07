@@ -2,6 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/match_detail_header_card.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
@@ -9,11 +10,11 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/match_live/presentation/widgets/match_faits_du_match_card.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
 import 'package:as_grinta/features/matches/data/match_finalization_repository.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/completed_match_composition_card.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_motm_vote_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/sport_motm_vote_page.dart';
-import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -85,7 +86,22 @@ class MatchDetailsPage extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
-                _MatchHeader(details: details),
+                MatchDetailHeaderCard(
+                  homeName: details.location == 'domicile'
+                      ? 'AS Grinta'
+                      : details.opponentName,
+                  awayName: details.location == 'domicile'
+                      ? details.opponentName
+                      : 'AS Grinta',
+                  grintaIsHome: details.location == 'domicile',
+                  homeScore: details.location == 'domicile'
+                      ? details.scoreGrinta ?? 0
+                      : details.scoreOpponent ?? 0,
+                  awayScore: details.location == 'domicile'
+                      ? details.scoreOpponent ?? 0
+                      : details.scoreGrinta ?? 0,
+                  dateLabel: AppFormats.dateTime(details.kickoffAt),
+                ),
                 if (sportsEnabled) ...[
                   const SizedBox(height: 16),
                   MatchMotmVoteCard(matchId: matchId),
@@ -397,48 +413,6 @@ class _MatchModule extends StatelessWidget {
   }
 }
 
-class _MatchHeader extends StatelessWidget {
-  const _MatchHeader({required this.details});
-
-  final MatchDetailsData details;
-
-  @override
-  Widget build(BuildContext context) {
-    final home = details.location == 'domicile';
-    final grinta = details.scoreGrinta ?? 0;
-    final opponent = details.scoreOpponent ?? 0;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            MatchFixture(
-              homeName: home ? 'AS Grinta' : details.opponentName,
-              awayName: home ? details.opponentName : 'AS Grinta',
-              grintaIsHome: home,
-              homeScore: home ? grinta : opponent,
-              awayScore: home ? opponent : grinta,
-              finished: true,
-              nameStyle: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(AppFormats.dateTime(details.kickoffAt)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CompletedPlayerSummary {
-  const _CompletedPlayerSummary({required this.name, required this.goals});
-
-  final String name;
-  final int goals;
-}
-
 class _CompletedCompositionCard extends ConsumerWidget {
   const _CompletedCompositionCard({
     required this.details,
@@ -450,8 +424,8 @@ class _CompletedCompositionCard extends ConsumerWidget {
   final String matchId;
   final bool sportsEnabled;
 
-  List<_CompletedPlayerSummary> _playersFromMatchDetails() {
-    final playersByName = <String, _CompletedPlayerSummary>{};
+  List<CompletedPlayerSummary> _playersFromMatchDetails() {
+    final playersByName = <String, CompletedPlayerSummary>{};
 
     void addPlayer(String rawName, int goals) {
       final name = rawName.trim();
@@ -459,7 +433,7 @@ class _CompletedCompositionCard extends ConsumerWidget {
       final key = name.toLowerCase();
       final existing = playersByName[key];
       if (existing == null || goals > existing.goals) {
-        playersByName[key] = _CompletedPlayerSummary(name: name, goals: goals);
+        playersByName[key] = CompletedPlayerSummary(name: name, goals: goals);
       }
     }
 
@@ -474,7 +448,7 @@ class _CompletedCompositionCard extends ConsumerWidget {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   }
 
-  List<_CompletedPlayerSummary> _fullSquadPlayers(
+  List<CompletedPlayerSummary> _fullSquadPlayers(
     MatchFinalizationContext? finalization,
   ) {
     final fallbackPlayers = _playersFromMatchDetails();
@@ -496,7 +470,7 @@ class _CompletedCompositionCard extends ConsumerWidget {
       for (final player in finalization.squad)
         if (selectedPlayerIds.contains(player.id) ||
             goalsByPlayerId.containsKey(player.id))
-          _CompletedPlayerSummary(
+          CompletedPlayerSummary(
             name: player.name,
             goals: goalsByPlayerId[player.id] ?? 0,
           ),
@@ -521,158 +495,23 @@ class _CompletedCompositionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    MatchComposition? composition;
     if (sportsEnabled) {
       // Priorité au rendu MPG dès qu'une composition publiée existe.
-      final composition =
+      composition =
           ref.watch(publishedMatchCompositionProvider(matchId)).valueOrNull;
-      final fieldEntries =
-          composition?.entriesFor(MatchCompositionZone.field) ?? const [];
-      if (fieldEntries.isNotEmpty) {
-        return _MpgCompletedCard(composition: composition!);
-      }
     }
 
     final finalization = sportsEnabled
         ? null
         : ref.watch(matchFinalizationContextProvider(matchId)).valueOrNull;
-    final players = sportsEnabled
+    final fallbackPlayers = sportsEnabled
         ? _playersFromMatchDetails()
         : _fullSquadPlayers(finalization);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              players.isEmpty ? 'Joueurs' : 'Joueurs (${players.length})',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 12),
-            if (players.isEmpty)
-              const Text('Aucun joueur renseigné.')
-            else
-              _CompletedPlayersList(players: players),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Rendu MPG d'une composition publiée (photos, couronne 👑, ballons) pour un
-/// match terminé — identique à l'affichage d'avant-match.
-class _MpgCompletedCard extends StatelessWidget {
-  const _MpgCompletedCard({required this.composition});
-
-  final MatchComposition composition;
-
-  @override
-  Widget build(BuildContext context) {
-    final bench = composition.entriesFor(MatchCompositionZone.bench);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Composition et résumé',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Les buts ⚽ et l’homme du match 👑 sont affichés directement '
-              'sur les joueurs.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: CompositionPitch(
-                  entries: composition.entriesFor(MatchCompositionZone.field),
-                ),
-              ),
-            ),
-            if (bench.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Remplaçants (${bench.length})',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final entry in bench)
-                    CompositionPlayerTile(entry: entry),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CompletedPlayersList extends StatelessWidget {
-  const _CompletedPlayersList({required this.players});
-
-  final List<_CompletedPlayerSummary> players;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var index = 0; index < players.length; index += 1) ...[
-          Semantics(
-            label: players[index].goals == 0
-                ? players[index].name
-                : '${players[index].name}, ${players[index].goals} '
-                    '${players[index].goals == 1 ? 'but' : 'buts'}',
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      players[index].name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                  ),
-                  if (players[index].goals > 0) ...[
-                    const SizedBox(width: 12),
-                    Text(
-                      players[index].goals == 1
-                          ? '⚽'
-                          : '⚽ ×${players[index].goals}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          if (index < players.length - 1) const Divider(height: 1),
-        ],
-      ],
+    return CompletedCompositionCard(
+      composition: composition,
+      fallbackPlayers: fallbackPlayers,
     );
   }
 }
