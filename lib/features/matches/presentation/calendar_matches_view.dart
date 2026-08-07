@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/calendar/ics_calendar_export.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
@@ -179,7 +180,14 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         _CalendarToolbar(
           displayMode: _displayMode,
           onDisplayModeChanged: (mode) {
+            final wasScroll = _displayMode == _CalendarDisplayMode.scroll;
             setState(() => _displayMode = mode);
+            // Retour vers le mode Défilé après un aller-retour par Par
+            // mois : on rejoue l'auto-focus pour que la liste réatterrisse
+            // sur le prochain match, jamais sur 2014.
+            if (mode == _CalendarDisplayMode.scroll && !wasScroll) {
+              ref.read(matchesFocusRequestProvider.notifier).state++;
+            }
           },
           onExport: exportAction,
           onCreate: isAdmin ? _openCreate : null,
