@@ -158,14 +158,17 @@ class _HistoricalMatchDetailBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Même ordre qu'une fiche Live terminée (MatchDetailsPage) :
+        // en-tête → HDM → composition, pour que les deux fiches se
+        // lisent exactement de la même manière.
+        if (detail.motmNames.isNotEmpty) ...[
+          _HistoricalMotmCard(names: detail.motmNames),
+          const SizedBox(height: 16),
+        ],
         CompletedCompositionCard(
           composition: composition,
           fallbackPlayers: fallbackPlayers,
         ),
-        if (detail.motmNames.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          _HistoricalMotmCard(names: detail.motmNames),
-        ],
       ],
     );
   }
