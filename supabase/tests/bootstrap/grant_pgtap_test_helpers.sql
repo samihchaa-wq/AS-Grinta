@@ -1,3 +1,22 @@
+-- Le rejeu CI installe un schéma métier compact puis les migrations récentes
+-- explicitement. Ces migrations de la PR doivent être présentes avant le
+-- lancement des fichiers pgTAP. Elles sont rejouées dans une transaction,
+-- comme une migration Supabase, afin que les tables temporaires ON COMMIT DROP
+-- restent disponibles jusqu'à la fin du lot.
+begin;
+\ir ../../migrations/20260807110000_canonical_player_identity.sql
+\ir ../../migrations/20260807111000_canonical_historical_player_links.sql
+\ir ../../migrations/20260807112000_exclude_archive_staff_from_players.sql
+\ir ../../migrations/20260807113000_canonical_player_security_floor.sql
+-- Le bootstrap minimal embarque d'anciennes versions des RPC présence/HDM :
+-- on conserve leur comportement de test en qualifiant les identifiants devenus
+-- ambigus avec season_players.player_id.
+\ir current_match_result_player_rpcs.sql
+-- Les tests de charge désactivent volontairement les triggers. Ces defaults ne
+-- s'activent qu'en mode replica et n'existent donc jamais en production.
+\ir canonical_player_direct_fixture_defaults.sql
+commit;
+
 -- Les tests changent volontairement de rôle en cours de transaction. Le verrou
 -- applicatif ne doit pas empêcher l’exécution des assertions pgTAP dans la base
 -- éphémère de CI. Production ne possède pas cette extension.
