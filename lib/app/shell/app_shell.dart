@@ -22,8 +22,10 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> {
+class _AppShellState extends ConsumerState<AppShell>
+    with WidgetsBindingObserver {
   bool _matchFocusScheduled = false;
+  bool _wasBackgrounded = false;
   // On mémorise nous-même l'index affiché à la frame précédente : le prop
   // `navigationShell` est le MÊME objet à chaque rebuild (StatefulShellRoute
   // ne le remplace pas), donc comparer `oldWidget.navigationShell.currentIndex`
@@ -40,6 +42,35 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   Uri get _uri => Uri.parse(widget.location);
   int get _selectedIndex => widget.navigationShell.currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      _wasBackgrounded = true;
+      return;
+    }
+    if (state != AppLifecycleState.resumed || !_wasBackgrounded) return;
+    _wasBackgrounded = false;
+    if (_selectedIndex != 0 || _uri.path != '/matches') return;
+
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted || _selectedIndex != 0 || _uri.path != '/matches') return;
+      _scheduleMatchFocus();
+    });
+  }
 
   void _scheduleMatchFocus() {
     if (_matchFocusScheduled) return;
