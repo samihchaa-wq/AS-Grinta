@@ -280,7 +280,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         onNotification: _handleScrollNotification,
         child: CustomScrollView(
           controller: _scrollController,
-          scrollCacheExtent: cacheExtent,
+          scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(
