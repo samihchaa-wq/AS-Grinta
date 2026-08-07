@@ -27,14 +27,12 @@ class MatchHistoryCard extends ConsumerWidget {
     final vote = voteMayStillBeOpen
         ? ref.watch(sportMotmVoteProvider(match.id)).valueOrNull
         : null;
-    final actions = match.isFinished ? null : adminActions;
+    final actions = match.isFinished || match.isCancelled ? null : adminActions;
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
-    final homeScore =
-        match.isHome ? match.grintaScore ?? 0 : match.opponentScore ?? 0;
-    final awayScore =
-        match.isHome ? match.opponentScore ?? 0 : match.grintaScore ?? 0;
+    final homeScore = match.isHome ? match.grintaScore : match.opponentScore;
+    final awayScore = match.isHome ? match.opponentScore : match.grintaScore;
 
     return Card(
       color: const Color(0xFF20242C),
@@ -63,7 +61,7 @@ class MatchHistoryCard extends ConsumerWidget {
                         grintaIsHome: match.isHome,
                         homeScore: homeScore,
                         awayScore: awayScore,
-                        finished: true,
+                        finished: match.isFinished,
                         nameStyle: Theme.of(context)
                             .textTheme
                             .titleMedium
