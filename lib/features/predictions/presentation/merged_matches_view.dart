@@ -235,79 +235,79 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       child: NotificationListener<ScrollNotification>(
         onNotification: _handleScrollNotification,
         child: CustomScrollView(
-        scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          const SliverToBoxAdapter(
-            child: SizedBox(height: AppSpacing.microGap),
-          ),
-          if (state.isLoading)
-            const SliverPadding(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenGutter,
-              ),
-              sliver: SliverToBoxAdapter(child: _LoadingCard()),
-            )
-          else if (state.error != null)
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenGutter,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: _MessageCard(
-                  title: 'Matchs indisponibles',
-                  icon: Icons.wifi_off_rounded,
-                  message: state.error!,
-                  tone: GrintaEmptyTone.alert,
-                ),
-              ),
-            )
-          else if (entries.isEmpty)
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenGutter,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _MessageCard(
-                      title: 'Aucun match',
-                      message:
-                          'Le premier match apparaîtra ici dès qu’il sera créé.',
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.screenGutter,
-              ),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final entry = entries[index];
-                    final isFocusCard =
-                        focusKey != null && _entryKey(entry) == focusKey;
-                    return Padding(
-                      key: isFocusCard ? _focusMatchKey : null,
-                      padding: EdgeInsets.only(
-                        bottom: index == entries.length - 1
-                            ? 0
-                            : AppSpacing.contentGap,
-                      ),
-                      child: _buildEntryCard(entry, isAdmin, now),
-                    );
-                  },
-                  childCount: entries.length,
-                ),
-              ),
+          scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            const SliverToBoxAdapter(
+              child: SizedBox(height: AppSpacing.microGap),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
-        ],
-      ),
+            if (state.isLoading)
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenGutter,
+                ),
+                sliver: SliverToBoxAdapter(child: _LoadingCard()),
+              )
+            else if (state.error != null)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenGutter,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: _MessageCard(
+                    title: 'Matchs indisponibles',
+                    icon: Icons.wifi_off_rounded,
+                    message: state.error!,
+                    tone: GrintaEmptyTone.alert,
+                  ),
+                ),
+              )
+            else if (entries.isEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenGutter,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _MessageCard(
+                        title: 'Aucun match',
+                        message:
+                            'Le premier match apparaîtra ici dès qu’il sera créé.',
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.screenGutter,
+                ),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final entry = entries[index];
+                      final isFocusCard =
+                          focusKey != null && _entryKey(entry) == focusKey;
+                      return Padding(
+                        key: isFocusCard ? _focusMatchKey : null,
+                        padding: EdgeInsets.only(
+                          bottom: index == entries.length - 1
+                              ? 0
+                              : AppSpacing.contentGap,
+                        ),
+                        child: _buildEntryCard(entry, isAdmin, now),
+                      );
+                    },
+                    childCount: entries.length,
+                  ),
+                ),
+              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
+        ),
       ),
     );
   }
