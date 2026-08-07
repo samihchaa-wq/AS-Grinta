@@ -342,16 +342,31 @@ class _CalendarToolbar extends StatelessWidget {
           },
         );
 
-        final exportButton = OutlinedButton.icon(
+        // Boutons d'action compactes (icônes seules avec tooltip) : la barre
+        // du haut est désormais partagée à 2/3 pour le mode d'affichage
+        // Défilé/Par mois et à 1/3 pour ces deux actions.
+        final exportIconButton = IconButton.outlined(
           onPressed: onExport,
-          icon: const Icon(Icons.calendar_month_outlined, size: 18),
-          label: const Text('Ajouter à mon calendrier (.ics)'),
+          tooltip: 'Ajouter au calendrier ics',
+          icon: const Icon(Icons.calendar_month_outlined),
         );
-        final createButton = FilledButton.tonalIcon(
+        final createIconButton = IconButton.filledTonal(
           onPressed: onCreate,
-          icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('Ajouter un match'),
+          tooltip: 'Ajouter un événement',
+          icon: const Icon(Icons.add_rounded),
         );
+        final hasActions = onExport != null || onCreate != null;
+        final actionsRow = hasActions
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  if (onCreate != null) Expanded(child: createIconButton),
+                  if (onCreate != null && onExport != null)
+                    const SizedBox(width: AppSpacing.microGap),
+                  if (onExport != null) Expanded(child: exportIconButton),
+                ],
+              )
+            : const SizedBox.shrink();
 
         final seasonSelector = selectedSeasonName == null || seasons.isEmpty
             ? null
@@ -385,17 +400,6 @@ class _CalendarToolbar extends StatelessWidget {
           onNext: onNextMonth,
         );
 
-        final actions = Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (onExport != null) exportButton,
-            if (onCreate != null) ...[
-              if (onExport != null) const SizedBox(height: AppSpacing.microGap),
-              createButton,
-            ],
-          ],
-        );
-
         return Padding(
           padding: EdgeInsets.fromLTRB(
             outerInset,
@@ -406,22 +410,20 @@ class _CalendarToolbar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (compact) ...[
-                modeSelector,
-                if (onExport != null || onCreate != null) ...[
-                  const SizedBox(height: AppSpacing.microGap),
-                  actions,
-                ],
-              ] else
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    modeSelector,
-                    const Spacer(),
-                    if (onExport != null || onCreate != null)
-                      SizedBox(width: 310, child: actions),
+              // Une seule rangée : 2/3 pour le sélecteur Défilé/Par mois,
+              // 1/3 pour les deux actions en icônes (ajouter un événement +
+              // ajouter au calendrier ics). Même agencement en compact et
+              // en large — on gagne une ligne d'écran sur mobile.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(flex: 2, child: modeSelector),
+                  if (hasActions) ...[
+                    const SizedBox(width: AppSpacing.contentGap),
+                    Expanded(flex: 1, child: actionsRow),
                   ],
-                ),
+                ],
+              ),
               if (displayMode == _CalendarDisplayMode.month) ...[
                 const SizedBox(height: AppSpacing.contentGap),
                 if (compact) ...[
