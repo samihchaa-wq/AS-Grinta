@@ -329,8 +329,8 @@ class CompositionPlayerTile extends StatelessWidget {
                   ),
                 if (entry.goals > 0)
                   Positioned(
-                    left: -2,
-                    top: 32,
+                    left: 0,
+                    top: 40,
                     child: GoalBadge(goals: entry.goals),
                   ),
               ],
@@ -371,23 +371,23 @@ class GoalBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        const Text('⚽', style: TextStyle(fontSize: 18, height: 1)),
+        const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
         if (goals > 1)
           Positioned(
-            top: -6,
-            right: -8,
+            top: -5,
+            right: -6,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
               decoration: BoxDecoration(
                 color: const Color(0xFF2E3A59),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white70, width: 0.6),
+                borderRadius: BorderRadius.circular(5),
+                border: Border.all(color: Colors.white70, width: 0.5),
               ),
               child: Text(
                 '$goals',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 9,
+                  fontSize: 8,
                   fontWeight: FontWeight.w900,
                   height: 1,
                 ),
