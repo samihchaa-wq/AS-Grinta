@@ -25,6 +25,11 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+// Le mode « Par mois » remplace temporairement cette vue dans l'arbre.
+// On conserve donc la dernière position de défilement pour éviter de
+// recréer la liste à 2014 au retour vers « Défilé ».
+double? _persistedMergedMatchesScrollOffset;
+
 /// Contenu de l'onglet Matchs.
 ///
 /// Règle stricte : un unique flux chronologique, sans regroupement par
@@ -43,7 +48,7 @@ class MergedMatchesView extends ConsumerStatefulWidget {
 
 class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   final GlobalKey _focusMatchKey = GlobalKey();
-  final ScrollController _scrollController = ScrollController();
+  late final ScrollController _scrollController;
   String? _lastFocusSignature;
   bool _userScrollInterrupted = false;
 
@@ -60,6 +65,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController(
+      initialScrollOffset: _persistedMergedMatchesScrollOffset ?? 0,
+    );
     Future.microtask(
       () => ref.read(matchesControllerProvider.notifier).load(allSeasons: true),
     );
@@ -67,6 +75,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
 
   @override
   void dispose() {
+    if (_scrollController.hasClients) {
+      _persistedMergedMatchesScrollOffset = _scrollController.offset;
+    }
     _scrollController.dispose();
     super.dispose();
   }
@@ -375,7 +386,7 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
     case _FeedKind.upcomingMatch:
       return _UpcomingMatchCard(match: entry.match!, isAdmin: isAdmin);
     case _FeedKind.nextMatch:
-      return HomeNextMatchCard(match: entry.match!, isAdmin: isAdmin);
+      return _UpcomingMatchCard(match: entry.match!, isAdmin: isAdmin);
     case _FeedKind.liveMatch:
       final match = entry.match!;
       return HomeNextMatchCard(
