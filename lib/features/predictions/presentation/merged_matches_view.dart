@@ -63,13 +63,13 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
   }
 
   void _focusRelevantMatch({
-    required String? matchId,
+    required String? focusKey,
     required bool cardIsReady,
     required String requestToken,
   }) {
-    if (matchId == null || !cardIsReady) return;
+    if (focusKey == null || !cardIsReady) return;
 
-    final signature = '$matchId:$requestToken';
+    final signature = '$focusKey:$requestToken';
     if (_lastFocusSignature == signature) return;
     _lastFocusSignature = signature;
 
@@ -167,26 +167,45 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     // n'est promue ou reléguée en dehors de sa place chronologique.
     entries.sort((a, b) => a.date.compareTo(b.date));
 
-    String? focusMatchId;
-    for (final kind in const [
+    // Choix de la carte sur laquelle le calendrier s'aligne à l'ouverture :
+    //   1. la carte prioritaire (Live > à valider > J-6) si elle existe ;
+    //   2. sinon, le premier élément chronologiquement à venir — le vrai
+    //      « prochain match » du point de vue de l'utilisateur, même quand
+    //      il est hors fenêtre J-6, pour éviter d'ouvrir sur 2014 ;
+    //   3. sinon (tout est passé), la dernière carte.
+    int? focusIndex;
+    const priorityKinds = [
       _FeedKind.liveMatch,
       _FeedKind.awaitingValidationMatch,
       _FeedKind.nextMatch,
-    ]) {
-      for (final entry in entries) {
-        if (entry.kind == kind) {
-          focusMatchId = entry.match!.id;
+    ];
+    for (final kind in priorityKinds) {
+      for (var i = 0; i < entries.length; i += 1) {
+        if (entries[i].kind == kind) {
+          focusIndex = i;
           break;
         }
       }
-      if (focusMatchId != null) break;
+      if (focusIndex != null) break;
+    }
+    if (focusIndex == null) {
+      for (var i = 0; i < entries.length; i += 1) {
+        if (!entries[i].date.isBefore(now)) {
+          focusIndex = i;
+          break;
+        }
+      }
+    }
+    if (focusIndex == null && entries.isNotEmpty) {
+      focusIndex = entries.length - 1;
     }
 
+    final focusKey = focusIndex == null ? null : _entryKey(entries[focusIndex]);
     final focusRequest = ref.watch(matchesFocusRequestProvider);
-    final focusCardIsReady = focusMatchId != null && !state.isLoading;
+    final focusCardIsReady = focusKey != null && !state.isLoading;
 
     _focusRelevantMatch(
-      matchId: focusMatchId,
+      focusKey: focusKey,
       cardIsReady: focusCardIsReady,
       requestToken: '$focusRequest',
     );
@@ -251,7 +270,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                   (context, index) {
                     final entry = entries[index];
                     final isFocusCard =
-                        focusMatchId != null && entry.match?.id == focusMatchId;
+                        focusKey != null && _entryKey(entry) == focusKey;
                     return Padding(
                       key: isFocusCard ? _focusMatchKey : null,
                       padding: EdgeInsets.only(
@@ -271,6 +290,17 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       ),
     );
   }
+}
+
+/// Identifiant stable d'une entrée du flux, indépendant de sa position dans
+/// la liste : sert d'ancre à l'auto-scroll pour rouvrir le calendrier
+/// toujours sur la même carte (le prochain match chronologique par défaut),
+/// que d'autres entrées soient ajoutées ou retirées entre deux builds.
+String _entryKey(_FeedEntry entry) {
+  if (entry.match != null) return 'match:${entry.match!.id}';
+  if (entry.event != null) return 'event:${entry.event!.id}';
+  if (entry.historical != null) return 'historical:${entry.historical!.id}';
+  return 'unknown';
 }
 
 /// Choisit la carte adaptée au statut de l'entrée, sans plus jamais dépendre

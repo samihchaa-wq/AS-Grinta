@@ -329,10 +329,9 @@ class CompositionPlayerTile extends StatelessWidget {
                   ),
                 if (entry.goals > 0)
                   Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: Center(child: GoalBallsRow(goals: entry.goals)),
+                    left: -4,
+                    top: 28,
+                    child: GoalBadge(goals: entry.goals),
                   ),
               ],
             ),
@@ -356,32 +355,53 @@ class CompositionPlayerTile extends StatelessWidget {
   }
 }
 
-/// Rangée d'icônes ballon indiquant le nombre de buts d'un joueur. Utilisée
-/// à la fois par la composition Live et par la fiche d'un match archivé afin
-/// que les deux affichages restent visuellement identiques.
-class GoalBallsRow extends StatelessWidget {
-  const GoalBallsRow({super.key, required this.goals});
+/// Pastille « but » accrochée sur le côté de la photo d'un joueur, sur le
+/// modèle des feuilles de match Flashscore : un unique ballon ⚽ (peu importe
+/// le nombre de buts), avec un petit chiffre en surimpression au-dessus quand
+/// le joueur a inscrit plus d'un but. Utilisée à la fois par la composition
+/// Live et par la fiche d'un match archivé afin que les deux affichages
+/// restent visuellement identiques.
+class GoalBadge extends StatelessWidget {
+  const GoalBadge({super.key, required this.goals});
 
   final int goals;
 
   @override
   Widget build(BuildContext context) {
-    final count = goals.clamp(1, 6);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Stack(
+      clipBehavior: Clip.none,
       children: [
-        for (var i = 0; i < count; i++)
-          const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
-        if (goals > 6)
-          const Padding(
-            padding: EdgeInsets.only(left: 1),
-            child: Text(
-              '+',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 11,
-                shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+        Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xE61A1F2B),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.white24, width: 0.6),
+          ),
+          child: const Center(
+            child: Text('⚽', style: TextStyle(fontSize: 12, height: 1)),
+          ),
+        ),
+        if (goals > 1)
+          Positioned(
+            top: -6,
+            right: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E3A59),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.white70, width: 0.6),
+              ),
+              child: Text(
+                '$goals',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
             ),
           ),
