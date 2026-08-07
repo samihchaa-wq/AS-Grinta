@@ -106,7 +106,7 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       );
       await downloadIcsFile(
         contents: contents,
-        filename: 'sporteasy-grinta-$seasonName.ics',
+        filename: 'as-grinta-$seasonName.ics',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
