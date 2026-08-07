@@ -43,19 +43,6 @@ class AdminMenuPage extends ConsumerWidget {
               onTap: () => context.push('/players'),
             ),
           ),
-          const SizedBox(height: 10),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.calendar_month_outlined),
-              title: const Text(
-                'Calendrier',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: const Text('Créer et modifier les rencontres.'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/admin/matches'),
-            ),
-          ),
         ],
       ),
     );
