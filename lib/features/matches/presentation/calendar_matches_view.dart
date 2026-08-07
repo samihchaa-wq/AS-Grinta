@@ -533,7 +533,7 @@ class _ModernMonthView extends ConsumerWidget {
         if (_sameMonth(match.kickoffAt, month)) _ModernMonthEntry.match(match),
       for (final event in events)
         if (_sameMonth(event.startsAt, month)) _ModernMonthEntry.event(event),
-    ]..sort((a, b) => b.date.compareTo(a.date));
+    ]..sort((a, b) => a.date.compareTo(b.date));
 
     if (entries.isEmpty) {
       return RefreshIndicator(
@@ -653,7 +653,7 @@ class _HistoricalMonthView extends StatelessWidget {
           for (final event in events)
             if (_sameMonth(event.startsAt, month))
               _HistoricalMonthEntry.event(event),
-        ]..sort((a, b) => b.date.compareTo(a.date));
+        ]..sort((a, b) => a.date.compareTo(b.date));
 
         if (entries.isEmpty) {
           return RefreshIndicator(
