@@ -371,11 +371,15 @@ class _BenchBox extends StatelessWidget {
       ),
     );
     if (!draggable) return tile;
+    final autoScroll = DragAutoScroller(context);
     return LongPressDraggable<MatchCompositionEntry>(
       data: entry,
       dragAnchorStrategy: pointerDragAnchorStrategy,
       feedback: Material(type: MaterialType.transparency, child: tile),
       childWhenDragging: Opacity(opacity: .35, child: tile),
+      onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+      onDragEnd: (_) => autoScroll.stop(),
+      onDraggableCanceled: (_, __) => autoScroll.stop(),
       child: tile,
     );
   }
