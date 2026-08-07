@@ -34,3 +34,22 @@ String capitalizePersonName(String value) {
     (match) => '${match[1]}${match[2]!.toUpperCase()}',
   );
 }
+
+/// Prénom extrait d'un « Prénom Nom » complet. Règle unique réutilisée
+/// partout où l'appli doit réduire un nom complet (import historique,
+/// statistiques) au même format court que les écrans alimentés directement
+/// par un profil (qui n'exposent déjà que le prénom).
+String firstNameOf(String fullName) {
+  final trimmed = fullName.trim();
+  if (trimmed.isEmpty) return fullName;
+  return trimmed.split(RegExp(r'\s+')).first;
+}
+
+/// Première lettre du nom de famille, pour départager deux joueurs affichés
+/// sous le même prénom (ex : « Julien C. » / « Julien D. »).
+String? lastNameInitialOf(String fullName) {
+  final parts = fullName.trim().split(RegExp(r'\s+'));
+  if (parts.length < 2) return null;
+  final lastName = parts.sublist(1).join(' ');
+  return lastName.isEmpty ? null : lastName[0].toUpperCase();
+}
