@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/sports_management/data/internal_match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/internal_match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart'
@@ -9,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Composition d'un « match entre nous » : pas de terrain ni de formation,
-/// juste une réserve de joueurs convoqués répartie en deux équipes nommables
-/// qui occupent toute la largeur.
+/// juste une réserve de joueurs convoqués répartie en deux équipes identifiées
+/// visuellement par les deux maillots de l'application.
 class InternalTeamCompositionView extends ConsumerStatefulWidget {
   const InternalTeamCompositionView({
     super.key,
@@ -176,7 +177,6 @@ class _InternalTeamCompositionViewState
                     entries: team1,
                     editable: widget.editable,
                     onAccept: (entry) => _moveTo(entry, 1),
-                    onNameChanged: (_) => setState(() => _dirty = true),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -190,7 +190,6 @@ class _InternalTeamCompositionViewState
                     entries: team2,
                     editable: widget.editable,
                     onAccept: (entry) => _moveTo(entry, 2),
-                    onNameChanged: (_) => setState(() => _dirty = true),
                   ),
                 ),
               ],
@@ -224,7 +223,6 @@ class _TeamColumn extends StatelessWidget {
     required this.editable,
     required this.onAccept,
     this.controller,
-    this.onNameChanged,
   });
 
   final String name;
@@ -233,38 +231,34 @@ class _TeamColumn extends StatelessWidget {
   final bool editable;
   final ValueChanged<InternalCompositionEntry> onAccept;
   final TextEditingController? controller;
-  final ValueChanged<String>? onNameChanged;
 
   @override
   Widget build(BuildContext context) {
+    final jersey = teamNo == 1 ? JerseyOption.orange : JerseyOption.blue;
+    final controllerName = controller?.text.trim();
+    final semanticName = controllerName != null && controllerName.isNotEmpty
+        ? controllerName
+        : name;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (controller != null)
-          TextField(
-            controller: controller,
-            maxLength: 40,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
-            decoration: const InputDecoration(
-              isDense: true,
-              counterText: '',
-              border: OutlineInputBorder(),
+        Container(
+          height: 88,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.surface.withValues(alpha: .5),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppTheme.outline.withValues(alpha: .3),
             ),
-            onChanged: onNameChanged,
-          )
-        else
-          Text(
-            '$name (${entries.length})',
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(fontWeight: FontWeight.w900),
           ),
+          child: Image.asset(
+            jersey.assetPath,
+            fit: BoxFit.contain,
+            semanticLabel: '$semanticName, ${entries.length} joueurs',
+          ),
+        ),
         const SizedBox(height: 8),
         _TeamDropZone(
           teamNo: teamNo,
