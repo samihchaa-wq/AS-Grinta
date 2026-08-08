@@ -342,6 +342,110 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     });
   }
 
+  /// Les convoqués tels que la simulation les voit.
+  List<SimulationCandidate> _simulationCandidates(
+    MatchComposition composition,
+  ) {
+    return [
+      for (final entry in composition.entries)
+        if (_desiredConvoked.contains(entry.participantId))
+          SimulationCandidate(
+            participantId: entry.participantId,
+            displayName: entry.displayName,
+            benchCount: _finishedBenchCounts[entry.participantId] ?? 0,
+            playerId: _canonicalPlayerIds[entry.seasonPlayerId],
+            isGuest: entry.isGuest,
+            isGoalkeeper: entry.isGoalkeeper,
+          ),
+    ];
+  }
+
+  /// Propose un onze à partir des postes de référence des joueurs.
+  ///
+  /// La simulation ne fait que remplir l'écran : rien n'est envoyé au serveur
+  /// tant que l'admin n'a pas appuyé sur Enregistrer, et tout reste
+  /// déplaçable.
+  Future<void> _simulateComposition() async {
+    final composition = _composition;
+    if (composition == null || _compositionLocked || _postMatch) return;
+
+    if (composition.fieldCount > 0) {
+      final confirmed = await _confirmAction(
+        title: 'Simuler une composition',
+        content: Text(
+          'Les ${composition.fieldCount} joueurs déjà placés sur le terrain '
+          'seront repositionnés. Le dispositif '
+          '${formationForCode(composition.formationCode).code} est conservé.',
+        ),
+        actionLabel: 'Simuler',
+        actionIcon: Icons.auto_awesome_outlined,
+      );
+      if (!confirmed || !mounted) return;
+    }
+
+    final formation = formationForCode(composition.formationCode);
+    final simulation = simulateComposition(
+      slots: formation.slots,
+      candidates: _simulationCandidates(composition),
+    );
+
+    final placedSlots = {
+      for (final placement in simulation.placements)
+        placement.candidate.participantId: placement.slot,
+    };
+    final benchOrder = {
+      for (var index = 0; index < simulation.bench.length; index += 1)
+        simulation.bench[index].participantId: index,
+    };
+
+    _updateState(() {
+      _composition = composition.copyWith(
+        entries: [
+          for (final entry in composition.entries)
+            if (placedSlots[entry.participantId] case final slot?)
+              _entryWithStatus(
+                entry,
+                MatchCompositionZone.field,
+                x: slot.position.dx,
+                y: slot.position.dy,
+              )
+            else if (benchOrder[entry.participantId] case final order?)
+              _entryWithStatus(
+                entry,
+                MatchCompositionZone.bench,
+                sortOrder: order,
+              )
+            else
+              _entryWithStatus(entry, MatchCompositionZone.notSelected),
+        ],
+      );
+      _compositionDirty = true;
+    });
+    _showMessage(_simulationSummary(simulation));
+  }
+
+  String _simulationSummary(SimulatedComposition simulation) {
+    final titulaires = simulation.placements.length;
+    final parts = <String>[
+      '$titulaires ${titulaires > 1 ? 'titulaires placés' : 'titulaire placé'}',
+      '${simulation.bench.length} sur le banc',
+    ];
+    if (simulation.emptySlots.isNotEmpty) {
+      final labels = simulation.emptySlots.map((slot) => slot.label).join(', ');
+      parts.add('poste${simulation.emptySlots.length > 1 ? 's' : ''} '
+          'sans joueur : $labels');
+    }
+    final stretched = simulation.stretchedPlacements;
+    if (stretched.isNotEmpty) {
+      final names = stretched
+          .map((placement) =>
+              '${placement.candidate.displayName} (${placement.slot.label})')
+          .join(', ');
+      parts.add('hors poste habituel : $names');
+    }
+    return '${parts.join(' · ')}. À toi d’ajuster.';
+  }
+
   MatchComposition _compositionReadyToSave() {
     final composition = _composition!;
     final currentConvoked = _postMatch
@@ -469,6 +573,21 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
                   value: formationForCode(composition.formationCode).code,
                   onChanged: _compositionLocked ? null : _applyFormation,
                 ),
+                if (!_postMatch) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _compositionLocked ? null : _simulateComposition,
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('Simuler une composition'),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Place les convoqués à leur poste habituel, en '
+                    'titularisant en priorité ceux qui ont le plus souvent '
+                    'commencé sur le banc. Tout reste modifiable.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ],
             ),
           ),

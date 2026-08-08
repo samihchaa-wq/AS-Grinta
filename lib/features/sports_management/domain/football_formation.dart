@@ -54,7 +54,7 @@ const List<FootballFormationSlot> matchSheetSlots = <FootballFormationSlot>[
 ];
 
 /// Position normalisée de chaque poste, indexée par étiquette.
-final Map<String, Offset> _slotPositions = {
+final Map<String, Offset> matchSheetSlotPositions = {
   for (final slot in matchSheetSlots) slot.label: slot.position,
 };
 
@@ -81,7 +81,7 @@ class FootballFormation {
         for (final label in slotLabels)
           FootballFormationSlot(
             label: label,
-            position: _slotPositions[label] ?? const Offset(.5, .5),
+            position: matchSheetSlotPositions[label] ?? const Offset(.5, .5),
           ),
       ];
 }

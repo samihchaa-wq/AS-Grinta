@@ -31,6 +31,7 @@ Les migrations Supabase déjà appliquées restent dans le dépôt comme histori
 
 - **J-6 à 12 h, Europe/Paris** : le match entre dans la fenêtre « Prochain match » et les disponibilités s’ouvrent.
 - **J-6 à 12 h → T-15** : pronostics, Effectif et Composition sont disponibles selon les droits de l’utilisateur.
+- Une fois l’Effectif enregistré, la Composition propose de **simuler un onze** : les convoqués sont posés à leur poste de référence, en titularisant en priorité ceux qui ont le plus souvent commencé sur le banc. La proposition n’est qu’un point de départ, entièrement modifiable, et n’est enregistrée que par le bouton Enregistrer.
 - **T-15** : les pronostics ferment, Effectif/Composition sont gelés et le Live peut être ouvert.
 - **Live** : chronomètre, événements, buts, remplacements et gestion de la composition réelle.
 - Un joueur ou invité ajouté tardivement pendant le Live arrive directement sur le banc.
@@ -53,11 +54,13 @@ Le module actuel comprend notamment :
 - liste d’attente et rotation ;
 - convocations ;
 - joueurs de l’effectif et invités ;
-- composition tactique ;
+- composition tactique et simulation de composition ;
 - Live ;
 - présence finale, buts et clean sheets ;
 - statistiques ;
 - vote collectif et anonyme de l’Homme du match.
+
+Les postes de référence utilisés par la simulation de composition ne sont saisis ni dans l’application ni en base : ils sont dérivés des compositions réellement alignées par le club et figés dans `lib/features/sports_management/domain/player_position_profiles.dart`. Ce fichier est produit par `tool/derive_position_profiles.py` à partir de l’archive du club, et indexé sur l’identité canonique `players.id`.
 
 ## Notifications
 

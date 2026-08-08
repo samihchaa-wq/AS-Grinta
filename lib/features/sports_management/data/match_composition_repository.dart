@@ -9,6 +9,9 @@ abstract interface class MatchCompositionRepository {
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
   );
+  Future<Map<String, String>> fetchCanonicalPlayerIds(
+    List<String> seasonPlayerIds,
+  );
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId);
   Future<MatchComposition> saveComposition({
     required MatchComposition composition,
@@ -74,6 +77,32 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map((row) => row['id'].toString())
         .toSet();
+  }
+
+  /// Identité canonique de chaque joueur de l'effectif, indexée par
+  /// `season_players.id`.
+  ///
+  /// C'est cette identité, stable d'une saison à l'autre, qui donne accès aux
+  /// postes de référence utilisés par la simulation de composition.
+  @override
+  Future<Map<String, String>> fetchCanonicalPlayerIds(
+    List<String> seasonPlayerIds,
+  ) async {
+    final ids = seasonPlayerIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return const {};
+    final rows = await _client
+        .from('season_players')
+        .select('id, player_id')
+        .inFilter('id', ids);
+    return {
+      for (final row in (rows as List).cast<Map<String, dynamic>>())
+        if (_clean(row['player_id']?.toString()) case final playerId?)
+          row['id'].toString(): playerId,
+    };
   }
 
   @override

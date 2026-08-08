@@ -278,6 +278,12 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
       {'sp1'};
 
   @override
+  Future<Map<String, String>> fetchCanonicalPlayerIds(
+    List<String> seasonPlayerIds,
+  ) async =>
+      const {};
+
+  @override
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>
       const {};
 
