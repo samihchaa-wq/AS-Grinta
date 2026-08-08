@@ -20,6 +20,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
       - name: Format target
         run: dart format lib/features/matches/presentation/widgets/historical_match_card.dart
 
