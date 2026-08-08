@@ -126,7 +126,7 @@ class AdminSportMatch {
     required this.id,
     required this.opponentName,
     required this.kickoffAt,
-    required this.matchType,
+    this.matchType = 'competition',
   });
 
   factory AdminSportMatch.fromJson(Map<String, dynamic> json) {
