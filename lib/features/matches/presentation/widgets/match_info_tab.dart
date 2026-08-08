@@ -216,39 +216,43 @@ class MatchInfoTab extends ConsumerWidget {
                     kickoffAt: info.kickoffAt!,
                     plannedDurationMinutes: 90,
                   ),
-                const SizedBox(height: AppSpacing.sectionGap),
-                Text(
-                  encounters.length > 1
-                      ? '5 dernières rencontres'
-                      : 'Dernière rencontre',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: AppSpacing.contentGap),
-                if (encounters.isEmpty)
+                if (!info.isInternal) ...[
+                  const SizedBox(height: AppSpacing.sectionGap),
                   Text(
-                    'Aucune rencontre passée contre cet adversaire.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context).hintColor,
+                    encounters.length > 1
+                        ? '5 dernières rencontres'
+                        : 'Dernière rencontre',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
                     ),
-                  )
-                else
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var index = 0;
-                          index < encounters.length;
-                          index++) ...[
-                        if (index > 0)
-                          const SizedBox(width: AppSpacing.microGap),
-                        Expanded(
-                          child: _EncounterChip(encounter: encounters[index]),
-                        ),
-                      ],
-                    ],
                   ),
+                  const SizedBox(height: AppSpacing.contentGap),
+                  if (encounters.isEmpty)
+                    Text(
+                      'Aucune rencontre passée contre cet adversaire.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Theme.of(context).hintColor,
+                      ),
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var index = 0;
+                            index < encounters.length;
+                            index++) ...[
+                          if (index > 0)
+                            const SizedBox(width: AppSpacing.microGap),
+                          Expanded(
+                            child: _EncounterChip(
+                              encounter: encounters[index],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                ],
               ],
             ),
           ),
