@@ -216,8 +216,9 @@ class MatchInfoTab extends ConsumerWidget {
                     kickoffAt: info.kickoffAt!,
                     plannedDurationMinutes: 90,
                   ),
-                if (!info.isInternal) ...[
+                if (!info.isInternal)
                   const SizedBox(height: AppSpacing.sectionGap),
+                if (!info.isInternal)
                   Text(
                     encounters.length > 1
                         ? '5 dernières rencontres'
@@ -226,31 +227,31 @@ class MatchInfoTab extends ConsumerWidget {
                       context,
                     ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
                   ),
+                if (!info.isInternal)
                   const SizedBox(height: AppSpacing.contentGap),
-                  if (encounters.isEmpty)
-                    Text(
-                      'Aucune rencontre passée contre cet adversaire.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).hintColor,
-                      ),
-                    )
-                  else
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var index = 0;
-                            index < encounters.length;
-                            index++) ...[
-                          if (index > 0)
-                            const SizedBox(width: AppSpacing.microGap),
-                          Expanded(
-                            child: _EncounterChip(encounter: encounters[index]),
-                          ),
-                        ],
-                      ],
+                if (!info.isInternal && encounters.isEmpty)
+                  Text(
+                    'Aucune rencontre passée contre cet adversaire.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).hintColor,
                     ),
-                ],
+                  )
+                else if (!info.isInternal)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var index = 0;
+                          index < encounters.length;
+                          index++) ...[
+                        if (index > 0)
+                          const SizedBox(width: AppSpacing.microGap),
+                        Expanded(
+                          child: _EncounterChip(encounter: encounters[index]),
+                        ),
+                      ],
+                    ],
+                  ),
               ],
             ),
           ),
