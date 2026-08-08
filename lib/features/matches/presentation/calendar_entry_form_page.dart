@@ -115,9 +115,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
     return Scaffold(
       appBar: GrintaAppBar(
-        title: Text(widget.event == null
-            ? 'Ajouter au calendrier'
-            : 'Modifier l’événement'),
+        title: Text(widget.event == null ? 'Ajouter' : 'Modifier l’événement'),
         admin: true,
         actions: [
           if (widget.event != null && isAdmin)
