@@ -1,0 +1,63 @@
+name: Apply calendar readability update
+
+on:
+  push:
+    branches:
+      - ui/calendar-form-readability-v2
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply UI changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
+          text = path.read_text()
+
+          old = """    final busy = _saving || state.isLoading;\n\n    return Scaffold(\n"""
+          new = """    final busy = _saving || state.isLoading;\n    final colors = Theme.of(context).colorScheme;\n\n    return Scaffold(\n"""
+          assert old in text, 'busy block not found'
+          text = text.replace(old, new, 1)
+
+          old = """      body: Form(\n        key: _formKey,\n        child: ListView(\n          padding: const EdgeInsets.all(20),\n"""
+          new = """      body: Container(\n        margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),\n        decoration: BoxDecoration(\n          color: colors.surface.withValues(alpha: 0.94),\n          borderRadius: BorderRadius.circular(24),\n          border: Border.all(\n            color: colors.outlineVariant.withValues(alpha: 0.45),\n          ),\n        ),\n        clipBehavior: Clip.antiAlias,\n        child: Form(\n          key: _formKey,\n          child: ListView(\n            padding: const EdgeInsets.all(16),\n"""
+          assert old in text, 'form opening not found'
+          text = text.replace(old, new, 1)
+
+          old = """          ],\n        ),\n      ),\n    );\n  }\n\n  List<Widget> _buildEventFields() {\n"""
+          new = """            ],\n          ),\n        ),\n      ),\n    );\n  }\n\n  List<Widget> _buildEventFields() {\n"""
+          assert old in text, 'form closing not found'
+          text = text.replace(old, new, 1)
+
+          insertion_point = """          ],\n        ),\n      const SizedBox(height: 12),\n      _dateTile(),\n"""
+          inserted = """          ],\n        ),\n      if (_isNormalMatch) ...[\n        const SizedBox(height: 12),\n        DropdownButtonFormField<bool>(\n          initialValue: _isHome,\n          decoration: const InputDecoration(labelText: 'Lieu'),\n          items: const [\n            DropdownMenuItem(value: true, child: Text('Domicile')),\n            DropdownMenuItem(value: false, child: Text('Extérieur')),\n          ],\n          onChanged: (value) {\n            setState(() {\n              _isHome = value ?? true;\n              _refreshAddressForSelection();\n            });\n            _suggestOdds();\n          },\n        ),\n      ],\n      const SizedBox(height: 12),\n      _dateTile(),\n"""
+          assert insertion_point in text, 'opponent/date insertion point not found'
+          text = text.replace(insertion_point, inserted, 1)
+
+          old_lieu = """        const SizedBox(height: 12),\n        DropdownButtonFormField<bool>(\n          initialValue: _isHome,\n          decoration: const InputDecoration(labelText: 'Lieu'),\n          items: const [\n            DropdownMenuItem(value: true, child: Text('Domicile')),\n            DropdownMenuItem(value: false, child: Text('Extérieur')),\n          ],\n          onChanged: (value) {\n            setState(() {\n              _isHome = value ?? true;\n              _refreshAddressForSelection();\n            });\n            _suggestOdds();\n          },\n        ),\n        const SizedBox(height: 16),\n        Text(\n"""
+          new_lieu = """        const SizedBox(height: 16),\n        Text(\n"""
+          assert old_lieu in text, 'old Lieu block not found'
+          text = text.replace(old_lieu, new_lieu, 1)
+
+          path.write_text(text)
+          PY
+          dart format lib/features/matches/presentation/calendar_entry_form_page.dart
+      - name: Commit final change and remove temporary workflow
+        run: |
+          rm .github/workflows/tmp_apply_calendar_readability.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart .github/workflows/tmp_apply_calendar_readability.yml
+          git commit -m "Improve calendar form readability and field order"
+          git push origin HEAD:ui/calendar-form-readability-v2
