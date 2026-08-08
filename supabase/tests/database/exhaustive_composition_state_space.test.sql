@@ -163,13 +163,16 @@ select throws_ok($$select private.save_match_composition(
   jsonb_set(jsonb_set(pg_temp.composition_payload(12,11),'{11,x}','0.5'::jsonb),
     '{11,y}','0.5'::jsonb),false,'coordonnées banc')$$,
   '22023','remplaçant avec coordonnées refusé');
+-- Convoquer prime sur la disponibilité déclarée : l'administrateur sait qui
+-- vient réellement jouer, et l'effectif l'autorise déjà à convoquer un absent.
 select pg_temp.prepare_convocations(1);
 update public.match_sport_participants set availability_status='absent'
 where id=(select (value->>'participant_id')::uuid
           from jsonb_array_elements(pg_temp.composition_payload(1,1)) item(value) limit 1);
-select throws_ok($$select private.save_match_composition(
+select lives_ok($$select private.save_match_composition(
   'b5000000-0000-0000-0000-000000000001','absent',
-  pg_temp.composition_payload(1,1),false,'absent')$$,'22023','joueur absent sélectionné refusé');
+  pg_temp.composition_payload(1,1),false,'absent')$$,
+  'joueur absent mais convoqué accepté');
 select pg_temp.prepare_convocations(1);
 update public.match_sport_participants set convocation_status='not_convoked'
 where id=(select (value->>'participant_id')::uuid
