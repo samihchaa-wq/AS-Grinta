@@ -5,6 +5,46 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 
+const List<({Offset source, Offset target})> _legacyFlat442DisplayMap = [
+  (source: Offset(.50, .95), target: Offset(.50, .86)),
+  (source: Offset(.15, .75), target: Offset(.14, .68)),
+  (source: Offset(.38, .80), target: Offset(.38, .70)),
+  (source: Offset(.62, .80), target: Offset(.62, .70)),
+  (source: Offset(.85, .75), target: Offset(.86, .68)),
+  (source: Offset(.15, .50), target: Offset(.14, .42)),
+  (source: Offset(.38, .55), target: Offset(.38, .42)),
+  (source: Offset(.62, .55), target: Offset(.62, .42)),
+  (source: Offset(.85, .50), target: Offset(.86, .42)),
+  (source: Offset(.35, .25), target: Offset(.36, .17)),
+  (source: Offset(.65, .25), target: Offset(.64, .17)),
+];
+
+bool _usesLegacyFlat442Layout(List<MatchCompositionEntry> entries) {
+  if (entries.length != _legacyFlat442DisplayMap.length) return false;
+  final positions = entries
+      .where((entry) => entry.x != null && entry.y != null)
+      .map((entry) => Offset(entry.x!, entry.y!))
+      .toList();
+  if (positions.length != _legacyFlat442DisplayMap.length) return false;
+  return _legacyFlat442DisplayMap.every(
+    (mapping) => positions.any(
+      (position) => (position - mapping.source).distance <= .025,
+    ),
+  );
+}
+
+Offset _displayPosition(
+  MatchCompositionEntry entry, {
+  required bool legacyFlat442,
+}) {
+  final raw = Offset(entry.x ?? .5, entry.y ?? .5);
+  if (!legacyFlat442) return raw;
+  for (final mapping in _legacyFlat442DisplayMap) {
+    if ((raw - mapping.source).distance <= .025) return mapping.target;
+  }
+  return raw;
+}
+
 /// Dimensions d'un marqueur de joueur, dérivées de la largeur du terrain.
 ///
 /// Le banc du Tableau Blanc s'appuie sur les mêmes valeurs : sans cela ses
@@ -54,11 +94,14 @@ class FormationPitchEditor extends StatelessWidget {
   /// est déduite de la largeur réelle du terrain.
   final FormationMarkerMetrics? markerMetrics;
 
-  MatchCompositionEntry? _entryFor(FootballFormationSlot slot) {
+  MatchCompositionEntry? _entryFor(
+    FootballFormationSlot slot,
+    bool legacyFlat442,
+  ) {
     MatchCompositionEntry? closest;
     var distance = double.infinity;
     for (final entry in entries) {
-      final current = Offset(entry.x ?? .5, entry.y ?? .5);
+      final current = _displayPosition(entry, legacyFlat442: legacyFlat442);
       final candidate = (current - slot.position).distance;
       if (candidate < distance) {
         distance = candidate;
@@ -76,6 +119,7 @@ class FormationPitchEditor extends StatelessWidget {
         aspectRatio: .68,
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final legacyFlat442 = _usesLegacyFlat442Layout(entries);
             return DecoratedBox(
               decoration: BoxDecoration(
                 color: const Color(0xFF174936),
@@ -101,8 +145,9 @@ class FormationPitchEditor extends StatelessWidget {
                         context,
                         constraints.biggest,
                         slot,
-                        _entryFor(slot),
+                        _entryFor(slot, legacyFlat442),
                         finishedBenchCounts,
+                        legacyFlat442,
                       ),
                   ],
                 ),
@@ -120,6 +165,7 @@ class FormationPitchEditor extends StatelessWidget {
     FootballFormationSlot slot,
     MatchCompositionEntry? entry,
     Map<String, int> finishedBenchCounts,
+    bool legacyFlat442,
   ) {
     // Mêmes proportions que la composition d'un match terminé
     // (CompositionPitch) : photo généreuse, prénom juste dessous. Les
@@ -132,13 +178,12 @@ class FormationPitchEditor extends StatelessWidget {
     final avatarSize = metrics.avatarSize;
     final nameFontSize = metrics.nameFontSize;
 
-    // Les emplacements restent les cibles tactiques du dispositif. Dès qu'un
-    // joueur possède cependant des coordonnées sauvegardées, elles deviennent
-    // sa position visuelle, exactement comme sur la fiche du match.
-    // Cette règle vaut pour tous les dispositifs, présents comme historiques.
+    // Les coordonnées historiques de l'ancien 4-4-2 étaient très tassées
+    // vers le bas. On conserve les données brutes mais on les rééquilibre
+    // visuellement. Toutes les autres compositions gardent leurs coordonnées.
     final visualPosition = entry == null
         ? slot.position
-        : Offset(entry.x ?? slot.position.dx, entry.y ?? slot.position.dy);
+        : _displayPosition(entry, legacyFlat442: legacyFlat442);
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
     final left =

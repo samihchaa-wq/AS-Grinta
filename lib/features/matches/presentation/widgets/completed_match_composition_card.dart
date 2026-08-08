@@ -12,6 +12,57 @@ class CompletedPlayerSummary {
   final int goals;
 }
 
+const List<({Offset source, Offset target})> _legacyFlat442DisplayMap = [
+  (source: Offset(.50, .95), target: Offset(.50, .86)),
+  (source: Offset(.15, .75), target: Offset(.14, .68)),
+  (source: Offset(.38, .80), target: Offset(.38, .70)),
+  (source: Offset(.62, .80), target: Offset(.62, .70)),
+  (source: Offset(.85, .75), target: Offset(.86, .68)),
+  (source: Offset(.15, .50), target: Offset(.14, .42)),
+  (source: Offset(.38, .55), target: Offset(.38, .42)),
+  (source: Offset(.62, .55), target: Offset(.62, .42)),
+  (source: Offset(.85, .50), target: Offset(.86, .42)),
+  (source: Offset(.35, .25), target: Offset(.36, .17)),
+  (source: Offset(.65, .25), target: Offset(.64, .17)),
+];
+
+bool _usesLegacyFlat442Layout(List<MatchCompositionEntry> entries) {
+  if (entries.length != _legacyFlat442DisplayMap.length) return false;
+  final positions = entries
+      .where((entry) => entry.x != null && entry.y != null)
+      .map((entry) => Offset(entry.x!, entry.y!))
+      .toList();
+  if (positions.length != _legacyFlat442DisplayMap.length) return false;
+  return _legacyFlat442DisplayMap.every(
+    (mapping) => positions.any(
+      (position) => (position - mapping.source).distance <= .025,
+    ),
+  );
+}
+
+Offset _legacyFlat442Position(MatchCompositionEntry entry) {
+  final raw = Offset(entry.x!, entry.y!);
+  for (final mapping in _legacyFlat442DisplayMap) {
+    if ((raw - mapping.source).distance <= .025) return mapping.target;
+  }
+  return raw;
+}
+
+List<MatchCompositionEntry> _displayFieldEntries(
+  List<MatchCompositionEntry> entries,
+) {
+  if (!_usesLegacyFlat442Layout(entries)) return entries;
+  return [
+    for (final entry in entries)
+      entry.moveTo(
+        MatchCompositionZone.field,
+        x: _legacyFlat442Position(entry).dx,
+        y: _legacyFlat442Position(entry).dy,
+        sortOrder: entry.sortOrder,
+      ),
+  ];
+}
+
 /// Rendu unifié de la composition d'un match terminé, que la donnée vienne
 /// du système Live ou de l'archive historique importée : même terrain
 /// ([CompositionPitch], photos, buts ⚽, couronne 👑) quand une composition
@@ -72,6 +123,9 @@ class _MpgCompletedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bench = composition.entriesFor(MatchCompositionZone.bench);
+    final field = _displayFieldEntries(
+      composition.entriesFor(MatchCompositionZone.field),
+    );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -96,9 +150,7 @@ class _MpgCompletedCard extends StatelessWidget {
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
-                child: CompositionPitch(
-                  entries: composition.entriesFor(MatchCompositionZone.field),
-                ),
+                child: CompositionPitch(entries: field),
               ),
             ),
             if (bench.isNotEmpty) ...[
