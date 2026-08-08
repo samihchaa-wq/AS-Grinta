@@ -1,0 +1,35 @@
+name: Temporary format PR 798
+
+on:
+  push:
+    branches:
+      - agent/unify-composition-rendering
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/unify-composition-rendering
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Format changed Dart file
+        run: dart format lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart
+          git commit -m "Format unified composition rendering with CI settings"
+          git push origin HEAD:agent/unify-composition-rendering
