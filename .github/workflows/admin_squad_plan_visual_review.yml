@@ -3,12 +3,6 @@ name: Admin squad plan visual review
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'lib/features/sports_management/presentation/admin_squad_plan_page*.dart'
-      - 'lib/features/sports_management/domain/sport_waitlist_models.dart'
-      - 'lib/features/sports_management/domain/match_composition.dart'
-      - 'test/admin_squad_plan_visual_review_test.dart'
-      - '.github/workflows/admin_squad_plan_visual_review.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,20 +19,49 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant visual changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_files=$(git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}")
+          printf '%s\n' "$changed_files"
+
+          if printf '%s\n' "$changed_files" | grep -Eq \
+            '^(lib/features/sports_management/presentation/admin_squad_plan_page.*\.dart|lib/features/sports_management/domain/sport_waitlist_models\.dart|lib/features/sports_management/domain/match_composition\.dart|test/admin_squad_plan_visual_review_test\.dart|\.github/workflows/admin_squad_plan_visual_review\.yml)$'; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            echo "No admin squad-plan visual files changed; required render check passes without the heavy Flutter render test."
+          fi
 
       - name: Setup Flutter
+        if: steps.changes.outputs.relevant == 'true'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Install locked dependencies
+        if: steps.changes.outputs.relevant == 'true'
         run: flutter pub get --enforce-lockfile
 
       - name: Check visual test formatting
+        if: steps.changes.outputs.relevant == 'true'
         run: dart format --output=none --set-exit-if-changed test/admin_squad_plan_visual_review_test.dart
 
       - name: Render admin squad plan states
+        if: steps.changes.outputs.relevant == 'true'
         shell: bash
         run: |
           set -o pipefail
@@ -50,7 +73,7 @@ jobs:
             2>&1 | tee build/visual-review/visual-test.log
 
       - name: Upload visual review
-        if: always()
+        if: always() && steps.changes.outputs.relevant == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: admin-squad-plan-visual-review
