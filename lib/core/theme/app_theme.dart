@@ -348,7 +348,7 @@ abstract final class AppTheme {
           return TextStyle(
             fontSize: selected ? 11.5 : 11,
             height: 1.1,
-            color: selected ? textPrimary : textFaint,
+            color: selected ? Colors.white : textFaint,
             fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             shadows: textOutline,
           );
