@@ -1,7 +1,7 @@
 name: as_grinta
 description: Application officielle ASG.
 publish_to: "none"
-version: 0.3.2+96
+version: 0.3.3+97
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -28,6 +28,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/backgrounds/
     - assets/images/module_backgrounds/
     - assets/images/as_grinta_logo.webp
     - assets/images/jerseys/
