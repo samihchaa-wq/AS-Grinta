@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
@@ -16,10 +17,13 @@ class HistoricalMatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: const Color(0xFF20242C),
+      color: CalendarCardPalette.finishedSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
+        side: const BorderSide(
+          color: CalendarCardPalette.finishedBorder,
+          width: 1.3,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -37,7 +41,7 @@ class HistoricalMatchCard extends StatelessWidget {
                 Container(
                   width: 1,
                   margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: AppTheme.textSecondary.withValues(alpha: .25),
+                  color: CalendarCardPalette.finishedBorder,
                 ),
                 Expanded(
                   child: MatchFixture(
@@ -55,7 +59,7 @@ class HistoricalMatchCard extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                     scoreFontSize: 20,
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.start,
                   ),
                 ),
               ],
@@ -74,14 +78,11 @@ class _HistoricalDateColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final main = Theme.of(context).textTheme.bodyMedium?.color;
-    const soft = AppTheme.textSecondary;
-
     Widget line(String text, {bool bold = false}) => Text(
           text,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: bold ? main : soft,
+            color: AppTheme.textPrimary,
             fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
             fontSize: 14,
             height: 1.15,

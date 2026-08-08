@@ -1,6 +1,7 @@
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -13,10 +14,9 @@ import 'package:as_grinta/features/matches/data/calendar_history_repository.dart
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
-import 'package:as_grinta/features/matches/presentation/calendar_matches_view.dart'
-    show ClubEventCard;
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/admin_match_options_button.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/calendar_feed_event_card.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
@@ -508,7 +508,7 @@ Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
     case _FeedKind.historicalMatch:
       return HistoricalMatchCard(match: entry.historical!);
     case _FeedKind.event:
-      return ClubEventCard(event: entry.event!, isAdmin: isAdmin);
+      return CalendarFeedEventCard(event: entry.event!, isAdmin: isAdmin);
   }
 }
 
@@ -531,6 +531,16 @@ class _UpcomingMatchCard extends StatelessWidget {
     final detailsRoute = availabilityIsOpen
         ? '/matches/${match.id}/lineup?section=info'
         : '/matches/${match.id}/lineup?section=info&infoOnly=true';
+    final cardSurface = match.isCancelled
+        ? CalendarCardPalette.cancelledSurface
+        : match.isInternal
+            ? CalendarCardPalette.internalSurface
+            : CalendarCardPalette.upcomingSurface;
+    final cardBorder = match.isCancelled
+        ? CalendarCardPalette.cancelledBorder
+        : match.isInternal
+            ? CalendarCardPalette.internalBorder
+            : CalendarCardPalette.upcomingBorder;
 
     final fixtureRow = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -538,8 +548,8 @@ class _UpcomingMatchCard extends StatelessWidget {
         Expanded(
           child: match.isInternal
               ? Text(
-                  '⚽ Match entre nous',
-                  textAlign: TextAlign.center,
+                  'Match entre nous',
+                  textAlign: TextAlign.start,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -555,21 +565,25 @@ class _UpcomingMatchCard extends StatelessWidget {
                         height: 1.1,
                         fontWeight: FontWeight.w800,
                       ),
-                  foreground: match.isCancelled
-                      ? AppTheme.textFaint
-                      : AppTheme.textPrimary,
-                  textAlign: TextAlign.center,
+                  foreground: AppTheme.textPrimary,
+                  textAlign: TextAlign.start,
                 ),
         ),
         if (isAdmin) ...[
           const SizedBox(width: AppSpacing.microGap),
-          SizedBox(width: 36, child: AdminMatchOptionsButton(match: match)),
+          SizedBox(
+            width: 36,
+            child: IconTheme(
+              data: IconThemeData(color: cardBorder),
+              child: AdminMatchOptionsButton(match: match),
+            ),
+          ),
         ],
         if (match.isCancelled)
           Text(
             'Annulé',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFFE5555A),
+                  color: CalendarCardPalette.cancelledBorder,
                   fontWeight: FontWeight.w800,
                 ),
           )
@@ -594,10 +608,9 @@ class _UpcomingMatchCard extends StatelessWidget {
         children: [
           MatchDateHeader(
             kickoffAt: match.kickoffAt,
-            foreground:
-                match.isCancelled ? AppTheme.textFaint : AppTheme.textPrimary,
-            secondary: AppTheme.textSecondary,
-            dividerColor: AppTheme.outline.withValues(alpha: .55),
+            foreground: AppTheme.textPrimary,
+            secondary: AppTheme.textPrimary,
+            dividerColor: cardBorder,
             child: fixtureRow,
           ),
           if (match.address case final address?) ...[
@@ -610,10 +623,10 @@ class _UpcomingMatchCard extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.place_outlined,
                       size: 16,
-                      color: AppTheme.textFaint,
+                      color: cardBorder,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -622,7 +635,7 @@ class _UpcomingMatchCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textFaint,
+                              color: AppTheme.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -643,14 +656,10 @@ class _UpcomingMatchCard extends StatelessWidget {
     );
 
     return Card(
-      color: AppTheme.surface,
+      color: cardSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        side: BorderSide(
-          color: match.isCancelled
-              ? const Color(0xFF6E4045)
-              : AppTheme.outline.withValues(alpha: .34),
-        ),
+        side: BorderSide(color: cardBorder, width: 1.2),
       ),
       clipBehavior: Clip.antiAlias,
       child: match.isCancelled
