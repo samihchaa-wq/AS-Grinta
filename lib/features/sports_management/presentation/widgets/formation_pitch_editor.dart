@@ -96,8 +96,7 @@ class FormationPitchEditor extends StatelessWidget {
                 child: Stack(
                   children: [
                     const Positioned.fill(
-                      child: CustomPaint(painter: _PitchPainter()),
-                    ),
+                        child: CustomPaint(painter: _PitchPainter())),
                     for (final slot in slots)
                       _slot(
                         context,
@@ -127,15 +126,16 @@ class FormationPitchEditor extends StatelessWidget {
     // (CompositionPitch) : photo généreuse, prénom juste dessous. Les
     // marqueurs suivent la largeur du terrain, qui se réduit quand le banc
     // s'affiche à côté, pour rester lisibles sans se chevaucher.
-    final metrics = markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
+    final metrics =
+        markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
     final width = metrics.width;
     final height = metrics.height;
     final avatarSize = metrics.avatarSize;
     final nameFontSize = metrics.nameFontSize;
 
-    // Les slots restent les cibles tactiques du dispositif, mais un joueur
-    // déjà enregistré doit être affiché à SES coordonnées sauvegardées.
-    // C'est la même source de vérité que CompositionPitch sur la fiche match.
+    // Les emplacements restent les cibles tactiques du dispositif. Dès qu'un
+    // joueur possède cependant des coordonnées sauvegardées, elles deviennent
+    // sa position visuelle, exactement comme sur la fiche du match.
     final visualPosition = entry == null
         ? slot.position
         : Offset(entry.x ?? slot.position.dx, entry.y ?? slot.position.dy);
@@ -270,7 +270,8 @@ class FormationPitchEditor extends StatelessWidget {
               child: SizedBox(width: width, height: height, child: marker),
             ),
             childWhenDragging: Opacity(opacity: .25, child: marker),
-            onDragUpdate: (details) => autoScroll.update(details.globalPosition),
+            onDragUpdate: (details) =>
+                autoScroll.update(details.globalPosition),
             onDragEnd: (_) => autoScroll.stop(),
             onDraggableCanceled: (_, __) => autoScroll.stop(),
             child: marker,
@@ -299,11 +300,8 @@ class _PitchPainter extends CustomPainter {
     );
     canvas
       ..drawRect(rect, paint)
-      ..drawLine(
-        Offset(rect.left, rect.center.dy),
-        Offset(rect.right, rect.center.dy),
-        paint,
-      )
+      ..drawLine(Offset(rect.left, rect.center.dy),
+          Offset(rect.right, rect.center.dy), paint)
       ..drawCircle(rect.center, size.width * .13, paint)
       ..drawRect(
         Rect.fromCenter(
