@@ -38,16 +38,14 @@ class HistoricalMatchCard extends StatelessWidget {
               homeName: match.isHome ? 'AS Grinta' : match.opponentName,
               awayName: match.isHome ? match.opponentName : 'AS Grinta',
               grintaIsHome: match.isHome,
-              homeScore:
-                  match.isHome ? match.grintaScore : match.opponentScore,
-              awayScore:
-                  match.isHome ? match.opponentScore : match.grintaScore,
+              homeScore: match.isHome ? match.grintaScore : match.opponentScore,
+              awayScore: match.isHome ? match.opponentScore : match.grintaScore,
               finished: true,
               nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontSize: 16,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                  ),
+                fontSize: 16,
+                height: 1.1,
+                fontWeight: FontWeight.w800,
+              ),
               scoreFontSize: 20,
               textAlign: TextAlign.start,
             ),
