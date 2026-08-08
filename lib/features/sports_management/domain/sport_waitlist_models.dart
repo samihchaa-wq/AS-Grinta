@@ -126,6 +126,7 @@ class AdminSportMatch {
     required this.id,
     required this.opponentName,
     required this.kickoffAt,
+    required this.matchType,
   });
 
   factory AdminSportMatch.fromJson(Map<String, dynamic> json) {
@@ -133,12 +134,16 @@ class AdminSportMatch {
       id: json['id'].toString(),
       opponentName: (json['opponent_name'] ?? 'Adversaire').toString(),
       kickoffAt: DateTime.parse(json['kickoff_at'].toString()).toLocal(),
+      matchType: (json['match_type'] ?? 'competition').toString(),
     );
   }
 
   final String id;
   final String opponentName;
   final DateTime kickoffAt;
+  final String matchType;
+
+  bool get isInternal => matchType == 'entre_nous';
 }
 
 class ConvocationPlayer {
