@@ -216,17 +216,20 @@ class MatchInfoTab extends ConsumerWidget {
                     kickoffAt: info.kickoffAt!,
                     plannedDurationMinutes: 90,
                   ),
-                const SizedBox(height: AppSpacing.sectionGap),
-                Text(
-                  encounters.length > 1
-                      ? '5 dernières rencontres'
-                      : 'Dernière rencontre',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: AppSpacing.contentGap),
-                if (encounters.isEmpty)
+                if (!info.isInternal)
+                  const SizedBox(height: AppSpacing.sectionGap),
+                if (!info.isInternal)
+                  Text(
+                    encounters.length > 1
+                        ? '5 dernières rencontres'
+                        : 'Dernière rencontre',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                if (!info.isInternal)
+                  const SizedBox(height: AppSpacing.contentGap),
+                if (!info.isInternal && encounters.isEmpty)
                   Text(
                     'Aucune rencontre passée contre cet adversaire.',
                     style: TextStyle(
@@ -234,7 +237,7 @@ class MatchInfoTab extends ConsumerWidget {
                       color: Theme.of(context).hintColor,
                     ),
                   )
-                else
+                else if (!info.isInternal)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
