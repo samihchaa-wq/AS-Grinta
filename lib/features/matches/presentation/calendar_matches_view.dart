@@ -4,6 +4,7 @@ import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/calendar/ics_calendar_export.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
@@ -83,7 +84,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         .toList(growable: false);
     List<ClubEvent> events;
     try {
-      events = (await ref.read(clubEventsProvider.future))
+      events = (await ref.read(
+        clubEventsProvider.future,
+      ))
           .where((event) => event.seasonId == seasonId)
           .toList(growable: false);
     } catch (_) {
@@ -731,30 +734,33 @@ class ClubEventCard extends ConsumerWidget {
     }
 
     return Card(
-      color: const Color(0xFF20242C),
+      color: CalendarCardPalette.eventSurface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        side: const BorderSide(
+          color: CalendarCardPalette.eventBorder,
+          width: 1.2,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
         child: MatchDateHeader(
           kickoffAt: event.startsAt,
-          secondary: AppTheme.textSecondary,
+          foreground: AppTheme.textPrimary,
+          secondary: AppTheme.textPrimary,
+          dividerColor: CalendarCardPalette.eventBorder,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (isAdmin) const SizedBox(width: 42),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.event_rounded, size: 20),
-                    const SizedBox(height: 5),
                     Text(
                       event.title,
-                      textAlign: TextAlign.center,
+                      textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontSize: 17,
                             height: 1.1,
@@ -762,21 +768,38 @@ class ClubEventCard extends ConsumerWidget {
                           ),
                     ),
                     const SizedBox(height: 7),
-                    Text(
-                      event.location,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                            fontWeight: FontWeight.w700,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.place_outlined,
+                          size: 16,
+                          color: CalendarCardPalette.eventBorder,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            event.location,
+                            textAlign: TextAlign.start,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelMedium
+                                ?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                ),
                           ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 5),
                     Text(
                       'Événement',
+                      textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppTheme.primaryBright,
+                            color: CalendarCardPalette.eventBorder,
                             fontWeight: FontWeight.w900,
                           ),
                     ),
@@ -790,6 +813,7 @@ class ClubEventCard extends ConsumerWidget {
                   child: IconButton(
                     tooltip: 'Modifier l’événement',
                     onPressed: edit,
+                    color: CalendarCardPalette.eventBorder,
                     icon: const Icon(Icons.edit_rounded),
                   ),
                 ),
@@ -811,24 +835,32 @@ class _MonthlyMatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final phase = match.phase();
-    final opponent = match.isInternal
-        ? 'Match entre nous'
-        : match.opponentName ?? 'Adversaire';
+    final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
+    final surface = match.isCancelled
+        ? CalendarCardPalette.cancelledSurface
+        : match.isInternal
+            ? CalendarCardPalette.internalSurface
+            : CalendarCardPalette.upcomingSurface;
+    final border = match.isCancelled
+        ? CalendarCardPalette.cancelledBorder
+        : match.isInternal
+            ? CalendarCardPalette.internalBorder
+            : CalendarCardPalette.upcomingBorder;
     final statusColor = switch (phase) {
       MatchDisplayPhase.live => AppTheme.error,
       MatchDisplayPhase.awaitingValidation => AppTheme.reward,
       MatchDisplayPhase.cancelled => AppTheme.error,
-      MatchDisplayPhase.next => AppTheme.primaryBright,
-      _ => AppTheme.textSecondary,
+      MatchDisplayPhase.next => border,
+      _ => border,
     };
 
     return Card(
-      color: const Color(0xFF20242C),
+      color: surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF626A78), width: 1.3),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        side: BorderSide(color: border, width: 1.2),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -837,32 +869,49 @@ class _MonthlyMatchCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
           child: MatchDateHeader(
             kickoffAt: match.kickoffAt,
-            secondary: AppTheme.textSecondary,
+            foreground: AppTheme.textPrimary,
+            secondary: AppTheme.textPrimary,
+            dividerColor: border,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (adminActions != null) const SizedBox(width: 42),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MatchFixture(
-                        homeName: homeName,
-                        awayName: awayName,
-                        grintaIsHome: match.isHome,
-                        finished: false,
-                        nameStyle: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontSize: 17, height: 1.1),
-                        textAlign: TextAlign.center,
-                      ),
+                      if (match.isInternal)
+                        Text(
+                          'Match entre nous',
+                          textAlign: TextAlign.start,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontSize: 17,
+                                    height: 1.1,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                        )
+                      else
+                        MatchFixture(
+                          homeName: homeName,
+                          awayName: awayName,
+                          grintaIsHome: match.isHome,
+                          finished: false,
+                          foreground: match.isCancelled
+                              ? AppTheme.textFaint
+                              : AppTheme.textPrimary,
+                          nameStyle: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontSize: 17, height: 1.1),
+                          textAlign: TextAlign.start,
+                        ),
                       const SizedBox(height: 8),
                       Text(
                         match.statusLabel,
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.start,
                         style:
                             Theme.of(context).textTheme.labelMedium?.copyWith(
                                   color: statusColor,
