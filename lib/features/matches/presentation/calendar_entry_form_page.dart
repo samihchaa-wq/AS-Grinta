@@ -60,7 +60,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     _kind = event == null
         ? _CalendarEntryKind.championnat
         : _CalendarEntryKind.event;
-    _startsAt = event?.startsAt ??
+    _startsAt =
+        event?.startsAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _seasonId = event?.seasonId ?? '';
     _eventTitleController.text = event?.title ?? '';
@@ -72,8 +73,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         await controller.load(allSeasons: true);
       }
       if (!mounted) return;
-      final home =
-          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
+      final home = await ref
+          .read(matchesRepositoryProvider)
+          .fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       if (widget.event == null && !_isEvent) _prefillAddress();
@@ -93,12 +95,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature =
-        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
+    final feature = ref
+        .watch(featureFlagsControllerProvider)
+        .valueOrNull
+        ?.sportsManagement;
     final seasons = widget.event == null
         ? state.seasons
-            .where((season) => season['status']?.toString() == 'open')
-            .toList(growable: false)
+              .where((season) => season['status']?.toString() == 'open')
+              .toList(growable: false)
         : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -116,9 +120,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
     return Scaffold(
       appBar: GrintaAppBar(
-        title: Text(widget.event == null
-            ? 'Ajouter au calendrier'
-            : 'Modifier l’événement'),
+        title: Text(
+          widget.event == null
+              ? 'Ajouter au calendrier'
+              : 'Modifier l’événement',
+        ),
         admin: true,
         actions: [
           if (widget.event != null && isAdmin)
@@ -177,7 +183,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.event_rounded),
                   title: Text('Événement'),
-                  subtitle: Text('Rendez-vous du club, indépendant des matchs.'),
+                  subtitle: Text(
+                    'Rendez-vous du club, indépendant des matchs.',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
@@ -320,8 +328,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                 },
                 validator: (value) =>
                     _isNormalMatch && (value == null || value.isEmpty)
-                        ? 'Sélectionnez un adversaire'
-                        : null,
+                    ? 'Sélectionnez un adversaire'
+                    : null,
               ),
             ),
             const SizedBox(width: 8),
@@ -383,9 +391,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         const SizedBox(height: 16),
         Text(
           'Maillot',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         Row(
@@ -436,11 +444,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _OddsDisplay(label: 'Victoire', value: _oddsWin)),
+            Expanded(
+              child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _OddsDisplay(label: 'Nul', value: _oddsDraw)),
+            Expanded(
+              child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
+            ),
             const SizedBox(width: 8),
-            Expanded(child: _OddsDisplay(label: 'Défaite', value: _oddsLoss)),
+            Expanded(
+              child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
+            ),
           ],
         ),
       ],
@@ -448,20 +462,20 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }
 
   Widget _dateTile() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Date'),
-        subtitle: Text(_formatDate(_startsAt)),
-        trailing: const Icon(Icons.calendar_today),
-        onTap: _pickDate,
-      );
+    contentPadding: EdgeInsets.zero,
+    title: const Text('Date'),
+    subtitle: Text(_formatDate(_startsAt)),
+    trailing: const Icon(Icons.calendar_today),
+    onTap: _pickDate,
+  );
 
   Widget _timeTile() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Heure'),
-        subtitle: Text(_formatTime(_startsAt)),
-        trailing: const Icon(Icons.schedule),
-        onTap: _pickTime,
-      );
+    contentPadding: EdgeInsets.zero,
+    title: const Text('Heure'),
+    subtitle: Text(_formatTime(_startsAt)),
+    trailing: const Icon(Icons.schedule),
+    onTap: _pickTime,
+  );
 
   void _changeKind(_CalendarEntryKind? kind) {
     if (kind == null || kind == _kind) return;
@@ -529,7 +543,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+      final opponent = ref
+          .read(matchesControllerProvider)
+          .opponents
+          .firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -648,7 +665,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         }
         ref.invalidate(clubEventsProvider);
       } else if (_isInternal) {
-        await ref.read(matchesControllerProvider.notifier).createInternalMatch(
+        await ref
+            .read(matchesControllerProvider.notifier)
+            .createInternalMatch(
               seasonId: _seasonId,
               kickoffAt: _startsAt,
               address: _addressController.text.trim().isEmpty
@@ -662,12 +681,16 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         final loss = _oddsLoss;
         if (win == null || draw == null || loss == null) {
           throw StateError(
-              'Sélectionne un adversaire pour calculer les cotes.');
+            'Sélectionne un adversaire pour calculer les cotes.',
+          );
         }
         final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-        final squadSizeLimit =
-            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-        await ref.read(matchesControllerProvider.notifier).createMatch(
+        final squadSizeLimit = sportsEnabled
+            ? int.parse(_squadSizeController.text.trim())
+            : null;
+        await ref
+            .read(matchesControllerProvider.notifier)
+            .createMatch(
               seasonId: _seasonId,
               opponentId: _opponentId,
               kickoffAt: _startsAt,
@@ -689,9 +712,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -700,13 +723,12 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   Future<void> _confirmDeleteEvent() async {
     final event = widget.event;
     if (event == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer cet événement ?'),
-            content: const Text(
-              'Cette action est irréversible.',
-            ),
+            content: const Text('Cette action est irréversible.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -729,9 +751,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
