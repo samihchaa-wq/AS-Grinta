@@ -245,7 +245,10 @@ class ConvocationPlayer {
   bool get isNotConvoked => convocationStatus == ConvocationStatus.notConvoked;
   bool get hasUnpublishedConvocationChange =>
       convocationStatus != publishedConvocationStatus;
-  bool get canBeSelected => isConvoked && (isGuest || isAvailable);
+
+  /// Vrai quand le joueur peut être aligné : la convocation décidée par
+  /// l'administrateur prime sur la disponibilité que le joueur a déclarée.
+  bool get canBeSelected => isConvoked;
 }
 
 class MatchConvocations {

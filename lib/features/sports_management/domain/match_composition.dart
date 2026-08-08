@@ -98,9 +98,12 @@ class MatchCompositionEntry {
   final String convocationStatus;
   final String selectionStatus;
 
-  bool get canBeSelected =>
-      convocationStatus == 'convoked' &&
-      (isGuest || availabilityStatus == 'available');
+  /// Vrai quand le joueur peut être aligné.
+  ///
+  /// Seule la convocation compte : l'effectif autorise à convoquer un joueur
+  /// noté absent ou sans réponse, et cette décision d'administrateur prime sur
+  /// la disponibilité déclarée. Le serveur applique la même règle.
+  bool get canBeSelected => convocationStatus == 'convoked';
 
   MatchCompositionEntry moveTo(
     MatchCompositionZone nextZone, {
