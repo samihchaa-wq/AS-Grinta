@@ -534,7 +534,11 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final composition = _composition!;
     final field = composition.entriesFor(MatchCompositionZone.field);
     final bench = composition.entriesFor(MatchCompositionZone.bench)
-      ..removeWhere((entry) => !_desiredConvoked.contains(entry.participantId));
+      ..removeWhere(
+        (entry) =>
+            _desiredEffectifStatuses[entry.participantId] !=
+            ConvocationStatus.convoked,
+      );
     final effectifReady = _effectifReadyForComposition;
 
     if (!effectifReady && !_postMatch) {

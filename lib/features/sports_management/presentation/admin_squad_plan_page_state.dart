@@ -5,7 +5,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   String? _selectedMatchId;
   MatchConvocations? _convocations;
   MatchComposition? _composition;
-  Set<String> _desiredConvoked = {};
+  Map<String, ConvocationStatus> _desiredEffectifStatuses = {};
   Set<String> _actualPresent = {};
   Map<String, int> _finishedBenchCounts = {};
   Map<String, String> _canonicalPlayerIds = {};
@@ -180,14 +180,20 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _canonicalPlayerIds = canonicalPlayerIds;
         _positionProfiles = positionProfiles;
         _reminders = reminders;
-        _desiredConvoked = postMatch
-            ? actualPresent
-            : {
-                for (final player in convocations.players)
-                  if ((player.isAvailable || player.isGuest) &&
-                      player.isConvoked)
-                    player.participantId,
-              };
+        _desiredEffectifStatuses = {
+          for (final player in convocations.players)
+            if (postMatch && actualPresent.contains(player.participantId))
+              player.participantId: ConvocationStatus.convoked
+            else if (postMatch && player.isAvailable && !player.isGuest)
+              player.participantId: ConvocationStatus.notConvoked
+            else if (!postMatch && player.isGuest)
+              player.participantId: ConvocationStatus.convoked
+            else if (!postMatch &&
+                player.convocationStatus != ConvocationStatus.notApplicable)
+              player.participantId: player.convocationStatus
+            else if (!postMatch && player.isAvailable)
+              player.participantId: ConvocationStatus.notConvoked,
+        };
         _limitController.text = '${convocations.squadSizeLimit}';
         _effectifDirty = false;
         _compositionDirty = false;

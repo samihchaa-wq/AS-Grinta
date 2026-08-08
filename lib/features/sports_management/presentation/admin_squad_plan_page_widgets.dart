@@ -8,8 +8,9 @@ class _EffectifColumn extends StatelessWidget {
     required this.players,
     required this.locked,
     this.acceptsDrops = false,
+    this.acceptsPlayer,
+    this.draggable = false,
     this.onAccept,
-    this.onToggle,
     this.onRemoveGuest,
     this.onShowInfo,
     this.onRelanceAll,
@@ -22,8 +23,9 @@ class _EffectifColumn extends StatelessWidget {
   final List<ConvocationPlayer> players;
   final bool locked;
   final bool acceptsDrops;
+  final bool Function(ConvocationPlayer)? acceptsPlayer;
+  final bool draggable;
   final ValueChanged<ConvocationPlayer>? onAccept;
-  final ValueChanged<ConvocationPlayer>? onToggle;
   final ValueChanged<ConvocationPlayer>? onRemoveGuest;
   final ValueChanged<ConvocationPlayer>? onShowInfo;
   final VoidCallback? onRelanceAll;
@@ -33,7 +35,10 @@ class _EffectifColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     return DragTarget<ConvocationPlayer>(
       onWillAcceptWithDetails: (details) =>
-          acceptsDrops && !locked && !details.data.isGuest,
+          acceptsDrops &&
+          !locked &&
+          !details.data.isGuest &&
+          (acceptsPlayer?.call(details.data) ?? true),
       onAcceptWithDetails: (details) => onAccept?.call(details.data),
       builder: (context, candidates, rejected) => AnimatedContainer(
         duration: const Duration(milliseconds: 140),
@@ -91,7 +96,7 @@ class _EffectifColumn extends StatelessWidget {
                 players: players,
                 color: color,
                 locked: locked,
-                draggable: !locked && onToggle != null,
+                draggable: !locked && draggable,
                 onRemoveGuest: onRemoveGuest,
                 onShowInfo: onShowInfo,
                 onRelance: onRelance,
@@ -122,9 +127,16 @@ class _EffectifPlayerGrid extends StatelessWidget {
   final ValueChanged<ConvocationPlayer>? onShowInfo;
   final ValueChanged<ConvocationPlayer>? onRelance;
 
+  Color _chipColor(ConvocationPlayer player) =>
+      switch (player.availabilityStatus) {
+        'absent' => _effectifAbsentColor,
+        'no_response' => _effectifNoResponseColor,
+        _ => color,
+      };
+
   Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
         player: player,
-        color: color,
+        color: _chipColor(player),
         draggable: draggable && !player.isGuest,
         onTap: player.isGuest
             ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
