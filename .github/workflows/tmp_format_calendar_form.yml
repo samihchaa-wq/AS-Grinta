@@ -1,0 +1,26 @@
+name: Temporary calendar form formatter
+
+on:
+  push:
+    branches:
+      - ui/calendar-form-readability
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format calendar form
+        run: dart format lib/features/matches/presentation/calendar_entry_form_page.dart
+      - name: Upload formatted file
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-calendar-form
+          path: lib/features/matches/presentation/calendar_entry_form_page.dart
