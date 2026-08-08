@@ -313,8 +313,6 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   }
 }
 
-final sportWaitlistRepositoryProvider = Provider<SportWaitlistRepository>((
-  ref,
-) {
+final sportWaitlistRepositoryProvider = Provider<SportWaitlistRepository>((ref) {
   return SupabaseSportWaitlistRepository(ref.watch(supabaseClientProvider));
 });
