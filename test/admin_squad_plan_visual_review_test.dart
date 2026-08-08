@@ -22,8 +22,9 @@ const _matchId = 'match-visual-review';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the compact effectif with explicit save',
-      (tester) async {
+  testWidgets('captures the compact effectif with explicit save', (
+    tester,
+  ) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
@@ -36,10 +37,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(ActionChip), findsWidgets);
-    expect(
-      find.widgetWithText(FilledButton, 'Enregistrer'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'effectif_compact_enregistrer.png');
   });
@@ -52,15 +50,9 @@ void main() {
       initialStep: 'composition',
     );
 
-    expect(
-      find.textContaining('puis appuie sur Enregistrer.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('puis appuie sur Enregistrer.'), findsOneWidget);
     expect(find.text('Remplaçants (3)'), findsOneWidget);
-    expect(
-      find.widgetWithText(FilledButton, 'Enregistrer'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(
       find.widgetWithText(FilledButton, 'Publier la composition'),
       findsNothing,
@@ -70,64 +62,59 @@ void main() {
   });
 
   testWidgets(
-      'moves absent and unanswered players without losing their colors',
-      (tester) async {
-    await _setWideViewport(tester);
-    final convocations = _convocations();
-    final repository = _FakeSportWaitlistRepository(convocations);
-    await _pumpWorkspace(
-      tester,
-      convocations: convocations,
-      initialStep: 'effectif',
-      waitlistRepository: repository,
-    );
+    'moves absent and unanswered players without losing their colors',
+    (tester) async {
+      await _setWideViewport(tester);
+      final convocations = _convocations();
+      final repository = _FakeSportWaitlistRepository(convocations);
+      await _pumpWorkspace(
+        tester,
+        convocations: convocations,
+        initialStep: 'effectif',
+        waitlistRepository: repository,
+      );
 
-    expect(find.text('Convoqués (3)'), findsOneWidget);
-    expect(find.text('Liste d’attente (0)'), findsOneWidget);
-    expect(find.text('Absents (1)'), findsOneWidget);
-    expect(find.text('Sans réponse (1)'), findsOneWidget);
-    expect(
-      find.byType(LongPressDraggable<ConvocationPlayer>),
-      findsNWidgets(5),
-    );
+      expect(find.text('Convoqués (3)'), findsOneWidget);
+      expect(find.text('Liste d’attente (0)'), findsOneWidget);
+      expect(find.text('Absents (1)'), findsOneWidget);
+      expect(find.text('Sans réponse (1)'), findsOneWidget);
+      expect(
+        find.byType(LongPressDraggable<ConvocationPlayer>),
+        findsNWidgets(5),
+      );
 
-    await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
-    expect(find.text('Convoqués (4)'), findsOneWidget);
-    expect(find.text('Absents (0)'), findsOneWidget);
-    expect(
-      _playerChip(tester, 'Diego').side?.color,
-      _effectifColor(const Color(0xFFB33A3A)),
-    );
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
+      expect(find.text('Convoqués (4)'), findsOneWidget);
+      expect(find.text('Absents (0)'), findsOneWidget);
+      expect(
+        _playerChip(tester, 'Diego').side?.color,
+        _effectifColor(const Color(0xFFB33A3A)),
+      );
 
-    await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
-    expect(find.text('Liste d’attente (1)'), findsOneWidget);
-    expect(find.text('Sans réponse (0)'), findsOneWidget);
-    expect(
-      _playerChip(tester, 'Emma').side?.color,
-      _effectifColor(const Color(0xFF6B7280)),
-    );
+      await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
+      expect(find.text('Liste d’attente (1)'), findsOneWidget);
+      expect(find.text('Sans réponse (0)'), findsOneWidget);
+      expect(
+        _playerChip(tester, 'Emma').side?.color,
+        _effectifColor(const Color(0xFF6B7280)),
+      );
 
-    // Le retour vers la colonne de disponibilité d'origine doit rester
-    // possible, puis le joueur peut être replacé parmi les convoqués.
-    await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 2);
-    expect(find.text('Convoqués (3)'), findsOneWidget);
-    expect(find.text('Absents (1)'), findsOneWidget);
-    await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
+      // Le retour vers la colonne de disponibilité d'origine doit rester
+      // possible, puis le joueur peut être replacé parmi les convoqués.
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 2);
+      expect(find.text('Convoqués (3)'), findsOneWidget);
+      expect(find.text('Absents (1)'), findsOneWidget);
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
 
-    final saveButton = find.widgetWithText(FilledButton, 'Enregistrer');
-    await tester.ensureVisible(saveButton);
-    await tester.tap(saveButton);
-    await _pumpFrames(tester, count: 20);
+      final saveButton = find.widgetWithText(FilledButton, 'Enregistrer');
+      await tester.ensureVisible(saveButton);
+      await tester.tap(saveButton);
+      await _pumpFrames(tester, count: 20);
 
-    expect(
-      repository.lastDecisions?['sp4'],
-      ConvocationStatus.convoked,
-    );
-    expect(
-      repository.lastDecisions?['sp5'],
-      ConvocationStatus.notConvoked,
-    );
-  });
+      expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
+      expect(repository.lastDecisions?['sp5'], ConvocationStatus.notConvoked);
+    },
+  );
 }
 
 Future<void> _setPhoneViewport(WidgetTester tester) async {
@@ -192,9 +179,7 @@ Future<void> _dragPlayerToColumn(
   required int columnIndex,
 }) async {
   final player = find.widgetWithText(ActionChip, playerName);
-  final target = find
-      .byType(DragTarget<ConvocationPlayer>)
-      .at(columnIndex);
+  final target = find.byType(DragTarget<ConvocationPlayer>).at(columnIndex);
   final gesture = await tester.startGesture(tester.getCenter(player));
   await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
   await gesture.moveTo(tester.getCenter(target));
@@ -326,12 +311,12 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
-        AdminSportMatch(
-          id: _matchId,
-          opponentName: 'Olympique Test',
-          kickoffAt: convocations.kickoffAt,
-        ),
-      ];
+    AdminSportMatch(
+      id: _matchId,
+      opponentName: 'Olympique Test',
+      kickoffAt: convocations.kickoffAt,
+    ),
+  ];
 
   @override
   Future<MatchConvocations> fetchMatchConvocations(String matchId) async =>
@@ -375,8 +360,7 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
   @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
-  ) async =>
-      {'sp1'};
+  ) async => {'sp1'};
 
   @override
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>

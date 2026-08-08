@@ -15,8 +15,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         .where(
           (player) => _postMatch
               ? _actualPresent.contains(player.participantId)
-              : _desiredEffectifStatus(player) ==
-                  ConvocationStatus.convoked,
+              : _desiredEffectifStatus(player) == ConvocationStatus.convoked,
         )
         .toList();
     players.sort(_convokedOrder);
@@ -28,8 +27,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         .where(
           (player) =>
               !player.isGuest &&
-              _desiredEffectifStatus(player) ==
-                  ConvocationStatus.notConvoked,
+              _desiredEffectifStatus(player) == ConvocationStatus.notConvoked,
         )
         .toList();
     players.sort(_playerOrder);
@@ -41,8 +39,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         .where(
           (player) =>
               player.isAbsent &&
-              _desiredEffectifStatus(player) ==
-                  ConvocationStatus.notApplicable,
+              _desiredEffectifStatus(player) == ConvocationStatus.notApplicable,
         )
         .toList();
     players.sort(_playerOrder);
@@ -54,8 +51,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         .where(
           (player) =>
               player.availabilityStatus == 'no_response' &&
-              _desiredEffectifStatus(player) ==
-                  ConvocationStatus.notApplicable,
+              _desiredEffectifStatus(player) == ConvocationStatus.notApplicable,
         )
         .toList();
     players.sort(_playerOrder);
@@ -85,10 +81,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 
-  void _setEffectifStatus(
-    ConvocationPlayer player,
-    ConvocationStatus status,
-  ) {
+  void _setEffectifStatus(ConvocationPlayer player, ConvocationStatus status) {
     if (_busy || _locked || player.isGuest) return;
     final current = _desiredEffectifStatus(player);
     if (current == status) return;
@@ -120,8 +113,7 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       for (final player in convocations.players)
         if (!player.isGuest &&
             player.seasonPlayerId.isNotEmpty &&
-            _desiredEffectifStatus(player) !=
-                ConvocationStatus.notApplicable)
+            _desiredEffectifStatus(player) != ConvocationStatus.notApplicable)
           player.seasonPlayerId: _desiredEffectifStatus(player),
     };
   }
@@ -136,7 +128,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
     _updateState(() => _busy = true);
     try {
-      await ref.read(sportWaitlistRepositoryProvider).publishEffectif(
+      await ref
+          .read(sportWaitlistRepositoryProvider)
+          .publishEffectif(
             matchId: convocations.matchId,
             squadSizeLimit: limit,
             decisions: _effectifDecisions(convocations),
@@ -172,8 +166,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
       content: Text(
         isCollective
             ? '${reminders.noResponseCount} joueur'
-                '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
-                'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
+                  '${reminders.noResponseCount > 1 ? 's' : ''} sans réponse '
+                  'recevr${reminders.noResponseCount > 1 ? 'ont' : 'a'} une notification.'
             : 'Une notification de disponibilité sera envoyée. Un second envoi est bloqué pendant dix minutes.',
       ),
     );
@@ -226,12 +220,13 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final availabilityDetail = player.isGuest
         ? 'Invité ajouté manuellement.'
         : hasResponded && updatedAt != null
-            ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
-            : 'Aucune réponse enregistrée pour l’instant.';
+        ? 'Indiquée le ${AppFormats.dateTime(updatedAt)}'
+        : 'Aucune réponse enregistrée pour l’instant.';
     final waitlistDetail = player.waitlistPosition != null
         ? '${player.waitlistPosition}${player.waitlistPosition == 1 ? 'er' : 'e'} sur la liste d’attente'
         : 'Hors liste d’attente';
-    final canRelance = !player.isGuest &&
+    final canRelance =
+        !player.isGuest &&
         status == 'no_response' &&
         !_locked &&
         (_reminders?.canRemind ?? false);
@@ -357,7 +352,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (input == null) return;
     _updateState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).createAndAddGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .createAndAddGuest(
             matchId: matchId,
             firstName: input.firstName,
             lastName: input.lastName,
@@ -384,7 +381,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     if (!confirmed || !mounted) return;
     _updateState(() => _busy = true);
     try {
-      await ref.read(guestPlayersRepositoryProvider).removeGuest(
+      await ref
+          .read(guestPlayersRepositoryProvider)
+          .removeGuest(
             matchId: matchId,
             participantId: player.participantId,
             reason: 'Retrait depuis Effectif',
@@ -470,10 +469,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 players: _convokedPlayers,
                 acceptsDrops: true,
                 draggable: true,
-                onAccept: (player) => _setEffectifStatus(
-                  player,
-                  ConvocationStatus.convoked,
-                ),
+                onAccept: (player) =>
+                    _setEffectifStatus(player, ConvocationStatus.convoked),
                 onRemoveGuest: _removeGuestFromMatch,
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
@@ -485,10 +482,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 players: _waitlistedPlayers,
                 acceptsDrops: true,
                 draggable: true,
-                onAccept: (player) => _setEffectifStatus(
-                  player,
-                  ConvocationStatus.notConvoked,
-                ),
+                onAccept: (player) =>
+                    _setEffectifStatus(player, ConvocationStatus.notConvoked),
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
@@ -500,10 +495,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 acceptsDrops: true,
                 acceptsPlayer: (player) => player.isAbsent,
                 draggable: true,
-                onAccept: (player) => _setEffectifStatus(
-                  player,
-                  ConvocationStatus.notApplicable,
-                ),
+                onAccept: (player) =>
+                    _setEffectifStatus(player, ConvocationStatus.notApplicable),
                 onShowInfo: _showPlayerInfo,
                 locked: _busy || _locked,
               ),
@@ -516,10 +509,8 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 acceptsPlayer: (player) =>
                     player.availabilityStatus == 'no_response',
                 draggable: true,
-                onAccept: (player) => _setEffectifStatus(
-                  player,
-                  ConvocationStatus.notApplicable,
-                ),
+                onAccept: (player) =>
+                    _setEffectifStatus(player, ConvocationStatus.notApplicable),
                 locked: _busy || _locked,
                 onShowInfo: _showPlayerInfo,
                 onRelanceAll: (_reminders?.canRemind ?? false)
@@ -553,8 +544,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         ),
         const SizedBox(height: 16),
         FilledButton.icon(
-          onPressed:
-              _busy || _locked || !_effectifDirty ? null : _persistEffectif,
+          onPressed: _busy || _locked || !_effectifDirty
+              ? null
+              : _persistEffectif,
           icon: const Icon(Icons.save_outlined),
           label: const Text('Enregistrer'),
         ),
