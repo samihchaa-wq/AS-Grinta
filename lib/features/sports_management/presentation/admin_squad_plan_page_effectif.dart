@@ -1,13 +1,22 @@
 part of 'admin_squad_plan_page.dart';
 
+const _effectifConvokedColor = Color(0xFF168A52);
+const _effectifWaitlistColor = Color(0xFFE08A00);
+const _effectifAbsentColor = Color(0xFFB33A3A);
+const _effectifNoResponseColor = Color(0xFF6B7280);
+
 extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
+  ConvocationStatus _desiredEffectifStatus(ConvocationPlayer player) =>
+      _desiredEffectifStatuses[player.participantId] ??
+      ConvocationStatus.notApplicable;
+
   List<ConvocationPlayer> get _convokedPlayers {
     final players = (_convocations?.players ?? const <ConvocationPlayer>[])
         .where(
           (player) => _postMatch
               ? _actualPresent.contains(player.participantId)
-              : (player.isAvailable || player.isGuest) &&
-                  _desiredConvoked.contains(player.participantId),
+              : _desiredEffectifStatus(player) ==
+                  ConvocationStatus.convoked,
         )
         .toList();
     players.sort(_convokedOrder);
@@ -18,9 +27,9 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     final players = (_convocations?.players ?? const <ConvocationPlayer>[])
         .where(
           (player) =>
-              player.isAvailable &&
               !player.isGuest &&
-              !_desiredConvoked.contains(player.participantId),
+              _desiredEffectifStatus(player) ==
+                  ConvocationStatus.notConvoked,
         )
         .toList();
     players.sort(_playerOrder);
@@ -29,7 +38,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   List<ConvocationPlayer> get _absentPlayers {
     final players = (_convocations?.players ?? const <ConvocationPlayer>[])
-        .where((player) => player.isAbsent)
+        .where(
+          (player) =>
+              player.isAbsent &&
+              _desiredEffectifStatus(player) ==
+                  ConvocationStatus.notApplicable,
+        )
         .toList();
     players.sort(_playerOrder);
     return players;
@@ -37,7 +51,12 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
 
   List<ConvocationPlayer> get _unansweredPlayers {
     final players = (_convocations?.players ?? const <ConvocationPlayer>[])
-        .where((player) => player.availabilityStatus == 'no_response')
+        .where(
+          (player) =>
+              player.availabilityStatus == 'no_response' &&
+              _desiredEffectifStatus(player) ==
+                  ConvocationStatus.notApplicable,
+        )
         .toList();
     players.sort(_playerOrder);
     return players;
@@ -66,13 +85,18 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
         : a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 
-  void _setConvoked(ConvocationPlayer player, bool value) {
+  void _setEffectifStatus(
+    ConvocationPlayer player,
+    ConvocationStatus status,
+  ) {
     if (_busy || _locked || player.isGuest) return;
+    final current = _desiredEffectifStatus(player);
+    if (current == status) return;
     _updateState(() {
-      if (value) {
-        _desiredConvoked.add(player.participantId);
+      if (status == ConvocationStatus.notApplicable) {
+        _desiredEffectifStatuses.remove(player.participantId);
       } else {
-        _desiredConvoked.remove(player.participantId);
+        _desiredEffectifStatuses[player.participantId] = status;
       }
       _effectifDirty = true;
     });
@@ -95,11 +119,10 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
     return {
       for (final player in convocations.players)
         if (!player.isGuest &&
-            player.isAvailable &&
-            player.seasonPlayerId.isNotEmpty)
-          player.seasonPlayerId: _desiredConvoked.contains(player.participantId)
-              ? ConvocationStatus.convoked
-              : ConvocationStatus.notConvoked,
+            player.seasonPlayerId.isNotEmpty &&
+            _desiredEffectifStatus(player) !=
+                ConvocationStatus.notApplicable)
+          player.seasonPlayerId: _desiredEffectifStatus(player),
     };
   }
 
@@ -441,41 +464,62 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
           builder: (context, constraints) {
             final columns = [
               _EffectifColumn(
-                title: 'Disponibles',
-                color: const Color(0xFF168A52),
+                title: 'Convoqués',
+                color: _effectifConvokedColor,
                 icon: Icons.check_circle_outline,
                 players: _convokedPlayers,
                 acceptsDrops: true,
-                onAccept: (player) => _setConvoked(player, true),
-                onToggle: (player) => _setConvoked(player, false),
+                draggable: true,
+                onAccept: (player) => _setEffectifStatus(
+                  player,
+                  ConvocationStatus.convoked,
+                ),
                 onRemoveGuest: _removeGuestFromMatch,
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
               _EffectifColumn(
                 title: 'Liste d’attente',
-                color: const Color(0xFFE08A00),
+                color: _effectifWaitlistColor,
                 icon: Icons.hourglass_top_rounded,
                 players: _waitlistedPlayers,
                 acceptsDrops: true,
-                onAccept: (player) => _setConvoked(player, false),
-                onToggle: (player) => _setConvoked(player, true),
+                draggable: true,
+                onAccept: (player) => _setEffectifStatus(
+                  player,
+                  ConvocationStatus.notConvoked,
+                ),
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
               _EffectifColumn(
                 title: 'Absents',
-                color: const Color(0xFFB33A3A),
+                color: _effectifAbsentColor,
                 icon: Icons.cancel_outlined,
                 players: _absentPlayers,
+                acceptsDrops: true,
+                acceptsPlayer: (player) => player.isAbsent,
+                draggable: true,
+                onAccept: (player) => _setEffectifStatus(
+                  player,
+                  ConvocationStatus.notApplicable,
+                ),
                 onShowInfo: _showPlayerInfo,
-                locked: true,
+                locked: _busy || _locked,
               ),
               _EffectifColumn(
                 title: 'Sans réponse',
-                color: const Color(0xFF6B7280),
+                color: _effectifNoResponseColor,
                 icon: Icons.schedule_outlined,
                 players: _unansweredPlayers,
+                acceptsDrops: true,
+                acceptsPlayer: (player) =>
+                    player.availabilityStatus == 'no_response',
+                draggable: true,
+                onAccept: (player) => _setEffectifStatus(
+                  player,
+                  ConvocationStatus.notApplicable,
+                ),
                 locked: _busy || _locked,
                 onShowInfo: _showPlayerInfo,
                 onRelanceAll: (_reminders?.canRemind ?? false)

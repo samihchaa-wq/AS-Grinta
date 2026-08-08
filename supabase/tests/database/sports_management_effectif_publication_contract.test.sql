@@ -279,6 +279,192 @@ select is(
 );
 
 reset role;
+
+-- La sélection sportive ne doit plus écraser la disponibilité. Bruno reste
+-- absent mais peut être pré-convoqué ; Chloé reste sans réponse mais peut être
+-- placée en liste d'attente.
+update public.match_sport_participants participant
+set availability_status = case player.position
+      when 2 then 'absent'::public.sport_availability_status
+      when 3 then 'no_response'::public.sport_availability_status
+      else 'available'::public.sport_availability_status
+    end,
+    availability_updated_at = now(),
+    updated_at = now()
+from public.season_players player
+where participant.match_id = current_setting('test.effectif_match')::uuid
+  and player.id = participant.season_player_id;
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select is(
+  public.admin_save_match_effectif(
+    current_setting('test.effectif_match')::uuid,
+    2,
+    pg_temp.effectif_decisions(1),
+    'Décisions indépendantes de la disponibilité'
+  ) #>> '{convocation_version}',
+  '3',
+  'les décisions incluent un absent et une sans réponse'
+);
+
+reset role;
+select ok(
+  (
+    select participant.availability_status = 'absent'
+      and participant.convocation_status = 'convoked'
+      and participant.convocation_manual_override
+    from public.match_sport_participants participant
+    where participant.season_player_id =
+      'b4000000-0000-0000-0000-000000000002'
+      and participant.match_id = current_setting('test.effectif_match')::uuid
+  ),
+  'un absent reste absent tout en étant pré-convoqué'
+);
+select ok(
+  (
+    select participant.availability_status = 'no_response'
+      and participant.convocation_status = 'not_convoked'
+      and participant.convocation_manual_override
+      and not participant.waitlist_turn_should_consume
+      and participant.waitlist_turn_state = 'not_applicable'
+    from public.match_sport_participants participant
+    where participant.season_player_id =
+      'b4000000-0000-0000-0000-000000000003'
+      and participant.match_id = current_setting('test.effectif_match')::uuid
+  ),
+  'une sans réponse reste identifiable et ne consomme aucun tour'
+);
+
+-- Replacer les joueurs dans leur colonne d'origine les retire du payload et
+-- efface uniquement leur décision sportive, jamais leur disponibilité.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select is(
+  public.admin_save_match_effectif(
+    current_setting('test.effectif_match')::uuid,
+    2,
+    jsonb_build_array(jsonb_build_object(
+      'season_player_id', 'b4000000-0000-0000-0000-000000000001',
+      'status', 'convoked'
+    )),
+    'Retour aux colonnes de disponibilité'
+  ) #>> '{convocation_version}',
+  '4',
+  'le retour aux colonnes source est publié immédiatement'
+);
+
+reset role;
+select is(
+  (
+    select count(*)
+    from public.match_sport_participants participant
+    where participant.match_id = current_setting('test.effectif_match')::uuid
+      and participant.season_player_id in (
+        'b4000000-0000-0000-0000-000000000002',
+        'b4000000-0000-0000-0000-000000000003'
+      )
+      and participant.convocation_status = 'not_applicable'
+      and not participant.convocation_manual_override
+      and (
+        (participant.season_player_id =
+          'b4000000-0000-0000-0000-000000000002'
+          and participant.availability_status = 'absent')
+        or
+        (participant.season_player_id =
+          'b4000000-0000-0000-0000-000000000003'
+          and participant.availability_status = 'no_response')
+      )
+  ),
+  2::bigint,
+  'le retour source efface les deux décisions sans changer les réponses'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select is(
+  public.admin_save_match_effectif(
+    current_setting('test.effectif_match')::uuid,
+    2,
+    pg_temp.effectif_decisions(1),
+    'Réapplication avant réponse'
+  ) #>> '{convocation_version}',
+  '5',
+  'les décisions indisponibles peuvent être réappliquées'
+);
+reset role;
+
+-- Quand ces joueurs répondent ensuite présent, la décision manuelle est
+-- conservée et le tour de liste d'attente devient actif seulement à ce moment.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"b1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select is(
+  public.admin_override_match_availability(
+    current_setting('test.effectif_match')::uuid,
+    'b4000000-0000-0000-0000-000000000002',
+    'available',
+    null,
+    'Retour disponible du pré-convoqué'
+  ) #>> '{availability_status}',
+  'available',
+  'le pré-convoqué peut ensuite se déclarer disponible'
+);
+select is(
+  public.admin_override_match_availability(
+    current_setting('test.effectif_match')::uuid,
+    'b4000000-0000-0000-0000-000000000003',
+    'available',
+    null,
+    'Réponse du joueur en attente'
+  ) #>> '{availability_status}',
+  'available',
+  'la sans réponse en attente peut ensuite se déclarer disponible'
+);
+
+reset role;
+select ok(
+  (
+    select participant.convocation_status = 'convoked'
+      and participant.convocation_manual_override
+    from public.match_sport_participants participant
+    where participant.season_player_id =
+      'b4000000-0000-0000-0000-000000000002'
+      and participant.match_id = current_setting('test.effectif_match')::uuid
+  ),
+  'la pré-convocation manuelle survit au retour disponible'
+);
+select ok(
+  (
+    select participant.convocation_status = 'not_convoked'
+      and participant.waitlist_turn_should_consume
+      and participant.waitlist_turn_state = 'pending'
+    from public.match_sport_participants participant
+    where participant.season_player_id =
+      'b4000000-0000-0000-0000-000000000003'
+      and participant.match_id = current_setting('test.effectif_match')::uuid
+  ),
+  'le tour en attente ne devient consommable qu’après la réponse présente'
+);
+
 select ok(
   exists (
     select 1
