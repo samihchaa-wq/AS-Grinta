@@ -350,7 +350,9 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
       );
     }
     if (_matches.isEmpty) {
-      return const Center(child: Text('Aucun match à venir.'));
+      return const Center(
+        child: Text('Aucun match à venir.', textAlign: TextAlign.center),
+      );
     }
 
     final assigned = _matchGuests?.guests ?? const [];

@@ -21,7 +21,8 @@ class ScorerDashboardPage extends ConsumerWidget {
     final locked = ref.watch(enhancedSeasonLockedProvider);
     return locked.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
-      error: (error, _) => Center(child: Text('$error')),
+      error: (error, _) =>
+          Center(child: Text('$error', textAlign: TextAlign.center)),
       data: (isLocked) {
         if (!isLocked) {
           return SeasonPredictionEntryPage(embedded: embedded);
@@ -45,7 +46,8 @@ class _LockedScorerDashboard extends ConsumerWidget {
 
     return gaugesAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
-      error: (error, _) => Center(child: Text('$error')),
+      error: (error, _) =>
+          Center(child: Text('$error', textAlign: TextAlign.center)),
       data: (gauges) {
         final scorers = gauges.where((gauge) => !gauge.isGoalkeeper).toList()
           ..sort(_comparePlayers);

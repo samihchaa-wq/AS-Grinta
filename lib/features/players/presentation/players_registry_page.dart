@@ -22,7 +22,9 @@ class PlayersRegistryPage extends ConsumerWidget {
       appBar: GrintaAppBar(title: const Text('Effectif'), admin: true),
       body: seasonAsync.when(
         loading: () => const Center(child: GrintaProgressIndicator()),
-        error: (error, _) => Center(child: Text(humanizeError(error))),
+        error: (error, _) => Center(
+          child: Text(humanizeError(error), textAlign: TextAlign.center),
+        ),
         data: (seasonId) {
           if (seasonId == null) {
             return const Center(
@@ -60,7 +62,9 @@ class _RosterList extends ConsumerWidget {
 
     return rosterAsync.when(
       loading: () => const Center(child: GrintaProgressIndicator()),
-      error: (error, _) => Center(child: Text(humanizeError(error))),
+      error: (error, _) => Center(
+        child: Text(humanizeError(error), textAlign: TextAlign.center),
+      ),
       data: (players) => RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(rosterProvider(seasonId));

@@ -114,6 +114,7 @@ class _WeatherBody extends StatelessWidget {
                               child: Text(
                                 '${_number(temperature)}°C',
                                 maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.headlineSmall?.copyWith(
                                   color: AppTheme.textPrimary,
                                   fontWeight: FontWeight.w900,
@@ -213,13 +214,16 @@ class _Metric extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 5),
-          Text(
-            value,
-            maxLines: 1,
-            style: const TextStyle(
-              color: AppTheme.textPrimary,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
+          Flexible(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
