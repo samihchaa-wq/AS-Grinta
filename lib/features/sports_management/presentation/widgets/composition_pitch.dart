@@ -599,7 +599,8 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 
   Widget _photo(String url) {
-    final fallbackSize = widget.size * widget.fallbackScale.clamp(.5, 1).toDouble();
+    final fallbackSize =
+        widget.size * widget.fallbackScale.clamp(.5, 1).toDouble();
     return Image.network(
       url,
       key: ValueKey('$url#$_attempt'),
