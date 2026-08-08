@@ -6,6 +6,10 @@ const _effectifAbsentColor = Color(0xFFB33A3A);
 const _effectifNoResponseColor = Color(0xFF6B7280);
 
 extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
+  bool get _isInternalMatch => _matches.any(
+        (match) => match.id == _selectedMatchId && match.isInternal,
+      );
+
   ConvocationStatus _desiredEffectifStatus(ConvocationPlayer player) =>
       _desiredEffectifStatuses[player.participantId] ??
       ConvocationStatus.notApplicable;
@@ -251,21 +255,23 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 title: availabilityLabel,
                 detail: availabilityDetail,
               ),
-              const SizedBox(height: 12),
-              _PlayerInfoRow(
-                icon: Icons.hourglass_top_rounded,
-                color: const Color(0xFFE08A00),
-                title: 'Liste d’attente',
-                detail: waitlistDetail,
-              ),
-              if (!player.isGuest) ...[
+              if (!_isInternalMatch) ...[
                 const SizedBox(height: 12),
                 _PlayerInfoRow(
-                  icon: Icons.repeat_rounded,
+                  icon: Icons.hourglass_top_rounded,
                   color: const Color(0xFFE08A00),
-                  title: 'Nombre de tours en liste d’attente',
-                  detail: '${player.currentSeasonWaitlistCount} fois',
+                  title: 'Liste d’attente',
+                  detail: waitlistDetail,
                 ),
+                if (!player.isGuest) ...[
+                  const SizedBox(height: 12),
+                  _PlayerInfoRow(
+                    icon: Icons.repeat_rounded,
+                    color: const Color(0xFFE08A00),
+                    title: 'Nombre de tours en liste d’attente',
+                    detail: '${player.currentSeasonWaitlistCount} fois',
+                  ),
+                ],
               ],
               if (canRelance) ...[
                 const SizedBox(height: 18),
@@ -441,12 +447,14 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                   icon: const Icon(Icons.person_add_alt_1_outlined),
                   label: const Text('Ajouter un invité'),
                 ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => context.push('/admin/waitlist'),
-                  icon: const Icon(Icons.format_list_numbered_rounded),
-                  label: const Text('Voir la liste d’attente'),
-                ),
+                if (!_isInternalMatch) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/admin/waitlist'),
+                    icon: const Icon(Icons.format_list_numbered_rounded),
+                    label: const Text('Voir la liste d’attente'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -468,18 +476,19 @@ extension _AdminSquadPlanEffectif on _AdminSquadPlanPageState {
                 onShowInfo: _showPlayerInfo,
                 locked: _locked || _busy,
               ),
-              _EffectifColumn(
-                title: 'Liste d’attente',
-                color: _effectifWaitlistColor,
-                icon: Icons.hourglass_top_rounded,
-                players: _waitlistedPlayers,
-                acceptsDrops: true,
-                draggable: true,
-                onAccept: (player) =>
-                    _setEffectifStatus(player, ConvocationStatus.notConvoked),
-                onShowInfo: _showPlayerInfo,
-                locked: _locked || _busy,
-              ),
+              if (!_isInternalMatch)
+                _EffectifColumn(
+                  title: 'Liste d’attente',
+                  color: _effectifWaitlistColor,
+                  icon: Icons.hourglass_top_rounded,
+                  players: _waitlistedPlayers,
+                  acceptsDrops: true,
+                  draggable: true,
+                  onAccept: (player) =>
+                      _setEffectifStatus(player, ConvocationStatus.notConvoked),
+                  onShowInfo: _showPlayerInfo,
+                  locked: _locked || _busy,
+                ),
               _EffectifColumn(
                 title: 'Absents',
                 color: _effectifAbsentColor,
