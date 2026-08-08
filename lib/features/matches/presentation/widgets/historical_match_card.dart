@@ -1,6 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
-import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/widgets/match_date_column.dart';
 import 'package:as_grinta/core/widgets/match_fixture.dart';
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:flutter/material.dart';
@@ -29,75 +29,31 @@ class HistoricalMatchCard extends StatelessWidget {
       child: InkWell(
         onTap: () => context.push('/matches/history/${match.id}', extra: match),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 52,
-                  child: _HistoricalDateColumn(date: match.date),
-                ),
-                Container(
-                  width: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  color: CalendarCardPalette.finishedBorder,
-                ),
-                Expanded(
-                  child: MatchFixture(
-                    homeName: match.isHome ? 'AS Grinta' : match.opponentName,
-                    awayName: match.isHome ? match.opponentName : 'AS Grinta',
-                    grintaIsHome: match.isHome,
-                    homeScore:
-                        match.isHome ? match.grintaScore : match.opponentScore,
-                    awayScore:
-                        match.isHome ? match.opponentScore : match.grintaScore,
-                    finished: true,
-                    nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontSize: 16,
-                          height: 1.1,
-                          fontWeight: FontWeight.w800,
-                        ),
-                    scoreFontSize: 20,
-                    textAlign: TextAlign.start,
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+          child: MatchDateHeader(
+            kickoffAt: match.date,
+            foreground: AppTheme.textPrimary,
+            showTime: false,
+            child: MatchFixture(
+              homeName: match.isHome ? 'AS Grinta' : match.opponentName,
+              awayName: match.isHome ? match.opponentName : 'AS Grinta',
+              grintaIsHome: match.isHome,
+              homeScore:
+                  match.isHome ? match.grintaScore : match.opponentScore,
+              awayScore:
+                  match.isHome ? match.opponentScore : match.grintaScore,
+              finished: true,
+              nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontSize: 16,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
                   ),
-                ),
-              ],
+              scoreFontSize: 20,
+              textAlign: TextAlign.start,
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _HistoricalDateColumn extends StatelessWidget {
-  const _HistoricalDateColumn({required this.date});
-
-  final DateTime date;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget line(String text, {bool bold = false}) => Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
-            fontSize: 14,
-            height: 1.15,
-          ),
-        );
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        line(AppFormats.weekdayShort(date)),
-        line(AppFormats.dayNumber(date), bold: true),
-        line(AppFormats.monthShort(date)),
-        line('${date.year}'),
-      ],
     );
   }
 }
