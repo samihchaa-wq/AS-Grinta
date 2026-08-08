@@ -32,13 +32,11 @@ double? _persistedMergedMatchesScrollOffset;
 
 /// Contenu de l'onglet Matchs.
 ///
-/// Règle stricte : un unique flux chronologique, sans regroupement par
-/// catégorie. Chaque carte a au-dessus d'elle une carte moins avancée dans
-/// le temps et en dessous une carte plus avancée dans le temps — matchs
-/// passés, en direct, à venir et événements confondus, du plus ancien (haut)
-/// au plus futur (bas). Le statut d'un match (Live, à valider, dans la
-/// fenêtre J-6…) continue de piloter ses fonctionnalités et son habillage de
-/// carte, seule la section/en-tête dédiée a disparu.
+/// Le flux reste strictement chronologique, du plus ancien au plus futur.
+/// Dans « Défilé » uniquement, deux repères compacts et collants encadrent
+/// la zone active : « Terminés » pour les archives et résultats validés,
+/// puis « À venir » pour les rencontres encore hors fenêtre J-6. Les cartes
+/// J-6, Live et à valider conservent leur propre habillage entre les deux.
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key});
 
@@ -235,6 +233,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     // Le plus ancien (passé) en haut, le plus futur en bas — aucune carte
     // n'est promue ou reléguée en dehors de sa place chronologique.
     entries.sort((a, b) => a.date.compareTo(b.date));
+    final feedSections = _buildFeedSections(entries);
 
     // Choix de la carte sur laquelle le calendrier s'aligne à l'ouverture :
     //   1. la carte prioritaire (Live > à valider > J-6) si elle existe ;
@@ -338,25 +337,14 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
                 ),
               )
             else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenGutter,
-                ),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final entry = entries[index];
-                    final isFocusCard =
-                        focusKey != null && _entryKey(entry) == focusKey;
-                    return Padding(
-                      key: isFocusCard ? _focusMatchKey : null,
-                      padding: EdgeInsets.only(
-                        bottom: index == entries.length - 1
-                            ? 0
-                            : AppSpacing.contentGap,
-                      ),
-                      child: _buildEntryCard(entry, isAdmin, now),
-                    );
-                  }, childCount: entries.length),
+              ...feedSections.map(
+                (section) => _buildFeedSection(
+                  section: section,
+                  isLastSection: section == feedSections.last,
+                  focusKey: focusKey,
+                  focusMatchKey: _focusMatchKey,
+                  isAdmin: isAdmin,
+                  now: now,
                 ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 40)),
@@ -378,9 +366,113 @@ String _entryKey(_FeedEntry entry) {
   return 'unknown';
 }
 
-/// Choisit la carte adaptée au statut de l'entrée, sans plus jamais dépendre
-/// d'une section : la fonctionnalité (disponibilité, Live, composition…)
-/// reste pilotée par `entry.kind`, seul l'habillage groupé a disparu.
+Widget _buildFeedSection({
+  required _FeedSection section,
+  required bool isLastSection,
+  required String? focusKey,
+  required GlobalKey focusMatchKey,
+  required bool isAdmin,
+  required DateTime now,
+}) {
+  final title = section.title;
+  final headerIsFocus = title != null &&
+      focusKey != null &&
+      _entryKey(section.entries.first) == focusKey;
+
+  return SliverMainAxisGroup(
+    slivers: [
+      if (title != null)
+        SliverPersistentHeader(
+          key: headerIsFocus ? focusMatchKey : null,
+          pinned: true,
+          delegate: _FeedSectionHeaderDelegate(title: title),
+        ),
+      if (title != null)
+        const SliverToBoxAdapter(
+          child: SizedBox(height: AppSpacing.microGap),
+        ),
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenGutter,
+        ),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final entry = section.entries[index];
+            final isFocusCard =
+                focusKey != null && _entryKey(entry) == focusKey;
+            final isLastCard =
+                isLastSection && index == section.entries.length - 1;
+
+            return Padding(
+              key: isFocusCard && !headerIsFocus ? focusMatchKey : null,
+              padding: EdgeInsets.only(
+                bottom: isLastCard ? 0 : AppSpacing.contentGap,
+              ),
+              child: _buildEntryCard(entry, isAdmin, now),
+            );
+          }, childCount: section.entries.length),
+        ),
+      ),
+    ],
+  );
+}
+
+class _FeedSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _FeedSectionHeaderDelegate({required this.title});
+
+  static const double _height = 38;
+
+  final String title;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black,
+        border: Border(
+          bottom: BorderSide(
+            color: AppTheme.outline.withValues(
+              alpha: overlapsContent ? .5 : .25,
+            ),
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenGutter,
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _FeedSectionHeaderDelegate oldDelegate) =>
+      oldDelegate.title != title;
+}
+
+/// Choisit la carte adaptée au statut de l'entrée. Les bandeaux de section
+/// restent purement visuels : disponibilité, Live et composition continuent
+/// d'être pilotés uniquement par `entry.kind`.
 Widget _buildEntryCard(_FeedEntry entry, bool isAdmin, DateTime now) {
   switch (entry.kind) {
     case _FeedKind.upcomingMatch:
@@ -568,8 +660,8 @@ class _UpcomingMatchCard extends StatelessWidget {
   }
 }
 
-/// Le statut affiché d'une entrée du flux — pilote uniquement le choix de
-/// carte et ses fonctionnalités, plus jamais son placement (déterminé
+/// Le statut affiché d'une entrée du flux pilote le choix de carte, ses
+/// fonctionnalités et son repère visuel, jamais son placement (déterminé
 /// exclusivement par `_FeedEntry.date`).
 enum _FeedKind {
   upcomingMatch,
@@ -611,6 +703,64 @@ class _FeedEntry {
         date: historical.date,
         historical: historical,
       );
+}
+
+enum _FeedSectionKind {
+  finished,
+  active,
+  upcoming,
+}
+
+class _FeedSection {
+  _FeedSection({required this.kind, required this.entries});
+
+  final _FeedSectionKind kind;
+  final List<_FeedEntry> entries;
+
+  String? get title {
+    switch (kind) {
+      case _FeedSectionKind.finished:
+        return 'Terminés';
+      case _FeedSectionKind.active:
+        return null;
+      case _FeedSectionKind.upcoming:
+        return 'À venir';
+    }
+  }
+}
+
+/// Découpe le flux déjà trié en zones contiguës sans déplacer la moindre
+/// carte. La zone active (J-6, Live ou à valider) n'ajoute volontairement
+/// aucun troisième bandeau : ses cartes la distinguent déjà, tandis que les
+/// deux bandeaux demandés l'encadrent.
+List<_FeedSection> _buildFeedSections(List<_FeedEntry> entries) {
+  final sections = <_FeedSection>[];
+
+  for (final entry in entries) {
+    final kind = _feedSectionKind(entry.kind);
+    if (sections.isEmpty || sections.last.kind != kind) {
+      sections.add(_FeedSection(kind: kind, entries: [entry]));
+      continue;
+    }
+    sections.last.entries.add(entry);
+  }
+
+  return sections;
+}
+
+_FeedSectionKind _feedSectionKind(_FeedKind kind) {
+  switch (kind) {
+    case _FeedKind.pastMatch:
+    case _FeedKind.historicalMatch:
+      return _FeedSectionKind.finished;
+    case _FeedKind.nextMatch:
+    case _FeedKind.liveMatch:
+    case _FeedKind.awaitingValidationMatch:
+      return _FeedSectionKind.active;
+    case _FeedKind.upcomingMatch:
+    case _FeedKind.event:
+      return _FeedSectionKind.upcoming;
+  }
 }
 
 class _LoadingCard extends StatelessWidget {
