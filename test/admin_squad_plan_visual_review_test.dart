@@ -311,12 +311,12 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
-    AdminSportMatch(
-      id: _matchId,
-      opponentName: 'Olympique Test',
-      kickoffAt: convocations.kickoffAt,
-    ),
-  ];
+        AdminSportMatch(
+          id: _matchId,
+          opponentName: 'Olympique Test',
+          kickoffAt: convocations.kickoffAt,
+        ),
+      ];
 
   @override
   Future<MatchConvocations> fetchMatchConvocations(String matchId) async =>
@@ -360,7 +360,8 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
   @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
-  ) async => {'sp1'};
+  ) async =>
+      {'sp1'};
 
   @override
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>
