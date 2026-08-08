@@ -130,7 +130,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async {
     final rows = await _client
         .from('matches')
-        .select('id, kickoff_at, opponents(name)')
+        .select('id, kickoff_at, match_type, opponents(name)')
         .inFilter('status', const ['a_venir', 'termine']).order('kickoff_at',
             ascending: false);
     return (rows as List)
@@ -139,6 +139,7 @@ class SupabaseSportWaitlistRepository implements SportWaitlistRepository {
           (row) => AdminSportMatch.fromJson({
             'id': row['id'],
             'kickoff_at': row['kickoff_at'],
+            'match_type': row['match_type'],
             'opponent_name': (row['opponents'] as Map?)?['name'],
           }),
         )
