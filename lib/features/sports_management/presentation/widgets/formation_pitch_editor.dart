@@ -5,18 +5,18 @@ import 'package:as_grinta/features/sports_management/domain/match_composition.da
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 
-const List<(Offset source, Offset target)> _legacyFlat442DisplayMap = [
-  (Offset(.50, .95), Offset(.50, .86)),
-  (Offset(.15, .75), Offset(.14, .68)),
-  (Offset(.38, .80), Offset(.38, .70)),
-  (Offset(.62, .80), Offset(.62, .70)),
-  (Offset(.85, .75), Offset(.86, .68)),
-  (Offset(.15, .50), Offset(.14, .42)),
-  (Offset(.38, .55), Offset(.38, .42)),
-  (Offset(.62, .55), Offset(.62, .42)),
-  (Offset(.85, .50), Offset(.86, .42)),
-  (Offset(.35, .25), Offset(.36, .17)),
-  (Offset(.65, .25), Offset(.64, .17)),
+const List<({Offset source, Offset target})> _legacyFlat442DisplayMap = [
+  (source: Offset(.50, .95), target: Offset(.50, .86)),
+  (source: Offset(.15, .75), target: Offset(.14, .68)),
+  (source: Offset(.38, .80), target: Offset(.38, .70)),
+  (source: Offset(.62, .80), target: Offset(.62, .70)),
+  (source: Offset(.85, .75), target: Offset(.86, .68)),
+  (source: Offset(.15, .50), target: Offset(.14, .42)),
+  (source: Offset(.38, .55), target: Offset(.38, .42)),
+  (source: Offset(.62, .55), target: Offset(.62, .42)),
+  (source: Offset(.85, .50), target: Offset(.86, .42)),
+  (source: Offset(.35, .25), target: Offset(.36, .17)),
+  (source: Offset(.65, .25), target: Offset(.64, .17)),
 ];
 
 bool _usesLegacyFlat442Layout(List<MatchCompositionEntry> entries) {
