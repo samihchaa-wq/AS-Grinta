@@ -16,6 +16,17 @@ class HistoricalMatchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isHome = match.isHome;
+    final homeName = isHome ? 'AS Grinta' : match.opponentName;
+    final awayName = isHome ? match.opponentName : 'AS Grinta';
+    final homeScore = isHome ? match.grintaScore : match.opponentScore;
+    final awayScore = isHome ? match.opponentScore : match.grintaScore;
+    final nameStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+      fontSize: 16,
+      height: 1.1,
+      fontWeight: FontWeight.w800,
+    );
+
     return Card(
       color: CalendarCardPalette.finishedSurface,
       shape: RoundedRectangleBorder(
@@ -35,17 +46,13 @@ class HistoricalMatchCard extends StatelessWidget {
             foreground: AppTheme.textPrimary,
             showTime: false,
             child: MatchFixture(
-              homeName: match.isHome ? 'AS Grinta' : match.opponentName,
-              awayName: match.isHome ? match.opponentName : 'AS Grinta',
-              grintaIsHome: match.isHome,
-              homeScore: match.isHome ? match.grintaScore : match.opponentScore,
-              awayScore: match.isHome ? match.opponentScore : match.grintaScore,
+              homeName: homeName,
+              awayName: awayName,
+              grintaIsHome: isHome,
+              homeScore: homeScore,
+              awayScore: awayScore,
               finished: true,
-              nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontSize: 16,
-                height: 1.1,
-                fontWeight: FontWeight.w800,
-              ),
+              nameStyle: nameStyle,
               scoreFontSize: 20,
               textAlign: TextAlign.start,
             ),
