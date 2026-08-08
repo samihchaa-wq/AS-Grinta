@@ -539,12 +539,37 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
   ),
 ];
 
-/// Retrouve un dispositif par son code, ou le dispositif par défaut.
-FootballFormation formationForCode(String? code) {
+/// Codes historiques encore présents dans les compositions enregistrées.
+///
+/// Les alias ne modifient jamais les coordonnées sauvegardées : ils servent
+/// uniquement à retrouver le dispositif équivalent dans le catalogue actuel.
+const Map<String, String> _legacyFormationAliases = <String, String>{
+  '4-4-2': '4-4-2 à plat',
+};
+
+/// Retourne le dispositif correspondant à [code] sans fallback silencieux.
+///
+/// À utiliser lors de la lecture d'une composition existante : un ancien code
+/// connu est traduit via [_legacyFormationAliases], tandis qu'un code inconnu
+/// reste inconnu au lieu d'être pris pour le dispositif par défaut.
+FootballFormation? formationForCodeOrNull(String? code) {
+  final raw = code?.trim();
+  if (raw == null || raw.isEmpty) return null;
+  final canonical = _legacyFormationAliases[raw] ?? raw;
   for (final formation in footballFormations) {
-    if (formation.code == code) return formation;
+    if (formation.code == canonical) return formation;
   }
-  return footballFormations.firstWhere(
-    (formation) => formation.code == kDefaultFormationCode,
-  );
+  return null;
+}
+
+/// Retrouve un dispositif par son code, ou le dispositif par défaut.
+///
+/// Ce fallback reste utile pour une nouvelle composition sans dispositif.
+/// Pour une composition déjà enregistrée, préférer [formationForCodeOrNull]
+/// afin de ne jamais confondre un code historique inconnu avec le défaut.
+FootballFormation formationForCode(String? code) {
+  return formationForCodeOrNull(code) ??
+      footballFormations.firstWhere(
+        (formation) => formation.code == kDefaultFormationCode,
+      );
 }
