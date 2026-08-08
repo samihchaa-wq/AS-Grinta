@@ -1,0 +1,41 @@
+name: Preserve latest calendar title
+
+on:
+  push:
+    branches:
+      - ui/calendar-form-readability-v2
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Preserve latest title and format
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
+          text = path.read_text()
+          old = "? 'Ajouter au calendrier'"
+          new = "? 'Ajouter'"
+          assert old in text, 'calendar title not found'
+          path.write_text(text.replace(old, new, 1))
+          PY
+          dart format lib/features/matches/presentation/calendar_entry_form_page.dart
+      - name: Commit and remove temporary workflow
+        run: |
+          rm .github/workflows/tmp_preserve_calendar_title.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/calendar_entry_form_page.dart .github/workflows/tmp_preserve_calendar_title.yml
+          git commit -m "Preserve latest calendar title"
+          git push origin HEAD:ui/calendar-form-readability-v2
