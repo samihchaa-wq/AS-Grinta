@@ -9,7 +9,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Set<String> _actualPresent = {};
   Map<String, int> _finishedBenchCounts = {};
   Map<String, String> _canonicalPlayerIds = {};
-  Map<String, PlayerPositionProfile> _positionProfiles = kPlayerPositionProfiles;
+  Map<String, PlayerPositionProfile> _positionProfiles =
+      kPlayerPositionProfiles;
   bool _postMatch = false;
   bool _compositionExisted = false;
   AvailabilityReminderSummary? _reminders;
@@ -108,7 +109,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
     });
     try {
       final waitlistRepository = ref.read(sportWaitlistRepositoryProvider);
-      final compositionRepository = ref.read(matchCompositionRepositoryProvider);
+      final compositionRepository = ref.read(
+        matchCompositionRepositoryProvider,
+      );
       final results = await Future.wait<Object?>([
         waitlistRepository.fetchMatchConvocations(matchId),
         compositionRepository.fetchAdminComposition(matchId),
@@ -232,7 +235,9 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
