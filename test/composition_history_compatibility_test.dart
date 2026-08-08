@@ -33,7 +33,7 @@ void main() {
     );
     expect(
       source,
-      contains('les coordonnées x/y sauvegardées restent la source de vérité'),
+      contains('coordonnées x/y sauvegardées restent la source de vérité'),
     );
   });
 }
