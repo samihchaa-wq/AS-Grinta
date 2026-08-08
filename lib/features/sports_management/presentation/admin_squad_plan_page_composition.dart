@@ -353,7 +353,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
             participantId: entry.participantId,
             displayName: entry.displayName,
             benchCount: _finishedBenchCounts[entry.participantId] ?? 0,
-            playerId: _canonicalPlayerIds[entry.seasonPlayerId],
+            profile: _positionProfiles[
+                _canonicalPlayerIds[entry.seasonPlayerId] ?? ''],
             isGuest: entry.isGuest,
             isGoalkeeper: entry.isGoalkeeper,
           ),

@@ -12,9 +12,10 @@ Dart `lib/features/sports_management/domain/player_position_profiles.dart`.
 Usage :
     python3 tool/derive_position_profiles.py chemin/vers/archives.html
 
-Le fichier Dart produit est la source permanente des postes : il n'existe
-aucune saisie de poste dans l'application ni en base. Pour corriger un profil,
-soit on régénère depuis une archive à jour, soit on édite le Dart à la main.
+Le fichier Dart produit est le socle des postes, pas leur état final :
+l'application y ajoute au vol les compositions réellement alignées depuis, de
+sorte qu'un joueur qui change de poste voit son profil suivre. Il n'existe
+aucune saisie manuelle de poste, ni dans l'application ni en base.
 """
 
 import json
@@ -83,26 +84,34 @@ def nearest_slot(x, y):
 
 
 def read_placements(html):
-    """(nom, poste, saison) de chaque titulaire de chaque compo archivée."""
+    """(nom, poste, saison, date) de chaque titulaire de chaque compo."""
     for article in ARTICLE.findall(html):
         kickoff = KICKOFF.search(article)
         if not kickoff:
             continue
         year, month = int(kickoff.group(1)), int(kickoff.group(2))
         season = year if month >= SEASON_START_MONTH else year - 1
+        played_on = re.search(r'datetime="([\d-]+)"', article).group(1)
         for left, top, title in PION.findall(article):
             if '—' not in title:
                 continue
             name = title.split('—', 1)[0].strip()
             if name == PLACEHOLDER_NAME:
                 continue
-            yield name, nearest_slot(float(left) / 100, float(top) / 100), season
+            yield (
+                name,
+                nearest_slot(float(left) / 100, float(top) / 100),
+                season,
+                played_on,
+            )
 
 
 def build_profiles(html, identities):
     placements = defaultdict(list)
-    for name, slot, season in read_placements(html):
+    coverage_end = ''
+    for name, slot, season, played_on in read_placements(html):
         placements[name].append((slot, season))
+        coverage_end = max(coverage_end, played_on)
 
     latest = max(
         season for entries in placements.values() for _, season in entries
@@ -118,15 +127,17 @@ def build_profiles(html, identities):
             unknown.append((name, len(entries)))
             continue
 
+        # Poids absolus, ancrés sur la saison de référence : la suite de
+        # l'historique, lue en base, s'y ajoute avec la même formule.
         weighted = defaultdict(float)
         for slot, season in entries:
             weighted[slot] += .5 ** ((latest - season) / HALF_LIFE_SEASONS)
         total = sum(weighted.values())
 
-        shares = sorted(weighted.items(), key=lambda kv: (-kv[1], kv[0]))
-        shares = [
-            (slot, weight / total)
-            for slot, weight in shares[:MAX_SLOTS_PER_PLAYER]
+        samples = sorted(weighted.items(), key=lambda kv: (-kv[1], kv[0]))
+        samples = [
+            (slot, weight)
+            for slot, weight in samples[:MAX_SLOTS_PER_PLAYER]
             if weight / total >= MIN_SHARE
         ]
         seasons = sorted({season for _, season in entries})
@@ -136,17 +147,18 @@ def build_profiles(html, identities):
             'appearances': len(entries),
             'first_season': seasons[0],
             'last_season': seasons[-1],
-            'shares': shares,
+            'samples': samples,
+            'total': total,
         })
 
-    return profiles, latest, unknown
+    return profiles, latest, coverage_end, unknown
 
 
 def dart_string(value):
     return "'" + value.replace('\\', r'\\').replace("'", r"\'") + "'"
 
 
-def render(profiles, latest, source):
+def render(profiles, latest, coverage_end, source):
     lines = [
         '// GÉNÉRÉ — ne pas modifier à la main sans le vouloir.',
         '// Produit par `python3 tool/derive_position_profiles.py '
@@ -161,21 +173,48 @@ def render(profiles, latest, source):
         f'// pondérées par récence (demi-vie {HALF_LIFE_SEASONS:.0f} saisons, '
         f'référence {latest}-{latest + 1}).',
         '//',
-        "// C'est la source permanente des postes : ni la base ni "
-        "l'application ne",
-        '// permettent de les saisir.',
+        "// C'est le socle des postes, pas leur état final : l'application y "
+        'ajoute',
+        '// les compositions réellement alignées depuis, avec le poids de leur',
+        '// saison. Aucune saisie manuelle de poste nulle part.',
         '',
         'library;',
         '',
-        '/// Part du temps de jeu passée par un joueur à un poste donné.',
-        'class PlayerPositionShare {',
-        '  const PlayerPositionShare(this.slotLabel, this.share);',
+        '/// Saison de référence de la pondération.',
+        '///',
+        "/// Les poids de ce fichier y sont ancrés : l'historique lu en base "
+        'est',
+        '/// pondéré avec la même formule et le même ancrage, pour que les deux',
+        "/// sources s'additionnent sans se déformer.",
+        f'const int kPositionProfilesReferenceSeason = {latest};',
+        '',
+        "/// Nombre de saisons au bout duquel une titularisation ne pèse plus "
+        'que',
+        '/// la moitié.',
+        f'const double kPositionProfilesHalfLifeSeasons = '
+        f'{HALF_LIFE_SEASONS};',
+        '',
+        "/// Dernière composition couverte par l'archive.",
+        '///',
+        '/// Tout ce qui précède cette date est déjà compté ici : reprendre ces',
+        '/// matchs depuis la base les compterait deux fois.',
+        f'final DateTime kPositionProfilesCoverageEnd = '
+        f'DateTime.utc({coverage_end[:4]}, {int(coverage_end[5:7])}, '
+        f'{int(coverage_end[8:10])});',
+        '',
+        "/// Un poste occupé par un joueur, et le poids de ses passages "
+        'à ce poste.',
+        'class PlayerPositionSample {',
+        '  const PlayerPositionSample(this.slotLabel, this.weight);',
         '',
         '  /// Étiquette du poste, telle que `matchSheetSlots` la nomme.',
         '  final String slotLabel;',
         '',
-        '  /// Part pondérée de ses titularisations à ce poste, entre 0 et 1.',
-        '  final double share;',
+        '  /// Somme pondérée de ses titularisations à ce poste. La valeur est',
+        "  /// absolue, pas un pourcentage : c'est ce qui permet d'y ajouter "
+        'les',
+        '  /// matchs joués depuis.',
+        '  final double weight;',
         '}',
         '',
         '/// Postes de référence d\'un joueur, du plus fréquent au moins '
@@ -184,29 +223,49 @@ def render(profiles, latest, source):
         '  const PlayerPositionProfile({',
         '    required this.displayName,',
         '    required this.appearances,',
-        '    required this.shares,',
+        '    required this.samples,',
+        '    required this.totalWeight,',
         '  });',
         '',
-        "  /// Nom du joueur dans l'archive du club, à titre indicatif.",
+        "  /// Nom du joueur dans l'archive du club, à titre indicatif. Vide "
+        'pour',
+        "  /// un joueur connu uniquement par les matchs joués dans l'app.",
         '  final String displayName;',
         '',
         '  /// Nombre de titularisations relevées, toutes saisons confondues.',
         '  final int appearances;',
         '',
-        '  /// Postes occupés, triés par part décroissante. Jamais vide.',
-        '  final List<PlayerPositionShare> shares;',
+        '  /// Postes occupés, triés par poids décroissant. Jamais vide.',
+        '  final List<PlayerPositionSample> samples;',
+        '',
+        '  /// Somme des poids de toutes ses titularisations, y compris les',
+        "  /// postes trop rares pour figurer dans [samples]. C'est le",
+        '  /// dénominateur des parts : sans lui, tronquer la queue de',
+        '  /// distribution gonflerait artificiellement le poste principal.',
+        '  final double totalWeight;',
+        '',
+        '  /// Part du temps de jeu passée à un poste, entre 0 et 1.',
+        '  double shareOf(String slotLabel) {',
+        '    if (totalWeight <= 0) return 0;',
+        '    for (final sample in samples) {',
+        '      if (sample.slotLabel == slotLabel) {',
+        '        return sample.weight / totalWeight;',
+        '      }',
+        '    }',
+        '    return 0;',
+        '  }',
         '',
         '  /// Le poste où le joueur a le plus joué.',
-        '  String get mainSlotLabel => shares.first.slotLabel;',
+        '  String get mainSlotLabel => samples.first.slotLabel;',
         '',
         "  /// Son second poste, s'il en a réellement un.",
         '  String? get secondarySlotLabel =>',
-        '      shares.length > 1 ? shares[1].slotLabel : null;',
+        '      samples.length > 1 ? samples[1].slotLabel : null;',
         '',
         '  /// Vrai quand aucun poste ne domine : le joueur est un couteau',
         '  /// suisse, que la simulation place en ajustement plutôt que sur',
         "  /// un poste de référence qui n'en est pas un.",
-        f'  bool get isVersatile => shares.first.share < '
+        f'  bool get isVersatile => shareOf(mainSlotLabel) < '
         f'{VERSATILE_THRESHOLD};',
         '}',
         '',
@@ -221,7 +280,8 @@ def render(profiles, latest, source):
 
     for profile in profiles:
         comment = ', '.join(
-            f'{slot} {share * 100:.0f}%' for slot, share in profile['shares']
+            f'{slot} {weight / profile["total"] * 100:.0f}%'
+            for slot, weight in profile['samples']
         )
         for player_id in profile['player_ids']:
             lines.append(f'  // {profile["name"]} — {comment}')
@@ -230,11 +290,12 @@ def render(profiles, latest, source):
                 f'    displayName: {dart_string(profile["name"])},'
             )
             lines.append(f'    appearances: {profile["appearances"]},')
-            lines.append('    shares: <PlayerPositionShare>[')
-            for slot, share in profile['shares']:
+            lines.append(f'    totalWeight: {profile["total"]:.4f},')
+            lines.append('    samples: <PlayerPositionSample>[')
+            for slot, weight in profile['samples']:
                 lines.append(
-                    f'      PlayerPositionShare({dart_string(slot)}, '
-                    f'{share:.4f}),'
+                    f'      PlayerPositionSample({dart_string(slot)}, '
+                    f'{weight:.4f}),'
                 )
             lines.append('    ],')
             lines.append('  ),')
@@ -255,15 +316,19 @@ def main():
         if not name.startswith('_')
     }
 
-    profiles, latest, unknown = build_profiles(html, identities)
-    OUTPUT.write_text(render(profiles, latest, source.name), encoding='utf-8')
+    profiles, latest, coverage_end, unknown = build_profiles(html, identities)
+    OUTPUT.write_text(
+        render(profiles, latest, coverage_end, source.name),
+        encoding='utf-8',
+    )
 
     emitted = sum(len(p['player_ids']) for p in profiles)
     print(f'{OUTPUT.relative_to(pathlib.Path.cwd())} : '
-          f'{len(profiles)} joueurs, {emitted} identités.')
+          f'{len(profiles)} joueurs, {emitted} identités, '
+          f'archive jusqu\'au {coverage_end}.')
     versatile = [
         p['name'] for p in profiles
-        if p['shares'][0][1] < VERSATILE_THRESHOLD
+        if p['samples'][0][1] / p['total'] < VERSATILE_THRESHOLD
     ]
     if versatile:
         print('Polyvalents (aucun poste dominant) : ' + ', '.join(versatile))

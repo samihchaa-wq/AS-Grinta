@@ -33,7 +33,7 @@ SimulationCandidate candidate(
     participantId: name,
     displayName: name,
     benchCount: benchCount,
-    playerId: playerId,
+    profile: playerId == null ? null : kPlayerPositionProfiles[playerId],
     isGuest: isGuest,
     isGoalkeeper: isGoalkeeper,
   );
@@ -63,7 +63,7 @@ void main() {
   group('Fichier des postes de référence', () {
     test('chaque poste cité existe sur la feuille de match', () {
       for (final profile in kPlayerPositionProfiles.values) {
-        for (final share in profile.shares) {
+        for (final share in profile.samples) {
           expect(
             matchSheetSlotPositions.containsKey(share.slotLabel),
             isTrue,
@@ -76,11 +76,11 @@ void main() {
 
     test('les postes sont triés du plus fréquent au moins fréquent', () {
       for (final profile in kPlayerPositionProfiles.values) {
-        expect(profile.shares, isNotEmpty);
-        for (var index = 1; index < profile.shares.length; index += 1) {
+        expect(profile.samples, isNotEmpty);
+        for (var index = 1; index < profile.samples.length; index += 1) {
           expect(
-            profile.shares[index - 1].share,
-            greaterThanOrEqualTo(profile.shares[index].share),
+            profile.samples[index - 1].weight,
+            greaterThanOrEqualTo(profile.samples[index].weight),
             reason: profile.displayName,
           );
         }

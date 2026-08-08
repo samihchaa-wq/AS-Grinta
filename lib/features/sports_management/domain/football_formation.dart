@@ -58,6 +58,24 @@ final Map<String, Offset> matchSheetSlotPositions = {
   for (final slot in matchSheetSlots) slot.label: slot.position,
 };
 
+/// Le poste de la feuille de match le plus proche d'une position.
+///
+/// Le terrain accepte des placements libres : ramener une position à son
+/// poste le plus proche est ce qui permet de lire un historique de
+/// compositions comme une suite de postes occupés.
+String nearestMatchSheetSlotLabel(Offset position) {
+  var closest = matchSheetSlots.first;
+  var best = double.infinity;
+  for (final slot in matchSheetSlots) {
+    final distance = (slot.position - position).distanceSquared;
+    if (distance < best) {
+      best = distance;
+      closest = slot;
+    }
+  }
+  return closest.label;
+}
+
 /// Un dispositif tactique : un nom court, sa ligne défensive (3, 4 ou 5) et
 /// la liste ordonnée de ses 11 postes.
 class FootballFormation {

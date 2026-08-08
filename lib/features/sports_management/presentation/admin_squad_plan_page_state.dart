@@ -9,6 +9,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   Set<String> _actualPresent = {};
   Map<String, int> _finishedBenchCounts = {};
   Map<String, String> _canonicalPlayerIds = {};
+  Map<String, PlayerPositionProfile> _positionProfiles =
+      kPlayerPositionProfiles;
   bool _postMatch = false;
   bool _compositionExisted = false;
   AvailabilityReminderSummary? _reminders;
@@ -148,6 +150,22 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           : await compositionRepository.fetchCanonicalPlayerIds(
               seasonPlayerIds,
             );
+      // Les postes de référence suivent l'évolution des joueurs : l'archive
+      // sert de socle, les matchs joués depuis viennent s'y ajouter. Une
+      // lecture d'historique qui échoue ne doit pas empêcher de préparer le
+      // match : on retombe alors sur le seul socle.
+      var positionProfiles = kPlayerPositionProfiles;
+      if (!postMatch) {
+        try {
+          positionProfiles = mergePlayerPositionProfiles(
+            history: await compositionRepository.fetchPlayerPositionHistory(
+              kLivePositionHistoryStart,
+            ),
+          );
+        } catch (_) {
+          positionProfiles = kPlayerPositionProfiles;
+        }
+      }
       final composition = postMatch
           ? _normalizePostMatchComposition(finalization, saved)
           : _normalizeComposition(convocations, saved, goalkeeperIds);
@@ -160,6 +178,7 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
         _actualPresent = actualPresent;
         _finishedBenchCounts = finishedBenchCounts;
         _canonicalPlayerIds = canonicalPlayerIds;
+        _positionProfiles = positionProfiles;
         _reminders = reminders;
         _desiredConvoked = postMatch
             ? actualPresent

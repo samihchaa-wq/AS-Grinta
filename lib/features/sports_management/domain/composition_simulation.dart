@@ -45,7 +45,7 @@ class SimulationCandidate {
     required this.participantId,
     required this.displayName,
     required this.benchCount,
-    this.playerId,
+    this.profile,
     this.isGuest = false,
     this.isGoalkeeper = false,
   });
@@ -56,15 +56,12 @@ class SimulationCandidate {
   /// Nombre de matchs terminés où le joueur était remplaçant.
   final int benchCount;
 
-  /// Identité canonique (`players.id`), qui donne accès à son profil de
-  /// postes. Nulle pour un invité ou un joueur jamais relevé dans l'archive.
-  final String? playerId;
+  /// Ses postes de référence, archive et matchs joués depuis réunis. Nul pour
+  /// un invité ou un joueur qui n'a encore jamais été aligné.
+  final PlayerPositionProfile? profile;
 
   final bool isGuest;
   final bool isGoalkeeper;
-
-  PlayerPositionProfile? get profile =>
-      playerId == null ? null : kPlayerPositionProfiles[playerId];
 }
 
 /// Un joueur posé sur un poste du dispositif.
@@ -273,12 +270,12 @@ double _affinity(SimulationCandidate candidate, FootballFormationSlot slot) {
   final profile = candidate.profile;
   if (profile == null) return 0;
   var total = 0.0;
-  for (final share in profile.shares) {
-    if (share.slotLabel == 'GB') continue;
-    final origin = matchSheetSlotPositions[share.slotLabel];
+  for (final sample in profile.samples) {
+    if (sample.slotLabel == 'GB') continue;
+    final origin = matchSheetSlotPositions[sample.slotLabel];
     if (origin == null) continue;
     final distance = (origin - slot.position).distance / _affinityRange;
-    total += share.share * math.exp(-distance * distance);
+    total += profile.shareOf(sample.slotLabel) * math.exp(-distance * distance);
   }
   return total;
 }

@@ -7,6 +7,7 @@ import 'package:as_grinta/features/sports_management/data/match_composition_repo
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:flutter/material.dart';
@@ -282,6 +283,12 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
     List<String> seasonPlayerIds,
   ) async =>
       const {};
+
+  @override
+  Future<List<PlayedPosition>> fetchPlayerPositionHistory(
+    DateTime since,
+  ) async =>
+      const [];
 
   @override
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>
