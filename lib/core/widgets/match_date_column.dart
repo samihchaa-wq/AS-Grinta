@@ -1,7 +1,8 @@
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:flutter/material.dart';
 
-/// Colonne date/heure d'une rencontre, façon calendrier :
+/// Colonne date/heure historique, conservée pour les écrans qui en auraient
+/// encore besoin directement :
 ///
 /// ```
 /// Lun
@@ -9,9 +10,6 @@ import 'package:flutter/material.dart';
 /// Sept
 /// 20:45
 /// ```
-///
-/// Pensée pour être posée à gauche d'un [MatchFixture], séparée par un filet
-/// vertical.
 class MatchDateColumn extends StatelessWidget {
   const MatchDateColumn({
     super.key,
@@ -55,8 +53,12 @@ class MatchDateColumn extends StatelessWidget {
   }
 }
 
-/// Combine [MatchDateColumn] + un filet vertical + un contenu (typiquement un
-/// [MatchFixture]).
+/// En-tête compact d'une fiche calendrier.
+///
+/// La date n'est plus comprimée dans une colonne à gauche : elle est affichée
+/// en toutes lettres sur une ligne, juste au-dessus de l'affiche. Cela libère
+/// toute la largeur pour les noms d'équipes et les scores, en « Défilé » comme
+/// en « Par mois ».
 class MatchDateHeader extends StatelessWidget {
   const MatchDateHeader({
     super.key,
@@ -65,44 +67,48 @@ class MatchDateHeader extends StatelessWidget {
     this.foreground,
     this.secondary,
     this.dividerColor,
+    this.showTime = true,
   });
 
   final DateTime kickoffAt;
   final Widget child;
   final Color? foreground;
+
+  /// Conservé pour compatibilité avec les appels existants. La date longue
+  /// utilise volontairement la couleur principale afin de rester blanche sur
+  /// les cartes du calendrier.
   final Color? secondary;
+
+  /// Conservé pour compatibilité : le filet vertical a été supprimé avec la
+  /// nouvelle disposition.
   final Color? dividerColor;
+
+  /// Les archives importées n'ont historiquement qu'une date sans heure.
+  final bool showTime;
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 52,
-            child: MatchDateColumn(
-              kickoffAt: kickoffAt,
-              foreground: foreground,
-              secondary: secondary,
-            ),
+    final theme = Theme.of(context);
+    final dateColor = foreground ?? theme.textTheme.bodyMedium?.color;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppFormats.calendarDateTimeLong(kickoffAt, includeTime: showTime),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: dateColor,
+            fontSize: 12,
+            height: 1.15,
+            fontWeight: FontWeight.w700,
           ),
-          Container(
-            width: 1,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: dividerColor ??
-                (foreground ?? Theme.of(context).dividerColor).withValues(
-                  alpha: .25,
-                ),
-          ),
-          Expanded(
-            child: Align(
-              alignment: Alignment.center,
-              child: SizedBox(width: double.infinity, child: child),
-            ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 7),
+        SizedBox(width: double.infinity, child: child),
+      ],
     );
   }
 }
