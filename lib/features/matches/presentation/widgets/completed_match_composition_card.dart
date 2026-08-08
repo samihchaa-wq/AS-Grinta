@@ -12,6 +12,63 @@ class CompletedPlayerSummary {
   final int goals;
 }
 
+const List<(Offset source, Offset target)> _legacyFlat442DisplayMap = [
+  (Offset(.50, .95), Offset(.50, .86)),
+  (Offset(.15, .75), Offset(.14, .68)),
+  (Offset(.38, .80), Offset(.38, .70)),
+  (Offset(.62, .80), Offset(.62, .70)),
+  (Offset(.85, .75), Offset(.86, .68)),
+  (Offset(.15, .50), Offset(.14, .42)),
+  (Offset(.38, .55), Offset(.38, .42)),
+  (Offset(.62, .55), Offset(.62, .42)),
+  (Offset(.85, .50), Offset(.86, .42)),
+  (Offset(.35, .25), Offset(.36, .17)),
+  (Offset(.65, .25), Offset(.64, .17)),
+];
+
+bool _usesLegacyFlat442Layout(List<MatchCompositionEntry> entries) {
+  if (entries.length != _legacyFlat442DisplayMap.length) return false;
+  final positions = entries
+      .where((entry) => entry.x != null && entry.y != null)
+      .map((entry) => Offset(entry.x!, entry.y!))
+      .toList();
+  if (positions.length != _legacyFlat442DisplayMap.length) return false;
+  return _legacyFlat442DisplayMap.every(
+    (mapping) => positions.any(
+      (position) => (position - mapping.source).distance <= .025,
+    ),
+  );
+}
+
+List<MatchCompositionEntry> _displayFieldEntries(
+  List<MatchCompositionEntry> entries,
+) {
+  if (!_usesLegacyFlat442Layout(entries)) return entries;
+  return [
+    for (final entry in entries)
+      entry.moveTo(
+        MatchCompositionZone.field,
+        x: _legacyFlat442DisplayMap
+            .firstWhere(
+              (mapping) =>
+                  (Offset(entry.x!, entry.y!) - mapping.source).distance <=
+                  .025,
+            )
+            .target
+            .dx,
+        y: _legacyFlat442DisplayMap
+            .firstWhere(
+              (mapping) =>
+                  (Offset(entry.x!, entry.y!) - mapping.source).distance <=
+                  .025,
+            )
+            .target
+            .dy,
+        sortOrder: entry.sortOrder,
+      ),
+  ];
+}
+
 /// Rendu unifié de la composition d'un match terminé, que la donnée vienne
 /// du système Live ou de l'archive historique importée : même terrain
 /// ([CompositionPitch], photos, buts ⚽, couronne 👑) quand une composition
@@ -72,6 +129,9 @@ class _MpgCompletedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bench = composition.entriesFor(MatchCompositionZone.bench);
+    final field = _displayFieldEntries(
+      composition.entriesFor(MatchCompositionZone.field),
+    );
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -96,9 +156,7 @@ class _MpgCompletedCard extends StatelessWidget {
             Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
-                child: CompositionPitch(
-                  entries: composition.entriesFor(MatchCompositionZone.field),
-                ),
+                child: CompositionPitch(entries: field),
               ),
             ),
             if (bench.isNotEmpty) ...[
