@@ -33,10 +33,10 @@ double? _persistedMergedMatchesScrollOffset;
 /// Contenu de l'onglet Matchs.
 ///
 /// Le flux reste strictement chronologique, du plus ancien au plus futur.
-/// Dans « Défilé » uniquement, deux repères compacts et collants encadrent
-/// la zone active : « Terminés » pour les archives et résultats validés,
-/// puis « À venir » pour les rencontres encore hors fenêtre J-6. Les cartes
-/// J-6, Live et à valider conservent leur propre habillage entre les deux.
+/// Dans « Défilé » uniquement, « Terminés » repère les archives et résultats
+/// validés, puis « À venir » commence dès la première entrée non terminée.
+/// La fenêtre J-6 continue uniquement de piloter l'habillage et les actions
+/// des cartes, sans créer une troisième catégorie de bandeau.
 class MergedMatchesView extends ConsumerStatefulWidget {
   const MergedMatchesView({super.key});
 
@@ -707,7 +707,6 @@ class _FeedEntry {
 
 enum _FeedSectionKind {
   finished,
-  active,
   upcoming,
 }
 
@@ -721,8 +720,6 @@ class _FeedSection {
     switch (kind) {
       case _FeedSectionKind.finished:
         return 'Terminés';
-      case _FeedSectionKind.active:
-        return null;
       case _FeedSectionKind.upcoming:
         return 'À venir';
     }
@@ -730,9 +727,9 @@ class _FeedSection {
 }
 
 /// Découpe le flux déjà trié en zones contiguës sans déplacer la moindre
-/// carte. La zone active (J-6, Live ou à valider) n'ajoute volontairement
-/// aucun troisième bandeau : ses cartes la distinguent déjà, tandis que les
-/// deux bandeaux demandés l'encadrent.
+/// carte. Les états J-6, Live et à valider restent dans « À venir » tant que
+/// le match n'est pas terminé : ils se distinguent par leur carte, pas par
+/// une frontière de bandeau prématurée.
 List<_FeedSection> _buildFeedSections(List<_FeedEntry> entries) {
   final sections = <_FeedSection>[];
 
@@ -756,7 +753,6 @@ _FeedSectionKind _feedSectionKind(_FeedKind kind) {
     case _FeedKind.nextMatch:
     case _FeedKind.liveMatch:
     case _FeedKind.awaitingValidationMatch:
-      return _FeedSectionKind.active;
     case _FeedKind.upcomingMatch:
     case _FeedKind.event:
       return _FeedSectionKind.upcoming;
