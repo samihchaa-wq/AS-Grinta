@@ -135,5 +135,3 @@ Les documents à maintenir comme références actuelles sont :
 - `docs/ui-foundations.md` — fondations UI encore utilisées.
 
 Les comptes rendus de lancement et anciennes spécifications restent consultables dans l’historique Git mais ne sont pas conservés comme documentation active.
-
-<!-- CI retrigger PR #812 -->
