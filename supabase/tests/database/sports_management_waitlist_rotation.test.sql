@@ -212,13 +212,14 @@ select public.admin_override_match_availability(
 
 select is(
   (
-    select season_player_id
+    select count(*)::integer
     from public.match_sport_participants
     where match_id = current_setting('test.waitlist_match_early')::uuid
-      and convocation_status = 'not_convoked'
+      and availability_status = 'available'
+      and convocation_status = 'convoked'
   ),
-  '74000000-0000-0000-0000-000000000021'::uuid,
-  'le premier de la liste est seulement proposé non convoqué'
+  3,
+  'les disponibles restent convoqués tant que l’admin ne tranche pas'
 );
 
 select public.admin_reorder_sport_waitlist(
@@ -237,13 +238,14 @@ select public.admin_recompute_match_convocations(
 
 select is(
   (
-    select season_player_id
+    select count(*)::integer
     from public.match_sport_participants
     where match_id = current_setting('test.waitlist_match_early')::uuid
-      and convocation_status = 'not_convoked'
+      and availability_status = 'available'
+      and convocation_status = 'convoked'
   ),
-  '74000000-0000-0000-0000-000000000023'::uuid,
-  'l’ordre administrateur modifie la recommandation'
+  3,
+  'réordonner la liste ne modifie pas l’effectif sans décision admin'
 );
 
 select public.admin_set_match_convocation(
@@ -317,6 +319,11 @@ select public.admin_override_match_availability(
   '74000000-0000-0000-0000-000000000023',
   'available', null, 'Disponible'
 );
+select public.admin_set_match_convocation(
+  current_setting('test.waitlist_match_late')::uuid,
+  '74000000-0000-0000-0000-000000000023',
+  'not_convoked', true, 'Rotation tardive'
+);
 select public.admin_publish_match_convocations(
   current_setting('test.waitlist_match_late')::uuid,
   'Publication tardive'
@@ -362,7 +369,7 @@ select is(
       'publish_convocations'
     )
   ),
-  5,
+  6,
   'les réordonnancements, dérogations et publications sont audités'
 );
 

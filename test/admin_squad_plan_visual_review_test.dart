@@ -9,6 +9,7 @@ import 'package:as_grinta/features/sports_management/domain/availability_reminde
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,8 +22,9 @@ const _matchId = 'match-visual-review';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the compact effectif with explicit save',
-      (tester) async {
+  testWidgets('captures the compact effectif with explicit save', (
+    tester,
+  ) async {
     await _setPhoneViewport(tester);
     await _pumpWorkspace(
       tester,
@@ -35,10 +37,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(ActionChip), findsWidgets);
-    expect(
-      find.widgetWithText(FilledButton, 'Enregistrer'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'effectif_compact_enregistrer.png');
   });
@@ -51,15 +50,9 @@ void main() {
       initialStep: 'composition',
     );
 
-    expect(
-      find.textContaining('puis appuie sur Enregistrer.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('puis appuie sur Enregistrer.'), findsOneWidget);
     expect(find.text('Remplaçants (3)'), findsOneWidget);
-    expect(
-      find.widgetWithText(FilledButton, 'Enregistrer'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(FilledButton, 'Enregistrer'), findsOneWidget);
     expect(
       find.widgetWithText(FilledButton, 'Publier la composition'),
       findsNothing,
@@ -67,6 +60,61 @@ void main() {
     expect(find.textContaining('Brouillon'), findsNothing);
     await _capture(tester, 'composition_enregistrer.png');
   });
+
+  testWidgets(
+    'moves absent and unanswered players without losing their colors',
+    (tester) async {
+      await _setWideViewport(tester);
+      final convocations = _convocations();
+      final repository = _FakeSportWaitlistRepository(convocations);
+      await _pumpWorkspace(
+        tester,
+        convocations: convocations,
+        initialStep: 'effectif',
+        waitlistRepository: repository,
+      );
+
+      expect(find.text('Convoqués (3)'), findsOneWidget);
+      expect(find.text('Liste d’attente (0)'), findsOneWidget);
+      expect(find.text('Absents (1)'), findsOneWidget);
+      expect(find.text('Sans réponse (1)'), findsOneWidget);
+      expect(
+        find.byType(LongPressDraggable<ConvocationPlayer>),
+        findsNWidgets(5),
+      );
+
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
+      expect(find.text('Convoqués (4)'), findsOneWidget);
+      expect(find.text('Absents (0)'), findsOneWidget);
+      expect(
+        _playerChip(tester, 'Diego').side?.color,
+        _effectifColor(const Color(0xFFB33A3A)),
+      );
+
+      await _dragPlayerToColumn(tester, playerName: 'Emma', columnIndex: 1);
+      expect(find.text('Liste d’attente (1)'), findsOneWidget);
+      expect(find.text('Sans réponse (0)'), findsOneWidget);
+      expect(
+        _playerChip(tester, 'Emma').side?.color,
+        _effectifColor(const Color(0xFF6B7280)),
+      );
+
+      // Le retour vers la colonne de disponibilité d'origine doit rester
+      // possible, puis le joueur peut être replacé parmi les convoqués.
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 2);
+      expect(find.text('Convoqués (3)'), findsOneWidget);
+      expect(find.text('Absents (1)'), findsOneWidget);
+      await _dragPlayerToColumn(tester, playerName: 'Diego', columnIndex: 0);
+
+      final saveButton = find.widgetWithText(FilledButton, 'Enregistrer');
+      await tester.ensureVisible(saveButton);
+      await tester.tap(saveButton);
+      await _pumpFrames(tester, count: 20);
+
+      expect(repository.lastDecisions?['sp4'], ConvocationStatus.convoked);
+      expect(repository.lastDecisions?['sp5'], ConvocationStatus.notConvoked);
+    },
+  );
 }
 
 Future<void> _setPhoneViewport(WidgetTester tester) async {
@@ -74,10 +122,16 @@ Future<void> _setPhoneViewport(WidgetTester tester) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
 }
 
+Future<void> _setWideViewport(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(1500, 1100));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+}
+
 Future<void> _pumpWorkspace(
   WidgetTester tester, {
   required MatchConvocations convocations,
   required String initialStep,
+  _FakeSportWaitlistRepository? waitlistRepository,
 }) async {
   await tester.pumpWidget(
     RepaintBoundary(
@@ -85,7 +139,7 @@ Future<void> _pumpWorkspace(
       child: ProviderScope(
         overrides: [
           sportWaitlistRepositoryProvider.overrideWithValue(
-            _FakeSportWaitlistRepository(convocations),
+            waitlistRepository ?? _FakeSportWaitlistRepository(convocations),
           ),
           matchCompositionRepositoryProvider.overrideWithValue(
             _FakeMatchCompositionRepository(),
@@ -118,6 +172,26 @@ Future<void> _pumpWorkspace(
   );
   await _pumpFrames(tester, count: 20);
 }
+
+Future<void> _dragPlayerToColumn(
+  WidgetTester tester, {
+  required String playerName,
+  required int columnIndex,
+}) async {
+  final player = find.widgetWithText(ActionChip, playerName);
+  final target = find.byType(DragTarget<ConvocationPlayer>).at(columnIndex);
+  final gesture = await tester.startGesture(tester.getCenter(player));
+  await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+  await gesture.moveTo(tester.getCenter(target));
+  await tester.pump(const Duration(milliseconds: 200));
+  await gesture.up();
+  await _pumpFrames(tester, count: 4);
+}
+
+ActionChip _playerChip(WidgetTester tester, String playerName) =>
+    tester.widget<ActionChip>(find.widgetWithText(ActionChip, playerName));
+
+Color _effectifColor(Color color) => color.withValues(alpha: .72);
 
 Future<void> _pumpFrames(WidgetTester tester, {int count = 10}) async {
   for (var index = 0; index < count; index += 1) {
@@ -233,6 +307,7 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   _FakeSportWaitlistRepository(this.convocations);
 
   final MatchConvocations convocations;
+  Map<String, ConvocationStatus>? lastDecisions;
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
@@ -261,6 +336,17 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
       canRemind: true,
       players: [],
     );
+  }
+
+  @override
+  Future<MatchConvocations> publishEffectif({
+    required String matchId,
+    required int squadSizeLimit,
+    required Map<String, ConvocationStatus> decisions,
+    String? reason,
+  }) async {
+    lastDecisions = Map<String, ConvocationStatus>.from(decisions);
+    return convocations;
   }
 
   @override

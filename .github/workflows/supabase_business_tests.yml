@@ -364,6 +364,8 @@ jobs:
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/migrations/20260806200000_fix_live_score_event_desync.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
+              -f supabase/migrations/20260808083817_allow_unavailable_effectif_decisions.sql
+            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/season_lifecycle_acl.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/match_delete_rpc_grants.sql
