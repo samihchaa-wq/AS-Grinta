@@ -1,0 +1,139 @@
+name: Temporary patch legacy 4-4-2
+
+on:
+  push:
+    branches:
+      - agent/beautify-legacy-442
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/beautify-legacy-442
+      - name: Patch legacy 4-4-2 display geometry
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pitch = Path('lib/features/sports_management/presentation/widgets/composition_pitch.dart')
+          text = pitch.read_text()
+
+          anchor = "class CompositionPitch extends StatefulWidget {"
+          helper = r'''const List<(Offset source, Offset target)> _legacyFlat442DisplayMap = [
+  (Offset(.50, .95), Offset(.50, .86)),
+  (Offset(.15, .75), Offset(.14, .68)),
+  (Offset(.38, .80), Offset(.38, .70)),
+  (Offset(.62, .80), Offset(.62, .70)),
+  (Offset(.85, .75), Offset(.86, .68)),
+  (Offset(.15, .50), Offset(.14, .42)),
+  (Offset(.38, .55), Offset(.38, .42)),
+  (Offset(.62, .55), Offset(.62, .42)),
+  (Offset(.85, .50), Offset(.86, .42)),
+  (Offset(.35, .25), Offset(.36, .17)),
+  (Offset(.65, .25), Offset(.64, .17)),
+];
+
+bool usesLegacyFlat442Layout(List<MatchCompositionEntry> entries) {
+  if (entries.length != _legacyFlat442DisplayMap.length) return false;
+  final positions = entries
+      .where((entry) => entry.x != null && entry.y != null)
+      .map((entry) => Offset(entry.x!, entry.y!))
+      .toList();
+  if (positions.length != _legacyFlat442DisplayMap.length) return false;
+  return _legacyFlat442DisplayMap.every(
+    (mapping) => positions.any(
+      (position) => (position - mapping.source).distance <= .025,
+    ),
+  );
+}
+
+Offset compositionDisplayPosition(
+  MatchCompositionEntry entry, {
+  required bool legacyFlat442,
+}) {
+  final raw = Offset(entry.x ?? .5, entry.y ?? .5);
+  if (!legacyFlat442) return raw;
+  for (final mapping in _legacyFlat442DisplayMap) {
+    if ((raw - mapping.source).distance <= .025) return mapping.target;
+  }
+  return raw;
+}
+
+'''
+          if helper not in text:
+              text = text.replace(anchor, helper + anchor)
+
+          old = """          builder: (context, constraints) {\n            return DragTarget<MatchCompositionEntry>("""
+          new = """          builder: (context, constraints) {\n            final legacyFlat442 = usesLegacyFlat442Layout(widget.entries);\n            return DragTarget<MatchCompositionEntry>("""
+          if old not in text:
+              raise SystemExit('CompositionPitch LayoutBuilder anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """                            constraints.biggest,\n                          ),"""
+          new = """                            constraints.biggest,\n                            legacyFlat442,\n                          ),"""
+          if old not in text:
+              raise SystemExit('CompositionPitch player call anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """    MatchCompositionEntry entry,\n    Size size,\n  ) {\n    const markerWidth = 64.0;\n    const markerHeight = 84.0;\n    final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();\n    final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();"""
+          new = """    MatchCompositionEntry entry,\n    Size size,\n    bool legacyFlat442,\n  ) {\n    const markerWidth = 64.0;\n    const markerHeight = 84.0;\n    final displayPosition = compositionDisplayPosition(\n      entry,\n      legacyFlat442: legacyFlat442,\n    );\n    final x = displayPosition.dx.clamp(0.08, 0.92).toDouble();\n    final y = displayPosition.dy.clamp(0.06, 0.94).toDouble();"""
+          if old not in text:
+              raise SystemExit('CompositionPitch position block not found')
+          text = text.replace(old, new, 1)
+          pitch.write_text(text)
+
+          editor = Path('lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart')
+          text = editor.read_text()
+
+          old = """  MatchCompositionEntry? _entryFor(FootballFormationSlot slot) {\n    MatchCompositionEntry? closest;\n    var distance = double.infinity;\n    for (final entry in entries) {\n      final current = Offset(entry.x ?? .5, entry.y ?? .5);"""
+          new = """  MatchCompositionEntry? _entryFor(\n    FootballFormationSlot slot,\n    bool legacyFlat442,\n  ) {\n    MatchCompositionEntry? closest;\n    var distance = double.infinity;\n    for (final entry in entries) {\n      final current = compositionDisplayPosition(\n        entry,\n        legacyFlat442: legacyFlat442,\n      );"""
+          if old not in text:
+              raise SystemExit('FormationPitchEditor _entryFor anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """          builder: (context, constraints) {\n            return DecoratedBox("""
+          new = """          builder: (context, constraints) {\n            final legacyFlat442 = usesLegacyFlat442Layout(entries);\n            return DecoratedBox("""
+          if old not in text:
+              raise SystemExit('FormationPitchEditor LayoutBuilder anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """                        slot,\n                        _entryFor(slot),\n                        finishedBenchCounts,\n                      ),"""
+          new = """                        slot,\n                        _entryFor(slot, legacyFlat442),\n                        finishedBenchCounts,\n                        legacyFlat442,\n                      ),"""
+          if old not in text:
+              raise SystemExit('FormationPitchEditor slot call anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """    FootballFormationSlot slot,\n    MatchCompositionEntry? entry,\n    Map<String, int> finishedBenchCounts,\n  ) {"""
+          new = """    FootballFormationSlot slot,\n    MatchCompositionEntry? entry,\n    Map<String, int> finishedBenchCounts,\n    bool legacyFlat442,\n  ) {"""
+          if old not in text:
+              raise SystemExit('FormationPitchEditor _slot signature anchor not found')
+          text = text.replace(old, new, 1)
+
+          old = """    final visualPosition = entry == null\n        ? slot.position\n        : Offset(entry.x ?? slot.position.dx, entry.y ?? slot.position.dy);"""
+          new = """    final visualPosition = entry == null\n        ? slot.position\n        : compositionDisplayPosition(\n            entry,\n            legacyFlat442: legacyFlat442,\n          );"""
+          if old not in text:
+              raise SystemExit('FormationPitchEditor visual position anchor not found')
+          text = text.replace(old, new, 1)
+          editor.write_text(text)
+          PY
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format patched files
+        run: dart format lib/features/sports_management/presentation/widgets/composition_pitch.dart lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/sports_management/presentation/widgets/composition_pitch.dart lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Beautify legacy 4-4-2 display geometry"
+          git push origin HEAD:agent/beautify-legacy-442
