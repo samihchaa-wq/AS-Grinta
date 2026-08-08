@@ -138,7 +138,10 @@ class FormationPitchEditor extends StatelessWidget {
     // sa position visuelle, exactement comme sur la fiche du match.
     final visualPosition = entry == null
         ? slot.position
-        : Offset(entry.x ?? slot.position.dx, entry.y ?? slot.position.dy);
+        : Offset(
+            entry.x ?? slot.position.dx,
+            entry.y ?? slot.position.dy,
+          );
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - width / 2)
