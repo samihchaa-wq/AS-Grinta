@@ -222,9 +222,9 @@ class MatchInfoTab extends ConsumerWidget {
                     encounters.length > 1
                         ? '5 dernières rencontres'
                         : 'Dernière rencontre',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: AppSpacing.contentGap),
                   if (encounters.isEmpty)
@@ -245,9 +245,7 @@ class MatchInfoTab extends ConsumerWidget {
                           if (index > 0)
                             const SizedBox(width: AppSpacing.microGap),
                           Expanded(
-                            child: _EncounterChip(
-                              encounter: encounters[index],
-                            ),
+                            child: _EncounterChip(encounter: encounters[index]),
                           ),
                         ],
                       ],
