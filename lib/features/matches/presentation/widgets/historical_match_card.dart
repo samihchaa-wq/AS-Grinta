@@ -22,10 +22,10 @@ class HistoricalMatchCard extends StatelessWidget {
     final homeScore = isHome ? match.grintaScore : match.opponentScore;
     final awayScore = isHome ? match.opponentScore : match.grintaScore;
     final nameStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-      fontSize: 16,
-      height: 1.1,
-      fontWeight: FontWeight.w800,
-    );
+          fontSize: 16,
+          height: 1.1,
+          fontWeight: FontWeight.w800,
+        );
 
     return Card(
       color: CalendarCardPalette.finishedSurface,
