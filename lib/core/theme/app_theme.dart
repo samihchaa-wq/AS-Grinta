@@ -306,7 +306,7 @@ abstract final class AppTheme {
           }),
           foregroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
-                ? primaryBright
+                ? Colors.white
                 : textSecondary;
           }),
           side: WidgetStateProperty.all(BorderSide.none),
