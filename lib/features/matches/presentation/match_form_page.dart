@@ -198,7 +198,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     return Scaffold(
       appBar: GrintaAppBar(
         title: Text(
-          widget.match == null ? 'Créer un match' : 'Modifier le match',
+          widget.match == null ? 'Créer un match' : 'Modifier',
         ),
         admin: true,
         actions: [
