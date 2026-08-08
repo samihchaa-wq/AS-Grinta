@@ -434,12 +434,18 @@ class PlayerAvatar extends StatefulWidget {
     required this.name,
     this.isGoalkeeper = false,
     this.size = 52,
+    this.fallbackScale = .84,
   });
 
   final String? photoUrl;
   final String name;
   final bool isGoalkeeper;
   final double size;
+
+  /// Les initiales restent dans le même emplacement que la photo, mais leur
+  /// carré est volontairement plus petit pour ne jamais dominer ni déborder
+  /// visuellement sur les compositions compactes.
+  final double fallbackScale;
 
   @override
   State<PlayerAvatar> createState() => _PlayerAvatarState();
@@ -538,23 +544,34 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   @override
   Widget build(BuildContext context) {
     final size = widget.size;
+    final fallbackScale = widget.fallbackScale.clamp(.5, 1).toDouble();
+    final fallbackSize = size * fallbackScale;
     final border = widget.isGoalkeeper ? const Color(0xFFE59A1F) : Colors.white;
     final original = widget.photoUrl?.trim();
     final hasPhoto = original != null && original.isNotEmpty;
     final url = _resolvedPhotoUrl;
-    return Container(
+    final showPhoto = hasPhoto && url != null;
+    final visualSize = showPhoto ? size : fallbackSize;
+
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.28),
-        border: hasPhoto ? null : Border.all(color: border, width: 2),
+      child: Center(
+        child: Container(
+          width: visualSize,
+          height: visualSize,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(visualSize * 0.28),
+            border: showPhoto ? null : Border.all(color: border, width: 2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: showPhoto ? _photo(url) : _initials(visualSize),
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: hasPhoto && url != null ? _photo(url) : _initials(),
     );
   }
 
-  Widget _initials() {
+  Widget _initials(double visualSize) {
     final word = widget.name.trim().split(RegExp(r'\s+')).first;
     final initials = word.isEmpty
         ? '?'
@@ -573,7 +590,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w900,
-            fontSize: widget.size * 0.32,
+            fontSize: visualSize * 0.32,
             shadows: const [Shadow(color: Colors.black26, blurRadius: 2)],
           ),
         ),
@@ -582,6 +599,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
   }
 
   Widget _photo(String url) {
+    final fallbackSize = widget.size * widget.fallbackScale.clamp(.5, 1).toDouble();
     return Image.network(
       url,
       key: ValueKey('$url#$_attempt'),
@@ -592,7 +610,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       filterQuality: FilterQuality.medium,
       webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
       loadingBuilder: (context, child, progress) =>
-          progress == null ? child : _initials(),
+          progress == null ? child : _initials(fallbackSize),
       errorBuilder: (context, error, stack) {
         if (_attempt < 3) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -605,7 +623,7 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
             }
           });
         }
-        return _initials();
+        return _initials(fallbackSize);
       },
     );
   }
