@@ -74,6 +74,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(3),
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppTheme.surfaceHigh,
