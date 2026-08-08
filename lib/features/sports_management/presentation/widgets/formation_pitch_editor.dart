@@ -135,6 +135,7 @@ class FormationPitchEditor extends StatelessWidget {
     // Les emplacements restent les cibles tactiques du dispositif. Dès qu'un
     // joueur possède cependant des coordonnées sauvegardées, elles deviennent
     // sa position visuelle, exactement comme sur la fiche du match.
+    // Cette règle vaut pour tous les dispositifs, présents comme historiques.
     final visualPosition = entry == null
         ? slot.position
         : Offset(entry.x ?? slot.position.dx, entry.y ?? slot.position.dy);
