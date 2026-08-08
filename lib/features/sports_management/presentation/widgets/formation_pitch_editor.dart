@@ -41,7 +41,7 @@ class FormationPitchEditor extends StatelessWidget {
   final List<FootballFormationSlot> slots;
   final List<MatchCompositionEntry> entries;
   final void Function(MatchCompositionEntry entry, FootballFormationSlot slot)
-  onDroppedOnSlot;
+      onDroppedOnSlot;
   final ValueChanged<MatchCompositionEntry> onRemoveFromField;
   final bool editable;
 
@@ -141,9 +141,8 @@ class FormationPitchEditor extends StatelessWidget {
         : Offset(entry.x ?? slot.position.dx, entry.y ?? slot.position.dy);
     final x = visualPosition.dx.clamp(0.08, 0.92).toDouble();
     final y = visualPosition.dy.clamp(0.06, 0.94).toDouble();
-    final left = (x * size.width - width / 2)
-        .clamp(0.0, size.width - width)
-        .toDouble();
+    final left =
+        (x * size.width - width / 2).clamp(0.0, size.width - width).toDouble();
     final top = (y * size.height - height / 2)
         .clamp(0.0, size.height - height)
         .toDouble();
