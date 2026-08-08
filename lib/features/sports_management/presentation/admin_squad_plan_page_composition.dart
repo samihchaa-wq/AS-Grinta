@@ -348,7 +348,8 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
   ) {
     return [
       for (final entry in composition.entries)
-        if (_desiredConvoked.contains(entry.participantId))
+        if (_desiredEffectifStatuses[entry.participantId] ==
+            ConvocationStatus.convoked)
           SimulationCandidate(
             participantId: entry.participantId,
             displayName: entry.displayName,
