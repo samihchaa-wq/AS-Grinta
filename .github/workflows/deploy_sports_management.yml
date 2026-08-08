@@ -136,3 +136,4 @@ jobs:
 
 # Production release PRs are dry-run only. Real database or Edge Function writes
 # require an explicit manual workflow_dispatch opt-in.
+# Dry-run validation trigger: 2026-08-05 after migration-history reconciliation.
