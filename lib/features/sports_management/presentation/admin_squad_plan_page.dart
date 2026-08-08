@@ -17,8 +17,11 @@ import 'package:as_grinta/features/sports_management/data/match_composition_repo
 import 'package:as_grinta/features/sports_management/data/sport_match_finalization_repository.dart';
 import 'package:as_grinta/features/sports_management/data/sport_waitlist_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/availability_reminder_models.dart';
+import 'package:as_grinta/features/sports_management/domain/composition_simulation.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_profiles.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_match_finalization.dart';
 import 'package:as_grinta/features/sports_management/domain/sport_waitlist_models.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';

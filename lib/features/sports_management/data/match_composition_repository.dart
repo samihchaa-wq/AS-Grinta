@@ -1,5 +1,7 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
+import 'package:flutter/painting.dart' show Offset;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -9,7 +11,11 @@ abstract interface class MatchCompositionRepository {
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
   );
+  Future<Map<String, String>> fetchCanonicalPlayerIds(
+    List<String> seasonPlayerIds,
+  );
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId);
+  Future<List<PlayedPosition>> fetchPlayerPositionHistory(DateTime since);
   Future<MatchComposition> saveComposition({
     required MatchComposition composition,
     required bool allowSquadSizeException,
@@ -76,6 +82,32 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
         .toSet();
   }
 
+  /// Identité canonique de chaque joueur de l'effectif, indexée par
+  /// `season_players.id`.
+  ///
+  /// C'est cette identité, stable d'une saison à l'autre, qui donne accès aux
+  /// postes de référence utilisés par la simulation de composition.
+  @override
+  Future<Map<String, String>> fetchCanonicalPlayerIds(
+    List<String> seasonPlayerIds,
+  ) async {
+    final ids = seasonPlayerIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (ids.isEmpty) return const {};
+    final rows = await _client
+        .from('season_players')
+        .select('id, player_id')
+        .inFilter('id', ids);
+    return {
+      for (final row in (rows as List).cast<Map<String, dynamic>>())
+        if (_clean(row['player_id']?.toString()) case final playerId?)
+          row['id'].toString(): playerId,
+    };
+  }
+
   @override
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async {
     final response = await _client.rpc(
@@ -89,6 +121,40 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
           entry['participant_id'].toString():
               (entry['finished_bench_count'] as num?)?.toInt() ?? 0,
     };
+  }
+
+  /// Les placements des titulaires sur les matchs déjà joués depuis [since].
+  ///
+  /// Ils prolongent l'archive figée dans l'application : c'est ce qui permet
+  /// aux postes de référence de suivre un joueur qui change de poste.
+  @override
+  Future<List<PlayedPosition>> fetchPlayerPositionHistory(
+    DateTime since,
+  ) async {
+    final response = await _client.rpc(
+      'admin_get_player_position_history',
+      params: {'p_since': since.toUtc().toIso8601String()},
+    );
+    if (response is! List) return const [];
+    return [
+      for (final row in response.cast<Map<String, dynamic>>())
+        if (_playedPosition(row) case final position?) position,
+    ];
+  }
+
+  PlayedPosition? _playedPosition(Map<String, dynamic> row) {
+    final playerId = _clean(row['player_id']?.toString());
+    final x = (row['x'] as num?)?.toDouble();
+    final y = (row['y'] as num?)?.toDouble();
+    final kickoffAt = DateTime.tryParse(row['kickoff_at']?.toString() ?? '');
+    if (playerId == null || x == null || y == null || kickoffAt == null) {
+      return null;
+    }
+    return PlayedPosition(
+      playerId: playerId,
+      position: Offset(x, y),
+      kickoffAt: kickoffAt.toLocal(),
+    );
   }
 
   @override

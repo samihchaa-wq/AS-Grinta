@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_composition_repository.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/domain/player_position_history.dart';
 import 'package:as_grinta/features/sports_management/presentation/match_lineup_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -97,6 +98,20 @@ class _FakeCompositionRepository implements MatchCompositionRepository {
     List<String> seasonPlayerIds,
   ) async {
     return const {'player-1'};
+  }
+
+  @override
+  Future<Map<String, String>> fetchCanonicalPlayerIds(
+    List<String> seasonPlayerIds,
+  ) async {
+    return const {};
+  }
+
+  @override
+  Future<List<PlayedPosition>> fetchPlayerPositionHistory(
+    DateTime since,
+  ) async {
+    return const [];
   }
 
   @override
