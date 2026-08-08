@@ -35,6 +35,16 @@ class AppFormats {
     'Dim',
   ];
 
+  static const _weekdaysLong = [
+    'Lundi',
+    'Mardi',
+    'Mercredi',
+    'Jeudi',
+    'Vendredi',
+    'Samedi',
+    'Dimanche',
+  ];
+
   static const _monthsShort = [
     'Janv',
     'Févr',
@@ -50,23 +60,57 @@ class AppFormats {
     'Déc',
   ];
 
+  static const _monthsLong = [
+    'Janvier',
+    'Février',
+    'Mars',
+    'Avril',
+    'Mai',
+    'Juin',
+    'Juillet',
+    'Août',
+    'Septembre',
+    'Octobre',
+    'Novembre',
+    'Décembre',
+  ];
+
   /// Jour de la semaine abrégé : "Lun", "Mar"… (DateTime.weekday va de 1 à 7).
   static String weekdayShort(DateTime dt) =>
       _weekdaysShort[dt.toLocal().weekday - 1];
 
+  /// Jour de la semaine en toutes lettres : "Lundi", "Mardi"…
+  static String weekdayLong(DateTime dt) =>
+      _weekdaysLong[dt.toLocal().weekday - 1];
+
   /// Mois abrégé : "Janv", "Sept"…
   static String monthShort(DateTime dt) => _monthsShort[dt.toLocal().month - 1];
+
+  /// Mois en toutes lettres : "Janvier", "Septembre"…
+  static String monthLong(DateTime dt) => _monthsLong[dt.toLocal().month - 1];
 
   /// Numéro du jour sur deux chiffres : "07".
   static String dayNumber(DateTime dt) =>
       dt.toLocal().day.toString().padLeft(2, '0');
 
-  /// Heure au format "20:45" (deux points, pour la colonne de date).
+  /// Heure au format "20:45" (deux points, pour l'affichage calendrier).
   static String hourMinute(DateTime dt) {
     final local = dt.toLocal();
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  /// Date de calendrier lisible sur une seule ligne :
+  /// "Jeudi 21 Mai 2026 • 20:45".
+  static String calendarDateTimeLong(
+    DateTime dt, {
+    bool includeTime = true,
+  }) {
+    final local = dt.toLocal();
+    final fullDate =
+        '${weekdayLong(local)} ${dayNumber(local)} ${monthLong(local)} ${local.year}';
+    return includeTime ? '$fullDate • ${hourMinute(local)}' : fullDate;
   }
 
   /// Accorde un nom en français : le pluriel n'apparaît qu'à partir de 2.
