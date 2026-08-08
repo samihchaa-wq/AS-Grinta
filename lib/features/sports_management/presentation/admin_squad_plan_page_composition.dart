@@ -25,7 +25,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final savedById = {
       for (final entry in saved.entries) entry.participantId: entry,
     };
-    return _rescueOrphans(
+    return _preserveSavedLayout(
       saved.copyWith(
         entries: [
           for (final base in baseline.entries)
@@ -77,7 +77,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
     final savedById = {
       for (final entry in saved.entries) entry.participantId: entry,
     };
-    return _rescueOrphans(
+    return _preserveSavedLayout(
       saved.copyWith(
         entries: [
           for (final base in baseline.entries)
@@ -120,6 +120,19 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         ],
       ),
     );
+  }
+
+  /// Une composition enregistrée est une donnée historique : l'ouvrir dans
+  /// l'éditeur ne doit jamais déplacer ses joueurs. On peut traduire le nom
+  /// d'un ancien dispositif vers son équivalent actuel pour le menu, mais les
+  /// coordonnées x/y sauvegardées restent la source de vérité tant que
+  /// l'admin ne choisit pas explicitement un autre dispositif.
+  MatchComposition _preserveSavedLayout(MatchComposition composition) {
+    final formation = formationForCodeOrNull(composition.formationCode);
+    if (formation == null || formation.code == composition.formationCode) {
+      return composition;
+    }
+    return composition.copyWith(formationCode: formation.code);
   }
 
   MatchComposition _rescueOrphans(MatchComposition composition) {
