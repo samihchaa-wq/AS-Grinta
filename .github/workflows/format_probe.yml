@@ -1,0 +1,30 @@
+name: Format probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format target
+        run: dart format lib/features/matches/presentation/widgets/historical_match_card.dart
+
+      - name: Upload formatted target
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-historical-match-card
+          path: lib/features/matches/presentation/widgets/historical_match_card.dart
