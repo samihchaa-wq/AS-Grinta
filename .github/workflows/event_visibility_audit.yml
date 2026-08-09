@@ -1,0 +1,36 @@
+name: Event Visibility Audit
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths: ['.github/workflows/event_visibility_audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  event:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - run: npm install --no-save playwright-core@1.52.0
+      - shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p event-artifacts
+          node <<'NODE'
+          const fs=require('fs');const{chromium}=require('playwright-core');
+          (async()=>{const b=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});const p=await c.newPage();const wait=ms=>p.waitForTimeout(ms);async function sem(){try{await p.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await wait(250)}catch(_){}}async function focus(l){const a=p.locator(`[aria-label="${l}"]`).first();if(await a.count())return a.click({force:true});const t=p.getByText(l,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${l}`)}await p.goto(process.env.APP_URL,{waitUntil:'networkidle',timeout:90000});await wait(1800);await sem();await p.goto(`${process.env.APP_URL}#/auth/sign-in`,{waitUntil:'networkidle',timeout:60000});await wait(900);await sem();await focus('Identifiant');await p.keyboard.type(process.env.TEST_USERNAME);await focus('Mot de passe');await p.keyboard.type(process.env.TEST_PASSWORD);await focus('Se connecter');await p.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});await wait(1800);await p.goto(`${process.env.APP_URL}#/matches`,{waitUntil:'networkidle',timeout:60000});await wait(1800);await sem();const text=(await p.locator('body').innerText()).replace(/\s+/g,' ');const found=text.includes('AUDIT_E2E_EVENT')&&text.includes('AUDIT_E2E_LOCATION');fs.writeFileSync('event-artifacts/result.txt',`found=${found}\n${text}`);await p.screenshot({path:'event-artifacts/event.png',fullPage:true});if(!found)process.exitCode=2;await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - if: always()
+        run: cat event-artifacts/result.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: event-visibility-audit
+          path: event-artifacts/
+          retention-days: 7
