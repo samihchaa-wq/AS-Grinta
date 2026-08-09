@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ClubEventsRepository {
@@ -12,6 +15,7 @@ class ClubEventsRepository {
   DateTime? _cacheAt;
 
   static const _cacheTtl = Duration(minutes: 2);
+  static const _persistentKey = 'club_events_v1';
 
   Future<List<ClubEvent>> fetchEvents({bool forceRefresh = false}) {
     final cached = _cache;
@@ -33,6 +37,22 @@ class ClubEventsRepository {
     });
   }
 
+  Stream<List<ClubEvent>> watchEventsLocalFirst() async* {
+    final local = await _readPersistent();
+    if (local != null) {
+      _cache = local;
+      _cacheAt = DateTime.now();
+      yield local;
+    }
+
+    try {
+      final fresh = await fetchEvents(forceRefresh: true);
+      yield fresh;
+    } catch (_) {
+      if (local == null) rethrow;
+    }
+  }
+
   Future<List<ClubEvent>> _fetchEventsFromServer() async {
     final response = await _client
         .from('club_events')
@@ -43,7 +63,49 @@ class ClubEventsRepository {
         .toList(growable: false);
     _cache = events;
     _cacheAt = DateTime.now();
+    await _writePersistent(events);
     return events;
+  }
+
+  Future<List<ClubEvent>?> _readPersistent() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_persistentKey);
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return null;
+      return decoded
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .map(ClubEvent.fromJson)
+          .toList(growable: false);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writePersistent(List<ClubEvent> events) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _persistentKey,
+        jsonEncode(
+          events
+              .map(
+                (event) => {
+                  'id': event.id,
+                  'season_id': event.seasonId,
+                  'title': event.title,
+                  'starts_at': event.startsAt.toUtc().toIso8601String(),
+                  'location': event.location,
+                  'created_by': event.createdBy,
+                },
+              )
+              .toList(growable: false),
+        ),
+      );
+    } catch (_) {
+      // Le stockage local est une optimisation : Supabase reste la source.
+    }
   }
 
   Future<void> createEvent({
@@ -96,6 +158,6 @@ final clubEventsRepositoryProvider = Provider<ClubEventsRepository>((ref) {
   return ClubEventsRepository(ref.watch(supabaseClientProvider));
 });
 
-final clubEventsProvider = FutureProvider<List<ClubEvent>>((ref) async {
-  return ref.watch(clubEventsRepositoryProvider).fetchEvents();
+final clubEventsProvider = StreamProvider<List<ClubEvent>>((ref) {
+  return ref.watch(clubEventsRepositoryProvider).watchEventsLocalFirst();
 });
