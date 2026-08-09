@@ -1,0 +1,45 @@
+name: Runtime Network Profile
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/runtime_network_profile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save playwright-core@1.52.0
+      - name: Profile cold load and authenticated endpoint counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p net-profile
+          node <<'NODE'
+          const fs=require('fs');const{chromium}=require('playwright-core');
+          (async()=>{const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+          const coldC=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});const coldP=await coldC.newPage();let coldReq=0;coldP.on('response',()=>coldReq++);const t0=Date.now();await coldP.goto(`${process.env.APP_URL}?cold=${Date.now()}`,{waitUntil:'domcontentloaded',timeout:90000});await coldP.waitForFunction(()=>document.querySelector('flutter-view,flt-glass-pane,canvas')!==null,null,{timeout:90000});await coldP.waitForTimeout(1500);const coldMs=Date.now()-t0;const coldNav=await coldP.evaluate(()=>{const n=performance.getEntriesByType('navigation')[0];return n?{domContentLoaded:Math.round(n.domContentLoadedEventEnd),load:Math.round(n.loadEventEnd),responseEnd:Math.round(n.responseEnd)}:null});await coldC.close();
+          const c=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});const p=await c.newPage();const calls=[];p.on('response',r=>{const u=r.url();if(u.includes('ovzijmqrnsgcmryinkfa.supabase.co')){const x=new URL(u);let key=x.pathname;if(key.includes('/rpc/'))key='rpc:'+key.split('/rpc/')[1];calls.push({key,status:r.status()})}});const wait=ms=>p.waitForTimeout(ms);async function sem(){try{await p.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await wait(150)}catch(_){}}async function focus(l){const a=p.locator(`[aria-label="${l}"]`).first();if(await a.count())return a.click({force:true});const t=p.getByText(l,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${l}`)}
+          await p.goto(`${process.env.APP_URL}?profile-login=${Date.now()}#/auth/sign-in`,{waitUntil:'networkidle',timeout:90000});await wait(1200);await sem();await focus('Identifiant');await p.keyboard.type(process.env.TEST_USERNAME);await focus('Mot de passe');await p.keyboard.type(process.env.TEST_PASSWORD);await focus('Se connecter');await p.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});await wait(1500);calls.length=0;const start=Date.now();await p.goto(`${process.env.APP_URL}?profile-matches=${Date.now()}#/matches`,{waitUntil:'networkidle',timeout:60000});await wait(15000);const screenMs=Date.now()-start;const byEndpoint={};for(const r of calls){const e=byEndpoint[r.key]??={count:0,statuses:{}};e.count++;e.statuses[r.status]=(e.statuses[r.status]||0)+1}const result={cold:{elapsedMs:coldMs,requests:coldReq,navigation:coldNav},matches:{elapsedMs:screenMs,totalSupabaseResponses:calls.length,byEndpoint}};fs.writeFileSync('net-profile/result.json',JSON.stringify(result,null,2));fs.writeFileSync('net-profile/summary.txt',JSON.stringify(result,null,2));await browser.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - if: always()
+        run: cat net-profile/summary.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-network-profile
+          path: net-profile/
+          retention-days: 7
