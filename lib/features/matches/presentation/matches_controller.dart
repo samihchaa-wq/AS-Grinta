@@ -91,21 +91,28 @@ class MatchesController extends StateNotifier<MatchesState> {
         return;
       }
 
-      final seasons = await _repository.fetchSeasons();
+      // Le calendrier principal demande toutes les saisons : dans ce cas les
+      // trois lectures sont indépendantes et peuvent partir immédiatement.
+      final seasonsFuture = _repository.fetchSeasons();
+      final opponentsFuture = _repository.fetchOpponents();
+      final allMatchesFuture =
+          allSeasons ? _repository.fetchMatches() : null;
+
+      final seasons = await seasonsFuture;
       final resolvedSeasonId = seasonId ??
           state.selectedSeasonId ??
           _currentSeasonId(seasons) ??
           (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
-      final results = await Future.wait([
-        _repository.fetchMatches(
-          seasonId: allSeasons ? null : resolvedSeasonId,
-        ),
-        _repository.fetchOpponents(),
-      ]);
+
+      final matches = allMatchesFuture != null
+          ? await allMatchesFuture
+          : await _repository.fetchMatches(seasonId: resolvedSeasonId);
+      final opponents = await opponentsFuture;
+
       state = state.copyWith(
-        matches: results[0] as List<MatchModel>,
+        matches: matches,
         seasons: seasons,
-        opponents: results[1] as List<Map<String, dynamic>>,
+        opponents: opponents,
         selectedSeasonId: resolvedSeasonId,
         includesAllSeasons: allSeasons,
         isLoading: false,
