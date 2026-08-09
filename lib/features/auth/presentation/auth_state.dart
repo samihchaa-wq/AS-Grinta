@@ -10,18 +10,21 @@ class AuthState {
   const AuthState({
     this.isLoading = true,
     this.isAuthenticated = false,
+    this.hasSession = false,
     this.profile,
     this.error,
   });
 
   final bool isLoading;
   final bool isAuthenticated;
+  final bool hasSession;
   final AuthProfile? profile;
   final String? error;
 
   AuthState copyWith({
     bool? isLoading,
     bool? isAuthenticated,
+    bool? hasSession,
     AuthProfile? profile,
     String? error,
     bool clearError = false,
@@ -30,6 +33,7 @@ class AuthState {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      hasSession: hasSession ?? this.hasSession,
       profile: clearProfile ? null : (profile ?? this.profile),
       error: clearError ? null : (error ?? this.error),
     );
@@ -49,7 +53,17 @@ class AuthController extends StateNotifier<AuthState> {
     });
     unawaited(_refreshProfile());
     _loadingFallback = Timer(const Duration(seconds: 15), () {
-      if (state.isLoading) {
+      if (!state.isLoading) return;
+      final hasSession = _repository.hasSession;
+      if (hasSession) {
+        state = state.copyWith(
+          isLoading: false,
+          hasSession: true,
+          isAuthenticated: state.profile?.isActive == true,
+          error:
+              'Connexion temporairement indisponible. Réessaie dans un instant.',
+        );
+      } else {
         state = const AuthState(isLoading: false);
       }
     });
@@ -105,9 +119,22 @@ class AuthController extends StateNotifier<AuthState> {
       if (refreshGeneration != _authGeneration) return;
       _loadingFallback?.cancel();
 
+      final hasSession = _repository.hasSession;
+      if (profile == null && hasSession) {
+        state = state.copyWith(
+          isLoading: false,
+          hasSession: true,
+          isAuthenticated: state.profile?.isActive == true,
+          error:
+              'Connexion temporairement indisponible. Réessaie dans un instant.',
+        );
+        return;
+      }
+
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: profile != null && profile.isActive,
+        hasSession: hasSession,
         profile: profile,
         clearProfile: profile == null,
         clearError: true,
@@ -124,6 +151,7 @@ class AuthController extends StateNotifier<AuthState> {
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: false,
+          hasSession: false,
           clearProfile: true,
           error: 'Ce compte n’est pas actif.',
         );
@@ -131,12 +159,24 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (_) {
       if (refreshGeneration != _authGeneration) return;
       _loadingFallback?.cancel();
-      state = state.copyWith(
-        isLoading: false,
-        isAuthenticated: false,
-        clearProfile: true,
-        error: 'Le profil n’a pas pu être chargé. Réessaie dans un instant.',
-      );
+      final hasSession = _repository.hasSession;
+      if (hasSession) {
+        state = state.copyWith(
+          isLoading: false,
+          hasSession: true,
+          isAuthenticated: state.profile?.isActive == true,
+          error:
+              'Connexion temporairement indisponible. Réessaie dans un instant.',
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: false,
+          hasSession: false,
+          clearProfile: true,
+          error: 'Le profil n’a pas pu être chargé. Réessaie dans un instant.',
+        );
+      }
     }
   }
 
@@ -155,6 +195,7 @@ class AuthController extends StateNotifier<AuthState> {
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: false,
+        hasSession: _repository.hasSession,
         clearProfile: true,
         error:
             'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
@@ -204,6 +245,8 @@ class AuthController extends StateNotifier<AuthState> {
       );
       state = state.copyWith(
         isLoading: false,
+        isAuthenticated: profile.isActive,
+        hasSession: _repository.hasSession,
         profile: profile,
         clearError: true,
       );
@@ -227,6 +270,8 @@ class AuthController extends StateNotifier<AuthState> {
       );
       state = state.copyWith(
         isLoading: false,
+        isAuthenticated: profile.isActive,
+        hasSession: _repository.hasSession,
         profile: profile,
         clearError: true,
       );
