@@ -1,0 +1,45 @@
+name: Multi Viewport Exact Routes Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/multi_viewport_exact_routes_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save playwright-core@1.52.0
+      - name: Sweep exact routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p viewport-exact/screens
+          node <<'NODE'
+          const fs=require('fs');const{chromium}=require('playwright-core');
+          (async()=>{const b=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});const p=await c.newPage();const global=[];p.on('pageerror',e=>global.push({kind:'pageerror',text:e.message}));p.on('console',m=>{if(m.type()==='error')global.push({kind:'console',text:m.text()})});const wait=ms=>p.waitForTimeout(ms);async function sem(){try{await p.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await wait(100)}catch(_){}}async function focus(l){const a=p.locator(`[aria-label="${l}"]`).first();if(await a.count())return a.click({force:true});const t=p.getByText(l,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${l}`)}
+          await p.goto(`${process.env.APP_URL}#/auth/sign-in?audit=${Date.now()}`,{waitUntil:'networkidle',timeout:90000});await wait(1200);await sem();await focus('Identifiant');await p.keyboard.type(process.env.TEST_USERNAME);await focus('Mot de passe');await p.keyboard.type(process.env.TEST_PASSWORD);await focus('Se connecter');await p.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});await wait(1200);
+          const widths=[320,390,768,1280];const routes=['/matches','/stats?section=players','/stats?section=rankings&view=matches','/admin','/admin/administration','/admin/composition'];const rows=[];for(const width of widths){await p.setViewportSize({width,height:width<600?844:900});for(const route of routes){const startErr=global.length;await p.goto(`${process.env.APP_URL}#${route}`,{waitUntil:'networkidle',timeout:60000});await wait(1500);await sem();const errs=global.slice(startErr);rows.push({width,route,finalHash:new URL(p.url()).hash,errorCount:errs.length,errors:errs});const safe=route.replace(/[?=&/]/g,'_');await p.screenshot({path:`viewport-exact/screens/${width}-${safe}.png`,fullPage:true}).catch(()=>{})}}
+          const interesting=global.filter(x=>!/get_my_match_availability/.test(x.text)&&!/Failed to load resource/.test(x.text));const result={rows,interestingErrors:interesting,allErrors:global};fs.writeFileSync('viewport-exact/result.json',JSON.stringify(result,null,2));fs.writeFileSync('viewport-exact/summary.txt',JSON.stringify({rows,interestingErrors:interesting},null,2));await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - if: always()
+        run: cat viewport-exact/summary.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-viewport-exact-routes
+          path: viewport-exact/
+          retention-days: 7
