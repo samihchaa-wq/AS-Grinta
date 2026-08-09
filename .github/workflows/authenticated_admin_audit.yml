@@ -66,89 +66,187 @@ jobs:
 
             const routeUrl = route => `${APP_URL}#${route}`;
             const pause = ms => page.waitForTimeout(ms);
-            async function semantics() {
+
+            async function enableSemantics() {
               try {
-                await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
-                await pause(300);
+                await page.evaluate(() => {
+                  const placeholder = document.querySelector('flt-semantics-placeholder');
+                  if (placeholder) placeholder.click();
+                });
+                await pause(500);
               } catch (_) {}
             }
-            async function visit(route) {
-              await page.goto(routeUrl(route), { waitUntil: 'networkidle', timeout: 60000 });
-              await pause(1100);
-              await semantics();
+
+            async function focusField(label) {
+              const aria = page.locator(`[aria-label="${label}"]`).first();
+              if (await aria.count()) {
+                await aria.click({ force: true });
+                return;
+              }
+              const byText = page.getByText(label, { exact: true }).first();
+              if (await byText.count()) {
+                await byText.click({ force: true });
+                return;
+              }
+              throw new Error(`Champ introuvable: ${label}`);
             }
+
             async function clickLabel(label) {
               const aria = page.locator(`[aria-label="${label}"]`).first();
-              if (await aria.count()) return aria.click({ force: true });
-              const text = page.getByText(label, { exact: true }).first();
-              if (await text.count()) return text.click({ force: true });
+              if (await aria.count()) {
+                await aria.click({ force: true });
+                return;
+              }
+              const byText = page.getByText(label, { exact: true }).first();
+              if (await byText.count()) {
+                await byText.click({ force: true });
+                return;
+              }
               throw new Error(`Action introuvable: ${label}`);
             }
-            async function typeInto(label, value) {
-              const aria = page.locator(`[aria-label="${label}"]`).first();
-              if (await aria.count()) await aria.click({ force: true });
-              else await page.getByText(label, { exact: true }).first().click({ force: true });
-              await page.keyboard.type(value);
+
+            async function visit(route, waitMs = 1200) {
+              await page.goto(routeUrl(route), { waitUntil: 'networkidle', timeout: 60000 });
+              await pause(waitMs);
+              await enableSemantics();
             }
+
             async function snap(index, name) {
-              await page.screenshot({ path: `audit-artifacts/screenshots/${String(index).padStart(2, '0')}-${name}.png`, fullPage: true });
+              await page.screenshot({
+                path: `audit-artifacts/screenshots/${String(index).padStart(2, '0')}-${name}.png`,
+                fullPage: true,
+              });
             }
-            async function step(index, name, action) {
+
+            async function runStep(index, name, action) {
               currentStep = name;
               const before = errors.length;
               const start = Date.now();
               let status = 'ok';
               let detail = '';
-              try { await action(); }
-              catch (e) { status = 'failed'; detail = String(e.stack || e); record('journey', detail); }
-              steps.push({ name, status, durationMs: Date.now() - start, url: page.url(), detail, errors: errors.slice(before) });
+              try {
+                await action();
+              } catch (e) {
+                status = 'failed';
+                detail = String(e.stack || e);
+                record('journey', detail);
+                try { await snap(index, `${name}-failed`); } catch (_) {}
+              }
+              steps.push({
+                name,
+                status,
+                durationMs: Date.now() - start,
+                url: page.url(),
+                detail,
+                errors: errors.slice(before),
+              });
             }
 
             try {
               currentStep = 'login';
-              await page.goto(`${APP_URL}?admin-click-audit=${Date.now()}`, { waitUntil: 'networkidle', timeout: 90000 });
+              const response = await page.goto(`${APP_URL}?admin-click-audit=${Date.now()}`, {
+                waitUntil: 'networkidle', timeout: 90000,
+              });
+              if (!response || response.status() >= 400) throw new Error(`Ouverture PWA HTTP ${response?.status() ?? 'sans réponse'}`);
               await page.waitForFunction(() => document.querySelector('flutter-view, flt-glass-pane, canvas') !== null, null, { timeout: 45000 });
-              await visit('/auth/sign-in');
-              await typeInto('Identifiant', USERNAME);
-              await typeInto('Mot de passe', PASSWORD);
+              await pause(2500);
+              await enableSemantics();
+              await snap(0, 'login');
+
+              if (!page.url().includes('/auth/sign-in')) {
+                await page.goto(routeUrl('/auth/sign-in'), { waitUntil: 'networkidle', timeout: 60000 });
+                await pause(1500);
+                await enableSemantics();
+              }
+
+              await focusField('Identifiant');
+              await page.keyboard.type(USERNAME);
+              await focusField('Mot de passe');
+              await page.keyboard.type(PASSWORD);
               await clickLabel('Se connecter');
               await page.waitForFunction(() => !location.hash.includes('/auth/'), null, { timeout: 45000 });
-              await pause(1800);
-              await semantics();
+              await pause(3000);
+              await enableSemantics();
               await snap(1, 'authenticated');
 
-              await step(2, 'admin-menu-comptes', async () => {
-                await visit('/admin'); await clickLabel('Comptes et saison'); await pause(1400); await semantics(); await snap(2, 'admin-comptes-click');
-              });
-              await step(3, 'admin-menu-effectif', async () => {
-                await visit('/admin'); await clickLabel('Effectif'); await pause(1400); await semantics(); await snap(3, 'admin-effectif-click');
-              });
-              await step(4, 'create-match-open', async () => {
-                await visit('/admin/matches'); await clickLabel('Créer un match'); await pause(1200); await semantics(); await snap(4, 'create-match-form'); await visit('/admin/matches');
-              });
-              await step(5, 'create-guest-open', async () => {
-                await visit('/admin/guests'); await clickLabel('Créer un invité'); await pause(1100); await semantics(); await snap(5, 'create-guest-form'); await visit('/admin/guests');
-              });
-              await step(6, 'stats-tabs', async () => {
-                await visit('/stats?section=players');
-                await clickLabel('Équipe'); await pause(900); await snap(6, 'stats-team');
-                await clickLabel('Prono'); await pause(900); await snap(7, 'stats-prono');
-                await clickLabel('Joueurs'); await pause(900); await snap(8, 'stats-players');
-              });
-              await step(9, 'composition-tabs-waitlist', async () => {
-                await visit('/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09/composition');
-                await clickLabel('Compo'); await pause(1100); await snap(9, 'composition-compo');
-                await clickLabel('Effectif'); await pause(600); await clickLabel("Voir la liste d’attente"); await pause(1100); await semantics(); await snap(10, 'composition-waitlist');
-              });
-              await step(11, 'composition-refresh', async () => {
-                await visit('/admin/composition'); await clickLabel('Actualiser'); await pause(1600); await snap(11, 'composition-refresh');
+              await runStep(2, 'admin-menu-comptes', async () => {
+                await visit('/admin');
+                await clickLabel('Comptes et saison');
+                await pause(1400);
+                await enableSemantics();
+                await snap(2, 'admin-comptes-click');
               });
 
-              fs.writeFileSync('audit-artifacts/admin-click-audit.json', JSON.stringify({ timestamp: new Date().toISOString(), username: USERNAME, steps, errors }, null, 2));
+              await runStep(3, 'admin-menu-effectif', async () => {
+                await visit('/admin');
+                await clickLabel('Effectif');
+                await pause(1400);
+                await enableSemantics();
+                await snap(3, 'admin-effectif-click');
+              });
+
+              await runStep(4, 'create-match-open', async () => {
+                await visit('/admin/matches');
+                await clickLabel('Créer un match');
+                await pause(1200);
+                await enableSemantics();
+                await snap(4, 'create-match-form');
+                await visit('/admin/matches');
+              });
+
+              await runStep(5, 'create-guest-open', async () => {
+                await visit('/admin/guests');
+                await clickLabel('Créer un invité');
+                await pause(1100);
+                await enableSemantics();
+                await snap(5, 'create-guest-form');
+                await visit('/admin/guests');
+              });
+
+              await runStep(6, 'stats-tabs', async () => {
+                await visit('/stats?section=players');
+                await clickLabel('Équipe');
+                await pause(900);
+                await snap(6, 'stats-team');
+                await clickLabel('Prono');
+                await pause(900);
+                await snap(7, 'stats-prono');
+                await clickLabel('Joueurs');
+                await pause(900);
+                await snap(8, 'stats-players');
+              });
+
+              await runStep(9, 'composition-tabs-waitlist', async () => {
+                await visit('/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09/composition');
+                await clickLabel('Compo');
+                await pause(1100);
+                await snap(9, 'composition-compo');
+                await clickLabel('Effectif');
+                await pause(600);
+                await clickLabel("Voir la liste d’attente");
+                await pause(1100);
+                await enableSemantics();
+                await snap(10, 'composition-waitlist');
+              });
+
+              await runStep(11, 'composition-refresh', async () => {
+                await visit('/admin/composition');
+                await clickLabel('Actualiser');
+                await pause(1600);
+                await snap(11, 'composition-refresh');
+              });
+
+              fs.writeFileSync('audit-artifacts/admin-click-audit.json', JSON.stringify({
+                timestamp: new Date().toISOString(),
+                username: USERNAME,
+                steps,
+                errors,
+              }, null, 2));
               fs.writeFileSync('audit-artifacts/admin-click-audit.txt', [
                 `Authenticated as: ${USERNAME}`,
                 ...steps.map(s => `${s.status.padEnd(8)} ${String(s.durationMs).padStart(6)}ms ${s.name} -> ${s.url}`),
-                '', `Errors observed: ${errors.length}`,
+                '',
+                `Errors observed: ${errors.length}`,
                 ...errors.map(e => `[${e.step}] ${e.kind}: ${e.text}`),
               ].join('\n'));
             } catch (e) {
