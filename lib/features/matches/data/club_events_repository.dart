@@ -13,6 +13,7 @@ class ClubEventsRepository {
   Future<List<ClubEvent>>? _fetchInFlight;
   List<ClubEvent>? _cache;
   DateTime? _cacheAt;
+  int _cacheGeneration = 0;
 
   static const _cacheTtl = Duration(minutes: 2);
   static const _persistentKey = 'club_events_v1';
@@ -30,7 +31,8 @@ class ClubEventsRepository {
     final existing = _fetchInFlight;
     if (!forceRefresh && existing != null) return existing;
 
-    final request = _fetchEventsFromServer();
+    final generation = _cacheGeneration;
+    final request = _fetchEventsFromServer(generation);
     _fetchInFlight = request;
     return request.whenComplete(() {
       if (identical(_fetchInFlight, request)) _fetchInFlight = null;
@@ -53,7 +55,7 @@ class ClubEventsRepository {
     }
   }
 
-  Future<List<ClubEvent>> _fetchEventsFromServer() async {
+  Future<List<ClubEvent>> _fetchEventsFromServer(int generation) async {
     final response = await _client
         .from('club_events')
         .select('id, season_id, title, starts_at, location, created_by')
@@ -61,9 +63,14 @@ class ClubEventsRepository {
     final events = (response as List)
         .map((row) => ClubEvent.fromJson(Map<String, dynamic>.from(row)))
         .toList(growable: false);
-    _cache = events;
-    _cacheAt = DateTime.now();
-    await _writePersistent(events);
+
+    // Une lecture commencée avant une création/modification/suppression ne doit
+    // jamais réécrire un ancien snapshot dans le cache après la mutation.
+    if (generation == _cacheGeneration) {
+      _cache = events;
+      _cacheAt = DateTime.now();
+      await _writePersistent(events);
+    }
     return events;
   }
 
@@ -123,7 +130,7 @@ class ClubEventsRepository {
       'location': location.trim(),
       'created_by': userId,
     });
-    _invalidateCache();
+    await _invalidateCache();
   }
 
   Future<void> updateEvent({
@@ -140,17 +147,26 @@ class ClubEventsRepository {
       'location': location.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', id);
-    _invalidateCache();
+    await _invalidateCache();
   }
 
   Future<void> deleteEvent(String id) async {
     await _client.from('club_events').delete().eq('id', id);
-    _invalidateCache();
+    await _invalidateCache();
   }
 
-  void _invalidateCache() {
+  Future<void> _invalidateCache() async {
+    _cacheGeneration += 1;
+    _fetchInFlight = null;
     _cache = null;
     _cacheAt = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_persistentKey);
+    } catch (_) {
+      // Le stockage local est une optimisation : l'invalidation mémoire suffit
+      // pour continuer à fonctionner si SharedPreferences est indisponible.
+    }
   }
 }
 
