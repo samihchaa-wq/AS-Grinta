@@ -32,10 +32,7 @@ void main() {
 
     expect(availability, contains('_fetchesInFlight'));
     expect(availabilityProvider, contains('ref.keepAlive()'));
-    expect(
-      availabilityProvider,
-      contains('const Duration(minutes: 2)'),
-    );
+    expect(availabilityProvider, contains('const Duration(minutes: 2)'));
 
     expect(history, contains('_allInFlight'));
     expect(history, contains('_allCacheTtl = Duration(minutes: 10)'));
@@ -54,8 +51,14 @@ void main() {
     expect(matches, contains('Future<void>? _loadInFlight'));
     expect(matches, contains('if (_loadKey == key) return existing'));
     expect(matches, contains('_performLoad'));
-    expect(matches, contains('final seasonsFuture = _repository.fetchSeasons()'));
-    expect(matches, contains('final opponentsFuture = _repository.fetchOpponents()'));
+    expect(
+      matches,
+      contains('final seasonsFuture = _repository.fetchSeasons()'),
+    );
+    expect(
+      matches,
+      contains('final opponentsFuture = _repository.fetchOpponents()'),
+    );
     expect(matches, contains('allSeasons ? _repository.fetchMatches() : null'));
     expect(matches, contains('final localMatches = await _localCache.read()'));
     expect(matches, contains('await _localCache.write(matches)'));
