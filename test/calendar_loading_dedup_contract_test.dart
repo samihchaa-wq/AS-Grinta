@@ -59,8 +59,11 @@ void main() {
     expect(matches, contains('hasLocalFallback'));
 
     expect(matchesLocalCache, contains('SharedPreferences.getInstance()'));
-    expect(matchesLocalCache, contains('Supabase.instance.client.auth.currentUser?.id'));
-    expect(matchesLocalCache, contains('calendar_matches_v'));
+    expect(
+      matchesLocalCache,
+      contains('Supabase.instance.client.auth.currentUser?.id'),
+    );
+    expect(matchesLocalCache, contains("return '\${_keyPrefix}_\$userId'"));
     expect(matchesLocalCache, contains('MatchModel.fromJson'));
 
     expect(calendar, contains('const cacheExtent = 1800.0'));
