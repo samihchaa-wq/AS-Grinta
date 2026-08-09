@@ -68,9 +68,8 @@ class CalendarMatchesLocalCache {
       'status': match.status,
       'score_as_grinta': match.grintaScore,
       'score_adverse': match.opponentScore,
-      'predictions_closed_at': match.predictionsClosedAt
-          ?.toUtc()
-          .toIso8601String(),
+      'predictions_closed_at':
+          match.predictionsClosedAt?.toUtc().toIso8601String(),
       'result_validated_at': match.resultValidatedAt?.toUtc().toIso8601String(),
       'address': match.address,
       'match_type': match.matchType,
