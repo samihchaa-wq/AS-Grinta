@@ -1,0 +1,31 @@
+name: Temporary full format probe
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  format-probe-full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Install locked dependencies
+        shell: bash
+        run: flutter pub get --enforce-lockfile
+      - name: Show exact formatter diff after pub get
+        shell: bash
+        run: |
+          dart format \
+            lib/features/matches/data/calendar_history_repository.dart \
+            lib/features/matches/data/calendar_matches_local_cache.dart \
+            lib/features/matches/presentation/matches_controller.dart
+          git diff -- \
+            lib/features/matches/data/calendar_history_repository.dart \
+            lib/features/matches/data/calendar_matches_local_cache.dart \
+            lib/features/matches/presentation/matches_controller.dart
