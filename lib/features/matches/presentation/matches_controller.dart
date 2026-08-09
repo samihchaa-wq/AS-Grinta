@@ -1,6 +1,7 @@
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/features/matches/data/calendar_matches_local_cache.dart';
 import 'package:as_grinta/features/matches/data/match_info_repository.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
@@ -52,13 +53,39 @@ class MatchesController extends StateNotifier<MatchesState> {
 
   final MatchesRepository _repository;
   final Ref _ref;
+  final CalendarMatchesLocalCache _localCache =
+      const CalendarMatchesLocalCache();
+  Future<void>? _loadInFlight;
+  String? _loadKey;
 
   AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
   bool get _isAdmin => _role?.isAdmin ?? false;
   bool get _canManageMatches => _isAdmin;
 
-  Future<void> load({String? seasonId, bool allSeasons = false}) async {
+  Future<void> load({String? seasonId, bool allSeasons = false}) {
+    final key = '${seasonId ?? ''}:$allSeasons';
+    final existing = _loadInFlight;
+    if (existing != null) {
+      if (_loadKey == key) return existing;
+      return existing.whenComplete(
+        () => load(seasonId: seasonId, allSeasons: allSeasons),
+      );
+    }
+
+    final request = _performLoad(seasonId: seasonId, allSeasons: allSeasons);
+    _loadInFlight = request;
+    _loadKey = key;
+    return request.whenComplete(() {
+      if (identical(_loadInFlight, request)) {
+        _loadInFlight = null;
+        _loadKey = null;
+      }
+    });
+  }
+
+  Future<void> _performLoad({String? seasonId, bool allSeasons = false}) async {
     state = state.copyWith(isLoading: true, clearError: true);
+    var hasLocalFallback = false;
     try {
       if (!_ref.read(authControllerProvider).isAuthenticated) {
         state = state.copyWith(
@@ -68,28 +95,58 @@ class MatchesController extends StateNotifier<MatchesState> {
         return;
       }
 
-      final seasons = await _repository.fetchSeasons();
+      // Sur le calendrier principal, on affiche d'abord le dernier état local
+      // connu. La requête Supabase démarre ensuite et remplace ce snapshot dès
+      // qu'elle répond. Un cache absent ne change pas le comportement actuel.
+      if (allSeasons) {
+        final localMatches = await _localCache.read();
+        if (localMatches.isNotEmpty) {
+          hasLocalFallback = true;
+          state = state.copyWith(
+            matches: localMatches,
+            includesAllSeasons: true,
+            isLoading: false,
+            clearError: true,
+          );
+        }
+      }
+
+      // Le calendrier principal demande toutes les saisons : dans ce cas les
+      // trois lectures sont indépendantes et peuvent partir immédiatement.
+      final seasonsFuture = _repository.fetchSeasons();
+      final opponentsFuture = _repository.fetchOpponents();
+      final allMatchesFuture = allSeasons ? _repository.fetchMatches() : null;
+
+      final seasons = await seasonsFuture;
       final resolvedSeasonId = seasonId ??
           state.selectedSeasonId ??
           _currentSeasonId(seasons) ??
           (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
-      final results = await Future.wait([
-        _repository.fetchMatches(
-          seasonId: allSeasons ? null : resolvedSeasonId,
-        ),
-        _repository.fetchOpponents(),
-      ]);
+
+      final matches = allMatchesFuture != null
+          ? await allMatchesFuture
+          : await _repository.fetchMatches(seasonId: resolvedSeasonId);
+      final opponents = await opponentsFuture;
+
       state = state.copyWith(
-        matches: results[0] as List<MatchModel>,
+        matches: matches,
         seasons: seasons,
-        opponents: results[1] as List<Map<String, dynamic>>,
+        opponents: opponents,
         selectedSeasonId: resolvedSeasonId,
         includesAllSeasons: allSeasons,
         isLoading: false,
         clearError: true,
       );
+
+      if (allSeasons) {
+        await _localCache.write(matches);
+      }
     } catch (error) {
-      state = state.copyWith(isLoading: false, error: humanizeError(error));
+      if (hasLocalFallback) {
+        state = state.copyWith(isLoading: false, clearError: true);
+      } else {
+        state = state.copyWith(isLoading: false, error: humanizeError(error));
+      }
     }
   }
 
@@ -270,10 +327,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       return;
     }
     if (seasonId.isEmpty) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Saison obligatoire.',
-      );
+      state = state.copyWith(isLoading: false, error: 'Saison obligatoire.');
       return;
     }
     state = state.copyWith(isLoading: true, clearError: true);

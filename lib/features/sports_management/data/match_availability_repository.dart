@@ -18,9 +18,23 @@ class SupabaseMatchAvailabilityRepository
   SupabaseMatchAvailabilityRepository(this._client);
 
   final SupabaseClient _client;
+  final Map<String, Future<MatchAvailability>> _fetchesInFlight = {};
 
   @override
-  Future<MatchAvailability> fetchMyAvailability(String matchId) async {
+  Future<MatchAvailability> fetchMyAvailability(String matchId) {
+    final existing = _fetchesInFlight[matchId];
+    if (existing != null) return existing;
+
+    final request = _fetchMyAvailability(matchId);
+    _fetchesInFlight[matchId] = request;
+    return request.whenComplete(() {
+      if (identical(_fetchesInFlight[matchId], request)) {
+        _fetchesInFlight.remove(matchId);
+      }
+    });
+  }
+
+  Future<MatchAvailability> _fetchMyAvailability(String matchId) async {
     final response = await _client.rpc(
       'get_my_match_availability',
       params: {'p_match_id': matchId},
@@ -52,6 +66,9 @@ class SupabaseMatchAvailabilityRepository
       },
     );
 
+    // Une lecture précédente peut encore être en vol au moment de l'écriture.
+    // Elle ne doit jamais être réutilisée pour relire la valeur fraîche.
+    _fetchesInFlight.remove(matchId);
     return fetchMyAvailability(matchId);
   }
 
