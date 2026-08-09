@@ -1,0 +1,87 @@
+name: Deep Route Sweep
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/deep_route_sweep.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+      FINISHED_MATCH_ID: 2b0aedfc-13c1-4ff7-9f56-152d1a23963f
+      INTERNAL_MATCH_ID: f7d3bc24-fcb7-4a12-8309-171c6793e953
+      PREDICTION_MATCH_ID: 661e922b-5ef9-43e6-a3ce-c74c676cee03
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save playwright-core@1.52.0
+      - name: Sweep routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p route-artifacts/screenshots
+          node <<'NODE'
+          const fs=require('fs');
+          const {chromium}=require('playwright-core');
+          (async()=>{
+            const b=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+            const p=await c.newPage();
+            const errors=[]; const rows=[]; let current='login'; let shot=0;
+            const wait=ms=>p.waitForTimeout(ms);
+            const record=(kind,text)=>errors.push({route:current,kind,text});
+            p.on('pageerror',e=>record('pageerror',e.stack||e.message));
+            p.on('console',m=>{if(m.type()==='error')record('console.error',m.text())});
+            p.on('requestfailed',r=>record('requestfailed',`${r.url()} ${r.failure()?.errorText||''}`));
+            p.on('response',r=>{if(r.status()>=400)record(`http ${r.status()}`,r.url())});
+            async function sem(){try{await p.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await wait(250)}catch(_){}}
+            async function focus(label){const a=p.locator(`[aria-label="${label}"]`).first();if(await a.count())return a.click({force:true});const t=p.getByText(label,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${label}`)}
+            async function snap(name){shot++;await p.screenshot({path:`route-artifacts/screenshots/${String(shot).padStart(3,'0')}-${name.replace(/[^a-zA-Z0-9_-]+/g,'-').slice(0,70)}.png`,fullPage:true})}
+            await p.goto(process.env.APP_URL,{waitUntil:'networkidle',timeout:90000});await wait(1800);await sem();
+            await p.goto(`${process.env.APP_URL}#/auth/sign-in`,{waitUntil:'networkidle',timeout:60000});await wait(900);await sem();
+            await focus('Identifiant');await p.keyboard.type(process.env.TEST_USERNAME);
+            await focus('Mot de passe');await p.keyboard.type(process.env.TEST_PASSWORD);
+            await focus('Se connecter');await p.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});await wait(1800);await sem();
+            const f=process.env.FINISHED_MATCH_ID, i=process.env.INTERNAL_MATCH_ID, pr=process.env.PREDICTION_MATCH_ID;
+            const routes=[
+              '/matches',`/matches/${f}`,`/matches/history/${f}`,`/matches/${f}/lineup?section=effectif`,`/matches/${f}/lineup?section=composition`,`/matches/${f}/lineup?section=live`,`/matches/${f}/vote`,`/matches/${f}/finalize`,`/matches/${f}/composition`,`/matches/${f}/guests`,
+              `/matches/${i}`,`/matches/${i}/lineup?section=effectif`,`/matches/${i}/lineup?section=composition`,`/matches/${i}/composition`,
+              `/matches/${pr}`,`/matches/${pr}/prediction`,
+              '/admin','/admin/administration','/admin/matches','/admin/composition','/admin/guests','/admin/waitlist','/waitlist','/admin/badges','/admin/notification',
+              '/more','/players','/profile','/privacy','/armoire','/notifications',
+              '/stats','/stats?section=players','/stats?section=team','/stats?section=rankings&view=matches','/stats?section=rankings&view=scorers',
+              '/pronos?category=scorers','/predictions/leaderboard','/statistics'
+            ];
+            for(const route of routes){
+              current=route; const before=errors.length; const start=Date.now();
+              try{
+                await p.goto(`${process.env.APP_URL}#${route}`,{waitUntil:'networkidle',timeout:60000});await wait(900);await sem();
+                const text=(await p.locator('body').innerText().catch(()=>'' )).replace(/\s+/g,' ').trim();
+                rows.push({route,status:'ok',finalUrl:p.url(),ms:Date.now()-start,newErrors:errors.length-before,text:text.slice(0,2500)});
+                await snap(route);
+              }catch(e){rows.push({route,status:'failed',finalUrl:p.url(),ms:Date.now()-start,newErrors:errors.length-before,detail:String(e.stack||e)});try{await snap(`failed-${route}`)}catch(_){}}
+            }
+            fs.writeFileSync('route-artifacts/routes.json',JSON.stringify({rows,errors},null,2));
+            fs.writeFileSync('route-artifacts/routes.txt',[...rows.map(r=>`${r.status.toUpperCase()} ${r.route} -> ${r.finalUrl} errors=${r.newErrors}\n${r.text||r.detail||''}`),'',`ERRORS ${errors.length}`,...errors.map(e=>`[${e.route}] ${e.kind}: ${e.text}`)].join('\n\n'));
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - if: always()
+        run: cat route-artifacts/routes.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-route-sweep
+          path: route-artifacts/
+          retention-days: 7
