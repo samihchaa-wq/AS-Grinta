@@ -127,12 +127,9 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
     }
 
     // La SliverList construit ses cartes paresseusement. Si la carte cible
-    // est très loin dans la liste (index ~340/350), elle n'est jamais dans
-    // le cache tant qu'on n'a pas scrollé jusque-là — et sans son
-    // BuildContext, Scrollable.ensureVisible ne peut rien faire. On force
-    // donc d'abord un jumpTo vers une position estimée (fraction de la
-    // hauteur totale de scroll), ce qui déclenche la construction des
-    // cartes autour de cette position, puis on affine avec ensureVisible.
+    // est très loin dans la liste, on se rapproche d'abord par estimation
+    // puis on affine avec ensureVisible une fois que la carte est construite.
+    // Cela permet de garder une petite fenêtre de cache autour du viewport.
     if (_scrollController.hasClients && totalEntries > 0) {
       final position = _scrollController.position;
       final estimated = position.maxScrollExtent * (focusIndex / totalEntries);
@@ -280,10 +277,10 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
       requestToken: '$focusRequest',
     );
 
-    // Cache large : les cartes hors viewport restent construites afin que le
-    // GlobalKey de la carte cible soit toujours joignable pour l'auto-focus,
-    // même quand on part de scroll = 0 et que la cible est loin en bas.
-    final cacheExtent = 1000.0 + (entries.length * 360.0);
+    // Quelques écrans autour du viewport suffisent. L'ancien calcul
+    // `1000 + entries.length * 360` pouvait conserver pratiquement toute la
+    // chronologie construite et déclencher du travail réseau/UI hors écran.
+    const cacheExtent = 1800.0;
 
     return RefreshIndicator(
       onRefresh: _refresh,
@@ -291,7 +288,7 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
         onNotification: _handleScrollNotification,
         child: CustomScrollView(
           controller: _scrollController,
-          scrollCacheExtent: ScrollCacheExtent.pixels(cacheExtent),
+          scrollCacheExtent: const ScrollCacheExtent.pixels(cacheExtent),
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(
