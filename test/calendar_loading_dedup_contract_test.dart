@@ -19,6 +19,9 @@ void main() {
     final matches = await File(
       'lib/features/matches/presentation/matches_controller.dart',
     ).readAsString();
+    final matchesLocalCache = await File(
+      'lib/features/matches/data/calendar_matches_local_cache.dart',
+    ).readAsString();
     final calendar = await File(
       'lib/features/predictions/presentation/merged_matches_view.dart',
     ).readAsString();
@@ -51,6 +54,14 @@ void main() {
     expect(matches, contains('final seasonsFuture = _repository.fetchSeasons()'));
     expect(matches, contains('final opponentsFuture = _repository.fetchOpponents()'));
     expect(matches, contains('allSeasons ? _repository.fetchMatches() : null'));
+    expect(matches, contains('final localMatches = await _localCache.read()'));
+    expect(matches, contains('await _localCache.write(matches)'));
+    expect(matches, contains('hasLocalFallback'));
+
+    expect(matchesLocalCache, contains('SharedPreferences.getInstance()'));
+    expect(matchesLocalCache, contains('Supabase.instance.client.auth.currentUser?.id'));
+    expect(matchesLocalCache, contains('calendar_matches_v'));
+    expect(matchesLocalCache, contains('MatchModel.fromJson'));
 
     expect(calendar, contains('const cacheExtent = 1800.0'));
     expect(calendar, isNot(contains('entries.length * 360.0')));
