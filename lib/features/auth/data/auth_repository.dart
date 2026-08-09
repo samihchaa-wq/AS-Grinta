@@ -13,6 +13,7 @@ class AuthRepository {
   AuthRepository(this._client);
 
   final SupabaseClient _client;
+  final Map<bool, Future<AuthProfile?>> _profileFetchesInFlight = {};
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
@@ -76,12 +77,30 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
+    _profileFetchesInFlight.clear();
     await _client.auth.signOut();
   }
 
-  Future<AuthProfile?> fetchProfile({bool retryAfterSignIn = false}) async {
-    if (_client.auth.currentUser == null) return null;
+  Future<AuthProfile?> fetchProfile({bool retryAfterSignIn = false}) {
+    if (_client.auth.currentUser == null) return Future.value(null);
 
+    final existing = _profileFetchesInFlight[retryAfterSignIn];
+    if (existing != null) return existing;
+
+    final request = _fetchProfileFromServer(
+      retryAfterSignIn: retryAfterSignIn,
+    );
+    _profileFetchesInFlight[retryAfterSignIn] = request;
+    return request.whenComplete(() {
+      if (identical(_profileFetchesInFlight[retryAfterSignIn], request)) {
+        _profileFetchesInFlight.remove(retryAfterSignIn);
+      }
+    });
+  }
+
+  Future<AuthProfile?> _fetchProfileFromServer({
+    required bool retryAfterSignIn,
+  }) async {
     final attempts = retryAfterSignIn ? 5 : 1;
     Object? lastError;
     for (var attempt = 0; attempt < attempts; attempt++) {
