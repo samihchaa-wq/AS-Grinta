@@ -52,12 +52,35 @@ class MatchesController extends StateNotifier<MatchesState> {
 
   final MatchesRepository _repository;
   final Ref _ref;
+  Future<void>? _loadInFlight;
+  String? _loadKey;
 
   AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
   bool get _isAdmin => _role?.isAdmin ?? false;
   bool get _canManageMatches => _isAdmin;
 
-  Future<void> load({String? seasonId, bool allSeasons = false}) async {
+  Future<void> load({String? seasonId, bool allSeasons = false}) {
+    final key = '${seasonId ?? ''}:$allSeasons';
+    final existing = _loadInFlight;
+    if (existing != null) {
+      if (_loadKey == key) return existing;
+      return existing.whenComplete(
+        () => load(seasonId: seasonId, allSeasons: allSeasons),
+      );
+    }
+
+    final request = _performLoad(seasonId: seasonId, allSeasons: allSeasons);
+    _loadInFlight = request;
+    _loadKey = key;
+    return request.whenComplete(() {
+      if (identical(_loadInFlight, request)) {
+        _loadInFlight = null;
+        _loadKey = null;
+      }
+    });
+  }
+
+  Future<void> _performLoad({String? seasonId, bool allSeasons = false}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       if (!_ref.read(authControllerProvider).isAuthenticated) {
