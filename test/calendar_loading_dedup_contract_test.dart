@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('calendar network loads are coalesced and briefly cached', () async {
+  test('calendar network loads are coalesced and locally cached', () async {
     final availability = await File(
       'lib/features/sports_management/data/match_availability_repository.dart',
     ).readAsString();
@@ -22,6 +22,7 @@ void main() {
     final calendar = await File(
       'lib/features/predictions/presentation/merged_matches_view.dart',
     ).readAsString();
+    final pubspec = await File('pubspec.yaml').readAsString();
 
     expect(availability, contains('_fetchesInFlight'));
     expect(availabilityProvider, contains('ref.keepAlive()'));
@@ -32,16 +33,22 @@ void main() {
 
     expect(history, contains('_allInFlight'));
     expect(history, contains('_allCacheTtl = Duration(minutes: 10)'));
+    expect(history, contains('SharedPreferences.getInstance()'));
+    expect(history, contains('watchAllLocalFirst'));
+    expect(history, contains('StreamProvider<List<HistoricalMatchResult>>'));
 
     expect(events, contains('_fetchInFlight'));
     expect(events, contains('_cacheTtl = Duration(minutes: 2)'));
+    expect(events, contains('SharedPreferences.getInstance()'));
+    expect(events, contains('watchEventsLocalFirst'));
+    expect(events, contains('StreamProvider<List<ClubEvent>>'));
+
+    expect(pubspec, contains('shared_preferences: ^2.5.3'));
 
     expect(matches, contains('Future<void>? _loadInFlight'));
     expect(matches, contains('if (_loadKey == key) return existing'));
     expect(matches, contains('_performLoad'));
-    expect(matches, contains('final seasonsFuture = _repository.fetchSeasons()'));
-    expect(matches, contains('final opponentsFuture = _repository.fetchOpponents()'));
-    expect(matches, contains('allSeasons ? _repository.fetchMatches() : null'));
+    expect(matches, contains('allSeasonsBootstrap'));
 
     expect(calendar, contains('const cacheExtent = 1800.0'));
     expect(calendar, isNot(contains('entries.length * 360.0')));
