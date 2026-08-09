@@ -1,0 +1,46 @@
+name: Realtime Stable Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/realtime_stable_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+      AUDIT_LABEL: AUDIT_RT_STABLE
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save playwright-core@1.52.0
+      - name: Observe stable match and later realtime mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rt-stable
+          node <<'NODE'
+          const fs=require('fs');const{chromium}=require('playwright-core');
+          (async()=>{const b=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});const p=await c.newPage();const errors=[];p.on('response',r=>{if(r.status()>=400)errors.push(`${r.status()} ${r.url()}`)});p.on('pageerror',e=>errors.push(`pageerror ${e.message}`));const wait=ms=>p.waitForTimeout(ms);async function sem(){try{await p.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await wait(150)}catch(_){}}async function focus(l){const a=p.locator(`[aria-label="${l}"]`).first();if(await a.count())return a.click({force:true});const t=p.getByText(l,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${l}`)}
+          await p.goto(`${process.env.APP_URL}?rt-stable-login=${Date.now()}#/auth/sign-in`,{waitUntil:'networkidle',timeout:90000});await wait(1300);await sem();await focus('Identifiant');await p.keyboard.type(process.env.TEST_USERNAME);await focus('Mot de passe');await p.keyboard.type(process.env.TEST_PASSWORD);await focus('Se connecter');await p.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});await wait(1300);await p.goto(`${process.env.APP_URL}?rt-stable=${Date.now()}#/matches`,{waitUntil:'networkidle',timeout:60000});await wait(1600);await sem();
+          const samples=[];let initial=false,updated=false,removed=false;for(let i=0;i<100;i++){await sem();const text=(await p.locator('body').innerText().catch(()=>'' )).replace(/\s+/g,' ').trim();const has=text.includes(process.env.AUDIT_LABEL);if(i<15&&has)initial=true;if(has&&text.includes('23:49'))updated=true;if(initial&&!has)removed=true;samples.push({i,at:new Date().toISOString(),has,updated,removed,text:text.slice(-2200),errorCount:errors.length});await wait(1000)}
+          const summary={initialSeen:initial,updateSeenWithoutReload:updated,deleteSeenWithoutReload:removed,errorCount:errors.length,errors};fs.writeFileSync('rt-stable/summary.json',JSON.stringify(summary,null,2));fs.writeFileSync('rt-stable/samples.json',JSON.stringify(samples,null,2));fs.writeFileSync('rt-stable/summary.txt',JSON.stringify(summary,null,2));await p.screenshot({path:'rt-stable/final.png',fullPage:true}).catch(()=>{});await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - if: always()
+        run: cat rt-stable/summary.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: realtime-stable-audit
+          path: rt-stable/
+          retention-days: 7
