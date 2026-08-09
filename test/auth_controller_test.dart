@@ -40,7 +40,8 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('preserves the session when profile loading is temporarily unavailable',
+    test(
+        'preserves the session when profile loading is temporarily unavailable',
         () async {
       final repository = _FakeAuthRepository(
         fetchResults: [StateError('temporary backend failure')],
