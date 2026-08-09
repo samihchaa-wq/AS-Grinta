@@ -18,18 +18,16 @@ jobs:
       APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
       TEST_USERNAME: Testt
       TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+      AUDIT_MATCH_ID: 2b0aedfc-13c1-4ff7-9f56-152d1a23963f
     steps:
       - name: Check secret
         run: test -n "$TEST_PASSWORD"
-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-
       - name: Install Playwright Core
         run: npm install --no-save playwright-core@1.52.0
-
-      - name: Run safe authenticated admin click journey
+      - name: Sweep authenticated routes
         shell: bash
         run: |
           set -euo pipefail
@@ -37,217 +35,70 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const { chromium } = require('playwright-core');
-
           (async () => {
             const APP_URL = process.env.APP_URL;
-            const USERNAME = process.env.TEST_USERNAME;
-            const PASSWORD = process.env.TEST_PASSWORD;
-            if (!APP_URL || !USERNAME || !PASSWORD) throw new Error('Configuration E2E manquante');
-
-            const browser = await chromium.launch({
-              headless: true,
-              executablePath: '/usr/bin/google-chrome',
-              args: ['--no-sandbox', '--disable-dev-shm-usage'],
-            });
-            const context = await browser.newContext({
-              viewport: { width: 390, height: 844 },
-              serviceWorkers: 'block',
-            });
+            const matchId = process.env.AUDIT_MATCH_ID;
+            const browser = await chromium.launch({headless:true, executablePath:'/usr/bin/google-chrome', args:['--no-sandbox','--disable-dev-shm-usage']});
+            const context = await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
             const page = await context.newPage();
-            const errors = [];
-            const steps = [];
-            let currentStep = 'boot';
-
-            const record = (kind, text) => errors.push({ step: currentStep, kind, text });
-            page.on('pageerror', e => record('pageerror', e.stack || e.message));
-            page.on('console', m => { if (m.type() === 'error') record('console.error', m.text()); });
-            page.on('requestfailed', r => record('requestfailed', `${r.url()} ${r.failure()?.errorText ?? ''}`));
-            page.on('response', r => { if (r.status() >= 400) record(`http ${r.status()}`, r.url()); });
-
-            const routeUrl = route => `${APP_URL}#${route}`;
-            const pause = ms => page.waitForTimeout(ms);
-
-            async function enableSemantics() {
-              try {
-                await page.evaluate(() => {
-                  const placeholder = document.querySelector('flt-semantics-placeholder');
-                  if (placeholder) placeholder.click();
-                });
-                await pause(400);
-              } catch (_) {}
+            const errors=[]; const routes=[]; let current='login'; let shot=0;
+            const record=(kind,text)=>errors.push({step:current,kind,text});
+            page.on('pageerror',e=>record('pageerror',e.stack||e.message));
+            page.on('console',m=>{if(m.type()==='error')record('console.error',m.text())});
+            page.on('requestfailed',r=>record('requestfailed',`${r.url()} ${r.failure()?.errorText||''}`));
+            page.on('response',r=>{if(r.status()>=400)record(`http ${r.status()}`,r.url())});
+            const pause=ms=>page.waitForTimeout(ms);
+            async function semantics(){try{await page.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await pause(300)}catch(_){}}
+            async function snap(name){shot++;await page.screenshot({path:`audit-artifacts/screenshots/${String(shot).padStart(3,'0')}-${name.replace(/[^a-zA-Z0-9_-]+/g,'-').slice(0,70)}.png`,fullPage:true})}
+            async function focus(label){const a=page.locator(`[aria-label="${label}"]`).first();if(await a.count())return a.click({force:true});const t=page.getByText(label,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${label}`)}
+            async function click(label){return focus(label)}
+            await page.goto(`${APP_URL}?audit-login=${Date.now()}`,{waitUntil:'networkidle',timeout:90000});
+            await page.waitForFunction(()=>document.querySelector('flutter-view,flt-glass-pane,canvas')!==null,null,{timeout:45000});
+            await pause(2200); await semantics();
+            await page.goto(`${APP_URL}?audit-signin=${Date.now()}#/auth/sign-in`,{waitUntil:'networkidle',timeout:60000});
+            await pause(1200); await semantics();
+            await focus('Identifiant'); await page.keyboard.type(process.env.TEST_USERNAME);
+            await focus('Mot de passe'); await page.keyboard.type(process.env.TEST_PASSWORD);
+            await click('Se connecter');
+            await page.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});
+            await pause(2500); await semantics(); await snap('authenticated');
+            const list=[
+              `/matches/${matchId}/lineup?section=effectif`,
+              `/matches/${matchId}/lineup?section=composition`,
+              `/matches/${matchId}/lineup?section=prediction`,
+              `/matches/${matchId}`,
+              `/matches/${matchId}/composition`,
+              `/matches/${matchId}/guests`,
+              `/matches/${matchId}/vote`,
+              `/matches/${matchId}/finalize`,
+              '/matches','/admin','/admin/administration','/admin/matches','/admin/composition','/admin/guests','/admin/waitlist','/waitlist','/admin/badges','/admin/notification','/players','/profile','/privacy','/armoire','/notifications','/stats?section=players','/stats?section=team','/stats?section=rankings&view=matches','/stats?section=rankings&view=scorers','/more'
+            ];
+            for(const route of list){
+              current=`route:${route}`; const before=errors.length; const start=Date.now();
+              try{
+                await page.goto(`${APP_URL}?route-audit=${Date.now()}#${route}`,{waitUntil:'networkidle',timeout:60000});
+                await pause(900); await semantics();
+                const text=(await page.locator('body').innerText().catch(()=>'' )).replace(/\s+/g,' ').trim();
+                routes.push({route,status:'ok',finalUrl:page.url(),durationMs:Date.now()-start,newErrors:errors.length-before,text:text.slice(0,1800)});
+                await snap(`route-${route}`);
+              }catch(e){routes.push({route,status:'failed',durationMs:Date.now()-start,detail:String(e.stack||e)});try{await snap(`failed-${route}`)}catch(_){}}
             }
-
-            async function focusField(label) {
-              const aria = page.locator(`[aria-label="${label}"]`).first();
-              if (await aria.count()) return aria.click({ force: true });
-              const text = page.getByText(label, { exact: true }).first();
-              if (await text.count()) return text.click({ force: true });
-              throw new Error(`Champ introuvable: ${label}`);
-            }
-
-            async function clickLabel(label) {
-              const aria = page.locator(`[aria-label="${label}"]`).first();
-              if (await aria.count()) return aria.click({ force: true });
-              const text = page.getByText(label, { exact: true }).first();
-              if (await text.count()) return text.click({ force: true });
-              throw new Error(`Action introuvable: ${label}`);
-            }
-
-            async function visit(route, waitMs = 1400) {
-              await page.goto(routeUrl(route), { waitUntil: 'networkidle', timeout: 60000 });
-              await pause(waitMs);
-              await enableSemantics();
-            }
-
-            async function snap(index, name) {
-              await page.screenshot({
-                path: `audit-artifacts/screenshots/${String(index).padStart(2, '0')}-${name}.png`,
-                fullPage: true,
-              });
-            }
-
-            async function runStep(index, name, action) {
-              currentStep = name;
-              const before = errors.length;
-              const start = Date.now();
-              let status = 'ok';
-              let detail = '';
-              try {
-                await action();
-              } catch (e) {
-                status = 'failed';
-                detail = String(e.stack || e);
-                record('journey', detail);
-                try { await snap(index, `${name}-failed`); } catch (_) {}
-              }
-              steps.push({ name, status, durationMs: Date.now() - start, url: page.url(), detail, errors: errors.slice(before) });
-            }
-
-            try {
-              currentStep = 'login';
-              const response = await page.goto(`${APP_URL}?admin-click-audit=${Date.now()}`, { waitUntil: 'networkidle', timeout: 90000 });
-              if (!response || response.status() >= 400) throw new Error(`Ouverture PWA HTTP ${response?.status() ?? 'sans réponse'}`);
-              await page.waitForFunction(() => document.querySelector('flutter-view, flt-glass-pane, canvas') !== null, null, { timeout: 45000 });
-              await pause(2500);
-              await enableSemantics();
-              if (!page.url().includes('/auth/sign-in')) {
-                await page.goto(routeUrl('/auth/sign-in'), { waitUntil: 'networkidle', timeout: 60000 });
-                await pause(1500);
-                await enableSemantics();
-              }
-              await focusField('Identifiant');
-              await page.keyboard.type(USERNAME);
-              await focusField('Mot de passe');
-              await page.keyboard.type(PASSWORD);
-              await clickLabel('Se connecter');
-              await page.waitForFunction(() => !location.hash.includes('/auth/'), null, { timeout: 45000 });
-              await pause(3000);
-              await enableSemantics();
-              await snap(1, 'authenticated');
-
-              await runStep(2, 'admin-comptes-visible-click', async () => {
-                await visit('/admin', 1800);
-                if (!page.url().includes('#/admin')) await visit('/admin', 1800);
-                await snap(2, 'admin-menu-before-comptes');
-                await page.mouse.click(190, 115);
-                await pause(1600);
-                await snap(3, 'admin-comptes-after-click');
-              });
-
-              await runStep(4, 'admin-effectif-visible-click', async () => {
-                await visit('/admin', 1800);
-                await snap(4, 'admin-menu-before-effectif');
-                await page.mouse.click(190, 210);
-                await pause(1600);
-                await snap(5, 'admin-effectif-after-click');
-              });
-
-              await runStep(6, 'create-match-open-cancel', async () => {
-                await visit('/admin/matches');
-                await clickLabel('Créer un match');
-                await pause(1200);
-                await snap(6, 'create-match-form');
-                await page.mouse.click(28, 29);
-                await pause(1200);
-              });
-
-              await runStep(7, 'create-guest-open-cancel', async () => {
-                await visit('/admin/guests');
-                await clickLabel('Créer un invité');
-                await pause(1100);
-                await snap(7, 'create-guest-form');
-                await page.mouse.click(142, 582);
-                await pause(900);
-                await snap(8, 'create-guest-cancelled');
-              });
-
-              await runStep(9, 'stats-visible-tabs', async () => {
-                await visit('/stats?section=players');
-                await snap(9, 'stats-players-before-tabs');
-                await page.mouse.click(195, 90);
-                await pause(1000);
-                await snap(10, 'stats-team-after-click');
-                await page.mouse.click(320, 90);
-                await pause(1000);
-                await snap(11, 'stats-prono-after-click');
-                await page.mouse.click(68, 90);
-                await pause(1000);
-                await snap(12, 'stats-players-return');
-              });
-
-              await runStep(13, 'composition-visible-tabs-waitlist', async () => {
-                await visit('/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09/composition');
-                await snap(13, 'composition-effectif-before-clicks');
-                await page.mouse.click(320, 190);
-                await pause(1200);
-                await snap(14, 'composition-compo-after-click');
-                await page.mouse.click(195, 190);
-                await pause(900);
-                await page.mouse.click(195, 554);
-                await pause(1200);
-                await snap(15, 'composition-waitlist-after-click');
-              });
-
-              await runStep(16, 'admin-composition-refresh-visible-click', async () => {
-                await visit('/admin/composition');
-                await snap(16, 'admin-composition-before-refresh');
-                await page.mouse.click(359, 30);
-                await pause(1600);
-                await snap(17, 'admin-composition-after-refresh');
-              });
-
-              fs.writeFileSync('audit-artifacts/admin-click-audit.json', JSON.stringify({ timestamp: new Date().toISOString(), username: USERNAME, steps, errors }, null, 2));
-              fs.writeFileSync('audit-artifacts/admin-click-audit.txt', [
-                `Authenticated as: ${USERNAME}`,
-                ...steps.map(s => `${s.status.padEnd(8)} ${String(s.durationMs).padStart(6)}ms ${s.name} -> ${s.url}`),
-                '',
-                `Errors observed: ${errors.length}`,
-                ...errors.map(e => `[${e.step}] ${e.kind}: ${e.text}`),
-              ].join('\n'));
-            } catch (e) {
-              fs.writeFileSync('audit-artifacts/fatal-error.txt', String(e.stack || e));
-              try { await snap(99, 'fatal'); } catch (_) {}
-              throw e;
-            } finally {
-              await browser.close();
-            }
-          })().catch(error => {
-            console.error(error);
-            process.exit(1);
-          });
+            fs.writeFileSync('audit-artifacts/route-sweep.json',JSON.stringify({matchId,routes,errors},null,2));
+            fs.writeFileSync('audit-artifacts/route-sweep.txt',[
+              ...routes.map(r=>`${r.status.padEnd(6)} ${r.route} -> ${r.finalUrl||''} errors=${r.newErrors??''}\nTEXT ${r.text||''}`),
+              '',`ERRORS ${errors.length}`,...errors.map(e=>`[${e.step}] ${e.kind}: ${e.text}`)
+            ].join('\n'));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
           NODE
-
-      - name: Print click audit summary
+      - name: Print summary
         if: always()
-        run: |
-          if [ -f audit-artifacts/admin-click-audit.txt ]; then cat audit-artifacts/admin-click-audit.txt; fi
-          if [ -f audit-artifacts/fatal-error.txt ]; then cat audit-artifacts/fatal-error.txt; fi
-
-      - name: Upload audit artifacts
+        run: test ! -f audit-artifacts/route-sweep.txt || cat audit-artifacts/route-sweep.txt
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: authenticated-admin-click-audit
+          name: prepared-match-route-sweep
           path: audit-artifacts/
           if-no-files-found: error
           retention-days: 7
