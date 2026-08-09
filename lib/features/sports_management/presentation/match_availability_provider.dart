@@ -12,12 +12,9 @@ final myMatchAvailabilityProvider = FutureProvider.autoDispose
     return null;
   }
 
-  // Les cartes du calendrier peuvent être détruites/recréées pendant le scroll
-  // ou l'auto-focus. Conserver brièvement la dernière valeur évite de relancer
-  // le même RPC à chaque reconstruction tout en gardant une donnée fraîche.
-  final keepAliveLink = ref.keepAlive();
-  final cacheTimer = Timer(const Duration(minutes: 2), keepAliveLink.close);
-  ref.onDispose(cacheTimer.cancel);
+  final link = ref.keepAlive();
+  final timer = Timer(const Duration(minutes: 2), link.close);
+  ref.onDispose(timer.cancel);
 
   try {
     return await ref
