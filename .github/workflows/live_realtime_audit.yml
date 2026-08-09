@@ -1,0 +1,70 @@
+name: Live Realtime Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/live_realtime_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+      MATCH_ID: 2b0aedfc-13c1-4ff7-9f56-152d1a23963f
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save playwright-core@1.52.0
+      - name: Observe live without reload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p live-artifacts
+          node <<'NODE'
+          const fs=require('fs');
+          const {chromium}=require('playwright-core');
+          (async()=>{
+            const b=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});
+            const c=await b.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
+            const p=await c.newPage();
+            const errors=[];
+            p.on('console',m=>{if(m.type()==='error')errors.push(`console ${m.text()}`)});
+            p.on('response',r=>{if(r.status()>=400)errors.push(`http ${r.status()} ${r.url()}`)});
+            const wait=ms=>p.waitForTimeout(ms);
+            async function sem(){try{await p.evaluate(()=>document.querySelector('flt-semantics-placeholder')?.click());await wait(300)}catch(_){}}
+            async function focus(label){const a=p.locator(`[aria-label="${label}"]`).first();if(await a.count())return a.click({force:true});const t=p.getByText(label,{exact:true}).first();if(await t.count())return t.click({force:true});throw new Error(`missing ${label}`)}
+            await p.goto(process.env.APP_URL,{waitUntil:'networkidle',timeout:90000});await wait(1800);await sem();
+            await p.goto(`${process.env.APP_URL}#/auth/sign-in`,{waitUntil:'networkidle',timeout:60000});await wait(900);await sem();
+            await focus('Identifiant');await p.keyboard.type(process.env.TEST_USERNAME);
+            await focus('Mot de passe');await p.keyboard.type(process.env.TEST_PASSWORD);
+            await focus('Se connecter');await p.waitForFunction(()=>!location.hash.includes('/auth/'),null,{timeout:45000});await wait(1800);await sem();
+            await p.goto(`${process.env.APP_URL}#/matches/${process.env.MATCH_ID}/lineup?section=live`,{waitUntil:'networkidle',timeout:60000});await wait(1800);await sem();
+            const samples=[];
+            for(let i=0;i<8;i++){
+              const text=(await p.locator('body').innerText().catch(()=>'' )).replace(/\s+/g,' ').trim();
+              samples.push({i,at:new Date().toISOString(),url:p.url(),text:text.slice(0,3000),errorCount:errors.length});
+              await p.screenshot({path:`live-artifacts/live-${i}.png`,fullPage:true});
+              if(i<7)await wait(5000);
+            }
+            fs.writeFileSync('live-artifacts/samples.json',JSON.stringify({samples,errors},null,2));
+            fs.writeFileSync('live-artifacts/samples.txt',samples.map(s=>`SAMPLE ${s.i} ${s.at}\n${s.text}`).join('\n\n')+`\n\nERRORS\n${errors.join('\n')}`);
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - if: always()
+        run: cat live-artifacts/samples.txt || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-realtime-audit
+          path: live-artifacts/
+          retention-days: 7
