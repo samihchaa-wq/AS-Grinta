@@ -1,0 +1,68 @@
+name: RPC Contract Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/rpc_contract_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Compare Flutter RPC names with production PostgREST
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p rpc-audit
+          python3 - <<'PY'
+          import json,re,pathlib
+          names=set()
+          refs={}
+          pattern=re.compile(r"\.rpc\s*\(\s*['\"]([^'\"]+)['\"]")
+          for path in pathlib.Path('lib').rglob('*.dart'):
+              text=path.read_text(encoding='utf-8')
+              for m in pattern.finditer(text):
+                  n=m.group(1); names.add(n); refs.setdefault(n,[]).append(str(path))
+          pathlib.Path('rpc-audit/flutter-rpcs.json').write_text(json.dumps({'names':sorted(names),'refs':refs},indent=2))
+          print('Flutter RPC count:',len(names))
+          PY
+          SUPABASE_URL=$(python3 -c "import json;print(json.load(open('config/production.json'))['SUPABASE_URL'])")
+          ANON_KEY=$(python3 -c "import json;print(json.load(open('config/production.json'))['SUPABASE_ANON_KEY'])")
+          curl -fsS "$SUPABASE_URL/rest/v1/" -H "apikey: $ANON_KEY" -H "Accept: application/openapi+json" > rpc-audit/openapi.json
+          python3 - <<'PY'
+          import json,pathlib
+          used=json.load(open('rpc-audit/flutter-rpcs.json'))
+          spec=json.load(open('rpc-audit/openapi.json'))
+          prod=sorted({p.split('/rpc/',1)[1] for p in spec.get('paths',{}) if p.startswith('/rpc/')})
+          used_names=set(used['names']); prod_names=set(prod)
+          missing=sorted(used_names-prod_names)
+          unused=sorted(prod_names-used_names)
+          report={
+            'flutter_rpc_count':len(used_names),'production_rpc_count':len(prod_names),
+            'used_missing_in_production':missing,
+            'production_not_referenced_by_flutter':unused,
+            'references_for_missing':{n:used['refs'].get(n,[]) for n in missing}
+          }
+          pathlib.Path('rpc-audit/report.json').write_text(json.dumps(report,indent=2))
+          pathlib.Path('rpc-audit/report.txt').write_text(
+            f"Flutter RPCs: {len(used_names)}\nProduction RPCs: {len(prod_names)}\n"+
+            "Missing in production: "+(', '.join(missing) if missing else 'NONE')+"\n"+
+            "Production not referenced by Flutter: "+str(len(unused))+"\n"
+          )
+          print(pathlib.Path('rpc-audit/report.txt').read_text())
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpc-contract-audit
+          path: rpc-audit/
+          retention-days: 7
