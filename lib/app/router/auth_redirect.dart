@@ -21,6 +21,15 @@ String? resolveAuthRedirect({
     return location == '/auth/loading' ? null : '/auth/loading';
   }
 
+  // Une session encore valide ne doit jamais être présentée comme une vraie
+  // déconnexion simplement parce que le profil ne répond pas momentanément.
+  final profileUnavailable = authState.hasSession &&
+      authState.profile == null &&
+      authState.error != null;
+  if (profileUnavailable) {
+    return location == '/auth/loading' ? null : '/auth/loading';
+  }
+
   if (location == '/auth/loading' && !authState.isAuthenticated) {
     return '/auth/sign-in';
   }
