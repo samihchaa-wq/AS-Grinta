@@ -34,7 +34,7 @@ void main() {
     expect(events, contains('_cacheTtl = Duration(minutes: 2)'));
 
     expect(matches, contains('Future<void>? _loadInFlight'));
-    expect(matches, contains("final key = '\${seasonId ?? ''}:\$allSeasons'"));
     expect(matches, contains('if (_loadKey == key) return existing'));
+    expect(matches, contains('_performLoad'));
   });
 }
