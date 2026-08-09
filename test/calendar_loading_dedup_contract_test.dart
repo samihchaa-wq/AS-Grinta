@@ -19,6 +19,9 @@ void main() {
     final matches = await File(
       'lib/features/matches/presentation/matches_controller.dart',
     ).readAsString();
+    final calendar = await File(
+      'lib/features/predictions/presentation/merged_matches_view.dart',
+    ).readAsString();
 
     expect(availability, contains('_fetchesInFlight'));
     expect(availabilityProvider, contains('ref.keepAlive()'));
@@ -36,5 +39,10 @@ void main() {
     expect(matches, contains('Future<void>? _loadInFlight'));
     expect(matches, contains('if (_loadKey == key) return existing'));
     expect(matches, contains('_performLoad'));
+
+    expect(calendar, contains('const cacheExtent = 1800.0'));
+    expect(calendar, isNot(contains('entries.length * 360.0')));
+    expect(calendar, contains('position.jumpTo'));
+    expect(calendar, contains('Scrollable.ensureVisible'));
   });
 }
