@@ -375,6 +375,35 @@ class SeasonPredictionsRepository {
     return gauges;
   }
 
+  Future<void> saveAll(List<SeasonPredictionItem> items) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) throw StateError('Utilisateur non authentifié.');
+    if (items.isEmpty) return;
+
+    final seasonId = items.first.seasonId;
+    if (seasonId.isEmpty || items.any((item) => item.seasonId != seasonId)) {
+      throw ArgumentError('Tous les pronostics doivent appartenir à la même saison.');
+    }
+    if (items.any((item) => item.value < 0 || item.value > 99)) {
+      throw ArgumentError('Chaque pronostic doit être compris entre 0 et 99.');
+    }
+
+    await _client.rpc(
+      'save_my_season_predictions',
+      params: {
+        'p_season_id': seasonId,
+        'p_items': [
+          for (final item in items)
+            {
+              'season_player_id': item.playerId,
+              'category': item.category,
+              'predicted_value_30': item.value,
+            },
+        ],
+      },
+    );
+  }
+
   Future<void> save(SeasonPredictionItem item) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
