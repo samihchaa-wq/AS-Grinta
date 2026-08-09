@@ -93,10 +93,32 @@ class CalendarHistoryRepository {
 
     try {
       final fresh = await fetchAll(forceRefresh: true);
-      yield fresh;
+      if (local == null || !_sameSnapshot(local, fresh)) {
+        yield fresh;
+      }
     } catch (_) {
       if (local == null) rethrow;
     }
+  }
+
+  bool _sameSnapshot(
+    List<HistoricalMatchResult> first,
+    List<HistoricalMatchResult> second,
+  ) {
+    if (first.length != second.length) return false;
+    for (var index = 0; index < first.length; index += 1) {
+      final a = first[index];
+      final b = second[index];
+      if (a.id != b.id ||
+          a.date != b.date ||
+          a.opponentName != b.opponentName ||
+          a.grintaScore != b.grintaScore ||
+          a.opponentScore != b.opponentScore ||
+          a.isHome != b.isHome) {
+        return false;
+      }
+    }
+    return true;
   }
 
   Future<List<HistoricalMatchResult>> _fetchAllFromServer() async {
