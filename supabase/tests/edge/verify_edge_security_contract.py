@@ -80,6 +80,7 @@ def main() -> int:
         'targetProfile.role === "admin"',
         '.eq("role", "admin")',
         '"The last active admin cannot be deleted"',
+        "deleteProfileWithRetry(admin, userId)",
     ):
         require(marker in manage, f"manage-user: garde absente: {marker}")
     require(
@@ -117,15 +118,21 @@ def main() -> int:
         require(marker in register, f"register-account: garde absente: {marker}")
     require_in_order(
         register,
-        '"consume_registration_rate_limit"',
-        "const body = await req.json()",
-        "register-account doit limiter le débit avant de lire et traiter la demande",
+        "body = await req.json()",
+        "validatePassword(password)",
+        "register-account doit lire puis valider la demande avant la création Auth",
     )
     require_in_order(
         register,
         "validatePassword(password)",
+        '"consume_registration_rate_limit"',
+        "register-account doit rejeter les demandes invalides avant de consommer le quota partagé",
+    )
+    require_in_order(
+        register,
+        '"consume_registration_rate_limit"',
         "admin.auth.admin.createUser",
-        "register-account doit valider le mot de passe avant la création Auth",
+        "register-account doit limiter le débit avant la création Auth",
     )
 
     push = source("send-push")
