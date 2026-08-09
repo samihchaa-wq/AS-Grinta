@@ -42,17 +42,16 @@ class CalendarHistoryRepository {
     return (response as List? ?? const [])
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map((row) {
-          final rawDate = row['match_date']?.toString() ?? '';
-          return HistoricalMatchResult(
-            id: row['id']?.toString() ?? '',
-            date: DateTime.tryParse(rawDate) ?? DateTime(1970),
-            opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
-            grintaScore: (row['score_as_grinta'] as num?)?.toInt() ?? 0,
-            opponentScore: (row['score_adverse'] as num?)?.toInt() ?? 0,
-            isHome: row['is_home'] as bool? ?? true,
-          );
-        })
-        .toList(growable: false);
+      final rawDate = row['match_date']?.toString() ?? '';
+      return HistoricalMatchResult(
+        id: row['id']?.toString() ?? '',
+        date: DateTime.tryParse(rawDate) ?? DateTime(1970),
+        opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
+        grintaScore: (row['score_as_grinta'] as num?)?.toInt() ?? 0,
+        opponentScore: (row['score_adverse'] as num?)?.toInt() ?? 0,
+        isHome: row['is_home'] as bool? ?? true,
+      );
+    }).toList(growable: false);
   }
 
   Future<List<HistoricalMatchResult>> fetchSeason(String seasonName) async {
@@ -143,8 +142,7 @@ class CalendarHistoryRepository {
           .map(
             (row) => HistoricalMatchResult(
               id: row['id']?.toString() ?? '',
-              date:
-                  DateTime.tryParse(row['date']?.toString() ?? '') ??
+              date: DateTime.tryParse(row['date']?.toString() ?? '') ??
                   DateTime(1970),
               opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
               grintaScore: (row['grinta_score'] as num?)?.toInt() ?? 0,
@@ -195,5 +193,5 @@ final calendarHistoryRepositoryProvider = Provider<CalendarHistoryRepository>(
 
 final allHistoricalMatchesProvider =
     StreamProvider<List<HistoricalMatchResult>>((ref) {
-      return ref.watch(calendarHistoryRepositoryProvider).watchAllLocalFirst();
-    });
+  return ref.watch(calendarHistoryRepositoryProvider).watchAllLocalFirst();
+});
