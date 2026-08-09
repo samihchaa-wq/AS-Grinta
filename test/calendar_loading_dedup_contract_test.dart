@@ -48,7 +48,9 @@ void main() {
     expect(matches, contains('Future<void>? _loadInFlight'));
     expect(matches, contains('if (_loadKey == key) return existing'));
     expect(matches, contains('_performLoad'));
-    expect(matches, contains('allSeasonsBootstrap'));
+    expect(matches, contains('final seasonsFuture = _repository.fetchSeasons()'));
+    expect(matches, contains('final opponentsFuture = _repository.fetchOpponents()'));
+    expect(matches, contains('allSeasons ? _repository.fetchMatches() : null'));
 
     expect(calendar, contains('const cacheExtent = 1800.0'));
     expect(calendar, isNot(contains('entries.length * 360.0')));
