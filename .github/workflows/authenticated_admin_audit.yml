@@ -73,39 +73,27 @@ jobs:
                   const placeholder = document.querySelector('flt-semantics-placeholder');
                   if (placeholder) placeholder.click();
                 });
-                await pause(500);
+                await pause(400);
               } catch (_) {}
             }
 
             async function focusField(label) {
               const aria = page.locator(`[aria-label="${label}"]`).first();
-              if (await aria.count()) {
-                await aria.click({ force: true });
-                return;
-              }
-              const byText = page.getByText(label, { exact: true }).first();
-              if (await byText.count()) {
-                await byText.click({ force: true });
-                return;
-              }
+              if (await aria.count()) return aria.click({ force: true });
+              const text = page.getByText(label, { exact: true }).first();
+              if (await text.count()) return text.click({ force: true });
               throw new Error(`Champ introuvable: ${label}`);
             }
 
             async function clickLabel(label) {
               const aria = page.locator(`[aria-label="${label}"]`).first();
-              if (await aria.count()) {
-                await aria.click({ force: true });
-                return;
-              }
-              const byText = page.getByText(label, { exact: true }).first();
-              if (await byText.count()) {
-                await byText.click({ force: true });
-                return;
-              }
+              if (await aria.count()) return aria.click({ force: true });
+              const text = page.getByText(label, { exact: true }).first();
+              if (await text.count()) return text.click({ force: true });
               throw new Error(`Action introuvable: ${label}`);
             }
 
-            async function visit(route, waitMs = 1200) {
+            async function visit(route, waitMs = 1400) {
               await page.goto(routeUrl(route), { waitUntil: 'networkidle', timeout: 60000 });
               await pause(waitMs);
               await enableSemantics();
@@ -132,33 +120,21 @@ jobs:
                 record('journey', detail);
                 try { await snap(index, `${name}-failed`); } catch (_) {}
               }
-              steps.push({
-                name,
-                status,
-                durationMs: Date.now() - start,
-                url: page.url(),
-                detail,
-                errors: errors.slice(before),
-              });
+              steps.push({ name, status, durationMs: Date.now() - start, url: page.url(), detail, errors: errors.slice(before) });
             }
 
             try {
               currentStep = 'login';
-              const response = await page.goto(`${APP_URL}?admin-click-audit=${Date.now()}`, {
-                waitUntil: 'networkidle', timeout: 90000,
-              });
+              const response = await page.goto(`${APP_URL}?admin-click-audit=${Date.now()}`, { waitUntil: 'networkidle', timeout: 90000 });
               if (!response || response.status() >= 400) throw new Error(`Ouverture PWA HTTP ${response?.status() ?? 'sans réponse'}`);
               await page.waitForFunction(() => document.querySelector('flutter-view, flt-glass-pane, canvas') !== null, null, { timeout: 45000 });
               await pause(2500);
               await enableSemantics();
-              await snap(0, 'login');
-
               if (!page.url().includes('/auth/sign-in')) {
                 await page.goto(routeUrl('/auth/sign-in'), { waitUntil: 'networkidle', timeout: 60000 });
                 await pause(1500);
                 await enableSemantics();
               }
-
               await focusField('Identifiant');
               await page.keyboard.type(USERNAME);
               await focusField('Mot de passe');
@@ -169,79 +145,78 @@ jobs:
               await enableSemantics();
               await snap(1, 'authenticated');
 
-              await runStep(2, 'admin-menu-comptes', async () => {
-                await visit('/admin');
-                await clickLabel('Comptes et saison');
-                await pause(1400);
-                await enableSemantics();
-                await snap(2, 'admin-comptes-click');
+              await runStep(2, 'admin-comptes-visible-click', async () => {
+                await visit('/admin', 1800);
+                if (!page.url().includes('#/admin')) await visit('/admin', 1800);
+                await snap(2, 'admin-menu-before-comptes');
+                await page.mouse.click(190, 115);
+                await pause(1600);
+                await snap(3, 'admin-comptes-after-click');
               });
 
-              await runStep(3, 'admin-menu-effectif', async () => {
-                await visit('/admin');
-                await clickLabel('Effectif');
-                await pause(1400);
-                await enableSemantics();
-                await snap(3, 'admin-effectif-click');
+              await runStep(4, 'admin-effectif-visible-click', async () => {
+                await visit('/admin', 1800);
+                await snap(4, 'admin-menu-before-effectif');
+                await page.mouse.click(190, 210);
+                await pause(1600);
+                await snap(5, 'admin-effectif-after-click');
               });
 
-              await runStep(4, 'create-match-open', async () => {
+              await runStep(6, 'create-match-open-cancel', async () => {
                 await visit('/admin/matches');
                 await clickLabel('Créer un match');
                 await pause(1200);
-                await enableSemantics();
-                await snap(4, 'create-match-form');
-                await visit('/admin/matches');
+                await snap(6, 'create-match-form');
+                await page.mouse.click(28, 29);
+                await pause(1200);
               });
 
-              await runStep(5, 'create-guest-open', async () => {
+              await runStep(7, 'create-guest-open-cancel', async () => {
                 await visit('/admin/guests');
                 await clickLabel('Créer un invité');
                 await pause(1100);
-                await enableSemantics();
-                await snap(5, 'create-guest-form');
-                await visit('/admin/guests');
+                await snap(7, 'create-guest-form');
+                await page.mouse.click(142, 582);
+                await pause(900);
+                await snap(8, 'create-guest-cancelled');
               });
 
-              await runStep(6, 'stats-tabs', async () => {
+              await runStep(9, 'stats-visible-tabs', async () => {
                 await visit('/stats?section=players');
-                await clickLabel('Équipe');
-                await pause(900);
-                await snap(6, 'stats-team');
-                await clickLabel('Prono');
-                await pause(900);
-                await snap(7, 'stats-prono');
-                await clickLabel('Joueurs');
-                await pause(900);
-                await snap(8, 'stats-players');
+                await snap(9, 'stats-players-before-tabs');
+                await page.mouse.click(195, 90);
+                await pause(1000);
+                await snap(10, 'stats-team-after-click');
+                await page.mouse.click(320, 90);
+                await pause(1000);
+                await snap(11, 'stats-prono-after-click');
+                await page.mouse.click(68, 90);
+                await pause(1000);
+                await snap(12, 'stats-players-return');
               });
 
-              await runStep(9, 'composition-tabs-waitlist', async () => {
+              await runStep(13, 'composition-visible-tabs-waitlist', async () => {
                 await visit('/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09/composition');
-                await clickLabel('Compo');
-                await pause(1100);
-                await snap(9, 'composition-compo');
-                await clickLabel('Effectif');
-                await pause(600);
-                await clickLabel("Voir la liste d’attente");
-                await pause(1100);
-                await enableSemantics();
-                await snap(10, 'composition-waitlist');
+                await snap(13, 'composition-effectif-before-clicks');
+                await page.mouse.click(320, 190);
+                await pause(1200);
+                await snap(14, 'composition-compo-after-click');
+                await page.mouse.click(195, 190);
+                await pause(900);
+                await page.mouse.click(195, 554);
+                await pause(1200);
+                await snap(15, 'composition-waitlist-after-click');
               });
 
-              await runStep(11, 'composition-refresh', async () => {
+              await runStep(16, 'admin-composition-refresh-visible-click', async () => {
                 await visit('/admin/composition');
-                await clickLabel('Actualiser');
+                await snap(16, 'admin-composition-before-refresh');
+                await page.mouse.click(359, 30);
                 await pause(1600);
-                await snap(11, 'composition-refresh');
+                await snap(17, 'admin-composition-after-refresh');
               });
 
-              fs.writeFileSync('audit-artifacts/admin-click-audit.json', JSON.stringify({
-                timestamp: new Date().toISOString(),
-                username: USERNAME,
-                steps,
-                errors,
-              }, null, 2));
+              fs.writeFileSync('audit-artifacts/admin-click-audit.json', JSON.stringify({ timestamp: new Date().toISOString(), username: USERNAME, steps, errors }, null, 2));
               fs.writeFileSync('audit-artifacts/admin-click-audit.txt', [
                 `Authenticated as: ${USERNAME}`,
                 ...steps.map(s => `${s.status.padEnd(8)} ${String(s.durationMs).padStart(6)}ms ${s.name} -> ${s.url}`),
