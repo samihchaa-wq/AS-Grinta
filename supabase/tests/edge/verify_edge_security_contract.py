@@ -109,6 +109,7 @@ def main() -> int:
     for marker in (
         'req.method !== "POST"',
         "MAX_BODY_BYTES",
+        "body = await req.json()",
         '"consume_registration_rate_limit"',
         "validatePassword(password)",
         "SUPABASE_SERVICE_ROLE_KEY",
@@ -117,9 +118,15 @@ def main() -> int:
         require(marker in register, f"register-account: garde absente: {marker}")
     require_in_order(
         register,
+        "body = await req.json()",
         '"consume_registration_rate_limit"',
-        "const body = await req.json()",
-        "register-account doit limiter le débit avant de lire et traiter la demande",
+        "register-account doit valider la forme de la demande avant de consommer le quota",
+    )
+    require_in_order(
+        register,
+        "validatePassword(password)",
+        '"consume_registration_rate_limit"',
+        "register-account doit rejeter un mot de passe invalide sans consommer le quota",
     )
     require_in_order(
         register,
