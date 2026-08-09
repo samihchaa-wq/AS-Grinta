@@ -1,0 +1,34 @@
+name: Private Schema Resource Probe
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/private_schema_resource_probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Probe real REST resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(python3 -c "import json;print(json.load(open('config/production.json'))['SUPABASE_URL'])")
+          KEY=$(python3 -c "import json;print(json.load(open('config/production.json'))['SUPABASE_ANON_KEY'])")
+          probe() {
+            label="$1"; profile="$2"; resource="$3"
+            code=$(curl -sS -o "$label.body" -w '%{http_code}' "$URL/rest/v1/$resource?select=*&limit=1" -H "apikey: $KEY" -H "Accept-Profile: $profile")
+            echo "$label status=$code"
+            head -c 500 "$label.body" | tr '\n' ' '; echo
+          }
+          probe public_resource public seasons
+          probe private_resource private registration_attempts
