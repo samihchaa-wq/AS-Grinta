@@ -118,7 +118,8 @@ class MatchesController extends StateNotifier<MatchesState> {
       final allMatchesFuture = allSeasons ? _repository.fetchMatches() : null;
 
       final seasons = await seasonsFuture;
-      final resolvedSeasonId = seasonId ??
+      final resolvedSeasonId =
+          seasonId ??
           state.selectedSeasonId ??
           _currentSeasonId(seasons) ??
           (seasons.isNotEmpty ? seasons.first['id']?.toString() : null);
@@ -327,10 +328,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       return;
     }
     if (seasonId.isEmpty) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Saison obligatoire.',
-      );
+      state = state.copyWith(isLoading: false, error: 'Saison obligatoire.');
       return;
     }
     state = state.copyWith(isLoading: true, clearError: true);
@@ -449,5 +447,5 @@ class MatchesController extends StateNotifier<MatchesState> {
 
 final matchesControllerProvider =
     StateNotifierProvider<MatchesController, MatchesState>((ref) {
-  return MatchesController(ref.watch(matchesRepositoryProvider), ref);
-});
+      return MatchesController(ref.watch(matchesRepositoryProvider), ref);
+    });
