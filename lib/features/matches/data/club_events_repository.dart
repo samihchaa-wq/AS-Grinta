@@ -7,15 +7,43 @@ class ClubEventsRepository {
   ClubEventsRepository(this._client);
 
   final SupabaseClient _client;
+  Future<List<ClubEvent>>? _fetchInFlight;
+  List<ClubEvent>? _cache;
+  DateTime? _cacheAt;
 
-  Future<List<ClubEvent>> fetchEvents() async {
+  static const _cacheTtl = Duration(minutes: 2);
+
+  Future<List<ClubEvent>> fetchEvents({bool forceRefresh = false}) {
+    final cached = _cache;
+    final cachedAt = _cacheAt;
+    if (!forceRefresh &&
+        cached != null &&
+        cachedAt != null &&
+        DateTime.now().difference(cachedAt) < _cacheTtl) {
+      return Future.value(cached);
+    }
+
+    final existing = _fetchInFlight;
+    if (!forceRefresh && existing != null) return existing;
+
+    final request = _fetchEventsFromServer();
+    _fetchInFlight = request;
+    return request.whenComplete(() {
+      if (identical(_fetchInFlight, request)) _fetchInFlight = null;
+    });
+  }
+
+  Future<List<ClubEvent>> _fetchEventsFromServer() async {
     final response = await _client
         .from('club_events')
         .select('id, season_id, title, starts_at, location, created_by')
         .order('starts_at', ascending: false);
-    return (response as List)
+    final events = (response as List)
         .map((row) => ClubEvent.fromJson(Map<String, dynamic>.from(row)))
         .toList(growable: false);
+    _cache = events;
+    _cacheAt = DateTime.now();
+    return events;
   }
 
   Future<void> createEvent({
@@ -33,6 +61,7 @@ class ClubEventsRepository {
       'location': location.trim(),
       'created_by': userId,
     });
+    _invalidateCache();
   }
 
   Future<void> updateEvent({
@@ -49,10 +78,17 @@ class ClubEventsRepository {
       'location': location.trim(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }).eq('id', id);
+    _invalidateCache();
   }
 
   Future<void> deleteEvent(String id) async {
     await _client.from('club_events').delete().eq('id', id);
+    _invalidateCache();
+  }
+
+  void _invalidateCache() {
+    _cache = null;
+    _cacheAt = null;
   }
 }
 
