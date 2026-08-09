@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('calendar network loads are coalesced and locally cached', () async {
+  test('calendar and startup loads are coalesced and locally cached', () async {
     final availability = await File(
       'lib/features/sports_management/data/match_availability_repository.dart',
     ).readAsString();
@@ -21,6 +21,9 @@ void main() {
     ).readAsString();
     final matchesLocalCache = await File(
       'lib/features/matches/data/calendar_matches_local_cache.dart',
+    ).readAsString();
+    final authRepository = await File(
+      'lib/features/auth/data/auth_repository.dart',
     ).readAsString();
     final calendar = await File(
       'lib/features/predictions/presentation/merged_matches_view.dart',
@@ -65,6 +68,13 @@ void main() {
     );
     expect(matchesLocalCache, contains("return '\${_keyPrefix}_\$userId'"));
     expect(matchesLocalCache, contains('MatchModel.fromJson'));
+
+    expect(authRepository, contains('_profileFetchesInFlight'));
+    expect(authRepository, contains('_fetchProfileFromServer'));
+    expect(
+      authRepository,
+      contains('_profileFetchesInFlight[retryAfterSignIn]'),
+    );
 
     expect(calendar, contains('const cacheExtent = 1800.0'));
     expect(calendar, isNot(contains('entries.length * 360.0')));
