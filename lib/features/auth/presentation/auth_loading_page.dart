@@ -20,7 +20,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
     super.initState();
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       final auth = ref.read(authControllerProvider);
-      final shouldRetry = auth.profile?.isPending == true ||
+      final shouldRetry =
+          auth.profile?.isPending == true ||
           (auth.hasSession && auth.profile == null && auth.error != null);
       if (shouldRetry && !auth.isLoading) {
         unawaited(ref.read(authControllerProvider.notifier).refreshProfile());
@@ -56,9 +57,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     Text(
                       'Connexion temporairement indisponible',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(height: 12),
                     const Text(
@@ -72,8 +72,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                       onPressed: auth.isLoading
                           ? null
                           : () => ref
-                              .read(authControllerProvider.notifier)
-                              .refreshProfile(),
+                                .read(authControllerProvider.notifier)
+                                .refreshProfile(),
                       icon: auth.isLoading
                           ? const SizedBox(
                               width: 18,
@@ -87,8 +87,9 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     TextButton(
                       onPressed: auth.isLoading
                           ? null
-                          : () =>
-                              ref.read(authControllerProvider.notifier).signOut(),
+                          : () => ref
+                                .read(authControllerProvider.notifier)
+                                .signOut(),
                       child: const Text('Se déconnecter'),
                     ),
                   ],
@@ -127,8 +128,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     'Compte en attente de validation',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   const Text(
@@ -142,8 +143,8 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                     onPressed: auth.isLoading
                         ? null
                         : () => ref
-                            .read(authControllerProvider.notifier)
-                            .refreshProfile(),
+                              .read(authControllerProvider.notifier)
+                              .refreshProfile(),
                     icon: auth.isLoading
                         ? const SizedBox(
                             width: 18,
@@ -157,8 +158,9 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
                   TextButton(
                     onPressed: auth.isLoading
                         ? null
-                        : () =>
-                            ref.read(authControllerProvider.notifier).signOut(),
+                        : () => ref
+                              .read(authControllerProvider.notifier)
+                              .signOut(),
                     child: const Text('Se déconnecter'),
                   ),
                 ],

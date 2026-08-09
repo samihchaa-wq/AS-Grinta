@@ -11,8 +11,8 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 final seasonPredictionsProvider =
     FutureProvider.autoDispose<List<SeasonPredictionItem>>((ref) {
-  return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
-});
+      return ref.watch(seasonPredictionsRepositoryProvider).fetchMine();
+    });
 
 final seasonPredictionsLockedProvider = FutureProvider.autoDispose<bool>((ref) {
   return ref.watch(seasonPredictionsRepositoryProvider).isLocked();
@@ -67,9 +67,7 @@ class _SeasonPredictionEntryPageState
             AppSpacing.screenGutter,
             32,
           ),
-          children: [
-            Text(humanizeError(error), textAlign: TextAlign.center),
-          ],
+          children: [Text(humanizeError(error), textAlign: TextAlign.center)],
         ),
         data: (entries) {
           if (entries.isEmpty) {
@@ -273,7 +271,8 @@ class _SeasonPredictionEntryPageState
       final updatedItems = [
         for (final item in items)
           item.copyWith(
-            value: _draftValues['${item.playerId}:${item.category}'] ?? item.value,
+            value:
+                _draftValues['${item.playerId}:${item.category}'] ?? item.value,
             isFilled: true,
           ),
       ];
