@@ -1,0 +1,260 @@
+name: Authenticated Admin Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/authenticated_admin_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_URL: https://samihchaa-wq.github.io/AS-Grinta/
+      TEST_USERNAME: Testt
+      TEST_PASSWORD: ${{ secrets.E2E_TESTT_PASSWORD }}
+    steps:
+      - name: Check secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$TEST_PASSWORD"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
+
+      - name: Run authenticated admin journey
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-artifacts/screenshots
+          node <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright-core');
+
+          const APP_URL = process.env.APP_URL;
+          const USERNAME = process.env.TEST_USERNAME;
+          const PASSWORD = process.env.TEST_PASSWORD;
+          if (!APP_URL || !USERNAME || !PASSWORD) throw new Error('Configuration E2E manquante');
+
+          const routes = [
+            ['matches', '/matches'],
+            ['stats-players', '/stats?section=players'],
+            ['more', '/more'],
+            ['admin-menu', '/admin'],
+            ['admin-administration', '/admin/administration'],
+            ['admin-matches', '/admin/matches'],
+            ['admin-composition', '/admin/composition'],
+            ['admin-guests', '/admin/guests'],
+            ['admin-waitlist', '/admin/waitlist'],
+            ['admin-badges', '/admin/badges'],
+            ['admin-notification', '/admin/notification'],
+            ['players', '/players'],
+            ['profile', '/profile'],
+            ['notifications', '/notifications'],
+            ['internal-match', '/matches/4870d2b8-2cc0-4812-813c-1eec053e359c'],
+            ['championship-match', '/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09'],
+            ['championship-composition', '/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09/composition'],
+            ['championship-guests', '/matches/7ad3c789-b308-4d3a-ada3-a592c5509b09/guests'],
+          ];
+
+          function routeUrl(route) {
+            return `${APP_URL}${route.replace(/^\//, '')}`;
+          }
+
+          async function enableSemantics(page) {
+            try {
+              await page.evaluate(() => {
+                const placeholder = document.querySelector('flt-semantics-placeholder');
+                if (placeholder) placeholder.click();
+              });
+              await page.waitForTimeout(500);
+            } catch (_) {}
+          }
+
+          async function focusField(page, label) {
+            const aria = page.locator(`[aria-label="${label}"]`).first();
+            if (await aria.count()) {
+              await aria.click({ force: true });
+              return;
+            }
+            const byText = page.getByText(label, { exact: true }).first();
+            if (await byText.count()) {
+              await byText.click({ force: true });
+              return;
+            }
+            throw new Error(`Champ introuvable: ${label}`);
+          }
+
+          async function clickLabel(page, label) {
+            const aria = page.locator(`[aria-label="${label}"]`).first();
+            if (await aria.count()) {
+              await aria.click({ force: true });
+              return;
+            }
+            const byText = page.getByText(label, { exact: true }).first();
+            if (await byText.count()) {
+              await byText.click({ force: true });
+              return;
+            }
+            throw new Error(`Action introuvable: ${label}`);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              deviceScaleFactor: 1,
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            const globalErrors = [];
+            let currentRoute = 'login';
+            const addError = (kind, text) => {
+              const item = `${kind}: ${text}`;
+              globalErrors.push({ route: currentRoute, error: item });
+            };
+
+            page.on('pageerror', error => addError('pageerror', error.stack || error.message));
+            page.on('console', message => {
+              if (message.type() === 'error') addError('console.error', message.text());
+            });
+            page.on('requestfailed', request => addError('requestfailed', `${request.url()} ${request.failure()?.errorText ?? ''}`));
+            page.on('response', response => {
+              if (response.status() >= 400) addError(`http ${response.status()}`, response.url());
+            });
+
+            try {
+              const response = await page.goto(`${APP_URL}?admin-audit=${Date.now()}`, {
+                waitUntil: 'networkidle', timeout: 90000,
+              });
+              if (!response || response.status() >= 400) throw new Error(`Ouverture PWA HTTP ${response?.status() ?? 'sans réponse'}`);
+              await page.waitForFunction(() => document.querySelector('flutter-view, flt-glass-pane, canvas') !== null, null, { timeout: 45000 });
+              await page.waitForTimeout(2500);
+              await enableSemantics(page);
+              await page.screenshot({ path: 'audit-artifacts/screenshots/00-login.png', fullPage: true });
+
+              if (!page.url().includes('/auth/sign-in')) {
+                await page.goto(routeUrl('/auth/sign-in'), { waitUntil: 'networkidle', timeout: 60000 });
+                await page.waitForTimeout(1500);
+                await enableSemantics(page);
+              }
+
+              await focusField(page, 'Identifiant');
+              await page.keyboard.type(USERNAME);
+              await focusField(page, 'Mot de passe');
+              await page.keyboard.type(PASSWORD);
+              await clickLabel(page, 'Se connecter');
+
+              await page.waitForFunction(() => !location.pathname.includes('/auth/'), null, { timeout: 45000 });
+              await page.waitForTimeout(3000);
+              await enableSemantics(page);
+              await page.screenshot({ path: 'audit-artifacts/screenshots/01-authenticated.png', fullPage: true });
+
+              const authenticatedUrl = page.url();
+              if (authenticatedUrl.includes('/auth/sign-in')) throw new Error('Connexion Testt non confirmée');
+
+              const visited = [];
+              for (let i = 0; i < routes.length; i++) {
+                const [name, route] = routes[i];
+                currentRoute = name;
+                const before = globalErrors.length;
+                const started = Date.now();
+                let status = 'ok';
+                let finalUrl = '';
+                try {
+                  const response = await page.goto(routeUrl(route), { waitUntil: 'networkidle', timeout: 75000 });
+                  if (!response || response.status() >= 400) status = `http-${response?.status() ?? 'none'}`;
+                  await page.waitForFunction(() => document.querySelector('flutter-view, flt-glass-pane, canvas') !== null, null, { timeout: 30000 });
+                  await page.waitForTimeout(2200);
+                  await enableSemantics(page);
+                  finalUrl = page.url();
+                  if (finalUrl.includes('/auth/sign-in')) status = 'redirected-to-login';
+                  await page.screenshot({
+                    path: `audit-artifacts/screenshots/${String(i + 2).padStart(2, '0')}-${name}.png`,
+                    fullPage: true,
+                  });
+                } catch (error) {
+                  status = 'navigation-error';
+                  addError('journey', error.stack || error.message);
+                  finalUrl = page.url();
+                  try {
+                    await page.screenshot({
+                      path: `audit-artifacts/screenshots/${String(i + 2).padStart(2, '0')}-${name}-error.png`,
+                      fullPage: true,
+                    });
+                  } catch (_) {}
+                }
+                visited.push({
+                  name,
+                  route,
+                  status,
+                  finalUrl,
+                  durationMs: Date.now() - started,
+                  newErrors: globalErrors.slice(before),
+                });
+              }
+
+              const summary = {
+                timestamp: new Date().toISOString(),
+                appUrl: APP_URL,
+                username: USERNAME,
+                authenticatedUrl,
+                visited,
+                errors: globalErrors,
+              };
+              fs.writeFileSync('audit-artifacts/admin-audit.json', JSON.stringify(summary, null, 2));
+              fs.writeFileSync('audit-artifacts/admin-audit.txt', [
+                `Authenticated as: ${USERNAME}`,
+                `Authenticated URL: ${authenticatedUrl}`,
+                '',
+                ...visited.map(v => `${v.status.padEnd(22)} ${String(v.durationMs).padStart(6)} ms  ${v.route}  -> ${v.finalUrl}`),
+                '',
+                `Errors observed: ${globalErrors.length}`,
+                ...globalErrors.map(e => `[${e.route}] ${e.error}`),
+              ].join('\n'));
+            } catch (error) {
+              fs.writeFileSync('audit-artifacts/fatal-error.txt', String(error.stack || error));
+              try { await page.screenshot({ path: 'audit-artifacts/screenshots/fatal.png', fullPage: true }); } catch (_) {}
+              await browser.close();
+              process.exit(1);
+            }
+
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Print compact audit summary
+        if: always()
+        run: |
+          if [ -f audit-artifacts/admin-audit.txt ]; then
+            cat audit-artifacts/admin-audit.txt
+          elif [ -f audit-artifacts/fatal-error.txt ]; then
+            cat audit-artifacts/fatal-error.txt
+          fi
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-admin-audit
+          path: audit-artifacts/
+          if-no-files-found: error
+          retention-days: 7
