@@ -1,0 +1,31 @@
+name: Private Schema Exposure Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/private_schema_exposure_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Probe PostgREST schema exposure
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=$(python3 -c "import json;print(json.load(open('config/production.json'))['SUPABASE_URL'])")
+          KEY=$(python3 -c "import json;print(json.load(open('config/production.json'))['SUPABASE_ANON_KEY'])")
+          for PROFILE in public private; do
+            code=$(curl -sS -o "${PROFILE}.body" -w '%{http_code}' "$URL/rest/v1/" -H "apikey: $KEY" -H "Accept-Profile: $PROFILE")
+            echo "$PROFILE status=$code"
+            head -c 400 "${PROFILE}.body" | tr '\n' ' '; echo
+          done
