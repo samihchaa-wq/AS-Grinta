@@ -1,0 +1,45 @@
+name: Full Schema Replay Audit
+
+on:
+  push:
+    branches: [audit/authenticated-admin-e2e]
+    paths:
+      - '.github/workflows/full_schema_replay_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.111.0
+      - name: Replay complete migration history on a fresh local stack
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p replay-audit
+          echo "migration_files=$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)" | tee replay-audit/summary.txt
+          supabase start 2>&1 | tee replay-audit/supabase-start.log
+          status=${PIPESTATUS[0]}
+          echo "supabase_start_exit=$status" | tee -a replay-audit/summary.txt
+          exit "$status"
+      - if: always()
+        run: |
+          echo '--- summary ---'
+          cat replay-audit/summary.txt || true
+          echo '--- last 120 lines ---'
+          tail -n 120 replay-audit/supabase-start.log || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-schema-replay-audit
+          path: replay-audit/
+          retention-days: 7
