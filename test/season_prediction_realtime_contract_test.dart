@@ -7,7 +7,7 @@ void main() {
     'season prediction writes stay local until the season is locked',
     () async {
       final migration = await File(
-        'supabase/migrations/20260804230000_suppress_season_prediction_refresh_signal.sql',
+        'supabase/migrations_legacy_production/20260804230000_suppress_season_prediction_refresh_signal.sql',
       ).readAsString();
       final entryPage = await File(
         'lib/features/predictions/presentation/season_prediction_entry_page.dart',
