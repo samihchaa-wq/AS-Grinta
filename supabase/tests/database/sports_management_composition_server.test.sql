@@ -114,7 +114,10 @@ select
   number = 1,
   true,
   number,
-  '91000000-0000-0000-0000-000000000001'::uuid
+  case
+    when number = 1 then '91000000-0000-0000-0000-000000000002'::uuid
+    else null
+  end
 from generate_series(1, 12) number;
 
 update private.app_feature_flags
