@@ -5,27 +5,52 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-/// Ouvre un éditeur de recadrage : l'utilisateur peut déplacer et zoomer sa
-/// photo dans le carré qui apparaîtra sur la compo (mêmes coins arrondis,
-/// même fond terrain pour juger d'un éventuel fond transparent).
+/// Ouvre l'éditeur utilisé pour les photos de profil : déplacement libre,
+/// pinch-to-zoom / dézoom et export PNG en conservant la transparence.
 ///
-/// Renvoie les octets de la photo recadrée, ou `null` si l'utilisateur
-/// annule.
+/// Les paramètres optionnels permettent de réutiliser exactement le même
+/// comportement pour d'autres visuels (par exemple les badges) sans dupliquer
+/// un second éditeur qui finirait par se comporter différemment.
 Future<Uint8List?> cropProfilePhoto(
   BuildContext context,
-  Uint8List bytes,
-) {
+  Uint8List bytes, {
+  String title = 'Recadrer la photo',
+  String instructions =
+      'Déplace et pince pour zoomer, afin de choisir ce qui apparaîtra sur le terrain.',
+  String confirmLabel = 'Utiliser cette photo',
+  Color previewColor = const Color(0xFF174936),
+  Color previewBorderColor = const Color(0xFF6DAD8B),
+}) {
   return showDialog<Uint8List?>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _PhotoCropDialog(bytes: bytes),
+    builder: (_) => _PhotoCropDialog(
+      bytes: bytes,
+      title: title,
+      instructions: instructions,
+      confirmLabel: confirmLabel,
+      previewColor: previewColor,
+      previewBorderColor: previewBorderColor,
+    ),
   );
 }
 
 class _PhotoCropDialog extends StatefulWidget {
-  const _PhotoCropDialog({required this.bytes});
+  const _PhotoCropDialog({
+    required this.bytes,
+    required this.title,
+    required this.instructions,
+    required this.confirmLabel,
+    required this.previewColor,
+    required this.previewBorderColor,
+  });
 
   final Uint8List bytes;
+  final String title;
+  final String instructions;
+  final String confirmLabel;
+  final Color previewColor;
+  final Color previewBorderColor;
 
   @override
   State<_PhotoCropDialog> createState() => _PhotoCropDialogState();
@@ -64,6 +89,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     final childWidth = image.width * coverScale;
     final childHeight = image.height * coverScale;
     image.dispose();
+    codec.dispose();
     if (!mounted) return;
     setState(() {
       _childWidth = childWidth;
@@ -97,22 +123,21 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Recadrer la photo'),
+      title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Déplace et pince pour zoomer, afin de choisir ce qui '
-            'apparaîtra sur le terrain.',
+          Text(
+            widget.instructions,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: const Color(0xFF174936),
+              color: widget.previewColor,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFF6DAD8B)),
+              border: Border.all(color: widget.previewBorderColor),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(_cropSize * 0.28),
@@ -133,21 +158,16 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                           child: InteractiveViewer(
                             transformationController: _transformationController,
                             constrained: false,
-                            // Une marge à zéro forçait l'image à toujours
-                            // recouvrir entièrement le cadre, quel que soit
-                            // minScale : le dézoom n'avait alors aucun effet
-                            // visible. Une marge généreuse laisse vraiment
-                            // dézoomer en dessous du cadrage "plein carré"
-                            // pour voir apparaître le fond.
                             boundaryMargin:
                                 const EdgeInsets.all(_cropSize * 1.5),
-                            minScale: 0.4,
-                            maxScale: 4,
+                            minScale: 0.25,
+                            maxScale: 5,
                             child: Image.memory(
                               widget.bytes,
                               width: _childWidth,
                               height: _childHeight,
                               fit: BoxFit.fill,
+                              filterQuality: FilterQuality.high,
                             ),
                           ),
                         ),
@@ -170,7 +190,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Utiliser cette photo'),
+              : Text(widget.confirmLabel),
         ),
       ],
     );
