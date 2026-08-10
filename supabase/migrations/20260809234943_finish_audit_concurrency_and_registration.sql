@@ -22994,3 +22994,12 @@ with check ((bucket_id = 'profile-photos') and (select private.is_active_profile
 insert into public.club_settings (id, home_address)
 values (true, null)
 on conflict (id) do nothing;
+
+-- Canonical cross-schema auth trigger.
+-- public.handle_new_auth_user() is part of the public schema dump, but
+-- its trigger lives on Supabase-managed auth.users and therefore is not
+-- emitted by a public/private-only schema dump.
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert or update of email, raw_user_meta_data on auth.users
+  for each row execute function public.handle_new_auth_user();
