@@ -162,7 +162,7 @@ jobs:
           test "$(tail -n 1 /tmp/baseline-versions.txt)" = "$LATEST_VERSION"
           test "$(md5sum /tmp/baseline-versions.txt | awk '{print $1}')" = "$VERSION_MD5"
 
-      - name: Commit generated baseline
+      - name: Commit generated baseline without overwriting concurrent work
         shell: bash
         run: |
           set -euo pipefail
@@ -171,4 +171,6 @@ jobs:
           git add supabase/migrations supabase/migrations_legacy_production
           git diff --cached --quiet && exit 0
           git commit -m 'Replace broken replay chain with canonical production baseline'
+          git fetch origin rebuild/full-migration-history
+          git rebase origin/rebuild/full-migration-history
           git push origin HEAD:rebuild/full-migration-history
