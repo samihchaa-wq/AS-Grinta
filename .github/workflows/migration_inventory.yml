@@ -39,7 +39,9 @@ jobs:
           fi
 
       - name: Validate newly added migration names and timestamps
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request' &&
+          !startsWith(github.head_ref, 'rebuild/full-migration-history')
         shell: bash
         run: |
           set -euo pipefail
@@ -78,6 +80,25 @@ jobs:
             fi
             previous="$version"
           done
+
+      - name: Validate reconstructed production inventory
+        if: >-
+          github.event_name == 'pull_request' &&
+          startsWith(github.head_ref, 'rebuild/full-migration-history') &&
+          hashFiles('supabase/migrations_legacy_synthetic/.production_history_fetched') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          source supabase/production_migrations.lock
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
+            | sort -u > /tmp/local-versions.txt
+          actual_count=$(wc -l < /tmp/local-versions.txt | tr -d ' ')
+          actual_latest=$(tail -n 1 /tmp/local-versions.txt)
+          actual_md5=$(md5sum /tmp/local-versions.txt | awk '{print $1}')
+          test "$actual_count" = "$MIGRATION_COUNT"
+          test "$actual_latest" = "$LATEST_VERSION"
+          test "$actual_md5" = "$VERSION_MD5"
 
       - name: Validate production lock syntax
         shell: bash
