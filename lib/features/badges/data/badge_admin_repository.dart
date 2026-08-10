@@ -60,10 +60,25 @@ class BadgeAdminRepository {
           bytes,
           fileOptions: FileOptions(
             contentType: imageMimeForExt(ext),
-            upsert: true,
+            // Le chemin est unique : pas d'upsert. Cela évite les droits
+            // SELECT/UPDATE inutiles et les problèmes de cache CDN.
+            upsert: false,
           ),
         );
     return _client.storage.from('badge-images').getPublicUrl(path);
+  }
+
+  /// Remplace uniquement l'image centrale d'un badge existant.
+  /// Le PNG fourni est déjà positionné/zoomé par l'éditeur côté Flutter.
+  Future<void> replaceBadgeImage({
+    required String badgeCode,
+    required Uint8List bytes,
+  }) async {
+    final imageUrl = await uploadBadgeImage(bytes, 'png');
+    await _client.rpc('staff_update_badge_image', params: {
+      'p_badge_code': badgeCode,
+      'p_image_url': imageUrl,
+    });
   }
 
   Future<void> createCustomBadge({
