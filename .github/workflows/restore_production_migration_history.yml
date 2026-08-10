@@ -59,6 +59,18 @@ jobs:
           find supabase/migrations -maxdepth 1 -type f -name '*.sql' -exec mv -t supabase/migrations_legacy_synthetic {} +
           supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
           supabase migration fetch --linked
+
+          # Production contains one historical migration row with a valid
+          # timestamp but no name and no SQL statements. The Supabase CLI
+          # cannot materialize a filename for that row, so preserve its version
+          # explicitly with an empty marker. Nothing is executed by this file.
+          if ! find supabase/migrations -maxdepth 1 -type f -name '20260730220000_*.sql' | grep -q .; then
+            cat > supabase/migrations/20260730220000_history_marker.sql <<'SQL'
+          -- Historical migration marker.
+          -- Production records version 20260730220000 with no name and no SQL statements.
+          SQL
+          fi
+
           touch supabase/migrations_legacy_synthetic/.production_history_fetched
 
       - name: Verify fetched inventory against production lock
