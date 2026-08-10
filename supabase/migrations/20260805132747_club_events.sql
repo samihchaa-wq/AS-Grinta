@@ -45,4 +45,4 @@ create policy club_events_admin_delete
   on public.club_events
   for delete
   to authenticated
-  using ((select private.is_admin()));
+  using ((select private.is_admin()));;

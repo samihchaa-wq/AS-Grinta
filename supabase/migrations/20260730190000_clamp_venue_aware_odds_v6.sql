@@ -1,9 +1,3 @@
--- Corrige un défaut du moteur V6 (déjà présent en V5) : quand l'historique
--- est très réduit (ex. un seul match joué), la probabilité décisive Q peut
--- saturer tout près de 1, et 1/(1-Q) explose vers des cotes absurdes
--- (des millions). Les cotes finales sont maintenant plafonnées à une
--- fourchette réaliste, comme le faisait l'ancien moteur V4.
-
 create or replace function public.calculate_match_odds_v6(
   p_opponent_id uuid,
   p_reference_date date,
@@ -161,8 +155,6 @@ begin
   v_p_d := v_u_d / v_s;
 
   return jsonb_build_object(
-    -- Plafond réaliste : évite qu'un historique très réduit (peu de matchs
-    -- joués) ne produise des cotes à plusieurs millions.
     'win', greatest(1.05, least(15.00, round(1.0 / v_p_v, 2))),
     'draw', greatest(1.05, least(15.00, round(1.0 / v_p_n, 2))),
     'loss', greatest(1.05, least(15.00, round(1.0 / v_p_d, 2))),
@@ -180,7 +172,6 @@ begin
 end;
 $function$;
 
--- Recalcule les cotes de tous les matchs à venir avec le plafond corrigé.
 do $$
 begin
   if to_regprocedure('public.recalculate_upcoming_match_odds_v4()') is not null then
@@ -188,3 +179,4 @@ begin
   end if;
 end;
 $$;
+;

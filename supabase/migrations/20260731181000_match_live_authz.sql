@@ -24,3 +24,4 @@ $$;
 
 revoke execute on function private.is_match_coach_or_admin(uuid) from public, anon;
 grant execute on function private.is_match_coach_or_admin(uuid) to authenticated, service_role;
+;

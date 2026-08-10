@@ -248,3 +248,4 @@ grant execute on function public.coach_end_match_live(uuid, text) to authenticat
 grant execute on function public.coach_reopen_match_live(uuid, text) to authenticated, service_role;
 grant execute on function public.coach_publish_match_live_recap(uuid, integer, integer, jsonb, text) to authenticated, service_role;
 grant execute on function public.get_match_live_timeline(uuid) to authenticated, service_role;
+;

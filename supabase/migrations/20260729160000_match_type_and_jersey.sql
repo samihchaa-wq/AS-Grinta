@@ -1,7 +1,3 @@
--- Type de match (amical / championnat) à titre informatif, et un
--- commentaire libre "Maillot" que l'admin peut renseigner puis modifier.
--- Les deux n'apparaissent que dans l'onglet Info d'un match.
-
 alter table public.matches
   add column match_type text not null default 'championnat'
     check (match_type in ('amical', 'championnat'));
@@ -68,3 +64,4 @@ end;
 $$;
 
 grant execute on function public.admin_set_match_jersey(uuid, text) to authenticated;
+;

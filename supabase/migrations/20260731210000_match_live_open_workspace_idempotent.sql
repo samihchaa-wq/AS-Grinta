@@ -1,18 +1,3 @@
-begin;
-
--- Deux problèmes trouvés en testant le Tableau Blanc :
--- 1. Avant qu'une session live existe, le bundle renvoyé au client n'a
---    jamais de "lineup", donc l'écran de préparation restait bloqué sur
---    "Composition indisponible" et le bouton "Démarrer le match" (le seul
---    endroit qui ouvrait la session) ne pouvait jamais s'afficher. Le client
---    ouvre maintenant la session automatiquement à l'arrivée sur l'écran.
--- 2. Une fois ce changement fait, "Démarrer le match" rouvre la session une
---    deuxième fois (pour transmettre le temps de jeu saisi) : la version
---    précédente recopiait alors systématiquement la composition publiée,
---    effaçant les corrections en glisser-déposer faites entre-temps. On ne
---    recopie plus la publication qu'à la toute première ouverture ; un
---    second appel pendant que l'état est encore "not_started" se contente de
---    mettre à jour le temps de jeu.
 create or replace function private.open_match_live_workspace(
   p_match_id uuid,
   p_planned_duration_minutes integer default null
@@ -56,13 +41,9 @@ begin
 
   if found then
     if v_existing_state <> 'not_started' then
-      -- Already started: just return current state, no reset.
       return private.match_live_snapshot(p_match_id);
     end if;
 
-    -- Already open and still not started: only refresh the planned
-    -- duration, never touch match_composition_entries again (that would
-    -- discard any pre-kickoff drag-and-drop corrections).
     update public.match_live_sessions
     set planned_duration_minutes =
           greatest(1, least(200, coalesce(p_planned_duration_minutes, planned_duration_minutes))),
@@ -116,5 +97,4 @@ begin
   return private.match_live_snapshot(p_match_id);
 end;
 $function$;
-
-commit;
+;

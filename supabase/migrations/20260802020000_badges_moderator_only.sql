@@ -1,22 +1,6 @@
--- La gestion des badges passe au seul modérateur.
---
--- Créer un badge, en attribuer un ou le retirer touche au palmarès affiché
--- sur le profil des joueurs : c'est une décision de club, pas une opération
--- de match. Ces trois RPC exigeaient « staff » (donc aussi les admins) ;
--- elles exigent désormais le rôle de modérateur.
---
--- Les fonctions sont patchées par remplacement ciblé de leur garde : leur
--- corps est long, il a déjà divergé du dépôt par le passé, et rien d'autre
--- ne change ici. Le bloc est idempotent et échoue bruyamment si le motif
--- attendu a disparu.
---
--- set_badge_featured n'est pas concernée : c'est le joueur lui-même qui
--- choisit les badges mis en avant sur son profil.
-
 do $patch$
 declare
   v_function text;
-  v_oid regprocedure;
   v_def text;
   v_old constant text :=
     'if not public.is_match_staff() then'
@@ -31,16 +15,9 @@ begin
     'public.staff_revoke_badge(uuid, text)'
   ]
   loop
-    -- Le schéma minimal rejoué par les tests métier n'installe pas le module
-    -- badges : on passe au lieu d'échouer quand la fonction n'existe pas.
-    v_oid := to_regprocedure(v_function);
-    if v_oid is null then
-      continue;
-    end if;
-
-    v_def := pg_get_functiondef(v_oid);
+    v_def := pg_get_functiondef(v_function::regprocedure);
     if position('public.is_moderator()' in v_def) > 0 then
-      continue; -- déjà restreinte
+      continue;
     end if;
     if position(v_old in v_def) = 0 then
       raise exception '%: garde attendue introuvable, correction manuelle requise', v_function;
@@ -48,4 +25,4 @@ begin
     execute replace(v_def, v_old, v_new);
   end loop;
 end
-$patch$;
+$patch$;;

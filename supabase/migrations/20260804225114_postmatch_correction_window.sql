@@ -146,4 +146,4 @@ revoke all on function private.guard_postgame_correction_window()
 revoke all on function private.guard_finished_match_composition_write()
   from public, anon, authenticated;
 
-commit;
+commit;;

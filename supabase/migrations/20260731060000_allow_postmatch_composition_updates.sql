@@ -308,3 +308,4 @@ revoke all on function public.admin_update_postmatch_composition(
 grant execute on function public.admin_update_postmatch_composition(
   uuid, text, jsonb, boolean, text
 ) to authenticated;
+;

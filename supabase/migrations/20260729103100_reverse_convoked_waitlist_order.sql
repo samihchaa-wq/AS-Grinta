@@ -1,7 +1,3 @@
--- All available players start as convoked. Their display order follows the
--- permanent season waitlist in reverse, while manually waitlisted players keep
--- the normal waitlist order.
-
 do $migration$
 declare
   v_definition text;
@@ -39,4 +35,4 @@ begin
 
   execute v_updated;
 end;
-$migration$;
+$migration$;;

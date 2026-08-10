@@ -99,4 +99,4 @@ begin
 
   return v_processed;
 end;
-$function$;
+$function$;;

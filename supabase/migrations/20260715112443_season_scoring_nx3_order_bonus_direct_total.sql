@@ -349,4 +349,4 @@ alter view public.v_classement_general set (security_invoker = true);
 revoke all privileges on table public.v_classement_general from anon;
 revoke insert, update, delete, truncate, references, trigger
   on table public.v_classement_general from authenticated;
-grant select on table public.v_classement_general to authenticated;
+grant select on table public.v_classement_general to authenticated;;

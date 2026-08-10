@@ -168,8 +168,7 @@ begin
 
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.get_admin_match_sport_finalization(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -212,20 +211,13 @@ begin
   end if;
   return private.match_sport_finalization_snapshot(p_match_id);
 end;
-$function$;
-
-create or replace function private.finalize_match_sport_postgame(
-  p_match_id uuid,
-  p_score_as_grinta integer,
-  p_score_adverse integer,
-  p_participants jsonb,
-  p_reason text default null
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = ''
-as $function$
+$function$;;
+CREATE OR REPLACE FUNCTION private.finalize_match_sport_postgame(p_match_id uuid, p_score_as_grinta integer, p_score_adverse integer, p_participants jsonb, p_reason text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
 declare
   v_actor uuid := (select auth.uid());
   v_reason text := nullif(btrim(p_reason), '');
@@ -261,25 +253,25 @@ begin
   end if;
 
   select match.status, match.kickoff_at, workflow.composition_version
-into v_match_status, v_kickoff_at, v_composition_version
-from public.matches match
-join public.match_sport_workflows workflow on workflow.match_id = match.id
-where match.id = p_match_id
-for update of match, workflow;
+  into v_match_status, v_kickoff_at, v_composition_version
+  from public.matches match
+  join public.match_sport_workflows workflow on workflow.match_id = match.id
+  where match.id = p_match_id
+  for update of match, workflow;
 
-if not found then
-  raise exception 'Sport match workflow not found' using errcode = 'P0002';
-end if;
+  if not found then
+    raise exception 'Sport match workflow not found' using errcode = 'P0002';
+  end if;
 
-select finalization.version
-into v_existing_version
-from public.match_sport_finalizations finalization
-where finalization.match_id = p_match_id
-for update;
+  select finalization.version
+  into v_existing_version
+  from public.match_sport_finalizations finalization
+  where finalization.match_id = p_match_id
+  for update;
 
-if not found then
-  v_existing_version := 0;
-end if;
+  if not found then
+    v_existing_version := 0;
+  end if;
 
   if v_match_status not in ('a_venir', 'termine') then
     raise exception 'Only upcoming or finished matches can be validated' using errcode = '22023';
@@ -410,7 +402,6 @@ end if;
   where input.clean_sheet and participant.season_player_id is not null
   limit 1;
 
-  -- Existing statistics remain the canonical source for permanent players.
   perform public.staff_set_match_attendance(p_match_id, v_permanent_present);
   perform public.staff_set_match_mvp(p_match_id, '{}'::uuid[]);
   perform public.finalize_match_postgame(
@@ -541,8 +532,8 @@ end if;
 
   return v_snapshot;
 end;
-$function$;
-
+$function$
+;
 create or replace function public.admin_get_match_sport_finalization(p_match_id uuid)
 returns jsonb language sql stable security invoker set search_path = ''
 as $function$ select private.get_admin_match_sport_finalization(p_match_id); $function$;
@@ -586,4 +577,4 @@ grant execute on function public.get_match_sport_result(uuid) to authenticated, 
 comment on function public.admin_finalize_match_sport_postgame(uuid, integer, integer, jsonb, text) is
   'Atomically validates actual attendance, roles and goals, mirrors permanent-player statistics, and versions corrections.';
 comment on function public.get_match_sport_result(uuid) is
-  'Returns the validated result and all permanent/guest participant statistics to active profiles.';
+  'Returns the validated result and all permanent/guest participant statistics to active profiles.';;

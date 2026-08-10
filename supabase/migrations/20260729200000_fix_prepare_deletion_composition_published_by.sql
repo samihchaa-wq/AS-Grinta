@@ -1,10 +1,3 @@
--- La suppression définitive d'un profil (prepare_profile_for_hard_deletion)
--- essayait de mettre published_by à null sur match_compositions pour les
--- compositions publiées par ce profil. Or une composition dont le statut
--- est 'published' exige un published_by non nul (match_compositions_check),
--- donc la suppression d'un admin ayant déjà publié une composition
--- d'après-match échouait systématiquement. On réattribue au profil
--- technique, comme c'est déjà fait pour match_composition_publications.
 create or replace function private.prepare_profile_for_hard_deletion(p_profile_id uuid)
 returns void
 language plpgsql
@@ -83,3 +76,4 @@ begin
   where updated_by = p_profile_id;
 end;
 $$;
+;

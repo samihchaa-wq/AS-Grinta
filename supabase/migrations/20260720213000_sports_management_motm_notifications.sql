@@ -34,18 +34,13 @@ alter table public.push_delivery_log
       'motm_reminder',
       'motm_results'
     )
-  );
-
-create or replace function public.internal_push_dispatch(
-  p_kind text,
-  p_match_id uuid
-)
-returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = ''
-as $function$
+  );;
+CREATE OR REPLACE FUNCTION public.internal_push_dispatch(p_kind text, p_match_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
 declare
   v_match record;
   v_payload jsonb;
@@ -310,8 +305,8 @@ begin
     'subscriptions', coalesce(v_subscriptions, '[]'::jsonb)
   );
 end;
-$function$;
-
+$function$
+;
 revoke all on function public.internal_push_dispatch(text, uuid)
   from public, anon, authenticated;
 grant execute on function public.internal_push_dispatch(text, uuid)
@@ -368,8 +363,7 @@ end;
 $function$;
 
 revoke all on function private.dispatch_motm_push(text, uuid)
-  from public, anon, authenticated;
-
+  from public, anon, authenticated;;
 create or replace function public.push_on_motm_election_opened()
 returns trigger
 language plpgsql
@@ -420,8 +414,7 @@ drop trigger if exists trg_push_on_motm_election_opened
 create trigger trg_push_on_motm_election_opened
 after insert or update of state, opens_at, closes_at, finalization_version
 on public.match_sport_motm_elections
-for each row execute function public.push_on_motm_election_opened();
-
+for each row execute function public.push_on_motm_election_opened();;
 create or replace function public.push_on_motm_election_closed()
 returns trigger
 language plpgsql
@@ -452,8 +445,7 @@ drop trigger if exists trg_push_on_motm_election_closed
   on public.match_sport_motm_elections;
 create trigger trg_push_on_motm_election_closed
 after update of state on public.match_sport_motm_elections
-for each row execute function public.push_on_motm_election_closed();
-
+for each row execute function public.push_on_motm_election_closed();;
 create or replace function private.push_due_motm_reminders(
   p_now timestamptz default now()
 )
@@ -518,4 +510,4 @@ select cron.schedule(
   'sports-motm-push-reminders',
   '* * * * *',
   $$select private.push_due_motm_reminders();$$
-);
+);;

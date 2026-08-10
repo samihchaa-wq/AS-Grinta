@@ -417,4 +417,4 @@ $function$;
 comment on function private.save_match_composition(uuid, text, jsonb, boolean, text) is
   'Enregistre la composition d''un match. Avant le coup d''envoi, seule la '
   'convocation conditionne le droit d''aligner un joueur : la disponibilité '
-  'déclarée ne bloque plus une décision d''administrateur.';
+  'déclarée ne bloque plus une décision d''administrateur.';;

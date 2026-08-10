@@ -46,3 +46,4 @@ grant execute on function public.send_test_push() to authenticated;
 
 comment on function public.send_test_push() is
   'Sends a test push notification to the calling user only; open to every authenticated player.';
+;

@@ -143,4 +143,4 @@ $function$;
 revoke all on function private.match_postgame_correction_closes_at(uuid)
   from public, anon, authenticated;
 
-commit;
+commit;;

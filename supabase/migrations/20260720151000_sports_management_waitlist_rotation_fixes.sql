@@ -117,7 +117,6 @@ begin
     player.id;
 end;
 $function$;
-
 create or replace function private.finalize_match_waitlist_turns_internal(
   p_match_id uuid,
   p_force boolean default false
@@ -212,7 +211,6 @@ begin
   return v_consumed;
 end;
 $function$;
-
 create or replace function private.normalize_waitlisted_withdrawal()
 returns trigger
 language plpgsql
@@ -247,18 +245,12 @@ begin
   return new;
 end;
 $function$;
-
 drop trigger if exists normalize_waitlisted_withdrawal_before_update
   on public.match_sport_participants;
 create trigger normalize_waitlisted_withdrawal_before_update
 before update of availability_status on public.match_sport_participants
 for each row
 execute function private.normalize_waitlisted_withdrawal();
-
-revoke execute on function private.normalize_waitlisted_withdrawal()
-  from public, anon, authenticated;
-grant execute on function private.normalize_waitlisted_withdrawal()
-  to service_role;
-
 comment on function private.normalize_waitlisted_withdrawal() is
   'Waives a pending waitlist turn when a non-convoked player becomes absent at or before the cutoff.';
+;

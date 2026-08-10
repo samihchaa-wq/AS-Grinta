@@ -134,4 +134,4 @@ where participant.match_id = match.id
   and participant.is_eligible
   and participant.availability_status = 'available'
   and participant.convocation_status = 'not_convoked'
-  and not participant.convocation_manual_override;
+  and not participant.convocation_manual_override;;

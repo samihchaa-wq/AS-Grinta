@@ -64,4 +64,4 @@ begin
 exception when others then
   return false;
 end;
-$function$;
+$function$;;

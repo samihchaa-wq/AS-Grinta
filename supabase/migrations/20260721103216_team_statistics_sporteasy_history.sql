@@ -552,3 +552,4 @@ select * from all_time_period;
 
 revoke all on public.v_statistics_team from public, anon, authenticated;
 grant select on public.v_statistics_team to authenticated;
+;

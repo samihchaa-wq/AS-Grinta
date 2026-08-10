@@ -11,4 +11,4 @@ to authenticated
 using ((select private.is_active_profile()))
 with check ((select private.is_active_profile()));
 
-commit;
+commit;;

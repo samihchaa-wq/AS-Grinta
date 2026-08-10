@@ -7,7 +7,6 @@
 -- sont conservées temporairement comme alias de compatibilité pour les anciens
 -- clients, mais il n'existe plus de valeur de rôle `moderateur` en production.
 
--- 1. Convertir les anciens modérateurs avant de resserrer la contrainte.
 update public.profiles
 set role = 'admin',
     updated_at = now()
@@ -17,7 +16,6 @@ alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check
   check (role in ('pronostiqueur', 'admin'));
 
--- 2. Source de vérité des droits : seul un profil admin actif est privilégié.
 create or replace function private.is_admin()
 returns boolean
 language sql
@@ -37,8 +35,6 @@ $function$;
 revoke execute on function private.is_admin() from public, anon;
 grant execute on function private.is_admin() to authenticated, service_role;
 
--- Alias de compatibilité : les anciens clients qui interrogent encore ce RPC
--- voient les admins comme privilégiés. Aucun rôle « moderateur » n'est recréé.
 create or replace function public.is_moderator()
 returns boolean
 language sql
@@ -71,9 +67,6 @@ grant execute on function private.is_moderator() to authenticated, service_role;
 comment on function public.is_moderator() is
   'Deprecated compatibility alias. Returns true for an active admin.';
 
--- 3. Tous les admins peuvent gérer les comptes et attribuer les deux rôles.
--- L'auto-modification du rôle/statut reste interdite pour éviter de se retirer
--- accidentellement ses propres droits en cours de session.
 create or replace function public.admin_update_profile_fields(
   p_profile_id uuid,
   p_role text,
@@ -139,8 +132,6 @@ revoke all on function public.admin_update_profile_fields(uuid,text,text,boolean
 grant execute on function public.admin_update_profile_fields(uuid,text,text,boolean)
   to authenticated, service_role;
 
--- 4. La liste d'attente choisit désormais uniquement un admin actif comme
--- acteur de repli. On patch la fonction existante sans la réécrire en entier.
 do $patch$
 declare
   v_def text := pg_get_functiondef(
@@ -157,7 +148,6 @@ begin
 end
 $patch$;
 
--- 5. Les nouvelles inscriptions préviennent tous les admins actifs.
 create or replace function private.notify_admins_of_pending_signup()
 returns trigger
 language plpgsql
@@ -211,4 +201,4 @@ begin
 
   return new;
 end;
-$function$;
+$function$;;

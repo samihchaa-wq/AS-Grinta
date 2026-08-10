@@ -53,3 +53,4 @@ revoke execute on function public.admin_get_finished_bench_counts(uuid) from pub
 
 grant execute on function private.get_finished_bench_counts(uuid) to authenticated, service_role;
 grant execute on function public.admin_get_finished_bench_counts(uuid) to authenticated, service_role;
+;

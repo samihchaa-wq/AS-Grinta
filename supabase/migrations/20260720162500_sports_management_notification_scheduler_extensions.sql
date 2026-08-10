@@ -3,3 +3,4 @@
 -- optional sports-management availability worker.
 
 create extension if not exists pg_cron;
+;

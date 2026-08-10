@@ -235,8 +235,4 @@ begin
   );
 end;
 $function$;
-
-comment on function public.admin_save_match_squad_plan(uuid, text, jsonb, text) is
-  'Stores effectif and composition drafts atomically without changing player-visible publications.';
-comment on function public.admin_publish_match_squad_plan(uuid, text, jsonb, text) is
-  'Explicitly publishes the effectif draft and then the composition in one transaction.';
+;

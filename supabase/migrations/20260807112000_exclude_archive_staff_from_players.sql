@@ -142,4 +142,4 @@ begin
     perform private.refresh_historical_match_players(v_match_id);
   end loop;
 end
-$refresh$;
+$refresh$;;

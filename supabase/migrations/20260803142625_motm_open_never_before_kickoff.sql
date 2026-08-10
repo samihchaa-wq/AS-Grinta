@@ -23,4 +23,4 @@ $function$;
 update public.match_sport_motm_elections election
 set opens_at = private.match_motm_opens_at(election.match_id),
     updated_at = now()
-where election.state = 'draft';
+where election.state = 'draft';;

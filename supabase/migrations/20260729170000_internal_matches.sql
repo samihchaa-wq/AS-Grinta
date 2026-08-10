@@ -1,9 +1,4 @@
--- « Matchs entre nous » : match interne sans adversaire réel, sans limite
--- convocable, sans pronostics ni élection HDM ni saisie de stats de fin de
--- match. La composition devient une répartition en deux équipes nommables
--- (au lieu d'un placement sur un terrain), gérée dans des tables séparées
--- du système de composition classique pour ne pas perturber sa logique de
--- publication/finalisation/HDM déjà complexe.
+-- Match entre nous : voir fichier de migration git pour les commentaires complets.
 
 alter table public.matches
   alter column opponent_id drop not null;
@@ -15,10 +10,6 @@ alter table public.matches
   add constraint matches_match_type_check
   check (match_type = any (array['amical'::text, 'championnat'::text, 'entre_nous'::text]));
 
--- Un match entre nous n'a pas d'adversaire : ne pas tenter de calculer des
--- cotes pour lui (calculate_match_odds_v5 lève une exception si
--- l'adversaire est introuvable, ce qui casserait aussi bien la création
--- que le recalcul groupé des cotes des matchs à venir).
 create or replace function public.upsert_match_odds_v4(p_match_id uuid)
 returns void
 language plpgsql
@@ -70,8 +61,6 @@ begin
 end;
 $$;
 
--- Un match entre nous n'a pas de pronostics : ne pas semer de lignes
--- match_predictions pour lui.
 create or replace function public.seed_match_predictions()
 returns trigger
 language plpgsql
@@ -100,7 +89,6 @@ begin
 end;
 $$;
 
--- Un match entre nous n'a pas d'élection homme du match.
 create or replace function private.ensure_match_motm_election(p_match_id uuid)
 returns void
 language plpgsql
@@ -169,9 +157,6 @@ begin
 end;
 $$;
 
--- Création / modification d'un match entre nous : pas d'adversaire, pas de
--- cotes, lieu toujours domicile, limite convocable maximale (30, tout
--- convoqué disponible reste convoqué grâce à la logique déjà en place).
 create or replace function public.create_internal_match(
   p_season_id uuid,
   p_match_date date,
@@ -262,8 +247,6 @@ $$;
 
 grant execute on function public.update_internal_match(uuid, uuid, date, time without time zone) to authenticated;
 
--- Composition à deux équipes des matchs entre nous : indépendante du
--- système classique (terrain/banc/publication/HDM) pour rester simple.
 create table public.match_internal_compositions (
   match_id uuid primary key
     references public.matches(id) on delete cascade,
@@ -327,8 +310,8 @@ declare
   v_team2_name text;
   v_entries jsonb;
 begin
-  if not private.is_active_profile() then
-    raise exception 'Active profile required' using errcode = '42501';
+  if not public.is_match_staff() then
+    raise exception 'Active administrator role required' using errcode = '42501';
   end if;
 
   select match_type into v_match_type from public.matches where id = p_match_id;
@@ -442,3 +425,4 @@ end;
 $$;
 
 grant execute on function public.admin_save_internal_composition(uuid, text, text, jsonb) to authenticated;
+;

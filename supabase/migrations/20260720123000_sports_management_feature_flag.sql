@@ -246,3 +246,4 @@ comment on function public.get_public_feature_flags() is
   'Returns public-safe server feature flags for authenticated application users.';
 comment on function public.set_sports_management_enabled(boolean, text) is
   'Admin-only toggle for the optional sports-management module, with audit.';
+;

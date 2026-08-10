@@ -585,4 +585,4 @@ begin
 
   return true;
 end;
-$function$;
+$function$;;

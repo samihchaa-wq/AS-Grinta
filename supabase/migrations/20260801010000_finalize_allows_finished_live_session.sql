@@ -1,20 +1,3 @@
--- Export du Tableau Blanc avant l'heure du coup d'envoi.
---
--- private.finalize_match_sport_postgame refusait toute validation tant
--- que now() < kickoff_at, ce qui bloquait le bouton « Valider » du
--- récapitulatif sur un match à venir — alors que le Tableau Blanc est
--- justement utilisable sur tous les prochains matchs depuis la
--- migration 20260731190000.
---
--- Le garde-fou reste actif pour la validation manuelle classique, et
--- n'est levé que lorsqu'une session live existe ET a été menée jusqu'à
--- « Fin du match » : l'intention du coach est alors explicite.
---
--- On patche uniquement cette condition, sans réécrire le corps complet
--- de la fonction : elle est longue et partagée avec le pipeline de
--- finalisation existant (score / présences / badges / Homme du Match),
--- qui doit rester strictement inchangé.
-
 do $do$
 declare
   v_def text;
@@ -31,7 +14,6 @@ begin
     raise exception 'private.finalize_match_sport_postgame introuvable';
   end if;
 
-  -- Idempotence : ne rien faire si le correctif est déjà en place.
   if position('live_session.state' in v_def) > 0 then
     return;
   end if;
@@ -54,4 +36,4 @@ begin
 
   execute v_new;
 end
-$do$;
+$do$;;

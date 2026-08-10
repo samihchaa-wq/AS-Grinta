@@ -139,3 +139,4 @@ begin
     || jsonb_build_object('substitute_counts', v_counts);
 end;
 $function$;
+;

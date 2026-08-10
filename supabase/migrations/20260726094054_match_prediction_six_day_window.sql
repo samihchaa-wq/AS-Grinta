@@ -272,4 +272,4 @@ revoke execute on function public.save_match_prediction(
 ) from public, anon;
 grant execute on function public.save_match_prediction(
   uuid, integer, integer, boolean
-) to authenticated, service_role;
+) to authenticated, service_role;;

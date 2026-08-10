@@ -938,4 +938,4 @@ begin
 end;
 $do$;
 
-commit;
+commit;;

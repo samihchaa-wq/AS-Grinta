@@ -630,4 +630,4 @@ comment on function public.admin_save_match_composition(uuid, text, jsonb, boole
 comment on function public.admin_publish_match_composition(uuid, boolean, text) is
   'Publishes an immutable composition snapshot and increments the public version atomically.';
 comment on function public.get_published_match_composition(uuid) is
-  'Returns only the latest immutable published snapshot while the sports-management module is active.';
+  'Returns only the latest immutable published snapshot while the sports-management module is active.';;

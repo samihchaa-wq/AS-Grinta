@@ -675,5 +675,4 @@ as $$
     p_decisions,
     p_reason
   );
-$$;
-
+$$;;

@@ -1,7 +1,3 @@
--- Permet à l'admin d'annuler un match sans le supprimer : le match reste
--- visible (les joueurs restent informés) mais n'est plus cliquable côté
--- client, contrairement à delete_match qui supprime tout définitivement.
-
 alter table public.matches
   drop constraint matches_status_check;
 
@@ -35,3 +31,4 @@ end;
 $$;
 
 grant execute on function public.cancel_match(uuid) to authenticated;
+;

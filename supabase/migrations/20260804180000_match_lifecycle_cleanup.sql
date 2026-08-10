@@ -390,4 +390,4 @@ from public.match_sport_finalizations finalization
 where finalization.match_id = election.match_id
   and election.state in ('draft', 'open');
 
-commit;
+commit;;

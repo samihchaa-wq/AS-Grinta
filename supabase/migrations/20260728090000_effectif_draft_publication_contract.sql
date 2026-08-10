@@ -707,7 +707,6 @@ grant execute on function private.publish_match_effectif(uuid, integer, jsonb, t
 grant execute on function public.admin_publish_match_effectif(uuid, integer, jsonb, text)
   to authenticated, service_role;
 
-comment on function public.admin_save_match_effectif(uuid, integer, jsonb, text) is
-  'Stores a private effectif draft without changing player-visible published convocations.';
 comment on function public.admin_publish_match_effectif(uuid, integer, jsonb, text) is
   'Atomically stores and explicitly publishes the current effectif decisions.';
+;

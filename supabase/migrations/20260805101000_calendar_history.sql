@@ -40,9 +40,6 @@ begin
     raise exception 'Invalid season range' using errcode = '22023';
   end if;
 
-  -- Le millésime sportif bascule au 1er juillet. Les données importées se
-  -- répartissent naturellement selon cette frontière et la saison actuelle
-  -- contient déjà des rencontres modernes fin juillet.
   v_start_date := make_date(v_start_year, 7, 1);
   v_end_date := make_date(v_end_year, 7, 1);
 
@@ -67,4 +64,4 @@ grant execute on function public.get_historical_match_results(text)
   to authenticated, service_role;
 
 comment on function public.get_historical_match_results(text) is
-  'Read-only compact match history for one YYYY-YYYY season; requires an active profile.';
+  'Read-only compact match history for one YYYY-YYYY season; requires an active profile.';;

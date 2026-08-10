@@ -328,4 +328,4 @@ grant execute on function public.admin_publish_match_squad_plan(uuid, text, json
 comment on function public.admin_save_match_squad_plan(uuid, text, jsonb, text) is
   'Saves availability-based selection decisions and the complete composition atomically.';
 comment on function public.admin_publish_match_squad_plan(uuid, text, jsonb, text) is
-  'Publishes selection decisions, waitlist turns and the immutable composition in one transaction.';
+  'Publishes selection decisions, waitlist turns and the immutable composition in one transaction.';;

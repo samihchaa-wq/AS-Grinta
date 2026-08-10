@@ -1,11 +1,3 @@
--- « Mi-temps » cale le chrono sur la moitié du temps de jeu.
---
--- Le coach saisit le temps de jeu avant le coup d'envoi. Jusqu'ici, la
--- mi-temps figeait le chronomètre sur le temps réellement écoulé, qui ne
--- tombe jamais juste. Elle positionne désormais le chrono exactement sur
--- « temps de jeu / 2 » et met en pause : la reprise repart donc de la
--- bonne minute pour la seconde période.
-
 create or replace function private.set_match_live_clock_state(
   p_match_id uuid,
   p_action text,
@@ -88,4 +80,4 @@ begin
 
   return private.match_live_snapshot(p_match_id);
 end;
-$function$;
+$function$;;

@@ -1,35 +1,9 @@
--- Deux rôles privilégiés : « admin » et « modérateur ».
---
--- Jusqu'ici il n'existait qu'un seul rôle privilégié. Pour pouvoir confier
--- l'application à quelqu'un sans lui ouvrir la gestion des comptes et des
--- saisons, on sépare :
---
---   * admin       : tous les droits de gestion sportive d'avant, mais le
---                   module « Modérateur » des paramètres lui est masqué ;
---   * modérateur  : exactement les mêmes droits, plus ce module.
---
--- Côté base, les deux rôles sont donc équivalents : private.is_admin() répond
--- vrai pour les deux, et toutes les RPC existantes continuent de fonctionner à
--- l'identique. La seule règle propre au modérateur vit dans
--- admin_update_profile_fields : distribuer ou retirer le rôle de modérateur
--- est réservé à un modérateur, sinon un admin pourrait se hisser au niveau
--- au-dessus en passant par un complice.
---
--- Les administrateurs actuels deviennent modérateurs : ils gardent l'accès
--- qu'ils avaient avant cette migration.
-
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles add constraint profiles_role_check
   check (role in ('pronostiqueur', 'admin', 'moderateur'));
 
--- Seuls les comptes actifs sont promus : le compte technique d'import est
--- archivé et protégé, le promouvoir n'aurait aucun effet utile.
-update public.profiles
-set role = 'moderateur'
-where role = 'admin' and status = 'active';
+update public.profiles set role = 'moderateur' where role = 'admin';
 
--- Le garde historique : « admin » couvre désormais les deux rôles privilégiés,
--- ce qui laisse toutes les autorisations existantes inchangées.
 create or replace function private.is_admin()
 returns boolean
 language sql
@@ -46,9 +20,6 @@ as $function$
   );
 $function$;
 
--- Écrit sans passer par un wrapper privé : le test de sécurité du dépôt exige
--- qu'une fonction SECURITY DEFINER exposée aux comptes connectés porte
--- elle-même un garde reconnu, ici l'appel à auth.uid().
 create or replace function public.is_moderator()
 returns boolean
 language sql
@@ -81,9 +52,6 @@ grant execute on function private.is_moderator() to authenticated, service_role;
 comment on function public.is_moderator() is
   'True when the caller is an active moderator (admin plus the settings module).';
 
--- Le rôle de modérateur ne se distribue qu'entre modérateurs, et le dernier
--- d'entre eux ne peut pas disparaître : sans modérateur actif, plus personne
--- ne pourrait redistribuer les rôles.
 create or replace function public.admin_update_profile_fields(
   p_profile_id uuid,
   p_role text,
@@ -167,31 +135,22 @@ revoke all on function public.admin_update_profile_fields(uuid,text,text,boolean
 grant execute on function public.admin_update_profile_fields(uuid,text,text,boolean)
   to authenticated, service_role;
 
--- ensure_sport_waitlist cherche un acteur de repli par sa colonne role. Elle
--- est longue et a déjà divergé du dépôt par le passé : on la corrige donc par
--- remplacement ciblé de la condition, sans réécrire le reste du corps. Le
--- bloc est idempotent et échoue bruyamment si le motif attendu a disparu.
 do $patch$
 declare
   v_def text := pg_get_functiondef('private.ensure_sport_waitlist(uuid, uuid)'::regprocedure);
-  -- Le motif couvre les deux occurrences (test de l'acteur passé, puis
-  -- recherche du plus ancien privilégié comme repli).
   v_old constant text := 'profile.role = ''admin''';
   v_new constant text := 'profile.role in (''admin'', ''moderateur'')';
 begin
   if position(v_new in v_def) > 0 then
-    return; -- déjà corrigée
+    return;
   end if;
   if position(v_old in v_def) = 0 then
-    raise exception 'ensure_sport_waitlist: condition de rôle introuvable, correction manuelle requise';
+    raise exception 'ensure_sport_waitlist: condition de role introuvable, correction manuelle requise';
   end if;
   execute replace(v_def, v_old, v_new);
 end
 $patch$;
 
--- L'alerte d'inscription doit atteindre les deux rôles privilégiés, sans quoi
--- une base dont tous les privilégiés sont modérateurs n'aurait plus aucun
--- destinataire.
 create or replace function private.notify_admins_of_pending_signup()
 returns trigger
 language plpgsql
@@ -203,8 +162,6 @@ declare
   v_admin_ids uuid[];
   v_display_name text;
 begin
-  -- Une notification ratée ne doit jamais faire échouer une inscription
-  -- réelle : toute erreur ici est avalée silencieusement.
   begin
     select array_agg(p.id)
     into v_admin_ids
@@ -244,4 +201,4 @@ begin
 
   return new;
 end;
-$function$;
+$function$;;

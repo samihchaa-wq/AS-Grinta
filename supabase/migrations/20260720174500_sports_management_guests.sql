@@ -217,8 +217,7 @@ begin
     'eligible_participant_count', v_eligible_count
   );
 end;
-$function$;
-
+$function$;;
 create or replace function private.get_match_convocations(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -336,8 +335,7 @@ begin
   end if;
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.composition_snapshot(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -415,8 +413,7 @@ begin
 
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.save_match_composition(
   p_match_id uuid,
   p_formation_code text,
@@ -713,8 +710,7 @@ begin
 
   return private.composition_snapshot(p_match_id);
 end;
-$function$;
-
+$function$;;
 create or replace function private.get_guest_players(
   p_include_archived boolean default false
 )
@@ -810,8 +806,7 @@ begin
 
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.add_or_reuse_match_guest(
   p_match_id uuid,
   p_guest_player_id uuid default null,
@@ -1044,8 +1039,7 @@ begin
     'match_guests', private.get_match_guests(p_match_id)
   );
 end;
-$function$;
-
+$function$;;
 create or replace function private.remove_match_guest(
   p_match_id uuid,
   p_participant_id uuid,
@@ -1218,8 +1212,7 @@ begin
 
   return private.get_guest_players(true);
 end;
-$function$;
-
+$function$;;
 create or replace function public.admin_get_guest_players(
   p_include_archived boolean default false
 )
@@ -1333,4 +1326,4 @@ comment on function public.admin_add_or_reuse_match_guest(uuid, uuid, text, text
 comment on function public.admin_remove_match_guest(uuid, uuid, text) is
   'Removes a guest from the current match without deleting the reusable catalog identity or past publications.';
 comment on function public.admin_set_guest_archived(uuid, boolean, text) is
-  'Archives or restores a reusable guest without changing existing historical match references.';
+  'Archives or restores a reusable guest without changing existing historical match references.';;

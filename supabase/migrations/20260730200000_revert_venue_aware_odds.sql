@@ -1,8 +1,3 @@
--- Retour en arrière sur la prise en compte du lieu (domicile/extérieur)
--- dans le calcul des cotes : le moteur redevient V5 (résultats pondérés
--- par récence + confrontations directes, lieu ignoré), tout en conservant
--- le plafond anti-valeurs-aberrantes introduit juste après V6.
-
 create or replace function public.calculate_match_odds_v5(
   p_opponent_id uuid,
   p_reference_date date
@@ -130,8 +125,6 @@ begin
 end;
 $function$;
 
--- calculate_match_odds_v4 délègue de nouveau à V5 : le lieu transmis par le
--- client est de nouveau ignoré, comme avant l'introduction de V6.
 create or replace function public.calculate_match_odds_v4(
   p_opponent_id uuid,
   p_location text
@@ -145,8 +138,6 @@ as $function$
   select public.calculate_match_odds_v5(p_opponent_id, current_date);
 $function$;
 
--- Les cotes stockées d'un match à venir utilisent de nouveau uniquement sa
--- date prévue comme référence (le lieu n'est plus transmis).
 create or replace function public.upsert_match_odds_v4(p_match_id uuid)
 returns void
 language plpgsql
@@ -198,10 +189,8 @@ begin
 end;
 $function$;
 
--- calculate_match_odds_v6 n'est plus utilisée.
 drop function if exists public.calculate_match_odds_v6(uuid, date, text);
 
--- Recalcule les cotes de tous les matchs à venir sans le lieu.
 do $$
 begin
   if to_regprocedure('public.recalculate_upcoming_match_odds_v4()') is not null then
@@ -209,3 +198,4 @@ begin
   end if;
 end;
 $$;
+;

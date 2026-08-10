@@ -1,5 +1,3 @@
-begin;
-
 -- Une correction post-match ne doit pas rouvrir ni effacer le scrutin HDM.
 -- Le workflow doit toutefois refléter l'état réel de l'élection après les
 -- transitions temporelles exécutées par le trigger de finalisation.
@@ -112,5 +110,4 @@ set vote_state = election.state,
 from public.match_sport_motm_elections election
 where election.match_id = workflow.match_id
   and workflow.vote_state is distinct from election.state;
-
-commit;
+;

@@ -543,4 +543,4 @@ begin
     raise exception 'a trigger function remains directly executable';
   end if;
 end;
-$security_assertions$;
+$security_assertions$;;

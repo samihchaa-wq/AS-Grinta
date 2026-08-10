@@ -1,7 +1,3 @@
--- Pastille « nouveau badge » : mémorise jusqu'à quelle date chaque membre a
--- consulté son armoire. Les anciennes attributions sont initialisées comme lues
--- par l'application lors de la première consultation de cet état.
-
 create table if not exists public.badge_inbox_state (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   seen_through timestamptz not null,
@@ -36,4 +32,4 @@ create policy badge_inbox_state_update_own
   with check ((select auth.uid()) = profile_id);
 
 grant select, insert, update on public.badge_inbox_state to authenticated;
-revoke all on public.badge_inbox_state from anon;
+revoke all on public.badge_inbox_state from anon;;

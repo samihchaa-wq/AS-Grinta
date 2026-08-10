@@ -263,3 +263,4 @@ grant execute on function public.admin_save_internal_match(
 
 revoke all on function public.admin_delete_internal_match(uuid) from public, anon;
 grant execute on function public.admin_delete_internal_match(uuid) to authenticated;
+;

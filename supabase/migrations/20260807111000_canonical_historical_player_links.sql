@@ -84,8 +84,6 @@ begin
   from public.player_aliases alias
   where private.normalize_player_name(alias.alias) = v_normalized_name;
 
-  -- 0 correspondance ou plusieurs homonymes : on ne devine pas. Une
-  -- identité d'archive distincte est créée et restera stable pour ce libellé.
   if v_identity_count <> 1 then
     v_player_id := private.create_player_identity(v_name);
   end if;
@@ -292,4 +290,4 @@ revoke all on function private.sync_historical_match_players()
 
 create trigger sync_historical_match_players_after_write
 after insert or update or delete on public.historical_match_details
-for each row execute function private.sync_historical_match_players();
+for each row execute function private.sync_historical_match_players();;

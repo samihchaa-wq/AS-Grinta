@@ -43,8 +43,6 @@ for select
 to authenticated
 using ((select private.is_active_profile()));
 
--- Realtime is a signal only: Flutter receives the changed row and redraws the
--- cached forecast. No client receives permission to write weather data.
 do $do$
 begin
   if exists (
@@ -61,8 +59,6 @@ begin
 end;
 $do$;
 
--- Centralise the refresh cadence so the server cannot accidentally request
--- forecasts for distant, cancelled or already played matches.
 create or replace function private.match_weather_refresh_interval(
   p_kickoff_at timestamptz,
   p_now timestamptz
@@ -85,8 +81,6 @@ revoke all on function private.match_weather_refresh_interval(timestamptz, times
 grant execute on function private.match_weather_refresh_interval(timestamptz, timestamptz)
   to service_role;
 
--- Internal read model consumed by the worker. It returns only matches that are
--- currently eligible AND whose cache is due for refresh.
 create or replace function public.internal_match_weather_candidates(
   p_match_id uuid default null,
   p_now timestamptz default now()
@@ -150,8 +144,6 @@ revoke all on function public.internal_match_weather_candidates(uuid, timestampt
 grant execute on function public.internal_match_weather_candidates(uuid, timestamptz)
   to service_role;
 
--- Reuse the existing private server-to-server token used for protected Edge
--- calls. It never reaches Flutter and remains stored in Supabase Vault.
 create or replace function private.request_match_weather_refresh(
   p_match_id uuid default null
 )
@@ -192,8 +184,6 @@ begin
   return v_request_id;
 exception
   when others then
-    -- Weather is strictly non-blocking: an external/API failure must never
-    -- disturb match management or any other scheduled job.
     return null;
 end;
 $function$;
@@ -203,9 +193,6 @@ revoke all on function private.request_match_weather_refresh(uuid)
 grant execute on function private.request_match_weather_refresh(uuid)
   to service_role;
 
--- A lightweight wake-up every 15 minutes is enough to make weather appear
--- shortly after J-6. The candidate RPC enforces the actual 12h/6h/2h/1h API
--- refresh cadence, so most wake-ups perform zero external weather requests.
 do $do$
 declare
   v_job_id bigint;
@@ -222,4 +209,4 @@ begin
     $cron$select private.request_match_weather_refresh(null);$cron$
   );
 end;
-$do$;
+$do$;;

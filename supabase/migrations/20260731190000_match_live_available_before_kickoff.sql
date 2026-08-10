@@ -1,11 +1,3 @@
-begin;
-
--- Le Tableau Blanc n'était accessible qu'une fois l'heure du coup d'envoi
--- dépassée. Le coach doit pouvoir l'ouvrir dès qu'un match à venir a une
--- composition publiée, sans attendre l'heure réelle du coup d'envoi (utile
--- pour préparer le suivi avant que le match ne démarre vraiment). Seul le
--- statut du match compte désormais ; c'est toujours "Démarrer le match" qui
--- déclenche le chronomètre, pas l'horloge.
 create or replace function private.open_match_live_workspace(
   p_match_id uuid,
   p_planned_duration_minutes integer default null
@@ -76,10 +68,6 @@ begin
       updated_by = v_actor,
       updated_at = now();
 
-  -- Reset the editable draft to the published snapshot every time this is
-  -- called while still not_started, so the pre-kickoff editor always starts
-  -- from what players actually saw published (discarding any stray
-  -- unpublished draft edits left over from before kickoff).
   delete from public.match_composition_entries where match_id = p_match_id;
   insert into public.match_composition_entries (
     match_id, participant_id, zone, x, y, slot_label, sort_order
@@ -104,5 +92,4 @@ begin
   return private.match_live_snapshot(p_match_id);
 end;
 $function$;
-
-commit;
+;

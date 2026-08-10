@@ -81,4 +81,4 @@ end;
 $function$;
 
 revoke all on function private.merge_player_identities(uuid, uuid)
-  from public, anon, authenticated;
+  from public, anon, authenticated;;

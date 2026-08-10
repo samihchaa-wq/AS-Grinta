@@ -111,4 +111,4 @@ begin
     'notifications_created', v_created
   );
 end;
-$function$;
+$function$;;

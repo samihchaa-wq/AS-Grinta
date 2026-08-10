@@ -66,9 +66,6 @@ create index if not exists guest_players_player_id_idx
 create index if not exists historical_player_statistics_player_id_idx
   on public.historical_player_statistics(player_id);
 
--- Les profils réels déjà existants deviennent les premières racines. On
--- réutilise leur UUID pour obtenir un backfill déterministe, sans identifiants
--- générés codés en dur. Le compte technique d'import n'est pas une personne.
 insert into public.players(id, display_name, created_at, updated_at)
 select
   p.id,
@@ -95,8 +92,6 @@ where p.player_id is not null
   and btrim(concat_ws(' ', p.first_name, nullif(p.last_name, ''))) <> ''
 on conflict do nothing;
 
--- Les relations déjà validées par identifiant ont priorité sur tout
--- rapprochement par nom.
 update public.season_players sp
 set player_id = p.player_id
 from public.profiles p
@@ -125,8 +120,6 @@ where h.player_id is not null
   and btrim(coalesce(h.player_name, '')) <> ''
 on conflict do nothing;
 
--- Une correspondance textuelle n'est utilisée automatiquement que lorsque le
--- libellé ne désigne qu'une seule identité déjà établie.
 with unique_alias as (
   select
     private.normalize_player_name(a.alias) as normalized_name,
@@ -194,10 +187,6 @@ where h.player_id is not null
   and btrim(coalesce(h.player_name, '')) <> ''
 on conflict do nothing;
 
--- Toutes les identités qui restent sans relation certaine sont volontairement
--- séparées. Les libellés strictement identiques et non résolus forment une
--- seule nouvelle identité ; une collision avec plusieurs identités existantes
--- crée au contraire une identité distincte au lieu de choisir arbitrairement.
 create temporary table _canonical_player_seed on commit drop as
 with alias_count as (
   select
@@ -331,8 +320,6 @@ where h.player_id is not null
   and btrim(coalesce(h.player_name, '')) <> ''
 on conflict do nothing;
 
--- Résolution directe des libellés d'archives. Le mapping temporaire mémorise
--- le choix prudent effectué ci-dessus, y compris lorsqu'un nom était ambigu.
 create temporary table _archive_player_map on commit drop as
 with archive_names as (
   select distinct
@@ -579,8 +566,6 @@ set
   position_code = coalesce(excluded.position_code, historical_match_players.position_code),
   position_label = coalesce(excluded.position_label, historical_match_players.position_label);
 
--- Helpers privés pour garantir une identité aux nouvelles lignes sans réintroduire
--- de fusion automatique par nom lors de la création d'un joueur moderne.
 create or replace function private.create_player_identity(p_display_name text)
 returns uuid
 language plpgsql
@@ -794,8 +779,6 @@ create trigger capture_historical_player_alias_after_write
 after insert or update of player_name on public.historical_player_statistics
 for each row execute function private.capture_player_alias();
 
--- Fusion interne utilisée seulement lorsqu'un lien explicite prouve qu'une
--- identité autonome et une identité de compte sont la même personne.
 create or replace function private.merge_player_identities(
   p_source_player_id uuid,
   p_target_player_id uuid
@@ -820,8 +803,6 @@ begin
     raise exception 'Canonical player identity not found' using errcode = 'P0002';
   end if;
 
-  -- Deux comptes déjà distincts constituent une ambiguïté réelle : aucune
-  -- fusion automatique n'est autorisée.
   if exists (
     select 1 from public.profiles p where p.player_id = p_source_player_id
   ) then
@@ -829,8 +810,6 @@ begin
       using errcode = '23514';
   end if;
 
-  -- Si les deux identités apparaissent séparément dans le même match archivé,
-  -- on refuse de décider qu'il s'agit d'une seule personne.
   if exists (
     select 1
     from public.historical_match_players source_row
@@ -878,8 +857,6 @@ $function$;
 revoke all on function private.merge_player_identities(uuid, uuid)
   from public, anon, authenticated;
 
--- Les deux outils d'administration existants deviennent les points de fusion
--- explicites vers l'identité canonique.
 create or replace function public.staff_set_season_player_profile(
   p_season_player_id uuid,
   p_profile_id uuid default null
@@ -999,7 +976,6 @@ begin
       using errcode = 'P0002';
   end if;
 
-  -- Détacher un ancien lien de compte ne détruit jamais l'identité réelle.
   update public.historical_player_statistics
   set profile_id = null, updated_at = now()
   where profile_id = p_profile_id;
@@ -1037,4 +1013,4 @@ $function$;
 revoke all on function public.staff_set_historical_profile(uuid, bigint)
   from public, anon;
 grant execute on function public.staff_set_historical_profile(uuid, bigint)
-  to authenticated;
+  to authenticated;;

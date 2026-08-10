@@ -12,22 +12,12 @@ create table public.match_live_sessions (
   state public.match_live_state not null default 'not_started',
   planned_duration_minutes integer not null check (planned_duration_minutes between 1 and 200),
   half smallint not null default 1 check (half in (1, 2)),
-  -- Stopwatch model: elapsed_seconds accumulates completed running spans;
-  -- while state = 'running', true elapsed = elapsed_seconds + (now() - running_since).
-  -- Only state transitions are written/synced; the ticking display is computed
-  -- client-side from this pair, never via a per-second write.
   elapsed_seconds integer not null default 0 check (elapsed_seconds >= 0),
   running_since timestamptz,
   score_as_grinta integer not null default 0 check (score_as_grinta between 0 and 99),
   score_adverse integer not null default 0 check (score_adverse between 0 and 99),
   starting_composition_version integer,
-  -- {participant_id: 'field'|'bench'} captured at confirm_start_match_live, used
-  -- to seed the "times benched" counter (starts at 1 for a bench starter).
   starting_lineup_snapshot jsonb,
-  -- Bumped by save_match_live_lineup on every lineup write. Viewers watch
-  -- match_live_sessions for realtime anyway (clock/score); reusing it as the
-  -- lineup-changed signal avoids granting authenticated SELECT on
-  -- match_compositions, whose pre-publication draft must stay admin-only.
   lineup_revision integer not null default 0,
   started_at timestamptz,
   finished_at timestamptz,
@@ -135,3 +125,4 @@ begin
     end if;
   end if;
 end $$;
+;

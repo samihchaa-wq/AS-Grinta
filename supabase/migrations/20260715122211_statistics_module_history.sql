@@ -174,4 +174,4 @@ select * from historical;
 revoke all privileges on table public.v_statistics_players from anon;
 revoke insert, update, delete, truncate, references, trigger
   on table public.v_statistics_players from authenticated;
-grant select on table public.v_statistics_players to authenticated;
+grant select on table public.v_statistics_players to authenticated;;

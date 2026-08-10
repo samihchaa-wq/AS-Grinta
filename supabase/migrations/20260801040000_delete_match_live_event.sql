@@ -1,17 +1,3 @@
--- Retirer un buteur ou un couple de remplacements saisi par erreur.
---
--- Le « − » du score décrémentait le compteur sans supprimer l'événement :
--- le buteur restait donc listé dans « Buteurs » alors que son but avait
--- disparu du score. Il n'existait par ailleurs aucun moyen d'annuler un
--- remplacement mal saisi.
---
--- Cette RPC supprime un événement précis. Pour un but, elle corrige aussi
--- le score en conséquence. Pour un remplacement, elle retire uniquement la
--- ligne du journal (et donc le compteur de fois sur le banc) : les joueurs
--- ne sont pas replacés automatiquement sur le terrain, car d'autres
--- changements ont pu intervenir depuis. Le coach ajuste les positions en
--- glisser-déposer s'il le souhaite.
-
 create or replace function private.delete_match_live_event(
   p_match_id uuid,
   p_event_id uuid
@@ -90,4 +76,4 @@ revoke execute on function private.delete_match_live_event(uuid, uuid) from publ
 revoke execute on function public.coach_delete_match_live_event(uuid, uuid) from public, anon;
 
 grant execute on function private.delete_match_live_event(uuid, uuid) to authenticated, service_role;
-grant execute on function public.coach_delete_match_live_event(uuid, uuid) to authenticated, service_role;
+grant execute on function public.coach_delete_match_live_event(uuid, uuid) to authenticated, service_role;;

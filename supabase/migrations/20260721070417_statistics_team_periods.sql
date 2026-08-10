@@ -1,11 +1,3 @@
--- Statistiques collectives dynamiques, avec le même roulement que les
--- statistiques joueurs :
---   • Actuelle   = saison ouverte ;
---   • Précédente = saison immédiatement antérieure ;
---   • Toutes     = somme de tous les matchs terminés ou archivés.
---
--- Lorsqu'une nouvelle saison est ouverte, l'ancienne saison actuelle devient
--- automatiquement la précédente et la nouvelle saison repart à zéro.
 create or replace view public.v_statistics_team
 with (security_invoker = true)
 as
@@ -130,4 +122,4 @@ select
 from all_time_period;
 
 revoke all on public.v_statistics_team from public, anon;
-grant select on public.v_statistics_team to authenticated;
+grant select on public.v_statistics_team to authenticated;;

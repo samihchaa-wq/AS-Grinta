@@ -9,3 +9,4 @@ revoke all on function private.create_postmatch_composition(
 grant execute on function private.create_postmatch_composition(
   uuid, text, jsonb, boolean, text
 ) to authenticated;
+;

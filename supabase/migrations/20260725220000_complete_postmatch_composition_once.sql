@@ -469,3 +469,4 @@ revoke all on function public.admin_create_postmatch_composition(
 grant execute on function public.admin_create_postmatch_composition(
   uuid, text, jsonb, boolean, text
 ) to authenticated;
+;

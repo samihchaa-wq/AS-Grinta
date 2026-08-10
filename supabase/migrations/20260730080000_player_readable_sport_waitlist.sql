@@ -74,3 +74,4 @@ grant execute on function public.get_sport_waitlist(uuid) to authenticated;
 
 comment on function public.get_sport_waitlist(uuid) is
   'Lecture seule de la liste d''attente de la saison, accessible à tout joueur actif ; aucune modification possible par cette voie.';
+;

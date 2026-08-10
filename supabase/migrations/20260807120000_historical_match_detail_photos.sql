@@ -1,12 +1,3 @@
--- Le terrain d'un match archivé affichait systématiquement un avatar sans
--- photo (photoUrl codé en dur à null côté client) : rien ne reliait jamais
--- une composition importée à la photo de profil du joueur, même quand son
--- identité canonique était connue. On expose désormais, aux côtés du JSON
--- déjà stocké, la photo de chaque joueur du match dont l'identité canonique
--- a un compte actif avec une photo.
-
--- CREATE OR REPLACE ne permet pas d'ajouter une colonne à un type de retour
--- TABLE existant : les deux fonctions doivent être recréées.
 drop function if exists public.get_historical_match_detail(uuid);
 drop function if exists private.get_historical_match_detail(uuid);
 
@@ -78,4 +69,4 @@ revoke all on function public.get_historical_match_detail(uuid) from public, ano
 grant execute on function public.get_historical_match_detail(uuid) to authenticated, service_role;
 
 comment on function public.get_historical_match_detail(uuid) is
-  'Read-only historical match detail (composition/buteurs/HDM) for one match_id, with a source-name -> photo_url map for identified players; authorization is enforced by a private helper.';
+  'Read-only historical match detail (composition/buteurs/HDM) for one match_id, with a source-name -> photo_url map for identified players; authorization is enforced by a private helper.';;

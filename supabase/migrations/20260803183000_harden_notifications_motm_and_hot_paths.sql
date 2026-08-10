@@ -397,4 +397,4 @@ create policy match_internal_composition_entries_delete
   for delete to authenticated
   using (public.is_match_staff());
 
-commit;
+commit;;

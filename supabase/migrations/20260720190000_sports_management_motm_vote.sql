@@ -97,8 +97,7 @@ as $function$
         or candidate_player.profile_id is distinct from voter_profile.id
       )
   );
-$function$;
-
+$function$;;
 create or replace function private.reset_match_motm_election(
   p_match_id uuid,
   p_finalization_version integer,
@@ -213,8 +212,7 @@ $function$;
 
 create trigger trg_reset_match_motm_after_finalization
 after insert on public.match_sport_finalization_versions
-for each row execute function private.trg_reset_match_motm_after_finalization();
-
+for each row execute function private.trg_reset_match_motm_after_finalization();;
 create or replace function private.close_match_motm_election(
   p_match_id uuid,
   p_require_due boolean default true
@@ -332,8 +330,7 @@ begin
 
   return v_closed;
 end;
-$function$;
-
+$function$;;
 create or replace function private.get_match_motm_vote(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -453,8 +450,7 @@ begin
 
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.cast_match_motm_vote(
   p_match_id uuid,
   p_candidate_participant_id uuid
@@ -542,8 +538,7 @@ begin
     'closes_at', v_election.closes_at
   );
 end;
-$function$;
-
+$function$;;
 create or replace function private.admin_cancel_match_motm_vote(
   p_match_id uuid,
   p_reason text
@@ -640,8 +635,7 @@ begin
     'restart_motm_vote'
   );
 end;
-$function$;
-
+$function$;;
 create or replace function public.get_match_motm_vote(p_match_id uuid)
 returns jsonb
 language sql
@@ -714,4 +708,4 @@ select cron.schedule(
   'sports-close-motm-votes',
   '* * * * *',
   $$select private.close_due_match_motm_elections();$$
-);
+);;

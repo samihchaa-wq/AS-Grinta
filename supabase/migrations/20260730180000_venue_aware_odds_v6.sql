@@ -21,8 +21,8 @@ set search_path = ''
 as $function$
 declare
   v_ref date := coalesce(p_reference_date, current_date);
-  v_h_v numeric := 0; -- somme des poids des victoires en confrontation directe
-  v_h_d numeric := 0; -- somme des poids des défaites en confrontation directe
+  v_h_v numeric := 0;
+  v_h_d numeric := 0;
   v_form_v numeric := 0;
   v_form_d numeric := 0;
   v_venue_v numeric := 0;
@@ -51,9 +51,6 @@ begin
     raise exception 'Adversaire introuvable';
   end if;
 
-  -- Étapes 1 à 4 : confrontations directes classées de la plus récente
-  -- (rang 1) à la plus ancienne. Les nuls gardent leur rang mais ne sont
-  -- sommés ni dans H_V ni dans H_D.
   with h2h as (
     select
       case
@@ -89,7 +86,6 @@ begin
   into v_h_v, v_h_d
   from weighted;
 
-  -- Étape 5 : forme générale récente, tous adversaires et lieux confondus.
   with form as (
     select
       case
@@ -118,8 +114,6 @@ begin
     v_q_forme := v_form_v / (v_form_v + v_form_d);
   end if;
 
-  -- Étape 5 bis : forme spécifique au lieu du match à venir, même
-  -- pondération de récence que la forme générale.
   with form_venue as (
     select
       case
@@ -150,26 +144,18 @@ begin
     v_q_venue := v_venue_v / v_venue_weight;
   end if;
 
-  -- L'effet du lieu est amorti par la quantité de données disponibles à ce
-  -- lieu (peu de matchs = peu de confiance) et borné pour rester
-  -- raisonnable.
   v_venue_effect := greatest(-0.15, least(0.15,
     (v_q_venue - v_q_forme) * v_venue_weight / (v_venue_weight + 4.0)
   ));
   v_q_forme := least(0.999999, greatest(0.000001, v_q_forme + v_venue_effect));
 
-  -- Étape 6 : probabilité décisive, prior de force = 1.
   v_q := (1.0 * v_q_forme + v_h_v) / (1.0 + v_h_v + v_h_d);
-  -- Garde-fou anti division par zéro dans les cas dégénérés (aucune défaite
-  -- ni victoire enregistrée) : garde Q strictement dans ]0 ; 1[.
   v_q := least(0.999999, greatest(0.000001, v_q));
 
-  -- Étapes 7 et 8 : cotes provisoires.
   v_cote_v_prov := 1.0 / v_q;
   v_cote_d_prov := 1.0 / (1.0 - v_q);
   v_cote_n_prov := ((v_cote_v_prov + v_cote_d_prov) / 2.0) * 1.50;
 
-  -- Étapes 9 et 10 : probabilités implicites puis normalisation.
   v_u_v := 1.0 / v_cote_v_prov;
   v_u_n := 1.0 / v_cote_n_prov;
   v_u_d := 1.0 / v_cote_d_prov;
@@ -178,7 +164,6 @@ begin
   v_p_n := v_u_n / v_s;
   v_p_d := v_u_d / v_s;
 
-  -- Étape 11 : cotes finales, arrondies à deux décimales uniquement ici.
   return jsonb_build_object(
     'win', round(1.0 / v_p_v, 2),
     'draw', round(1.0 / v_p_n, 2),
@@ -197,12 +182,9 @@ begin
 end;
 $function$;
 
--- Fonction interne : jamais appelée directement depuis le client.
 revoke all on function public.calculate_match_odds_v6(uuid, date, text)
   from public, anon, authenticated;
 
--- calculate_match_odds_v4 délègue désormais à V6 et transmet le lieu au
--- lieu de l'ignorer.
 create or replace function public.calculate_match_odds_v4(
   p_opponent_id uuid,
   p_location text
@@ -216,8 +198,6 @@ as $function$
   select public.calculate_match_odds_v6(p_opponent_id, current_date, p_location);
 $function$;
 
--- Les cotes stockées d'un match à venir utilisent SA date ET son lieu
--- prévus comme référence.
 create or replace function public.upsert_match_odds_v4(p_match_id uuid)
 returns void
 language plpgsql
@@ -271,14 +251,5 @@ begin
 end;
 $function$;
 
--- Recalcule les cotes de tous les matchs à venir avec le lieu pris en compte.
--- Gardé par un test d'existence : les environnements de test qui ne
--- rejouent pas la lignée complète du moteur de cotes (v4/v5) n'ont pas
--- cette fonction, et cette migration n'a pas vocation à la redéfinir.
-do $$
-begin
-  if to_regprocedure('public.recalculate_upcoming_match_odds_v4()') is not null then
-    perform public.recalculate_upcoming_match_odds_v4();
-  end if;
-end;
-$$;
+select public.recalculate_upcoming_match_odds_v4();
+;

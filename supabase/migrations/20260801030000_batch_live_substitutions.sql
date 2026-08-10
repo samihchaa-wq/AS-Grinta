@@ -1,14 +1,3 @@
--- Salves de remplacements : plusieurs changements a la meme minute.
---
--- p_substitution acceptait uniquement un couple {player_in, player_out}.
--- Il accepte desormais aussi un tableau de couples, tous horodates a la
--- meme minute et la meme periode. La forme objet reste acceptee telle
--- quelle : les anciens appels continuent de fonctionner.
---
--- Les controles sont renforces au passage : un meme joueur ne peut pas
--- apparaitre deux fois dans une salve, et le sortant doit reellement
--- quitter le terrain (seul l'entrant etait verifie jusqu'ici).
-
 create or replace function private.save_match_live_lineup(
   p_match_id uuid,
   p_entries jsonb,
@@ -251,4 +240,4 @@ begin
 
   return private.match_live_snapshot(p_match_id);
 end;
-$function$;
+$function$;;

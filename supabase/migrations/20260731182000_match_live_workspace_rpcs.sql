@@ -157,7 +157,6 @@ begin
   for update;
 
   if found and v_existing_state <> 'not_started' then
-    -- Already started: just return current state, no reset.
     return private.match_live_snapshot(p_match_id);
   end if;
 
@@ -185,10 +184,6 @@ begin
       updated_by = v_actor,
       updated_at = now();
 
-  -- Reset the editable draft to the published snapshot every time this is
-  -- called while still not_started, so the pre-kickoff editor always starts
-  -- from what players actually saw published (discarding any stray
-  -- unpublished draft edits left over from before kickoff).
   delete from public.match_composition_entries where match_id = p_match_id;
   insert into public.match_composition_entries (
     match_id, participant_id, zone, x, y, slot_label, sort_order
@@ -599,9 +594,6 @@ begin
     end if;
   end if;
 
-  -- Sanity check: any zone crossing the field/bench boundary that wasn't
-  -- flagged as the declared substitution is silently corrupting
-  -- Remplacements/Faits du match and the times-benched counter — reject it.
   select count(*) into v_bad_boundary_count
   from pg_temp.live_lineup_input input
   join public.match_composition_entries old_entry
@@ -719,3 +711,4 @@ grant execute on function public.coach_set_match_live_clock_state(uuid, text, te
 grant execute on function public.coach_adjust_match_live_score(uuid, text, integer, uuid) to authenticated, service_role;
 grant execute on function public.coach_save_match_live_lineup(uuid, jsonb, jsonb) to authenticated, service_role;
 grant execute on function public.get_match_live_state(uuid) to authenticated, service_role;
+;

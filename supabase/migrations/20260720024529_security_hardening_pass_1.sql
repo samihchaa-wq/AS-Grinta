@@ -146,4 +146,4 @@ begin
       'trigger function remains directly executable by authenticated';
   end if;
 end;
-$security_assertions$;
+$security_assertions$;;

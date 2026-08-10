@@ -1,7 +1,3 @@
--- Expose, for each permanent player, how many times their waitlist turn was
--- definitively consumed during the current season. The public wrappers enrich
--- the existing private payloads so later workflow/draft behavior stays intact.
-
 create or replace function private.enrich_sport_waitlist_history(p_payload jsonb)
 returns jsonb
 language sql
@@ -117,4 +113,4 @@ as $function$
   select private.enrich_match_convocation_history(
     private.get_match_convocations(p_match_id)
   );
-$function$;
+$function$;;

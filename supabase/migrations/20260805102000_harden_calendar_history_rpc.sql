@@ -71,4 +71,4 @@ revoke all on function public.get_historical_match_results(text) from public, an
 grant execute on function public.get_historical_match_results(text) to authenticated, service_role;
 
 comment on function public.get_historical_match_results(text) is
-  'Read-only compact match history for one YYYY-YYYY season; authorization is enforced by a private helper.';
+  'Read-only compact match history for one YYYY-YYYY season; authorization is enforced by a private helper.';;

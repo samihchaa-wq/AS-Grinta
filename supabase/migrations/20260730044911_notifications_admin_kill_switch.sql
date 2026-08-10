@@ -160,3 +160,4 @@ comment on function public.admin_get_notifications_paused() is
   'Admin-only read of the global notifications kill switch state.';
 comment on function public.admin_set_notifications_paused(boolean, text) is
   'Admin-only toggle to pause every outgoing push notification (including the test channel), with audit.';
+;

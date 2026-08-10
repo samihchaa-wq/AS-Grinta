@@ -75,4 +75,4 @@ begin
     raise exception 'a client role can still create objects in public';
   end if;
 end;
-$security_assertions$;
+$security_assertions$;;

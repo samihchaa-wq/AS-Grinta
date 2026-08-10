@@ -141,4 +141,4 @@ comment on function private.reset_match_motm_election(
   uuid,
   text,
   text
-) is 'Opens MOTM voting after finalization and always closes it 24 hours after match kickoff.';
+) is 'Opens MOTM voting after finalization and always closes it 24 hours after match kickoff.';;

@@ -1,9 +1,5 @@
 begin;
 
--- Ces tables étaient déjà fermées aux rôles clients : RLS était activée,
--- aucun privilège n'était accordé et l'absence de politique produisait un refus
--- implicite. Une politique restrictive explicite rend cette intention durable,
--- vérifiable et visible dans les conseillers Supabase.
 do $$
 declare
   target record;
@@ -44,4 +40,4 @@ begin
 end
 $$;
 
-commit;
+commit;;

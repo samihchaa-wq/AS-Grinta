@@ -975,4 +975,7 @@ select cron.schedule(
   'select public.push_prediction_j5_notifications();'
 );
 
-commit;
+-- L'ancien rappel HDM à H-6 reste défini pour l'historique, mais n'est plus appelé.
+-- Le job existant appelle désormais uniquement transitions + ouverture HDM.
+
+commit;;

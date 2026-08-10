@@ -110,4 +110,4 @@ comment on function public.update_match_with_odds(
   numeric, numeric, numeric
 ) is 'Legacy edit RPC: edits upcoming match identity and odds only; lifecycle status transitions use dedicated workflows.';
 
-commit;
+commit;;

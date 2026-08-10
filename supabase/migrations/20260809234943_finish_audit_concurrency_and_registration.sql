@@ -1,5 +1,3 @@
--- Finalize audit hardening for guest concurrency and public registration.
-
 create or replace function public.admin_add_or_reuse_match_guest(
   p_match_id uuid,
   p_guest_player_id uuid default null,
@@ -95,4 +93,4 @@ grant execute on function public.admin_add_or_reuse_match_guest(uuid, uuid, text
 revoke execute on function public.consume_registration_rate_limit(text)
   from public, anon, authenticated;
 grant execute on function public.consume_registration_rate_limit(text)
-  to service_role;
+  to service_role;;

@@ -1,8 +1,3 @@
--- Le texte de la relance manuelle de disponibilité ("Le staff attend ta
--- réponse") était froid. On le rend plus léger, dans le ton du reste des
--- notifications de l'appli.
-begin;
-
 create or replace function public.internal_sport_push_dispatch(p_kind text, p_match_id uuid, p_profile_ids uuid[])
  returns jsonb
  language plpgsql
@@ -100,6 +95,4 @@ begin
 
   return jsonb_build_object('payload', v_payload, 'subscriptions', v_subscriptions);
 end;
-$function$;
-
-commit;
+$function$;;

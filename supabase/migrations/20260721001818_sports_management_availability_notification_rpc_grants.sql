@@ -13,3 +13,4 @@ grant execute on function public.admin_send_match_availability_reminder(uuid, uu
   to service_role;
 grant execute on function public.admin_get_match_availability_reminders(uuid)
   to service_role;
+;

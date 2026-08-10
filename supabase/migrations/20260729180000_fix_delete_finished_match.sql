@@ -1,10 +1,3 @@
--- delete_match échouait pour tout match terminé/archivé : le trigger
--- guard_finished_match_composition_write bloque les écritures sur les
--- tables de composition d'un match fini, et delete_match ne levait jamais
--- l'échappatoire prévue pour ça (déjà utilisée par
--- create_postmatch_composition), d'où « Finished match compositions are
--- immutable » à la suppression.
-
 create or replace function public.delete_match(p_match_id uuid)
 returns boolean
 language plpgsql
@@ -48,3 +41,4 @@ begin
   return true;
 end;
 $$;
+;

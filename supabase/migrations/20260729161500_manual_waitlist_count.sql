@@ -1,9 +1,3 @@
--- Le nombre de fois en liste d'attente n'est plus calculé automatiquement
--- (à partir des tours de liste d'attente consommés) : c'est désormais un
--- champ que l'admin renseigne lui-même. On initialise la nouvelle colonne
--- avec la valeur jusqu'ici calculée pour ne pas perdre l'historique déjà
--- affiché aux joueurs.
-
 alter table public.sport_waitlist_entries
   add column manual_waitlist_count integer not null default 0
   constraint sport_waitlist_entries_manual_waitlist_count_check
@@ -49,12 +43,6 @@ end;
 $$;
 
 grant execute on function public.admin_set_waitlist_manual_count(uuid, integer) to authenticated;
-
--- Les deux enrichissements existants lisaient le nombre de fois en liste
--- d'attente à partir des tours consommés : ils lisent maintenant la valeur
--- saisie manuellement, sans changer la forme de leur réponse (même clé
--- JSON « current_season_waitlist_count »), donc aucun changement client
--- n'est requis côté lecture.
 
 create or replace function private.enrich_sport_waitlist_history(p_payload jsonb)
 returns jsonb
@@ -122,3 +110,4 @@ as $$
     true
   );
 $$;
+;

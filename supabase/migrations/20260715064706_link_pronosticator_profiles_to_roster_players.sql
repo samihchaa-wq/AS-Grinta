@@ -143,4 +143,4 @@ grant execute on function public.staff_set_season_player_profile(uuid, uuid) to 
 
 revoke all on function public.staff_validate_profile(uuid, uuid) from public;
 revoke all on function public.staff_validate_profile(uuid, uuid) from anon;
-grant execute on function public.staff_validate_profile(uuid, uuid) to authenticated;
+grant execute on function public.staff_validate_profile(uuid, uuid) to authenticated;;

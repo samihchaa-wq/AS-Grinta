@@ -72,4 +72,4 @@ before update of status on public.matches
 for each row
 execute function private.guard_match_archive_transition();
 
-commit;
+commit;;

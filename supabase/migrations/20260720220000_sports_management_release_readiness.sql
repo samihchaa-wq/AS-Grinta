@@ -77,8 +77,7 @@ begin
 
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.get_admin_match_motm_dashboard(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -199,8 +198,7 @@ begin
   end if;
   return v_result;
 end;
-$function$;
-
+$function$;;
 create or replace function private.admin_close_match_motm_vote_early(
   p_match_id uuid,
   p_reason text
@@ -250,8 +248,7 @@ begin
 
   return private.get_admin_match_motm_dashboard(p_match_id);
 end;
-$function$;
-
+$function$;;
 create or replace function private.get_match_sport_statistics_integrity(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -370,4 +367,4 @@ revoke all on function public.admin_get_match_sport_statistics_integrity(uuid) f
 grant execute on function public.admin_list_match_motm_votes() to authenticated, service_role;
 grant execute on function public.admin_get_match_motm_dashboard(uuid) to authenticated, service_role;
 grant execute on function public.admin_close_match_motm_vote_early(uuid, text) to authenticated, service_role;
-grant execute on function public.admin_get_match_sport_statistics_integrity(uuid) to authenticated, service_role;
+grant execute on function public.admin_get_match_sport_statistics_integrity(uuid) to authenticated, service_role;;

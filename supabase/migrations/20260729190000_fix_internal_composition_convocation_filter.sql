@@ -1,8 +1,3 @@
--- Les participants d'un match entre nous sont convoqués automatiquement
--- avec convocation_status = 'not_applicable' (aucun workflow de
--- disponibilité pour ce type de match), jamais 'convoked'. La lecture de
--- la composition filtrait uniquement sur 'convoked' : la liste des joueurs
--- était donc toujours vide, avant comme après sauvegarde.
 create or replace function public.admin_get_internal_composition(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -72,3 +67,4 @@ end;
 $$;
 
 grant execute on function public.admin_get_internal_composition(uuid) to authenticated;
+;

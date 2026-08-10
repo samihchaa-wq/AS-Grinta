@@ -1,10 +1,3 @@
--- Buteurs et remplacements : n'afficher que le surnom, sinon le prénom.
--- Les noms complets ("François De La Bourdonnaye entre, Samuel Granier
--- sort") débordaient et alourdissaient la lecture du Tableau Blanc. On
--- reprend ici la convention déjà appliquée aux listes d'effectif :
--- surnom s'il existe, sinon prénom seul, jamais le nom de famille.
--- Les invités restent suffixés " (Invité)".
-
 create or replace function private.match_live_snapshot(p_match_id uuid)
 returns jsonb
 language plpgsql
@@ -141,4 +134,4 @@ begin
     || jsonb_build_object('events', v_events)
     || jsonb_build_object('substitute_counts', v_counts);
 end;
-$function$;
+$function$;;

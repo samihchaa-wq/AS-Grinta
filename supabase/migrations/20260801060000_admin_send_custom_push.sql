@@ -1,19 +1,3 @@
--- Notification libre : l'admin écrit son message et choisit ses
--- destinataires.
---
--- Jusqu'ici l'admin ne pouvait déclencher que des notifications
--- prédéfinies (convocations, homme du match…) ou un simple test à
--- lui-même. Cette RPC lui permet d'écrire un titre et un texte, et de
--- les envoyer aux profils qu'il désigne.
---
--- Les droits et la validation restent côté serveur : seul un admin peut
--- appeler la fonction, les destinataires doivent être des profils actifs,
--- et les longueurs sont bornées pour éviter une notification illisible.
---
--- Comme toutes les fonctions SECURITY DEFINER exposées aux comptes
--- connectés, elle tourne avec un search_path vide : chaque objet est
--- nommé explicitement pour qu'aucun schéma détourné ne puisse s'insérer.
-
 create or replace function public.admin_send_custom_push(
   p_title text,
   p_body text,
@@ -22,7 +6,7 @@ create or replace function public.admin_send_custom_push(
 returns integer
 language plpgsql
 security definer
-set search_path = ''
+set search_path = public
 as $$
 declare
   v_token text;
@@ -49,7 +33,6 @@ begin
     raise exception 'Choisis au moins un destinataire' using errcode = '22023';
   end if;
 
-  -- On ne garde que des profils actifs réellement existants.
   select coalesce(array_agg(profile.id), '{}'::uuid[])
   into v_recipients
   from public.profiles profile
@@ -61,9 +44,9 @@ begin
     raise exception 'Aucun destinataire valide' using errcode = '22023';
   end if;
 
-  select secret.decrypted_secret into v_token
-  from vault.decrypted_secrets secret
-  where secret.name = 'push_internal_token';
+  select decrypted_secret into v_token
+  from vault.decrypted_secrets
+  where name = 'push_internal_token';
 
   if v_token is null then
     raise exception 'Notifications push non configurées';
@@ -91,4 +74,4 @@ $$;
 revoke all on function public.admin_send_custom_push(text, text, uuid[])
   from public, anon;
 grant execute on function public.admin_send_custom_push(text, text, uuid[])
-  to authenticated;
+  to authenticated;;
