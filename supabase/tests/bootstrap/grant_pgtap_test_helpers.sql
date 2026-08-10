@@ -1,35 +1,21 @@
--- Le rejeu CI installe un schéma métier compact puis les migrations récentes
--- explicitement. Ces migrations de la PR doivent être présentes avant le
--- lancement des fichiers pgTAP. Elles sont rejouées dans une transaction,
--- comme une migration Supabase, afin que les tables temporaires ON COMMIT DROP
--- restent disponibles jusqu'à la fin du lot.
-begin;
-\ir ../../migrations/20260807110000_canonical_player_identity.sql
-\ir ../../migrations/20260807111000_canonical_historical_player_links.sql
-\ir ../../migrations/20260807112000_exclude_archive_staff_from_players.sql
-\ir ../../migrations/20260807113000_canonical_player_security_floor.sql
--- Le bootstrap minimal embarque d'anciennes versions des RPC présence/HDM :
--- on conserve leur comportement de test en qualifiant les identifiants devenus
--- ambigus avec season_players.player_id.
-\ir current_match_result_player_rpcs.sql
--- Les tests de charge désactivent volontairement les triggers. Ces defaults ne
--- s'activent qu'en mode replica et n'existent donc jamais en production.
-\ir canonical_player_direct_fixture_defaults.sql
-commit;
+-- Test-only helpers applied after the canonical production schema has been
+-- replayed in the isolated CI database. Production is never affected.
 
--- Les tests changent volontairement de rôle en cours de transaction. Le verrou
--- applicatif ne doit pas empêcher l’exécution des assertions pgTAP dans la base
--- éphémère de CI. Production ne possède pas cette extension.
+-- Some load scenarios deliberately disable triggers via
+-- session_replication_role=replica. Supply the CI-only identity defaults needed
+-- by those direct fixtures without changing production defaults.
+\ir canonical_player_direct_fixture_defaults.sql
+
+-- The tests deliberately switch roles while running pgTAP assertions.
 grant usage on schema extensions to anon, authenticated;
 grant execute on all functions in schema extensions to anon, authenticated;
 
--- Certains scénarios créent une fonction pg_temp avant de basculer vers le rôle
--- authenticated. Le droit par défaut est rétabli uniquement dans cette base de
--- test éphémère ; la migration de production conserve le défaut sécurisé.
+-- Some scenarios create a pg_temp function before switching to authenticated.
+-- Restore that default only inside the ephemeral test database.
 alter default privileges grant execute on functions to authenticated;
 
--- Selon la version de l’image locale, certaines aides peuvent rester dans public.
--- On accorde uniquement les noms d’assertions pgTAP réellement utilisés.
+-- Depending on the local image, a few pgTAP helpers can remain in public.
+-- Grant only the assertion names used by this test suite.
 do $block$
 declare
   helper record;
@@ -57,8 +43,7 @@ begin
 end;
 $block$;
 
--- Échec immédiat et explicite si l’image locale expose encore une surcharge de
--- throws_ok non exécutable par le rôle anon utilisé dans les tests RLS.
+-- Fail explicitly if the anon role still cannot execute any throws_ok overload.
 do $block$
 begin
   if exists (
