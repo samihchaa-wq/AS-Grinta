@@ -1,6 +1,9 @@
 name: Generate canonical schema baseline
 
 on:
+  push:
+    branches: [rebuild/full-migration-history]
+    paths: [.github/workflows/generate_schema_baseline.yml]
   workflow_dispatch:
 
 permissions:
