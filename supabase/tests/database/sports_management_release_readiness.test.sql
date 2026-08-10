@@ -225,13 +225,37 @@ select is(
   'la liste administrateur contient le scrutin validé'
 );
 
+select throws_ok(
+  $$select public.admin_close_match_motm_vote_early(
+    current_setting('test.readiness_match')::uuid,
+    'Tous les votes attendus sont enregistrés'
+  )$$,
+  '22023',
+  'MOTM vote must remain open until its 24-hour deadline',
+  'même un administrateur ne peut pas fermer le vote avant les 24 heures'
+);
+
+reset role;
+update public.match_sport_motm_elections
+set opens_at = now() - interval '25 hours',
+    closes_at = now() - interval '1 hour'
+where match_id = current_setting('test.readiness_match')::uuid
+  and state = 'open';
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"d1000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
 select is(
   public.admin_close_match_motm_vote_early(
     current_setting('test.readiness_match')::uuid,
-    'Tous les votes attendus sont enregistrés'
+    'Échéance de 24 heures atteinte'
   ) #>> '{state}',
   'closed',
-  'la clôture anticipée motivée calcule immédiatement le résultat'
+  'une fois les 24 heures écoulées, la clôture calcule le résultat'
 );
 
 select is(
@@ -258,10 +282,10 @@ select ok(
     select 1
     from private.sport_admin_audit_log audit
     where audit.match_id = current_setting('test.readiness_match')::uuid
-      and audit.action = 'close_motm_vote_early'
-      and audit.reason = 'Tous les votes attendus sont enregistrés'
+      and audit.action = 'close_motm_vote_manual'
+      and audit.reason = 'Échéance de 24 heures atteinte'
   ),
-  'la clôture anticipée est auditée avec son motif'
+  'la clôture après échéance est auditée avec son motif'
 );
 
 update private.app_feature_flags
