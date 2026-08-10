@@ -60,10 +60,14 @@ jobs:
         run: |
           set -euo pipefail
           test -s build/web/index.html
+          test -s build/web/app_shell.js
           test -s build/web/flutter_bootstrap.js
           test -s build/web/main.dart.js
           test -s build/web/favicon.svg
           grep -q '/AS-Grinta/' build/web/index.html
+          grep -q 'Content-Security-Policy' build/web/index.html
+          grep -q 'app_shell.js' build/web/index.html
+          grep -q 'staleWhileRevalidate' build/web/sw.js
           grep -a -q 'Clean sheets' build/web/main.dart.js
           if grep -a -q 'Tous les pronostics (' build/web/main.dart.js; then
             echo 'Le titre redondant est encore présent dans le build.'
@@ -106,20 +110,34 @@ jobs:
           base=$(jq -r '.PUBLIC_APP_URL' config/production.json)
           token="${TARGET_SHA}-$(date +%s)"
           curl --retry 5 --retry-delay 5 -LfsS "${base}?audit=${token}" -o /tmp/index.html
+          curl --retry 5 --retry-delay 5 -LfsS "${base}app_shell.js?audit=${token}" -o /tmp/app_shell.js
           curl --retry 5 --retry-delay 5 -LfsS "${base}flutter_bootstrap.js?audit=${token}" -o /tmp/flutter_bootstrap.js
           curl --retry 5 --retry-delay 5 -LfsS "${base}main.dart.js?audit=${token}" -o /tmp/main.dart.js
           curl --retry 5 --retry-delay 5 -LfsS "${base}favicon.svg?audit=${token}" -o /tmp/favicon.svg
           test -s /tmp/index.html
+          test -s /tmp/app_shell.js
           test -s /tmp/flutter_bootstrap.js
           test -s /tmp/main.dart.js
           test -s /tmp/favicon.svg
-          grep -q 'flutter_bootstrap.js' /tmp/index.html
+          grep -q 'Content-Security-Policy' /tmp/index.html
+          grep -q 'app_shell.js' /tmp/index.html
           grep -q '/AS-Grinta/' /tmp/index.html
           grep -a -q 'Clean sheets' /tmp/main.dart.js
           if grep -a -q 'Tous les pronostics (' /tmp/main.dart.js; then
             echo 'Le titre redondant est encore présent dans le site public.'
             exit 1
           fi
+      - name: Verify HTTPS transport
+        run: |
+          set -euo pipefail
+          base=$(jq -r '.PUBLIC_APP_URL' config/production.json)
+          case "$base" in
+            https://*) ;;
+            *) echo 'PUBLIC_APP_URL doit utiliser HTTPS.' >&2; exit 1 ;;
+          esac
+          curl --retry 5 --retry-delay 3 -I -LfsS "$base" -o /tmp/pages-headers.txt
+          grep -qi '^strict-transport-security:' /tmp/pages-headers.txt || \
+            echo '::warning::GitHub Pages ne renvoie pas de HSTS visible sur cette requête.'
       - name: Verify Supabase availability
         run: |
           set -euo pipefail
@@ -175,9 +193,10 @@ jobs:
             if (!response || response.status() >= 400) {
               throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
             }
-            await page.waitForFunction(() => {
-              return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-            }, null, { timeout: 45000 });
+            await page
+              .locator('flutter-view, flt-glass-pane, canvas')
+              .first()
+              .waitFor({ state: 'attached', timeout: 45000 });
             await page.waitForTimeout(3000);
             await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
             fs.writeFileSync('as-grinta-smoke-errors.log', errors.join('\n'));
@@ -198,7 +217,8 @@ jobs:
           path: |
             as-grinta-smoke.png
             as-grinta-smoke-errors.log
-          if-no-files-found: error
+            /tmp/pages-headers.txt
+          if-no-files-found: warn
 
   deployment-status:
     needs: [build, deploy, smoke-test]
