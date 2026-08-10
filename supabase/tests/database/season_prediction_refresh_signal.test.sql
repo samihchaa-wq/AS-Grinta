@@ -102,7 +102,7 @@ where id = 'fb100000-0000-0000-0000-000000000001';
 insert into public.seasons(id, name, status)
 values (
   'fb100000-0000-0000-0000-000000000010',
-  'Saison Signal pgTAP',
+  '2120-2121',
   'open'
 );
 
