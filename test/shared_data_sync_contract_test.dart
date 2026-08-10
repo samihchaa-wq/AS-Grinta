@@ -76,7 +76,7 @@ void main() {
       expect(databaseContract, contains('public.shared_data_change_signals'));
       expect(databaseContract, contains('profile_revision'));
       expect(databaseContract, contains('sports_revision'));
-      expect(databaseContract, contains('private.is_active_profile'));
+      expect(databaseContract, contains('is_active_profile'));
       expect(databaseContract, contains('supabase_realtime'));
       expect(databaseContract, contains("'match_sport_participants'"));
       expect(databaseContract, contains("'match_composition_publications'"));
