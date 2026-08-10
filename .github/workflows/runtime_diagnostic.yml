@@ -103,9 +103,10 @@ jobs:
                 throw new Error(`${prefix} HTTP ${response?.status() ?? 'sans réponse'}`);
               }
 
-              await page.waitForFunction(() => {
-                return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-              }, null, { timeout: 45000 });
+              await page
+                .locator('flutter-view, flt-glass-pane, canvas')
+                .first()
+                .waitFor({ state: 'attached', timeout: 45000 });
               await page.waitForTimeout(3000);
 
               const screenshot = `runtime-${viewport.name}.png`;
@@ -145,6 +146,16 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const { chromium } = require('playwright-core');
+
+          async function waitForServiceWorkerController(page) {
+            for (let attempt = 0; attempt < 90; attempt += 1) {
+              if (await page.evaluate(() => navigator.serviceWorker.controller !== null)) {
+                return;
+              }
+              await page.waitForTimeout(500);
+            }
+            throw new Error('Le service worker n’a pas pris le contrôle de la page.');
+          }
 
           (async () => {
             const browser = await chromium.launch({
@@ -189,9 +200,7 @@ jobs:
             // Une première navigation ne peut pas être contrôlée par le worker
             // qui vient d’être installé. Une recharge en ligne est donc requise.
             await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
-            await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
-              timeout: 45000,
-            });
+            await waitForServiceWorkerController(page);
             const activeWorker = await page.evaluate(async () => {
               const registration = await navigator.serviceWorker.ready;
               return registration.active?.scriptURL ?? '';
@@ -199,9 +208,10 @@ jobs:
             if (!activeWorker.includes('/sw.js')) {
               throw new Error(`service worker inattendu: ${activeWorker}`);
             }
-            await page.waitForFunction(() => {
-              return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-            }, null, { timeout: 45000 });
+            await page
+              .locator('flutter-view, flt-glass-pane, canvas')
+              .first()
+              .waitFor({ state: 'attached', timeout: 45000 });
 
             await context.setOffline(true);
             const offlineResponse = await page.goto(
@@ -213,9 +223,10 @@ jobs:
                 `lien profond hors ligne HTTP ${offlineResponse?.status() ?? 'sans réponse'}`,
               );
             }
-            await page.waitForFunction(() => {
-              return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-            }, null, { timeout: 45000 });
+            await page
+              .locator('flutter-view, flt-glass-pane, canvas')
+              .first()
+              .waitFor({ state: 'attached', timeout: 45000 });
             await page.waitForTimeout(2500);
             await page.screenshot({ path: 'runtime-pwa-offline.png', fullPage: true });
             if (fs.statSync('runtime-pwa-offline.png').size < 4000) {
