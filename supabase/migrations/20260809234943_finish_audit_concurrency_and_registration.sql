@@ -23003,3 +23003,41 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert or update of email, raw_user_meta_data on auth.users
   for each row execute function public.handle_new_auth_user();
+
+-- Canonical operational extensions and schedules.
+-- Scheduled jobs live in the pg_cron extension tables rather than in
+-- public/private, so a schema-only dump cannot capture them.
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+create extension if not exists pgcrypto with schema extensions;
+create extension if not exists "uuid-ossp" with schema extensions;
+
+select cron.unschedule(jobid)
+from cron.job
+where jobname in (
+  'sports-availability-reminders',
+  'match-weather-refresh',
+  'sports-motm-jobs',
+  'prediction-j5-reminders'
+);
+
+select cron.schedule(
+  'sports-availability-reminders',
+  '* * * * *',
+  $job$select private.process_sport_availability_notifications(now());$job$
+);
+select cron.schedule(
+  'match-weather-refresh',
+  '*/15 * * * *',
+  $job$select private.request_match_weather_refresh(null);$job$
+);
+select cron.schedule(
+  'sports-motm-jobs',
+  '* * * * *',
+  $job$select private.process_match_motm_jobs(now());$job$
+);
+select cron.schedule(
+  'prediction-j5-reminders',
+  '* * * * *',
+  $job$select public.push_prediction_j5_notifications();$job$
+);
