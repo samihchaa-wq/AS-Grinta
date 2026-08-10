@@ -36,7 +36,12 @@ void main() {
       expect(index, contains('<script src="app_shell.js" defer></script>'));
       expect(index, contains('Content-Security-Policy'));
       expect(index, contains("object-src 'none'"));
-      expect(index, contains("connect-src 'self' https://ovzijmqrnsgcmryinkfa.supabase.co"));
+      expect(
+        index,
+        contains(
+          "connect-src 'self' https://ovzijmqrnsgcmryinkfa.supabase.co",
+        ),
+      );
       expect(index, isNot(contains('<script>')));
     });
 
@@ -54,19 +59,26 @@ void main() {
       expect(worker, contains("request.mode === 'navigate'"));
     });
 
-    test('les ressources statiques ne bloquent plus systématiquement sur le réseau',
-        () {
-      expect(worker, contains('staleWhileRevalidate'));
-      expect(worker, contains('if (cached)'));
-      expect(worker, contains('event.waitUntil(refresh)'));
-      expect(worker, contains('mustStayFresh'));
-    });
+    test(
+      'les ressources statiques ne bloquent plus systématiquement sur le réseau',
+      () {
+        expect(worker, contains('staleWhileRevalidate'));
+        expect(worker, contains('if (cached)'));
+        expect(worker, contains('event.waitUntil(refresh)'));
+        expect(worker, contains('mustStayFresh'));
+      },
+    );
 
-    test('la mise à jour se déclenche automatiquement, sans action requise',
-        () {
-      expect(shell, contains("aria-live', 'polite'"));
-      expect(shell, contains("worker.postMessage({ type: 'SKIP_WAITING' })"));
-      expect(shell, isNot(contains("document.createElement('button')")));
-    });
+    test(
+      'la mise à jour se déclenche automatiquement, sans action requise',
+      () {
+        expect(shell, contains("aria-live', 'polite'"));
+        expect(
+          shell,
+          contains("worker.postMessage({ type: 'SKIP_WAITING' })"),
+        );
+        expect(shell, isNot(contains("document.createElement('button')")));
+      },
+    );
   });
 }
