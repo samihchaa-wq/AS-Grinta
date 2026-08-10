@@ -53,7 +53,8 @@ class BadgeDetailSheet extends ConsumerWidget {
     // Une mise à jour d'image invalide badgeCatalogProvider. On repart donc
     // immédiatement du badge frais au lieu de conserver l'objet passé à
     // l'ouverture de la feuille.
-    final currentBadge = catalog.cast<BadgeDef?>().firstWhere(
+    final currentBadge =
+        catalog.cast<BadgeDef?>().firstWhere(
           (b) => b?.code == badge.code,
           orElse: () => null,
         ) ??
