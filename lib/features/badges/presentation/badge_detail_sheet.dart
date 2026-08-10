@@ -191,7 +191,10 @@ class BadgeDetailSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 for (final tier in ladder)
-                  _TierRow(tier: tier, highlighted: tier.code == currentBadge.code),
+                  _TierRow(
+                    tier: tier,
+                    highlighted: tier.code == currentBadge.code,
+                  ),
               ],
               if (onToggleFeatured != null) ...[
                 const SizedBox(height: 20),
