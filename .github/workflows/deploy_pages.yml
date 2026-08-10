@@ -193,9 +193,10 @@ jobs:
             if (!response || response.status() >= 400) {
               throw new Error(`HTTP ${response?.status() ?? 'sans réponse'}`);
             }
-            await page.waitForFunction(() => {
-              return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-            }, null, { timeout: 45000 });
+            await page
+              .locator('flutter-view, flt-glass-pane, canvas')
+              .first()
+              .waitFor({ state: 'attached', timeout: 45000 });
             await page.waitForTimeout(3000);
             await page.screenshot({ path: 'as-grinta-smoke.png', fullPage: true });
             fs.writeFileSync('as-grinta-smoke-errors.log', errors.join('\n'));
