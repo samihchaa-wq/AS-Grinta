@@ -43,6 +43,21 @@ class AdminMenuPage extends ConsumerWidget {
               onTap: () => context.push('/players'),
             ),
           ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.workspace_premium_outlined),
+              title: const Text(
+                'Badges',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: const Text(
+                'Modifier les visuels des badges et gérer leur attribution.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/admin/badges'),
+            ),
+          ),
         ],
       ),
     );
