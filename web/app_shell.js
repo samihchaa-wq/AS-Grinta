@@ -1,0 +1,107 @@
+(function () {
+  'use strict';
+
+  var asGrintaWebVersion = window.AS_GRINTA_WEB_VERSION || 'dev';
+
+  window.asGrintaUpdate = {
+    show: function () {
+      if (document.getElementById('as-grinta-update-bar')) return;
+      var bar = document.createElement('div');
+      bar.id = 'as-grinta-update-bar';
+      bar.textContent = 'Mise à jour de ASG…';
+      bar.setAttribute('aria-live', 'polite');
+      bar.setAttribute('style', [
+        'position:fixed', 'top:0', 'left:0', 'right:0', 'width:100%',
+        'z-index:2147483647', 'border:0',
+        'background:#FBE80C', 'color:#041224',
+        'font:700 14px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
+        'padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px',
+        'text-align:center',
+        'box-shadow:0 2px 10px rgba(0,0,0,.35)'
+      ].join(';'));
+      document.body.appendChild(bar);
+    }
+  };
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register(
+      'sw.js?v=' + encodeURIComponent(asGrintaWebVersion)
+    ).then(function (registration) {
+      if (!registration) return;
+
+      function considerWorker(worker) {
+        if (!worker || !navigator.serviceWorker.controller) return;
+        window.asGrintaUpdate.show();
+        worker.postMessage({ type: 'SKIP_WAITING' });
+      }
+
+      considerWorker(registration.waiting);
+      registration.addEventListener('updatefound', function () {
+        var incoming = registration.installing;
+        if (!incoming) return;
+        incoming.addEventListener('statechange', function () {
+          if (incoming.state === 'installed') considerWorker(incoming);
+        });
+      });
+
+      registration.update();
+      setInterval(function () { registration.update(); }, 300000);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') registration.update();
+      });
+    }).catch(function () {});
+
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  }
+
+  window.asGrintaPush = {
+    support: function () {
+      return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    },
+    permission: function () {
+      return 'Notification' in window ? Notification.permission : 'unsupported';
+    },
+    subscribe: async function (vapidKey) {
+      if (!window.asGrintaPush.support()) return '';
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return '';
+      const registration = await navigator.serviceWorker.ready;
+      const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4);
+      const base64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      const key = Uint8Array.from(Array.from(raw, function (c) { return c.charCodeAt(0); }));
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: key,
+      });
+      return JSON.stringify(subscription.toJSON());
+    },
+    current: async function () {
+      if (!window.asGrintaPush.support()) return '';
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) return '';
+      const subscription = await registration.pushManager.getSubscription();
+      return subscription ? JSON.stringify(subscription.toJSON()) : '';
+    },
+    unsubscribe: async function () {
+      if (!window.asGrintaPush.support()) return '';
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) return '';
+      const subscription = await registration.pushManager.getSubscription();
+      if (!subscription) return '';
+      const json = JSON.stringify(subscription.toJSON());
+      await subscription.unsubscribe();
+      return json;
+    },
+  };
+
+  var bootstrap = document.createElement('script');
+  bootstrap.src = 'flutter_bootstrap.js?v=' + encodeURIComponent(asGrintaWebVersion);
+  bootstrap.async = true;
+  document.body.appendChild(bootstrap);
+})();

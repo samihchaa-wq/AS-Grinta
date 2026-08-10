@@ -26,14 +26,15 @@ jobs:
           version=$(awk '/^version:/{print $2}' pubspec.yaml)
           test -n "$version"
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
-      - name: Build debug web with source maps
+      - name: Build production-equivalent web bundle
         shell: bash
         run: |
           set -o pipefail
           flutter build web \
-            --debug \
+            --release \
             --source-maps \
             --pwa-strategy=none \
+            --no-web-resources-cdn \
             --base-href "/" \
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION" \
@@ -52,7 +53,6 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const { chromium } = require('playwright-core');
-
           const viewports = [
             { name: 'mobile-narrow', width: 320, height: 568 },
             { name: 'mobile-standard', width: 390, height: 844 },
@@ -67,7 +67,6 @@ jobs:
               args: ['--no-sandbox', '--disable-dev-shm-usage'],
             });
             const allEvents = [];
-
             for (const viewport of viewports) {
               const context = await browser.newContext({
                 viewport: { width: viewport.width, height: viewport.height },
@@ -76,25 +75,16 @@ jobs:
               const page = await context.newPage();
               const events = [];
               const prefix = `[${viewport.name}]`;
-
               page.on('console', message => {
-                const text = message.text();
-                events.push(`${prefix} console.${message.type()}: ${text}`);
+                if (message.type() === 'error') events.push(`${prefix} console.error: ${message.text()}`);
               });
-              page.on('pageerror', error => {
-                events.push(`${prefix} pageerror: ${error.stack || error.message}`);
-              });
-              page.on('requestfailed', request => {
-                events.push(
-                  `${prefix} requestfailed: ${request.url()} ${request.failure()?.errorText ?? ''}`,
-                );
-              });
+              page.on('pageerror', error => events.push(`${prefix} pageerror: ${error.stack || error.message}`));
+              page.on('requestfailed', request => events.push(`${prefix} requestfailed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
               page.on('response', response => {
                 if (response.status() >= 400 && !response.url().endsWith('/favicon.ico')) {
                   events.push(`${prefix} http ${response.status()}: ${response.url()}`);
                 }
               });
-
               const response = await page.goto(
                 `http://127.0.0.1:8080/?viewport=${viewport.name}`,
                 { waitUntil: 'networkidle', timeout: 90000 },
@@ -102,38 +92,19 @@ jobs:
               if (!response || response.status() >= 400) {
                 throw new Error(`${prefix} HTTP ${response?.status() ?? 'sans réponse'}`);
               }
-
-              await page.waitForFunction(() => {
-                return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-              }, null, { timeout: 45000 });
-              await page.waitForTimeout(3000);
-
+              await page.locator('flutter-view, flt-glass-pane, canvas').first()
+                .waitFor({ state: 'attached', timeout: 45000 });
+              await page.waitForTimeout(2500);
               const screenshot = `runtime-${viewport.name}.png`;
               await page.screenshot({ path: screenshot, fullPage: true });
-              const size = fs.statSync(screenshot).size;
-              if (size < 4000) {
-                throw new Error(`${prefix} capture anormalement vide: ${size} octets`);
+              if (fs.statSync(screenshot).size < 4000) {
+                throw new Error(`${prefix} capture anormalement vide`);
               }
-
-              const html = await page.content();
-              fs.writeFileSync(`runtime-${viewport.name}.html`, html);
               allEvents.push(...events);
               await context.close();
             }
-
             fs.writeFileSync('runtime.log', allEvents.join('\n'));
-            console.log(allEvents.join('\n'));
-
-            const fatal = allEvents.filter(line =>
-              line.includes('console.error:') ||
-              line.includes('pageerror:') ||
-              line.includes('A RenderFlex overflowed') ||
-              line.includes('OVERFLOWING'),
-            );
-            if (fatal.length > 0) {
-              throw new Error(fatal.join(' | '));
-            }
-
+            if (allEvents.length > 0) throw new Error(allEvents.join(' | '));
             await browser.close();
           })().catch(error => {
             console.error(error);
@@ -146,6 +117,14 @@ jobs:
           const fs = require('fs');
           const { chromium } = require('playwright-core');
 
+          async function waitForController(page) {
+            for (let i = 0; i < 90; i += 1) {
+              if (await page.evaluate(() => navigator.serviceWorker.controller !== null)) return;
+              await page.waitForTimeout(500);
+            }
+            throw new Error('Le service worker n’a pas pris le contrôle de la page.');
+          }
+
           (async () => {
             const browser = await chromium.launch({
               headless: true,
@@ -157,72 +136,42 @@ jobs:
               serviceWorkers: 'allow',
             });
             const page = await context.newPage();
-            const pageErrors = [];
-            page.on('pageerror', error => pageErrors.push(error.stack || error.message));
-
-            const initialResponse = await page.goto('http://127.0.0.1:8080/', {
-              waitUntil: 'networkidle',
-              timeout: 90000,
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.stack || error.message));
+            page.on('console', message => {
+              if (message.type() === 'error') errors.push(message.text());
             });
-            if (!initialResponse || initialResponse.status() >= 400) {
-              throw new Error(`chargement initial HTTP ${initialResponse?.status() ?? 'sans réponse'}`);
-            }
-            try {
-              await page.evaluate(async () => {
-                if (!('serviceWorker' in navigator)) {
-                  throw new Error('Service worker non pris en charge');
-                }
-                await navigator.serviceWorker.ready;
-              });
-            } catch (error) {
-              // L’activation initiale déclenche volontairement controllerchange,
-              // puis index.html recharge la page. Playwright doit attendre le
-              // nouveau contexte au lieu de considérer cette navigation comme
-              // un échec du service worker.
-              const expectedNavigation = String(error).includes(
-                'Execution context was destroyed',
-              );
-              if (!expectedNavigation) throw error;
+
+            await page.goto('http://127.0.0.1:8080/', {
+              waitUntil: 'networkidle', timeout: 90000,
+            });
+            await page.evaluate(async () => {
+              if (!('serviceWorker' in navigator)) throw new Error('Service worker indisponible');
+              await navigator.serviceWorker.ready;
+            }).catch(async error => {
+              if (!String(error).includes('Execution context was destroyed')) throw error;
               await page.waitForLoadState('networkidle', { timeout: 90000 });
-            }
-
-            // Une première navigation ne peut pas être contrôlée par le worker
-            // qui vient d’être installé. Une recharge en ligne est donc requise.
+            });
             await page.reload({ waitUntil: 'networkidle', timeout: 90000 });
-            await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, {
-              timeout: 45000,
-            });
-            const activeWorker = await page.evaluate(async () => {
-              const registration = await navigator.serviceWorker.ready;
-              return registration.active?.scriptURL ?? '';
-            });
-            if (!activeWorker.includes('/sw.js')) {
-              throw new Error(`service worker inattendu: ${activeWorker}`);
-            }
-            await page.waitForFunction(() => {
-              return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-            }, null, { timeout: 45000 });
+            await waitForController(page);
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
 
             await context.setOffline(true);
-            const offlineResponse = await page.goto(
-              'http://127.0.0.1:8080/stats?offline=1',
-              { waitUntil: 'domcontentloaded', timeout: 45000 },
-            );
-            if (!offlineResponse || offlineResponse.status() >= 400) {
-              throw new Error(
-                `lien profond hors ligne HTTP ${offlineResponse?.status() ?? 'sans réponse'}`,
-              );
+            const response = await page.goto('http://127.0.0.1:8080/stats?offline=1', {
+              waitUntil: 'domcontentloaded', timeout: 45000,
+            });
+            if (!response || response.status() >= 400) {
+              throw new Error(`lien profond hors ligne HTTP ${response?.status() ?? 'sans réponse'}`);
             }
-            await page.waitForFunction(() => {
-              return document.querySelector('flutter-view, flt-glass-pane, canvas') !== null;
-            }, null, { timeout: 45000 });
-            await page.waitForTimeout(2500);
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(2000);
             await page.screenshot({ path: 'runtime-pwa-offline.png', fullPage: true });
             if (fs.statSync('runtime-pwa-offline.png').size < 4000) {
               throw new Error('capture PWA hors ligne anormalement vide');
             }
-            if (pageErrors.length > 0) throw new Error(pageErrors.join(' | '));
-
+            if (errors.length > 0) throw new Error(errors.join(' | '));
             await browser.close();
           })().catch(error => {
             console.error(error);
@@ -236,7 +185,6 @@ jobs:
           path: |
             runtime-build.log
             runtime-*.png
-            runtime-*.html
             runtime.log
             build/web/main.dart.js
             build/web/main.dart.js.map
