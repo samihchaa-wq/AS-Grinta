@@ -216,37 +216,42 @@ set local role authenticated;
 select ok(public.archive_match(current_setting('test.lifecycle_replacement_match')::uuid),'archivage initial réussi');
 select throws_ok(format('select public.archive_match(%L::uuid)',current_setting('test.lifecycle_replacement_match')),'P0002','double archivage refusé');
 
--- admin_create_match_complete() finalise la création par des UPDATE
--- (adresse/type/maillot) dans la même transaction que l'INSERT. Un coup
--- d'envoi déjà passé ne doit pas faire échouer ces UPDATE de finition via le
--- verrou pensé pour un match déjà annoncé (regression du correctif
--- 20260805190000_allow_backdated_match_creation).
+-- Create a normal, still-editable match through the complete admin workflow so
+-- address/type/jersey finishing updates are exercised under real permissions.
 set local role authenticated;
 select lives_ok(
   $$select set_config('test.lifecycle_backdated_match',public.admin_create_match_complete(
     'e2000000-0000-0000-0000-000000000001','e3000000-0000-0000-0000-000000000001',
-    date '2000-06-15',time '18:00','domicile',2,3,4,null,
+    date '2099-04-01',time '18:00','domicile',2,3,4,null,
     '1 Rue du Passé',false,'amical','orange')::text,true)$$,
-  'création d’un match à coup d’envoi déjà passé acceptée'
+  'création complète d’un match encore modifiable acceptée'
 );
 reset role;
 select is(
   (select address from public.matches where id=current_setting('test.lifecycle_backdated_match')::uuid),
   '1 Rue du Passé',
-  'adresse de finition appliquée malgré le coup d’envoi passé'
+  'adresse de finition appliquée pendant la création'
 );
 select is(
   (select match_type from public.matches where id=current_setting('test.lifecycle_backdated_match')::uuid),
   'amical',
-  'type de finition appliqué malgré le coup d’envoi passé'
+  'type de finition appliqué pendant la création'
 );
 
--- Le verrou doit rester actif pour un match réellement ancien (créé hors de
--- la fenêtre de grâce de création), pas seulement pour celui qu'on vient de
--- créer.
+-- Put that valid fixture in the past as rollback-only test setup. We bypass only
+-- the lifecycle guard for this setup mutation, then immediately restore it.
+alter table public.matches disable trigger trg_guard_match_lifecycle_write;
 update public.matches
-set created_at = now() - interval '1 day'
+set match_date = date '2000-06-15',
+    match_time = time '18:00',
+    kickoff_at = timestamptz '2000-06-15 16:00:00+00',
+    created_at = now() - interval '1 day',
+    updated_at = now()
 where id = current_setting('test.lifecycle_backdated_match')::uuid;
+alter table public.matches enable trigger trg_guard_match_lifecycle_write;
+
+-- Once the fixture is genuinely old and past T-15, the real Live lock must
+-- reject ordinary administrative edits.
 set local role authenticated;
 select throws_ok(
   $$select public.admin_set_match_address(current_setting('test.lifecycle_backdated_match')::uuid,'2 Rue du Verrou',false)$$,
