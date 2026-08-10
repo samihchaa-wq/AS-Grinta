@@ -58,322 +58,23 @@ jobs:
         shell: bash
         run: deno test supabase/functions/send-push/delivery_policy_test.ts
 
-      - name: Start isolated Supabase database
+      - name: Start isolated Supabase database from canonical history
         shell: bash
         run: |
           set -o pipefail
-          mv supabase/migrations supabase/migrations.full
-          mkdir supabase/migrations
-          restore_migrations() {
-            rm -rf supabase/migrations
-            mv supabase/migrations.full supabase/migrations
-          }
-          trap restore_migrations EXIT
           supabase start 2>&1 | tee supabase-start.log
 
-      - name: Install current business schema
+      - name: Install test-only helpers
         shell: bash
         run: |
           set -o pipefail
           DB_URL='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
           {
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/current_business_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/pgtap_like_compat.sql
             psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/sports_notifications_push_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260711101000_register_push_subscription_rpc.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260713222000_harden_personal_rpcs.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260713225500_harden_staff_season_rpcs.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720030747_kickoff_prediction_and_match_atomicity.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720033749_integrity_backfill_and_staff_audit.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/security_hardening_pass_2_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720110119_security_hardening_pass_2.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720123000_sports_management_feature_flag.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720131500_sports_management_availability_workflow.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720150000_sports_management_waitlist_rotation.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720151000_sports_management_waitlist_rotation_fixes.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720162500_sports_management_notification_scheduler_extensions.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720163000_sports_management_availability_notifications.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720163500_sports_management_availability_notification_rpc_grants.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720170000_sports_management_composition_server.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720174500_sports_management_guests.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720180000_sports_management_final_attendance_statistics.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720190000_sports_management_motm_vote.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720190500_sports_management_motm_vote_finalization_response.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720191000_sports_management_motm_vote_rpc_grants.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720213000_sports_management_motm_notifications.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260720220000_sports_management_release_readiness.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260721170424_unified_match_squad_plan.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260723120000_motm_open_from_kickoff_and_ballot_detail.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260723130000_fix_motm_enum_cast_and_match_delete.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260724000000_admin_send_test_push.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260724120000_match_address_and_opponent_memory.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260724130000_match_address_home_team_memory.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/player_photo_cleanup_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260724060000_cleanup_replaced_photos_trigger.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260725220000_complete_postmatch_composition_once.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260725221500_grant_postmatch_composition_private_rpc.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260725222000_allow_postmatch_publication_kind.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/statistics_rollover_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260726214500_fix_previous_season_rollover.sql
-            # Cette migration durcit encore la signature historique à deux
-            # paramètres. Elle doit donc être appliquée avant son remplacement.
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727000100_restrict_public_definer_execution.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260726200000_opponent_default_addresses.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/historical_match_scores_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727002000_explicit_deny_rls_policies.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727024000_ensure_opponent_default_address_rpc.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/profile_badge_metrics_security_contract.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727024500_revoke_anon_public_definer_execution.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727030000_export_personal_data.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/enable_prediction_guard.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/live_effectif_security_contract.sql
-            # Le verrou global couvre tout l'historique et sécurise les privilèges
-            # par défaut. Les migrations suivantes doivent rester explicites.
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727040000_lock_down_business_security_surface.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727040500_lock_down_future_object_defaults.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727050000_live_feature_flag_session_refresh.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727060000_push_delivery_resilience.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260727070000_harden_admin_send_test_push_search_path.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260728090000_effectif_draft_publication_contract.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260728091000_unified_squad_plan_draft_contract.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260728095000_sync_motm_workflow_after_finalization.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260729123000_waitlist_history_counts.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260729123500_grant_waitlist_history_enrich_execute.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260729160000_match_type_and_jersey.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260729161500_manual_waitlist_count.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260729170000_internal_matches.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730044106_fix_prepare_deletion_effectif_draft_updated_by.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730044911_notifications_admin_kill_switch.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730044927_notify_admin_pending_signup.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730050000_open_test_push_to_all_players.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730060000_remove_personal_data_export.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730070000_atomic_match_create_update.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730080000_player_readable_sport_waitlist.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730153000_playful_manual_availability_reminder_copy.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730180000_venue_aware_odds_v6.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730190000_clamp_venue_aware_odds_v6.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730200000_revert_venue_aware_odds.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260730220000_restore_original_v5_odds.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731060000_allow_postmatch_composition_updates.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731070000_grant_update_postmatch_composition_private_rpc.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731180000_match_live_schema.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731181000_match_live_authz.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731182000_match_live_workspace_rpcs.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731183000_match_live_recap_and_publish_rpcs.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731184000_match_live_authz_hardening.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731185000_match_live_active_profile_floor.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731190000_match_live_available_before_kickoff.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260731210000_match_live_open_workspace_idempotent.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801000000_match_live_events_short_names.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801010000_finalize_allows_finished_live_session.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801020000_halftime_snaps_to_half_duration.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801030000_batch_live_substitutions.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801040000_delete_match_live_event.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801050000_goal_scorer_later_and_opponent_own_goal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260801060000_admin_send_custom_push.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802000000_restart_match_live_session.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802010000_moderator_role.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802020000_badges_moderator_only.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802030000_linked_account_first_name_wins.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802040000_timeline_uses_display_names.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802050000_match_weather.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802193000_player_team_clean_sheets_statistics.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260802210000_correct_samih_all_time_goal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803000000_shared_data_change_signal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803010000_remove_x2_and_private_profile_photos.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803011000_immediate_effectif_and_composition.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803012000_live_recap_freezes_real_composition.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803120455_match_temporality_noon_live_and_notifications.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803142018_notifications_v2_match_events_preferences.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803142514_convocation_push_via_targeted_custom_transport.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803142625_motm_open_never_before_kickoff.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803150057_availability_workflow_independent_from_push_pause.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803151200_motm_strict_h2_without_source_dependency.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803161358_match_weather_security_floor.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260803183000_harden_notifications_motm_and_hot_paths.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804003000_match_state_integrity_and_push_retention.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804180000_match_lifecycle_cleanup.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804180500_live_coach_finalize_context.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804181000_lock_prematch_sport_edits.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804181500_harden_legacy_archive_lifecycle.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804182000_harden_missing_match_duration.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804182500_lock_generic_match_status_updates.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804183000_anchor_motm_to_validation.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804190000_match_live_add_late_players.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804190500_preserve_live_t15_after_late_players.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804201000_motm_result_notifications.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804220000_scope_profile_refresh_signal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804223000_scope_sports_refresh_signal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804225114_postmatch_correction_window.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804225719_postmatch_correction_window_motm_sync.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804230000_suppress_season_prediction_refresh_signal.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260804235037_motm_exact_24h_window.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805000000_postmatch_correction_window.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805010000_motm_exact_24h_window.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805100000_admin_user_roles.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805101000_calendar_history.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805102000_harden_calendar_history_rpc.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805132747_club_events.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805135907_club_events_created_by_index.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260805190000_allow_backdated_match_creation.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260806100000_historical_match_scores_is_home.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260806101000_historical_match_results_is_home_and_all.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260806103000_club_events_active_profile_floor.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260806140000_historical_match_details.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260806193000_statistics_real_first_name.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260806200000_fix_live_score_event_desync.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260808083817_allow_unavailable_effectif_decisions.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/migrations/20260808140000_composition_follows_convocation.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/season_lifecycle_acl.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
-              -f supabase/tests/bootstrap/match_delete_rpc_grants.sql
-            psql "$DB_URL" -v ON_ERROR_STOP=1 \
               -f supabase/tests/bootstrap/grant_pgtap_test_helpers.sql
-          } 2>&1 | tee supabase-schema.log
+          } 2>&1 | tee supabase-test-helpers.log
 
       - name: Run every pgTAP business and RLS test
         shell: bash
@@ -386,7 +87,7 @@ jobs:
             supabase test db "$test_file" 2>&1 | tee -a supabase-tests.log
             echo "::endgroup::"
             test_count=$((test_count + 1))
-          done < <(find supabase/tests/database -maxdepth 1 -type f -name '*.test.sql' -print | sort)
+          done < <(find supabase/tests/database -maxdepth 1 -type f -name '*.test.sql' | sort)
           if [ "$test_count" -eq 0 ]; then
             echo 'No database tests discovered under supabase/tests/database.' >&2
             exit 1
@@ -403,10 +104,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-business-test-logs
+          name: supabase-business-tests
           path: |
             supabase-start.log
-            supabase-schema.log
+            supabase-test-helpers.log
             supabase-tests.log
             supabase-db-lint.log
           if-no-files-found: warn
