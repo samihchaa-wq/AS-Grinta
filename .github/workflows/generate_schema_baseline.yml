@@ -17,6 +17,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+      PRISTINE_HISTORY_COMMIT: 7d3700cff30be4bac3a64e80c2b2b5ba0c92b691
     steps:
       - name: Checkout reconstruction branch
         uses: actions/checkout@v4
@@ -36,44 +37,40 @@ jobs:
           test -n "${SUPABASE_ACCESS_TOKEN:-}"
           test -n "${SUPABASE_DB_PASSWORD:-}"
 
-      - name: Fetch pristine production history and dump current app schema
+      - name: Restore pristine history and dump current app schema
         shell: bash
         run: |
           set -euo pipefail
           source supabase/production_migrations.lock
 
-          rm -rf /tmp/working-migrations
-          mv supabase/migrations /tmp/working-migrations
-          mkdir -p supabase/migrations
+          # This immutable commit was produced by a successful linked fetch of
+          # production's real migration history earlier in this reconstruction.
+          # Reusing it removes a flaky network fetch without changing provenance.
+          rm -rf /tmp/pristine-history
+          mkdir -p /tmp/pristine-history
+          git cat-file -e "${PRISTINE_HISTORY_COMMIT}^{commit}"
+          git archive "$PRISTINE_HISTORY_COMMIT" supabase/migrations \
+            | tar -x -C /tmp/pristine-history
+          test -d /tmp/pristine-history/supabase/migrations
 
-          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
-          supabase migration fetch --linked
+          rm -rf supabase/migrations_legacy_production
+          mkdir -p supabase/migrations_legacy_production
+          cp -a /tmp/pristine-history/supabase/migrations/. supabase/migrations_legacy_production/
 
-          # Production contains one historical row with a valid timestamp but no
-          # migration name or SQL. The CLI cannot create a filename for it.
-          if ! find supabase/migrations -maxdepth 1 -type f -name '20260730220000_*.sql' | grep -q .; then
-            cat > supabase/migrations/20260730220000_history_marker.sql <<'SQL'
-          -- Historical migration marker.
-          -- Production records version 20260730220000 with no name and no SQL statements.
-          SQL
-          fi
-
-          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+          find supabase/migrations_legacy_production -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
             | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
-            | sort -u > /tmp/fetched-versions.txt
-          count=$(wc -l < /tmp/fetched-versions.txt | tr -d ' ')
-          latest=$(tail -n 1 /tmp/fetched-versions.txt)
-          checksum=$(md5sum /tmp/fetched-versions.txt | awk '{print $1}')
+            | sort -u > /tmp/pristine-versions.txt
+          count=$(wc -l < /tmp/pristine-versions.txt | tr -d ' ')
+          latest=$(tail -n 1 /tmp/pristine-versions.txt)
+          checksum=$(md5sum /tmp/pristine-versions.txt | awk '{print $1}')
+          printf 'Pristine history: count=%s latest=%s md5=%s\n' "$count" "$latest" "$checksum"
           test "$count" = "$MIGRATION_COUNT"
           test "$latest" = "$LATEST_VERSION"
           test "$checksum" = "$VERSION_MD5"
 
-          rm -rf supabase/migrations_legacy_production
-          mkdir -p supabase/migrations_legacy_production
-          cp -a supabase/migrations/. supabase/migrations_legacy_production/
-
-          # Dump only application-owned schemas. Supabase-managed schemas such as
-          # auth/storage/realtime are created by the local Supabase stack itself.
+          # Read only the current application-owned structure from production.
+          # No DDL or data writes are sent to production by db dump.
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
           supabase db dump --linked --schema public,private --file /tmp/current_app_schema.sql
           test -s /tmp/current_app_schema.sql
 
@@ -147,8 +144,8 @@ jobs:
           with check ((bucket_id = 'profile-photos') and (select private.is_active_profile()) and owner_id = (select auth.uid())::text and (storage.foldername(name))[1] = (select auth.uid())::text);
           SQL
 
-          # Never seed club/user/match/history rows into a fresh installation.
-          # A neutral singleton is safe and lets club settings work immediately.
+          # Never copy club/user/player/match/history rows to a new installation.
+          # Only create the neutral singleton needed by club settings.
           cat >> "supabase/migrations/$latest_base" <<'SQL'
 
           insert into public.club_settings (id, home_address)
@@ -156,7 +153,8 @@ jobs:
           on conflict (id) do nothing;
           SQL
 
-          # Prove the active inventory still has the exact 427 production versions.
+          # The active migration inventory remains byte-for-byte identical at the
+          # version level to production: 427 historical version numbers, same last.
           find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
             | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
             | sort -u > /tmp/baseline-versions.txt
