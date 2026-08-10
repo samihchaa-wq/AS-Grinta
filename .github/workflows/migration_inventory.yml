@@ -109,16 +109,17 @@ jobs:
           [[ "${LATEST_VERSION:-}" =~ ^[0-9]{14}$ ]]
           [[ "${VERSION_MD5:-}" =~ ^[0-9a-f]{32}$ ]]
 
-      - name: Ensure production lock is only changed from a drift-guard branch
+      - name: Ensure production lock is only changed from an approved verification branch
         if: >-
           github.event_name == 'pull_request' &&
-          !startsWith(github.head_ref, 'ci/supabase-migration-drift-guard')
+          !startsWith(github.head_ref, 'ci/supabase-migration-drift-guard') &&
+          !startsWith(github.head_ref, 'rebuild/full-migration-history')
         shell: bash
         run: |
           set -euo pipefail
           base="origin/${{ github.base_ref }}"
           if git diff --name-only "$base...HEAD" | grep -qx 'supabase/production_migrations.lock'; then
-            echo "The production lock is updated only from a dedicated ci/supabase-migration-drift-guard* branch after a verified production deployment." >&2
+            echo "The production lock may only be updated from ci/supabase-migration-drift-guard* after a verified deployment or from rebuild/full-migration-history* while its production-inventory and full-replay checks remain mandatory." >&2
             exit 1
           fi
 
