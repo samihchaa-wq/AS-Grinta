@@ -1,0 +1,173 @@
+name: Generate canonical schema baseline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+    steps:
+      - name: Checkout reconstruction branch
+        uses: actions/checkout@v4
+        with:
+          ref: rebuild/full-migration-history
+          fetch-depth: 0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.111.0
+
+      - name: Verify secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test -n "${SUPABASE_DB_PASSWORD:-}"
+
+      - name: Fetch pristine production history and dump current app schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          source supabase/production_migrations.lock
+
+          rm -rf /tmp/working-migrations
+          mv supabase/migrations /tmp/working-migrations
+          mkdir -p supabase/migrations
+
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+          supabase migration fetch --linked
+
+          # Production contains one historical row with a valid timestamp but no
+          # migration name or SQL. The CLI cannot create a filename for it.
+          if ! find supabase/migrations -maxdepth 1 -type f -name '20260730220000_*.sql' | grep -q .; then
+            cat > supabase/migrations/20260730220000_history_marker.sql <<'SQL'
+          -- Historical migration marker.
+          -- Production records version 20260730220000 with no name and no SQL statements.
+          SQL
+          fi
+
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
+            | sort -u > /tmp/fetched-versions.txt
+          count=$(wc -l < /tmp/fetched-versions.txt | tr -d ' ')
+          latest=$(tail -n 1 /tmp/fetched-versions.txt)
+          checksum=$(md5sum /tmp/fetched-versions.txt | awk '{print $1}')
+          test "$count" = "$MIGRATION_COUNT"
+          test "$latest" = "$LATEST_VERSION"
+          test "$checksum" = "$VERSION_MD5"
+
+          rm -rf supabase/migrations_legacy_production
+          mkdir -p supabase/migrations_legacy_production
+          cp -a supabase/migrations/. supabase/migrations_legacy_production/
+
+          # Dump only application-owned schemas. Supabase-managed schemas such as
+          # auth/storage/realtime are created by the local Supabase stack itself.
+          supabase db dump --linked --schema public,private --file /tmp/current_app_schema.sql
+          test -s /tmp/current_app_schema.sql
+
+          latest_file=$(find supabase/migrations_legacy_production -maxdepth 1 -type f -name "${LATEST_VERSION}_*.sql" | sort | head -n 1)
+          test -n "$latest_file"
+          latest_base=$(basename "$latest_file")
+
+          rm -rf supabase/migrations
+          mkdir -p supabase/migrations
+
+          while IFS= read -r source_file; do
+            base=$(basename "$source_file")
+            version=${base%%_*}
+            cat > "supabase/migrations/$base" <<EOF
+          -- Historical production migration $version.
+          -- Its pristine SQL is archived in supabase/migrations_legacy_production/$base.
+          -- Fresh installations are built by the canonical baseline at $LATEST_VERSION.
+          EOF
+          done < <(find supabase/migrations_legacy_production -maxdepth 1 -type f -name '*.sql' | sort)
+
+          cp /tmp/current_app_schema.sql "supabase/migrations/$latest_base"
+          cat >> "supabase/migrations/$latest_base" <<'SQL'
+
+          -- App-owned Storage configuration. The storage schema itself is managed
+          -- by Supabase and already exists before application migrations run.
+          insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types, type)
+          values
+            ('app-assets', 'app-assets', true, 10485760, array['image/png','image/jpeg','image/webp'], 'STANDARD'),
+            ('badge-images', 'badge-images', true, 5242880, array['image/jpeg','image/png','image/webp'], 'STANDARD'),
+            ('profile-photos', 'profile-photos', false, 5242880, array['image/jpeg','image/png','image/webp'], 'STANDARD')
+          on conflict (id) do update set
+            name = excluded.name,
+            public = excluded.public,
+            file_size_limit = excluded.file_size_limit,
+            allowed_mime_types = excluded.allowed_mime_types,
+            type = excluded.type;
+
+          drop policy if exists "badge_images_admin_delete" on storage.objects;
+          create policy "badge_images_admin_delete" on storage.objects for delete to authenticated
+          using ((bucket_id = 'badge-images') and (select private.is_match_staff()));
+
+          drop policy if exists "badge_images_admin_insert" on storage.objects;
+          create policy "badge_images_admin_insert" on storage.objects for insert to authenticated
+          with check ((bucket_id = 'badge-images') and (select private.is_match_staff()));
+
+          drop policy if exists "badge_images_admin_update" on storage.objects;
+          create policy "badge_images_admin_update" on storage.objects for update to authenticated
+          using ((bucket_id = 'badge-images') and (select private.is_match_staff()))
+          with check ((bucket_id = 'badge-images') and (select private.is_match_staff()));
+
+          drop policy if exists "profile_photos_active_read" on storage.objects;
+          create policy "profile_photos_active_read" on storage.objects for select to authenticated
+          using ((bucket_id = 'profile-photos') and private.is_active_profile());
+
+          drop policy if exists "profile_photos_admin_write" on storage.objects;
+          create policy "profile_photos_admin_write" on storage.objects for all to authenticated
+          using ((bucket_id = 'profile-photos') and (select private.is_admin()))
+          with check ((bucket_id = 'profile-photos') and (select private.is_admin()));
+
+          drop policy if exists "profile_photos_owner_delete" on storage.objects;
+          create policy "profile_photos_owner_delete" on storage.objects for delete to authenticated
+          using ((bucket_id = 'profile-photos') and (select private.is_active_profile()) and owner_id = (select auth.uid())::text);
+
+          drop policy if exists "profile_photos_owner_insert" on storage.objects;
+          create policy "profile_photos_owner_insert" on storage.objects for insert to authenticated
+          with check ((bucket_id = 'profile-photos') and (select private.is_active_profile()) and owner_id = (select auth.uid())::text and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+          drop policy if exists "profile_photos_owner_update" on storage.objects;
+          create policy "profile_photos_owner_update" on storage.objects for update to authenticated
+          using ((bucket_id = 'profile-photos') and (select private.is_active_profile()) and owner_id = (select auth.uid())::text)
+          with check ((bucket_id = 'profile-photos') and (select private.is_active_profile()) and owner_id = (select auth.uid())::text and (storage.foldername(name))[1] = (select auth.uid())::text);
+          SQL
+
+          # Never seed club/user/match/history rows into a fresh installation.
+          # A neutral singleton is safe and lets club settings work immediately.
+          cat >> "supabase/migrations/$latest_base" <<'SQL'
+
+          insert into public.club_settings (id, home_address)
+          values (true, null)
+          on conflict (id) do nothing;
+          SQL
+
+          # Prove the active inventory still has the exact 427 production versions.
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
+            | sort -u > /tmp/baseline-versions.txt
+          test "$(wc -l < /tmp/baseline-versions.txt | tr -d ' ')" = "$MIGRATION_COUNT"
+          test "$(tail -n 1 /tmp/baseline-versions.txt)" = "$LATEST_VERSION"
+          test "$(md5sum /tmp/baseline-versions.txt | awk '{print $1}')" = "$VERSION_MD5"
+
+      - name: Commit generated baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/migrations supabase/migrations_legacy_production
+          git diff --cached --quiet && exit 0
+          git commit -m 'Replace broken replay chain with canonical production baseline'
+          git push origin HEAD:rebuild/full-migration-history
