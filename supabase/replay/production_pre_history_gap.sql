@@ -1,12 +1,49 @@
--- Replay-only reconstruction of the database objects that existed in production
--- before Supabase migration history started recording them.
+-- Replay-only reconstruction of the database objects and column transitions
+-- that already existed in production before migration history was recorded.
 --
--- This file is NOT a production migration. The 427 files under
--- supabase/migrations remain the exact recorded production history.
+-- This file is NOT deployed to production. The 427 SQL files in
+-- supabase/migrations remain the exact production-recorded history.
 
 alter table public.profiles
   add column if not exists status text not null default 'active',
   add column if not exists photo_url text;
+
+alter table public.seasons
+  add column if not exists status text not null default 'open';
+
+-- The recorded history created these tables with player_id, while the next
+-- recorded migrations already use profile_id. Preserve that missing rename.
+alter table public.season_players
+  rename column player_id to profile_id;
+alter table public.season_players
+  drop constraint if exists season_players_pkey;
+alter table public.season_players
+  add column if not exists id uuid not null default gen_random_uuid(),
+  add column if not exists is_goalkeeper_snapshot boolean not null default false;
+alter table public.season_players
+  add primary key (id);
+create unique index if not exists season_players_season_profile_uidx
+  on public.season_players(season_id, profile_id);
+
+alter table public.match_participants
+  rename column player_id to profile_id;
+
+-- The design-v1 migrations immediately use these names although no recorded
+-- migration creates them. On a real database they were already present.
+alter table public.matches
+  add column if not exists match_date date,
+  add column if not exists match_time time without time zone,
+  add column if not exists location text,
+  add column if not exists score_as_grinta integer,
+  add column if not exists score_adverse integer,
+  add column if not exists created_by uuid references public.profiles(id) on delete restrict;
+
+update public.matches
+set match_date = coalesce(match_date, (kickoff_at at time zone 'Europe/Paris')::date),
+    match_time = coalesce(match_time, (kickoff_at at time zone 'Europe/Paris')::time),
+    location = coalesce(location, case when is_home then 'domicile' else 'exterieur' end),
+    score_as_grinta = coalesce(score_as_grinta, grinta_score),
+    score_adverse = coalesce(score_adverse, opponent_score);
 
 create table if not exists public.live_sessions (
   id uuid primary key default gen_random_uuid(),
