@@ -4,6 +4,7 @@ import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_image_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -168,7 +169,13 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                 ? const Text('Custom')
                                 : null),
                         isThreeLine: b.description.isNotEmpty,
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            BadgeImageEditorButton(badge: b),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onTap: () => showBadgeDetailSheet(
                           context,
                           b,
