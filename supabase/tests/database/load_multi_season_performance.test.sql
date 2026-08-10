@@ -341,7 +341,7 @@ insert into public.profile_badges(
 select
   lp.profile_id,
   extensions.gen_random_uuid(),
-  'load_fixture',
+  'manual',
   now() - (badge_index * interval '1 day'),
   badge_index <= 2
 from load_profiles lp
