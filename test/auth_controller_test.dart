@@ -235,9 +235,8 @@ class _FakeAuthRepository implements AuthRepository {
   _FakeAuthRepository({
     required List<Object?> fetchResults,
     this.signInError,
-    bool hasSession = false,
-  })  : _fetchResults = List<Object?>.from(fetchResults),
-        hasSession = hasSession;
+    this.hasSession = false,
+  }) : _fetchResults = List<Object?>.from(fetchResults);
 
   final List<Object?> _fetchResults;
   final Object? signInError;
