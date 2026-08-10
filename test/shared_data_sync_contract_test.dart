@@ -67,13 +67,13 @@ void main() {
     'shared data migration is a safe revision-only realtime channel',
     () async {
       final migration = await File(
-        'supabase/migrations/20260803000000_shared_data_change_signal.sql',
+        'supabase/migrations_legacy_production/20260802231702_shared_data_change_signal.sql',
       ).readAsString();
       final scopedProfileMigration = await File(
-        'supabase/migrations/20260804220000_scope_profile_refresh_signal.sql',
+        'supabase/migrations_legacy_production/20260804220000_scope_profile_refresh_signal.sql',
       ).readAsString();
       final scopedSportsMigration = await File(
-        'supabase/migrations/20260804223000_scope_sports_refresh_signal.sql',
+        'supabase/migrations_legacy_production/20260804223000_scope_sports_refresh_signal.sql',
       ).readAsString();
 
       expect(
