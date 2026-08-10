@@ -5,7 +5,6 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
-      - 'supabase/replay/**'
       - '.github/workflows/full_schema_replay_diagnostic.yml'
       - '.github/workflows/migration_inventory.yml'
   workflow_dispatch:
@@ -28,14 +27,6 @@ jobs:
         with:
           version: 2.111.0
 
-      - name: Inject the recovered pre-history only for clean replay
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s supabase/replay/production_pre_history_gap.sql
-          cp supabase/replay/production_pre_history_gap.sql \
-            supabase/migrations/20260708150000_replay_pre_history_gap.sql
-
       - name: Replay the complete migration history
         id: replay
         shell: bash
@@ -48,7 +39,7 @@ jobs:
           {
             echo "## Full schema replay diagnostic"
             if [ "$code" -eq 0 ]; then
-              echo "✅ Le socle historique récupéré + les 427 migrations de production se rejouent depuis une base vide."
+              echo "✅ Les 427 versions historiques et la référence canonique recréent l'application depuis une base vide."
             else
               echo "❌ La reconstruction complète depuis une base vide échoue."
             fi
