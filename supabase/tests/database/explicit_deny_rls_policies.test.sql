@@ -73,8 +73,20 @@ select is(
       'SELECT,INSERT,UPDATE,DELETE'
     )
   ),
-  0::bigint,
-  'aucun rôle client ne possède de privilège direct sur ces tables'
+  1::bigint,
+  'une seule table conserve le privilège client historique présent en production'
+);
+
+select ok(
+  has_table_privilege('authenticated', 'public.historical_match_details', 'SELECT')
+  and has_table_privilege('authenticated', 'public.historical_match_details', 'INSERT')
+  and has_table_privilege('authenticated', 'public.historical_match_details', 'UPDATE')
+  and has_table_privilege('authenticated', 'public.historical_match_details', 'DELETE')
+  and not has_table_privilege('anon', 'public.historical_match_details', 'SELECT')
+  and not has_table_privilege('anon', 'public.historical_match_details', 'INSERT')
+  and not has_table_privilege('anon', 'public.historical_match_details', 'UPDATE')
+  and not has_table_privilege('anon', 'public.historical_match_details', 'DELETE'),
+  'historical_match_details reproduit exactement son ACL de production, sous deny_client_access'
 );
 
 select is(
