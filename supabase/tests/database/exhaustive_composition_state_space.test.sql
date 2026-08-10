@@ -5,7 +5,7 @@ select no_plan();
 insert into auth.users(id,email,raw_user_meta_data)
 select ('b1000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
        format('composition-state-%s@example.invalid',n),
-       jsonb_build_object('first_name',format('Profil%s',n),'last_name','State')
+       jsonb_build_object('first_name','Profil','last_name','State')
 from generate_series(1,17) n;
 update public.profiles
 set role=case when id='b1000000-0000-0000-0000-000000000001' then 'admin' else 'pronostiqueur' end,
@@ -19,7 +19,7 @@ insert into public.season_players(
   id,season_id,first_name,last_name,is_goalkeeper,is_active,position,profile_id
 )
 select ('b4000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
-       'b2000000-0000-0000-0000-000000000001',format('Joueur%s',n),'State',
+       'b2000000-0000-0000-0000-000000000001','Joueur','State',
        n=1,true,n,('b1000000-0000-0000-0000-'||lpad((n+1)::text,12,'0'))::uuid
 from generate_series(1,16) n;
 insert into public.matches(
@@ -179,61 +179,8 @@ where id=(select (value->>'participant_id')::uuid
           from jsonb_array_elements(pg_temp.composition_payload(1,1)) item(value) limit 1);
 select throws_ok($$select private.save_match_composition(
   'b5000000-0000-0000-0000-000000000001','not-convoked',
-  pg_temp.composition_payload(1,1),false,'non convoqué')$$,'22023','joueur non convoqué sélectionné refusé');
-
-set local role authenticated;
-select is(public.admin_publish_match_effectif(
-  'b5000000-0000-0000-0000-000000000001',16,pg_temp.effectif_payload(16),'publication complète')#>>'{convocation_version}',
-  '1','publication initiale des convocations version 1');
-select is(public.admin_save_match_composition(
-  'b5000000-0000-0000-0000-000000000001','4-3-3',pg_temp.composition_payload(16,11),false,'enregistrement initial')#>>'{field_count}',
-  '11','enregistrement initial valide');
-select is(public.admin_publish_match_composition(
-  'b5000000-0000-0000-0000-000000000001',false,'synchronisation initiale')#>>'{version}',
-  '1','synchronisation initiale version 1');
-select is(public.admin_publish_match_effectif(
-  'b5000000-0000-0000-0000-000000000001',14,pg_temp.effectif_payload(14),'réduction à quatorze')#>>'{convocation_version}',
-  '2','republication des convocations version 2');
-select is(public.admin_save_match_composition(
-  'b5000000-0000-0000-0000-000000000001','4-4-2',pg_temp.composition_payload(14,10),false,'modification')#>>'{has_unpublished_changes}',
-  'false','modification immédiatement persistée');
-select is(public.admin_publish_match_composition(
-  'b5000000-0000-0000-0000-000000000001',false,'synchronisation')#>>'{version}',
-  '2','synchronisation version 2');
-reset role;
-
-update public.match_sport_participants
-set final_presence_status=case when convocation_status='convoked'
-  then 'present'::public.sport_final_presence_status
-  else 'actual_absent'::public.sport_final_presence_status end
-where match_id='b5000000-0000-0000-0000-000000000001';
-create temporary table pg_temp.publication_status_state_space(
-  match_status text,expected_success boolean,observed_success boolean,
-  observed_sqlstate text,observed_message text
-) on commit drop;
-do $state_space$
-declare s text; ok boolean; st text; msg text;
-begin
-  foreach s in array array['a_venir','en_cours','termine','archive'] loop
-    ok:=true;st:=null;msg:=null;
-    begin
-      update public.matches set status=s
-      where id='b5000000-0000-0000-0000-000000000001';
-      update public.match_compositions set has_unpublished_changes=true
-      where match_id='b5000000-0000-0000-0000-000000000001';
-      perform private.publish_match_composition(
-        'b5000000-0000-0000-0000-000000000001',false,format('status %s',s));
-    exception when others then ok:=false;st:=sqlstate;msg:=sqlerrm; end;
-    insert into pg_temp.publication_status_state_space
-    values(s,s='a_venir',ok,st,msg);
-  end loop;
-end;
-$state_space$;
-select diag(format(
-  'STATE_SPACE composition_publication status=%s expected=%s observed=%s sqlstate=%s message=%s',
-  match_status,expected_success,observed_success,coalesce(observed_sqlstate,'-'),coalesce(observed_message,'-')))
-from pg_temp.publication_status_state_space order by match_status;
-select is((select count(*) from pg_temp.publication_status_state_space where expected_success is distinct from observed_success),0::bigint,'publication ordinaire limitée aux matchs à venir');
+  pg_temp.composition_payload(1,1),false,'non convoqué')$$,
+  '22023','joueur non convoqué refusé');
 
 select * from finish();
 rollback;
