@@ -1,11 +1,13 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_image_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Ouvre la feuille de détail d'un badge : sa description, tout son barème
-/// (chaque palier + sa description) et, pour l'admin, un bouton d'attribution.
+/// (chaque palier + sa description) et, pour l'admin, les actions d'édition
+/// et d'attribution.
 void showBadgeDetailSheet(
   BuildContext context,
   BadgeDef badge, {
@@ -48,18 +50,28 @@ class BadgeDetailSheet extends ConsumerWidget {
         .watch(badgeCatalogProvider)
         .maybeWhen(data: (c) => c, orElse: () => const <BadgeDef>[]);
 
-    final tiers = (badge.metric == null || badge.standalone)
-        ? <BadgeDef>[badge]
+    // Une mise à jour d'image invalide badgeCatalogProvider. On repart donc
+    // immédiatement du badge frais au lieu de conserver l'objet passé à
+    // l'ouverture de la feuille.
+    final currentBadge = catalog.cast<BadgeDef?>().firstWhere(
+          (b) => b?.code == badge.code,
+          orElse: () => null,
+        ) ??
+        badge;
+
+    final tiers = (currentBadge.metric == null || currentBadge.standalone)
+        ? <BadgeDef>[currentBadge]
         : (catalog
             .where(
               (b) =>
-                  b.metric == badge.metric &&
-                  b.kind == badge.kind &&
+                  b.metric == currentBadge.metric &&
+                  b.kind == currentBadge.kind &&
                   !b.standalone,
             )
             .toList()
           ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
-    final ladder = tiers.isEmpty ? <BadgeDef>[badge] : tiers;
+    final ladder = tiers.isEmpty ? <BadgeDef>[currentBadge] : tiers;
+    final canEdit = onAward != null;
 
     return SafeArea(
       child: Padding(
@@ -93,16 +105,30 @@ class BadgeDetailSheet extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    BadgeEmblem(
-                      emoji: badge.emoji,
-                      imageUrl: badge.imageUrl,
-                      color: badge.color,
-                      baremeLabel: baremeLabelFor(
-                        badge.metric,
-                        badge.threshold,
-                      ),
-                      showStar: badge.hasStar,
-                      size: 82,
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        BadgeEmblem(
+                          emoji: currentBadge.emoji,
+                          imageUrl: currentBadge.imageUrl,
+                          color: currentBadge.color,
+                          baremeLabel: baremeLabelFor(
+                            currentBadge.metric,
+                            currentBadge.threshold,
+                          ),
+                          showStar: currentBadge.hasStar,
+                          size: 82,
+                        ),
+                        if (canEdit)
+                          Positioned(
+                            right: -8,
+                            bottom: -6,
+                            child: BadgeImageEditorButton(
+                              badge: currentBadge,
+                              compact: true,
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -110,16 +136,16 @@ class BadgeDetailSheet extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            badge.name,
+                            currentBadge.name,
                             style: Theme.of(context)
                                 .textTheme
                                 .headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
-                          if (badge.description.isNotEmpty) ...[
+                          if (currentBadge.description.isNotEmpty) ...[
                             const SizedBox(height: 6),
                             Text(
-                              badge.description,
+                              currentBadge.description,
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyMedium
@@ -132,6 +158,23 @@ class BadgeDetailSheet extends ConsumerWidget {
                   ],
                 ),
               ),
+              if (canEdit) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: BadgeImageEditorButton(badge: currentBadge),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choisis un PNG transparent, puis déplace et zoome exactement '
+                  'comme pour une photo de profil. Le fond, le titre et le '
+                  'descriptif du badge ne changent pas.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                ),
+              ],
               if (ladder.length > 1) ...[
                 const SizedBox(height: 24),
                 Text(
@@ -148,7 +191,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 for (final tier in ladder)
-                  _TierRow(tier: tier, highlighted: tier.code == badge.code),
+                  _TierRow(tier: tier, highlighted: tier.code == currentBadge.code),
               ],
               if (onToggleFeatured != null) ...[
                 const SizedBox(height: 20),
