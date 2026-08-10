@@ -194,7 +194,7 @@ select ok(
 );
 
 select ok(
-  not (
+  (
     select convalidated
     from pg_constraint
     where conrelid = 'public.push_delivery_log'::regclass
@@ -208,7 +208,16 @@ select ok(
       where conrelid = 'public.push_delivery_log'::regclass
         and conname = 'push_delivery_log_kind_check'
     ))
-  ) = 0
+  ) > 0
+  and position(
+    'availability_j1' in
+    pg_get_constraintdef((
+      select oid
+      from pg_constraint
+      where conrelid = 'public.push_delivery_log'::regclass
+        and conname = 'push_delivery_log_kind_check'
+    ))
+  ) > 0
   and position(
     'motm_reminder' in
     pg_get_constraintdef((
@@ -218,7 +227,7 @@ select ok(
         and conname = 'push_delivery_log_kind_check'
     ))
   ) = 0,
-  'le journal de livraison n’autorise plus les rappels automatiques retirés'
+  'le journal de livraison reproduit la contrainte actuelle de production'
 );
 
 select * from finish();
