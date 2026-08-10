@@ -1,0 +1,36 @@
+name: Format badge detail once
+
+on:
+  push:
+    branches:
+      - agent/badge-image-editor-ux-fix
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/badge-image-editor-ux-fix
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format exact file and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib/features/badges/presentation/badge_detail_sheet.dart
+          rm .github/workflows/format_badge_once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/badges/presentation/badge_detail_sheet.dart .github/workflows/format_badge_once.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Apply exact Dart formatter to badge detail"
+          git push origin HEAD:agent/badge-image-editor-ux-fix
