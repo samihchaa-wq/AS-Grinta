@@ -2,7 +2,7 @@ project_id = "ovzijmqrnsgcmryinkfa"
 
 [db.seed]
 enabled = true
-sql_paths = ['./seeds/default_feature_flags.sql', './seed.sql']
+sql_paths = ['./seeds/default_feature_flags.sql', './seed.sql', './seeds/default_realtime_signals.sql']
 
 [functions.manage-user]
 verify_jwt = true
