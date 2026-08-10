@@ -1,7 +1,5 @@
-// Service worker AS La Grinta : cache réseau-d'abord, mise à jour automatique
-// et réception des notifications Web Push.
-// Révision de déploiement 0.3.3+97 : force la prise en compte du bundle courant
-// (nouveau blason et nouveau fond, les icônes du socle doivent être recachées).
+// Service worker AS La Grinta : navigation fraîche, fichiers statiques locaux,
+// mise à jour automatique et réception des notifications Web Push.
 importScripts('build_version.js');
 
 const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
@@ -10,6 +8,7 @@ const APP_SHELL = [
   './',
   'index.html',
   'build_version.js',
+  'app_shell.js',
   'flutter_bootstrap.js',
   'manifest.json',
   'favicon.png',
@@ -18,15 +17,11 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  // Le socle minimal est disponible hors ligne après une première installation
-  // réussie. Lors d’une mise à jour, le worker reste en attente jusqu’au signal
-  // automatique envoyé par la page courante.
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)),
   );
 });
 
-// Activation immédiate demandée par la page lorsqu'une nouvelle version existe.
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -49,38 +44,74 @@ async function cachedNavigationFallback(cache) {
   return (await cache.match('index.html')) || (await cache.match('./'));
 }
 
+async function networkFirst(request, cache) {
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
+async function staleWhileRevalidate(request, cache, event) {
+  const cached = await cache.match(request);
+  const refresh = fetch(request).then(async (response) => {
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  }).catch(() => null);
+
+  if (cached) {
+    event.waitUntil(refresh);
+    return cached;
+  }
+
+  const response = await refresh;
+  if (response) return response;
+  throw new Error('Ressource indisponible hors ligne');
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      try {
-        const response = await fetch(request, { cache: 'no-store' });
-        if (response && response.ok) {
-          await cache.put(request, response.clone());
-          return response;
-        }
-        // Un serveur statique renvoie souvent 404 pour une URL Flutter profonde.
-        // Dans ce cas la navigation doit recevoir l’index, même si le réseau
-        // répond techniquement au lieu de lever une erreur.
-        if (request.mode === 'navigate') {
-          const index = await cachedNavigationFallback(cache);
-          if (index) return index;
-        }
-        return response;
-      } catch (error) {
-        const cached = await cache.match(request);
-        if (cached) return cached;
-        if (request.mode === 'navigate') {
-          const index = await cachedNavigationFallback(cache);
-          if (index) return index;
-        }
-        throw error;
+
+      if (request.mode === 'navigate') {
+        try {
+          const response = await networkFirst(request, cache);
+          if (response && response.ok) return response;
+        } catch (_) {}
+        const index = await cachedNavigationFallback(cache);
+        if (index) return index;
+        throw new Error('Navigation indisponible hors ligne');
       }
+
+      const path = url.pathname;
+      const mustStayFresh =
+          path.endsWith('/build_version.js') ||
+          path.endsWith('/sw.js') ||
+          path.endsWith('/index.html');
+
+      if (mustStayFresh) {
+        return networkFirst(request, cache);
+      }
+
+      // Les bundles, images, polices et autres ressources versionnées sont
+      // rendus immédiatement depuis le cache. Une vérification réseau se fait
+      // en arrière-plan sans bloquer l'interface.
+      return staleWhileRevalidate(request, cache, event);
     })(),
   );
 });
