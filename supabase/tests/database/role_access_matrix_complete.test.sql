@@ -168,11 +168,7 @@ select throws_ok(
   'un joueur ne peut pas s’accorder le rôle administrateur'
 );
 select is(
-  (
-    select role::text
-    from public.profiles
-    where id = 'e4000000-0000-0000-0000-000000000002'
-  ),
+  public.get_my_profile() #>> '{role}',
   'pronostiqueur',
   'le rôle reste inchangé après la tentative d’élévation'
 );

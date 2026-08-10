@@ -1,0 +1,3 @@
+-- Historical production migration 20260727065032.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260727065032_live_feature_flag_session_refresh.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

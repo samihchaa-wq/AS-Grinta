@@ -1,0 +1,3 @@
+-- Historical production migration 20260718164100.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260718164100_results_weighted_odds_v5.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

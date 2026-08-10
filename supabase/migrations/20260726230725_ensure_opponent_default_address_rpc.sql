@@ -1,0 +1,3 @@
+-- Historical production migration 20260726230725.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260726230725_ensure_opponent_default_address_rpc.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260726192710.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260726192710_fix_previous_season_rollover.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

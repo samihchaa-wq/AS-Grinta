@@ -1,0 +1,3 @@
+-- Historical production migration 20260715122943.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260715122943_match_attendance_and_manual_badges.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

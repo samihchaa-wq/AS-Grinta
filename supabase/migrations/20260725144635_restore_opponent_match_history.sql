@@ -1,0 +1,3 @@
+-- Historical production migration 20260725144635.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260725144635_restore_opponent_match_history.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

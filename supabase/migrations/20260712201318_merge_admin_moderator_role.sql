@@ -1,0 +1,3 @@
+-- Historical production migration 20260712201318.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712201318_merge_admin_moderator_role.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

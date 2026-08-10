@@ -1,0 +1,3 @@
+-- Historical production migration 20260711130931.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260711130931_round_suggested_odds_one_decimal.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

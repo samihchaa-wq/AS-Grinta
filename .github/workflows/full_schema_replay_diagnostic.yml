@@ -1,6 +1,12 @@
 name: Supabase full schema replay diagnostic
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/workflows/full_schema_replay_diagnostic.yml'
+      - '.github/workflows/migration_inventory.yml'
   workflow_dispatch:
   schedule:
     - cron: '41 4 * * 1'
@@ -33,15 +39,14 @@ jobs:
           {
             echo "## Full schema replay diagnostic"
             if [ "$code" -eq 0 ]; then
-              echo "✅ L'historique complet se rejoue depuis une base vide."
+              echo "✅ Les 427 versions historiques et la référence canonique recréent l'application depuis une base vide."
             else
-              echo "⚠️ L'historique complet ne se rejoue pas encore depuis une base vide."
-              echo "Cette vérification reste informative tant que la reconstruction historique complète est volontairement différée."
+              echo "❌ La reconstruction complète depuis une base vide échoue."
             fi
             echo
             echo "Code de sortie : $code"
           } >> "$GITHUB_STEP_SUMMARY"
-          exit 0
+          exit "$code"
 
       - name: Upload replay log
         if: always()

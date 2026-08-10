@@ -1,0 +1,3 @@
+-- Historical production migration 20260709033231.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709033231_complete_hashed_live_token_enforcement.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

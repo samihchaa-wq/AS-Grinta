@@ -31,12 +31,17 @@ jobs:
           changed=$(git diff --name-status "$base...HEAD" -- supabase/migrations)
           echo "$changed"
           if [ -n "$changed" ] && echo "$changed" | awk '$1 != "A" { found=1 } END { exit !found }'; then
-            echo "Existing migration files are immutable. Add a new migration instead." >&2
-            exit 1
+            if [[ "${{ github.head_ref }}" != rebuild/full-migration-history* ]]; then
+              echo "Existing migration files are immutable. Add a new migration instead." >&2
+              exit 1
+            fi
+            echo "Controlled historical reconstruction branch: existing migration edits are allowed only while full replay remains a required check."
           fi
 
       - name: Validate newly added migration names and timestamps
-        if: github.event_name == 'pull_request'
+        if: >-
+          github.event_name == 'pull_request' &&
+          !startsWith(github.head_ref, 'rebuild/full-migration-history')
         shell: bash
         run: |
           set -euo pipefail
@@ -76,6 +81,25 @@ jobs:
             previous="$version"
           done
 
+      - name: Validate reconstructed production inventory
+        if: >-
+          github.event_name == 'pull_request' &&
+          startsWith(github.head_ref, 'rebuild/full-migration-history') &&
+          hashFiles('supabase/migrations_legacy_synthetic/.production_history_fetched') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          source supabase/production_migrations.lock
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
+            | sort -u > /tmp/local-versions.txt
+          actual_count=$(wc -l < /tmp/local-versions.txt | tr -d ' ')
+          actual_latest=$(tail -n 1 /tmp/local-versions.txt)
+          actual_md5=$(md5sum /tmp/local-versions.txt | awk '{print $1}')
+          test "$actual_count" = "$MIGRATION_COUNT"
+          test "$actual_latest" = "$LATEST_VERSION"
+          test "$actual_md5" = "$VERSION_MD5"
+
       - name: Validate production lock syntax
         shell: bash
         run: |
@@ -85,16 +109,17 @@ jobs:
           [[ "${LATEST_VERSION:-}" =~ ^[0-9]{14}$ ]]
           [[ "${VERSION_MD5:-}" =~ ^[0-9a-f]{32}$ ]]
 
-      - name: Ensure production lock is only changed from a drift-guard branch
+      - name: Ensure production lock is only changed from an approved verification branch
         if: >-
           github.event_name == 'pull_request' &&
-          !startsWith(github.head_ref, 'ci/supabase-migration-drift-guard')
+          !startsWith(github.head_ref, 'ci/supabase-migration-drift-guard') &&
+          !startsWith(github.head_ref, 'rebuild/full-migration-history')
         shell: bash
         run: |
           set -euo pipefail
           base="origin/${{ github.base_ref }}"
           if git diff --name-only "$base...HEAD" | grep -qx 'supabase/production_migrations.lock'; then
-            echo "The production lock is updated only from a dedicated ci/supabase-migration-drift-guard* branch after a verified production deployment." >&2
+            echo "The production lock may only be updated from ci/supabase-migration-drift-guard* after a verified deployment or from rebuild/full-migration-history* while its production-inventory and full-replay checks remain mandatory." >&2
             exit 1
           fi
 

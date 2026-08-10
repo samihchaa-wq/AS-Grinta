@@ -1,0 +1,3 @@
+-- Historical production migration 20260716073216.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260716073216_badges_auto_engine_phase3.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

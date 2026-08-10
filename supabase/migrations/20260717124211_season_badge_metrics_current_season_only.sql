@@ -1,0 +1,3 @@
+-- Historical production migration 20260717124211.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260717124211_season_badge_metrics_current_season_only.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

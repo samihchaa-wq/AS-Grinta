@@ -156,7 +156,8 @@ insert into public.matches(
   created_at,
   updated_at,
   result_validated_at,
-  predictions_closed_at
+  predictions_closed_at,
+  planned_duration_minutes
 )
 select
   lm.match_id,
@@ -172,7 +173,8 @@ select
   now() - ((480 - ((lm.season_index - 1) * 60 + lm.match_index)) * interval '1 day'),
   now(),
   now(),
-  now()
+  now(),
+  90
 from load_matches lm
 join load_seasons ls using (season_index)
 join load_opponents lo
@@ -339,7 +341,7 @@ insert into public.profile_badges(
 select
   lp.profile_id,
   extensions.gen_random_uuid(),
-  'load_fixture',
+  'manual',
   now() - (badge_index * interval '1 day'),
   badge_index <= 2
 from load_profiles lp

@@ -1,0 +1,3 @@
+-- Historical production migration 20260709114056.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709114056_moderator_match_creation_pending_approval_and_default_squad.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

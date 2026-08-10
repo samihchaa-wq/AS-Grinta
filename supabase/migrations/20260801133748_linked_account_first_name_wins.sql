@@ -1,0 +1,3 @@
+-- Historical production migration 20260801133748.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260801133748_linked_account_first_name_wins.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

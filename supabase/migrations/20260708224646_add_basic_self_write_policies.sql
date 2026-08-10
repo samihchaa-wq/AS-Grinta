@@ -1,0 +1,3 @@
+-- Historical production migration 20260708224646.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260708224646_add_basic_self_write_policies.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

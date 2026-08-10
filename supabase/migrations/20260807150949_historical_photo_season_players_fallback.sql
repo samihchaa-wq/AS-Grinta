@@ -1,0 +1,3 @@
+-- Historical production migration 20260807150949.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260807150949_historical_photo_season_players_fallback.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

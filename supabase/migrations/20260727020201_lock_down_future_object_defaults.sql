@@ -1,0 +1,3 @@
+-- Historical production migration 20260727020201.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260727020201_lock_down_future_object_defaults.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

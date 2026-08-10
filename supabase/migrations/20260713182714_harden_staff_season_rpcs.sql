@@ -1,0 +1,3 @@
+-- Historical production migration 20260713182714.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713182714_harden_staff_season_rpcs.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260713195423.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713195423_atomic_unique_match_date.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

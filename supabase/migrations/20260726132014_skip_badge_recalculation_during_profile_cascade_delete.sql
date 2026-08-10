@@ -1,0 +1,3 @@
+-- Historical production migration 20260726132014.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260726132014_skip_badge_recalculation_during_profile_cascade_delete.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260715141053.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260715141053_badges_image_url.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260709042448.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709042448_restrict_profile_admin_rpc_to_authenticated.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

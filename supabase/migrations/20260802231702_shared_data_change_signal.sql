@@ -1,0 +1,3 @@
+-- Historical production migration 20260802231702.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260802231702_shared_data_change_signal.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

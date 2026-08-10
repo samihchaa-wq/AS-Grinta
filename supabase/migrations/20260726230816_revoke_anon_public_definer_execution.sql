@@ -1,0 +1,3 @@
+-- Historical production migration 20260726230816.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260726230816_revoke_anon_public_definer_execution.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

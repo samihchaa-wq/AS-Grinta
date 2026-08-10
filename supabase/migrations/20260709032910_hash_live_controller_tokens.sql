@@ -1,0 +1,3 @@
+-- Historical production migration 20260709032910.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709032910_hash_live_controller_tokens.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

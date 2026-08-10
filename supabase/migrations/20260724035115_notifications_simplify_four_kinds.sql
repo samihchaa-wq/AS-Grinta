@@ -1,0 +1,3 @@
+-- Historical production migration 20260724035115.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260724035115_notifications_simplify_four_kinds.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

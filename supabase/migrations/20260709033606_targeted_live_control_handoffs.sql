@@ -1,0 +1,3 @@
+-- Historical production migration 20260709033606.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709033606_targeted_live_control_handoffs.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

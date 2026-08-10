@@ -1,0 +1,3 @@
+-- Historical production migration 20260713193812.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713193812_remove_legacy_moderator_rpcs.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260709030808.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709030808_validate_prediction_categories_and_improve_odds_model.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

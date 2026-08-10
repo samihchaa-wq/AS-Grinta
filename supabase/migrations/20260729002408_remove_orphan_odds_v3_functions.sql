@@ -1,0 +1,3 @@
+-- Historical production migration 20260729002408.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260729002408_remove_orphan_odds_v3_functions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260709043025.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709043025_revoke_authenticated_truncate.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

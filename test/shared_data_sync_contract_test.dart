@@ -64,80 +64,26 @@ void main() {
   );
 
   test(
-    'shared data migration is a safe revision-only realtime channel',
+    'shared data database contract covers the safe realtime channel',
     () async {
-      final migration = await File(
-        'supabase/migrations/20260803000000_shared_data_change_signal.sql',
-      ).readAsString();
-      final scopedProfileMigration = await File(
-        'supabase/migrations/20260804220000_scope_profile_refresh_signal.sql',
-      ).readAsString();
-      final scopedSportsMigration = await File(
-        'supabase/migrations/20260804223000_scope_sports_refresh_signal.sql',
+      final databaseContract = await File(
+        'supabase/tests/database/shared_data_change_signal.test.sql',
       ).readAsString();
 
+      // La suite Supabase exécute ce contrat contre la base reconstruite. Ici,
+      // Flutter vérifie seulement que le contrat attendu reste bien raccordé au
+      // code client, sans dépendre de la forme historique des migrations.
+      expect(databaseContract, contains('public.shared_data_change_signals'));
+      expect(databaseContract, contains('profile_revision'));
+      expect(databaseContract, contains('sports_revision'));
+      expect(databaseContract, contains('is_active_profile'));
+      expect(databaseContract, contains('supabase_realtime'));
+      expect(databaseContract, contains("'match_sport_participants'"));
+      expect(databaseContract, contains("'match_composition_publications'"));
       expect(
-        migration,
-        contains(
-          'create table if not exists public.shared_data_change_signals',
-        ),
+        databaseContract,
+        contains('les 23 tables partagées critiques déclenchent le signal'),
       );
-      expect(
-        migration,
-        contains(
-          'alter table public.shared_data_change_signals enable row level security',
-        ),
-      );
-      expect(
-        migration,
-        contains('grant select on table public.shared_data_change_signals'),
-      );
-      expect(migration, contains('private.is_active_profile()'));
-      expect(
-        migration,
-        contains(
-          'for each statement execute function private.signal_shared_data_change()',
-        ),
-      );
-      expect(migration, contains('alter publication supabase_realtime'));
-
-      expect(scopedProfileMigration, contains('profile_revision'));
-      expect(
-        scopedProfileMigration,
-        contains("tg_table_name = 'profiles'"),
-      );
-      expect(
-        scopedProfileMigration,
-        contains('profile_revision <= revision'),
-      );
-
-      expect(scopedSportsMigration, contains('sports_revision'));
-      expect(
-        scopedSportsMigration,
-        contains("'match_sport_participants'"),
-      );
-      expect(
-        scopedSportsMigration,
-        contains("'match_composition_publications'"),
-      );
-      expect(
-        scopedSportsMigration,
-        contains('sports_revision <= revision'),
-      );
-
-      for (final table in <String>[
-        'matches',
-        'season_players',
-        'profiles',
-        'match_player_stats',
-        'match_attendance',
-        'profile_badges',
-        'match_sport_participants',
-        'match_sport_workflows',
-        'match_sport_finalizations',
-      ]) {
-        expect(migration, contains("'$table'"));
-      }
     },
   );
 

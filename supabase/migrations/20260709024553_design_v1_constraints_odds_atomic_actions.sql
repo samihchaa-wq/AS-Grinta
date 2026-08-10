@@ -1,0 +1,3 @@
+-- Historical production migration 20260709024553.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709024553_design_v1_constraints_odds_atomic_actions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

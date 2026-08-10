@@ -1,0 +1,3 @@
+-- Historical production migration 20260713144923.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713144923_secure_password_reset_flags_rpc.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

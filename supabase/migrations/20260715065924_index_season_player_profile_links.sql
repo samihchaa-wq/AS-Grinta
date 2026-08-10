@@ -1,3 +1,3 @@
-create index if not exists season_players_profile_id_idx
-  on public.season_players(profile_id)
-  where profile_id is not null;
+-- Historical production migration 20260715065924.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260715065924_index_season_player_profile_links.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

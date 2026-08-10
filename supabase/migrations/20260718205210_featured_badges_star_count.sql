@@ -1,0 +1,3 @@
+-- Historical production migration 20260718205210.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260718205210_featured_badges_star_count.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

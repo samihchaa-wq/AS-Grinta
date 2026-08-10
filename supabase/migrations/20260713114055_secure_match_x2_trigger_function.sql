@@ -1,0 +1,3 @@
+-- Historical production migration 20260713114055.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713114055_secure_match_x2_trigger_function.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

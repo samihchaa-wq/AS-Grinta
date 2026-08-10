@@ -1,0 +1,3 @@
+-- Historical production migration 20260727114558.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260727114558_push_delivery_resilience.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260710123027.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710123027_disable_http_after_release_verification.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

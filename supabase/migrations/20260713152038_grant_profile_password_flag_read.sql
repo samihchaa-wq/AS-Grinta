@@ -1,0 +1,3 @@
+-- Historical production migration 20260713152038.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713152038_grant_profile_password_flag_read.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

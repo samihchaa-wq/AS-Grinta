@@ -138,9 +138,13 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from public.feature_flag_change_signals),
+  (
+    select count(*)
+    from public.feature_flag_change_signals
+    where key = 'sports_management'
+  ),
   1::bigint,
-  'un administrateur actif peut écouter le signal'
+  'un administrateur actif peut écouter le signal du module sportif'
 );
 
 select set_config(

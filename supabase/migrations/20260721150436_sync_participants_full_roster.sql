@@ -1,0 +1,3 @@
+-- Historical production migration 20260721150436.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260721150436_sync_participants_full_roster.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

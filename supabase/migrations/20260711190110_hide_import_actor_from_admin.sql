@@ -1,0 +1,3 @@
+-- Historical production migration 20260711190110.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260711190110_hide_import_actor_from_admin.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260709042319.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709042319_harden_profile_privileged_fields.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

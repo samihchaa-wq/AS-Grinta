@@ -1,0 +1,3 @@
+-- Historical production migration 20260716102403.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260716102403_enforce_letters_only_profile_names.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

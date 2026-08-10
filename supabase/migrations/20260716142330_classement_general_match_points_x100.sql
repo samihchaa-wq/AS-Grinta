@@ -1,0 +1,3 @@
+-- Historical production migration 20260716142330.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260716142330_classement_general_match_points_x100.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

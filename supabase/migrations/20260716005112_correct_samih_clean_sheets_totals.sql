@@ -1,0 +1,3 @@
+-- Historical production migration 20260716005112.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260716005112_correct_samih_clean_sheets_totals.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

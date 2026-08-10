@@ -1,0 +1,3 @@
+-- Historical production migration 20260713141809.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713141809_lock_down_temporal_odds_internal_functions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260710121213.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710121213_v1_rls_performance_cleanup.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

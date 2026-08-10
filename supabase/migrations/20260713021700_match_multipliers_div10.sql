@@ -1,0 +1,3 @@
+-- Historical production migration 20260713021700.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713021700_match_multipliers_div10.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

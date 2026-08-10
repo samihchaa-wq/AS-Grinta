@@ -1,0 +1,3 @@
+-- Historical production migration 20260807224428.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260807224428_fix_internal_match_roster_filter.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

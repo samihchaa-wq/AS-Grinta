@@ -1,0 +1,3 @@
+-- Historical production migration 20260712033256.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712033256_v1_views_security_invoker.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

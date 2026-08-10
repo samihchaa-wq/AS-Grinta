@@ -1,0 +1,3 @@
+-- Historical production migration 20260711132142.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260711132142_graduated_match_prediction_scoring.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

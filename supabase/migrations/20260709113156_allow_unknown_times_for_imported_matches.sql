@@ -1,0 +1,3 @@
+-- Historical production migration 20260709113156.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709113156_allow_unknown_times_for_imported_matches.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

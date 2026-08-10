@@ -1,0 +1,2 @@
+-- Historical migration marker.
+-- Production records version 20260730220000 with no name and no SQL statements.

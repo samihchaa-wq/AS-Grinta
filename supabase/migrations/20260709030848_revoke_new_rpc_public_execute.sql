@@ -1,0 +1,3 @@
+-- Historical production migration 20260709030848.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709030848_revoke_new_rpc_public_execute.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

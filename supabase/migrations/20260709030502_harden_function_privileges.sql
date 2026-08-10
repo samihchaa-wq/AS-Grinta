@@ -1,0 +1,3 @@
+-- Historical production migration 20260709030502.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709030502_harden_function_privileges.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,0 +1,3 @@
+-- Historical production migration 20260713181523.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713181523_guard_profile_updates.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

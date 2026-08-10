@@ -1,0 +1,3 @@
+-- Historical production migration 20260723190803.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260723190803_composition_snapshot_short_name.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

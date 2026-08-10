@@ -1,0 +1,3 @@
+-- Historical production migration 20260803224619.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260803224619_match_state_integrity_and_push_retention.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

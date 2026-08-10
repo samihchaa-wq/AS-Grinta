@@ -1,0 +1,3 @@
+-- Historical production migration 20260711223041.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260711223041_finalize_allows_former_squad_members.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

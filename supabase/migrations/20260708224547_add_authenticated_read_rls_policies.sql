@@ -1,0 +1,3 @@
+-- Historical production migration 20260708224547.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260708224547_add_authenticated_read_rls_policies.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

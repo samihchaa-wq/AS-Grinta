@@ -1,7 +1,3 @@
--- L'écran Effectif lit profiles.photo_url via une jointure directe. Sans droit
--- de lecture au niveau colonne, PostgREST renvoie « permission denied for
--- column photo_url », affiché comme « Tu n'as pas les droits pour cette
--- action ». photo_url pointe vers un bucket public : l'exposer en lecture est
--- sans risque et aligne la colonne avec les autres colonnes lisibles
--- (id, first_name, status, surnom).
-grant select (photo_url) on public.profiles to authenticated;
+-- Historical production migration 20260724102830.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260724102830_grant_profiles_photo_url_select.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

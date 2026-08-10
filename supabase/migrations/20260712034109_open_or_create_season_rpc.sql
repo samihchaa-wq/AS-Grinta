@@ -1,0 +1,3 @@
+-- Historical production migration 20260712034109.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712034109_open_or_create_season_rpc.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

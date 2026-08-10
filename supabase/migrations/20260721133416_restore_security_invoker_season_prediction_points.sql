@@ -1,0 +1,3 @@
+-- Historical production migration 20260721133416.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260721133416_restore_security_invoker_season_prediction_points.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

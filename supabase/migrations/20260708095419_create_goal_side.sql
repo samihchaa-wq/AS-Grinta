@@ -1,0 +1,3 @@
+-- Historical production migration 20260708095419.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260708095419_create_goal_side.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

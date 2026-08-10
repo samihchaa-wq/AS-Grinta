@@ -1,0 +1,3 @@
+-- Historical production migration 20260713192228.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713192228_remove_anon_data_surface.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

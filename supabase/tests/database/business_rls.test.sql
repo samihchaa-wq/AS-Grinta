@@ -76,7 +76,11 @@ values (
 insert into public.match_odds (
   match_id, odds_victoire_as_grinta, odds_nul, odds_victoire_adverse
 )
-values ('50000000-0000-0000-0000-000000000001', 2.10, 3.20, 3.50);
+values ('50000000-0000-0000-0000-000000000001', 2.10, 3.20, 3.50)
+on conflict (match_id) do update
+set odds_victoire_as_grinta = excluded.odds_victoire_as_grinta,
+    odds_nul = excluded.odds_nul,
+    odds_victoire_adverse = excluded.odds_victoire_adverse;
 
 update public.match_predictions
 set predicted_score_as_grinta = case
@@ -138,7 +142,11 @@ insert into public.match_odds (
 values
   ('50000000-0000-0000-0000-000000000002', 2.10, 3.20, 3.50),
   ('50000000-0000-0000-0000-000000000003', 2.10, 3.20, 3.50),
-  ('50000000-0000-0000-0000-000000000004', 2.20, 3.10, 3.40);
+  ('50000000-0000-0000-0000-000000000004', 2.20, 3.10, 3.40)
+on conflict (match_id) do update
+set odds_victoire_as_grinta = excluded.odds_victoire_as_grinta,
+    odds_nul = excluded.odds_nul,
+    odds_victoire_adverse = excluded.odds_victoire_adverse;
 
 -- Authentification et RLS.
 set local role anon;

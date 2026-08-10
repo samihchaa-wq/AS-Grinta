@@ -1,11 +1,3 @@
--- Keep the public wrapper SECURITY INVOKER, like the existing composition RPCs,
--- while allowing it to invoke the private implementation. Authorization is
--- still enforced inside private.create_postmatch_composition().
-
-revoke all on function private.create_postmatch_composition(
-  uuid, text, jsonb, boolean, text
-) from public, anon;
-
-grant execute on function private.create_postmatch_composition(
-  uuid, text, jsonb, boolean, text
-) to authenticated;
+-- Historical production migration 20260725221500.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260725221500_grant_postmatch_composition_private_rpc.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

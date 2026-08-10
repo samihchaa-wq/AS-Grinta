@@ -5,7 +5,7 @@ select no_plan();
 insert into auth.users(id,email,raw_user_meta_data)
 select ('f1000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
        format('postmatch-space-%s@example.invalid',n),
-       jsonb_build_object('first_name',format('Profil%s',n),'last_name','Postmatch')
+       jsonb_build_object('first_name','Profil','last_name','Postmatch')
 from generate_series(1,14) n;
 
 update public.profiles
@@ -21,7 +21,7 @@ insert into public.season_players(
   id,season_id,first_name,last_name,is_goalkeeper,is_active,position,profile_id
 )
 select ('f4000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
-       'f2000000-0000-0000-0000-000000000001',format('Joueur%s',n),'Postmatch',
+       'f2000000-0000-0000-0000-000000000001','Joueur','Postmatch',
        n=1,true,n,('f1000000-0000-0000-0000-'||lpad((n+1)::text,12,'0'))::uuid
 from generate_series(1,13) n;
 

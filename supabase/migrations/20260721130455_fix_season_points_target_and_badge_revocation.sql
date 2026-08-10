@@ -1,0 +1,3 @@
+-- Historical production migration 20260721130455.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260721130455_fix_season_points_target_and_badge_revocation.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

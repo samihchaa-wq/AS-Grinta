@@ -1,5 +1,3 @@
-begin;
-
-drop function if exists public.export_my_personal_data();
-
-commit;
+-- Historical production migration 20260730060000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260730060000_remove_personal_data_export.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

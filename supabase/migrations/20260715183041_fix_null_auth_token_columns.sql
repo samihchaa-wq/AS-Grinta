@@ -1,0 +1,3 @@
+-- Historical production migration 20260715183041.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260715183041_fix_null_auth_token_columns.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

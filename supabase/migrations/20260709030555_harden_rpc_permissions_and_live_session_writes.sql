@@ -1,0 +1,3 @@
+-- Historical production migration 20260709030555.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709030555_harden_rpc_permissions_and_live_session_writes.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

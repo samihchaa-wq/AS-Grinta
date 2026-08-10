@@ -1,0 +1,3 @@
+-- Historical production migration 20260715220207.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260715220207_connect_current_statistics_attendance_mvp.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

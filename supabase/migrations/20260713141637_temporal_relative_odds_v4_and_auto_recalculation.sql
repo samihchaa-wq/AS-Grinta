@@ -1,0 +1,3 @@
+-- Historical production migration 20260713141637.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713141637_temporal_relative_odds_v4_and_auto_recalculation.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

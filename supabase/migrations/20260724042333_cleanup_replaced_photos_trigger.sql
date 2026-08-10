@@ -1,0 +1,3 @@
+-- Historical production migration 20260724042333.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260724042333_cleanup_replaced_photos_trigger.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

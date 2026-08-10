@@ -1,0 +1,3 @@
+-- Historical production migration 20260713184209.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713184209_relocate_pg_net.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

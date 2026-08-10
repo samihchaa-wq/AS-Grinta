@@ -1,0 +1,3 @@
+-- Historical production migration 20260803014902.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260803014902_live_recap_freezes_real_composition.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

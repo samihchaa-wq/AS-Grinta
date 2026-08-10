@@ -1,0 +1,3 @@
+-- Historical production migration 20260711235601.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260711235601_active_profile_gate_and_season_lock.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.
