@@ -1,0 +1,47 @@
+name: Patch business RLS fixture
+
+on:
+  push:
+    branches: [rebuild/full-migration-history]
+    paths: [.github/workflows/patch_business_rls_fixture.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rebuild/full-migration-history
+          fetch-depth: 0
+      - name: Make match odds fixtures idempotent with current auto-seeding
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/database/business_rls.test.sql')
+          text = path.read_text()
+
+          old1 = """insert into public.match_odds (\n  match_id, odds_victoire_as_grinta, odds_nul, odds_victoire_adverse\n)\nvalues ('50000000-0000-0000-0000-000000000001', 2.10, 3.20, 3.50);"""
+          new1 = """insert into public.match_odds (\n  match_id, odds_victoire_as_grinta, odds_nul, odds_victoire_adverse\n)\nvalues ('50000000-0000-0000-0000-000000000001', 2.10, 3.20, 3.50)\non conflict (match_id) do update\nset odds_victoire_as_grinta = excluded.odds_victoire_as_grinta,\n    odds_nul = excluded.odds_nul,\n    odds_victoire_adverse = excluded.odds_victoire_adverse;"""
+
+          old2 = """insert into public.match_odds (\n  match_id, odds_victoire_as_grinta, odds_nul, odds_victoire_adverse\n)\nvalues\n  ('50000000-0000-0000-0000-000000000002', 2.10, 3.20, 3.50),\n  ('50000000-0000-0000-0000-000000000003', 2.10, 3.20, 3.50),\n  ('50000000-0000-0000-0000-000000000004', 2.20, 3.10, 3.40);"""
+          new2 = """insert into public.match_odds (\n  match_id, odds_victoire_as_grinta, odds_nul, odds_victoire_adverse\n)\nvalues\n  ('50000000-0000-0000-0000-000000000002', 2.10, 3.20, 3.50),\n  ('50000000-0000-0000-0000-000000000003', 2.10, 3.20, 3.50),\n  ('50000000-0000-0000-0000-000000000004', 2.20, 3.10, 3.40)\non conflict (match_id) do update\nset odds_victoire_as_grinta = excluded.odds_victoire_as_grinta,\n    odds_nul = excluded.odds_nul,\n    odds_victoire_adverse = excluded.odds_victoire_adverse;"""
+
+          if text.count(old1) != 1:
+              raise SystemExit('first odds fixture block not found exactly once')
+          if text.count(old2) != 1:
+              raise SystemExit('multi-match odds fixture block not found exactly once')
+
+          text = text.replace(old1, new1).replace(old2, new2)
+          path.write_text(text)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/tests/database/business_rls.test.sql
+          git commit -m 'Align business RLS odds fixtures with auto-seeded odds'
+          git push origin HEAD:rebuild/full-migration-history
