@@ -1,3 +1,3 @@
-revoke execute on function public.is_match_staff() from public;
-revoke execute on function public.is_match_staff() from anon;
-grant execute on function public.is_match_staff() to authenticated;;
+-- Historical production migration 20260709173545.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709173545_secure_is_match_staff_execution.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

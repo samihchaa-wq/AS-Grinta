@@ -1,3 +1,3 @@
-update public.badges
-set secret = true
-where code = 'perfect_own_goals_prediction__1';;
+-- Historical production migration 20260718184458.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260718184458_badge_javais_dis_secret.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

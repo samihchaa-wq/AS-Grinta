@@ -1,6 +1,3 @@
-alter table public.matches alter column match_time drop not null;
-
-update public.matches
-set match_time = null
-where status = 'archive'
-  and match_time = time '15:00:00';;
+-- Historical production migration 20260709113156.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709113156_allow_unknown_times_for_imported_matches.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,10 +1,3 @@
-drop policy if exists push_notification_log_no_client_access
-  on public.push_notification_log;
-
-create policy push_notification_log_no_client_access
-  on public.push_notification_log
-  as restrictive
-  for all
-  to authenticated, anon
-  using (false)
-  with check (false);;
+-- Historical production migration 20260711234607.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260711234607_push_log_explicit_deny_policy.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

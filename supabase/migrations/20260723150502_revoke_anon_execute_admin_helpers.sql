@@ -1,5 +1,3 @@
--- Les policies storage évaluent is_admin()/is_match_staff() en tant
--- qu'authenticated uniquement. Le grant à anon (ajouté par erreur lors du
--- correctif d'upload photo) est inutile et flaggé par l'advisor sécurité.
-revoke execute on function public.is_admin() from anon;
-revoke execute on function public.is_match_staff() from anon;;
+-- Historical production migration 20260723150502.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260723150502_revoke_anon_execute_admin_helpers.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

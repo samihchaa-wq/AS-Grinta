@@ -1,7 +1,3 @@
-revoke all on function public.calculate_match_odds_v4(uuid, text) from public, anon, authenticated;
-revoke all on function public.upsert_match_odds_v4(uuid) from public, anon, authenticated;
-revoke all on function public.recalculate_upcoming_match_odds_v4() from public, anon, authenticated;
-revoke all on function public.trigger_match_odds_v4() from public, anon, authenticated;
-
-grant execute on function public.preview_match_odds(uuid, text) to authenticated;
-grant execute on function public.create_match_with_odds(uuid, uuid, date, time without time zone, text, numeric, numeric, numeric) to authenticated;;
+-- Historical production migration 20260713141809.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713141809_lock_down_temporal_odds_internal_functions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

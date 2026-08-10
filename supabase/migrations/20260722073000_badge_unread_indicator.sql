@@ -1,35 +1,3 @@
-create table if not exists public.badge_inbox_state (
-  profile_id uuid primary key references public.profiles(id) on delete cascade,
-  seen_through timestamptz not null,
-  updated_at timestamptz not null default now()
-);
-
-alter table public.badge_inbox_state enable row level security;
-
-drop policy if exists badge_inbox_state_select_own
-  on public.badge_inbox_state;
-create policy badge_inbox_state_select_own
-  on public.badge_inbox_state
-  for select
-  to authenticated
-  using ((select auth.uid()) = profile_id);
-
-drop policy if exists badge_inbox_state_insert_own
-  on public.badge_inbox_state;
-create policy badge_inbox_state_insert_own
-  on public.badge_inbox_state
-  for insert
-  to authenticated
-  with check ((select auth.uid()) = profile_id);
-
-drop policy if exists badge_inbox_state_update_own
-  on public.badge_inbox_state;
-create policy badge_inbox_state_update_own
-  on public.badge_inbox_state
-  for update
-  to authenticated
-  using ((select auth.uid()) = profile_id)
-  with check ((select auth.uid()) = profile_id);
-
-grant select, insert, update on public.badge_inbox_state to authenticated;
-revoke all on public.badge_inbox_state from anon;;
+-- Historical production migration 20260722073000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260722073000_badge_unread_indicator.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,13 +1,3 @@
--- Échange uniquement les icônes des badges gardien demandés :
--- les paliers de clean sheet utilisent le mur, et l'exploit arrêt de penalty
--- utilise les gants. Le badge « Le Mur » devient « Goalkeeper ».
-
-update public.badges
-set emoji = '🧱'
-where metric in ('clean_sheets_season', 'clean_sheets');
-
-update public.badges
-set
-  emoji = '🧤',
-  name = 'Goalkeeper'
-where code = 'exploit_penalty_arrete';;
+-- Historical production migration 20260808225931.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260808225931_swap_goalkeeper_badge_icons.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

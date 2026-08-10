@@ -1,1 +1,3 @@
-drop function if exists public.assert_coach_event_allowed() cascade;;
+-- Historical production migration 20260710090513.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710090513_remove_orphan_coach_function.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

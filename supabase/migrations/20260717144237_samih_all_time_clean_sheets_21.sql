@@ -1,6 +1,3 @@
-update public.historical_player_statistics
-  set clean_sheets = 21, updated_at = now()
-  where scope = 'all_time'
-    and profile_id = '89f24276-dac0-4046-87a3-6c28e48fef3a';
-
-select public.recalculate_profile_badges('89f24276-dac0-4046-87a3-6c28e48fef3a');;
+-- Historical production migration 20260717144237.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260717144237_samih_all_time_clean_sheets_21.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

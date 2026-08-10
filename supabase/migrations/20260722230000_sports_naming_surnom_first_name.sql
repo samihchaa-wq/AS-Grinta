@@ -1,1 +1,3 @@
-;
+-- Historical production migration 20260722230000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260722230000_sports_naming_surnom_first_name.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

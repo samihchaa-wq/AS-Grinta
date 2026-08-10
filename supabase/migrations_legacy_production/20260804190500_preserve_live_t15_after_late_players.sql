@@ -1,0 +1,1 @@
+Applied via validated production deployment; canonical SQL is supabase/migrations/20260804190500_preserve_live_t15_after_late_players.sql;

@@ -1,5 +1,3 @@
-alter table public.profiles
-  add column if not exists must_change_password boolean not null default false;
-
-comment on column public.profiles.must_change_password is
-  'True after an admin password reset. The user must choose a new password after signing in with the temporary password.';;
+-- Historical production migration 20260713142432.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713142432_add_forced_password_change_flag.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

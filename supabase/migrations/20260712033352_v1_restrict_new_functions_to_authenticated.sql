@@ -1,13 +1,3 @@
--- Retire l'accès anonyme aux nouvelles fonctions (elles restent protégées
--- par leurs contrôles internes is_admin/is_match_staff, mais on n'expose pas
--- l'endpoint au rôle anon).
-revoke execute on function public.finalize_match_postgame(uuid, integer, jsonb, uuid) from public, anon;
-grant execute on function public.finalize_match_postgame(uuid, integer, jsonb, uuid) to authenticated;
-
-revoke execute on function public.set_season_predictions_lock(uuid, boolean) from public, anon;
-grant execute on function public.set_season_predictions_lock(uuid, boolean) to authenticated;
-
--- is_active_profile est appelée dans les policies RLS : elle doit rester
--- exécutable par authenticated, mais pas par anon.
-revoke execute on function public.is_active_profile() from public, anon;
-grant execute on function public.is_active_profile() to authenticated;;
+-- Historical production migration 20260712033352.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712033352_v1_restrict_new_functions_to_authenticated.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

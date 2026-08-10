@@ -1,10 +1,3 @@
-grant select on public.v_match_prediction_points to authenticated;
-grant select on public.v_player_season_stats to authenticated;
-grant select on public.v_player_career_stats to authenticated;
-grant select on public.v_season_prediction_points to authenticated;
-grant select on public.v_classement_general to authenticated;
-revoke all on public.v_match_prediction_points from anon;
-revoke all on public.v_player_season_stats from anon;
-revoke all on public.v_player_career_stats from anon;
-revoke all on public.v_season_prediction_points from anon;
-revoke all on public.v_classement_general from anon;;
+-- Historical production migration 20260709024717.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709024717_derived_view_permissions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

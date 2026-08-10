@@ -1,1 +1,3 @@
-Applied atomically via validated production deployment; canonical SQL is supabase/migrations/20260804230000_suppress_season_prediction_refresh_signal.sql;
+-- Historical production migration 20260804230000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260804230000_suppress_season_prediction_refresh_signal.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

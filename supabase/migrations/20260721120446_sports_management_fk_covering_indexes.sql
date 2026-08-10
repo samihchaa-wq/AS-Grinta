@@ -1,31 +1,3 @@
-
-create index if not exists idx_app_feature_flag_audit_actor_profile_id on private.app_feature_flag_audit (actor_profile_id);
-create index if not exists idx_app_feature_flag_audit_feature_key on private.app_feature_flag_audit (feature_key);
-create index if not exists idx_app_feature_flags_updated_by on private.app_feature_flags (updated_by);
-create index if not exists idx_sport_admin_audit_log_actor_profile_id on private.sport_admin_audit_log (actor_profile_id);
-create index if not exists idx_guest_players_created_by on public.guest_players (created_by);
-create index if not exists idx_guest_players_updated_by on public.guest_players (updated_by);
-create index if not exists idx_match_composition_entries_participant_id_match_id on public.match_composition_entries (participant_id, match_id);
-create index if not exists idx_match_composition_publications_published_by on public.match_composition_publications (published_by);
-create index if not exists idx_match_compositions_last_modified_by on public.match_compositions (last_modified_by);
-create index if not exists idx_match_compositions_published_by on public.match_compositions (published_by);
-create index if not exists idx_match_sport_finalization_versions_created_by on public.match_sport_finalization_versions (created_by);
-create index if not exists idx_match_sport_finalizations_corrected_by on public.match_sport_finalizations (corrected_by);
-create index if not exists idx_match_sport_finalizations_validated_by on public.match_sport_finalizations (validated_by);
-create index if not exists idx_match_sport_motm_results_participant_id_match_id on public.match_sport_motm_results (participant_id, match_id);
-create index if not exists idx_match_sport_motm_votes_candidate_participant_id_match_id on public.match_sport_motm_votes (candidate_participant_id, match_id);
-create index if not exists idx_match_sport_motm_votes_voter_profile_id on public.match_sport_motm_votes (voter_profile_id);
-create index if not exists idx_match_sport_participant_events_actor_profile_id on public.match_sport_participant_events (actor_profile_id);
-create index if not exists idx_match_sport_participant_events_participant_id_match_id on public.match_sport_participant_events (participant_id, match_id);
-create index if not exists idx_match_sport_participants_availability_updated_by on public.match_sport_participants (availability_updated_by);
-create index if not exists idx_match_sport_participants_final_presence_confirmed_by on public.match_sport_participants (final_presence_confirmed_by);
-create index if not exists idx_match_sport_participants_promoted_from_participant_id on public.match_sport_participants (promoted_from_participant_id);
-create index if not exists idx_match_sport_participants_selection_updated_by on public.match_sport_participants (selection_updated_by);
-create index if not exists idx_match_sport_workflows_created_by on public.match_sport_workflows (created_by);
-create index if not exists idx_match_sport_workflows_updated_by on public.match_sport_workflows (updated_by);
-create index if not exists idx_sport_availability_notification_events_participant_id_match_id on public.sport_availability_notification_events (participant_id, match_id);
-create index if not exists idx_sport_availability_notification_events_requested_by on public.sport_availability_notification_events (requested_by);
-create index if not exists idx_sport_waitlist_entries_created_by on public.sport_waitlist_entries (created_by);
-create index if not exists idx_sport_waitlist_entries_season_player_id_season_id on public.sport_waitlist_entries (season_player_id, season_id);
-create index if not exists idx_sport_waitlist_entries_updated_by on public.sport_waitlist_entries (updated_by);
-;
+-- Historical production migration 20260721120446.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260721120446_sports_management_fk_covering_indexes.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

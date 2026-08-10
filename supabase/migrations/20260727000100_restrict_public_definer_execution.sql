@@ -1,14 +1,3 @@
-revoke execute on function public.admin_set_match_address(uuid, text)
-  from public, anon;
-grant execute on function public.admin_set_match_address(uuid, text)
-  to authenticated, service_role;
-
-revoke execute on function public.cleanup_replaced_photo()
-  from public, anon, authenticated;
-grant execute on function public.cleanup_replaced_photo()
-  to service_role;
-
-comment on function public.admin_set_match_address(uuid, text) is
-  'Met à jour une adresse de match. Appel client authentifié, contrôle admin dans la fonction.';
-comment on function public.cleanup_replaced_photo() is
-  'Fonction de trigger interne : supprime les anciennes photos remplacées.';;
+-- Historical production migration 20260727000100.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260727000100_restrict_public_definer_execution.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

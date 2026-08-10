@@ -1,4 +1,3 @@
-update public.badges
-set name = 'J’vous avais dis quoi ?',
-    emoji = '🥸'
-where code = 'perfect_own_goals_prediction__1';;
+-- Historical production migration 20260718173913.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260718173913_badge_prophete_rename.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

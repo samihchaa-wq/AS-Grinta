@@ -1,16 +1,3 @@
--- Public SECURITY INVOKER wrappers must be allowed to execute their private,
--- authorization-enforcing helpers. Anonymous roles remain excluded.
-
-revoke execute on function private.send_sport_availability_reminder(uuid, uuid, text)
-  from public, anon;
-revoke execute on function private.get_sport_availability_reminder_summary(uuid)
-  from public, anon;
-grant execute on function private.send_sport_availability_reminder(uuid, uuid, text)
-  to authenticated, service_role;
-grant execute on function private.get_sport_availability_reminder_summary(uuid)
-  to authenticated, service_role;
-grant execute on function public.admin_send_match_availability_reminder(uuid, uuid, text)
-  to service_role;
-grant execute on function public.admin_get_match_availability_reminders(uuid)
-  to service_role;
-;
+-- Historical production migration 20260721001818.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260721001818_sports_management_availability_notification_rpc_grants.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,1 +1,3 @@
-;
+-- Historical production migration 20260723120000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260723120000_motm_open_from_kickoff_and_ballot_detail.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

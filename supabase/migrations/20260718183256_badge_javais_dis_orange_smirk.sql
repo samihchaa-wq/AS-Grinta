@@ -1,4 +1,3 @@
-update public.badges
-set color = '#F97316',
-    emoji = '😏'
-where code = 'perfect_own_goals_prediction__1';;
+-- Historical production migration 20260718183256.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260718183256_badge_javais_dis_orange_smirk.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

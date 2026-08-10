@@ -1,2 +1,3 @@
-revoke all on public.v_statistics_team from authenticated;
-grant select on public.v_statistics_team to authenticated;;
+-- Historical production migration 20260721070909.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260721070909_statistics_team_read_only_grants.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

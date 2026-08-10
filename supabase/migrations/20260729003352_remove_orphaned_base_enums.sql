@@ -1,3 +1,3 @@
-drop type if exists public.app_role;
-drop type if exists public.goal_side;
-drop type if exists public.match_status;;
+-- Historical production migration 20260729003352.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260729003352_remove_orphaned_base_enums.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

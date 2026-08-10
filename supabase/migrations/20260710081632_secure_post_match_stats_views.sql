@@ -1,6 +1,3 @@
-alter view public.v_player_season_stats set (security_invoker = true);
-alter view public.v_player_career_stats set (security_invoker = true);
-alter view public.v_season_prediction_points set (security_invoker = true);
-alter view public.v_classement_general set (security_invoker = true);
-revoke all on function public.guard_match_prediction_window() from public, anon, authenticated;
-revoke all on function public.assert_coach_event_allowed() from public, anon, authenticated;;
+-- Historical production migration 20260710081632.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710081632_secure_post_match_stats_views.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

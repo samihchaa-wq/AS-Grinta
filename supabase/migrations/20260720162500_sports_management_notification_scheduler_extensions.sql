@@ -1,6 +1,3 @@
--- The application already relies on Supabase Cron in production.
--- Keep local and fresh environments deterministic before scheduling the
--- optional sports-management availability worker.
-
-create extension if not exists pg_cron;
-;
+-- Historical production migration 20260720162500.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260720162500_sports_management_notification_scheduler_extensions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,3 +1,3 @@
-revoke delete on public.match_predictions from authenticated;
-revoke delete on public.season_predictions from authenticated;
-revoke delete on public.profiles from authenticated;;
+-- Historical production migration 20260709043018.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709043018_revoke_prediction_and_profile_deletes.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

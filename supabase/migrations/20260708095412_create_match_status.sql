@@ -1,1 +1,3 @@
-create type public.match_status as enum ('a_venir','en_cours','termine','archive');;
+-- Historical production migration 20260708095412.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260708095412_create_match_status.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

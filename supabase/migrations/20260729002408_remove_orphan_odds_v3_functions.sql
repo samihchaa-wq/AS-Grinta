@@ -1,5 +1,3 @@
--- The v3 odds functions have no database dependants and are no longer
--- referenced by the application. The active trigger chain still uses the v4
--- wrappers, which in turn feed the current compact-history model.
-drop function if exists public.calculate_match_odds_v3(uuid, text);
-drop function if exists public.recalculate_upcoming_match_odds_v3();;
+-- Historical production migration 20260729002408.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260729002408_remove_orphan_odds_v3_functions.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

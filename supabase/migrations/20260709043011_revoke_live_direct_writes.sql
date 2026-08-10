@@ -1,8 +1,3 @@
-revoke insert, update, delete on public.live_sessions from authenticated;
-revoke insert, update, delete on public.live_positions from authenticated;
-revoke insert, update, delete on public.goals from authenticated;
-revoke insert, update, delete on public.substitutions from authenticated;
-revoke insert, update, delete on public.match_player_intervals from authenticated;
-revoke insert, update, delete on public.match_motm from authenticated;
-revoke insert, update, delete on public.match_correction_audit from authenticated;
-revoke insert, update, delete on public.live_control_handoffs from authenticated;;
+-- Historical production migration 20260709043011.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709043011_revoke_live_direct_writes.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

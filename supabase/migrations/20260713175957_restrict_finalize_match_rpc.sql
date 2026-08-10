@@ -1,3 +1,3 @@
-revoke execute on function public.finalize_match_postgame(uuid, integer, jsonb, uuid) from public, anon, authenticated;
-revoke execute on function public.finalize_match_postgame(uuid, integer, jsonb, uuid, integer) from public, anon;
-grant execute on function public.finalize_match_postgame(uuid, integer, jsonb, uuid, integer) to authenticated;;
+-- Historical production migration 20260713175957.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713175957_restrict_finalize_match_rpc.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

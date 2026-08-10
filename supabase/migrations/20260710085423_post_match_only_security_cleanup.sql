@@ -1,5 +1,3 @@
-begin;
-revoke all on function public.match_prediction_participant_count(uuid) from public, anon;
-grant execute on function public.match_prediction_participant_count(uuid) to authenticated;
-drop function if exists public.record_substitution(uuid,text,integer,uuid,uuid) cascade;
-commit;;
+-- Historical production migration 20260710085423.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710085423_post_match_only_security_cleanup.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

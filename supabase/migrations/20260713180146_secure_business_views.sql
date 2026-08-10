@@ -1,19 +1,3 @@
-alter view public.v_classement_general set (security_invoker = true);
-alter view public.v_match_prediction_flags set (security_invoker = true);
-alter view public.v_season_prediction_flags set (security_invoker = true);
-alter view public.v_season_prediction_points set (security_invoker = true);
-
-revoke all privileges on table public.v_classement_general from anon;
-revoke all privileges on table public.v_match_prediction_flags from anon;
-revoke all privileges on table public.v_season_prediction_flags from anon;
-revoke all privileges on table public.v_season_prediction_points from anon;
-
-revoke insert, update, delete, truncate, references, trigger on table public.v_classement_general from authenticated;
-revoke insert, update, delete, truncate, references, trigger on table public.v_match_prediction_flags from authenticated;
-revoke insert, update, delete, truncate, references, trigger on table public.v_season_prediction_flags from authenticated;
-revoke insert, update, delete, truncate, references, trigger on table public.v_season_prediction_points from authenticated;
-
-grant select on table public.v_classement_general to authenticated;
-grant select on table public.v_match_prediction_flags to authenticated;
-grant select on table public.v_season_prediction_flags to authenticated;
-grant select on table public.v_season_prediction_points to authenticated;;
+-- Historical production migration 20260713180146.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713180146_secure_business_views.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

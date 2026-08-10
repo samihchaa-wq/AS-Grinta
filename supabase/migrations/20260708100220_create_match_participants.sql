@@ -1,1 +1,3 @@
-create table public.match_participants (match_id uuid not null references public.matches(id) on delete cascade, player_id uuid not null references public.profiles(id) on delete restrict, is_goalkeeper_for_match boolean not null default false, selected_at timestamptz not null default now(), primary key (match_id, player_id));;
+-- Historical production migration 20260708100220.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260708100220_create_match_participants.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,8 +1,3 @@
--- Same pattern as create_postmatch_composition: the public wrapper stays
--- SECURITY INVOKER, but authenticated needs direct EXECUTE on the private
--- implementation to actually be able to call it.
-
-grant execute on function private.update_postmatch_composition(
-  uuid, text, jsonb, boolean, text
-) to authenticated;
-;
+-- Historical production migration 20260731070000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260731070000_grant_update_postmatch_composition_private_rpc.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

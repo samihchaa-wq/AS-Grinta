@@ -1,2 +1,3 @@
--- Historical migration marker.
--- Production records version 20260730220000 with no name and no SQL statements.
+-- Historical production migration 20260730220000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260730220000_history_marker.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

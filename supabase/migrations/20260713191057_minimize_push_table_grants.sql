@@ -1,13 +1,3 @@
-revoke all on table public.push_notification_log
-  from public, anon, authenticated;
-
-revoke all on table public.push_subscriptions
-  from public, anon, authenticated;
-
-grant delete on table public.push_subscriptions
-  to authenticated;
-
-grant select, insert, update, delete on table public.push_notification_log
-  to service_role;
-grant select, insert, update, delete on table public.push_subscriptions
-  to service_role;;
+-- Historical production migration 20260713191057.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713191057_minimize_push_table_grants.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

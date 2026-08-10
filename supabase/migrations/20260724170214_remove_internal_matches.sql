@@ -1,14 +1,3 @@
-drop function if exists public.admin_delete_internal_match(uuid);
-drop function if exists public.admin_save_internal_match(
-  uuid,
-  uuid,
-  timestamptz,
-  text,
-  text,
-  text,
-  integer,
-  integer,
-  jsonb
-);
-drop table if exists public.internal_match_players;
-drop table if exists public.internal_matches;;
+-- Historical production migration 20260724170214.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260724170214_remove_internal_matches.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,8 +1,3 @@
-drop policy if exists active_authenticated_profile_only
-  on public.club_events;
-create policy active_authenticated_profile_only
-  on public.club_events
-  as restrictive for all to authenticated
-  using ((select private.is_active_profile()))
-  with check ((select private.is_active_profile()));
-;
+-- Historical production migration 20260806091020.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260806091020_club_events_active_profile_floor.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

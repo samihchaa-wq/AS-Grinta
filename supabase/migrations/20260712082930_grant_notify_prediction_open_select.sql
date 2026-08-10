@@ -1,1 +1,3 @@
-grant select(notify_prediction_open) on public.profiles to authenticated;;
+-- Historical production migration 20260712082930.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712082930_grant_notify_prediction_open_select.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

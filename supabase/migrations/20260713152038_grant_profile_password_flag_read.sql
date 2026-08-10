@@ -1,4 +1,3 @@
-grant select (must_change_password) on table public.profiles to authenticated;
-
-comment on column public.profiles.must_change_password is
-  'Read by the signed-in user to force the temporary-password replacement screen; writes are performed through secured RPCs.';;
+-- Historical production migration 20260713152038.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713152038_grant_profile_password_flag_read.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

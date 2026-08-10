@@ -1,7 +1,3 @@
-alter table public.match_composition_publications
-  drop constraint if exists match_composition_publications_publication_kind_check;
-
-alter table public.match_composition_publications
-  add constraint match_composition_publications_publication_kind_check
-  check (publication_kind in ('initial', 'update', 'postmatch'));
-;
+-- Historical production migration 20260725222000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260725222000_allow_postmatch_publication_kind.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

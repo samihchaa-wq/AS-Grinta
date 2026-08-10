@@ -1,10 +1,3 @@
-begin;
-
-drop function if exists public.finalize_match(uuid,integer,integer,uuid) cascade;
-
-alter table public.matches drop constraint if exists matches_status_check;
-alter table public.matches
-  add constraint matches_status_check
-  check (status = any (array['a_venir'::text,'termine'::text,'archive'::text]));
-
-commit;;
+-- Historical production migration 20260710091202.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710091202_remove_live_match_status.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

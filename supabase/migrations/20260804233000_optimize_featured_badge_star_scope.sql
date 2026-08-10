@@ -1,1 +1,3 @@
-Applied atomically via validated production deployment; canonical SQL is supabase/migrations/20260804233000_optimize_featured_badge_star_scope.sql;
+-- Historical production migration 20260804233000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260804233000_optimize_featured_badge_star_scope.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

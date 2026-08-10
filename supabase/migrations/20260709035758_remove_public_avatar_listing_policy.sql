@@ -1,1 +1,3 @@
-drop policy if exists profile_photos_public_read on storage.objects;;
+-- Historical production migration 20260709035758.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709035758_remove_public_avatar_listing_policy.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

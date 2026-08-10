@@ -1,2 +1,3 @@
-revoke references, trigger on all tables in schema public from authenticated;
-revoke references, trigger on all tables in schema public from anon;;
+-- Historical production migration 20260709043032.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709043032_revoke_schema_ddl_like_privileges.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

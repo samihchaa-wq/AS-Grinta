@@ -1,2 +1,3 @@
-create index club_events_created_by_idx
-  on public.club_events (created_by);;
+-- Historical production migration 20260805135907.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260805135907_club_events_created_by_index.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

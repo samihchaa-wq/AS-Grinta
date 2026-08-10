@@ -1,16 +1,3 @@
-alter table public.profiles
-  drop constraint if exists profiles_role_check;
-
-alter table public.profiles
-  add constraint profiles_role_check
-  check (role in ('pronostiqueur', 'admin', 'moderateur'));
-
-alter table public.match_player_stats
-  alter column season_player_id set not null;
-
-alter table public.season_predictions
-  alter column season_player_id set not null;
-
-create unique index if not exists profiles_username_lower_uidx
-  on public.profiles (lower(username))
-  where username is not null;;
+-- Historical production migration 20260713191911.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713191911_schema_integrity_constraints.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,10 +1,3 @@
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM net.http_request_queue LIMIT 1) THEN
-    RAISE EXCEPTION 'Cannot relocate pg_net while HTTP requests are pending';
-  END IF;
-END;
-$$;
-
-DROP EXTENSION IF EXISTS pg_net;
-CREATE EXTENSION pg_net WITH SCHEMA extensions;;
+-- Historical production migration 20260713184209.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713184209_relocate_pg_net.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

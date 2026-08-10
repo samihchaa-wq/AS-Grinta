@@ -1,8 +1,3 @@
-alter default privileges for role postgres in schema public
-  revoke execute on functions from public;
-
-alter default privileges for role postgres in schema public
-  revoke execute on functions from anon;
-
-alter default privileges for role postgres in schema public
-  revoke execute on functions from authenticated;;
+-- Historical production migration 20260713184426.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713184426_lock_default_function_privileges.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

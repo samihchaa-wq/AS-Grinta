@@ -1,9 +1,3 @@
-revoke insert on table public.profiles from authenticated;
-drop policy if exists insert_own_profile on public.profiles;
-
-revoke select on table public.v_match_prediction_points from anon;
-revoke select on table public.v_player_season_stats from anon;
-revoke select on table public.v_scorer_standings from anon;
-revoke select on table public.v_season_match_count from anon;
-revoke select on table public.v_season_prediction_bonus from anon;
-revoke select on table public.v_x2_wallet from anon;;
+-- Historical production migration 20260713192228.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713192228_remove_anon_data_surface.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

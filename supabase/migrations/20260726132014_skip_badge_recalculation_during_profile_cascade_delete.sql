@@ -1,24 +1,3 @@
-create or replace function public.trg_badges_on_roster_change()
-returns trigger
-language plpgsql
-security definer
-set search_path to 'public'
-as $function$
-begin
-  if new.profile_id is not null then
-    perform public.recalculate_profile_badges(new.profile_id);
-  end if;
-
-  if tg_op = 'UPDATE'
-     and old.profile_id is not null
-     and old.profile_id is distinct from new.profile_id
-     and pg_trigger_depth() <= 1 then
-    perform public.recalculate_profile_badges(old.profile_id);
-  end if;
-
-  return null;
-end;
-$function$;
-
-comment on function public.trg_badges_on_roster_change() is
-  'Recalcule les badges lors des modifications directes de l effectif, mais ignore le profil source pendant une mise a null declenchee en cascade par la suppression du compte.';;
+-- Historical production migration 20260726132014.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260726132014_skip_badge_recalculation_during_profile_cascade_delete.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

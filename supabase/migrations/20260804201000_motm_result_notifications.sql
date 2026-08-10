@@ -1,1 +1,3 @@
-Applied via validated production deployment; canonical SQL is supabase/migrations/20260804201000_motm_result_notifications.sql;
+-- Historical production migration 20260804201000.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260804201000_motm_result_notifications.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

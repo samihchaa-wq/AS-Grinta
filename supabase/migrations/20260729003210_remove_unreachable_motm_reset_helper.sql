@@ -1,1 +1,3 @@
-drop function if exists private.reset_match_motm_election(uuid, integer, timestamptz, uuid, text, text);;
+-- Historical production migration 20260729003210.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260729003210_remove_unreachable_motm_reset_helper.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

@@ -1,6 +1,3 @@
-alter view public.v_player_season_stats set (security_invoker = true);
-alter view public.v_scorer_standings set (security_invoker = true);
-alter view public.v_season_match_count set (security_invoker = true);
-alter view public.v_season_prediction_points set (security_invoker = true);
-alter view public.v_season_prediction_bonus set (security_invoker = true);
-alter view public.v_classement_general set (security_invoker = true);;
+-- Historical production migration 20260712033256.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712033256_v1_views_security_invoker.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

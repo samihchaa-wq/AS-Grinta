@@ -1,8 +1,3 @@
--- Index couvrant les clés étrangères non indexées (signalées par l'advisor
--- performance). Évite les scans séquentiels sur ces jointures/suppressions.
-create index if not exists profile_badges_awarded_by_idx
-  on public.profile_badges (awarded_by);
-create index if not exists profile_badges_badge_id_idx
-  on public.profile_badges (badge_id);
-create index if not exists season_awards_profile_id_idx
-  on public.season_awards (profile_id);;
+-- Historical production migration 20260718095147.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260718095147_add_missing_fk_covering_indexes.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

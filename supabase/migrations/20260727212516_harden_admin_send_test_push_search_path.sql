@@ -1,2 +1,3 @@
-alter function public.admin_send_test_push()
-  set search_path = '';;
+-- Historical production migration 20260727212516.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260727212516_harden_admin_send_test_push_search_path.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

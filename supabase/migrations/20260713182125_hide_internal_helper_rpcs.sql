@@ -1,13 +1,3 @@
-revoke execute on function public.current_profile_role()
-  from public, anon, authenticated;
-
-revoke execute on function public.is_exact_moderator()
-  from public, anon, authenticated;
-
-revoke execute on function public.match_prediction_participant_count(uuid)
-  from public, anon, authenticated;
-
-grant execute on function public.current_profile_role() to service_role;
-grant execute on function public.is_exact_moderator() to service_role;
-grant execute on function public.match_prediction_participant_count(uuid)
-  to service_role;;
+-- Historical production migration 20260713182125.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713182125_hide_internal_helper_rpcs.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

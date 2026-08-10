@@ -1,13 +1,3 @@
-create or replace function public.prepare_profile_for_hard_deletion(p_profile_id uuid)
-returns void
-language plpgsql
-security definer
-set search_path to ''
-as $function$
-begin
-  perform private.prepare_profile_for_hard_deletion(p_profile_id);
-end;
-$function$;
-
-revoke all on function public.prepare_profile_for_hard_deletion(uuid) from public, anon, authenticated;
-grant execute on function public.prepare_profile_for_hard_deletion(uuid) to service_role;;
+-- Historical production migration 20260726145233.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260726145233_expose_profile_hard_deletion_to_service_role.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

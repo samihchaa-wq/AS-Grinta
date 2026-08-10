@@ -1,2 +1,3 @@
-revoke update on public.profiles from authenticated;
-grant update (first_name, last_name, photo_url) on public.profiles to authenticated;
+-- Historical production migration 20260708224708.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260708224708_restrict_profile_update_columns.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

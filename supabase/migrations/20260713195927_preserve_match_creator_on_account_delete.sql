@@ -1,12 +1,3 @@
-alter table public.matches
-  alter column created_by
-  set default '00000000-0000-0000-0000-000000000001'::uuid;
-
-alter table public.matches
-  drop constraint if exists matches_created_by_fkey;
-
-alter table public.matches
-  add constraint matches_created_by_fkey
-  foreign key (created_by)
-  references public.profiles(id)
-  on delete set default;;
+-- Historical production migration 20260713195927.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713195927_preserve_match_creator_on_account_delete.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

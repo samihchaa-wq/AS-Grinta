@@ -1,6 +1,3 @@
--- L'email n'est jamais lu depuis profiles par l'application : l'utilisateur
--- obtient le sien via Auth et le staff passe par staff_list_profiles
--- (SECURITY DEFINER). On retire donc la colonne email de la lecture directe.
-revoke select on public.profiles from authenticated, anon;
-grant select (id, first_name, last_name, surnom, photo_url, role, is_goalkeeper, status, notify_match_reminders, notify_prediction_reminders, created_at, updated_at)
-on public.profiles to authenticated;;
+-- Historical production migration 20260710140323.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260710140323_restrict_profile_email_visibility.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

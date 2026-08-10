@@ -1,2 +1,3 @@
-grant update(role,status,is_goalkeeper,updated_at) on public.profiles to authenticated;
-grant update(first_name,last_name,photo_url,updated_at) on public.profiles to authenticated;;
+-- Historical production migration 20260709024650.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260709024650_profile_column_privileges.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

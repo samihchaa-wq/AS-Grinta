@@ -1,1 +1,3 @@
-drop index if exists public.opponents_normalized_name_uidx;;
+-- Historical production migration 20260713193620.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260713193620_drop_duplicate_opponent_index.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.

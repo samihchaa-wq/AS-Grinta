@@ -1,1 +1,3 @@
-alter table public.season_players add column if not exists position integer;;
+-- Historical production migration 20260712181520.
+-- Its pristine SQL is archived in supabase/migrations_legacy_production/20260712181520_season_players_position.sql.
+-- Fresh installations are built by the canonical baseline at 20260809234943.
