@@ -1,7 +1,8 @@
 -- Test-only compatibility helper. Production is not affected.
--- L’image Supabase locale peut préinstaller pgTAP dans public. On le replace dans
--- extensions avant d’appliquer le verrou applicatif afin que les assertions TAP
--- restent disponibles pendant les simulations de rôles anon/authenticated.
+-- The local Supabase image does not always preinstall pgTAP. Install it in the
+-- isolated CI database and keep it outside public so application security tests
+-- can switch between anon/authenticated roles safely.
+create extension if not exists pgtap with schema extensions;
 alter extension pgtap set schema extensions;
 
 create or replace function public.like(
