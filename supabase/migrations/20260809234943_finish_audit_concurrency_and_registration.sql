@@ -1,5 +1,11 @@
 begin;
 
+-- The canonical schema dump can inherit local extension/default ACLs that are
+-- not present in production. Production exposes no public-schema data object
+-- to PUBLIC/anon, so normalize that security floor on fresh installs.
+revoke all privileges on all tables in schema public from public, anon;
+revoke all privileges on all sequences in schema public from public, anon;
+
 -- pg_dump recreates tables, policies and grants, but not Supabase Realtime
 -- publication membership. Fresh installs must reproduce the five tables
 -- published in production.
