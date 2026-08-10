@@ -65,6 +65,30 @@ function isUserNotFound(error: {
     error.message?.toLowerCase().includes("user not found") === true;
 }
 
+async function deleteProfileWithRetry(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<void> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await admin.from("profiles").delete().eq("id", userId);
+    if (!error) {
+      const { data: remaining, error: verifyError } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+      if (verifyError) throw verifyError;
+      if (!remaining) return;
+      lastError = new Error("Profile still exists after deletion");
+    } else {
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+  }
+  throw lastError ?? new Error("Profile deletion failed");
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -312,6 +336,8 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      // Cette préparation est idempotente : une nouvelle tentative peut donc
+      // reprendre proprement si une précédente suppression s'est interrompue.
       const { error: prepareError } = await admin.rpc(
         "prepare_profile_for_hard_deletion",
         { p_profile_id: userId },
@@ -326,11 +352,9 @@ Deno.serve(async (req: Request) => {
         throw authDeleteError;
       }
 
-      const { error: profileDeleteError } = await admin
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-      if (profileDeleteError) throw profileDeleteError;
+      // La suppression Auth et celle du profil ne peuvent pas partager une
+      // transaction. On rend donc la deuxième moitié répétable et vérifiée.
+      await deleteProfileWithRetry(admin, userId);
 
       return jsonResponse({ deleted: true });
     }

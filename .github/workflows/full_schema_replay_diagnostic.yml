@@ -1,0 +1,52 @@
+name: Supabase full schema replay diagnostic
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  replay-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.111.0
+
+      - name: Replay the complete migration history
+        id: replay
+        shell: bash
+        run: |
+          set +e
+          set -o pipefail
+          supabase start 2>&1 | tee full-schema-replay.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Full schema replay diagnostic"
+            if [ "$code" -eq 0 ]; then
+              echo "✅ L'historique complet se rejoue depuis une base vide."
+            else
+              echo "⚠️ L'historique complet ne se rejoue pas encore depuis une base vide."
+              echo "Cette vérification reste informative tant que la reconstruction historique complète est volontairement différée."
+            fi
+            echo
+            echo "Code de sortie : $code"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      - name: Upload replay log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-schema-replay-diagnostic
+          path: full-schema-replay.log
+          if-no-files-found: warn

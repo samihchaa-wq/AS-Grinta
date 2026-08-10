@@ -10,7 +10,10 @@ import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 void main() {
   group('AuthController', () {
     test('loads an active profile on startup', () async {
-      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
+      final repository = _FakeAuthRepository(
+        fetchResults: [_activeProfile],
+        hasSession: true,
+      );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -18,6 +21,7 @@ void main() {
 
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isTrue);
+      expect(controller.state.hasSession, isTrue);
       expect(controller.state.profile, same(_activeProfile));
       expect(controller.state.error, isNull);
     });
@@ -31,14 +35,39 @@ void main() {
 
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
       expect(controller.state.profile, isNull);
       expect(controller.state.error, isNull);
+    });
+
+    test(
+        'preserves the session when profile loading is temporarily unavailable',
+        () async {
+      final repository = _FakeAuthRepository(
+        fetchResults: [StateError('temporary backend failure')],
+        hasSession: true,
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+
+      await _flushAsync();
+
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isTrue);
+      expect(controller.state.profile, isNull);
+      expect(
+        controller.state.error,
+        'Connexion temporairement indisponible. Réessaie dans un instant.',
+      );
+      expect(repository.signOutCalls, 0);
     });
 
     test('signIn authenticates after the post-login refresh', () async {
       final initialRefresh = Completer<AuthProfile?>();
       final repository = _FakeAuthRepository(
         fetchResults: [initialRefresh.future, _activeProfile],
+        hasSession: true,
       );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
@@ -53,12 +82,16 @@ void main() {
       expect(repository.signInCalls, 1);
       expect(repository.fetchRetryFlags, [false, true]);
       expect(controller.state.isAuthenticated, isTrue);
+      expect(controller.state.hasSession, isTrue);
       expect(controller.state.profile, same(_activeProfile));
       expect(controller.state.error, isNull);
     });
 
     test('pending profiles keep their session and waiting profile', () async {
-      final repository = _FakeAuthRepository(fetchResults: [_pendingProfile]);
+      final repository = _FakeAuthRepository(
+        fetchResults: [_pendingProfile],
+        hasSession: true,
+      );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -67,13 +100,17 @@ void main() {
       expect(repository.signOutCalls, 0);
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isTrue);
       expect(controller.state.profile, same(_pendingProfile));
       expect(controller.state.profile?.isPending, isTrue);
       expect(controller.state.error, isNull);
     });
 
     test('archived profiles are signed out and rejected', () async {
-      final repository = _FakeAuthRepository(fetchResults: [_archivedProfile]);
+      final repository = _FakeAuthRepository(
+        fetchResults: [_archivedProfile],
+        hasSession: true,
+      );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
@@ -82,6 +119,7 @@ void main() {
       expect(repository.signOutCalls, 1);
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
       expect(controller.state.profile, isNull);
       expect(controller.state.error, 'Ce compte n’est pas actif.');
     });
@@ -102,6 +140,7 @@ void main() {
 
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
       expect(controller.state.profile, isNull);
       expect(
         controller.state.error,
@@ -110,7 +149,10 @@ void main() {
     });
 
     test('signOut clears the authenticated state', () async {
-      final repository = _FakeAuthRepository(fetchResults: [_activeProfile]);
+      final repository = _FakeAuthRepository(
+        fetchResults: [_activeProfile],
+        hasSession: true,
+      );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
       await _flushAsync();
@@ -120,6 +162,7 @@ void main() {
       expect(repository.signOutCalls, 1);
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
       expect(controller.state.profile, isNull);
       expect(controller.state.error, isNull);
     });
@@ -129,16 +172,19 @@ void main() {
       final pendingRefresh = Completer<AuthProfile?>();
       final repository = _FakeAuthRepository(
         fetchResults: [pendingRefresh.future],
+        hasSession: true,
       );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
 
       repository.emit(supabase.AuthChangeEvent.signedOut);
+      repository.hasSession = false;
       pendingRefresh.complete(_activeProfile);
       await _flushAsync();
 
       expect(controller.state.isLoading, isFalse);
       expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
       expect(controller.state.profile, isNull);
     });
   });
@@ -189,12 +235,16 @@ class _FakeAuthRepository implements AuthRepository {
   _FakeAuthRepository({
     required List<Object?> fetchResults,
     this.signInError,
+    this.hasSession = false,
   }) : _fetchResults = List<Object?>.from(fetchResults);
 
   final List<Object?> _fetchResults;
   final Object? signInError;
   final StreamController<supabase.AuthState> _authController =
       StreamController<supabase.AuthState>.broadcast();
+
+  @override
+  bool hasSession;
 
   int signInCalls = 0;
   int signOutCalls = 0;
@@ -229,6 +279,7 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     signOutCalls += 1;
+    hasSession = false;
   }
 
   @override

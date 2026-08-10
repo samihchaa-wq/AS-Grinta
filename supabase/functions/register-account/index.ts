@@ -87,6 +87,38 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Requête trop volumineuse." }, 413);
   }
 
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return jsonResponse({ error: "Requête invalide." }, 400);
+  }
+
+  const firstName = String(body.firstName ?? "").trim();
+  const lastName = String(body.lastName ?? "").trim();
+  const password = String(body.password ?? "");
+
+  // Les requêtes manifestement invalides ne consomment pas le quota partagé.
+  if (
+    firstName.length < 2 ||
+    firstName.length > 50 ||
+    lastName.length < 2 ||
+    lastName.length > 50 ||
+    /[\u0000-\u001f\u007f]/.test(firstName + lastName)
+  ) {
+    return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
+  }
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return jsonResponse({ error: passwordError }, 400);
+  }
+
+  const normalizedFirst = normalizeName(firstName);
+  const normalizedInitial = normalizeName(lastName).slice(0, 1);
+  if (!normalizedFirst || !normalizedInitial) {
+    return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
+  }
+
   let newUserId: string | null = null;
   let admin: ReturnType<typeof createClient> | null = null;
 
@@ -113,31 +145,6 @@ Deno.serve(async (req: Request) => {
         429,
         { "Retry-After": "3600" },
       );
-    }
-
-    const body = await req.json();
-    const firstName = String(body.firstName ?? "").trim();
-    const lastName = String(body.lastName ?? "").trim();
-    const password = String(body.password ?? "");
-
-    if (
-      firstName.length < 2 ||
-      firstName.length > 50 ||
-      lastName.length < 2 ||
-      lastName.length > 50 ||
-      /[\u0000-\u001f\u007f]/.test(firstName + lastName)
-    ) {
-      return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
-    }
-    const passwordError = validatePassword(password);
-    if (passwordError) {
-      return jsonResponse({ error: passwordError }, 400);
-    }
-
-    const normalizedFirst = normalizeName(firstName);
-    const normalizedInitial = normalizeName(lastName).slice(0, 1);
-    if (!normalizedFirst || !normalizedInitial) {
-      return jsonResponse({ error: "Prénom ou nom invalide." }, 400);
     }
 
     const base = `${normalizedFirst}${normalizedInitial}`.slice(0, 27);

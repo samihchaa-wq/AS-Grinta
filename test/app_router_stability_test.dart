@@ -1,5 +1,5 @@
-import 'dart:typed_data';
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:as_grinta/app/router/app_router.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
@@ -28,6 +28,7 @@ void main() {
         const AuthState(
           isLoading: false,
           isAuthenticated: true,
+          hasSession: true,
           profile: AuthProfile(
             id: 'admin',
             firstName: 'Admin',
@@ -63,6 +64,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Stream<supabase.AuthState> get authStateChanges => _events.stream;
+
+  @override
+  bool get hasSession => false;
 
   @override
   Future<AuthProfile?> fetchProfile({bool retryAfterSignIn = false}) async =>

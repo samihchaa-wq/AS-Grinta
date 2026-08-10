@@ -85,16 +85,16 @@ jobs:
           [[ "${LATEST_VERSION:-}" =~ ^[0-9]{14}$ ]]
           [[ "${VERSION_MD5:-}" =~ ^[0-9a-f]{32}$ ]]
 
-      - name: Ensure production lock is not changed from a feature PR
+      - name: Ensure production lock is only changed from a drift-guard branch
         if: >-
           github.event_name == 'pull_request' &&
-          github.head_ref != 'ci/supabase-migration-drift-guard'
+          !startsWith(github.head_ref, 'ci/supabase-migration-drift-guard')
         shell: bash
         run: |
           set -euo pipefail
           base="origin/${{ github.base_ref }}"
           if git diff --name-only "$base...HEAD" | grep -qx 'supabase/production_migrations.lock'; then
-            echo "The production lock is updated only after a verified production deployment." >&2
+            echo "The production lock is updated only from a dedicated ci/supabase-migration-drift-guard* branch after a verified production deployment." >&2
             exit 1
           fi
 
@@ -119,10 +119,10 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v2
         if: steps.secrets.outputs.configured == 'true'
         with:
-          version: latest
+          version: 2.111.0
 
       - name: Read remote migration history
         if: steps.secrets.outputs.configured == 'true'
@@ -140,6 +140,40 @@ jobs:
             }
           ' /tmp/migration-list.txt | sort -u > /tmp/remote-versions.txt
           test -s /tmp/remote-versions.txt
+
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' \
+            | sort -u > /tmp/local-versions.txt
+
+      - name: Report GitHub versus production inventory
+        if: steps.secrets.outputs.configured == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          comm -23 /tmp/remote-versions.txt /tmp/local-versions.txt > /tmp/remote-only.txt
+          comm -13 /tmp/remote-versions.txt /tmp/local-versions.txt > /tmp/local-only.txt
+          remote_only=$(wc -l < /tmp/remote-only.txt | tr -d ' ')
+          local_only=$(wc -l < /tmp/local-only.txt | tr -d ' ')
+          {
+            echo "## Supabase migration inventory"
+            echo "- Versions présentes seulement en production : $remote_only"
+            echo "- Versions présentes seulement dans GitHub : $local_only"
+            if [ "$remote_only" -gt 0 ]; then
+              echo
+              echo "### Production seulement"
+              sed 's/^/- `/' /tmp/remote-only.txt | sed 's/$/`/'
+            fi
+            if [ "$local_only" -gt 0 ]; then
+              echo
+              echo "### GitHub seulement"
+              sed 's/^/- `/' /tmp/local-only.txt | sed 's/$/`/'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "Remote-only versions:"
+          cat /tmp/remote-only.txt
+          echo "Local-only versions:"
+          cat /tmp/local-only.txt
 
       - name: Compare production with committed baseline
         if: steps.secrets.outputs.configured == 'true'

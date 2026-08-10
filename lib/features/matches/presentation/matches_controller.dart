@@ -57,22 +57,35 @@ class MatchesController extends StateNotifier<MatchesState> {
       const CalendarMatchesLocalCache();
   Future<void>? _loadInFlight;
   String? _loadKey;
+  int _loadGeneration = 0;
 
   AuthRole? get _role => _ref.read(authControllerProvider).profile?.role;
   bool get _isAdmin => _role?.isAdmin ?? false;
   bool get _canManageMatches => _isAdmin;
 
-  Future<void> load({String? seasonId, bool allSeasons = false}) {
+  Future<void> load({
+    String? seasonId,
+    bool allSeasons = false,
+    bool forceRefresh = false,
+  }) {
     final key = '${seasonId ?? ''}:$allSeasons';
     final existing = _loadInFlight;
-    if (existing != null) {
+    if (!forceRefresh && existing != null) {
       if (_loadKey == key) return existing;
       return existing.whenComplete(
         () => load(seasonId: seasonId, allSeasons: allSeasons),
       );
     }
 
-    final request = _performLoad(seasonId: seasonId, allSeasons: allSeasons);
+    // Une écriture peut arriver pendant qu'une ancienne lecture est encore en
+    // vol. Le numéro de génération empêche cette ancienne réponse d'écraser le
+    // nouvel état une fois l'écriture terminée.
+    final generation = ++_loadGeneration;
+    final request = _performLoad(
+      seasonId: seasonId,
+      allSeasons: allSeasons,
+      generation: generation,
+    );
     _loadInFlight = request;
     _loadKey = key;
     return request.whenComplete(() {
@@ -83,11 +96,17 @@ class MatchesController extends StateNotifier<MatchesState> {
     });
   }
 
-  Future<void> _performLoad({String? seasonId, bool allSeasons = false}) async {
+  Future<void> _performLoad({
+    String? seasonId,
+    bool allSeasons = false,
+    required int generation,
+  }) async {
+    if (generation != _loadGeneration) return;
     state = state.copyWith(isLoading: true, clearError: true);
     var hasLocalFallback = false;
     try {
       if (!_ref.read(authControllerProvider).isAuthenticated) {
+        if (generation != _loadGeneration) return;
         state = state.copyWith(
           isLoading: false,
           error: 'Authentification requise.',
@@ -100,6 +119,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       // qu'elle répond. Un cache absent ne change pas le comportement actuel.
       if (allSeasons) {
         final localMatches = await _localCache.read();
+        if (generation != _loadGeneration) return;
         if (localMatches.isNotEmpty) {
           hasLocalFallback = true;
           state = state.copyWith(
@@ -118,6 +138,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       final allMatchesFuture = allSeasons ? _repository.fetchMatches() : null;
 
       final seasons = await seasonsFuture;
+      if (generation != _loadGeneration) return;
       final resolvedSeasonId = seasonId ??
           state.selectedSeasonId ??
           _currentSeasonId(seasons) ??
@@ -126,7 +147,9 @@ class MatchesController extends StateNotifier<MatchesState> {
       final matches = allMatchesFuture != null
           ? await allMatchesFuture
           : await _repository.fetchMatches(seasonId: resolvedSeasonId);
+      if (generation != _loadGeneration) return;
       final opponents = await opponentsFuture;
+      if (generation != _loadGeneration) return;
 
       state = state.copyWith(
         matches: matches,
@@ -138,10 +161,11 @@ class MatchesController extends StateNotifier<MatchesState> {
         clearError: true,
       );
 
-      if (allSeasons) {
+      if (allSeasons && generation == _loadGeneration) {
         await _localCache.write(matches);
       }
     } catch (error) {
+      if (generation != _loadGeneration) return;
       if (hasLocalFallback) {
         state = state.copyWith(isLoading: false, clearError: true);
       } else {
@@ -174,6 +198,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
       return id;
     } catch (error) {
@@ -240,6 +265,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -308,6 +334,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
       _ref.invalidate(matchInfoProvider(id));
     } catch (error) {
@@ -340,6 +367,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -379,6 +407,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -400,6 +429,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -417,6 +447,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));
@@ -437,6 +468,7 @@ class MatchesController extends StateNotifier<MatchesState> {
       await load(
         seasonId: state.selectedSeasonId,
         allSeasons: state.includesAllSeasons,
+        forceRefresh: true,
       );
     } catch (error) {
       state = state.copyWith(isLoading: false, error: humanizeError(error));

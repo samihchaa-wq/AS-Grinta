@@ -17,6 +17,9 @@ class AuthRepository {
 
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
+  bool get hasSession =>
+      _client.auth.currentSession != null || _client.auth.currentUser != null;
+
   Future<void> signInWithUsername({
     required String username,
     required String password,

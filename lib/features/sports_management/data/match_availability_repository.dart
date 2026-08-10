@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract interface class MatchAvailabilityRepository {
-  Future<MatchAvailability> fetchMyAvailability(String matchId);
+  Future<MatchAvailability?> fetchMyAvailability(String matchId);
 
   Future<MatchAvailability> setMyAvailability({
     required String matchId,
@@ -18,10 +18,10 @@ class SupabaseMatchAvailabilityRepository
   SupabaseMatchAvailabilityRepository(this._client);
 
   final SupabaseClient _client;
-  final Map<String, Future<MatchAvailability>> _fetchesInFlight = {};
+  final Map<String, Future<MatchAvailability?>> _fetchesInFlight = {};
 
   @override
-  Future<MatchAvailability> fetchMyAvailability(String matchId) {
+  Future<MatchAvailability?> fetchMyAvailability(String matchId) {
     final existing = _fetchesInFlight[matchId];
     if (existing != null) return existing;
 
@@ -34,11 +34,12 @@ class SupabaseMatchAvailabilityRepository
     });
   }
 
-  Future<MatchAvailability> _fetchMyAvailability(String matchId) async {
+  Future<MatchAvailability?> _fetchMyAvailability(String matchId) async {
     final response = await _client.rpc(
       'get_my_match_availability',
       params: {'p_match_id': matchId},
     );
+    if (response == null) return null;
     return MatchAvailability.fromRpc(response);
   }
 
@@ -69,7 +70,11 @@ class SupabaseMatchAvailabilityRepository
     // Une lecture précédente peut encore être en vol au moment de l'écriture.
     // Elle ne doit jamais être réutilisée pour relire la valeur fraîche.
     _fetchesInFlight.remove(matchId);
-    return fetchMyAvailability(matchId);
+    final availability = await fetchMyAvailability(matchId);
+    if (availability == null) {
+      throw StateError('Disponibilité introuvable après enregistrement.');
+    }
+    return availability;
   }
 
   String? _cleanComment(String? value) {

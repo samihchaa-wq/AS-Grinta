@@ -42,6 +42,34 @@ void main() {
       },
     );
 
+    test(
+      'keeps a valid session on loading while the profile is unavailable',
+      () {
+        const state = AuthState(
+          isLoading: false,
+          hasSession: true,
+          error: 'Connexion temporairement indisponible.',
+        );
+
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse('/matches'),
+            matchedLocation: '/matches',
+          ),
+          '/auth/loading',
+        );
+        expect(
+          resolveAuthRedirect(
+            authState: state,
+            uri: Uri.parse('/auth/loading'),
+            matchedLocation: '/auth/loading',
+          ),
+          isNull,
+        );
+      },
+    );
+
     test('preserves the requested local path for signed-out users', () {
       const state = AuthState(isLoading: false);
 
@@ -72,6 +100,7 @@ void main() {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
+        hasSession: true,
         profile: _passwordChangeProfile,
       );
 
@@ -97,6 +126,7 @@ void main() {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
+        hasSession: true,
         profile: _userProfile,
       );
 
@@ -114,6 +144,7 @@ void main() {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
+        hasSession: true,
         profile: _userProfile,
       );
 
@@ -141,6 +172,7 @@ void main() {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
+        hasSession: true,
         profile: _userProfile,
       );
 
@@ -168,6 +200,7 @@ void main() {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
+        hasSession: true,
         profile: _adminProfile,
       );
 
@@ -195,6 +228,7 @@ void main() {
       const state = AuthState(
         isLoading: false,
         isAuthenticated: true,
+        hasSession: true,
         profile: _userProfile,
       );
 

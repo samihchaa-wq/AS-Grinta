@@ -19,8 +19,10 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
   void initState() {
     super.initState();
     _refreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      final profile = ref.read(authControllerProvider).profile;
-      if (profile?.isPending == true) {
+      final auth = ref.read(authControllerProvider);
+      final shouldRetry = auth.profile?.isPending == true ||
+          (auth.hasSession && auth.profile == null && auth.error != null);
+      if (shouldRetry && !auth.isLoading) {
         unawaited(ref.read(authControllerProvider.notifier).refreshProfile());
       }
     });
@@ -35,6 +37,71 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
+    final profileUnavailable =
+        auth.hasSession && auth.profile == null && auth.error != null;
+
+    if (profileUnavailable) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_rounded, size: 58),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Connexion temporairement indisponible',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Ta session est toujours active. AS Grinta n’arrive pas '
+                      'à charger ton profil pour le moment. Tu peux réessayer '
+                      'sans ressaisir ton mot de passe.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: auth.isLoading
+                          ? null
+                          : () => ref
+                              .read(authControllerProvider.notifier)
+                              .refreshProfile(),
+                      icon: auth.isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: GrintaProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh_rounded),
+                      label: const Text('Réessayer'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: auth.isLoading
+                          ? null
+                          : () => ref
+                              .read(authControllerProvider.notifier)
+                              .signOut(),
+                      child: const Text('Se déconnecter'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     if (auth.profile?.isPending != true) {
       return const Scaffold(
         body: Center(

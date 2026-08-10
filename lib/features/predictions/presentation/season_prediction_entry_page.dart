@@ -67,9 +67,7 @@ class _SeasonPredictionEntryPageState
             AppSpacing.screenGutter,
             32,
           ),
-          children: [
-            Text(humanizeError(error), textAlign: TextAlign.center),
-          ],
+          children: [Text(humanizeError(error), textAlign: TextAlign.center)],
         ),
         data: (entries) {
           if (entries.isEmpty) {
@@ -270,11 +268,15 @@ class _SeasonPredictionEntryPageState
     });
     try {
       final repository = ref.read(seasonPredictionsRepositoryProvider);
-      for (final item in items) {
-        final key = '${item.playerId}:${item.category}';
-        final value = _draftValues[key] ?? item.value;
-        await repository.save(item.copyWith(value: value, isFilled: true));
-      }
+      final updatedItems = [
+        for (final item in items)
+          item.copyWith(
+            value:
+                _draftValues['${item.playerId}:${item.category}'] ?? item.value,
+            isFilled: true,
+          ),
+      ];
+      await repository.saveAll(updatedItems);
       _draftValues.clear();
       ref.invalidate(seasonPredictionsProvider);
       await ref.read(seasonPredictionsProvider.future);
