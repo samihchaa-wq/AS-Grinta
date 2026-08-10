@@ -6,10 +6,10 @@ select no_plan();
 insert into auth.users(id, email, raw_user_meta_data)
 values
   ('d1000000-0000-0000-0000-000000000001', 'motm-space-admin@example.invalid', '{"first_name":"Admin"}'::jsonb),
-  ('d1000000-0000-0000-0000-000000000002', 'motm-space-1@example.invalid', '{"first_name":"Joueur1"}'::jsonb),
-  ('d1000000-0000-0000-0000-000000000003', 'motm-space-2@example.invalid', '{"first_name":"Joueur2"}'::jsonb),
-  ('d1000000-0000-0000-0000-000000000004', 'motm-space-3@example.invalid', '{"first_name":"Joueur3"}'::jsonb),
-  ('d1000000-0000-0000-0000-000000000005', 'motm-space-4@example.invalid', '{"first_name":"Joueur4"}'::jsonb);
+  ('d1000000-0000-0000-0000-000000000002', 'motm-space-1@example.invalid', '{"first_name":"Alice"}'::jsonb),
+  ('d1000000-0000-0000-0000-000000000003', 'motm-space-2@example.invalid', '{"first_name":"Bruno"}'::jsonb),
+  ('d1000000-0000-0000-0000-000000000004', 'motm-space-3@example.invalid', '{"first_name":"Claude"}'::jsonb),
+  ('d1000000-0000-0000-0000-000000000005', 'motm-space-4@example.invalid', '{"first_name":"Denis"}'::jsonb);
 
 update public.profiles
 set role = case
@@ -35,7 +35,7 @@ insert into public.season_players(
 select
   ('d4000000-0000-0000-0000-' || lpad(number::text, 12, '0'))::uuid,
   'd2000000-0000-0000-0000-000000000001',
-  format('Joueur%s', number),
+  case number when 1 then 'Alice' when 2 then 'Bruno' when 3 then 'Claude' else 'Denis' end,
   'StateSpace',
   number = 1,
   true,
