@@ -1,0 +1,4 @@
+-- Production history alignment marker.
+-- This migration version was already applied directly in production before the
+-- canonical repository change was prepared. The idempotent cleanup is fully
+-- represented by 20260811193609_remove_prediction_result_badges.sql.
