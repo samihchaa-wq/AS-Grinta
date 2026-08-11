@@ -66,11 +66,23 @@ class MatchModel {
 
   String get locationLabel => isHome ? 'Domicile' : 'Extérieur';
   bool get isArchived => status == 'archive';
-  bool get isFinished => status == 'termine' || status == 'archive';
   bool get isCancelled => status == 'annule';
   bool get isFriendly => matchType == 'amical';
   bool get isInternal => matchType == 'entre_nous';
   bool get isLiveSessionFinished => liveState == 'finished';
+
+  /// Un « Match entre nous » est considéré terminé dès son heure de coup
+  /// d'envoi. Supabase applique la même règle côté serveur ; ce calcul local
+  /// évite un état transitoire erroné si l'écran conserve une donnée en cache.
+  bool isFinishedAt({DateTime? now}) {
+    if (status == 'termine' || status == 'archive') return true;
+    if (!isInternal || status != 'a_venir') return false;
+
+    final reference = (now ?? DateTime.now()).toUtc();
+    return !reference.isBefore(kickoffAt.toUtc());
+  }
+
+  bool get isFinished => isFinishedAt();
 
   String get matchTypeLabel {
     if (isInternal) return 'Match entre nous';
@@ -80,13 +92,18 @@ class MatchModel {
   /// Pronostics fermés manuellement par l'admin (avant l'heure limite).
   bool get pronosClosed => predictionsClosedAt != null;
 
-  MatchDisplayPhase phase({DateTime? now}) => matchDisplayPhase(
-        kickoffAt: kickoffAt,
-        status: status,
-        plannedDurationMinutes: plannedDurationMinutes,
-        liveState: liveState,
-        now: now,
-      );
+  MatchDisplayPhase phase({DateTime? now}) {
+    if (!isCancelled && isFinishedAt(now: now)) {
+      return MatchDisplayPhase.past;
+    }
+    return matchDisplayPhase(
+      kickoffAt: kickoffAt,
+      status: status,
+      plannedDurationMinutes: plannedDurationMinutes,
+      liveState: liveState,
+      now: now,
+    );
+  }
 
   /// Le match est fini sportivement mais son compte rendu n'est pas encore
   /// validé. On ne le mélange plus avec les matchs passés.
