@@ -24,12 +24,15 @@ void main() {
       expect(webVersion, appVersion);
     });
 
-    test('index et service worker partagent la même source de version', () {
+    test('page et service worker utilisent la même version de déploiement', () {
       expect(index, contains('<script src="build_version.js"></script>'));
       expect(shell, contains('window.AS_GRINTA_WEB_VERSION'));
+      expect(shell, contains("'sw.js?v='"));
+      expect(shell, contains("{ updateViaCache: 'none' }"));
       expect(index, isNot(matches(RegExp(r'\?v=\d+'))));
-      expect(worker, contains("importScripts('build_version.js')"));
-      expect(worker, contains('AS_GRINTA_WEB_VERSION'));
+      expect(worker, contains('new URL(self.location.href)'));
+      expect(worker, contains("searchParams.get('v')"));
+      expect(worker, isNot(contains("importScripts('build_version.js')")));
     });
 
     test('le bootstrap applicatif est externe et compatible avec la CSP', () {
@@ -70,14 +73,30 @@ void main() {
     );
 
     test(
-      'la mise à jour se déclenche automatiquement, sans action requise',
+      'la mise à jour attend une action utilisateur avant de prendre le contrôle',
       () {
         expect(shell, contains("aria-live', 'polite'"));
+        expect(shell, contains('Nouvelle version disponible'));
+        expect(shell, contains('function activateUpdate()'));
         expect(
           shell,
-          contains("worker.postMessage({ type: 'SKIP_WAITING' })"),
+          contains("self._worker.postMessage({ type: 'SKIP_WAITING' })"),
         );
-        expect(shell, isNot(contains("document.createElement('button')")));
+        expect(
+          shell,
+          contains("bar.addEventListener('click', activateUpdate)"),
+        );
+
+        final considerStart = shell.indexOf('function considerWorker(worker)');
+        final updateFoundStart = shell.indexOf(
+          "registration.addEventListener('updatefound'",
+        );
+        expect(considerStart, greaterThanOrEqualTo(0));
+        expect(updateFoundStart, greaterThan(considerStart));
+
+        final considerWorker = shell.substring(considerStart, updateFoundStart);
+        expect(considerWorker, contains('window.asGrintaUpdate.show(worker)'));
+        expect(considerWorker, isNot(contains('SKIP_WAITING')));
       },
     );
   });
