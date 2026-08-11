@@ -1,0 +1,33 @@
+name: Format badge editor once
+
+on:
+  push:
+    branches:
+      - fix/badge-editor-visible-after-pick
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/badge-editor-visible-after-pick
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Format and self-clean
+        run: |
+          dart format lib/features/badges/presentation/badge_image_editor.dart
+          rm .github/workflows/format_badge_editor_once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/badges/presentation/badge_image_editor.dart .github/workflows/format_badge_editor_once.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Format badge editor with CI Dart"
+            git push origin HEAD:fix/badge-editor-visible-after-pick
+          fi
