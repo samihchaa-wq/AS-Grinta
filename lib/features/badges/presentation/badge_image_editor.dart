@@ -7,13 +7,12 @@ import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 /// Action d'administration pour remplacer uniquement le visuel central d'un
-/// badge. L'éditeur s'ouvre AVANT le sélecteur natif : il reste donc monté
-/// pendant le choix de la photo, y compris sur iOS/PWA.
+/// badge. L'éditeur reste monté pendant le choix de la photo.
 class BadgeImageEditorButton extends ConsumerStatefulWidget {
   const BadgeImageEditorButton({
     super.key,
@@ -137,17 +136,9 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     if (_picking || _saving) return;
     setState(() => _picking = true);
     try {
-      final file = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1600,
-        maxHeight: 1600,
-        imageQuality: 100,
-        requestFullMetadata: false,
-      );
-      if (file == null || !mounted) return;
+      final bytes = await pickBadgeImageBytes();
+      if (bytes == null || bytes.isEmpty || !mounted) return;
 
-      final bytes = await file.readAsBytes();
-      if (!mounted) return;
       setState(() {
         _bytes = bytes;
         _imageError = null;
@@ -303,9 +294,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                                   gaplessPlayback: true,
                                   errorBuilder: (_, __, ___) {
                                     WidgetsBinding.instance
-                                        .addPostFrameCallback((
-                                      _,
-                                    ) {
+                                        .addPostFrameCallback((_) {
                                       if (mounted && _imageError == null) {
                                         setState(() {
                                           _imageError =

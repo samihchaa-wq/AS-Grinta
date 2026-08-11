@@ -100,6 +100,50 @@
     },
   };
 
+  // Sélecteur dédié aux images de badges. On écoute uniquement l'événement
+  // "change" du vrai input HTML : sur Safari/iOS en PWA, le chemin générique
+  // d'image_picker peut interpréter le retour du sélecteur comme une annulation
+  // avant que le fichier choisi ne soit remonté à Flutter.
+  window.asGrintaBadgeImage = {
+    pick: function () {
+      return new Promise(function (resolve) {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.style.position = 'fixed';
+        input.style.left = '-10000px';
+        input.style.top = '-10000px';
+        input.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(input);
+
+        var finished = false;
+        function finish(value) {
+          if (finished) return;
+          finished = true;
+          input.remove();
+          resolve(value || '');
+        }
+
+        input.addEventListener('change', function () {
+          var file = input.files && input.files.length ? input.files[0] : null;
+          if (!file) {
+            finish('');
+            return;
+          }
+
+          var reader = new FileReader();
+          reader.addEventListener('load', function () {
+            finish(typeof reader.result === 'string' ? reader.result : '');
+          }, { once: true });
+          reader.addEventListener('error', function () { finish(''); }, { once: true });
+          reader.readAsDataURL(file);
+        }, { once: true });
+
+        input.click();
+      });
+    },
+  };
+
   var bootstrap = document.createElement('script');
   bootstrap.src = 'flutter_bootstrap.js?v=' + encodeURIComponent(asGrintaWebVersion);
   bootstrap.async = true;
