@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 const Color kDefaultBadgeColor = Color(0xFF3A4568);
 
 /// Couleur des badges « Diamant » : leur carré est parsemé de petits 💎.
-const Color kDiamondBadgeColor = Color(0xFF5FC9D9);
+const Color kDiamondBadgeColor = Color(0xFFB9F2FF);
 
 /// Convertit une couleur hex (`#RRGGBB` ou `RRGGBB`) en [Color].
 Color? parseBadgeColor(String? hex) {
@@ -14,6 +14,71 @@ Color? parseBadgeColor(String? hex) {
   if (value.length != 8) return null;
   final parsed = int.tryParse(value, radix: 16);
   return parsed == null ? null : Color(parsed);
+}
+
+List<Color> _badgeSurfaceColors(Color base) {
+  switch (base.toARGB32()) {
+    // Acier — gris froid avec reflets clairs.
+    case 0xFF7A858D:
+    case 0xFF6E7A86:
+      return const [
+        Color(0xFFE2E6E8),
+        Color(0xFF9AA4AA),
+        Color(0xFF5F686E),
+        Color(0xFFB9C0C4),
+        Color(0xFF747E84),
+      ];
+    // Bronze — cuivre chaud, plus proche d'un vrai bronze.
+    case 0xFFCD7F32:
+    case 0xFFB87333:
+      return const [
+        Color(0xFFF2C17D),
+        Color(0xFFD59047),
+        Color(0xFF8A4B20),
+        Color(0xFFE0A15A),
+        Color(0xFFA95E2B),
+      ];
+    // Argent — contraste froid du métal poli.
+    case 0xFFC0C0C0:
+    case 0xFFC4CBD4:
+      return const [
+        Color(0xFFFAFAFA),
+        Color(0xFFD8DADD),
+        Color(0xFF8B9299),
+        Color(0xFFECEDEF),
+        Color(0xFFAEB3B8),
+      ];
+    // Or — jaune moins saturé, avec ombres ambrées.
+    case 0xFFD4AF37:
+    case 0xFFE3B23C:
+      return const [
+        Color(0xFFFFF1A6),
+        Color(0xFFE5C04B),
+        Color(0xFFA77B00),
+        Color(0xFFF7D76F),
+        Color(0xFFC59B19),
+      ];
+    // Diamant — blanc glacé et cyan cristallin.
+    case 0xFFB9F2FF:
+    case 0xFF5FC9D9:
+      return const [
+        Color(0xFFF3FDFF),
+        Color(0xFFC9F6FF),
+        Color(0xFF71D7E7),
+        Color(0xFFDDFBFF),
+        Color(0xFF91DCE8),
+      ];
+  }
+
+  // Les autres familles (bleu, violet, noir, orange, rouge...) conservent
+  // leur identité, avec davantage de profondeur et un léger effet glossy.
+  return [
+    Color.lerp(base, Colors.white, 0.36)!,
+    Color.lerp(base, Colors.white, 0.08)!,
+    Color.lerp(base, Colors.black, 0.22)!,
+    Color.lerp(base, Colors.white, 0.15)!,
+    Color.lerp(base, Colors.black, 0.08)!,
+  ];
 }
 
 /// Le seuil à écrire en petit sur l'emblème d'un badge de barème (paliers de
@@ -162,6 +227,7 @@ class BadgeEmblem extends StatelessWidget {
   Widget _square(Color base, double sq) {
     final radius = sq * 0.26;
     final bareme = _displayBareme;
+    final surfaceColors = _badgeSurfaceColors(base);
     return SizedBox(
       width: sq,
       height: sq,
@@ -175,21 +241,45 @@ class BadgeEmblem extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radius),
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color.lerp(base, Colors.white, 0.22)!,
-                  Color.lerp(base, Colors.black, 0.12)!,
-                ],
+                begin: const Alignment(-1.0, -0.95),
+                end: const Alignment(1.0, 0.95),
+                colors: surfaceColors,
+                stops: const [0.0, 0.28, 0.52, 0.72, 1.0],
               ),
               border: Border.all(
-                color: Color.lerp(base, Colors.black, 0.28)!,
+                color: Color.lerp(base, Colors.black, 0.32)!,
                 width: sq * 0.045,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x42000000),
+                  blurRadius: sq * 0.09,
+                  offset: Offset(0, sq * 0.04),
+                ),
+              ],
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(radius),
+                        gradient: const LinearGradient(
+                          begin: Alignment(-1.0, -0.8),
+                          end: Alignment(1.0, 0.8),
+                          colors: [
+                            Color(0x00FFFFFF),
+                            Color(0x52FFFFFF),
+                            Color(0x00FFFFFF),
+                          ],
+                          stops: [0.25, 0.46, 0.64],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 if (base.toARGB32() == kDiamondBadgeColor.toARGB32())
                   _diamondPattern(sq),
                 if (imageUrl != null)
@@ -218,7 +308,7 @@ class BadgeEmblem extends StatelessWidget {
                   color: const Color(0xFF0B1D40),
                   borderRadius: BorderRadius.circular(size * 0.11),
                   border: Border.all(
-                    color: Color.lerp(base, Colors.white, 0.35)!,
+                    color: Color.lerp(base, Colors.white, 0.42)!,
                     width: size * 0.018,
                   ),
                 ),
