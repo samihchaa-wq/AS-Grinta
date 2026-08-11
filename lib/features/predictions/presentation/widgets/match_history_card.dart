@@ -18,11 +18,61 @@ class MatchHistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actions = match.isFinished || match.isCancelled ? null : adminActions;
+    final isFinishedInternal = match.isInternal && match.isFinished;
     final opponent = match.opponentName ?? 'Adversaire';
     final homeName = match.isHome ? 'AS Grinta' : opponent;
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? match.grintaScore : match.opponentScore;
     final awayScore = match.isHome ? match.opponentScore : match.grintaScore;
+
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
+      child: MatchDateHeader(
+        kickoffAt: match.kickoffAt,
+        foreground: AppTheme.textPrimary,
+        secondary: AppTheme.textPrimary,
+        dividerColor: CalendarCardPalette.finishedBorder,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: match.isInternal
+                  ? Text(
+                      'Match entre nous',
+                      textAlign: TextAlign.start,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontSize: 16,
+                            height: 1.1,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textPrimary,
+                          ),
+                    )
+                  : MatchFixture(
+                      homeName: homeName,
+                      awayName: awayName,
+                      grintaIsHome: match.isHome,
+                      homeScore: homeScore,
+                      awayScore: awayScore,
+                      finished: match.isFinished,
+                      // Les scores conservent le code résultat du composant :
+                      // vert victoire, orange nul, rouge défaite.
+                      nameStyle:
+                          Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontSize: 16,
+                                height: 1.1,
+                                fontWeight: FontWeight.w800,
+                              ),
+                      textAlign: TextAlign.start,
+                    ),
+            ),
+            if (actions != null) ...[
+              const SizedBox(width: 2),
+              SizedBox(width: 38, child: actions),
+            ],
+          ],
+        ),
+      ),
+    );
 
     return Card(
       color: CalendarCardPalette.finishedSurface,
@@ -34,45 +84,14 @@ class MatchHistoryCard extends ConsumerWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push('/matches/${match.id}'),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
-          child: MatchDateHeader(
-            kickoffAt: match.kickoffAt,
-            foreground: AppTheme.textPrimary,
-            secondary: AppTheme.textPrimary,
-            dividerColor: CalendarCardPalette.finishedBorder,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: MatchFixture(
-                    homeName: homeName,
-                    awayName: awayName,
-                    grintaIsHome: match.isHome,
-                    homeScore: homeScore,
-                    awayScore: awayScore,
-                    finished: match.isFinished,
-                    // Les scores conservent le code résultat du composant :
-                    // vert victoire, orange nul, rouge défaite.
-                    nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontSize: 16,
-                          height: 1.1,
-                          fontWeight: FontWeight.w800,
-                        ),
-                    textAlign: TextAlign.start,
-                  ),
-                ),
-                if (actions != null) ...[
-                  const SizedBox(width: 2),
-                  SizedBox(width: 38, child: actions),
-                ],
-              ],
+      // Une fois terminé, un « Match entre nous » devient une archive purement
+      // informative : pas de navigation ni d'indication visuelle cliquable.
+      child: isFinishedInternal
+          ? content
+          : InkWell(
+              onTap: () => context.push('/matches/${match.id}'),
+              child: content,
             ),
-          ),
-        ),
-      ),
     );
   }
 }
