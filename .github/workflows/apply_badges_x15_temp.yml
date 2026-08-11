@@ -1,0 +1,64 @@
+name: Apply badges x1.5 temporary
+
+on:
+  push:
+    branches:
+      - agent/badges-size-x15
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/badges-size-x15
+          fetch-depth: 0
+      - name: Resize all badges screens to x1.5
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'lib/features/badges/presentation/badge_admin_page.dart': [
+                  ('size: 108,', 'size: 81,', 1),
+                  ('size: 48,', 'size: 72,', 1),
+                  ('size: 54,', 'size: 81,', 1),
+              ],
+              'lib/features/badges/presentation/armoire_page.dart': [
+                  ('const columns = 4;', 'const columns = 3;', 1),
+                  ('tile < 58 ? tile : 58.0;', 'tile < 87 ? tile : 87.0;', 1),
+                  ('size: 54,', 'size: 81,', 1),
+              ],
+              'lib/features/badges/presentation/badge_detail_sheet.dart': [
+                  ('size: 82,', 'size: 123,', 1),
+                  ('size: 56,', 'size: 84,', 1),
+              ],
+          }
+
+          for filename, edits in replacements.items():
+              path = Path(filename)
+              text = path.read_text()
+              for old, new, expected in edits:
+                  count = text.count(old)
+                  if count != expected:
+                      raise SystemExit(
+                          f'{filename}: expected {expected} occurrence(s) of {old!r}, found {count}'
+                      )
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+      - name: Remove temporary workflow
+        run: git rm .github/workflows/apply_badges_x15_temp.yml
+      - name: Commit badge sizing
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/badges/presentation/badge_admin_page.dart \
+                  lib/features/badges/presentation/armoire_page.dart \
+                  lib/features/badges/presentation/badge_detail_sheet.dart
+          git commit -m "Agrandir les badges à x1,5 dans tout le module"
+          git push origin HEAD:agent/badges-size-x15
