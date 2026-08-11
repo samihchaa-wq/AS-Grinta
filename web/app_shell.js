@@ -4,35 +4,57 @@
   var asGrintaWebVersion = window.AS_GRINTA_WEB_VERSION || 'dev';
 
   window.asGrintaUpdate = {
-    show: function () {
-      if (document.getElementById('as-grinta-update-bar')) return;
+    _worker: null,
+    show: function (worker) {
+      this._worker = worker;
+      if (!worker || document.getElementById('as-grinta-update-bar')) return;
       var bar = document.createElement('div');
       bar.id = 'as-grinta-update-bar';
-      bar.textContent = 'Mise à jour de ASG…';
+      bar.textContent = 'Nouvelle version disponible — appuyez pour mettre à jour';
       bar.setAttribute('aria-live', 'polite');
+      bar.setAttribute('role', 'button');
+      bar.setAttribute('tabindex', '0');
       bar.setAttribute('style', [
         'position:fixed', 'top:0', 'left:0', 'right:0', 'width:100%',
         'z-index:2147483647', 'border:0',
         'background:#FBE80C', 'color:#041224',
         'font:700 14px/1.35 -apple-system,BlinkMacSystemFont,system-ui,sans-serif',
         'padding:calc(env(safe-area-inset-top, 0px) + 12px) 16px 12px',
-        'text-align:center',
+        'text-align:center', 'cursor:pointer',
         'box-shadow:0 2px 10px rgba(0,0,0,.35)'
       ].join(';'));
+
+      var self = this;
+      function activateUpdate() {
+        if (!self._worker) return;
+        bar.textContent = 'Mise à jour de ASG…';
+        bar.removeEventListener('click', activateUpdate);
+        bar.removeEventListener('keydown', onKeydown);
+        self._worker.postMessage({ type: 'SKIP_WAITING' });
+      }
+      function onKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          activateUpdate();
+        }
+      }
+
+      bar.addEventListener('click', activateUpdate);
+      bar.addEventListener('keydown', onKeydown);
       document.body.appendChild(bar);
     }
   };
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(
-      'sw.js?v=' + encodeURIComponent(asGrintaWebVersion)
+      'sw.js?v=' + encodeURIComponent(asGrintaWebVersion),
+      { updateViaCache: 'none' }
     ).then(function (registration) {
       if (!registration) return;
 
       function considerWorker(worker) {
         if (!worker || !navigator.serviceWorker.controller) return;
-        window.asGrintaUpdate.show();
-        worker.postMessage({ type: 'SKIP_WAITING' });
+        window.asGrintaUpdate.show(worker);
       }
 
       considerWorker(registration.waiting);
