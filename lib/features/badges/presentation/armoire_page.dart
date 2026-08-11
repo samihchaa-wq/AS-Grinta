@@ -305,10 +305,10 @@ class _BadgeTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const columns = 4;
+    const columns = 3;
     final tile =
         (MediaQuery.of(context).size.width - 32 - (columns - 1) * 12) / columns;
-    final emblem = tile < 58 ? tile : 58.0;
+    final emblem = tile < 87 ? tile : 87.0;
 
     if (locked) {
       return SizedBox(
@@ -474,7 +474,7 @@ class _InProgressTile extends StatelessWidget {
               showStar: badge.def.hasStar,
               starCount: badge.stars,
               starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
-              size: 54,
+              size: 81,
             ),
             const SizedBox(width: 14),
             Expanded(

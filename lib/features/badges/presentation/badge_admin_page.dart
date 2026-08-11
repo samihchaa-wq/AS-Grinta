@@ -180,7 +180,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                   b.threshold,
                                 ),
                                 showStar: b.hasStar,
-                                size: 108,
+                                size: 81,
                               ),
                               const SizedBox(width: 14),
                               Expanded(
@@ -277,7 +277,7 @@ class _CreateBadgeCard extends StatelessWidget {
                       ? '🏅'
                       : emojiController.text.trim(),
                   color: selectedColor,
-                  size: 48,
+                  size: 72,
                 ),
               ],
             ),
@@ -459,7 +459,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   widget.badge.threshold,
                 ),
                 showStar: widget.badge.hasStar,
-                size: 54,
+                size: 81,
               ),
               const SizedBox(width: 10),
               Expanded(
