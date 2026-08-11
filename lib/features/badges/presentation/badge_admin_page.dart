@@ -112,8 +112,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            'Touche un badge pour voir son barème complet et sa description, '
-            'puis l’attribuer ou le retirer.',
+            'Touche un badge pour voir son barème complet, modifier son image '
+            'et l’attribuer ou le retirer.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -172,7 +172,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            BadgeImageEditorButton(badge: b),
+                            BadgeImageEditorButton(badge: b, compact: true),
                             const Icon(Icons.chevron_right),
                           ],
                         ),
