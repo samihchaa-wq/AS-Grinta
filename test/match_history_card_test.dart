@@ -28,19 +28,23 @@ void main() {
     );
   }
 
-  testWidgets('un Match entre nous terminé garde son libellé et ne se clique pas',
-      (tester) async {
-    await pumpCard(tester, finishedMatch(matchType: 'entre_nous'));
+  testWidgets(
+    'un Match entre nous terminé garde son libellé et ne se clique pas',
+    (tester) async {
+      await pumpCard(tester, finishedMatch(matchType: 'entre_nous'));
 
-    expect(find.text('Match entre nous'), findsOneWidget);
-    expect(find.text('Adversaire'), findsNothing);
-    expect(find.byType(InkWell), findsNothing);
-  });
+      expect(find.text('Match entre nous'), findsOneWidget);
+      expect(find.text('Adversaire'), findsNothing);
+      expect(find.byType(InkWell), findsNothing);
+    },
+  );
 
-  testWidgets('un match classique terminé conserve sa navigation',
-      (tester) async {
-    await pumpCard(tester, finishedMatch(matchType: 'championnat'));
+  testWidgets(
+    'un match classique terminé conserve sa navigation',
+    (tester) async {
+      await pumpCard(tester, finishedMatch(matchType: 'championnat'));
 
-    expect(find.byType(InkWell), findsOneWidget);
-  });
+      expect(find.byType(InkWell), findsOneWidget);
+    },
+  );
 }
