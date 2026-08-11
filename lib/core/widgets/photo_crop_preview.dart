@@ -3,14 +3,14 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 /// Ouvre l'éditeur utilisé pour les photos de profil : déplacement libre,
 /// pinch-to-zoom / dézoom et export PNG en conservant la transparence.
 ///
-/// Les paramètres optionnels permettent de réutiliser exactement le même
-/// comportement pour d'autres visuels (par exemple les badges) sans dupliquer
-/// un second éditeur qui finirait par se comporter différemment.
+/// L'export est calculé directement depuis l'image source et la matrice de
+/// transformation. On ne capture pas le widget à l'écran : cela évite les
+/// échecs de RenderRepaintBoundary sur Flutter Web / iOS PWA et garantit que
+/// les zones transparentes restent réellement transparentes.
 Future<Uint8List?> cropProfilePhoto(
   BuildContext context,
   Uint8List bytes, {
@@ -57,9 +57,9 @@ class _PhotoCropDialog extends StatefulWidget {
 }
 
 class _PhotoCropDialogState extends State<_PhotoCropDialog> {
-  static const double _cropSize = 160;
+  static const double _cropSize = 180;
+  static const double _exportScale = 4;
 
-  final _boundaryKey = GlobalKey();
   final _transformationController = TransformationController();
   double _childWidth = _cropSize;
   double _childHeight = _cropSize;
@@ -91,6 +91,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     image.dispose();
     codec.dispose();
     if (!mounted) return;
+
     setState(() {
       _childWidth = childWidth;
       _childHeight = childHeight;
@@ -105,18 +106,60 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     });
   }
 
+  Future<Uint8List> _renderCrop() async {
+    final codec = await ui.instantiateImageCodec(widget.bytes);
+    final frame = await codec.getNextFrame();
+    final source = frame.image;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    canvas.scale(_exportScale, _exportScale);
+    canvas.clipRect(ui.Rect.fromLTWH(0, 0, _cropSize, _cropSize));
+    canvas.transform(_transformationController.value.storage);
+    canvas.drawImageRect(
+      source,
+      ui.Rect.fromLTWH(
+        0,
+        0,
+        source.width.toDouble(),
+        source.height.toDouble(),
+      ),
+      ui.Rect.fromLTWH(0, 0, _childWidth, _childHeight),
+      ui.Paint()..filterQuality = ui.FilterQuality.high,
+    );
+
+    final picture = recorder.endRecording();
+    final output = await picture.toImage(
+      (_cropSize * _exportScale).round(),
+      (_cropSize * _exportScale).round(),
+    );
+    final data = await output.toByteData(format: ui.ImageByteFormat.png);
+
+    output.dispose();
+    source.dispose();
+    codec.dispose();
+
+    if (data == null) {
+      throw StateError('Impossible de générer le PNG recadré.');
+    }
+    return data.buffer.asUint8List();
+  }
+
   Future<void> _confirm() async {
+    if (_busy) return;
     setState(() => _busy = true);
     try {
-      final boundary = _boundaryKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
-      final image = await boundary?.toImage(pixelRatio: 3);
-      final byteData = await image?.toByteData(format: ui.ImageByteFormat.png);
-      image?.dispose();
+      final png = await _renderCrop();
       if (!mounted) return;
-      Navigator.pop(context, byteData?.buffer.asUint8List());
+      Navigator.pop(context, png);
     } catch (_) {
-      if (mounted) Navigator.pop(context, null);
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossible de préparer cette image. Réessaie.'),
+        ),
+      );
     }
   }
 
@@ -127,20 +170,17 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            widget.instructions,
-            textAlign: TextAlign.center,
-          ),
+          Text(widget.instructions, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: widget.previewColor,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: widget.previewBorderColor),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(_cropSize * 0.28),
+              borderRadius: BorderRadius.circular(_cropSize * 0.25),
               child: SizedBox(
                 width: _cropSize,
                 height: _cropSize,
@@ -152,28 +192,32 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                    : RepaintBoundary(
-                        key: _boundaryKey,
-                        child: ClipRect(
-                          child: InteractiveViewer(
-                            transformationController: _transformationController,
-                            constrained: false,
-                            boundaryMargin:
-                                const EdgeInsets.all(_cropSize * 1.5),
-                            minScale: 0.25,
-                            maxScale: 5,
-                            child: Image.memory(
-                              widget.bytes,
-                              width: _childWidth,
-                              height: _childHeight,
-                              fit: BoxFit.fill,
-                              filterQuality: FilterQuality.high,
-                            ),
+                    : ClipRect(
+                        child: InteractiveViewer(
+                          transformationController: _transformationController,
+                          constrained: false,
+                          boundaryMargin: const EdgeInsets.all(_cropSize * 4),
+                          minScale: 0.05,
+                          maxScale: 8,
+                          panEnabled: true,
+                          scaleEnabled: true,
+                          child: Image.memory(
+                            widget.bytes,
+                            width: _childWidth,
+                            height: _childHeight,
+                            fit: BoxFit.fill,
+                            filterQuality: FilterQuality.high,
                           ),
                         ),
                       ),
               ),
             ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Le cadre coloré n’est pas enregistré dans l’image.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12),
           ),
         ],
       ),

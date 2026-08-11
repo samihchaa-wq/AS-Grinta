@@ -38,9 +38,6 @@ bool isCareerBadgeCategory(String? category) =>
 /// Contour blanc épais + fin liseré sombre pour détacher l'emoji de la couleur
 /// du carré (quelle que soit cette couleur), avec une légère ombre portée.
 List<Shadow> _emojiOutline(double fontSize) {
-  // Contour noir fin autour de l'emoji : 8 ombres noires réparties tout autour,
-  // décalage court (pas trop épais) et flou léger, pour un liseré régulier
-  // lisible sur n'importe quelle couleur de carré.
   final o = fontSize * 0.04;
   final blur = fontSize * 0.015;
   const black = Color(0xF0000000);
@@ -82,18 +79,8 @@ class BadgeEmblem extends StatelessWidget {
   final String? color;
   final String? baremeLabel;
   final bool showStar;
-
-  /// Si vrai, le chiffre affiché = seuil × nombre d'étoiles (paliers de
-  /// carrière). Sinon le chiffre reste le seuil (paliers saisonniers).
   final bool starsMultiplyBareme;
-
-  /// Si vrai, l'étoile déborde AU-DESSUS du carré sans compter dans la hauteur
-  /// (empreinte = carré size×size). Sert à aligner le carré avec le texte voisin
-  /// (badges à côté des noms). Sinon la boîte est un peu plus haute (armoire).
   final bool starOverflow;
-
-  /// Nombre d'étoiles posées au-dessus du carré (paliers rejouables : une
-  /// étoile par saison / titre gagné). Affichées côte à côte.
   final int starCount;
 
   @override
@@ -106,7 +93,6 @@ class BadgeEmblem extends StatelessWidget {
 
     final stars = starCount < 1 ? 1 : starCount;
     final overhang = size * 0.14;
-    // Rangée d'étoiles, réduite pour tenir dans la largeur du carré.
     final starRow = SizedBox(
       width: size,
       child: FittedBox(
@@ -117,8 +103,6 @@ class BadgeEmblem extends StatelessWidget {
     );
 
     if (starOverflow) {
-      // Empreinte = carré (size×size) ; l'étoile déborde au-dessus, sans
-      // décaler le carré (qui reste aligné avec le texte voisin).
       return SizedBox(
         width: size,
         height: size,
@@ -132,8 +116,6 @@ class BadgeEmblem extends StatelessWidget {
       );
     }
 
-    // Comportement historique (armoire) : boîte un peu plus haute, carré en bas,
-    // les étoiles chevauchent le haut.
     return SizedBox(
       width: size,
       height: size + overhang,
@@ -147,8 +129,6 @@ class BadgeEmblem extends StatelessWidget {
     );
   }
 
-  /// Rangée d'étoiles dorées (icônes vectorielles : toujours nettes et jaunes,
-  /// même en tout petit — l'emoji ⭐ perd sa couleur sur le web à petite taille).
   Widget _starRow(int stars) {
     final starSize = size * 0.22;
     return Row(
@@ -171,9 +151,6 @@ class BadgeEmblem extends StatelessWidget {
     );
   }
 
-  /// Libellé de barème affiché : pour les paliers (pastille numérique), on
-  /// multiplie le seuil par le nombre d'étoiles obtenues (2 étoiles = seuil ×2,
-  /// etc.). Les titres n'ont pas de pastille, donc ne sont pas concernés.
   String? get _displayBareme {
     final label = baremeLabel;
     if (!starsMultiplyBareme || label == null || starCount <= 1) return label;
@@ -216,15 +193,13 @@ class BadgeEmblem extends StatelessWidget {
                 if (base.toARGB32() == kDiamondBadgeColor.toARGB32())
                   _diamondPattern(sq),
                 if (imageUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(radius * 0.7),
-                    child: Image.network(
-                      imageUrl!,
-                      width: sq * 0.72,
-                      height: sq * 0.72,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _emoji(sq),
-                    ),
+                  Image.network(
+                    imageUrl!,
+                    width: sq * 0.78,
+                    height: sq * 0.78,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    errorBuilder: (_, __, ___) => _emoji(sq),
                   )
                 else
                   _emoji(sq),
@@ -235,10 +210,6 @@ class BadgeEmblem extends StatelessWidget {
             Positioned(
               right: size * 0.02,
               bottom: size * 0.02,
-              // Pastille de taille fixe, basée sur la taille NOMINALE du badge
-              // (pas sur le carré, qui rétrécit quand il y a une étoile) : ainsi
-              // toutes les pastilles sont identiques, avec ou sans étoile, quel
-              // que soit le nombre de chiffres (le nombre rétrécit pour tenir).
               child: Container(
                 width: size * 0.42,
                 height: size * 0.30,
@@ -264,7 +235,7 @@ class BadgeEmblem extends StatelessWidget {
                           fontSize: size * 0.24,
                           height: 1,
                           fontWeight: FontWeight.w900,
-                          color: Colors.white,
+                          foreground: Paint()..color = Colors.white,
                         ),
                       ),
                     ),
@@ -285,9 +256,6 @@ class BadgeEmblem extends StatelessWidget {
     );
   }
 
-  /// Petits 💎 en anneau symétrique sur le pourtour du carré (badges Diamant),
-  /// autour de l'emoji central. Chaque diamant est CENTRÉ sur son point via
-  /// [Align] (indépendant de la taille du glyphe).
   Widget _diamondPattern(double sq) {
     final d = sq * 0.13;
     const spots = <Alignment>[
