@@ -117,7 +117,7 @@ class BadgeDetailSheet extends ConsumerWidget {
                             currentBadge.threshold,
                           ),
                           showStar: currentBadge.hasStar,
-                          size: 82,
+                          size: 123,
                         ),
                         if (canEdit)
                           Positioned(
@@ -274,7 +274,7 @@ class _TierRow extends StatelessWidget {
             color: tier.color,
             baremeLabel: baremeLabelFor(tier.metric, tier.threshold),
             showStar: tier.hasStar,
-            size: 56,
+            size: 84,
           ),
           const SizedBox(width: 12),
           Expanded(
