@@ -149,33 +149,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                   for (final b in filtered)
                     Card(
                       margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: BadgeEmblem(
-                          emoji: b.emoji,
-                          imageUrl: b.imageUrl,
-                          color: b.color,
-                          baremeLabel: baremeLabelFor(b.metric, b.threshold),
-                          showStar: b.hasStar,
-                          size: 54,
-                        ),
-                        title: Text(b.name),
-                        subtitle: b.description.isNotEmpty
-                            ? Text(
-                                b.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              )
-                            : (b.kind == 'custom'
-                                ? const Text('Custom')
-                                : null),
-                        isThreeLine: b.description.isNotEmpty,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BadgeImageEditorButton(badge: b, compact: true),
-                            const Icon(Icons.chevron_right),
-                          ],
-                        ),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
                         onTap: () => showBadgeDetailSheet(
                           context,
                           b,
@@ -188,6 +163,60 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                               builder: (_) => _AwardSheet(badge: b),
                             );
                           },
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              BadgeEmblem(
+                                emoji: b.emoji,
+                                imageUrl: b.imageUrl,
+                                color: b.color,
+                                baremeLabel:
+                                    baremeLabelFor(b.metric, b.threshold),
+                                showStar: b.hasStar,
+                                size: 108,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      b.name,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                    if (b.description.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        b.description,
+                                        maxLines: 5,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ] else if (b.kind == 'custom') ...[
+                                      const SizedBox(height: 4),
+                                      const Text('Custom'),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  BadgeImageEditorButton(
+                                    badge: b,
+                                    compact: true,
+                                  ),
+                                  const Icon(Icons.chevron_right),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
