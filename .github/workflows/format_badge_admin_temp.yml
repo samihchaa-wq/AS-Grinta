@@ -1,0 +1,39 @@
+name: Apply badge admin format temporary
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Apply Dart formatter
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format lib/features/badges/presentation/badge_admin_page.dart
+          if git diff --quiet; then
+            echo "Already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/badges/presentation/badge_admin_page.dart
+          git commit -m "Apply Dart formatter to badge admin page"
+          git push origin HEAD:${{ github.head_ref }}
