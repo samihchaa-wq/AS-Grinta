@@ -1,8 +1,7 @@
 // Service worker AS La Grinta : navigation fraîche, fichiers statiques locaux,
-// mise à jour automatique et réception des notifications Web Push.
-importScripts('build_version.js');
-
-const WEB_VERSION = String(self.AS_GRINTA_WEB_VERSION || 'dev');
+// mise à jour contrôlée et réception des notifications Web Push.
+const workerUrl = new URL(self.location.href);
+const WEB_VERSION = workerUrl.searchParams.get('v') || 'dev';
 const CACHE_NAME = `as-grinta-${WEB_VERSION.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
 const APP_SHELL = [
   './',
