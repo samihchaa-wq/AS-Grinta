@@ -277,47 +277,49 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                         ),
                       )
                     : _imageError != null
-                    ? Container(
-                        color: Colors.black12,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.all(16),
-                        child: Text(_imageError!, textAlign: TextAlign.center),
-                      )
-                    : ClipRect(
-                        child: InteractiveViewer(
-                          transformationController: _controller,
-                          boundaryMargin: const EdgeInsets.all(_size * 4),
-                          minScale: .08,
-                          maxScale: 10,
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          constrained: true,
-                          child: SizedBox(
-                            width: _size,
-                            height: _size,
-                            child: Image.memory(
-                              bytes,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.high,
-                              gaplessPlayback: true,
-                              errorBuilder: (_, __, ___) {
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (mounted && _imageError == null) {
-                                    setState(() {
-                                      _imageError =
-                                          'Impossible d’afficher cette image. '
-                                          'Choisis un PNG ou un JPEG.';
+                        ? Container(
+                            color: Colors.black12,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(16),
+                            child:
+                                Text(_imageError!, textAlign: TextAlign.center),
+                          )
+                        : ClipRect(
+                            child: InteractiveViewer(
+                              transformationController: _controller,
+                              boundaryMargin: const EdgeInsets.all(_size * 4),
+                              minScale: .08,
+                              maxScale: 10,
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              constrained: true,
+                              child: SizedBox(
+                                width: _size,
+                                height: _size,
+                                child: Image.memory(
+                                  bytes,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.high,
+                                  gaplessPlayback: true,
+                                  errorBuilder: (_, __, ___) {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      if (mounted && _imageError == null) {
+                                        setState(() {
+                                          _imageError =
+                                              'Impossible d’afficher cette image. '
+                                              'Choisis un PNG ou un JPEG.';
+                                        });
+                                      }
                                     });
-                                  }
-                                });
-                                return const SizedBox.shrink();
-                              },
+                                    return const SizedBox.shrink();
+                                  },
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
               ),
             ),
           ),
@@ -343,9 +345,8 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving || _picking
-              ? null
-              : () => Navigator.of(context).pop(),
+          onPressed:
+              _saving || _picking ? null : () => Navigator.of(context).pop(),
           child: const Text('Annuler'),
         ),
         FilledButton.icon(
