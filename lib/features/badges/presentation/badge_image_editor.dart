@@ -349,10 +349,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
           child: const Text('Annuler'),
         ),
         FilledButton.icon(
-          onPressed: _saving ||
-                  _picking ||
-                  bytes == null ||
-                  _imageError != null
+          onPressed: _saving || _picking || bytes == null || _imageError != null
               ? null
               : _confirm,
           icon: _saving
