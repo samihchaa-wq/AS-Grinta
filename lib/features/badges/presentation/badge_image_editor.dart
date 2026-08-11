@@ -57,19 +57,15 @@ class _BadgeImageEditorButtonState
     final edited = await showDialog<Uint8List?>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _BadgeCropDialog(
-        bytes: bytes,
-        badgeColor: badgeColor,
-      ),
+      builder: (_) => _BadgeCropDialog(bytes: bytes, badgeColor: badgeColor),
     );
     if (edited == null || !mounted) return;
 
     setState(() => _busy = true);
     try {
-      await ref.read(badgeAdminRepositoryProvider).replaceBadgeImage(
-            badgeCode: widget.badge.code,
-            bytes: edited,
-          );
+      await ref
+          .read(badgeAdminRepositoryProvider)
+          .replaceBadgeImage(badgeCode: widget.badge.code, bytes: edited);
 
       ref.invalidate(badgeCatalogProvider);
       ref.invalidate(myArmoireProvider);
@@ -78,16 +74,14 @@ class _BadgeImageEditorButtonState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Image du badge « ${widget.badge.name} » mise à jour.',
-          ),
+          content: Text('Image du badge « ${widget.badge.name} » mise à jour.'),
         ),
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -129,10 +123,7 @@ class _BadgeImageEditorButtonState
 /// préalable : l'image choisie est rendue immédiatement avec Image.memory.
 /// Le décodage n'intervient qu'au moment de valider pour générer le PNG final.
 class _BadgeCropDialog extends StatefulWidget {
-  const _BadgeCropDialog({
-    required this.bytes,
-    required this.badgeColor,
-  });
+  const _BadgeCropDialog({required this.bytes, required this.badgeColor});
 
   final Uint8List bytes;
   final Color badgeColor;
@@ -160,10 +151,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     final frame = await codec.getNextFrame();
     final source = frame.image;
 
-    final containScale = math.min(
-      _size / source.width,
-      _size / source.height,
-    );
+    final containScale = math.min(_size / source.width, _size / source.height);
     final drawWidth = source.width * containScale;
     final drawHeight = source.height * containScale;
     final left = (_size - drawWidth) / 2;
@@ -176,12 +164,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     canvas.transform(_controller.value.storage);
     canvas.drawImageRect(
       source,
-      ui.Rect.fromLTWH(
-        0,
-        0,
-        source.width.toDouble(),
-        source.height.toDouble(),
-      ),
+      ui.Rect.fromLTWH(0, 0, source.width.toDouble(), source.height.toDouble()),
       ui.Rect.fromLTWH(left, top, drawWidth, drawHeight),
       ui.Paint()..filterQuality = ui.FilterQuality.high,
     );
@@ -229,8 +212,8 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final border = Color.lerp(widget.badgeColor, Colors.white, .38) ??
-        widget.badgeColor;
+    final border =
+        Color.lerp(widget.badgeColor, Colors.white, .38) ?? widget.badgeColor;
 
     return AlertDialog(
       title: const Text('Placer l’image du badge'),
@@ -261,10 +244,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                         color: Colors.black12,
                         alignment: Alignment.center,
                         padding: const EdgeInsets.all(16),
-                        child: Text(
-                          _imageError!,
-                          textAlign: TextAlign.center,
-                        ),
+                        child: Text(_imageError!, textAlign: TextAlign.center),
                       )
                     : ClipRect(
                         child: InteractiveViewer(
@@ -284,7 +264,9 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                               filterQuality: FilterQuality.high,
                               gaplessPlayback: true,
                               errorBuilder: (_, __, ___) {
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
                                   if (mounted && _imageError == null) {
                                     setState(() {
                                       _imageError =
