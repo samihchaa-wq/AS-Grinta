@@ -12,7 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Action d'administration pour remplacer uniquement le visuel central d'un
-/// badge : galerie -> aperçu immédiat -> déplacement/zoom -> sauvegarde PNG.
+/// badge. L'éditeur s'ouvre AVANT le sélecteur natif : il reste donc monté
+/// pendant le choix de la photo, y compris sur iOS/PWA.
 class BadgeImageEditorButton extends ConsumerStatefulWidget {
   const BadgeImageEditorButton({
     super.key,
@@ -35,33 +36,23 @@ class _BadgeImageEditorButtonState
   Future<void> _replaceImage() async {
     if (_busy) return;
 
-    final file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 100,
-      requestFullMetadata: false,
-    );
-    if (file == null) return;
-
-    final bytes = await file.readAsBytes();
-    if (!mounted) return;
-
-    // Sur iOS/Web, laisser le sélecteur natif se fermer complètement avant
-    // d'ouvrir la modale Flutter évite une modale invisible derrière le picker.
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    if (!mounted) return;
-
+    setState(() => _busy = true);
     final badgeColor =
         parseBadgeColor(widget.badge.color) ?? kDefaultBadgeColor;
-    final edited = await showDialog<Uint8List?>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _BadgeCropDialog(bytes: bytes, badgeColor: badgeColor),
-    );
+
+    Uint8List? edited;
+    try {
+      edited = await showDialog<Uint8List?>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _BadgeCropDialog(badgeColor: badgeColor),
+      );
+    } finally {
+      if (mounted && edited == null) setState(() => _busy = false);
+    }
+
     if (edited == null || !mounted) return;
 
-    setState(() => _busy = true);
     try {
       await ref
           .read(badgeAdminRepositoryProvider)
@@ -117,15 +108,9 @@ class _BadgeImageEditorButtonState
   }
 }
 
-/// Éditeur dédié aux badges.
-///
-/// Contrairement à l'ancien flux, l'affichage ne dépend d'aucun décodage
-/// préalable : l'image choisie est rendue immédiatement avec Image.memory.
-/// Le décodage n'intervient qu'au moment de valider pour générer le PNG final.
 class _BadgeCropDialog extends StatefulWidget {
-  const _BadgeCropDialog({required this.bytes, required this.badgeColor});
+  const _BadgeCropDialog({required this.badgeColor});
 
-  final Uint8List bytes;
   final Color badgeColor;
 
   @override
@@ -137,7 +122,9 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
   static const double _exportScale = 4;
 
   final TransformationController _controller = TransformationController();
-  bool _busy = false;
+  Uint8List? _bytes;
+  bool _picking = false;
+  bool _saving = false;
   String? _imageError;
 
   @override
@@ -146,8 +133,41 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    if (_picking || _saving) return;
+    setState(() => _picking = true);
+    try {
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 100,
+        requestFullMetadata: false,
+      );
+      if (file == null || !mounted) return;
+
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _bytes = bytes;
+        _imageError = null;
+        _controller.value = Matrix4.identity();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible de lire cette image.')),
+      );
+    } finally {
+      if (mounted) setState(() => _picking = false);
+    }
+  }
+
   Future<Uint8List> _renderPng() async {
-    final codec = await ui.instantiateImageCodec(widget.bytes);
+    final bytes = _bytes;
+    if (bytes == null) throw StateError('Aucune image sélectionnée.');
+
+    final codec = await ui.instantiateImageCodec(bytes);
     final frame = await codec.getNextFrame();
     final source = frame.image;
 
@@ -187,19 +207,19 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
   }
 
   Future<void> _confirm() async {
-    if (_busy || _imageError != null) return;
-    setState(() => _busy = true);
+    if (_saving || _picking || _bytes == null || _imageError != null) return;
+    setState(() => _saving = true);
     try {
       final result = await _renderPng();
       if (!mounted) return;
       Navigator.of(context).pop(result);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _busy = false);
+      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Cette image ne peut pas être préparée. Essaie un PNG ou un JPEG.',
+            'Cette image ne peut pas être préparée. Choisis un PNG ou un JPEG.',
           ),
         ),
       );
@@ -214,16 +234,17 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
   Widget build(BuildContext context) {
     final border =
         Color.lerp(widget.badgeColor, Colors.white, .38) ?? widget.badgeColor;
+    final bytes = _bytes;
 
     return AlertDialog(
-      title: const Text('Placer l’image du badge'),
+      title: const Text('Image du badge'),
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'Déplace l’image avec un doigt. Pince avec deux doigts pour zoomer '
-            'ou dézoomer. Le fond du badge reste inchangé.',
+            'Choisis l’image, puis déplace-la avec un doigt et pince avec deux '
+            'doigts pour zoomer ou dézoomer. Le fond du badge reste inchangé.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -239,67 +260,100 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
               child: SizedBox(
                 width: _size,
                 height: _size,
-                child: _imageError != null
-                    ? Container(
-                        color: Colors.black12,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.all(16),
-                        child: Text(_imageError!, textAlign: TextAlign.center),
+                child: bytes == null
+                    ? Center(
+                        child: FilledButton.icon(
+                          onPressed: _picking ? null : _pickImage,
+                          icon: _picking
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.photo_library_rounded),
+                          label: const Text('Choisir une image'),
+                        ),
                       )
-                    : ClipRect(
-                        child: InteractiveViewer(
-                          transformationController: _controller,
-                          boundaryMargin: const EdgeInsets.all(_size * 4),
-                          minScale: .08,
-                          maxScale: 10,
-                          panEnabled: true,
-                          scaleEnabled: true,
-                          constrained: true,
-                          child: SizedBox(
-                            width: _size,
-                            height: _size,
-                            child: Image.memory(
-                              widget.bytes,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.high,
-                              gaplessPlayback: true,
-                              errorBuilder: (_, __, ___) {
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (mounted && _imageError == null) {
-                                    setState(() {
-                                      _imageError =
-                                          'Impossible d’afficher cette image. '
-                                          'Choisis un PNG ou un JPEG.';
+                    : _imageError != null
+                        ? Container(
+                            color: Colors.black12,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(16),
+                            child:
+                                Text(_imageError!, textAlign: TextAlign.center),
+                          )
+                        : ClipRect(
+                            child: InteractiveViewer(
+                              transformationController: _controller,
+                              boundaryMargin: const EdgeInsets.all(_size * 4),
+                              minScale: .08,
+                              maxScale: 10,
+                              panEnabled: true,
+                              scaleEnabled: true,
+                              constrained: true,
+                              child: SizedBox(
+                                width: _size,
+                                height: _size,
+                                child: Image.memory(
+                                  bytes,
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.high,
+                                  gaplessPlayback: true,
+                                  errorBuilder: (_, __, ___) {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      if (mounted && _imageError == null) {
+                                        setState(() {
+                                          _imageError =
+                                              'Impossible d’afficher cette image. '
+                                              'Choisis un PNG ou un JPEG.';
+                                        });
+                                      }
                                     });
-                                  }
-                                });
-                                return const SizedBox.shrink();
-                              },
+                                    return const SizedBox.shrink();
+                                  },
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
               ),
             ),
           ),
           const SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: _busy ? null : _reset,
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Réinitialiser le cadrage'),
-          ),
+          if (bytes != null)
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: _saving || _picking ? null : _pickImage,
+                  icon: const Icon(Icons.photo_library_rounded, size: 18),
+                  label: const Text('Changer d’image'),
+                ),
+                TextButton.icon(
+                  onPressed: _saving ? null : _reset,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Réinitialiser'),
+                ),
+              ],
+            ),
         ],
       ),
       actions: [
         TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(),
+          onPressed:
+              _saving || _picking ? null : () => Navigator.of(context).pop(),
           child: const Text('Annuler'),
         ),
         FilledButton.icon(
-          onPressed: _busy || _imageError != null ? null : _confirm,
-          icon: _busy
+          onPressed: _saving || _picking || bytes == null || _imageError != null
+              ? null
+              : _confirm,
+          icon: _saving
               ? const SizedBox(
                   width: 18,
                   height: 18,
