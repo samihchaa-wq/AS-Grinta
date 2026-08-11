@@ -138,8 +138,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
               final filtered = _query.isEmpty
                   ? badges
                   : badges
-                        .where((b) => b.name.toLowerCase().contains(_query))
-                        .toList();
+                      .where((b) => b.name.toLowerCase().contains(_query))
+                      .toList();
               if (filtered.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
@@ -498,8 +498,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   final filtered = _query.isEmpty
                       ? people
                       : people
-                            .where((p) => p.name.toLowerCase().contains(_query))
-                            .toList();
+                          .where((p) => p.name.toLowerCase().contains(_query))
+                          .toList();
                   return ListView(
                     shrinkWrap: true,
                     children: [
@@ -516,9 +516,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                                   ),
                                 )
                               : null,
-                          onChanged: _busy.contains(p.id)
-                              ? null
-                              : (_) => _toggle(p),
+                          onChanged:
+                              _busy.contains(p.id) ? null : (_) => _toggle(p),
                         ),
                       if (filtered.isEmpty)
                         const Padding(
