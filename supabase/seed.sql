@@ -55,15 +55,11 @@ insert into public.badges (
 ('title_best_pred_overall__1','Le Cerveau','Terminer une saison avec le meilleur total cumulé sur l''ensemble des catégories de pronostics.','🧠','pronostiqueur',true,'title_best_pred_overall',1,202,'tier','palmares',null,'#5FC9D9',true,false,false),
 ('bet_against_grinta__1','Traître','Tu as parié contre l’AS Grinta sur un match… et il est passé. Honte à toi.','🐍','pronostiqueur',true,'bet_against_grinta',1,900,'tier','pronos_all_time',null,'#F97316',false,true,true),
 ('exploit_remplace_gardien','Gardien d''un soir','Prendre la place du gardien pendant un match alors que ce n''est pas son poste habituel.','🧤','joueur',false,null,null,900,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
-('exploit_equipe_adverse','Agent double','Changer temporairement de camp afin de jouer dans l''équipe adverse.','🕵️','joueur',false,null,null,901,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
-('perfect_own_goals_prediction__1','J’vous avais dis quoi ?','Tu as prédit ton propre total de buts sur la saison… au but près. Chapeau.','😏','pronostiqueur',true,'perfect_own_goals_prediction',1,901,'tier','pronos_all_time',null,'#F97316',false,true,true),
 ('exploit_penalty_provoque','Le Boucher','Commettre une faute entraînant un penalty pour l''équipe adverse.','🔪','joueur',false,null,null,902,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
 ('exploit_penalty_subi','Le Plongeur','Subir une faute dans la surface permettant à son équipe d''obtenir un penalty.','🤿','joueur',false,null,null,903,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
 ('exploit_penalty_arrete','Goalkeeper','Empêcher l''adversaire de marquer en arrêtant un penalty.','🧤','joueur',false,null,null,904,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
 ('exploit_but_vainqueur_tardif','Clutch','Marquer dans les dernières minutes le but qui offre définitivement la victoire à son équipe.','🥵','joueur',false,null,null,905,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
 ('exploit_csc','La Boulette','Envoyer involontairement le ballon dans les cages de sa propre équipe.','🫣','joueur',false,null,null,906,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
-('exploit_sauvetage_ligne','Super-héros','Empêcher un but en dégageant le ballon directement sur la ligne de but.','🦸','joueur',false,null,null,907,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
-('exploit_trois_postes','Couteau suisse','Occuper au moins trois postes différents au cours d''un même match.','🧩','joueur',false,null,null,908,'custom','faits_de_jeu',null,'#F2811D',false,false,false),
 ('role_president','El Presidente','Exercer officiellement la fonction de président du club.','🤵','joueur',false,null,null,909,'custom','palmares',null,'#1C1C24',false,false,false),
 ('role_coach','Coach','Exercer officiellement la fonction de coach du club.','👨‍🦲','joueur',false,null,null,910,'custom','palmares',null,'#1C1C24',false,false,false)
 on conflict (code) do nothing;
