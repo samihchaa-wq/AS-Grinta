@@ -13,6 +13,8 @@ class FeaturedBadge {
     this.hasStar = false,
     this.stars = 1,
     this.category,
+    this.code,
+    this.metric,
   });
   final String emoji;
   final String? imageUrl;
@@ -29,6 +31,10 @@ class FeaturedBadge {
 
   /// Catégorie du badge, conservée pour les usages d'affichage existants.
   final String? category;
+
+  /// Code et métrique : de quoi dériver le socle affiché sous l'illustration.
+  final String? code;
+  final String? metric;
 }
 
 class FeaturedBadgesRepository {
@@ -53,6 +59,8 @@ class FeaturedBadgesRepository {
         hasStar: m['has_star'] == true,
         stars: (m['stars'] as num?)?.toInt() ?? 1,
         category: m['category']?.toString(),
+        code: m['code']?.toString(),
+        metric: m['metric']?.toString(),
       ));
     }
     return map;

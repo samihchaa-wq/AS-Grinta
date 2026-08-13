@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 
@@ -26,9 +27,8 @@ String? baremeLabelFor(String? metric, int? value) {
   return '$value';
 }
 
-bool isCareerBadgeCategory(String? category) =>
-    category == 'joueur_all_time' || category == 'pronos_all_time';
-
+/// Emblème d'un badge : un rectangle unique empilant l'illustration, la valeur
+/// atteinte, le critère mesuré et sa temporalité.
 class BadgeEmblem extends StatelessWidget {
   const BadgeEmblem({
     super.key,
@@ -40,8 +40,6 @@ class BadgeEmblem extends StatelessWidget {
     this.descriptor,
     this.showStar = false,
     this.starCount = 1,
-    this.starsMultiplyBareme = false,
-    this.starOverflow = false,
   });
 
   final String emoji;
@@ -49,11 +47,20 @@ class BadgeEmblem extends StatelessWidget {
   final String? imageUrl;
   final String? color;
   final String? baremeLabel;
-  final String? descriptor;
+
+  /// Le socle. À défaut, une mention générique déduite de la nature du badge.
+  final BadgeDescriptor? descriptor;
+
   final bool showStar;
   final int starCount;
-  final bool starsMultiplyBareme;
-  final bool starOverflow;
+
+  BadgeDescriptor get _descriptor {
+    final given = descriptor;
+    if (given != null) return given;
+    if (showStar) return const BadgeDescriptor('PALMARÈS');
+    if (baremeLabel != null) return const BadgeDescriptor('PERFORMANCE');
+    return const BadgeDescriptor('EXPLOIT');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,36 +73,55 @@ class BadgeEmblem extends StatelessWidget {
             fit: BoxFit.contain,
             errorBuilder: (_, __, ___) => fallback,
           );
-    final footer = descriptor?.isNotEmpty == true
-        ? descriptor!
-        : showStar
-            ? 'PALMARÈS'
-            : baremeLabel != null
-                ? 'PERFORMANCE'
-                : 'EXPLOIT';
-    final body = BadgeEmblemBody(
+
+    return BadgeEmblemBody(
       size: size,
       base: base,
-      footer: footer,
+      descriptor: _descriptor,
       value: baremeLabel,
-      child: illustration,
+      child: showStar
+          ? _Starred(size: size, count: starCount, child: illustration)
+          : illustration,
     );
-    if (!showStar) return body;
-    final count = starCount < 1 ? 1 : starCount;
+  }
+}
+
+/// Les étoiles de palmarès, posées dans l'illustration plutôt qu'au-dessus de
+/// l'emblème : elles font partie de la pièce, elles ne la surmontent pas.
+class _Starred extends StatelessWidget {
+  const _Starred({
+    required this.size,
+    required this.count,
+    required this.child,
+  });
+
+  final double size;
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final stars = count < 1 ? 1 : count;
     return Stack(
-      clipBehavior: Clip.none,
       alignment: Alignment.topCenter,
       children: [
-        body,
-        Positioned(
-          top: -size * 0.13,
+        Center(child: child),
+        Padding(
+          padding: EdgeInsets.only(top: size * 0.03),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (var i = 0; i < count; i++)
+              for (var i = 0; i < stars; i++)
                 Icon(
                   Icons.star_rounded,
-                  size: size * 0.2,
+                  size: size * 0.18,
                   color: const Color(0xFFFCC21B),
+                  shadows: [
+                    Shadow(
+                      color: const Color(0x8C000000),
+                      blurRadius: size * 0.03,
+                    ),
+                  ],
                 ),
             ],
           ),

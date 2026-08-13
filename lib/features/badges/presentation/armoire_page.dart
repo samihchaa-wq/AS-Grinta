@@ -381,11 +381,13 @@ class _BadgeTile extends ConsumerWidget {
                   imageUrl: badge.def.imageUrl,
                   color: badge.def.color,
                   baremeLabel: valueLabel,
+                  descriptor: badgeDescriptorFor(
+                    code: badge.def.code,
+                    metric: badge.def.metric,
+                    category: badge.def.category,
+                  ),
                   showStar: badge.def.hasStar,
                   starCount: badge.stars,
-                  starsMultiplyBareme: isCareerBadgeCategory(
-                    badge.def.category,
-                  ),
                   size: emblem,
                 ),
                 if (badge.isNew)
@@ -471,9 +473,13 @@ class _InProgressTile extends StatelessWidget {
               imageUrl: badge.def.imageUrl,
               color: badge.def.color,
               baremeLabel: badgeValueLabel(badge),
+              descriptor: badgeDescriptorFor(
+                code: badge.def.code,
+                metric: badge.def.metric,
+                category: badge.def.category,
+              ),
               showStar: badge.def.hasStar,
               starCount: badge.stars,
-              starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
               size: 81,
             ),
             const SizedBox(width: 14),

@@ -1,4 +1,29 @@
-String badgeDescriptorFor({
+/// Ce qu'un emblème annonce sous son illustration : le critère mesuré, et la
+/// temporalité sur laquelle il l'est. Les deux tiennent sur deux lignes
+/// distinctes du socle, jamais sur une seule.
+class BadgeDescriptor {
+  const BadgeDescriptor(this.label, [this.period]);
+
+  /// Le critère : `BUTS`, `MATCHS`, `TRIPLÉ`, `BALLON D’OR`…
+  final String label;
+
+  /// La temporalité : `SAISON`, `CARRIÈRE`… `null` quand le critère se suffit
+  /// à lui-même (un exploit n'a pas de période).
+  final String? period;
+}
+
+BadgeDescriptor badgeDescriptorFor({
+  String? code,
+  String? metric,
+  String? category,
+}) {
+  final raw = _rawDescriptorFor(code: code, metric: metric, category: category);
+  final parts = raw.split(' · ');
+  if (parts.length == 2) return BadgeDescriptor(parts.first, parts.last);
+  return BadgeDescriptor(raw);
+}
+
+String _rawDescriptorFor({
   String? code,
   String? metric,
   String? category,
@@ -30,19 +55,19 @@ String badgeDescriptorFor({
     case 'bet_against_grinta':
       return 'PRONOSTIC SPÉCIAL';
     case 'title_most_present':
-      return 'MONSIEUR PRÉSENT';
+      return 'MONSIEUR PRÉSENT · SAISON';
     case 'title_top_scorer':
-      return 'SOULIER D’OR';
+      return 'SOULIER D’OR · SAISON';
     case 'title_best_winrate':
-      return 'MONSIEUR VICTOIRE';
+      return 'MONSIEUR VICTOIRE · SAISON';
     case 'title_mvp_king':
-      return 'BALLON D’OR';
+      return 'BALLON D’OR · SAISON';
     case 'title_best_pred_player':
-      return 'L’ANALYSTE';
+      return 'L’ANALYSTE · SAISON';
     case 'title_best_pred_match':
-      return 'LE VISIONNAIRE';
+      return 'LE VISIONNAIRE · SAISON';
     case 'title_best_pred_overall':
-      return 'LE CERVEAU';
+      return 'LE CERVEAU · SAISON';
   }
   switch (code) {
     case 'exploit_remplace_gardien':
@@ -64,6 +89,6 @@ String badgeDescriptorFor({
   }
   if (category == 'palmares') return 'PALMARÈS';
   if (category == 'faits_de_jeu') return 'FAIT DE JEU';
-  if (category == 'pronos_all_time') return 'PRONOSTIC';
+  if (category == 'pronos_all_time') return 'PRONOSTIC · CARRIÈRE';
   return 'BADGE';
 }

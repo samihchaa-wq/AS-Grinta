@@ -18,7 +18,7 @@ class StatisticsBadgeEmblemData {
   final String? imageUrl;
   final String? color;
   final String? valueLabel;
-  final String descriptor;
+  final BadgeDescriptor descriptor;
   final bool hasStar;
   final int stars;
   final String? category;
