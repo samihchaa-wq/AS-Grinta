@@ -43,6 +43,12 @@ $function$;
 comment on function private.profile_photo_storage_path(text) is
   'Chemin d objet dans le bucket profile-photos, que la valeur stockee soit une URL complete (heritage) ou un chemin relatif.';
 
+-- Une fonction fraichement creee est executable par PUBLIC par defaut, ce que
+-- le contrat security_surface_contract interdit pour toute fonction
+-- applicative. Ce helper ne sert qu'aux declencheurs internes.
+revoke all on function private.profile_photo_storage_path(text)
+  from public, anon, authenticated;
+
 create or replace function public.cleanup_replaced_photo()
 returns trigger
 language plpgsql
@@ -228,6 +234,9 @@ $function$;
 
 comment on function private.badge_image_storage_path(text) is
   'Chemin d objet dans le bucket badge-images, extrait d une URL publique.';
+
+revoke all on function private.badge_image_storage_path(text)
+  from public, anon, authenticated;
 
 create or replace function public.cleanup_replaced_badge_image()
 returns trigger
