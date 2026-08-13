@@ -138,6 +138,62 @@ void main() {
     );
   });
 
+  testWidgets('un badge à étoiles réserve leur débord', (tester) async {
+    const starred = <String, List<StatisticsBadgeEmblemData>>{
+      'p1': [
+        StatisticsBadgeEmblemData(
+          emoji: '🏆',
+          imageUrl: null,
+          color: null,
+          valueLabel: null,
+          descriptor: BadgeDescriptor('BALLON D’OR', 'SAISON'),
+          hasStar: true,
+          stars: 2,
+          category: 'palmares',
+        ),
+      ],
+    };
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          statisticsBadgeEmblemsProvider.overrideWith((ref) async => starred),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: BadgeDisplayScope(
+              showBadges: true,
+              child: NameWithBadges(
+                profileId: 'p1',
+                name: 'Samih',
+                badgeSize: 48,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.star_rounded), findsNWidgets(2));
+
+    // La moitié haute des étoiles dépasse du rectangle, et cette place est
+    // comptée dans la hauteur du badge : rien n'est rogné par la ligne.
+    final drawn = tester.getRect(find.byType(BadgeEmblem).first);
+    expect(
+      drawn.height,
+      closeTo(
+        48 *
+            badgeEmblemHeightRatio(
+              hasValue: false,
+              hasPeriod: true,
+              hasStar: true,
+            ),
+        0.5,
+      ),
+    );
+  });
+
   testWidgets('hors Statistiques, seul le nom est rendu', (tester) async {
     await tester.pumpWidget(
       harness(width: 240, name: 'Samih', showBadges: false),

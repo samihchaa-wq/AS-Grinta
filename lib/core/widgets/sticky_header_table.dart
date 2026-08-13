@@ -13,13 +13,13 @@ const grintaTablePinnedWidth = 216.0;
 const grintaTableHeaderFontSize = 11.5;
 const grintaTableCellFontSize = 13.5;
 const grintaTableRankFontSize = 12.5;
-const grintaTablePinnedHeaderPadding = EdgeInsets.fromLTRB(16, 12, 8, 12);
+const grintaTablePinnedHeaderPadding = EdgeInsets.fromLTRB(10, 12, 8, 12);
 const grintaTableScrollableHeaderPadding = EdgeInsets.fromLTRB(8, 12, 16, 12);
 
 /// Marge verticale réduite côté colonne figée : la hauteur des lignes reste
 /// donnée par les cellules de stats, mais un emblème peut occuper toute la
 /// hauteur au lieu d'être bridé par 17 px de vide en haut et en bas.
-const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(16, 8, 8, 8);
+const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(10, 8, 8, 8);
 
 const grintaTableScrollableRowPadding = EdgeInsets.fromLTRB(8, 17, 16, 17);
 
@@ -54,6 +54,35 @@ TextStyle grintaTableRankTextStyle(BuildContext context, {Color? color}) {
     fontWeight: FontWeight.w900,
     fontFeatures: const [FontFeature.tabularFigures()],
   );
+}
+
+/// Le rang d'une ligne, calé à droite dans une case juste assez large pour
+/// deux chiffres, puis un écart franc avant le nom.
+///
+/// Aligné à gauche, un rang à un chiffre laissait derrière lui un trou aussi
+/// large que le chiffre manquant, et le nom ne démarrait jamais au même
+/// endroit d'une ligne à l'autre.
+class GrintaTableRankCell extends StatelessWidget {
+  const GrintaTableRankCell({required this.rank, this.color, super.key});
+
+  final int rank;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: SizedBox(
+        width: 18,
+        child: Text(
+          '$rank',
+          maxLines: 1,
+          textAlign: TextAlign.end,
+          style: grintaTableRankTextStyle(context, color: color),
+        ),
+      ),
+    );
+  }
 }
 
 /// Une ligne du tableau, scindée entre la cellule figée (rang + nom), qui

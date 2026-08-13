@@ -9,15 +9,25 @@ const _periodRatio = 0.18;
 
 const _footerColor = Color(0xFF0B1D40);
 
-/// Hauteur totale de l'emblème pour une largeur de 1.
+/// Taille d'une étoile de palmarès, rapportée à la largeur de l'emblème.
+const kBadgeEmblemStarRatio = 0.2;
+
+/// Ce que les étoiles débordent au-dessus du rectangle : la moitié de leur
+/// hauteur, l'autre moitié mordant sur l'illustration.
+const kBadgeEmblemStarOverhangRatio = kBadgeEmblemStarRatio / 2;
+
+/// Hauteur totale de l'emblème pour une largeur de 1, débord des étoiles
+/// compris.
 ///
 /// L'emblème empile image, nombre, critère et temporalité : les zones absentes
 /// (badge sans valeur, critère sans période) ne réservent aucune place.
 double badgeEmblemHeightRatio({
   required bool hasValue,
   required bool hasPeriod,
+  bool hasStar = false,
 }) {
-  return _illustrationRatio +
+  return (hasStar ? kBadgeEmblemStarOverhangRatio : 0) +
+      _illustrationRatio +
       (hasValue ? _valueRatio : 0) +
       _labelRatio +
       (hasPeriod ? _periodRatio : 0);
