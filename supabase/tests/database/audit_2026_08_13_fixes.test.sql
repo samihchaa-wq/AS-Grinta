@@ -17,6 +17,16 @@ begin;
 set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
+-- Le profil technique de remplacement conditionne
+-- prepare_profile_for_hard_deletion, qui refuse de s'exécuter sans lui. Il
+-- existe en production, mais pas dans une base reconstruite depuis les seules
+-- migrations : le bootstrap historique ne le crée que si le compte Auth
+-- correspondant est déjà présent. On le fournit donc ici.
+insert into auth.users (id, email, raw_user_meta_data)
+values ('00000000-0000-0000-0000-000000000001', 'audit-systeme@example.invalid',
+        '{"first_name":"Systeme","last_name":"ASG"}'::jsonb)
+on conflict (id) do nothing;
+
 -- Identités et données exclusivement réservées aux tests. La transaction
 -- finale est annulée ; aucune ligne ne subsiste dans la base locale.
 insert into auth.users (id, email, raw_user_meta_data)
