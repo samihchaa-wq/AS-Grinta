@@ -2,7 +2,7 @@ import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:flutter/material.dart';
 
 /// Proportions des quatre zones de l'emblème, rapportées à sa largeur.
-const _illustrationRatio = 0.82;
+const kBadgeIllustrationRatio = 0.82;
 const _valueRatio = 0.26;
 const _labelRatio = 0.22;
 const _periodRatio = 0.18;
@@ -27,7 +27,7 @@ double badgeEmblemHeightRatio({
   bool hasStar = false,
 }) {
   return (hasStar ? kBadgeEmblemStarOverhangRatio : 0) +
-      _illustrationRatio +
+      kBadgeIllustrationRatio +
       (hasValue ? _valueRatio : 0) +
       _labelRatio +
       (hasPeriod ? _periodRatio : 0);
@@ -70,7 +70,7 @@ class BadgeEmblemBody extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: size * _illustrationRatio,
+            height: size * kBadgeIllustrationRatio,
             width: size,
             child: Center(child: child),
           ),

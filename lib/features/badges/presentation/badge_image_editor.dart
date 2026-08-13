@@ -7,12 +7,13 @@ import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Action d'administration pour remplacer uniquement le visuel central d'un
-/// badge. L'éditeur reste monté pendant le choix de la photo.
+/// Action d'administration pour recadrer ou remplacer uniquement le visuel
+/// central d'un badge.
 class BadgeImageEditorButton extends ConsumerStatefulWidget {
   const BadgeImageEditorButton({
     super.key,
@@ -32,19 +33,44 @@ class _BadgeImageEditorButtonState
     extends ConsumerState<BadgeImageEditorButton> {
   bool _busy = false;
 
-  Future<void> _replaceImage() async {
+  Future<void> _editImage() async {
     if (_busy) return;
 
     setState(() => _busy = true);
     final badgeColor =
         parseBadgeColor(widget.badge.color) ?? kDefaultBadgeColor;
+    final repository = ref.read(badgeAdminRepositoryProvider);
+    final imageUrl = widget.badge.imageUrl?.trim();
+
+    Uint8List? initialBytes;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        initialBytes = await repository.downloadBadgeImage(imageUrl);
+      } catch (error) {
+        if (!mounted) return;
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Impossible de charger l’image actuelle : ${humanizeError(error)}',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
 
     Uint8List? edited;
     try {
       edited = await showDialog<Uint8List?>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => _BadgeCropDialog(badgeColor: badgeColor),
+        builder: (_) => _BadgeCropDialog(
+          badgeColor: badgeColor,
+          initialBytes: initialBytes,
+        ),
       );
     } finally {
       if (mounted && edited == null) setState(() => _busy = false);
@@ -53,9 +79,10 @@ class _BadgeImageEditorButtonState
     if (edited == null || !mounted) return;
 
     try {
-      await ref
-          .read(badgeAdminRepositoryProvider)
-          .replaceBadgeImage(badgeCode: widget.badge.code, bytes: edited);
+      await repository.replaceBadgeImage(
+        badgeCode: widget.badge.code,
+        bytes: edited,
+      );
 
       ref.invalidate(badgeCatalogProvider);
       ref.invalidate(myArmoireProvider);
@@ -79,38 +106,43 @@ class _BadgeImageEditorButtonState
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = widget.badge.imageUrl?.trim().isNotEmpty == true;
+    final tooltip = hasImage ? 'Recadrer l’image' : 'Ajouter une image';
+    final icon = hasImage ? Icons.crop_rounded : Icons.photo_camera_rounded;
+
     if (widget.compact) {
       return IconButton.filledTonal(
-        tooltip: 'Changer l’image',
-        onPressed: _busy ? null : _replaceImage,
+        tooltip: tooltip,
+        onPressed: _busy ? null : _editImage,
         icon: _busy
             ? const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.photo_camera_rounded),
+            : Icon(icon),
       );
     }
 
     return FilledButton.tonalIcon(
-      onPressed: _busy ? null : _replaceImage,
+      onPressed: _busy ? null : _editImage,
       icon: _busy
           ? const SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.photo_camera_rounded),
-      label: const Text('Changer l’image'),
+          : Icon(icon),
+      label: Text(tooltip),
     );
   }
 }
 
 class _BadgeCropDialog extends StatefulWidget {
-  const _BadgeCropDialog({required this.badgeColor});
+  const _BadgeCropDialog({required this.badgeColor, this.initialBytes});
 
   final Color badgeColor;
+  final Uint8List? initialBytes;
 
   @override
   State<_BadgeCropDialog> createState() => _BadgeCropDialogState();
@@ -118,13 +150,30 @@ class _BadgeCropDialog extends StatefulWidget {
 
 class _BadgeCropDialogState extends State<_BadgeCropDialog> {
   static const double _size = 220;
-  static const double _exportScale = 4;
+  static const int _exportWidth = 1000;
+  static const double _exportScale = _exportWidth / _size;
 
   final TransformationController _controller = TransformationController();
   Uint8List? _bytes;
   bool _picking = false;
   bool _saving = false;
   String? _imageError;
+
+  ui.Rect get _visibleRect {
+    final visibleHeight = _size * kBadgeIllustrationRatio;
+    return ui.Rect.fromLTWH(
+      0,
+      (_size - visibleHeight) / 2,
+      _size,
+      visibleHeight,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = widget.initialBytes;
+  }
 
   @override
   void dispose() {
@@ -167,11 +216,15 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     final drawHeight = source.height * containScale;
     final left = (_size - drawWidth) / 2;
     final top = (_size - drawHeight) / 2;
+    final visibleRect = _visibleRect;
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     canvas.scale(_exportScale, _exportScale);
-    canvas.clipRect(const ui.Rect.fromLTWH(0, 0, _size, _size));
+    canvas.clipRect(
+      ui.Rect.fromLTWH(0, 0, visibleRect.width, visibleRect.height),
+    );
+    canvas.translate(-visibleRect.left, -visibleRect.top);
     canvas.transform(_controller.value.storage);
     canvas.drawImageRect(
       source,
@@ -182,8 +235,8 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
 
     final picture = recorder.endRecording();
     final output = await picture.toImage(
-      (_size * _exportScale).round(),
-      (_size * _exportScale).round(),
+      _exportWidth,
+      (_exportWidth * kBadgeIllustrationRatio).round(),
     );
     final data = await output.toByteData(format: ui.ImageByteFormat.png);
 
@@ -228,14 +281,15 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     final bytes = _bytes;
 
     return AlertDialog(
-      title: const Text('Image du badge'),
+      title: Text(widget.initialBytes == null ? 'Image du badge' : 'Recadrer'),
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'Choisis l’image, puis déplace-la avec un doigt et pince avec deux '
-            'doigts pour zoomer ou dézoomer. Le fond du badge reste inchangé.',
+            'Le cadre blanc montre exactement ce qui sera visible sur la carte. '
+            'Les axes indiquent le centre. Déplace l’image avec un doigt et '
+            'pince avec deux doigts pour zoomer ou dézoomer.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -275,39 +329,50 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                             child:
                                 Text(_imageError!, textAlign: TextAlign.center),
                           )
-                        : ClipRect(
-                            child: InteractiveViewer(
-                              transformationController: _controller,
-                              boundaryMargin: const EdgeInsets.all(_size * 4),
-                              minScale: .08,
-                              maxScale: 10,
-                              panEnabled: true,
-                              scaleEnabled: true,
-                              constrained: true,
-                              child: SizedBox(
-                                width: _size,
-                                height: _size,
-                                child: Image.memory(
-                                  bytes,
-                                  fit: BoxFit.contain,
-                                  filterQuality: FilterQuality.high,
-                                  gaplessPlayback: true,
-                                  errorBuilder: (_, __, ___) {
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                      if (mounted && _imageError == null) {
-                                        setState(() {
-                                          _imageError =
-                                              'Impossible d’afficher cette image. '
-                                              'Choisis un PNG ou un JPEG.';
+                        : Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRect(
+                                child: InteractiveViewer(
+                                  transformationController: _controller,
+                                  boundaryMargin:
+                                      const EdgeInsets.all(_size * 4),
+                                  minScale: .08,
+                                  maxScale: 10,
+                                  panEnabled: true,
+                                  scaleEnabled: true,
+                                  constrained: true,
+                                  child: SizedBox(
+                                    width: _size,
+                                    height: _size,
+                                    child: Image.memory(
+                                      bytes,
+                                      fit: BoxFit.contain,
+                                      filterQuality: FilterQuality.high,
+                                      gaplessPlayback: true,
+                                      errorBuilder: (_, __, ___) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (mounted && _imageError == null) {
+                                            setState(() {
+                                              _imageError =
+                                                  'Impossible d’afficher cette image. '
+                                                  'Choisis un PNG ou un JPEG.';
+                                            });
+                                          }
                                         });
-                                      }
-                                    });
-                                    return const SizedBox.shrink();
-                                  },
+                                        return const SizedBox.shrink();
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                              const IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _BadgeCropGuidePainter(),
+                                ),
+                              ),
+                            ],
                           ),
               ),
             ),
@@ -354,4 +419,66 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       ],
     );
   }
+}
+
+class _BadgeCropGuidePainter extends CustomPainter {
+  const _BadgeCropGuidePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final visibleHeight = size.width * kBadgeIllustrationRatio;
+    final top = (size.height - visibleHeight) / 2;
+    final frame = Rect.fromLTWH(0, top, size.width, visibleHeight);
+
+    final shade = Paint()..color = const Color(0x66000000);
+    if (frame.top > 0) {
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, frame.top),
+        shade,
+      );
+    }
+    if (frame.bottom < size.height) {
+      canvas.drawRect(
+        Rect.fromLTWH(
+          0,
+          frame.bottom,
+          size.width,
+          size.height - frame.bottom,
+        ),
+        shade,
+      );
+    }
+
+    final framePaint = Paint()
+      ..color = const Color(0xF2FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawRect(frame.deflate(1), framePaint);
+
+    final axisPaint = Paint()
+      ..color = const Color(0xBFFFFFFF)
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      Offset(frame.center.dx, frame.top),
+      Offset(frame.center.dx, frame.bottom),
+      axisPaint,
+    );
+    canvas.drawLine(
+      Offset(frame.left, frame.center.dy),
+      Offset(frame.right, frame.center.dy),
+      axisPaint,
+    );
+
+    canvas.drawCircle(
+      frame.center,
+      3,
+      Paint()
+        ..color = const Color(0xF2FFFFFF)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BadgeCropGuidePainter oldDelegate) => false;
 }
