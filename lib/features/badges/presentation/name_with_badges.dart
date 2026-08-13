@@ -79,6 +79,7 @@ class _BadgeChip extends StatelessWidget {
     final ratio = badgeEmblemHeightRatio(
       hasValue: badge.valueLabel?.isNotEmpty == true,
       hasPeriod: badge.descriptor.period != null,
+      hasStar: badge.hasStar,
     );
     return SizedBox(
       width: size,

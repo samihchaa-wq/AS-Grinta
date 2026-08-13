@@ -74,58 +74,61 @@ class BadgeEmblem extends StatelessWidget {
             errorBuilder: (_, __, ___) => fallback,
           );
 
-    return BadgeEmblemBody(
+    final body = BadgeEmblemBody(
       size: size,
       base: base,
       descriptor: _descriptor,
       value: baremeLabel,
-      child: showStar
-          ? _Starred(size: size, count: starCount, child: illustration)
-          : illustration,
+      child: illustration,
+    );
+    if (!showStar) return body;
+
+    // Les étoiles chevauchent le bord haut : moitié au-dessus du rectangle,
+    // moitié dedans. Le débord est réservé dans la hauteur du widget, il n'est
+    // donc jamais rogné par la ligne qui l'accueille.
+    final overhang = size * kBadgeEmblemStarOverhangRatio;
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        Padding(padding: EdgeInsets.only(top: overhang), child: body),
+        // Une rangée fournie se réduit plutôt que d'élargir l'emblème.
+        SizedBox(
+          width: size,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: _StarRow(size: size, count: starCount),
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// Les étoiles de palmarès, posées dans l'illustration plutôt qu'au-dessus de
-/// l'emblème : elles font partie de la pièce, elles ne la surmontent pas.
-class _Starred extends StatelessWidget {
-  const _Starred({
-    required this.size,
-    required this.count,
-    required this.child,
-  });
+/// Les étoiles de palmarès, alignées sur le haut de l'emblème.
+class _StarRow extends StatelessWidget {
+  const _StarRow({required this.size, required this.count});
 
   final double size;
   final int count;
-  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final stars = count < 1 ? 1 : count;
-    return Stack(
-      alignment: Alignment.topCenter,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Center(child: child),
-        Padding(
-          padding: EdgeInsets.only(top: size * 0.03),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < stars; i++)
-                Icon(
-                  Icons.star_rounded,
-                  size: size * 0.18,
-                  color: const Color(0xFFFCC21B),
-                  shadows: [
-                    Shadow(
-                      color: const Color(0x8C000000),
-                      blurRadius: size * 0.03,
-                    ),
-                  ],
-                ),
+        for (var i = 0; i < stars; i++)
+          Icon(
+            Icons.star_rounded,
+            size: size * kBadgeEmblemStarRatio,
+            color: const Color(0xFFFCC21B),
+            shadows: [
+              Shadow(
+                color: const Color(0x8C000000),
+                blurRadius: size * 0.03,
+              ),
             ],
           ),
-        ),
       ],
     );
   }
