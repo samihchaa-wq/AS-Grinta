@@ -56,7 +56,7 @@ class NameWithBadges extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(child: nameText),
-        for (final badge in badges.take(2)) ...[
+        for (final badge in badges.take(1)) ...[
           const SizedBox(width: 5),
           _BadgeChip(badge: badge, size: emblemSize),
         ],
