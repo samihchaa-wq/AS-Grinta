@@ -61,8 +61,14 @@ class TeamStatisticsPanel extends ConsumerWidget {
             _AverageScoreCard(statistics: statistics),
             if (statistics.scoreMarginDistribution.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.sectionGap),
-              const _TeamSectionTitle(
-                'Nombre de matchs selon l’écart de score',
+              const _TeamSectionTitle('Écart de score'),
+              const SizedBox(height: 3),
+              Text(
+                'Répartition des matchs selon le score final',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const SizedBox(height: 10),
               _ScoreMarginCard(
@@ -607,67 +613,231 @@ class _ScoreMarginCard extends StatelessWidget {
 
   final Map<int, int> distribution;
 
+  int _sumWhere(bool Function(int margin) test) {
+    return distribution.entries.fold<int>(
+      0,
+      (total, entry) => test(entry.key) ? total + entry.value : total,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final rawMin = distribution.keys.reduce(math.min);
-    final rawMax = distribution.keys.reduce(math.max);
-    final minMargin = math.min(-2, rawMin);
-    final maxMargin = math.max(10, rawMax);
-    final margins = [
-      for (var margin = minMargin; margin <= maxMargin; margin++) margin,
+    final losses = _sumWhere((margin) => margin < 0);
+    final draws = distribution[0] ?? 0;
+    final wins = _sumWhere((margin) => margin > 0);
+    final buckets = [
+      _MarginBucket('≤-4', _sumWhere((margin) => margin <= -4), _teamRed),
+      _MarginBucket('-3', distribution[-3] ?? 0, _teamRed),
+      _MarginBucket('-2', distribution[-2] ?? 0, _teamRed),
+      _MarginBucket('-1', distribution[-1] ?? 0, _teamRed),
+      _MarginBucket('0', draws, _teamYellow),
+      _MarginBucket('+1', distribution[1] ?? 0, _teamGreen),
+      _MarginBucket('+2', distribution[2] ?? 0, _teamGreen),
+      _MarginBucket('+3', distribution[3] ?? 0, _teamGreen),
+      _MarginBucket('≥+4', _sumWhere((margin) => margin >= 4), _teamGreen),
     ];
     final maxCount = math.max(
       1,
-      distribution.values.fold<int>(
+      buckets.fold<int>(
         0,
-        (maximum, value) => math.max(maximum, value),
+        (maximum, bucket) => math.max(maximum, bucket.count),
       ),
     );
 
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 18, 10, 14),
-        child: SizedBox(
-          height: 236,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final margin in margins)
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        child: Column(
+          children: [
+            _MarginSummaryRow(
+              losses: losses,
+              draws: draws,
+              wins: wins,
+            ),
+            const SizedBox(height: 18),
+            const Row(
+              children: [
                 Expanded(
-                  child: _MarginBar(
-                    margin: margin,
-                    count: distribution[margin] ?? 0,
-                    maxCount: maxCount,
+                  flex: 4,
+                  child: _MarginGroupLabel(
+                    label: 'DÉFAITES',
+                    color: _teamRed,
                   ),
                 ),
-            ],
-          ),
+                Expanded(
+                  child: _MarginGroupLabel(
+                    label: 'NUL',
+                    color: _teamYellow,
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: _MarginGroupLabel(
+                    label: 'VICTOIRES',
+                    color: _teamGreen,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 190,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final bucket in buckets)
+                    Expanded(
+                      child: _MarginBar(
+                        bucket: bucket,
+                        maxCount: maxCount,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+class _MarginBucket {
+  const _MarginBucket(this.label, this.count, this.color);
+
+  final String label;
+  final int count;
+  final Color color;
+}
+
+class _MarginSummaryRow extends StatelessWidget {
+  const _MarginSummaryRow({
+    required this.losses,
+    required this.draws,
+    required this.wins,
+  });
+
+  final int losses;
+  final int draws;
+  final int wins;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _MarginSummaryItem(
+            label: 'Défaites',
+            value: losses,
+            color: _teamRed,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MarginSummaryItem(
+            label: 'Nuls',
+            value: draws,
+            color: _teamYellow,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _MarginSummaryItem(
+            label: 'Victoires',
+            value: wins,
+            color: _teamGreen,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MarginSummaryItem extends StatelessWidget {
+  const _MarginSummaryItem({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '$value',
+            maxLines: 1,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 1),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarginGroupLabel extends StatelessWidget {
+  const _MarginGroupLabel({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      maxLines: 1,
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w900,
+            letterSpacing: .5,
+          ),
+    );
+  }
+}
+
 class _MarginBar extends StatelessWidget {
   const _MarginBar({
-    required this.margin,
-    required this.count,
+    required this.bucket,
     required this.maxCount,
   });
 
-  final int margin;
-  final int count;
+  final _MarginBucket bucket;
   final int maxCount;
 
   @override
   Widget build(BuildContext context) {
-    final color = margin < 0
-        ? _teamRed
-        : margin == 0
-            ? _teamYellow
-            : _teamGreen;
-    final label = margin > 0 ? '+$margin' : '$margin';
+    final theme = Theme.of(context);
+    final heightFactor = bucket.count == 0 ? 0.0 : bucket.count / maxCount;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -675,41 +845,51 @@ class _MarginBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            height: 18,
-            child: Text(
-              count == 0 ? '' : '$count',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+            height: 20,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${bucket.count}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.microGap),
+          const SizedBox(height: 4),
           Expanded(
             child: Align(
               alignment: Alignment.bottomCenter,
               child: FractionallySizedBox(
-                heightFactor: count == 0 ? .01 : count / maxCount,
+                heightFactor: heightFactor,
                 child: Container(
-                  width: 20,
+                  width: 22,
                   decoration: BoxDecoration(
-                    color: count == 0 ? Colors.transparent : color,
+                    color: bucket.color,
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(3),
+                      top: Radius.circular(4),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.contentGap),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 18,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                bucket.label,
+                maxLines: 1,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
                 ),
+              ),
+            ),
           ),
         ],
       ),
