@@ -41,7 +41,7 @@ class FeaturedBadgesRepository {
   FeaturedBadgesRepository(this._client);
   final SupabaseClient _client;
 
-  /// Tous les badges arborés, regroupés par profil (max 3 chacun).
+  /// Le badge arboré de chaque profil, regroupé par profil (un seul chacun).
   Future<Map<String, List<FeaturedBadge>>> fetchAll() async {
     final rows = await _client.rpc('featured_badges');
     final map = <String, List<FeaturedBadge>>{};

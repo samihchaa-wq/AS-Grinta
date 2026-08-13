@@ -104,7 +104,8 @@ class ArmoirePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Sélectionne jusqu’à 2 badges à afficher près de ton prénom.',
+                  'Choisis le badge à afficher près de ton prénom. En arborer '
+                  'un nouveau remplace le précédent.',
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
