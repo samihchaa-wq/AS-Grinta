@@ -1,6 +1,6 @@
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
-import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,9 +43,10 @@ class NameWithBadges extends ConsumerWidget {
     final inStatistics = GoRouterState.of(context).uri.path == '/stats';
     if (!inStatistics || profileId == null) return nameText;
 
-    final badges = ref.watch(featuredBadgesProvider).maybeWhen(
-          data: (map) => map[profileId] ?? const <FeaturedBadge>[],
-          orElse: () => const <FeaturedBadge>[],
+    final badges = ref.watch(statisticsBadgeEmblemsProvider).maybeWhen(
+          data: (map) =>
+              map[profileId] ?? const <StatisticsBadgeEmblemData>[],
+          orElse: () => const <StatisticsBadgeEmblemData>[],
         );
     if (badges.isEmpty) return nameText;
 
@@ -68,7 +69,8 @@ class NameWithBadges extends ConsumerWidget {
 
 class _BadgeChip extends StatelessWidget {
   const _BadgeChip({required this.badge, required this.size});
-  final FeaturedBadge badge;
+
+  final StatisticsBadgeEmblemData badge;
   final double size;
 
   @override
@@ -84,7 +86,8 @@ class _BadgeChip extends StatelessWidget {
           emoji: badge.emoji,
           imageUrl: badge.imageUrl,
           color: badge.color,
-          baremeLabel: badge.baremeLabel,
+          baremeLabel: badge.valueLabel,
+          descriptor: badge.descriptor,
           showStar: badge.hasStar,
           starCount: badge.stars,
           starsMultiplyBareme: isCareerBadgeCategory(badge.category),
