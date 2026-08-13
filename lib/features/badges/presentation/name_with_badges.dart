@@ -1,13 +1,13 @@
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
+import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-/// Affiche le nom seul partout, sauf dans le module Statistiques (/stats) où
-/// les badges arborés sont affichés à droite du nom.
+/// Affiche le nom seul partout, sauf sous une [BadgeDisplayScope] active — le
+/// module Statistiques — où les badges arborés sont affichés à droite du nom.
 class NameWithBadges extends ConsumerWidget {
   const NameWithBadges({
     super.key,
@@ -40,8 +40,7 @@ class NameWithBadges extends ConsumerWidget {
       style: resolved,
     );
 
-    final inStatistics = GoRouterState.of(context).uri.path == '/stats';
-    if (!inStatistics || profileId == null) return nameText;
+    if (!BadgeDisplayScope.of(context) || profileId == null) return nameText;
 
     final asyncBadges = ref.watch(statisticsBadgeEmblemsProvider);
     final badges = asyncBadges.asData?.value[profileId] ??
