@@ -351,11 +351,7 @@ StickyTableRow _playersRow(
     padding: grintaTablePinnedRowPadding,
     child: Row(
       children: [
-        SizedBox(
-          width: 22,
-          child: Text('$rank', style: grintaTableRankTextStyle(context)),
-        ),
-        const SizedBox(width: 4),
+        GrintaTableRankCell(rank: rank),
         Expanded(
           child: NameWithBadges(
             profileId: player.profileId,

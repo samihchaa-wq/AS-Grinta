@@ -163,17 +163,7 @@ StickyTableRow _leaderboardRow(
     padding: grintaTablePinnedRowPadding,
     child: Row(
       children: [
-        SizedBox(
-          width: 22,
-          child: Text(
-            '$rank',
-            style: grintaTableRankTextStyle(
-              context,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ),
-        const SizedBox(width: 4),
+        GrintaTableRankCell(rank: rank, color: AppTheme.textSecondary),
         Expanded(
           child: NameWithBadges(
             profileId: profileId,
