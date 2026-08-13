@@ -1,5 +1,8 @@
+import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +38,7 @@ void main() {
     required double width,
     required String name,
     bool showBadges = true,
+    double? badgeSize,
   }) {
     return ProviderScope(
       overrides: [
@@ -50,7 +54,11 @@ void main() {
                 child: Row(
                   children: [
                     Expanded(
-                      child: NameWithBadges(profileId: 'p1', name: name),
+                      child: NameWithBadges(
+                        profileId: 'p1',
+                        name: name,
+                        badgeSize: badgeSize,
+                      ),
                     ),
                   ],
                 ),
@@ -99,6 +107,32 @@ void main() {
     expect(find.text('Samih'), findsOneWidget);
     expect(find.text('🔥'), findsOneWidget);
     expect(find.text('⚽'), findsOneWidget);
+  });
+
+  testWidgets('deux emblèmes de 48 tiennent dans la colonne figée',
+      (tester) async {
+    // Largeur réelle laissée au nom dans Statistiques : colonne figée moins
+    // ses marges (16 + 8), le rang (22) et son écart (4).
+    const available = grintaTablePinnedWidth - 16 - 8 - 22 - 4;
+    await tester.pumpWidget(
+      harness(width: available, name: 'Milan', badgeSize: 48),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // Le prénom reste entier, les deux emblèmes restent visibles.
+    expect(find.text('Milan'), findsOneWidget);
+    expect(find.text('🔥'), findsOneWidget);
+    expect(find.text('⚽'), findsOneWidget);
+
+    // L'emblème occupe à l'écran toute la place demandée : sa hauteur suit
+    // exactement ses proportions, sans bande vide au-dessus ni en dessous.
+    final drawn = tester.getRect(find.byType(BadgeEmblem).first);
+    expect(drawn.width, closeTo(48, 0.5));
+    expect(
+      drawn.height,
+      closeTo(48 * badgeEmblemHeightRatio(hasValue: true), 0.5),
+    );
   });
 
   testWidgets('hors Statistiques, seul le nom est rendu', (tester) async {

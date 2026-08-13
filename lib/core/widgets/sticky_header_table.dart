@@ -4,13 +4,23 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 const grintaTableMinWidth = 620.0;
-const grintaTablePinnedWidth = 168.0;
+
+/// Largeur de la colonne figée « Joueur ». Assez large pour un nom lisible
+/// à côté de deux emblèmes : c'est elle qui décale d'autant la première
+/// colonne de statistiques.
+const grintaTablePinnedWidth = 216.0;
+
 const grintaTableHeaderFontSize = 11.5;
 const grintaTableCellFontSize = 13.5;
 const grintaTableRankFontSize = 12.5;
 const grintaTablePinnedHeaderPadding = EdgeInsets.fromLTRB(16, 12, 8, 12);
 const grintaTableScrollableHeaderPadding = EdgeInsets.fromLTRB(8, 12, 16, 12);
-const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(16, 17, 8, 17);
+
+/// Marge verticale réduite côté colonne figée : la hauteur des lignes reste
+/// donnée par les cellules de stats, mais un emblème peut occuper toute la
+/// hauteur au lieu d'être bridé par 17 px de vide en haut et en bas.
+const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(16, 8, 8, 8);
+
 const grintaTableScrollableRowPadding = EdgeInsets.fromLTRB(8, 17, 16, 17);
 
 TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
