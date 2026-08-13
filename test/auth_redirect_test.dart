@@ -14,7 +14,7 @@ void main() {
           uri: Uri.parse('/matches'),
           matchedLocation: '/matches',
         ),
-        '/auth/loading',
+        '/auth/loading?redirect=%2Fmatches',
       );
       expect(
         resolveAuthRedirect(
@@ -23,6 +23,45 @@ void main() {
           matchedLocation: '/auth/loading',
         ),
         isNull,
+      );
+    });
+
+    test('carries the recovery destination through the loading route', () {
+      const loading = AuthState(isLoading: true);
+
+      expect(
+        resolveAuthRedirect(
+          authState: loading,
+          uri: Uri.parse('/auth/new-password?recovery=1'),
+          matchedLocation: '/auth/new-password',
+        ),
+        '/auth/loading?redirect=%2Fauth%2Fnew-password%3Frecovery%3D1',
+      );
+
+      const resolved = AuthState(isLoading: false);
+
+      expect(
+        resolveAuthRedirect(
+          authState: resolved,
+          uri: Uri.parse(
+            '/auth/loading?redirect=%2Fauth%2Fnew-password%3Frecovery%3D1',
+          ),
+          matchedLocation: '/auth/loading',
+        ),
+        '/auth/new-password?recovery=1',
+      );
+    });
+
+    test('restores a non-auth destination after signing in', () {
+      const state = AuthState(isLoading: false);
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/auth/loading?redirect=%2Fmatches%2Fabc'),
+          matchedLocation: '/auth/loading',
+        ),
+        '/auth/sign-in?redirect=%2Fmatches%2Fabc',
       );
     });
 
@@ -57,7 +96,7 @@ void main() {
             uri: Uri.parse('/matches'),
             matchedLocation: '/matches',
           ),
-          '/auth/loading',
+          '/auth/loading?redirect=%2Fmatches',
         );
         expect(
           resolveAuthRedirect(

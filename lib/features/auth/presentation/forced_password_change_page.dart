@@ -133,8 +133,8 @@ class _ForcedPasswordChangePageState
                       ),
                       const SizedBox(height: 20),
                       FilledButton.icon(
-                        onPressed: state.isLoading ? null : _submit,
-                        icon: state.isLoading
+                        onPressed: state.isBusy ? null : _submit,
+                        icon: state.isBusy
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,

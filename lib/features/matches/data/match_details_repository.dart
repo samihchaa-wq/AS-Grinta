@@ -5,9 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class HeadToHeadMatch {
   const HeadToHeadMatch({
     required this.date,
-    required this.location,
     required this.scoreGrinta,
     required this.scoreOpponent,
+    this.location = '',
   });
 
   final DateTime date;
@@ -166,29 +166,24 @@ class MatchDetailsRepository {
 
     // Pas d'historique face-à-face pour un match entre nous : il n'y a pas
     // d'adversaire réel à comparer.
+    // La table `matches` ne contient que les rencontres saisies dans
+    // l'application : interrogée seule, elle annonçait « Aucune confrontation
+    // précédente » face à un adversaire déjà rencontré des dizaines de fois.
+    // La RPC fait l'union avec `historical_match_scores`, comme l'onglet Info.
     final List historyRaw = isInternal || opponentId == null
         ? const []
-        : await _client
-            .from('matches')
-            .select('match_date, location, score_as_grinta, score_adverse')
-            .eq('opponent_id', opponentId)
-            .neq('id', matchId)
-            .inFilter('status', const ['termine', 'archive'])
-            .order('match_date', ascending: false)
-            .limit(5);
+        : await _client.rpc(
+            'get_last_opponent_encounters',
+            params: {'p_match_id': matchId},
+          ) as List;
     final history = historyRaw
-        .map((row) => Map<String, dynamic>.from(row))
+        .map((row) => Map<String, dynamic>.from(row as Map))
         .map(
           (row) => HeadToHeadMatch(
-            date: DateTime.tryParse(row['match_date'].toString()) ??
-                DateTime(1970),
-            location: row['location'].toString(),
-            scoreGrinta: row['score_as_grinta'] == null
-                ? null
-                : int.tryParse('${row['score_as_grinta']}'),
-            scoreOpponent: row['score_adverse'] == null
-                ? null
-                : int.tryParse('${row['score_adverse']}'),
+            date:
+                DateTime.tryParse('${row['encounter_date']}') ?? DateTime(1970),
+            scoreGrinta: (row['grinta_score'] as num?)?.toInt(),
+            scoreOpponent: (row['opponent_score'] as num?)?.toInt(),
           ),
         )
         .toList();

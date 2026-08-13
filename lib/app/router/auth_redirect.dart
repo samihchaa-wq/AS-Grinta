@@ -10,7 +10,7 @@ String? resolveAuthRedirect({
   final location = matchedLocation;
 
   if (authState.isLoading) {
-    return location == '/auth/loading' ? null : '/auth/loading';
+    return _loadingRedirect(uri, location);
   }
 
   // Un compte nouvellement inscrit garde sa session mais reste uniquement sur
@@ -27,11 +27,22 @@ String? resolveAuthRedirect({
       authState.profile == null &&
       authState.error != null;
   if (profileUnavailable) {
-    return location == '/auth/loading' ? null : '/auth/loading';
+    return _loadingRedirect(uri, location);
   }
 
-  if (location == '/auth/loading' && !authState.isAuthenticated) {
-    return '/auth/sign-in';
+  if (location == '/auth/loading') {
+    // L'écran de chargement a mémorisé la destination initiale : un lien de
+    // réinitialisation ouvert à froid doit y revenir, pas retomber sur la
+    // connexion.
+    final pending = _pendingDestination(uri.queryParameters['redirect']);
+    if (pending != null && _isRecoveryDestination(pending)) {
+      return pending;
+    }
+    if (!authState.isAuthenticated) {
+      return pending == null
+          ? '/auth/sign-in'
+          : '/auth/sign-in?redirect=${Uri.encodeComponent(pending)}';
+    }
   }
 
   final isPasswordChangeRoute = location == '/auth/new-password';
@@ -88,6 +99,48 @@ String? resolveAuthRedirect({
     return '/matches';
   }
   return null;
+}
+
+/// Redirige vers l'écran de chargement en emportant la destination demandée.
+///
+/// Sans ce report, un démarrage à froid (lien de réinitialisation, favori,
+/// partage) perd la route et sa query string : l'utilisateur atterrit sur la
+/// connexion sans jamais voir l'écran qu'il avait demandé.
+String? _loadingRedirect(Uri uri, String location) {
+  if (location == '/auth/loading') return null;
+
+  final destination = _preservableDestination(uri, location);
+  if (destination == null) return '/auth/loading';
+  return '/auth/loading?redirect=${Uri.encodeComponent(destination)}';
+}
+
+String? _preservableDestination(Uri uri, String location) {
+  if (location == '/' || location == '/home' || location == '/accueil') {
+    return null;
+  }
+
+  final isRecoveryRoute = location == '/auth/new-password' &&
+      uri.queryParameters['recovery'] == '1';
+  if (location.startsWith('/auth') && !isRecoveryRoute) return null;
+
+  return uri.toString();
+}
+
+String? _pendingDestination(String? value) {
+  if (value == null || value.isEmpty || value.startsWith('//')) return null;
+
+  final uri = Uri.tryParse(value);
+  if (uri == null || uri.hasScheme || uri.hasAuthority) return null;
+  if (!uri.path.startsWith('/') || uri.path == '/auth/loading') return null;
+
+  return uri.toString();
+}
+
+bool _isRecoveryDestination(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null &&
+      uri.path == '/auth/new-password' &&
+      uri.queryParameters['recovery'] == '1';
 }
 
 bool _isSportsManagementRoute(Uri uri) {

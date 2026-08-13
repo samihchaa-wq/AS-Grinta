@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
+import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
@@ -296,7 +297,8 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     final choice = await pickMatchLiveScorer(
       context,
       candidates: candidates,
-      title: 'Qui a marqué à la ${event.minute}ᵉ minute ?',
+      title:
+          'Qui a marqué à la ${AppFormats.ordinalFeminine(event.minute)} minute ?',
       extraChoiceLabel: 'CSC adverse',
       extraChoiceIcon: Icons.shield_moon_outlined,
     );

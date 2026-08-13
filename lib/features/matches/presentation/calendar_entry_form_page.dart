@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -142,7 +143,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            // La marge basse dégage le dernier bouton de la barre de
+            // navigation : au premier affichage, « Supprimer définitivement
+            // l'événement » tombait exactement dessous et le geste naturel
+            // ratait sa cible.
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               if (widget.event == null) ...[
                 DropdownButtonFormField<_CalendarEntryKind>(
@@ -583,10 +588,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }
 
   Future<void> _pickDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final date = await showDatePicker(
       context: context,
       initialDate: _startsAt,
-      firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+      // Une création ne peut pas viser un jour écoulé ; l'édition d'un
+      // événement existant garde sa date d'origine accessible.
+      firstDate: widget.event == null
+          ? today
+          : DateUtils.dateOnly(_startsAt).isBefore(today)
+              ? DateUtils.dateOnly(_startsAt)
+              : today,
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
     if (date == null) return;
@@ -622,6 +634,23 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     });
   }
 
+  /// Le contrôleur avale ses exceptions et les range dans `state.error` : sans
+  /// ce relais, un refus serveur (RLS, contrainte, saison fermée, temporisation)
+  /// laissait le formulaire ouvert sans le moindre message.
+  ///
+  /// Renvoie vrai si une erreur a été signalée, donc si l'appelant doit
+  /// interrompre l'enregistrement.
+  bool _reportControllerError() {
+    final error = ref.read(matchesControllerProvider).error;
+    if (error == null) return false;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    }
+    return true;
+  }
+
   Future<void> _submit() async {
     if (_seasonId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -630,6 +659,18 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
+
+    // Un événement existant peut légitimement être déjà passé ; une création
+    // dans le passé, elle, naît verrouillée et indestructible.
+    if (widget.event == null) {
+      final pastError = pastKickoffError(_startsAt);
+      if (pastError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(pastError)),
+        );
+        return;
+      }
+    }
 
     setState(() => _saving = true);
     try {
@@ -663,7 +704,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                   ? null
                   : _addressController.text.trim(),
             );
-        if (ref.read(matchesControllerProvider).error != null) return;
+        if (_reportControllerError()) return;
       } else {
         final win = _oddsWin;
         final draw = _oddsDraw;
@@ -692,7 +733,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               matchType: _matchType,
               jerseyNote: _selectedJersey?.id,
             );
-        if (ref.read(matchesControllerProvider).error != null) return;
+        if (_reportControllerError()) return;
       }
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -808,7 +849,20 @@ class _JerseyOptionTile extends StatelessWidget {
         height: 96,
         child: Stack(
           children: [
-            Center(child: Image.asset(option.assetPath, fit: BoxFit.contain)),
+            Center(
+              child: Image.asset(
+                option.assetPath,
+                fit: BoxFit.contain,
+                semanticLabel: 'Maillot ${option.label}',
+                // Hors ligne, le visuel ne peut pas être chargé : sans repli,
+                // le titre « Maillot » surplombait une zone entièrement vide
+                // et le choix devenait impossible.
+                errorBuilder: (context, _, __) => _JerseyFallback(
+                  label: option.label,
+                  selected: selected,
+                ),
+              ),
+            ),
             if (selected)
               Positioned(
                 right: 0,
@@ -821,6 +875,37 @@ class _JerseyOptionTile extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Repli du sélecteur de maillot quand l'illustration ne peut pas être chargée.
+class _JerseyFallback extends StatelessWidget {
+  const _JerseyFallback({required this.label, required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: selected ? colors.primary : colors.outlineVariant,
+          width: selected ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.checkroom_rounded, color: colors.onSurfaceVariant),
+          const SizedBox(height: 6),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ],
       ),
     );
   }

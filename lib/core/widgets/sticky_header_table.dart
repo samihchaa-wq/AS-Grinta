@@ -334,12 +334,18 @@ class SortableHeaderCell extends StatelessWidget {
       ],
     );
 
+    // Les en-têtes de tri sont l'interaction principale de l'écran
+    // Statistiques : avec 4 px de marge verticale ils ne faisaient que 21 px
+    // de haut, loin des 44 px minimum d'une cible tactile.
     final cell = InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: content,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Center(widthFactor: 1, child: content),
+        ),
       ),
     );
 

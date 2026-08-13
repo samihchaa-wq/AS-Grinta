@@ -283,7 +283,7 @@ Deno.serve(async (req: Request) => {
           type: "recovery",
           email: targetUser.user.email,
           options: {
-            redirectTo: `${PUBLIC_APP_URL}auth/new-password?recovery=1`,
+            redirectTo: `${PUBLIC_APP_URL}#/auth/new-password?recovery=1`,
           },
         });
       if (linkError) throw linkError;

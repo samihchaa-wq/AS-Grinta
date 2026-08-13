@@ -76,7 +76,7 @@ class _RosterList extends ConsumerWidget {
                   icon: Icons.groups_rounded,
                   title: 'Effectif vide',
                   message: 'Ajoute tes joueurs avec le bouton « Ajouter » '
-                      'en bas de l\'écran.',
+                      'en bas de l’écran.',
                   compact: true,
                 ),
               )
@@ -241,7 +241,7 @@ Future<void> _pickAndUploadRosterPhoto(
     await ref.read(rosterRepositoryProvider).uploadPlayerPhoto(
           seasonPlayerId: player.id,
           bytes: cropped,
-          fileExt: 'png',
+          fileExt: 'jpg',
         );
     ref.invalidate(rosterProvider(seasonId));
     if (context.mounted) {

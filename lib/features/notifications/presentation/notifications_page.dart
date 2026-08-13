@@ -235,9 +235,24 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
 
   Future<void> _send() async {
     setState(() => _sending = true);
+    // Le succès n'est plus supposé : la RPC vérifie l'abonnement et le
+    // coupe-circuit `notifications_paused` avant d'envoyer quoi que ce soit,
+    // et dit ce qu'elle a réellement fait.
     var message = 'Test envoyé — regarde tes notifications.';
     try {
-      await ref.read(supabaseClientProvider).rpc('send_test_push');
+      final result =
+          await ref.read(supabaseClientProvider).rpc('send_test_push');
+      final data = result is Map ? Map<String, dynamic>.from(result) : null;
+      if (data != null && data['sent'] != true) {
+        message = switch (data['reason']?.toString()) {
+          'no_subscription' =>
+            'Aucun appareil abonné : active les notifications sur cet appareil.',
+          'notifications_paused' =>
+            'Les notifications du club sont en pause : rien n’a été envoyé.',
+          'not_configured' => 'Les notifications push ne sont pas configurées.',
+          _ => 'Impossible d’envoyer le test.',
+        };
+      }
     } catch (_) {
       message = 'Impossible d’envoyer le test.';
     }

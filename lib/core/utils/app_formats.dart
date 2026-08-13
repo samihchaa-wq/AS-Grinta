@@ -126,6 +126,12 @@ class AppFormats {
   static String counted(int count, String singular, [String? pluralForm]) =>
       '$count ${plural(count, singular, pluralForm)}';
 
+  /// Ordinal féminin français : 1 → « 1ʳᵉ », 2 → « 2ᵉ », 40 → « 40ᵉ ».
+  ///
+  /// Seul le premier rang porte un suffixe différent ; un « 1ᵉ » codé en dur
+  /// est une faute.
+  static String ordinalFeminine(int value) => value == 1 ? '1ʳᵉ' : '$valueᵉ';
+
   /// Cote affichée sur une base 100 : 2,00 → 200 ; 3,80 → 380.
   static String odds(double? value) =>
       value == null ? '—' : (value * 100).round().toString();

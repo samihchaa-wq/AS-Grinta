@@ -283,7 +283,7 @@ class _CreateBadgeCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Couleur de l\'emblème',
+              'Couleur de l’emblème',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),

@@ -88,7 +88,12 @@ abstract final class AppTheme {
       onSurfaceVariant: textSecondary,
       surfaceContainerHighest: surfaceHigh,
       error: error,
-      onError: Colors.white,
+      // `error` sert de FOND aux boutons de confirmation destructifs
+      // (« Supprimer », « Tout effacer »). Blanc sur #FF6F7D ne donne que
+      // 2,68:1, sous le seuil WCAG AA même pour du grand texte ; le bleu nuit
+      // du fond général monte à 7,00:1. `error` employé en texte reste
+      // inchangé et parfaitement lisible.
+      onError: background,
       outline: outline,
       outlineVariant: Color(0xFF173755),
     );

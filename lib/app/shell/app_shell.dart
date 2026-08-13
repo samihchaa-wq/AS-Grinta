@@ -83,16 +83,31 @@ class _AppShellState extends ConsumerState<AppShell>
     });
   }
 
+  /// Bascule d'onglet sans empiler d'entrée d'historique.
+  ///
+  /// `goBranch` passe par `GoRouter.go()`, qui signale un `navigate` au moteur
+  /// et crée donc une entrée à chaque aller-retour entre les onglets : après
+  /// une session normale, l'historique atteignait le plafond de 50 entrées et
+  /// le bouton Retour ne sortait plus jamais de l'application.
+  /// `Router.neglect` conserve la mise à jour de l'URL mais la signale en
+  /// remplacement de l'entrée courante.
+  void _goBranchWithoutHistory(int index) {
+    Router.neglect(
+      context,
+      () => widget.navigationShell.goBranch(index, initialLocation: true),
+    );
+  }
+
   void _openMatches() {
     if (widget.navigationShell.currentIndex != 0 || _uri.path != '/matches') {
-      widget.navigationShell.goBranch(0, initialLocation: true);
+      _goBranchWithoutHistory(0);
     }
     _scheduleMatchFocus();
   }
 
   void _openStats() {
     if (widget.navigationShell.currentIndex != 1 || _uri.path != '/stats') {
-      widget.navigationShell.goBranch(1, initialLocation: true);
+      _goBranchWithoutHistory(1);
     }
   }
 
@@ -144,8 +159,7 @@ class _AppShellState extends ConsumerState<AppShell>
               children: [
                 if (viewingAsUser)
                   _PreviewBanner(
-                    onExit: () =>
-                        ref.read(viewAsUserProvider.notifier).state = false,
+                    onExit: () => setViewAsUser(ref, false),
                   ),
                 Expanded(
                   child: useRail

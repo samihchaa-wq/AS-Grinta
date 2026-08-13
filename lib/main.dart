@@ -42,6 +42,28 @@ void main() {
   }, (error, stackTrace) => AppLogger.error('flutter.zone', error, stackTrace));
 }
 
+/// Rend les références d'incident réellement retrouvables.
+///
+/// La RPC ne reçoit que l'opération, le type d'erreur, la version et la
+/// référence — jamais le message de l'erreur. L'envoi est délibérément
+/// « au mieux » : un échec ne doit ni remonter à l'utilisateur, ni relancer le
+/// gestionnaire d'erreurs global.
+void _installIncidentSink() {
+  AppLogger.sink = (incident) {
+    unawaited(
+      Supabase.instance.client.rpc(
+        'log_client_incident',
+        params: {
+          'p_reference': incident.reference,
+          'p_operation': incident.operation,
+          'p_error_type': incident.errorType,
+          'p_app_version': incident.appVersion,
+        },
+      ).catchError((Object _) => null),
+    );
+  };
+}
+
 class _BootstrapApp extends StatefulWidget {
   const _BootstrapApp();
 
@@ -66,6 +88,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         url: AppConfig.supabaseUrl,
         publishableKey: AppConfig.supabaseAnonKey,
       ).timeout(const Duration(seconds: 20));
+      _installIncidentSink();
     } catch (error, stackTrace) {
       _incidentReference = AppLogger.error(
         'bootstrap.supabase',
@@ -85,6 +108,44 @@ class _BootstrapAppState extends State<_BootstrapApp> {
 
   @override
   Widget build(BuildContext context) {
+    // Le FutureBuilder est volontairement *au-dessus* de tout MaterialApp :
+    // l'amorçage et l'application rendent chacun le leur, jamais l'un dans
+    // l'autre. Deux MaterialApp imbriqués donnaient deux Navigator, et le
+    // WidgetsApp externe levait une exception à chaque changement de hash
+    // (Retour, Suivant, restauration PWA) en tombant sur `onUnknownRoute` nul.
+    return FutureBuilder<void>(
+      future: _initialization,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            !snapshot.hasError) {
+          return const ProviderScope(child: AsGrintaApp());
+        }
+        return _BootstrapShell(
+          home: snapshot.hasError
+              ? IncidentErrorView(
+                  title: 'Impossible de démarrer ASG',
+                  message: 'La configuration ou le service est momentanément '
+                      'indisponible. Réessaie dans un instant.',
+                  incidentReference:
+                      _incidentReference ?? AppLogger.createIncidentReference(),
+                  onRetry: _retry,
+                )
+              : const _BootstrapSplash(),
+        );
+      },
+    );
+  }
+}
+
+/// Coquille minimale de l'amorçage : le seul MaterialApp affiché tant que
+/// Supabase n'est pas initialisé.
+class _BootstrapShell extends StatelessWidget {
+  const _BootstrapShell({required this.home});
+
+  final Widget home;
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr', 'FR'),
@@ -100,55 +161,43 @@ class _BootstrapAppState extends State<_BootstrapApp> {
       builder: (context, child) => GrintaBackground(
         child: child ?? const SizedBox.shrink(),
       ),
-      home: FutureBuilder<void>(
-        future: _initialization,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done &&
-              !snapshot.hasError) {
-            return const ProviderScope(child: AsGrintaApp());
-          }
+      home: home,
+    );
+  }
+}
 
-          if (snapshot.hasError) {
-            return IncidentErrorView(
-              title: 'Impossible de démarrer ASG',
-              message: 'La configuration ou le service est momentanément '
-                  'indisponible. Réessaie dans un instant.',
-              incidentReference:
-                  _incidentReference ?? AppLogger.createIncidentReference(),
-              onRetry: _retry,
-            );
-          }
+class _BootstrapSplash extends StatelessWidget {
+  const _BootstrapSplash();
 
-          return Scaffold(
-            backgroundColor: Colors.transparent,
-            body: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 240),
-                        child: Image.asset(
-                          'assets/images/as_grinta_logo.webp',
-                          width: double.infinity,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                        ),
-                      ),
-                      const SizedBox(height: 26),
-                      const GrintaLoader.inline(
-                        message: 'Échauffement en cours…',
-                        semanticLabel: 'Démarrage de ASG',
-                      ),
-                    ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 240),
+                  child: Image.asset(
+                    'assets/images/as_grinta_logo.webp',
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
                   ),
                 ),
-              ),
+                const SizedBox(height: 26),
+                const GrintaLoader.inline(
+                  message: 'Échauffement en cours…',
+                  semanticLabel: 'Démarrage de ASG',
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

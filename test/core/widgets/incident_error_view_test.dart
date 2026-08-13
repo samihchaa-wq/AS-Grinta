@@ -14,14 +14,14 @@ void main() {
         home: IncidentErrorView(
           title: 'Une erreur est survenue',
           message: 'Réessaie dans un instant.',
-          incidentReference: 'MPG-20260727-120000-001',
+          incidentReference: 'ASG-20260727-120000-001',
           onRetry: () => retried = true,
         ),
       ),
     );
 
     expect(find.text('Une erreur est survenue'), findsOneWidget);
-    expect(find.text('Référence : MPG-20260727-120000-001'), findsOneWidget);
+    expect(find.text('Référence : ASG-20260727-120000-001'), findsOneWidget);
     expect(find.textContaining('exception'), findsNothing);
 
     await tester.tap(find.text('Réessayer'));

@@ -118,6 +118,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
     final firstName = TextEditingController();
     final lastName = TextEditingController();
     var isGoalkeeper = false;
+    String? firstNameError;
     final input = await showDialog<_NewGuestInput>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -132,9 +133,10 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                   autofocus: true,
                   maxLength: 80,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Prénom *',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    errorText: firstNameError,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -169,7 +171,15 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
             FilledButton(
               onPressed: () {
                 final first = firstName.text.trim();
-                if (first.isEmpty) return;
+                // Une sortie silencieuse laissait l'admin cliquer sans
+                // comprendre ; le dialogue équivalent de l'effectif affiche
+                // déjà ce message.
+                if (first.isEmpty) {
+                  setDialogState(
+                    () => firstNameError = 'Le prénom est obligatoire.',
+                  );
+                  return;
+                }
                 Navigator.pop(
                   dialogContext,
                   _NewGuestInput(
@@ -197,7 +207,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
         firstName: input.firstName,
         lastName: input.lastName,
         isGoalkeeper: input.isGoalkeeper,
-        reason: 'Création depuis Flutter',
+        reason: 'Création d’un invité',
       );
       final catalog = await repository.fetchCatalog(includeArchived: true);
       if (!mounted) return;
@@ -245,7 +255,7 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
           await ref.read(guestPlayersRepositoryProvider).removeGuest(
                 matchId: matchId,
                 participantId: guest.participantId,
-                reason: 'Retrait depuis Flutter',
+                reason: 'Retrait d’un invité',
               );
       if (!mounted) return;
       setState(() => _matchGuests = matchGuests);
@@ -266,8 +276,8 @@ class _AdminGuestsPageState extends ConsumerState<AdminGuestsPage> {
                 guestPlayerId: guest.id,
                 archived: archived,
                 reason: archived
-                    ? 'Archivage depuis Flutter'
-                    : 'Restauration depuis Flutter',
+                    ? 'Archivage d’un invité'
+                    : 'Restauration d’un invité',
               );
       if (!mounted) return;
       setState(() => _catalog = catalog);

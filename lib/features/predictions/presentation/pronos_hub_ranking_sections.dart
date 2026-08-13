@@ -84,7 +84,7 @@ class _MatchRankingView extends ConsumerWidget {
       error: (_, __) => const _MessageCard(
         title: 'Classement indisponible',
         icon: Icons.wifi_off_rounded,
-        message: 'Le classement des matchs n\'a pas pu être chargé.',
+        message: 'Le classement des matchs n’a pas pu être chargé.',
         tone: GrintaEmptyTone.alert,
       ),
       data: (entries) => Padding(
@@ -151,7 +151,7 @@ class _GeneralRankingViewWidget extends ConsumerWidget {
       error: (_, __) => const _MessageCard(
         title: 'Classement indisponible',
         icon: Icons.wifi_off_rounded,
-        message: 'Le classement général n\'a pas pu être chargé.',
+        message: 'Le classement général n’a pas pu être chargé.',
         tone: GrintaEmptyTone.alert,
       ),
       data: (entries) => Padding(

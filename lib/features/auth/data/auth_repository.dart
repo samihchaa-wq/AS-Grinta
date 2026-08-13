@@ -176,11 +176,12 @@ class AuthRepository {
         upsert: false,
       ),
     );
-    final publicUrl = bucket.getPublicUrl(path);
-
+    // Le bucket profile-photos est privé : une URL publique y renvoie
+    // systématiquement « Bucket not found ». On stocke le chemin relatif, que
+    // PlayerAvatar resigne à l'affichage.
     try {
       await _client.from('profiles').update({
-        'photo_url': publicUrl,
+        'photo_url': path,
       }).eq('id', userId);
     } catch (_) {
       await bucket.remove([path]);
