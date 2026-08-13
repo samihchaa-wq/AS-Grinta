@@ -70,7 +70,9 @@ class BadgeEmblem extends StatelessWidget {
         ? fallback
         : Image.network(
             imageUrl!,
-            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => fallback,
           );
 
