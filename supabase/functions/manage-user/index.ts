@@ -1,9 +1,13 @@
-// Gestion des comptes par un admin : invitation par identifiant,
-// réinitialisation par lien à usage unique et suppression.
+// Gestion des comptes par un admin : réinitialisation par lien à usage unique
+// et suppression.
+//
+// La création de compte se fait exclusivement par auto-inscription
+// (`register-account`), qui applique le limiteur de débit. L'ancienne action
+// `invite` a été retirée : elle n'avait aucun appelant et contournait
+// entièrement ce limiteur.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2.95.0";
 
-const USERNAME_DOMAIN = "pronos.as-grinta.local";
 const PUBLIC_APP_URL = "https://samihchaa-wq.github.io/AS-Grinta/";
 
 const corsHeaders = {
@@ -16,43 +20,6 @@ const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
-}
-
-function normalizeName(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function randomCharacter(alphabet: string): string {
-  const value = new Uint32Array(1);
-  crypto.getRandomValues(value);
-  return alphabet[value[0] % alphabet.length];
-}
-
-function generateTemporaryPassword(): string {
-  const lower = "abcdefghijkmnopqrstuvwxyz";
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const digits = "23456789";
-  const symbols = "!@#$%+-_";
-  const all = lower + upper + digits + symbols;
-  const characters = [
-    randomCharacter(lower),
-    randomCharacter(upper),
-    randomCharacter(digits),
-    randomCharacter(symbols),
-  ];
-  while (characters.length < 14) characters.push(randomCharacter(all));
-  for (let index = characters.length - 1; index > 0; index--) {
-    const value = new Uint32Array(1);
-    crypto.getRandomValues(value);
-    const target = value[0] % (index + 1);
-    [characters[index], characters[target]] =
-      [characters[target], characters[index]];
-  }
-  return characters.join("");
 }
 
 function isUserNotFound(error: {
@@ -142,96 +109,6 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const action = String(body.action ?? "");
-
-    if (action === "invite") {
-      const firstName = String(body.firstName ?? "").trim();
-      const lastInitial = String(body.lastInitial ?? "").trim();
-      const surnom = String(body.surnom ?? "").trim();
-      const isGoalkeeper = body.isGoalkeeper === true;
-
-      if (!firstName || firstName.length > 100) {
-        return jsonResponse({ error: "Prénom requis." }, 400);
-      }
-      const normalizedFirst = normalizeName(firstName);
-      const normalizedInitial = normalizeName(lastInitial).slice(0, 1);
-      if (!normalizedFirst || !normalizedInitial) {
-        return jsonResponse(
-          { error: "Prénom et initiale du nom sont requis." },
-          400,
-        );
-      }
-
-      const base = `${normalizedFirst}${normalizedInitial}`;
-      let username = base;
-      let usernameAvailable = false;
-      for (let suffix = 1; suffix <= 20; suffix++) {
-        username = suffix === 1 ? base : `${base}${suffix}`;
-        const { data: existing, error: existsError } = await admin
-          .from("profiles")
-          .select("id")
-          .eq("username", username)
-          .maybeSingle();
-        if (existsError) throw existsError;
-        if (!existing) {
-          usernameAvailable = true;
-          break;
-        }
-      }
-      if (!usernameAvailable) {
-        return jsonResponse({ error: "Aucun identifiant disponible." }, 409);
-      }
-
-      const temporaryPassword = generateTemporaryPassword();
-      const { data: created, error: createError } =
-        await admin.auth.admin.createUser({
-          email: `${username}@${USERNAME_DOMAIN}`,
-          password: temporaryPassword,
-          email_confirm: true,
-          user_metadata: {
-            first_name: firstName,
-            last_name: `${normalizedInitial.toUpperCase()}.`,
-            surnom: surnom || null,
-          },
-        });
-      if (createError) throw createError;
-      const newUserId = created.user?.id;
-      if (!newUserId) throw new Error("Compte non créé");
-
-      try {
-        const { error: updateError } = await admin
-          .from("profiles")
-          .update({
-            username,
-            password_set: true,
-            must_change_password: true,
-            status: "active",
-            is_goalkeeper: isGoalkeeper,
-            surnom: surnom || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", newUserId);
-        if (updateError) throw updateError;
-      } catch (profileUpdateError) {
-        const { error: cleanupError } = await admin.auth.admin.deleteUser(
-          newUserId,
-          false,
-        );
-        if (cleanupError) {
-          console.error("manage-user invite cleanup failure", {
-            newUserId,
-            profileUpdateError,
-            cleanupError,
-          });
-        }
-        throw profileUpdateError;
-      }
-
-      return jsonResponse({
-        userId: newUserId,
-        username,
-        temporaryPassword,
-      });
-    }
 
     if (action === "reset-password") {
       const userId = String(body.userId ?? "");
