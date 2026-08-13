@@ -97,8 +97,7 @@ void main() {
     expect(find.text('⚽'), findsNothing);
   });
 
-  testWidgets('un nom court ne déborde pas (largeur normale)',
-      (tester) async {
+  testWidgets('un nom court ne déborde pas (largeur normale)', (tester) async {
     await tester.pumpWidget(harness(width: 240, name: 'Karim'));
     await tester.pumpAndSettle();
 
