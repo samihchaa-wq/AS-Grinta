@@ -74,11 +74,11 @@ class BadgeEmblem extends StatelessWidget {
                 ? 'PERFORMANCE'
                 : 'EXPLOIT';
     final body = BadgeEmblemBody(
-      child: illustration,
       size: size,
       base: base,
       footer: footer,
       value: baremeLabel,
+      child: illustration,
     );
     if (!showStar) return body;
     final count = starCount < 1 ? 1 : starCount;
