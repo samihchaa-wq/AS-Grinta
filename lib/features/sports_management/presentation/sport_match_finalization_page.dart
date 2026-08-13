@@ -203,8 +203,8 @@ class _SportMatchFinalizationPageState
           await ref.read(sportMatchFinalizationRepositoryProvider).finalize(
                 finalization: value,
                 reason: value.isValidated
-                    ? 'Correction depuis Flutter'
-                    : 'Validation sportive depuis Flutter',
+                    ? 'Correction du compte rendu'
+                    : 'Validation sportive du match',
               );
       if (!mounted) return;
       setState(() => _finalization = saved);

@@ -91,8 +91,7 @@ class MorePage extends ConsumerWidget {
                   'sont masqués. Tes droits ne changent pas.',
                 ),
                 value: viewingAsUser,
-                onChanged: (value) =>
-                    ref.read(viewAsUserProvider.notifier).state = value,
+                onChanged: (value) => setViewAsUser(ref, value),
               ),
             ),
           ],

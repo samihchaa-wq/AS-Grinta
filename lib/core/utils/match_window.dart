@@ -174,3 +174,17 @@ int _lastSundayOfMonth(int year, int month) {
   final lastDay = DateTime.utc(year, month + 1, 0);
   return lastDay.day - (lastDay.weekday % DateTime.daysPerWeek);
 }
+
+/// Message d'erreur si `kickoffAt` est déjà passé, `null` sinon.
+///
+/// Un match daté dans le passé bascule immédiatement sous le verrou T-15 :
+/// il devient non modifiable, non annulable et **non supprimable** depuis
+/// l'application. Une erreur de mois ou d'année laissait donc un match fantôme
+/// que plus personne ne pouvait retirer.
+String? pastKickoffError(DateTime? kickoffAt, {DateTime? now}) {
+  if (kickoffAt == null) return null;
+  final reference = (now ?? DateTime.now()).toUtc();
+  if (kickoffAt.toUtc().isAfter(reference)) return null;
+  return 'La date et l’heure doivent être à venir : un match daté dans le '
+      'passé ne peut plus être modifié ni supprimé.';
+}

@@ -252,13 +252,13 @@ class RosterRepository {
         upsert: false,
       ),
     );
-    final url = bucket.getPublicUrl(path);
     try {
       // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
-      // season_players.photo_url).
+      // season_players.photo_url). Le bucket étant privé, on enregistre le
+      // chemin relatif : PlayerAvatar le resigne à l'affichage.
       await _client
           .from('season_players')
-          .update({'photo_url': url}).eq('id', seasonPlayerId);
+          .update({'photo_url': path}).eq('id', seasonPlayerId);
     } catch (_) {
       await bucket.remove([path]);
       rethrow;

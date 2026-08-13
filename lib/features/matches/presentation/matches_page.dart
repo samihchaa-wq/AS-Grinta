@@ -151,7 +151,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                     icon: Icons.stadium_rounded,
                     title: 'Aucun match cette saison',
                     message: 'Les matchs de la saison apparaîtront ici dès '
-                        'qu\'ils seront programmés.',
+                        'qu’ils seront programmés.',
                     compact: true,
                   ),
                 )

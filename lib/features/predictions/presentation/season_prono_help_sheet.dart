@@ -49,7 +49,7 @@ class _HelpContent extends StatelessWidget {
             const SizedBox(height: 24),
             const _HelpRow(
               icon: Icons.groups_rounded,
-              title: 'Tu pronostiques tout l\'effectif',
+              title: 'Tu pronostiques tout l’effectif',
               subtitle:
                   'Pour chaque joueur, devine son total de buts sur la saison '
                   '(ou de clean sheets pour les gardiens). Il faut remplir '
@@ -57,9 +57,9 @@ class _HelpContent extends StatelessWidget {
             ),
             const _HelpRow(
               icon: Icons.lock_clock_rounded,
-              title: 'Secret jusqu\'au lancement',
+              title: 'Secret jusqu’au lancement',
               subtitle:
-                  'Les pronos de chacun restent cachés jusqu\'à ce que l\'admin '
+                  'Les pronos de chacun restent cachés jusqu’à ce que l’admin '
                   'ferme les paris. Ils sont alors révélés et le classement '
                   'démarre.',
             ),
@@ -73,10 +73,10 @@ class _HelpContent extends StatelessWidget {
             ),
             const _HelpRow(
               icon: Icons.leaderboard_rounded,
-              title: 'Bonus d\'ordre des buteurs',
+              title: 'Bonus d’ordre des buteurs',
               subtitle:
                   'Si tu devines aussi le bon ordre (qui marque plus que qui), '
-                  'tu gagnes un bonus, maximal quand tout l\'ordre est correct.',
+                  'tu gagnes un bonus, maximal quand tout l’ordre est correct.',
             ),
             const _HelpRow(
               icon: Icons.show_chart_rounded,

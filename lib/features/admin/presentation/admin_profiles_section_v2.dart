@@ -100,13 +100,19 @@ class _RoleChoice extends StatelessWidget {
         Wrap(
           spacing: 8,
           children: [
+            // `onSelected: null` désactivait la puce du rôle EN VIGUEUR, que
+            // Material grisait alors : le rôle actif avait l'apparence d'un
+            // état indisponible, et le rôle inactif celle du rôle courant. La
+            // puce reste donc active et un nouveau clic sur le rôle déjà
+            // sélectionné est simplement ignoré.
             for (final role in _roles)
               ChoiceChip(
                 label: Text(role.label),
                 selected: role.value == selected.value,
-                onSelected: role.value == selected.value
-                    ? null
-                    : (_) => onSelected(role.value),
+                onSelected: (_) {
+                  if (role.value == selected.value) return;
+                  onSelected(role.value);
+                },
               ),
           ],
         ),
@@ -164,16 +170,13 @@ class _ProfileCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
+                // Étiquettes purement informatives : un Chip Material expose
+                // une sémantique sélectionnable, qu'un lecteur d'écran
+                // annonçait comme une case à cocher inexistante.
                 if (policy.isSelf)
-                  const Chip(
-                    visualDensity: VisualDensity.compact,
-                    label: Text('Toi'),
-                  )
+                  const _StatusChip(label: 'Toi')
                 else if (policy.isArchived)
-                  const Chip(
-                    visualDensity: VisualDensity.compact,
-                    label: Text('Archivé'),
-                  ),
+                  const _StatusChip(label: 'Archivé'),
               ],
             ),
             if (profile.username.trim().isNotEmpty)
@@ -577,8 +580,9 @@ Future<_HistoricalChoice?> _pickHistorical(
                 (player) => DropdownMenuItem<int?>(
                   value: player.id,
                   child: Text(
-                    '${player.name} — ${player.matchesPlayed} matchs, '
-                    '${player.goals} buts',
+                    '${player.name} — '
+                    '${AppFormats.counted(player.matchesPlayed, 'match', 'matchs')}, '
+                    '${AppFormats.counted(player.goals, 'but')}',
                   ),
                 ),
               ),
@@ -625,4 +629,29 @@ Future<bool> _confirm(
         ),
       ) ??
       false;
+}
+
+/// Étiquette d'état non interactive.
+///
+/// Un [Chip] Material porte une sémantique de sélection : sur l'écran Comptes,
+/// la pastille « Toi » était annoncée comme une case à cocher. On masque donc
+/// la sémantique du Chip et on la remplace par un simple libellé.
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label,
+      container: true,
+      child: ExcludeSemantics(
+        child: Chip(
+          visualDensity: VisualDensity.compact,
+          label: Text(label),
+        ),
+      ),
+    );
+  }
 }

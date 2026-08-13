@@ -568,8 +568,11 @@ class _UpcomingMatchCard extends StatelessWidget {
         ),
         if (isAdmin) ...[
           const SizedBox(width: AppSpacing.microGap),
+          // 48 px : en dessous, la cible tactile passe sous le minimum
+          // recommandé alors que c'est la seule porte d'entrée vers
+          // modifier / annuler / supprimer.
           SizedBox(
-            width: 36,
+            width: 48,
             child: IconTheme(
               data: IconThemeData(color: cardBorder),
               child: AdminMatchOptionsButton(match: match),

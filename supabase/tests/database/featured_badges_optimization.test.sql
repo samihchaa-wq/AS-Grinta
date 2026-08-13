@@ -9,9 +9,9 @@ select no_plan();
 -- transaction et permet de tester le contrat de la nouvelle requête.
 do $bootstrap$
 begin
-  if to_regprocedure('public.profile_badge_stars(uuid)') is null then
+  if to_regprocedure('private.profile_badge_stars(uuid)') is null then
     execute $ddl$
-      create function public.profile_badge_stars(p_profile_id uuid)
+      create function private.profile_badge_stars(p_profile_id uuid)
       returns table(badge_code text, stars integer)
       language sql
       stable
@@ -50,7 +50,7 @@ as $function$
   featured_stars as materialized (
     select featured_profile.profile_id, badge_star.badge_code, badge_star.stars
     from featured_profiles featured_profile
-    cross join lateral public.profile_badge_stars(
+    cross join lateral private.profile_badge_stars(
       featured_profile.profile_id
     ) badge_star
   )
@@ -169,7 +169,7 @@ select results_eq(
     join public.badges badge on badge.id = profile_badge.badge_id
     left join lateral (
       select star.stars
-      from public.profile_badge_stars(profile_badge.profile_id) star
+      from private.profile_badge_stars(profile_badge.profile_id) star
       where star.badge_code = badge.code
       limit 1
     ) badge_star on true

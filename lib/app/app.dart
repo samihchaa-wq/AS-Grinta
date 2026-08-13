@@ -26,6 +26,8 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Le mode « Aperçu utilisateur » doit survivre à un rechargement.
+    unawaited(restoreViewAsUserPreference(ref));
   }
 
   @override
@@ -81,9 +83,17 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
       ),
       routerConfig: router,
       builder: (context, child) {
+        // Le réglage d'accessibilité du système / du navigateur doit être
+        // respecté : un facteur fixe l'écrasait purement et simplement, et
+        // « très grand texte » ne changeait pas un pixel (échec WCAG 1.4.4).
+        // On garde le confort de lecture de base en plancher, et un plafond
+        // pour ne pas casser les mises en page denses.
+        final systemScale = MediaQuery.textScalerOf(context).scale(1);
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
-            textScaler: const TextScaler.linear(1.10),
+            textScaler: TextScaler.linear(
+              (systemScale * 1.10).clamp(1.10, 1.60),
+            ),
           ),
           child: GrintaAccessibilityScope(
             child: Stack(

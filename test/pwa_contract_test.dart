@@ -39,10 +39,14 @@ void main() {
       expect(index, contains('<script src="app_shell.js" defer></script>'));
       expect(index, contains('Content-Security-Policy'));
       expect(index, contains("object-src 'none'"));
+      // `blob:` est indispensable dans connect-src : image_picker_for_web rend
+      // un XFile adossé à une URL blob:, et readAsBytes() la lit par une
+      // requête réseau. Sans cette autorisation, tout envoi de photo est
+      // silencieusement bloqué par le navigateur.
       expect(
         index,
         contains(
-          "connect-src 'self' https://ovzijmqrnsgcmryinkfa.supabase.co",
+          "connect-src 'self' blob: https://ovzijmqrnsgcmryinkfa.supabase.co",
         ),
       );
       expect(index, isNot(contains('<script>')));

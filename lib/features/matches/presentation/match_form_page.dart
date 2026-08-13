@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/app_formats.dart';
+import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
@@ -550,10 +551,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   }
 
   Future<void> _pickDate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
     final date = await showDatePicker(
       context: context,
       initialDate: _kickoffAt,
-      firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+      // Déplacer un match sur un jour écoulé le fait passer sous le verrou
+      // T-15 : plus modifiable, plus annulable, plus supprimable.
+      firstDate: DateUtils.dateOnly(_kickoffAt).isBefore(today)
+          ? DateUtils.dateOnly(_kickoffAt)
+          : today,
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
     if (date == null) return;
@@ -597,6 +603,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
+
+    final pastError = pastKickoffError(_kickoffAt);
+    if (pastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(pastError)),
+      );
+      return;
+    }
+
     final notifier = ref.read(matchesControllerProvider.notifier);
     final address = _addressController.text.trim();
     if (_isInternal) {

@@ -161,13 +161,14 @@ class SupabaseGuestPlayersRepository implements GuestPlayersRepository {
         upsert: false,
       ),
     );
-    final url = bucket.getPublicUrl(path);
     try {
       // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
-      // guest_players.photo_url), via admin_set_guest_photo.
+      // guest_players.photo_url), via admin_set_guest_photo. Le bucket étant
+      // privé, on enregistre le chemin relatif : PlayerAvatar le resigne à
+      // l'affichage.
       await _client.rpc(
         'admin_set_guest_photo',
-        params: {'p_guest_player_id': guestPlayerId, 'p_photo_url': url},
+        params: {'p_guest_player_id': guestPlayerId, 'p_photo_url': path},
       );
     } catch (_) {
       await bucket.remove([path]);

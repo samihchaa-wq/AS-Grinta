@@ -23,6 +23,9 @@ String humanizeError(Object? error) {
         return 'Action impossible : cet élément est encore utilisé ailleurs.';
       case 'PGRST116':
         return 'Ce contenu est introuvable ou a été supprimé.';
+      case '40001':
+        return 'Un autre administrateur a modifié cet écran entre-temps. '
+            'Recharge la page avant d’enregistrer.';
     }
     return _fromMessage(error.message);
   }
@@ -52,6 +55,9 @@ String _fromMessage(String raw) {
     'obligatoire',
     'invalide',
     'droits',
+    'administrateur',
+    'composition',
+    'notification',
   ];
 
   final patterns = <String, String>{
@@ -82,6 +88,10 @@ String _fromMessage(String raw) {
     'moderator role required': 'Action réservée au modérateur.',
     'live tracking is only available for upcoming matches':
         'Le Tableau Blanc n’est disponible que pour les prochains matchs.',
+    'no published composition to start from':
+        'Publie d’abord la composition du match pour ouvrir le Tableau Blanc.',
+    'player is not waiting for an availability response':
+        'Ce joueur n’attend pas de réponse de disponibilité pour ce match.',
     'season squad': 'Ce joueur ne fait pas partie de l’effectif de la saison.',
     'valeur de pronostic hors limites':
         'Le pronostic dépasse la limite autorisée : 99 buts ou 30 clean sheets maximum.',

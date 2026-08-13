@@ -173,6 +173,9 @@ class SupabaseMatchCompositionRepository implements MatchCompositionRepository {
         ],
         'p_allow_squad_size_exception': allowSquadSizeException,
         'p_reason': _clean(reason),
+        // Concurrence optimiste : le serveur refuse l'écriture si un autre
+        // admin a enregistré depuis le chargement de cet écran.
+        'p_expected_version': composition.version,
       },
     );
     final saved = MatchComposition.tryFromRpc(response);

@@ -127,130 +127,137 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
           final allSelected = profiles.isNotEmpty &&
               profiles.every((profile) => _recipients.contains(profile.id));
 
-          return ListView(
+          // Un ListView recycle les enfants sortis du viewport : le champ
+          // Message multi-ligne perdait son contenu s'il était démonté alors
+          // qu'il avait le focus. Les enfants sont peu nombreux, un
+          // SingleChildScrollView les garde tous montés.
+          return SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: _titleController,
-                        enabled: !_sending,
-                        maxLength: _titleMaxLength,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          labelText: 'Titre',
-                          hintText: 'Entraînement déplacé',
-                          border: OutlineInputBorder(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: _titleController,
+                          enabled: !_sending,
+                          maxLength: _titleMaxLength,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            labelText: 'Titre',
+                            hintText: 'Entraînement déplacé',
+                            border: OutlineInputBorder(),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _bodyController,
-                        enabled: !_sending,
-                        maxLength: _bodyMaxLength,
-                        maxLines: 4,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          labelText: 'Message',
-                          hintText: 'Rendez-vous à 19h au lieu de 18h30.',
-                          border: OutlineInputBorder(),
-                          alignLabelWithHint: true,
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _bodyController,
+                          enabled: !_sending,
+                          maxLength: _bodyMaxLength,
+                          maxLines: 4,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: const InputDecoration(
+                            labelText: 'Message',
+                            hintText: 'Rendez-vous à 19h au lieu de 18h30.',
+                            border: OutlineInputBorder(),
+                            alignLabelWithHint: true,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Destinataires (${_recipients.length})',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w900),
+                const SizedBox(height: 14),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Destinataires (${_recipients.length})',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w900),
+                              ),
                             ),
-                          ),
-                          TextButton(
-                            onPressed: _sending || profiles.isEmpty
-                                ? null
-                                : () => setState(() {
-                                      if (allSelected) {
-                                        _recipients.clear();
-                                      } else {
-                                        _recipients
-                                          ..clear()
-                                          ..addAll(
-                                            profiles.map(
-                                              (profile) => profile.id,
-                                            ),
-                                          );
-                                      }
-                                    }),
-                            child: Text(
-                              allSelected ? 'Aucun' : 'Tout le monde',
+                            TextButton(
+                              onPressed: _sending || profiles.isEmpty
+                                  ? null
+                                  : () => setState(() {
+                                        if (allSelected) {
+                                          _recipients.clear();
+                                        } else {
+                                          _recipients
+                                            ..clear()
+                                            ..addAll(
+                                              profiles.map(
+                                                (profile) => profile.id,
+                                              ),
+                                            );
+                                        }
+                                      }),
+                              child: Text(
+                                allSelected ? 'Aucun' : 'Tout le monde',
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      if (profiles.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          child: Text('Aucun compte actif.'),
+                          ],
+                        ),
+                        if (profiles.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Text('Aucun compte actif.'),
+                          )
+                        else
+                          for (final profile in profiles)
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: _recipients.contains(profile.id),
+                              onChanged: _sending
+                                  ? null
+                                  : (checked) => setState(() {
+                                        if (checked == true) {
+                                          _recipients.add(profile.id);
+                                        } else {
+                                          _recipients.remove(profile.id);
+                                        }
+                                      }),
+                              title: Text(profile.fullName.isEmpty
+                                  ? profile.displayName
+                                  : profile.fullName),
+                            ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: _sending ? null : () => _send(profiles),
+                  icon: _sending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: GrintaProgressIndicator(strokeWidth: 2),
                         )
-                      else
-                        for (final profile in profiles)
-                          CheckboxListTile(
-                            contentPadding: EdgeInsets.zero,
-                            value: _recipients.contains(profile.id),
-                            onChanged: _sending
-                                ? null
-                                : (checked) => setState(() {
-                                      if (checked == true) {
-                                        _recipients.add(profile.id);
-                                      } else {
-                                        _recipients.remove(profile.id);
-                                      }
-                                    }),
-                            title: Text(profile.fullName.isEmpty
-                                ? profile.displayName
-                                : profile.fullName),
-                          ),
-                    ],
-                  ),
+                      : const Icon(Icons.send_rounded),
+                  label: const Text('Envoyer'),
                 ),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _sending ? null : () => _send(profiles),
-                icon: _sending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: GrintaProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_rounded),
-                label: const Text('Envoyer'),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Seules les personnes ayant autorisé les notifications sur '
-                'leur téléphone la recevront.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Seules les personnes ayant autorisé les notifications sur '
+                  'leur téléphone la recevront.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           );
         },
       ),

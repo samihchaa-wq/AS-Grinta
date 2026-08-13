@@ -109,7 +109,7 @@ class CalendarFeedEventCard extends ConsumerWidget {
               if (isAdmin) ...[
                 const SizedBox(width: AppSpacing.microGap),
                 SizedBox(
-                  width: 36,
+                  width: 48,
                   child: IconButton(
                     tooltip: 'Modifier l’événement',
                     onPressed: edit,

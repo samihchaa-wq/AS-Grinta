@@ -3,14 +3,15 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as img;
 
 /// Ouvre l'éditeur utilisé pour les photos de profil : déplacement libre,
-/// pinch-to-zoom / dézoom et export PNG en conservant la transparence.
+/// pinch-to-zoom / dézoom et export JPEG sur fond opaque.
 ///
 /// L'export est calculé directement depuis l'image source et la matrice de
 /// transformation. On ne capture pas le widget à l'écran : cela évite les
-/// échecs de RenderRepaintBoundary sur Flutter Web / iOS PWA et garantit que
-/// les zones transparentes restent réellement transparentes.
+/// échecs de RenderRepaintBoundary sur Flutter Web / iOS PWA et garantit un
+/// rendu identique à l'aperçu.
 Future<Uint8List?> cropProfilePhoto(
   BuildContext context,
   Uint8List bytes, {
@@ -115,6 +116,12 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     final canvas = ui.Canvas(recorder);
     canvas.scale(_exportScale, _exportScale);
     canvas.clipRect(ui.Rect.fromLTWH(0, 0, _cropSize, _cropSize));
+    // Le JPEG n'a pas de couche alpha : sans ce fond opaque, une zone laissée
+    // découverte par le cadrage ressortirait en noir.
+    canvas.drawRect(
+      ui.Rect.fromLTWH(0, 0, _cropSize, _cropSize),
+      ui.Paint()..color = const ui.Color(0xFFFFFFFF),
+    );
     canvas.transform(_transformationController.value.storage);
     canvas.drawImageRect(
       source,
@@ -129,29 +136,38 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     );
 
     final picture = recorder.endRecording();
-    final output = await picture.toImage(
-      (_cropSize * _exportScale).round(),
-      (_cropSize * _exportScale).round(),
-    );
-    final data = await output.toByteData(format: ui.ImageByteFormat.png);
+    final side = (_cropSize * _exportScale).round();
+    final output = await picture.toImage(side, side);
+    // dart:ui ne sait encoder que du PNG, sans perte : les avatars pesaient
+    // 171 à 250 ko pièce, soit ~2,5 Mo pour une composition de onze joueurs.
+    // On récupère donc les pixels bruts et on les encode en JPEG.
+    final data = await output.toByteData(format: ui.ImageByteFormat.rawRgba);
 
     output.dispose();
     source.dispose();
     codec.dispose();
 
     if (data == null) {
-      throw StateError('Impossible de générer le PNG recadré.');
+      throw StateError('Impossible de générer la photo recadrée.');
     }
-    return data.buffer.asUint8List();
+
+    final raw = img.Image.fromBytes(
+      width: side,
+      height: side,
+      bytes: data.buffer,
+      numChannels: 4,
+      order: img.ChannelOrder.rgba,
+    );
+    return img.encodeJpg(raw, quality: 85);
   }
 
   Future<void> _confirm() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final png = await _renderCrop();
+      final jpeg = await _renderCrop();
       if (!mounted) return;
-      Navigator.pop(context, png);
+      Navigator.pop(context, jpeg);
     } catch (_) {
       if (!mounted) return;
       setState(() => _busy = false);

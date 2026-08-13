@@ -4,25 +4,39 @@ import 'dart:typed_data';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 class AuthState {
   const AuthState({
     this.isLoading = true,
+    this.isSaving = false,
     this.isAuthenticated = false,
     this.hasSession = false,
     this.profile,
     this.error,
   });
 
+  /// Résolution de la session : c'est le seul drapeau que le routeur observe.
+  /// Le passer à vrai renvoie l'utilisateur sur `/auth/loading`.
   final bool isLoading;
+
+  /// Écriture en cours sur le profil. Volontairement distinct de [isLoading] :
+  /// enregistrer un surnom ne doit pas faire sortir l'utilisateur de l'écran
+  /// où il se trouve.
+  final bool isSaving;
   final bool isAuthenticated;
   final bool hasSession;
   final AuthProfile? profile;
   final String? error;
 
+  /// Pour les écrans : désactive les actions pendant un chargement comme
+  /// pendant un enregistrement.
+  bool get isBusy => isLoading || isSaving;
+
   AuthState copyWith({
     bool? isLoading,
+    bool? isSaving,
     bool? isAuthenticated,
     bool? hasSession,
     AuthProfile? profile,
@@ -32,6 +46,7 @@ class AuthState {
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
+      isSaving: isSaving ?? this.isSaving,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       hasSession: hasSession ?? this.hasSession,
       profile: clearProfile ? null : (profile ?? this.profile),
@@ -49,7 +64,12 @@ class AuthController extends StateNotifier<AuthState> {
         state = const AuthState(isLoading: false);
         return;
       }
-      unawaited(_refreshProfile(retryAfterSignIn: true));
+      // La boucle de réessai n'a de sens qu'après une vraie connexion, le
+      // temps que le profil devienne visible. Sur `initialSession`, elle
+      // relançait `get_my_profile` une seconde fois à chaque démarrage à
+      // froid, alors que l'appel du constructeur venait de le faire.
+      final isFreshSignIn = event.event == supabase.AuthChangeEvent.signedIn;
+      unawaited(_refreshProfile(retryAfterSignIn: isFreshSignIn));
     });
     unawaited(_refreshProfile());
     _loadingFallback = Timer(const Duration(seconds: 15), () {
@@ -204,14 +224,15 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<bool> updatePassword(String password) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(isSaving: true, clearError: true);
     try {
       await _repository.updatePassword(password);
       await _refreshProfile();
+      state = state.copyWith(isSaving: false);
       return true;
     } catch (_) {
       state = state.copyWith(
-        isLoading: false,
+        isSaving: false,
         error: 'Le mot de passe n’a pas pu être modifié.',
       );
       return false;
@@ -236,7 +257,7 @@ class AuthController extends StateNotifier<AuthState> {
     required String lastName,
     String? surnom,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(isSaving: true, clearError: true);
     try {
       final profile = await _repository.updateProfile(
         firstName: firstName,
@@ -244,7 +265,7 @@ class AuthController extends StateNotifier<AuthState> {
         surnom: surnom,
       );
       state = state.copyWith(
-        isLoading: false,
+        isSaving: false,
         isAuthenticated: profile.isActive,
         hasSession: _repository.hasSession,
         profile: profile,
@@ -252,7 +273,7 @@ class AuthController extends StateNotifier<AuthState> {
       );
     } catch (_) {
       state = state.copyWith(
-        isLoading: false,
+        isSaving: false,
         error: 'Le profil n’a pas pu être enregistré.',
       );
     }
@@ -262,14 +283,14 @@ class AuthController extends StateNotifier<AuthState> {
     required Uint8List bytes,
     required String fileExt,
   }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(isSaving: true, clearError: true);
     try {
       final profile = await _repository.uploadProfilePhoto(
         bytes: bytes,
         fileExt: fileExt,
       );
       state = state.copyWith(
-        isLoading: false,
+        isSaving: false,
         isAuthenticated: profile.isActive,
         hasSession: _repository.hasSession,
         profile: profile,
@@ -277,7 +298,7 @@ class AuthController extends StateNotifier<AuthState> {
       );
     } catch (_) {
       state = state.copyWith(
-        isLoading: false,
+        isSaving: false,
         error: 'La photo n’a pas pu être enregistrée.',
       );
     }
@@ -297,7 +318,38 @@ final authControllerProvider =
   return AuthController(repository);
 });
 
+const _viewAsUserPreferenceKey = 'as_grinta.view_as_user';
+
+/// Mode « Aperçu utilisateur » d'un administrateur.
+///
+/// À modifier via [setViewAsUser], qui le mémorise : sans persistance, un
+/// simple rechargement rendait ses boutons d'administration à l'admin sans le
+/// prévenir, alors qu'il se croyait toujours en aperçu.
 final viewAsUserProvider = StateProvider<bool>((ref) => false);
+
+/// Bascule le mode aperçu et le mémorise localement.
+Future<void> setViewAsUser(WidgetRef ref, bool value) async {
+  ref.read(viewAsUserProvider.notifier).state = value;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_viewAsUserPreferenceKey, value);
+  } catch (_) {
+    // Stockage local indisponible (navigation privée, quota) : l'aperçu reste
+    // simplement non persistant.
+  }
+}
+
+/// Restaure le mode aperçu mémorisé. Appelé une fois au démarrage.
+Future<void> restoreViewAsUserPreference(WidgetRef ref) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_viewAsUserPreferenceKey) == true) {
+      ref.read(viewAsUserProvider.notifier).state = true;
+    }
+  } catch (_) {
+    // Ignoré : l'aperçu reprend simplement sa valeur par défaut.
+  }
+}
 
 final isRealAdminProvider = Provider<bool>((ref) {
   return ref.watch(authControllerProvider).profile?.role.isAdmin == true;

@@ -139,10 +139,11 @@ class _SportMotmVotePageState extends ConsumerState<SportMotmVotePage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
-        if (!vote.isClosed) ...[
-          _VoteHeader(vote: vote),
-          const SizedBox(height: 16),
-        ],
+        // L'en-tête reste après clôture : il porte le score et l'adversaire,
+        // et gère déjà l'état « Résultats définitifs ». Le masquer laissait la
+        // page de résultats sans aucun contexte de match.
+        _VoteHeader(vote: vote),
+        const SizedBox(height: 16),
         if (vote.isOpen) ...[
           if (vote.hasVoted)
             const _MessageCard(
@@ -385,14 +386,23 @@ class _Results extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ranked =
+        vote.candidates.where((c) => (c.votesCount ?? 0) > 0).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Résultats', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
-        for (final candidate in vote.candidates.where(
-          (c) => (c.votesCount ?? 0) > 0,
-        ))
+        // Un scrutin clos sans aucun vote laissait la page entièrement nue
+        // sous le seul titre « Résultats ». On reprend ici le libellé déjà
+        // utilisé par la carte de la fiche du match.
+        if (ranked.isEmpty)
+          const _MessageCard(
+            icon: Icons.how_to_vote_outlined,
+            title: 'Homme du match',
+            message: 'Aucun vote exprimé.',
+          ),
+        for (final candidate in ranked)
           Card(
             child: ListTile(
               leading: candidate.isWinner

@@ -59,7 +59,7 @@ class HomeNextMatchCard extends StatelessWidget {
         ),
         if (isAdmin) ...[
           const SizedBox(width: 4),
-          SizedBox(width: 40, child: AdminMatchOptionsButton(match: match)),
+          SizedBox(width: 48, child: AdminMatchOptionsButton(match: match)),
         ],
         const SizedBox(width: 2),
         Icon(

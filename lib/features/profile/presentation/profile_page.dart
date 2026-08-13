@@ -24,6 +24,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   late final TextEditingController _lastNameController;
   late final TextEditingController _surnomController;
   String? _localError;
+  // Les erreurs de saisie sont portées par le champ concerné
+  // (InputDecoration.errorText) : un texte voisin est bien lu par les lecteurs
+  // d'écran, mais sans jamais être rattaché au champ qu'il décrit.
+  String? _firstNameError;
+  String? _lastNameError;
+  String? _surnomError;
 
   @override
   void initState() {
@@ -48,7 +54,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final profile = authState.profile;
-    final busy = authState.isLoading;
+    final busy = authState.isBusy;
     final displayName = profile?.fullName.isNotEmpty == true
         ? profile!.fullName
         : 'Profil utilisateur';
@@ -163,9 +169,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     controller: _firstNameController,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Prénom',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
+                      prefixIcon: const Icon(Icons.person_outline_rounded),
+                      errorText: _firstNameError,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -173,9 +180,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     controller: _lastNameController,
                     textInputAction: TextInputAction.next,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nom',
-                      prefixIcon: Icon(Icons.badge_outlined),
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                      errorText: _lastNameError,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -183,10 +191,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     controller: _surnomController,
                     textInputAction: TextInputAction.done,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Surnom (optionnel)',
-                      prefixIcon: Icon(Icons.sports_soccer_rounded),
+                      prefixIcon: const Icon(Icons.sports_soccer_rounded),
                       helperText: 'Il s’affiche à la place du prénom.',
+                      errorText: _surnomError,
                     ),
                   ),
                 ],
@@ -296,7 +305,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     if (cropped == null) return;
     await ref
         .read(authControllerProvider.notifier)
-        .uploadPhoto(bytes: cropped, fileExt: 'png');
+        .uploadPhoto(bytes: cropped, fileExt: 'jpg');
     if (!mounted) return;
     final error = ref.read(authControllerProvider).error;
     ScaffoldMessenger.of(
@@ -308,38 +317,41 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final surnom = _surnomController.text.trim();
-    if (firstName.isEmpty || lastName.isEmpty) {
-      setState(() => _localError = 'Le prénom et le nom sont obligatoires.');
+    const lettersOnly = 'Uniquement des lettres : ni emoji, ni chiffre, '
+        'ni symbole.';
+    String? nameError(String value, {required bool required}) {
+      if (value.isEmpty) return required ? 'Ce champ est obligatoire.' : null;
+      return isValidPersonName(value) ? null : lettersOnly;
+    }
+
+    final firstNameError = nameError(firstName, required: true);
+    final lastNameError = nameError(lastName, required: true);
+    final surnomError = nameError(surnom, required: false);
+
+    setState(() {
+      _localError = null;
+      _firstNameError = firstNameError;
+      _lastNameError = lastNameError;
+      _surnomError = surnomError;
+    });
+    if (firstNameError != null ||
+        lastNameError != null ||
+        surnomError != null) {
       return;
     }
-    if (!isValidPersonName(firstName) || !isValidPersonName(lastName)) {
-      setState(
-        () => _localError =
-            'Le prénom et le nom ne doivent contenir que des lettres '
-                '(ni emoji, ni chiffre, ni symbole).',
-      );
-      return;
-    }
-    if (surnom.isNotEmpty && !isValidPersonName(surnom)) {
-      setState(
-        () => _localError =
-            'Le surnom ne doit contenir que des lettres (ni emoji, ni chiffre, '
-                'ni symbole).',
-      );
-      return;
-    }
-    setState(() => _localError = null);
     await ref.read(authControllerProvider.notifier).updateProfile(
           firstName: firstName,
           lastName: lastName,
           surnom: surnom,
         );
     if (!mounted) return;
-    if (ref.read(authControllerProvider).error == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profil enregistré.')));
-    }
+    // Un échec doit se voir : sans ce retour, un refus serveur était
+    // indiscernable d'un enregistrement réussi. Le bandeau d'erreur du corps
+    // de l'écran affiche déjà le détail, le SnackBar signale l'événement.
+    final error = ref.read(authControllerProvider).error;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error ?? 'Profil enregistré.')),
+    );
   }
 
   Future<void> _changePassword(BuildContext context) async {

@@ -209,7 +209,7 @@ class _MatchLiveRecapPageState extends ConsumerState<MatchLiveRecapPage> {
             scoreAsGrinta: value.scoreAsGrinta,
             scoreAdverse: value.scoreAdverse,
             participants: value.participants,
-            reason: 'Export depuis le Tableau Blanc',
+            reason: 'Export du récapitulatif Live',
           );
       ref.invalidate(matchDetailsProvider(widget.matchId));
       if (!mounted) return;

@@ -152,7 +152,7 @@ class _CalendarSectionState extends ConsumerState<_CalendarSection> {
                 child: _MessageCard(
                   title: 'Aucun match joué',
                   icon: Icons.history_rounded,
-                  message: 'Les matchs terminés et leurs pronos s\'afficheront '
+                  message: 'Les matchs terminés et leurs pronos s’afficheront '
                       'ici.',
                 ),
               ),

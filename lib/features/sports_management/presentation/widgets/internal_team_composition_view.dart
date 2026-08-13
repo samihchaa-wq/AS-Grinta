@@ -34,17 +34,40 @@ class _InternalTeamCompositionViewState
   List<InternalCompositionEntry>? _entries;
   bool _dirty = false;
   bool _saving = false;
+  bool _syncingNames = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Renommer une équipe est une modification à enregistrer, au même titre
+    // qu'un déplacement de joueur, et l'étiquette du maillot doit suivre.
+    _team1Controller.addListener(_handleTeamNameChanged);
+    _team2Controller.addListener(_handleTeamNameChanged);
+  }
 
   @override
   void dispose() {
-    _team1Controller.dispose();
-    _team2Controller.dispose();
+    _team1Controller
+      ..removeListener(_handleTeamNameChanged)
+      ..dispose();
+    _team2Controller
+      ..removeListener(_handleTeamNameChanged)
+      ..dispose();
     super.dispose();
   }
 
+  void _handleTeamNameChanged() {
+    // Ignore les écritures programmatiques de `_initFrom`, qui se produisent
+    // pendant un build et ne sont pas des modifications de l'utilisateur.
+    if (!mounted || _syncingNames) return;
+    setState(() => _dirty = true);
+  }
+
   void _initFrom(InternalMatchComposition composition) {
+    _syncingNames = true;
     _team1Controller.text = composition.team1Name;
     _team2Controller.text = composition.team2Name;
+    _syncingNames = false;
     _entries = List.of(composition.entries);
   }
 
@@ -260,6 +283,25 @@ class _TeamColumn extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+        // Le serveur accepte des noms libres depuis toujours
+        // (admin_save_internal_composition), mais aucun champ de saisie
+        // n'existait : les deux camps restaient « Équipe 1 » et « Équipe 2 ».
+        if (editable && controller != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TextField(
+              controller: controller,
+              maxLength: 40,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: 'Nom de l’équipe $teamNo',
+                hintText: 'Équipe $teamNo',
+                counterText: '',
+                isDense: true,
+              ),
+            ),
+          ),
         _TeamDropZone(
           teamNo: teamNo,
           editable: editable,

@@ -22,11 +22,11 @@ select ok(
 select ok(
   position(
     'interval ''1 hour 45 minutes''' in
-    pg_get_functiondef('private.close_due_match_motm_elections()'::regprocedure)
+    pg_get_functiondef('private.close_due_match_motm_elections(timestamptz)'::regprocedure)
   ) = 0
   and position(
     'match_sport_motm_elections' in
-    pg_get_functiondef('private.close_due_match_motm_elections()'::regprocedure)
+    pg_get_functiondef('private.close_due_match_motm_elections(timestamptz)'::regprocedure)
   ) > 0,
   'le job périodique ne crée plus de scrutin avant la validation'
 );
