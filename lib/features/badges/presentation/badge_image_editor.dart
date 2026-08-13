@@ -12,8 +12,8 @@ import 'package:as_grinta/features/badges/presentation/badge_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Action d'administration pour remplacer uniquement le visuel central d'un
-/// badge. L'éditeur reste monté pendant le choix de la photo.
+/// Action d'administration pour recadrer ou remplacer uniquement le visuel
+/// central d'un badge.
 class BadgeImageEditorButton extends ConsumerStatefulWidget {
   const BadgeImageEditorButton({
     super.key,
@@ -33,19 +33,44 @@ class _BadgeImageEditorButtonState
     extends ConsumerState<BadgeImageEditorButton> {
   bool _busy = false;
 
-  Future<void> _replaceImage() async {
+  Future<void> _editImage() async {
     if (_busy) return;
 
     setState(() => _busy = true);
     final badgeColor =
         parseBadgeColor(widget.badge.color) ?? kDefaultBadgeColor;
+    final repository = ref.read(badgeAdminRepositoryProvider);
+    final imageUrl = widget.badge.imageUrl?.trim();
+
+    Uint8List? initialBytes;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        initialBytes = await repository.downloadBadgeImage(imageUrl);
+      } catch (error) {
+        if (!mounted) return;
+        setState(() => _busy = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Impossible de charger l’image actuelle : ${humanizeError(error)}',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
 
     Uint8List? edited;
     try {
       edited = await showDialog<Uint8List?>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => _BadgeCropDialog(badgeColor: badgeColor),
+        builder: (_) => _BadgeCropDialog(
+          badgeColor: badgeColor,
+          initialBytes: initialBytes,
+        ),
       );
     } finally {
       if (mounted && edited == null) setState(() => _busy = false);
@@ -54,9 +79,10 @@ class _BadgeImageEditorButtonState
     if (edited == null || !mounted) return;
 
     try {
-      await ref
-          .read(badgeAdminRepositoryProvider)
-          .replaceBadgeImage(badgeCode: widget.badge.code, bytes: edited);
+      await repository.replaceBadgeImage(
+        badgeCode: widget.badge.code,
+        bytes: edited,
+      );
 
       ref.invalidate(badgeCatalogProvider);
       ref.invalidate(myArmoireProvider);
@@ -80,38 +106,43 @@ class _BadgeImageEditorButtonState
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = widget.badge.imageUrl?.trim().isNotEmpty == true;
+    final tooltip = hasImage ? 'Recadrer l’image' : 'Ajouter une image';
+    final icon = hasImage ? Icons.crop_rounded : Icons.photo_camera_rounded;
+
     if (widget.compact) {
       return IconButton.filledTonal(
-        tooltip: 'Changer l’image',
-        onPressed: _busy ? null : _replaceImage,
+        tooltip: tooltip,
+        onPressed: _busy ? null : _editImage,
         icon: _busy
             ? const SizedBox(
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.photo_camera_rounded),
+            : Icon(icon),
       );
     }
 
     return FilledButton.tonalIcon(
-      onPressed: _busy ? null : _replaceImage,
+      onPressed: _busy ? null : _editImage,
       icon: _busy
           ? const SizedBox(
               width: 18,
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.photo_camera_rounded),
-      label: const Text('Changer l’image'),
+          : Icon(icon),
+      label: Text(tooltip),
     );
   }
 }
 
 class _BadgeCropDialog extends StatefulWidget {
-  const _BadgeCropDialog({required this.badgeColor});
+  const _BadgeCropDialog({required this.badgeColor, this.initialBytes});
 
   final Color badgeColor;
+  final Uint8List? initialBytes;
 
   @override
   State<_BadgeCropDialog> createState() => _BadgeCropDialogState();
@@ -136,6 +167,12 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       _size,
       visibleHeight,
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _bytes = widget.initialBytes;
   }
 
   @override
@@ -244,7 +281,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     final bytes = _bytes;
 
     return AlertDialog(
-      title: const Text('Image du badge'),
+      title: Text(widget.initialBytes == null ? 'Image du badge' : 'Recadrer'),
       contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       content: Column(
         mainAxisSize: MainAxisSize.min,
