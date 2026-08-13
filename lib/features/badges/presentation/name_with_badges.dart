@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
 import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -73,9 +74,14 @@ class _BadgeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const render = 96.0;
+    // La hauteur réservée colle exactement à celle de l'emblème : aucune bande
+    // vide au-dessus ou en dessous ne vient rogner sa taille dans la ligne.
+    final ratio = badgeEmblemHeightRatio(
+      hasValue: badge.valueLabel?.isNotEmpty == true,
+    );
     return SizedBox(
       width: size,
-      height: size * 1.28,
+      height: size * ratio,
       child: FittedBox(
         fit: BoxFit.contain,
         clipBehavior: Clip.none,
