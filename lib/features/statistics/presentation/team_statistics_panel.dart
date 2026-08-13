@@ -134,7 +134,7 @@ class _TeamResultsCard extends StatelessWidget {
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, constraints) {
-                const gap = AppSpacing.contentGap;
+                const gap = 16.0;
                 final ringSize = math.min(
                   96.0,
                   math.max(
