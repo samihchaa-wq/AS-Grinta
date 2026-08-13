@@ -68,6 +68,25 @@ class BadgeAdminRepository {
     return _client.storage.from('badge-images').getPublicUrl(path);
   }
 
+  /// Recharge l'image actuellement associée à un badge afin de pouvoir la
+  /// recadrer sans demander à l'administrateur de retrouver le fichier source.
+  Future<Uint8List> downloadBadgeImage(String imageUrl) async {
+    const marker = '/storage/v1/object/public/badge-images/';
+    final uri = Uri.parse(imageUrl);
+    final markerIndex = uri.path.indexOf(marker);
+    if (markerIndex < 0) {
+      throw StateError('Image de badge invalide.');
+    }
+
+    final encodedPath = uri.path.substring(markerIndex + marker.length);
+    final path = Uri.decodeComponent(encodedPath);
+    if (path.trim().isEmpty) {
+      throw StateError('Chemin d’image de badge invalide.');
+    }
+
+    return _client.storage.from('badge-images').download(path);
+  }
+
   /// Remplace uniquement l'image centrale d'un badge existant.
   /// Le PNG fourni est déjà positionné/zoomé par l'éditeur côté Flutter.
   Future<void> replaceBadgeImage({
