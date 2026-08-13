@@ -81,22 +81,23 @@ List<Color> _badgeSurfaceColors(Color base) {
   ];
 }
 
-/// Le seuil à écrire en petit sur l'emblème d'un badge de barème (paliers de
-/// stats). `null` pour les badges à palier unique, les titres, triplé, etc.
+/// Valeur à écrire en petit sur l'emblème d'un badge chiffré.
+/// Dans le barème, [threshold] est le seuil du palier. Sur un badge personnel,
+/// c'est la valeur réelle/record fournie par le dépôt.
 String? baremeLabelFor(String? metric, int? threshold) {
-  if (metric == null || threshold == null || threshold <= 1) return null;
+  if (metric == null || threshold == null) return null;
   if (metric == 'max_match_goals' ||
       metric == 'seasons_complete' ||
+      metric == 'bet_against_grinta' ||
       metric.startsWith('title_')) {
     return null;
   }
   return '$threshold';
 }
 
-/// Vrai pour les paliers de CARRIÈRE (cumul total). C'est le seul cas où le
-/// chiffre du badge est multiplié par le nombre d'étoiles (ex. 200 buts →
-/// « 200 » + 2 étoiles). Les paliers saisonniers gardent leur chiffre fixe (le
-/// nombre d'étoiles compte alors les saisons).
+/// Conservé pour compatibilité avec les appels existants. Les étoiles restent
+/// visuelles mais ne multiplient plus le nombre affiché : celui-ci représente
+/// désormais toujours la vraie valeur personnelle.
 bool isCareerBadgeCategory(String? category) =>
     category == 'joueur_all_time' || category == 'pronos_all_time';
 
@@ -122,8 +123,8 @@ List<Shadow> _emojiOutline(double fontSize) {
 }
 
 /// Emblème d'un badge : carré aux bords arrondis, coloré, avec l'emoji (ou une
-/// image) dedans. Le seuil du barème est écrit en petit dans un coin, et une
-/// étoile est posée au-dessus du carré pour les paliers finaux et les titres.
+/// image) dedans. La valeur est écrite en petit dans un coin, et une étoile est
+/// posée au-dessus du carré pour les paliers finaux et les titres.
 class BadgeEmblem extends StatelessWidget {
   const BadgeEmblem({
     super.key,
@@ -144,6 +145,9 @@ class BadgeEmblem extends StatelessWidget {
   final String? color;
   final String? baremeLabel;
   final bool showStar;
+
+  /// Paramètre historique conservé pour ne pas casser les appels existants.
+  /// Le nombre affiché n'est plus multiplié par les étoiles.
   final bool starsMultiplyBareme;
   final bool starOverflow;
   final int starCount;
@@ -216,13 +220,7 @@ class BadgeEmblem extends StatelessWidget {
     );
   }
 
-  String? get _displayBareme {
-    final label = baremeLabel;
-    if (!starsMultiplyBareme || label == null || starCount <= 1) return label;
-    final n = int.tryParse(label);
-    if (n == null) return label;
-    return (n * starCount).toString();
-  }
+  String? get _displayBareme => baremeLabel;
 
   Widget _square(Color base, double sq) {
     final radius = sq * 0.26;

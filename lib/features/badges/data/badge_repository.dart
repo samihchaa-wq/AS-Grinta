@@ -80,6 +80,7 @@ class ArmoireBadge {
     required this.state,
     this.current,
     this.target,
+    this.displayValue,
     this.awardedAt,
     this.stars = 1,
     this.isNew = false,
@@ -92,9 +93,16 @@ class ArmoireBadge {
   /// qui disparaît au clic).
   final bool isNew;
 
-  /// Pour « en cours » : valeur actuelle et seuil visé.
+  /// Pour « en cours » : valeur de la saison/cumul actuel et seuil visé.
   final int? current;
   final int? target;
+
+  /// Chiffre réellement écrit sur l'emblème. Pour les badges carrière, c'est
+  /// le cumul actuel. Pour « Cette saison », c'est le meilleur total d'une
+  /// saison suivie, sauf sur le prochain palier où l'on montre la saison en
+  /// cours afin de rester cohérent avec la barre de progression.
+  final int? displayValue;
+
   final DateTime? awardedAt;
 
   /// Nombre d'étoiles à afficher au-dessus de l'emblème (paliers étoilés
@@ -179,14 +187,22 @@ class BadgeRepository {
     bool isNewBadge(String code) =>
         earnedAt.containsKey(code) && !seenCodes.contains(code);
 
-    // Valeurs de stats courantes (pour la progression).
-    final metricsRes = await _client
-        .rpc('profile_badge_metrics', params: {'p_profile_id': profileId});
+    // Deux valeurs par métrique : `current_value` pilote toujours la
+    // progression/déblocage ; `display_value` pilote seulement le chiffre du
+    // badge (record de saison pour les badges saisonniers déjà gagnés).
+    final metricsRes = await _client.rpc(
+      'profile_badge_display_metrics',
+      params: {'p_profile_id': profileId},
+    );
     final metrics = <String, int>{};
-    if (metricsRes is List && metricsRes.isNotEmpty) {
-      final m = Map<String, dynamic>.from(metricsRes.first as Map);
-      for (final k in m.keys) {
-        metrics[k] = (m[k] as num?)?.toInt() ?? 0;
+    final displayMetrics = <String, int>{};
+    if (metricsRes is List) {
+      for (final r in metricsRes) {
+        final m = Map<String, dynamic>.from(r as Map);
+        final metric = m['metric']?.toString();
+        if (metric == null) continue;
+        metrics[metric] = (m['current_value'] as num?)?.toInt() ?? 0;
+        displayMetrics[metric] = (m['display_value'] as num?)?.toInt() ?? 0;
       }
     }
 
@@ -202,6 +218,12 @@ class BadgeRepository {
         final n = (m['stars'] as num?)?.toInt() ?? 1;
         if (code != null && n > 0) starCounts[code] = n;
       }
+    }
+
+    int? personalDisplayValue(BadgeDef def) {
+      final metric = def.metric;
+      if (metric == null) return null;
+      return displayMetrics[metric] ?? metrics[metric] ?? 0;
     }
 
     final validated = <ArmoireBadge>[];
@@ -242,6 +264,7 @@ class BadgeRepository {
         validated.add(ArmoireBadge(
           def: highestOwned,
           state: BadgeState.validated,
+          displayValue: personalDisplayValue(highestOwned),
           awardedAt: earnedAt[highestOwned.code],
           stars: starCounts[highestOwned.code] ?? 1,
           isNew: isNewBadge(highestOwned.code),
@@ -258,6 +281,7 @@ class BadgeRepository {
             state: BadgeState.inProgress,
             current: singleTier ? null : value,
             target: singleTier ? null : nextUnowned.threshold,
+            displayValue: value,
           ));
         }
       }
@@ -269,6 +293,7 @@ class BadgeRepository {
         validated.add(ArmoireBadge(
           def: b,
           state: BadgeState.validated,
+          displayValue: personalDisplayValue(b),
           awardedAt: earnedAt[b.code],
           stars: starCounts[b.code] ?? 1,
           isNew: isNewBadge(b.code),
@@ -289,6 +314,7 @@ class BadgeRepository {
       validated.add(ArmoireBadge(
         def: def,
         state: BadgeState.validated,
+        displayValue: personalDisplayValue(def),
         awardedAt: earnedAt[code],
         stars: starCounts[code] ?? 1,
         isNew: isNewBadge(code),
