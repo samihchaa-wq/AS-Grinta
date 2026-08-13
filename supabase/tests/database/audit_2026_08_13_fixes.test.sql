@@ -66,11 +66,14 @@ select ok(
 -- Bug 5 — profile_badge_metrics est cloisonnée
 -- ---------------------------------------------------------------------------
 
+-- L'implémentation privée EST exécutable par `authenticated` : featured_badges()
+-- est SECURITY INVOKER et y accède via profile_badge_stars, sans quoi tout
+-- affichage de badge échoue en « permission denied ». La protection ne repose
+-- donc pas sur ce droit, mais sur deux choses : le schéma `private` n'est pas
+-- exposé par PostgREST, et le point d'entrée public est gardé (vérifié plus bas).
 select ok(
-  not has_function_privilege(
-    'authenticated', 'private.profile_badge_metrics(uuid)', 'execute'
-  ),
-  'l’implémentation privée des métriques est hors de portée d’un membre'
+  not has_schema_privilege('anon', 'private', 'usage'),
+  'le schéma private reste hors de portée du rôle anonyme'
 );
 
 select ok(
