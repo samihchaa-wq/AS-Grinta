@@ -6,10 +6,15 @@
 -- publie a tout le club dans la foulee.
 --
 -- `public.match_compositions.version` existait deja mais n'etait jamais
--- comparee. admin_save_match_composition accepte desormais la version que
+-- comparee. Une surcharge a six parametres accepte desormais la version que
 -- l'appelant croit modifier et refuse l'ecriture si elle a bouge entre-temps.
--- Le parametre est optionnel : un appelant qui ne le fournit pas conserve
--- l'ancien comportement, ce qui evite de casser les integrations existantes.
+--
+-- La signature historique a cinq parametres est CONSERVEE et delegue sans
+-- controle de version : plusieurs contrats la referencent explicitement
+-- (simplified_match_workflows, sports_management_composition_server), et la
+-- retirer casserait des appelants hors de ce depot. `p_expected_version` n'a
+-- volontairement pas de valeur par defaut, afin qu'un appel a cinq arguments
+-- reste non ambigu entre les deux surcharges.
 
 begin;
 
@@ -17,9 +22,9 @@ create or replace function public.admin_save_match_composition(
   p_match_id uuid,
   p_formation_code text,
   p_entries jsonb,
-  p_allow_squad_size_exception boolean default false,
-  p_reason text default null,
-  p_expected_version integer default null
+  p_allow_squad_size_exception boolean,
+  p_reason text,
+  p_expected_version integer
 )
 returns jsonb
 language plpgsql
@@ -79,16 +84,37 @@ $function$;
 comment on function public.admin_save_match_composition(uuid, text, jsonb, boolean, text, integer) is
   'Enregistre puis publie la composition d un match. p_expected_version active le controle de concurrence optimiste : l ecriture est refusee (40001) si la composition a change depuis son chargement.';
 
--- L'ancienne signature a cinq parametres disparait : l'unique appelant est
--- l'application, qui envoie desormais la version attendue, et la valeur par
--- defaut du nouveau parametre couvre les appels sans version.
-drop function if exists public.admin_save_match_composition(uuid, text, jsonb, boolean, text);
-
 revoke all on function
   public.admin_save_match_composition(uuid, text, jsonb, boolean, text, integer)
   from public, anon;
 grant execute on function
   public.admin_save_match_composition(uuid, text, jsonb, boolean, text, integer)
   to authenticated, service_role;
+
+-- Surcharge historique : comportement inchange, sans controle de version.
+-- `create or replace` preserve les privileges deja accordes.
+create or replace function public.admin_save_match_composition(
+  p_match_id uuid,
+  p_formation_code text,
+  p_entries jsonb,
+  p_allow_squad_size_exception boolean default false,
+  p_reason text default null
+)
+returns jsonb
+language sql
+set search_path to ''
+as $function$
+  select public.admin_save_match_composition(
+    p_match_id,
+    p_formation_code,
+    p_entries,
+    p_allow_squad_size_exception,
+    p_reason,
+    null::integer
+  );
+$function$;
+
+comment on function public.admin_save_match_composition(uuid, text, jsonb, boolean, text) is
+  'Signature historique conservee pour les appelants existants : delegue a la version a six parametres sans controle de concurrence.';
 
 commit;

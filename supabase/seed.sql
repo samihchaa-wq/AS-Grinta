@@ -45,7 +45,6 @@ insert into public.badges (
 ('max_match_goals__3','Triplé','Marquer trois buts au cours d’un même match.','🎩','joueur',true,'max_match_goals',3,160,'tier','joueur_all_time',null,'#F1706E',false,true,false),
 ('max_match_goals__4','Quadruplé','Marquer quatre buts au cours d’un même match.','🃏','joueur',true,'max_match_goals',4,161,'tier','joueur_all_time',null,'#E23B36',false,true,false),
 ('max_match_goals__5','Quintuplé','Marquer cinq buts au cours d’un même match.','🖐️','joueur',true,'max_match_goals',5,162,'tier','joueur_all_time',null,'#9E1B1B',false,true,false),
-('seasons_complete__1','Toujours présent','Participer à tous les matchs organisés au cours d’une même saison, sans aucune absence.','🫡','joueur',true,'seasons_complete',1,190,'tier','palmares',null,'#5FC9D9',true,false,false),
 ('title_most_present__1','Monsieur Présent','Terminer une saison en étant le joueur ayant participé au plus grand nombre de matchs.','🙋','joueur',true,'title_most_present',1,191,'tier','palmares',null,'#5FC9D9',true,false,false),
 ('title_top_scorer__1','Soulier d’or','Terminer une saison en étant le joueur ayant marqué le plus grand nombre de buts.','🥇','joueur',true,'title_top_scorer',1,192,'tier','palmares',null,'#5FC9D9',true,false,false),
 ('title_best_winrate__1','Monsieur Victoire','Terminer une saison avec le meilleur taux de victoire parmi les joueurs éligibles.','📈','joueur',true,'title_best_winrate',1,193,'tier','palmares',null,'#5FC9D9',true,false,false),

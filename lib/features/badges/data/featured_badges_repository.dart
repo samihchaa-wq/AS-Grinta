@@ -13,30 +13,35 @@ class FeaturedBadge {
     this.hasStar = false,
     this.stars = 1,
     this.category,
+    this.code,
+    this.metric,
   });
   final String emoji;
   final String? imageUrl;
 
-  /// Couleur du carré de l'emblème (hex) et seuil du barème, si applicable.
+  /// Couleur du carré de l'emblème (hex) et valeur personnelle affichée.
   final String? color;
   final String? baremeLabel;
 
   /// Étoile posée au-dessus du carré (paliers finaux + titres).
   final bool hasStar;
 
-  /// Nombre d'étoiles (multiples du dernier palier atteint) : 200 buts → 2, etc.
+  /// Nombre d'étoiles : répétitions du palier/titre selon sa famille.
   final int stars;
 
-  /// Catégorie du badge (pour distinguer carrière / saison lors de l'affichage
-  /// du chiffre multiplié par les étoiles).
+  /// Catégorie du badge, conservée pour les usages d'affichage existants.
   final String? category;
+
+  /// Code et métrique : de quoi dériver le socle affiché sous l'illustration.
+  final String? code;
+  final String? metric;
 }
 
 class FeaturedBadgesRepository {
   FeaturedBadgesRepository(this._client);
   final SupabaseClient _client;
 
-  /// Tous les badges arborés, regroupés par profil (max 3 chacun).
+  /// Le badge arboré de chaque profil, regroupé par profil (un seul chacun).
   Future<Map<String, List<FeaturedBadge>>> fetchAll() async {
     final rows = await _client.rpc('featured_badges');
     final map = <String, List<FeaturedBadge>>{};
@@ -49,11 +54,13 @@ class FeaturedBadgesRepository {
         color: m['color']?.toString(),
         baremeLabel: baremeLabelFor(
           m['metric']?.toString(),
-          (m['threshold'] as num?)?.toInt(),
+          (m['display_value'] as num?)?.toInt(),
         ),
         hasStar: m['has_star'] == true,
         stars: (m['stars'] as num?)?.toInt() ?? 1,
         category: m['category']?.toString(),
+        code: m['code']?.toString(),
+        metric: m['metric']?.toString(),
       ));
     }
     return map;

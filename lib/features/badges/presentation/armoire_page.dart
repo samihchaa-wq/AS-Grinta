@@ -104,7 +104,8 @@ class ArmoirePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Sélectionne jusqu’à 2 badges à afficher près de ton prénom.',
+                  'Choisis le badge à afficher près de ton prénom. En arborer '
+                  'un nouveau remplace le précédent.',
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
@@ -287,8 +288,8 @@ class _BadgeGrid extends StatelessWidget {
   }
 }
 
-String? baremeThreshold(BadgeDef def) =>
-    baremeLabelFor(def.metric, def.threshold);
+String? badgeValueLabel(ArmoireBadge badge) =>
+    baremeLabelFor(badge.def.metric, badge.displayValue);
 
 class _BadgeTile extends ConsumerWidget {
   const _BadgeTile({
@@ -347,7 +348,7 @@ class _BadgeTile extends ConsumerWidget {
     }
 
     final canFeature = onToggleFeatured != null;
-    final bareme = baremeThreshold(badge.def);
+    final valueLabel = badgeValueLabel(badge);
     return SizedBox(
       width: tile,
       child: Column(
@@ -380,12 +381,14 @@ class _BadgeTile extends ConsumerWidget {
                   emoji: badge.def.emoji,
                   imageUrl: badge.def.imageUrl,
                   color: badge.def.color,
-                  baremeLabel: bareme,
+                  baremeLabel: valueLabel,
+                  descriptor: badgeDescriptorFor(
+                    code: badge.def.code,
+                    metric: badge.def.metric,
+                    category: badge.def.category,
+                  ),
                   showStar: badge.def.hasStar,
                   starCount: badge.stars,
-                  starsMultiplyBareme: isCareerBadgeCategory(
-                    badge.def.category,
-                  ),
                   size: emblem,
                 ),
                 if (badge.isNew)
@@ -470,10 +473,14 @@ class _InProgressTile extends StatelessWidget {
               emoji: badge.def.emoji,
               imageUrl: badge.def.imageUrl,
               color: badge.def.color,
-              baremeLabel: baremeThreshold(badge.def),
+              baremeLabel: badgeValueLabel(badge),
+              descriptor: badgeDescriptorFor(
+                code: badge.def.code,
+                metric: badge.def.metric,
+                category: badge.def.category,
+              ),
               showStar: badge.def.hasStar,
               starCount: badge.stars,
-              starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
               size: 81,
             ),
             const SizedBox(width: 14),

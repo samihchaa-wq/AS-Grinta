@@ -3,8 +3,14 @@
 -- Couvre les bugs 3 (validation des noms de profil), 5 (fuite
 -- profile_badge_metrics), 9 (cohérence des statistiques), 13 (fin des matchs
 -- internes), 14 (concurrence sur la composition), 19 (nettoyage du stockage),
--- 20 (suppression d'un compte ayant arbitré un Live), 27 (libellé d'audit),
--- 38 (RLS des tables private) et 41 (cascade de suppression d'un match).
+-- 20 (suppression d'un compte ayant arbitré un Live), 27 (libellé d'audit)
+-- et 41 (cascade de suppression d'un match).
+--
+-- Le bug 38 est traité sur main par
+-- 20260813200000_restore_notification_log_and_private_rls, qui ne rejoue
+-- volontairement PAS la validation de push_notification_log_kind_check : le
+-- contrat notifications_motm_hardening exige qu'elle reste NOT VALID. Seule
+-- l'activation de RLS est donc vérifiée ici.
 
 begin;
 
@@ -311,7 +317,7 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- Bugs 9, 14 et 38 — contraintes et signatures
+-- Bugs 9 et 14 — contraintes et signatures, plus la RLS du schéma private
 -- ---------------------------------------------------------------------------
 
 select ok(
@@ -337,12 +343,6 @@ select ok(
   'admin_save_match_composition accepte une version attendue (bug 14)'
 );
 
-select ok(
-  (select convalidated from pg_constraint
-   where conname = 'push_notification_log_kind_check'),
-  'la contrainte de type des notifications est validée (bug 38)'
-);
-
 select is(
   (select count(*)::bigint
    from pg_class cls
@@ -351,7 +351,7 @@ select is(
      and cls.relkind = 'r'
      and not cls.relrowsecurity),
   0::bigint,
-  'toutes les tables du schéma private ont RLS activée (bug 38)'
+  'toutes les tables du schéma private ont RLS activée'
 );
 
 select * from finish();

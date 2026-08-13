@@ -24,9 +24,12 @@ begin
 end
 $bootstrap$;
 
--- Le bootstrap CI ne rejoue pas automatiquement les nouvelles migrations.
--- Ce remplacement reproduit donc la migration de cette PR dans la transaction.
-create or replace function public.featured_badges()
+-- Le contrat de featured_badges expose désormais display_value. Le substitut
+-- transactionnel garde la même optimisation des étoiles avec la signature
+-- courante de la RPC.
+drop function if exists public.featured_badges();
+
+create function public.featured_badges()
 returns table(
   profile_id uuid,
   code text,
@@ -35,6 +38,7 @@ returns table(
   color text,
   metric text,
   threshold integer,
+  display_value integer,
   has_star boolean,
   stars integer,
   category text,
@@ -79,6 +83,7 @@ as $function$
     badge.color,
     badge.metric,
     badge.threshold,
+    null::integer as display_value,
     badge.has_star,
     coalesce(featured_star.stars, 1) as stars,
     badge.category,

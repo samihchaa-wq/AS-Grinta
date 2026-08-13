@@ -9,9 +9,9 @@ select no_plan();
 -- transaction et permet de tester le contrat de la nouvelle requête.
 do $bootstrap$
 begin
-  if to_regprocedure('public.profile_badge_stars(uuid)') is null then
+  if to_regprocedure('private.profile_badge_stars(uuid)') is null then
     execute $ddl$
-      create function public.profile_badge_stars(p_profile_id uuid)
+      create function private.profile_badge_stars(p_profile_id uuid)
       returns table(badge_code text, stars integer)
       language sql
       stable
@@ -26,13 +26,16 @@ begin
 end
 $bootstrap$;
 
--- Le bootstrap métier s'arrête à la dernière migration déjà déployée.
--- Ce remplacement est exécuté dans la transaction pgTAP puis annulé.
-create or replace function public.featured_badges()
+-- Le contrat de featured_badges expose désormais display_value. Le substitut
+-- transactionnel est recréé avec cette signature afin que le test continue de
+-- valider l'optimisation des étoiles sans dépendre de l'implémentation métier.
+drop function if exists public.featured_badges();
+
+create function public.featured_badges()
 returns table(
   profile_id uuid, code text, emoji text, image_url text, color text,
-  metric text, threshold integer, has_star boolean, stars integer,
-  category text, sort_order integer
+  metric text, threshold integer, display_value integer, has_star boolean,
+  stars integer, category text, sort_order integer
 )
 language sql
 stable
@@ -47,13 +50,14 @@ as $function$
   featured_stars as materialized (
     select featured_profile.profile_id, badge_star.badge_code, badge_star.stars
     from featured_profiles featured_profile
-    cross join lateral public.profile_badge_stars(
+    cross join lateral private.profile_badge_stars(
       featured_profile.profile_id
     ) badge_star
   )
   select
     profile_badge.profile_id, badge.code, badge.emoji, badge.image_url,
-    badge.color, badge.metric, badge.threshold, badge.has_star,
+    badge.color, badge.metric, badge.threshold,
+    null::integer as display_value, badge.has_star,
     coalesce(featured_star.stars, 1) as stars,
     badge.category, badge.sort_order
   from public.profile_badges profile_badge
@@ -157,14 +161,15 @@ select results_eq(
   $$
     select
       profile_badge.profile_id, badge.code, badge.emoji, badge.image_url,
-      badge.color, badge.metric, badge.threshold, badge.has_star,
+      badge.color, badge.metric, badge.threshold,
+      null::integer as display_value, badge.has_star,
       coalesce(badge_star.stars, 1) as stars,
       badge.category, badge.sort_order
     from public.profile_badges profile_badge
     join public.badges badge on badge.id = profile_badge.badge_id
     left join lateral (
       select star.stars
-      from public.profile_badge_stars(profile_badge.profile_id) star
+      from private.profile_badge_stars(profile_badge.profile_id) star
       where star.badge_code = badge.code
       limit 1
     ) badge_star on true
@@ -172,7 +177,7 @@ select results_eq(
       and badge.code like 'test_featured_%'
     order by profile_badge.profile_id, badge.sort_order
   $$,
-  'la version optimisée renvoie exactement le résultat historique'
+  'la version optimisée renvoie exactement le contrat courant'
 );
 
 select * from finish();

@@ -116,6 +116,11 @@ class BadgeDetailSheet extends ConsumerWidget {
                             currentBadge.metric,
                             currentBadge.threshold,
                           ),
+                          descriptor: badgeDescriptorFor(
+                            code: currentBadge.code,
+                            metric: currentBadge.metric,
+                            category: currentBadge.category,
+                          ),
                           showStar: currentBadge.hasStar,
                           size: 123,
                         ),
@@ -273,6 +278,11 @@ class _TierRow extends StatelessWidget {
             imageUrl: tier.imageUrl,
             color: tier.color,
             baremeLabel: baremeLabelFor(tier.metric, tier.threshold),
+            descriptor: badgeDescriptorFor(
+              code: tier.code,
+              metric: tier.metric,
+              category: tier.category,
+            ),
             showStar: tier.hasStar,
             size: 84,
           ),

@@ -6,6 +6,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/statistics/data/statistics_repository.dart';
@@ -41,72 +42,77 @@ class _StatsHubPageState extends State<StatsHubPage> {
         title: const Text('Statistiques'),
         actions: grintaHomeActions(context),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenGutter,
-              AppSpacing.contentGap,
-              AppSpacing.screenGutter,
-              AppSpacing.contentGap,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<_StatsSection>(
-                expandedInsets: EdgeInsets.zero,
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(
-                    value: _StatsSection.players,
-                    label: Text('Joueurs'),
-                  ),
-                  ButtonSegment(
-                    value: _StatsSection.team,
-                    label: Text('Équipe'),
-                  ),
-                  ButtonSegment(
-                    value: _StatsSection.rankings,
-                    label: Text('Prono'),
-                  ),
-                ],
-                selected: {_section},
-                onSelectionChanged: (value) {
-                  setState(() => _section = value.first);
-                },
+      // Seul le module Statistiques arbore les badges à côté des noms : les
+      // mêmes panneaux montés ailleurs (Prono, Calendrier) rendent le nom seul.
+      body: BadgeDisplayScope(
+        showBadges: true,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenGutter,
+                AppSpacing.contentGap,
+                AppSpacing.screenGutter,
+                AppSpacing.contentGap,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<_StatsSection>(
+                  expandedInsets: EdgeInsets.zero,
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(
+                      value: _StatsSection.players,
+                      label: Text('Joueurs'),
+                    ),
+                    ButtonSegment(
+                      value: _StatsSection.team,
+                      label: Text('Équipe'),
+                    ),
+                    ButtonSegment(
+                      value: _StatsSection.rankings,
+                      label: Text('Prono'),
+                    ),
+                  ],
+                  selected: {_section},
+                  onSelectionChanged: (value) {
+                    setState(() => _section = value.first);
+                  },
+                ),
               ),
             ),
-          ),
-          if (hasPeriod)
-            GrintaSecondaryTabs<StatisticsPeriod>(
-              segments: const [
-                ButtonSegment(
-                  value: StatisticsPeriod.current,
-                  label: Text('Actuelle'),
-                ),
-                ButtonSegment(
-                  value: StatisticsPeriod.previous,
-                  label: Text('Précédente'),
-                ),
-                ButtonSegment(
-                  value: StatisticsPeriod.allTime,
-                  label: Text('Toutes'),
-                ),
-              ],
-              selected: {_period},
-              onSelectionChanged: (value) {
-                setState(() => _period = value.first);
+            if (hasPeriod)
+              GrintaSecondaryTabs<StatisticsPeriod>(
+                segments: const [
+                  ButtonSegment(
+                    value: StatisticsPeriod.current,
+                    label: Text('Actuelle'),
+                  ),
+                  ButtonSegment(
+                    value: StatisticsPeriod.previous,
+                    label: Text('Précédente'),
+                  ),
+                  ButtonSegment(
+                    value: StatisticsPeriod.allTime,
+                    label: Text('Toutes'),
+                  ),
+                ],
+                selected: {_period},
+                onSelectionChanged: (value) {
+                  setState(() => _period = value.first);
+                },
+              ),
+            Expanded(
+              child: switch (_section) {
+                _StatsSection.rankings => RankingsPanel(
+                    initialView: widget.initialRankingView,
+                  ),
+                _StatsSection.players => _PlayersPanel(period: _period),
+                _StatsSection.team => TeamStatisticsPanel(period: _period),
               },
             ),
-          Expanded(
-            child: switch (_section) {
-              _StatsSection.rankings => RankingsPanel(
-                  initialView: widget.initialRankingView,
-                ),
-              _StatsSection.players => _PlayersPanel(period: _period),
-              _StatsSection.team => TeamStatisticsPanel(period: _period),
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -345,16 +351,12 @@ StickyTableRow _playersRow(
     padding: grintaTablePinnedRowPadding,
     child: Row(
       children: [
-        SizedBox(
-          width: 22,
-          child: Text('$rank', style: grintaTableRankTextStyle(context)),
-        ),
-        const SizedBox(width: 4),
+        GrintaTableRankCell(rank: rank),
         Expanded(
           child: NameWithBadges(
             profileId: player.profileId,
             name: player.playerName,
-            badgeSize: 28,
+            badgeSize: 48,
           ),
         ),
       ],

@@ -279,6 +279,13 @@ $function$;
 comment on function public.cleanup_replaced_badge_image() is
   'Fonction de trigger interne : supprime le visuel de badge remplace ou devenu inutile.';
 
+-- Une fonction fraichement creee est executable par PUBLIC par defaut. Le
+-- contrat security_definer_access_matrix exige qu'aucune fonction SECURITY
+-- DEFINER du schema public ne soit joignable anonymement : seul le declencheur
+-- doit l'appeler.
+revoke all on function public.cleanup_replaced_badge_image()
+  from public, anon, authenticated;
+
 drop trigger if exists trg_cleanup_replaced_badge_image on public.badges;
 create trigger trg_cleanup_replaced_badge_image
   after update of image_url or delete on public.badges
