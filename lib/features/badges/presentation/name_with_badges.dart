@@ -4,9 +4,10 @@ import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-/// Affiche un prénom suivi des badges qu'il a choisi d'arborer (max 3),
-/// à droite du nom. À utiliser partout où un nom de personne apparaît.
+/// Affiche le nom seul partout, sauf dans le module Statistiques (/stats) où
+/// les badges arborés sont affichés à droite du nom.
 class NameWithBadges extends ConsumerWidget {
   const NameWithBadges({
     super.key,
@@ -18,19 +19,9 @@ class NameWithBadges extends ConsumerWidget {
 
   final String? profileId;
   final String name;
-
-  /// Fusionné par-dessus la référence : un écran qui ne précise que la couleur
-  /// ou la graisse garde donc la taille commune. Seul un `fontSize` explicite
-  /// s'en écarte.
   final TextStyle? style;
-
-  /// Déduit de la taille du nom quand il n'est pas donné, pour que le badge
-  /// suive toujours le texte qu'il accompagne.
   final double? badgeSize;
 
-  /// Taille de référence d'un nom de joueur dans une liste. Elle vient des
-  /// classements ; tous les autres écrans s'alignent dessus pour qu'un même
-  /// joueur ait partout la même stature.
   TextStyle _resolvedStyle(BuildContext context) {
     final base = grintaTableCellTextStyle(
       context,
@@ -42,15 +33,15 @@ class NameWithBadges extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resolved = _resolvedStyle(context);
-    final emblemSize =
-        badgeSize ?? (resolved.fontSize ?? grintaTableCellFontSize) * 1.35;
     final nameText = Text(
       capitalizePersonName(name),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: resolved,
     );
-    if (profileId == null) return nameText;
+
+    final inStatistics = GoRouterState.of(context).uri.path == '/stats';
+    if (!inStatistics || profileId == null) return nameText;
 
     final badges = ref.watch(featuredBadgesProvider).maybeWhen(
           data: (map) => map[profileId] ?? const <FeaturedBadge>[],
@@ -58,12 +49,16 @@ class NameWithBadges extends ConsumerWidget {
         );
     if (badges.isEmpty) return nameText;
 
+    final requested =
+        badgeSize ?? (resolved.fontSize ?? grintaTableCellFontSize) * 1.35;
+    final emblemSize = requested < 36 ? 36.0 : requested;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(child: nameText),
         for (final b in badges.take(2)) ...[
-          const SizedBox(width: 4),
+          const SizedBox(width: 5),
           _BadgeChip(badge: b, size: emblemSize),
         ],
       ],
@@ -78,16 +73,10 @@ class _BadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // On dessine l'emblème à haute résolution puis on le réduit : sur le web,
-    // un emoji rendu directement à petite taille sort délavé et sans détail.
-    // Le supersampling garantit le même dessin net que dans l'armoire.
     const render = 96.0;
-    // L'empreinte du badge = le carré (size×size), aligné verticalement avec le
-    // nom. L'étoile déborde au-dessus sans décaler le carré, et les deux badges
-    // côte à côte restent alignés entre eux (leurs carrés) et avec le nom.
     return SizedBox(
       width: size,
-      height: size,
+      height: size * 1.28,
       child: FittedBox(
         fit: BoxFit.contain,
         clipBehavior: Clip.none,
