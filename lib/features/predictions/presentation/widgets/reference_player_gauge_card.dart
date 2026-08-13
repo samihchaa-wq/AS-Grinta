@@ -208,6 +208,11 @@ class _GaugeBadgeChip extends StatelessWidget {
       imageUrl: badge.imageUrl,
       color: badge.color,
       baremeLabel: badge.baremeLabel,
+      descriptor: badgeDescriptorFor(
+        code: badge.code,
+        metric: badge.metric,
+        category: badge.category,
+      ),
       showStar: badge.hasStar,
       size: size,
     );

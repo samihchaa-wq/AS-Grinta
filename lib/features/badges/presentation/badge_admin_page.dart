@@ -179,6 +179,11 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                   b.metric,
                                   b.threshold,
                                 ),
+                                descriptor: badgeDescriptorFor(
+                                  code: b.code,
+                                  metric: b.metric,
+                                  category: b.category,
+                                ),
                                 showStar: b.hasStar,
                                 size: 81,
                               ),
@@ -457,6 +462,11 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                 baremeLabel: baremeLabelFor(
                   widget.badge.metric,
                   widget.badge.threshold,
+                ),
+                descriptor: badgeDescriptorFor(
+                  code: widget.badge.code,
+                  metric: widget.badge.metric,
+                  category: widget.badge.category,
                 ),
                 showStar: widget.badge.hasStar,
                 size: 81,

@@ -16,7 +16,7 @@ void main() {
         imageUrl: null,
         color: null,
         valueLabel: '12',
-        descriptor: 'BUTS · SAISON',
+        descriptor: BadgeDescriptor('BUTS', 'SAISON'),
         hasStar: false,
         stars: 1,
         category: 'joueur_saison',
@@ -26,7 +26,7 @@ void main() {
         imageUrl: null,
         color: null,
         valueLabel: null,
-        descriptor: 'TRIPLÉ',
+        descriptor: BadgeDescriptor('TRIPLÉ'),
         hasStar: false,
         stars: 1,
         category: 'joueur_saison',
@@ -131,7 +131,10 @@ void main() {
     expect(drawn.width, closeTo(48, 0.5));
     expect(
       drawn.height,
-      closeTo(48 * badgeEmblemHeightRatio(hasValue: true), 0.5),
+      closeTo(
+        48 * badgeEmblemHeightRatio(hasValue: true, hasPeriod: true),
+        0.5,
+      ),
     );
   });
 

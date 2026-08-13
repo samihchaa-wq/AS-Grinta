@@ -78,6 +78,7 @@ class _BadgeChip extends StatelessWidget {
     // vide au-dessus ou en dessous ne vient rogner sa taille dans la ligne.
     final ratio = badgeEmblemHeightRatio(
       hasValue: badge.valueLabel?.isNotEmpty == true,
+      hasPeriod: badge.descriptor.period != null,
     );
     return SizedBox(
       width: size,
@@ -93,8 +94,6 @@ class _BadgeChip extends StatelessWidget {
           descriptor: badge.descriptor,
           showStar: badge.hasStar,
           starCount: badge.stars,
-          starsMultiplyBareme: isCareerBadgeCategory(badge.category),
-          starOverflow: true,
           size: render,
         ),
       ),
