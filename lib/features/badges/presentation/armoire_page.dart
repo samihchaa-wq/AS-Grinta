@@ -287,8 +287,8 @@ class _BadgeGrid extends StatelessWidget {
   }
 }
 
-String? baremeThreshold(BadgeDef def) =>
-    baremeLabelFor(def.metric, def.threshold);
+String? badgeValueLabel(ArmoireBadge badge) =>
+    baremeLabelFor(badge.def.metric, badge.displayValue);
 
 class _BadgeTile extends ConsumerWidget {
   const _BadgeTile({
@@ -347,7 +347,7 @@ class _BadgeTile extends ConsumerWidget {
     }
 
     final canFeature = onToggleFeatured != null;
-    final bareme = baremeThreshold(badge.def);
+    final valueLabel = badgeValueLabel(badge);
     return SizedBox(
       width: tile,
       child: Column(
@@ -380,7 +380,7 @@ class _BadgeTile extends ConsumerWidget {
                   emoji: badge.def.emoji,
                   imageUrl: badge.def.imageUrl,
                   color: badge.def.color,
-                  baremeLabel: bareme,
+                  baremeLabel: valueLabel,
                   showStar: badge.def.hasStar,
                   starCount: badge.stars,
                   starsMultiplyBareme: isCareerBadgeCategory(
@@ -470,7 +470,7 @@ class _InProgressTile extends StatelessWidget {
               emoji: badge.def.emoji,
               imageUrl: badge.def.imageUrl,
               color: badge.def.color,
-              baremeLabel: baremeThreshold(badge.def),
+              baremeLabel: badgeValueLabel(badge),
               showStar: badge.def.hasStar,
               starCount: badge.stars,
               starsMultiplyBareme: isCareerBadgeCategory(badge.def.category),
