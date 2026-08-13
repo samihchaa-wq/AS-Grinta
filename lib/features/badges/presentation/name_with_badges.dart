@@ -43,11 +43,9 @@ class NameWithBadges extends ConsumerWidget {
     final inStatistics = GoRouterState.of(context).uri.path == '/stats';
     if (!inStatistics || profileId == null) return nameText;
 
-    final badges = ref.watch(statisticsBadgeEmblemsProvider).maybeWhen(
-          data: (map) =>
-              map[profileId] ?? const <StatisticsBadgeEmblemData>[],
-          orElse: () => const <StatisticsBadgeEmblemData>[],
-        );
+    final asyncBadges = ref.watch(statisticsBadgeEmblemsProvider);
+    final badges = asyncBadges.asData?.value[profileId] ??
+        const <StatisticsBadgeEmblemData>[];
     if (badges.isEmpty) return nameText;
 
     final requested =
@@ -58,9 +56,9 @@ class NameWithBadges extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(child: nameText),
-        for (final b in badges.take(2)) ...[
+        for (final badge in badges.take(2)) ...[
           const SizedBox(width: 5),
-          _BadgeChip(badge: b, size: emblemSize),
+          _BadgeChip(badge: badge, size: emblemSize),
         ],
       ],
     );
