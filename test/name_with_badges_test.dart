@@ -1,33 +1,59 @@
-import 'package:as_grinta/features/badges/data/featured_badges_repository.dart';
+import 'package:as_grinta/features/badges/data/statistics_badge_emblems_provider.dart';
+import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final twoBadges = <String, List<FeaturedBadge>>{
-    'p1': const [
-      FeaturedBadge(emoji: '🔥', imageUrl: null),
-      FeaturedBadge(emoji: '⚽', imageUrl: null),
+  const twoBadges = <String, List<StatisticsBadgeEmblemData>>{
+    'p1': [
+      StatisticsBadgeEmblemData(
+        emoji: '🔥',
+        imageUrl: null,
+        color: null,
+        valueLabel: '12',
+        descriptor: 'BUTS · SAISON',
+        hasStar: false,
+        stars: 1,
+        category: 'joueur_saison',
+      ),
+      StatisticsBadgeEmblemData(
+        emoji: '⚽',
+        imageUrl: null,
+        color: null,
+        valueLabel: null,
+        descriptor: 'TRIPLÉ',
+        hasStar: false,
+        stars: 1,
+        category: 'joueur_saison',
+      ),
     ],
   };
 
-  Widget harness({required double width, required String name}) {
+  Widget harness({
+    required double width,
+    required String name,
+    bool showBadges = true,
+  }) {
     return ProviderScope(
       overrides: [
-        featuredBadgesProvider.overrideWith((ref) async => twoBadges),
+        statisticsBadgeEmblemsProvider.overrideWith((ref) async => twoBadges),
       ],
       child: MaterialApp(
         home: Scaffold(
-          body: Center(
-            child: SizedBox(
-              width: width,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: NameWithBadges(profileId: 'p1', name: name),
-                  ),
-                ],
+          body: BadgeDisplayScope(
+            showBadges: showBadges,
+            child: Center(
+              child: SizedBox(
+                width: width,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: NameWithBadges(profileId: 'p1', name: name),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -73,5 +99,39 @@ void main() {
     expect(find.text('Samih'), findsOneWidget);
     expect(find.text('🔥'), findsOneWidget);
     expect(find.text('⚽'), findsOneWidget);
+  });
+
+  testWidgets('hors Statistiques, seul le nom est rendu', (tester) async {
+    await tester.pumpWidget(
+      harness(width: 240, name: 'Samih', showBadges: false),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Samih'), findsOneWidget);
+    expect(find.text('🔥'), findsNothing);
+    expect(find.text('⚽'), findsNothing);
+  });
+
+  testWidgets('sans portée déclarée, aucun badge ne fuite', (tester) async {
+    // Un écran qui n'active rien (Calendrier, fiche de match, feuille modale)
+    // ne doit ni afficher de badge ni exiger un routeur au-dessus de lui.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          statisticsBadgeEmblemsProvider.overrideWith((ref) async => twoBadges),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: NameWithBadges(profileId: 'p1', name: 'Samih'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Samih'), findsOneWidget);
+    expect(find.text('🔥'), findsNothing);
   });
 }
