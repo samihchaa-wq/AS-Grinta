@@ -7,7 +7,7 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const nameWithBadgesGap = 5.0;
+const nameWithBadgesGap = 3.0;
 const nameWithBadgesMinimumSize = 36.0;
 
 /// Affiche le nom seul partout, sauf sous une [BadgeDisplayScope] active — le
