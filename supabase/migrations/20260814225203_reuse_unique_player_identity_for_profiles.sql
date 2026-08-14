@@ -95,7 +95,7 @@ begin
     else
       insert into public.player_aliases(alias, player_id)
       values (v_alias, new.player_id)
-      on conflict (player_id, alias) do nothing;
+      on conflict do nothing;
     end if;
   end if;
 
