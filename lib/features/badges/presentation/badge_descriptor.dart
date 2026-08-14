@@ -76,8 +76,6 @@ String _rawDescriptorFor({
       return 'LE BOUCHER';
     case 'exploit_penalty_subi':
       return 'LE PLONGEUR';
-    case 'exploit_penalty_arrete':
-      return 'GOALKEEPER';
     case 'exploit_but_vainqueur_tardif':
       return 'CLUTCH';
     case 'exploit_csc':
