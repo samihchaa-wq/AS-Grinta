@@ -7,8 +7,6 @@ const _valueRatio = 0.26;
 const _labelRatio = 0.22;
 const _periodRatio = 0.18;
 
-const _footerColor = Color(0xFF0B1D40);
-
 /// Taille d'une étoile de palmarès, rapportée à la largeur de l'emblème.
 const kBadgeEmblemStarRatio = 0.2;
 
@@ -35,9 +33,9 @@ double badgeEmblemHeightRatio({
 
 /// Le corps de l'emblème : un seul rectangle, découpé en bandes jointives.
 ///
-/// Rien ne dépasse et rien ne flotte — l'illustration, le nombre et le socle
-/// partagent le même fond et le même arrondi, pour se lire comme une pièce
-/// unique plutôt que comme un carré surmonté d'éléments rapportés.
+/// Toutes les bandes textuelles reprennent exactement la couleur principale
+/// du badge. Le texte est peint en blanc avec un contour noir afin de rester
+/// lisible quelle que soit la couleur choisie pour l'emblème.
 class BadgeEmblemBody extends StatelessWidget {
   const BadgeEmblemBody({
     super.key,
@@ -77,7 +75,7 @@ class BadgeEmblemBody extends StatelessWidget {
           if (hasValue)
             _Band(
               height: size * _valueRatio,
-              color: Color.alphaBlend(const Color(0x33000000), base),
+              color: base,
               child: _BandText(
                 value!,
                 fontSize: size * 0.17,
@@ -87,7 +85,7 @@ class BadgeEmblemBody extends StatelessWidget {
             ),
           _Band(
             height: size * _labelRatio,
-            color: _footerColor,
+            color: base,
             child: _BandText(
               descriptor.label,
               fontSize: size * 0.12,
@@ -97,11 +95,11 @@ class BadgeEmblemBody extends StatelessWidget {
           if (period != null)
             _Band(
               height: size * _periodRatio,
-              color: _footerColor,
+              color: base,
               child: _BandText(
                 period,
                 fontSize: size * 0.1,
-                color: Colors.white70,
+                color: Colors.white,
               ),
             ),
         ],
@@ -131,6 +129,10 @@ class _Band extends StatelessWidget {
 }
 
 /// Texte d'une bande : réduit pour tenir dans la largeur, jamais tronqué.
+///
+/// Deux couches strictement superposées sont rendues : une première en trait
+/// noir, puis le texte blanc par-dessus. Le contour suit donc exactement les
+/// chiffres et lettres sans modifier leur métrique ni la taille du badge.
 class _BandText extends StatelessWidget {
   const _BandText(
     this.text, {
@@ -144,20 +146,38 @@ class _BandText extends StatelessWidget {
   final Color color;
   final double letterSpacing;
 
+  TextStyle _style({Color? fill, Paint? foreground}) {
+    return TextStyle(
+      color: fill,
+      foreground: foreground,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w900,
+      letterSpacing: letterSpacing,
+      height: 1,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final outline = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = fontSize * 0.16
+      ..strokeJoin = StrokeJoin.round
+      ..color = Colors.black;
+
     return FittedBox(
       fit: BoxFit.scaleDown,
-      child: Text(
-        text,
-        maxLines: 1,
-        style: TextStyle(
-          color: color,
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900,
-          letterSpacing: letterSpacing,
-          height: 1,
-        ),
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          Text(
+            text,
+            maxLines: 1,
+            style: _style(foreground: outline),
+          ),
+          Text(text, maxLines: 1, style: _style(fill: color)),
+        ],
       ),
     );
   }
