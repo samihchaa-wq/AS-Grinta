@@ -131,7 +131,7 @@ enum _PlayerStatCol {
 }
 
 const _playerValueFlex = 1;
-const _playerBadgeSize = 48.0;
+const _playerBadgeSize = nameWithBadgesMinimumSize;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
@@ -437,6 +437,7 @@ class _Message extends StatelessWidget {
               icon: Icons.bar_chart_rounded,
               title: title,
               message: message,
+              tone: GrintaEmptyTone.neutral,
             ),
           ),
         ],
