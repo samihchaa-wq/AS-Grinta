@@ -54,7 +54,10 @@ begin
 end;
 $migration$;
 
--- Garde-fou : le bareme attendu doit etre exactement 50 / 100 / 200 / 300.
+-- Garde-fou : quand le catalogue est present, le bareme doit etre exactement
+-- 50 / 100 / 200 / 300. Une base neuve (integration continue) applique les
+-- migrations sur un catalogue vide, alimente ensuite par supabase/seed.sql :
+-- il n'y a alors rien a verifier.
 do $check$
 declare
   v_thresholds integer[];
@@ -64,7 +67,7 @@ begin
   from public.badges
   where metric = 'matches_played';
 
-  if v_thresholds is distinct from array[50, 100, 200, 300] then
+  if v_thresholds is not null and v_thresholds is distinct from array[50, 100, 200, 300] then
     raise exception 'bareme matches_played inattendu : %', v_thresholds;
   end if;
 end;

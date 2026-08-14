@@ -59,7 +59,10 @@ begin
 end;
 $migration$;
 
--- Garde-fou : le bareme attendu doit etre exactement 10 / 20 / 30 / 50.
+-- Garde-fou : quand le catalogue est present, le bareme doit etre exactement
+-- 10 / 20 / 30 / 50. Une base neuve (integration continue) applique les
+-- migrations sur un catalogue vide, alimente ensuite par supabase/seed.sql :
+-- il n'y a alors rien a verifier.
 do $check$
 declare
   v_thresholds integer[];
@@ -69,7 +72,7 @@ begin
   from public.badges
   where metric = 'clean_sheets';
 
-  if v_thresholds is distinct from array[10, 20, 30, 50] then
+  if v_thresholds is not null and v_thresholds is distinct from array[10, 20, 30, 50] then
     raise exception 'bareme clean_sheets inattendu : %', v_thresholds;
   end if;
 end;
