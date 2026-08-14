@@ -144,6 +144,92 @@ void main() {
     );
   });
 
+  testWidgets(
+    'la largeur minimale garde le nom le plus large et son badge entiers',
+    (tester) async {
+      double? pinnedWidth;
+      double? exactRequiredWidth;
+      double? intrinsicNameWidth;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            statisticsBadgeEmblemsProvider.overrideWith(
+              (ref) async => twoBadges,
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: BadgeDisplayScope(
+                showBadges: true,
+                child: Builder(
+                  builder: (context) {
+                    const longestName = 'Stéphane F.';
+                    const names = ['Milan', longestName];
+                    const badgeSize = 48.0;
+                    final style = grintaTableCellTextStyle(
+                      context,
+                      fontWeight: FontWeight.w800,
+                    );
+                    final painter = TextPainter(
+                      text: TextSpan(text: longestName, style: style),
+                      textDirection: Directionality.of(context),
+                      textScaler: MediaQuery.textScalerOf(context),
+                      maxLines: 1,
+                    )..layout();
+                    intrinsicNameWidth = painter.width;
+                    exactRequiredWidth = grintaTablePinnedRowPadding.left +
+                        grintaTableRankWidth +
+                        grintaTableRankGap +
+                        painter.width +
+                        nameWithBadgesGap +
+                        badgeSize +
+                        grintaTablePinnedRowPadding.right;
+                    pinnedWidth = grintaTablePinnedWidthForNames(
+                      context,
+                      names,
+                      trailingWidth: badgeSize,
+                      trailingGap: nameWithBadgesGap,
+                    );
+
+                    return SizedBox(
+                      width: pinnedWidth,
+                      child: Padding(
+                        padding: grintaTablePinnedRowPadding,
+                        child: Row(
+                          children: [
+                            const GrintaTableRankCell(rank: 1),
+                            const Expanded(
+                              child: NameWithBadges(
+                                profileId: 'p1',
+                                name: longestName,
+                                badgeSize: badgeSize,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(pinnedWidth, greaterThanOrEqualTo(exactRequiredWidth!));
+      expect(pinnedWidth! - exactRequiredWidth!, lessThan(1));
+      expect(
+        tester.getSize(find.text('Stéphane F.')).width,
+        closeTo(intrinsicNameWidth!, 0.5),
+      );
+      expect(find.text('🔥'), findsOneWidget);
+    },
+  );
+
   testWidgets('un badge à étoiles réserve leur débord', (tester) async {
     const starred = <String, List<StatisticsBadgeEmblemData>>{
       'p1': [

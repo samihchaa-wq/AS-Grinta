@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
@@ -130,6 +131,7 @@ enum _PlayerStatCol {
 }
 
 const _playerValueFlex = 1;
+const _playerBadgeSize = 48.0;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
@@ -219,6 +221,15 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           });
         }
 
+        final pinnedWidth = grintaTablePinnedWidthForNames(
+          context,
+          players.map(
+            (player) => capitalizePersonName(player.playerName),
+          ),
+          trailingWidth: _playerBadgeSize,
+          trailingGap: nameWithBadgesGap,
+        );
+
         return Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenGutter,
@@ -228,6 +239,7 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
           ),
           child: StickyHeaderTableCard(
             onRefresh: _refresh,
+            pinnedWidth: pinnedWidth,
             pinnedHeader: _PlayersPinnedHeader(
               sort: _sort,
               descending: _descending,
@@ -270,13 +282,13 @@ class _PlayersPinnedHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = grintaTableHeaderTextStyle(context);
     return Padding(
-      padding: grintaTablePinnedHeaderPadding,
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Expanded(
             child: SortableHeaderCell(
               label: 'Joueur',
-              align: TextAlign.start,
+              align: TextAlign.center,
               active: sort == _PlayerStatCol.name,
               descending: descending,
               onTap: () => onSort(_PlayerStatCol.name),
@@ -356,7 +368,7 @@ StickyTableRow _playersRow(
           child: NameWithBadges(
             profileId: player.profileId,
             name: player.playerName,
-            badgeSize: 48,
+            badgeSize: _playerBadgeSize,
           ),
         ),
       ],
