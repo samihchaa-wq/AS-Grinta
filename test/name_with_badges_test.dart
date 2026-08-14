@@ -118,9 +118,11 @@ void main() {
   });
 
   testWidgets('un emblème de 48 tient dans la colonne figée', (tester) async {
-    // Largeur réelle laissée au nom dans Statistiques : colonne figée moins
-    // ses marges (10 + 8), le rang (18) et son écart (6).
-    const available = grintaTablePinnedWidth - 10 - 8 - 18 - 6;
+    // Largeur réelle laissée au nom dans Statistiques.
+    const available = grintaTablePinnedWidth -
+        grintaTablePinnedRowPadding.horizontal -
+        grintaTableRankWidth -
+        grintaTableRankGap;
     await tester.pumpWidget(
       harness(width: available, name: 'Milan', badgeSize: 48),
     );
@@ -167,14 +169,17 @@ void main() {
                     const longestName = 'Stéphane F.';
                     const names = ['Milan', longestName];
                     const badgeSize = 48.0;
-                    final style = grintaTableCellTextStyle(
+                    final inheritedStyle = DefaultTextStyle.of(context).style;
+                    final cellStyle = grintaTableCellTextStyle(
                       context,
                       fontWeight: FontWeight.w800,
                     );
+                    final style = inheritedStyle.merge(cellStyle);
                     final painter = TextPainter(
                       text: TextSpan(text: longestName, style: style),
                       textDirection: Directionality.of(context),
                       textScaler: MediaQuery.textScalerOf(context),
+                      locale: Localizations.maybeLocaleOf(context),
                       maxLines: 1,
                     )..layout();
                     intrinsicNameWidth = painter.width;
