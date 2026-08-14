@@ -131,7 +131,7 @@ enum _PlayerStatCol {
 }
 
 const _playerValueFlex = 1;
-const _playerBadgeSize = 48.0;
+const _playerBadgeSize = statisticsBadgeSize;
 
 class _PlayersPanel extends ConsumerStatefulWidget {
   const _PlayersPanel({required this.period});
