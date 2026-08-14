@@ -53,7 +53,7 @@ String _rawDescriptorFor({
       if (code == 'max_match_goals__5') return 'QUINTUPLÉ';
       return 'EXPLOIT BUTEUR';
     case 'bet_against_grinta':
-      return 'PRONOSTIC SPÉCIAL';
+      return 'TRAÎTRE';
     case 'title_most_present':
       return 'MONSIEUR PRÉSENT · SAISON';
     case 'title_top_scorer':
