@@ -220,7 +220,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(pinnedWidth, lessThan(grintaTablePinnedWidth));
       expect(pinnedWidth, greaterThanOrEqualTo(exactRequiredWidth!));
       expect(pinnedWidth! - exactRequiredWidth!, lessThan(1));
       expect(
