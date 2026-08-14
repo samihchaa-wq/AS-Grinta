@@ -8,27 +8,30 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
-  test('initialSession does not invalidate the startup profile refresh', () async {
-    final profileCompleter = Completer<AuthProfile?>();
-    final repository = _StartupAuthRepository(
-      profileCompleter: profileCompleter,
-      hasSession: true,
-    );
-    final controller = AuthController(repository);
-    addTearDown(controller.dispose);
-    addTearDown(repository.dispose);
+  test(
+    'initialSession does not invalidate the startup profile refresh',
+    () async {
+      final profileCompleter = Completer<AuthProfile?>();
+      final repository = _StartupAuthRepository(
+        profileCompleter: profileCompleter,
+        hasSession: true,
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      addTearDown(repository.dispose);
 
-    repository.emit(supabase.AuthChangeEvent.initialSession);
-    profileCompleter.complete(_activeProfile);
-    await _flushAsync();
+      repository.emit(supabase.AuthChangeEvent.initialSession);
+      profileCompleter.complete(_activeProfile);
+      await _flushAsync();
 
-    expect(repository.fetchRetryFlags, [false]);
-    expect(controller.state.isLoading, isFalse);
-    expect(controller.state.isAuthenticated, isTrue);
-    expect(controller.state.hasSession, isTrue);
-    expect(controller.state.profile, same(_activeProfile));
-    expect(controller.state.error, isNull);
-  });
+      expect(repository.fetchRetryFlags, [false]);
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isTrue);
+      expect(controller.state.hasSession, isTrue);
+      expect(controller.state.profile, same(_activeProfile));
+      expect(controller.state.error, isNull);
+    },
+  );
 }
 
 const _activeProfile = AuthProfile(
