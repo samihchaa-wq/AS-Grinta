@@ -448,6 +448,45 @@ select throws_ok(
   'un joueur convoqué non placé bloque l’enregistrement immédiat'
 );
 
+-- L'application enregistre toujours par la surcharge à six paramètres, celle
+-- qui porte le contrôle de concurrence. Elle doit fonctionner pour un
+-- administrateur authentifié, qui n'a aucun privilège direct sur
+-- `public.match_compositions`.
+select set_config(
+  'test.composition_version',
+  public.admin_get_match_composition(
+    current_setting('test.composition_match')::uuid
+  ) #>> '{version}',
+  true
+);
+
+select throws_ok(
+  format(
+    $$select public.admin_save_match_composition(
+      %L::uuid, '4-3-3', pg_temp.composition_payload('valid'),
+      false, 'Version périmée', %s
+    )$$,
+    current_setting('test.composition_match'),
+    current_setting('test.composition_version')::integer - 1
+  ),
+  '40001',
+  null,
+  'une version périmée est refusée par le contrôle de concurrence'
+);
+
+select is(
+  public.admin_save_match_composition(
+    current_setting('test.composition_match')::uuid,
+    '4-3-3',
+    pg_temp.composition_payload('valid'),
+    false,
+    'Enregistrement depuis l’application',
+    current_setting('test.composition_version')::integer
+  ) #>> '{version}',
+  (current_setting('test.composition_version')::integer + 1)::text,
+  'un administrateur enregistre avec le contrôle de concurrence, sans privilège direct sur les compositions'
+);
+
 reset role;
 update private.app_feature_flags
 set enabled = false,
