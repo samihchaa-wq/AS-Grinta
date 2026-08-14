@@ -87,14 +87,14 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
             return _desc ? -cmp : cmp;
           });
 
-        final pinnedWidth = grintaTablePinnedWidthForNames(
-          context,
-          sorted.map((entry) => capitalizePersonName(entry.name)),
-          trailingWidth: BadgeDisplayScope.of(context)
-              ? nameWithBadgesMinimumSize
-              : 0,
-          trailingGap: nameWithBadgesGap,
-        );
+        final pinnedWidth = BadgeDisplayScope.of(context)
+            ? grintaTablePinnedWidthForNames(
+                context,
+                sorted.map((entry) => capitalizePersonName(entry.name)),
+                trailingWidth: nameWithBadgesMinimumSize,
+                trailingGap: nameWithBadgesGap,
+              )
+            : grintaTablePinnedWidth;
 
         return StickyHeaderTableCard(
           onRefresh: widget.onRefresh,
