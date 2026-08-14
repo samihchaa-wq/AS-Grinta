@@ -80,17 +80,19 @@ class _LeaderboardCardState extends ConsumerState<_LeaderboardCard> {
       context,
       color: AppTheme.textSecondary,
     );
+    final inStatistics = BadgeDisplayScope.of(context);
     final requestedBadgeSize = widget.badgeSize ?? nameWithBadgesMinimumSize;
     final effectiveBadgeSize = requestedBadgeSize < nameWithBadgesMinimumSize
         ? nameWithBadgesMinimumSize
         : requestedBadgeSize;
-    final pinnedWidth = grintaTablePinnedWidthForNames(
-      context,
-      sorted.map((entry) => capitalizePersonName(entry.name)),
-      trailingWidth:
-          BadgeDisplayScope.of(context) ? effectiveBadgeSize : 0,
-      trailingGap: nameWithBadgesGap,
-    );
+    final pinnedWidth = inStatistics
+        ? grintaTablePinnedWidthForNames(
+            context,
+            sorted.map((entry) => capitalizePersonName(entry.name)),
+            trailingWidth: effectiveBadgeSize,
+            trailingGap: nameWithBadgesGap,
+          )
+        : grintaTablePinnedWidth;
 
     return StickyHeaderTableCard(
       minWidth: 0,
