@@ -23,14 +23,12 @@ void main() {
                   const name = 'Stéphane';
                   const badgeSize = 48.0;
                   const badgeGap = 3.0;
-                  final resolvedStyle = DefaultTextStyle.of(
+                  final inheritedStyle = DefaultTextStyle.of(context).style;
+                  final cellStyle = grintaTableCellTextStyle(
                     context,
-                  ).style.merge(
-                    grintaTableCellTextStyle(
-                      context,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    fontWeight: FontWeight.w800,
                   );
+                  final resolvedStyle = inheritedStyle.merge(cellStyle);
                   final painter = TextPainter(
                     text: TextSpan(text: name, style: resolvedStyle),
                     textDirection: Directionality.of(context),
