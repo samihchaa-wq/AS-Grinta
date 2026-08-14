@@ -6,8 +6,7 @@
 const int kBadgeImageDeliveryWidth = 360;
 const int kBadgeImageDeliveryQuality = 75;
 
-const String _badgeObjectMarker =
-    '/storage/v1/object/public/badge-images/';
+const String _badgeObjectMarker = '/storage/v1/object/public/badge-images/';
 const String _badgeRenderMarker =
     '/storage/v1/render/image/public/badge-images/';
 
