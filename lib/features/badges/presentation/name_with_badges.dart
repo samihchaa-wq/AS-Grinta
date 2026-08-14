@@ -7,7 +7,8 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const nameWithBadgesGap = 5.0;
+const nameWithBadgesGap = 3.0;
+const nameWithBadgesMinimumSize = 36.0;
 
 /// Affiche le nom seul partout, sauf sous une [BadgeDisplayScope] active — le
 /// module Statistiques — où les badges arborés sont affichés à droite du nom.
@@ -52,7 +53,9 @@ class NameWithBadges extends ConsumerWidget {
 
     final requested =
         badgeSize ?? (resolved.fontSize ?? grintaTableCellFontSize) * 1.35;
-    final emblemSize = requested < 36 ? 36.0 : requested;
+    final emblemSize = requested < nameWithBadgesMinimumSize
+        ? nameWithBadgesMinimumSize
+        : requested;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
