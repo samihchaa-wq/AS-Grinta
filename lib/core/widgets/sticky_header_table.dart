@@ -62,8 +62,10 @@ TextStyle grintaTableRankTextStyle(BuildContext context, {Color? color}) {
 /// large entièrement visible, avec son éventuel élément placé à droite.
 ///
 /// Le calcul reprend exactement les marges de la ligne et la place du rang.
-/// Il tient aussi compte du facteur d'échelle de texte de l'appareil, puis
-/// arrondit au pixel supérieur pour éviter une ellipse due aux sous-pixels.
+/// Il tient aussi compte de la typographie réellement héritée par [Text]
+/// (famille de police, letter-spacing, fallback), du facteur d'échelle de
+/// texte de l'appareil, puis arrondit au pixel supérieur pour éviter une
+/// ellipse due aux sous-pixels.
 double grintaTablePinnedWidthForNames(
   BuildContext context,
   Iterable<String> names, {
@@ -73,12 +75,19 @@ double grintaTablePinnedWidthForNames(
   assert(trailingWidth >= 0);
   assert(trailingGap >= 0);
 
-  final style = grintaTableCellTextStyle(
-    context,
-    fontWeight: FontWeight.w800,
-  );
+  // Un Text(style: ...) fusionne implicitement son style avec le
+  // DefaultTextStyle du contexte. Le TextPainter utilisé pour mesurer la
+  // colonne doit faire exactement la même chose, sinon la largeur peut être
+  // sous-estimée sur iOS/Web (notamment à cause de la police/letter-spacing).
+  final style = DefaultTextStyle.of(context).style.merge(
+        grintaTableCellTextStyle(
+          context,
+          fontWeight: FontWeight.w800,
+        ),
+      );
   final textDirection = Directionality.of(context);
   final textScaler = MediaQuery.textScalerOf(context);
+  final locale = Localizations.maybeLocaleOf(context);
   var widestName = 0.0;
 
   for (final name in names) {
@@ -87,6 +96,7 @@ double grintaTablePinnedWidthForNames(
       maxLines: 1,
       textDirection: textDirection,
       textScaler: textScaler,
+      locale: locale,
     )..layout();
     widestName = math.max(widestName, painter.width);
   }
