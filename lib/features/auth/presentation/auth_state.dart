@@ -58,6 +58,12 @@ class AuthState {
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((event) {
+      // Supabase.initialize a déjà restauré la session avant que l'application
+      // soit montée et le constructeur lance son propre refresh juste après
+      // l'abonnement. Traiter `initialSession` ici invalidait ce refresh en
+      // cours et laissait l'écran bloqué jusqu'au fallback de 15 secondes.
+      if (event.event == supabase.AuthChangeEvent.initialSession) return;
+
       _authGeneration += 1;
       if (event.event == supabase.AuthChangeEvent.signedOut) {
         _retryRefreshQueued = false;
@@ -65,9 +71,7 @@ class AuthController extends StateNotifier<AuthState> {
         return;
       }
       // La boucle de réessai n'a de sens qu'après une vraie connexion, le
-      // temps que le profil devienne visible. Sur `initialSession`, elle
-      // relançait `get_my_profile` une seconde fois à chaque démarrage à
-      // froid, alors que l'appel du constructeur venait de le faire.
+      // temps que le profil devienne visible.
       final isFreshSignIn = event.event == supabase.AuthChangeEvent.signedIn;
       unawaited(_refreshProfile(retryAfterSignIn: isFreshSignIn));
     });
