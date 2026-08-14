@@ -53,15 +53,17 @@ class BadgeAdminRepository {
 
   /// Téléverse une image de badge et renvoie son URL publique.
   Future<String> uploadBadgeImage(Uint8List bytes, String fileExt) async {
-    final ext = fileExt.isEmpty ? 'png' : fileExt.toLowerCase();
+    final ext = fileExt.isEmpty ? 'jpg' : fileExt.toLowerCase();
     final path = 'custom/${DateTime.now().millisecondsSinceEpoch}.$ext';
     await _client.storage.from('badge-images').uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(
             contentType: imageMimeForExt(ext),
-            // Le chemin est unique : pas d'upsert. Cela évite les droits
-            // SELECT/UPDATE inutiles et les problèmes de cache CDN.
+            // Chaque remplacement utilise un nouveau chemin : le navigateur
+            // peut donc conserver l'objet un an sans risque d'afficher une
+            // ancienne version après une modification du badge.
+            cacheControl: '31536000',
             upsert: false,
           ),
         );
@@ -88,12 +90,12 @@ class BadgeAdminRepository {
   }
 
   /// Remplace uniquement l'image centrale d'un badge existant.
-  /// Le PNG fourni est déjà positionné/zoomé par l'éditeur côté Flutter.
+  /// Le JPEG fourni est déjà positionné/zoomé par l'éditeur côté Flutter.
   Future<void> replaceBadgeImage({
     required String badgeCode,
     required Uint8List bytes,
   }) async {
-    final imageUrl = await uploadBadgeImage(bytes, 'png');
+    final imageUrl = await uploadBadgeImage(bytes, 'jpg');
     await _client.rpc('staff_update_badge_image', params: {
       'p_badge_code': badgeCode,
       'p_image_url': imageUrl,

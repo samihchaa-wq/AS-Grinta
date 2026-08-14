@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
+import 'package:as_grinta/features/badges/presentation/badge_image_delivery.dart';
 import 'package:flutter/material.dart';
 
 export 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
@@ -66,13 +67,20 @@ class BadgeEmblem extends StatelessWidget {
   Widget build(BuildContext context) {
     final base = parseBadgeColor(color) ?? kDefaultBadgeColor;
     final fallback = Text(emoji, style: TextStyle(fontSize: size * 0.49));
-    final illustration = imageUrl == null
+    final sourceUrl = imageUrl?.trim();
+    final decodedWidth = (size * MediaQuery.devicePixelRatioOf(context))
+        .ceil()
+        .clamp(1, kBadgeImageDeliveryWidth)
+        .toInt();
+    final illustration = sourceUrl == null || sourceUrl.isEmpty
         ? fallback
         : Image.network(
-            imageUrl!,
+            badgeImageDeliveryUrl(sourceUrl),
             width: double.infinity,
             height: double.infinity,
             fit: BoxFit.cover,
+            cacheWidth: decodedWidth,
+            filterQuality: FilterQuality.medium,
             errorBuilder: (_, __, ___) => fallback,
           );
 

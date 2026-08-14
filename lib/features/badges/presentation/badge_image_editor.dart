@@ -11,6 +11,7 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image/image.dart' as img;
 
 /// Action d'administration pour recadrer ou remplacer uniquement le visuel
 /// central d'un badge.
@@ -150,7 +151,7 @@ class _BadgeCropDialog extends StatefulWidget {
 
 class _BadgeCropDialogState extends State<_BadgeCropDialog> {
   static const double _size = 220;
-  static const int _exportWidth = 1000;
+  static const int _exportWidth = 400;
   static const double _exportScale = _exportWidth / _size;
 
   final TransformationController _controller = TransformationController();
@@ -203,7 +204,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     }
   }
 
-  Future<Uint8List> _renderPng() async {
+  Future<Uint8List> _renderJpeg() async {
     final bytes = _bytes;
     if (bytes == null) throw StateError('Aucune image sélectionnée.');
 
@@ -224,6 +225,15 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     canvas.clipRect(
       ui.Rect.fromLTWH(0, 0, visibleRect.width, visibleRect.height),
     );
+
+    // Le JPEG n'a pas d'alpha. Les zones transparentes ou laissées découvertes
+    // reprennent donc la couleur réelle du badge, ce qui conserve le rendu que
+    // donnait auparavant le PNG transparent posé sur l'emblème.
+    canvas.drawRect(
+      ui.Rect.fromLTWH(0, 0, visibleRect.width, visibleRect.height),
+      ui.Paint()..color = widget.badgeColor,
+    );
+
     canvas.translate(-visibleRect.left, -visibleRect.top);
     canvas.transform(_controller.value.storage);
     canvas.drawImageRect(
@@ -234,27 +244,33 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
     );
 
     final picture = recorder.endRecording();
-    final output = await picture.toImage(
-      _exportWidth,
-      (_exportWidth * kBadgeIllustrationRatio).round(),
-    );
-    final data = await output.toByteData(format: ui.ImageByteFormat.png);
+    final outputHeight = (_exportWidth * kBadgeIllustrationRatio).round();
+    final output = await picture.toImage(_exportWidth, outputHeight);
+    final data = await output.toByteData(format: ui.ImageByteFormat.rawRgba);
 
     output.dispose();
     source.dispose();
     codec.dispose();
 
     if (data == null) {
-      throw StateError('Impossible de générer le PNG du badge.');
+      throw StateError('Impossible de générer le JPEG du badge.');
     }
-    return data.buffer.asUint8List();
+
+    final raw = img.Image.fromBytes(
+      width: _exportWidth,
+      height: outputHeight,
+      bytes: data.buffer,
+      numChannels: 4,
+      order: img.ChannelOrder.rgba,
+    );
+    return img.encodeJpg(raw, quality: 85);
   }
 
   Future<void> _confirm() async {
     if (_saving || _picking || _bytes == null || _imageError != null) return;
     setState(() => _saving = true);
     try {
-      final result = await _renderPng();
+      final result = await _renderJpeg();
       if (!mounted) return;
       Navigator.of(context).pop(result);
     } catch (_) {
