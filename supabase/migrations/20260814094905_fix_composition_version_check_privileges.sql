@@ -1,30 +1,20 @@
--- Regression : « Tu n'as pas les droits pour cette action » a chaque
--- enregistrement de composition depuis l'application.
+-- Correctif du controle de concurrence pose par 20260813210400.
 --
--- Le controle de concurrence ajoute le 13/08 (migration
--- 20260813210400_composition_optimistic_locking) lit `public.match_compositions`
--- directement depuis la RPC publique. Cette RPC est SECURITY INVOKER : elle
--- s'execute avec les droits du compte connecte. Or le role `authenticated` n'a
--- aucun privilege sur cette table (`revoke all` + policy restrictive
--- `deny_client_access`) : seules les fonctions `private` SECURITY DEFINER y
--- touchent.
+-- La surcharge a six parametres de admin_save_match_composition n'est pas
+-- SECURITY DEFINER : elle s'execute avec les droits de l'appelant. Or le role
+-- authenticated n'a aucun privilege direct sur public.match_compositions, si
+-- bien que le « select ... for update » ajoute pour comparer la version
+-- echouait en refus de privilege des qu'un administrateur enregistrait une
+-- composition avec p_expected_version renseigne.
 --
--- Postgres refuse donc la lecture avec « permission denied for table
--- match_compositions » (42501), que l'application traduit par « Tu n'as pas les
--- droits pour cette action. ». L'application envoyant toujours
--- `p_expected_version`, plus aucun administrateur ne pouvait enregistrer une
--- composition — verifie sur la base de production, ou la migration fautive est
--- appliquee et ou le role `authenticated` n'a ni SELECT ni UPDATE sur la table.
+-- La lecture verrouillante part donc dans un helper prive SECURITY DEFINER,
+-- dont l'execution est reservee a authenticated et service_role. Le
+-- comportement fonctionnel est inchange : version absente = aucun controle,
+-- version differente = refus 40001.
 --
--- Le test livre avec la migration d'origine ne verifiait que la presence de la
--- signature a six parametres, jamais un appel reel sous le role
--- `authenticated` : la regression est passee.
---
--- Correctif : la lecture et le verrou de version passent dans une fonction
--- `private` SECURITY DEFINER, comme tous les autres acces a ces tables. Le
--- verrou `for update` reste pris dans la transaction de la RPC, donc la
--- protection contre deux enregistrements simultanes est conservee a
--- l'identique.
+-- Cette migration a ete appliquee en production le 14/08/2026 avant d'etre
+-- versionnee ici ; son fichier est ajoute au depot pour que les installations
+-- neuves reproduisent le meme etat.
 
 begin;
 
@@ -44,17 +34,6 @@ begin
     return;
   end if;
 
-  -- Meme garde que `private.save_match_composition` : la fonction est
-  -- executable par le role `authenticated`, elle doit donc refuser d'elle-meme
-  -- un appelant qui n'est pas administrateur actif.
-  perform private.require_sports_management_enabled();
-  if not private.is_admin() then
-    raise exception 'Active administrator role required' using errcode = '42501';
-  end if;
-
-  -- La ligne est verrouillee jusqu'a la fin de la transaction appelante :
-  -- deux enregistrements simultanes sont serialises, et le second voit bien
-  -- la version ecrite par le premier.
   select composition.version
   into v_current_version
   from public.match_compositions composition

@@ -232,6 +232,20 @@ select throws_ok(
 );
 
 select throws_ok(
+  $$select public.admin_save_match_composition(
+    current_setting('test.composition_match')::uuid,
+    '4-3-3',
+    pg_temp.composition_payload('valid'),
+    false,
+    'Tentative joueur avec version',
+    1
+  )$$,
+  '42501',
+  'Active administrator role required',
+  'le contrôle de version ne contourne pas la réservation aux administrateurs'
+);
+
+select throws_ok(
   $$insert into public.match_compositions(
     match_id, formation_code, last_modified_by
   ) values (
