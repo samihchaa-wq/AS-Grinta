@@ -1,8 +1,10 @@
 export 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 
 import 'package:as_grinta/core/utils/app_errors.dart';
+import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
+import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
 import 'package:flutter/material.dart';
@@ -85,8 +87,18 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
             return _desc ? -cmp : cmp;
           });
 
+        final pinnedWidth = grintaTablePinnedWidthForNames(
+          context,
+          sorted.map((entry) => capitalizePersonName(entry.name)),
+          trailingWidth: BadgeDisplayScope.of(context)
+              ? nameWithBadgesMinimumSize
+              : 0,
+          trailingGap: nameWithBadgesGap,
+        );
+
         return StickyHeaderTableCard(
           onRefresh: widget.onRefresh,
+          pinnedWidth: pinnedWidth,
           pinnedHeader: _pinnedHeader(context),
           scrollableHeader: _scrollableHeader(context),
           rows: [
