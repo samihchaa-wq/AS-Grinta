@@ -134,7 +134,7 @@ class RankingsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return _GeneralRankingsSection(
       initialView: initialView,
-      badgeSize: 28,
+      badgeSize: statisticsBadgeSize,
     );
   }
 }
