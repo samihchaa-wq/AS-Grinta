@@ -22,6 +22,8 @@ const grintaTableScrollableHeaderPadding = EdgeInsets.fromLTRB(8, 12, 16, 12);
 const grintaTablePinnedRowPadding = EdgeInsets.fromLTRB(10, 8, 8, 8);
 
 const grintaTableScrollableRowPadding = EdgeInsets.fromLTRB(8, 17, 16, 17);
+const grintaTableRankWidth = 18.0;
+const grintaTableRankGap = 6.0;
 
 TextStyle grintaTableHeaderTextStyle(BuildContext context, {Color? color}) {
   return TextStyle(
@@ -56,6 +58,49 @@ TextStyle grintaTableRankTextStyle(BuildContext context, {Color? color}) {
   );
 }
 
+/// Calcule la largeur minimale de la colonne figée pour garder le nom le plus
+/// large entièrement visible, avec son éventuel élément placé à droite.
+///
+/// Le calcul reprend exactement les marges de la ligne et la place du rang.
+/// Il tient aussi compte du facteur d'échelle de texte de l'appareil, puis
+/// arrondit au pixel supérieur pour éviter une ellipse due aux sous-pixels.
+double grintaTablePinnedWidthForNames(
+  BuildContext context,
+  Iterable<String> names, {
+  double trailingWidth = 0,
+  double trailingGap = 0,
+}) {
+  assert(trailingWidth >= 0);
+  assert(trailingGap >= 0);
+
+  final style = grintaTableCellTextStyle(
+    context,
+    fontWeight: FontWeight.w800,
+  );
+  final textDirection = Directionality.of(context);
+  final textScaler = MediaQuery.textScalerOf(context);
+  var widestName = 0.0;
+
+  for (final name in names) {
+    final painter = TextPainter(
+      text: TextSpan(text: name, style: style),
+      maxLines: 1,
+      textDirection: textDirection,
+      textScaler: textScaler,
+    )..layout();
+    widestName = math.max(widestName, painter.width);
+  }
+
+  final trailing = trailingWidth == 0 ? 0.0 : trailingGap + trailingWidth;
+  final required = grintaTablePinnedRowPadding.left +
+      grintaTableRankWidth +
+      grintaTableRankGap +
+      widestName +
+      trailing +
+      grintaTablePinnedRowPadding.right;
+  return required.ceilToDouble();
+}
+
 /// Le rang d'une ligne, calé à droite dans une case juste assez large pour
 /// deux chiffres, puis un écart franc avant le nom.
 ///
@@ -71,9 +116,9 @@ class GrintaTableRankCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.only(right: grintaTableRankGap),
       child: SizedBox(
-        width: 18,
+        width: grintaTableRankWidth,
         child: Text(
           '$rank',
           maxLines: 1,

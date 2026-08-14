@@ -7,6 +7,8 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+const nameWithBadgesGap = 5.0;
+
 /// Affiche le nom seul partout, sauf sous une [BadgeDisplayScope] active — le
 /// module Statistiques — où les badges arborés sont affichés à droite du nom.
 class NameWithBadges extends ConsumerWidget {
@@ -57,7 +59,7 @@ class NameWithBadges extends ConsumerWidget {
       children: [
         Flexible(child: nameText),
         for (final badge in badges.take(1)) ...[
-          const SizedBox(width: 5),
+          const SizedBox(width: nameWithBadgesGap),
           _BadgeChip(badge: badge, size: emblemSize),
         ],
       ],
