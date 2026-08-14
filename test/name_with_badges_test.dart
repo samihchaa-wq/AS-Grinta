@@ -119,7 +119,7 @@ void main() {
 
   testWidgets('un emblème de 48 tient dans la colonne figée', (tester) async {
     // Largeur réelle laissée au nom dans Statistiques.
-    const available = grintaTablePinnedWidth -
+    final available = grintaTablePinnedWidth -
         grintaTablePinnedRowPadding.horizontal -
         grintaTableRankWidth -
         grintaTableRankGap;
