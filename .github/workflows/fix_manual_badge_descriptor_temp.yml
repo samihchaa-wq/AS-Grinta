@@ -1,0 +1,99 @@
+name: Temporary manual badge descriptor fix
+
+on:
+  push:
+    branches:
+      - fix/manual-badge-name-descriptor
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/manual-badge-name-descriptor
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Patch manual badge descriptor
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=None):
+              p = Path(path)
+              text = p.read_text()
+              found = text.count(old)
+              if found == 0:
+                  raise SystemExit(f'Pattern not found in {path}: {old[:80]!r}')
+              if count is not None and found != count:
+                  raise SystemExit(f'Expected {count} matches in {path}, got {found}')
+              p.write_text(text.replace(old, new))
+
+          descriptor = 'lib/features/badges/presentation/badge_descriptor.dart'
+          replace(
+              descriptor,
+              "BadgeDescriptor badgeDescriptorFor({\n  String? code,\n  String? metric,\n  String? category,\n}) {\n  final raw = _rawDescriptorFor(code: code, metric: metric, category: category);",
+              "BadgeDescriptor badgeDescriptorFor({\n  String? code,\n  String? metric,\n  String? category,\n  String? name,\n}) {\n  final customName = name?.trim();\n  if (code?.startsWith('custom_') == true && customName?.isNotEmpty == true) {\n    return BadgeDescriptor(customName!);\n  }\n  final raw = _rawDescriptorFor(code: code, metric: metric, category: category);",
+              1,
+          )
+
+          admin = 'lib/features/badges/presentation/badge_admin_page.dart'
+          replace(
+              admin,
+              "descriptor: badgeDescriptorFor(\n                                  code: b.code,\n                                  metric: b.metric,\n                                  category: b.category,\n                                ),",
+              "descriptor: badgeDescriptorFor(\n                                  code: b.code,\n                                  metric: b.metric,\n                                  category: b.category,\n                                  name: b.name,\n                                ),",
+              1,
+          )
+          replace(
+              admin,
+              "BadgeEmblem(\n                    emoji: '🏅',\n                    imageBytes: imageBytes,\n                    color: selectedColor,\n                    descriptor: const BadgeDescriptor('FAIT DE JEU'),\n                    size: 92,\n                  ),",
+              "AnimatedBuilder(\n                    animation: nameController,\n                    builder: (context, _) => BadgeEmblem(\n                      emoji: '🏅',\n                      imageBytes: imageBytes,\n                      color: selectedColor,\n                      descriptor: BadgeDescriptor(\n                        nameController.text.trim().isEmpty\n                            ? 'NOM DU BADGE'\n                            : nameController.text.trim(),\n                      ),\n                      size: 92,\n                    ),\n                  ),",
+              1,
+          )
+          replace(
+              admin,
+              "'Plus besoin d’emoji : l’illustration choisie devient le visuel '\n              'du badge et le socle « FAIT DE JEU » est généré automatiquement.',",
+              "'Plus besoin d’emoji : l’illustration choisie devient le visuel '\n              'du badge et son nom apparaît automatiquement sur le socle.',",
+              1,
+          )
+
+          armoire = 'lib/features/badges/presentation/armoire_page.dart'
+          replace(
+              armoire,
+              "category: badge.def.category,\n                  ),",
+              "category: badge.def.category,\n                    name: badge.def.name,\n                  ),",
+              2,
+          )
+
+          detail = 'lib/features/badges/presentation/badge_detail_sheet.dart'
+          replace(
+              detail,
+              "category: currentBadge.category,\n                          ),",
+              "category: currentBadge.category,\n                            name: currentBadge.name,\n                          ),",
+              1,
+          )
+          replace(
+              detail,
+              "category: tier.category,\n            ),",
+              "category: tier.category,\n              name: tier.name,\n            ),",
+              1,
+          )
+          PY
+          flutter pub get --enforce-lockfile
+          dart format lib/features/badges/presentation/badge_descriptor.dart lib/features/badges/presentation/badge_admin_page.dart lib/features/badges/presentation/armoire_page.dart lib/features/badges/presentation/badge_detail_sheet.dart
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/badges/presentation/badge_descriptor.dart lib/features/badges/presentation/badge_admin_page.dart lib/features/badges/presentation/armoire_page.dart lib/features/badges/presentation/badge_detail_sheet.dart
+          git commit -m "Use manual badge name as emblem label"
+          git push origin HEAD:fix/manual-badge-name-descriptor
