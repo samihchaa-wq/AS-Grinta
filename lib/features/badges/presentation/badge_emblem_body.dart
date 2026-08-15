@@ -2,10 +2,10 @@ import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:flutter/material.dart';
 
 /// Proportions des quatre zones de l'emblème, rapportées à sa largeur.
-const kBadgeIllustrationRatio = 0.90;
-const _valueRatio = 0.23;
-const _labelRatio = 0.19;
-const _periodRatio = 0.16;
+const kBadgeIllustrationRatio = 0.97;
+const _valueRatio = 0.21;
+const _labelRatio = 0.15;
+const _periodRatio = 0.15;
 
 /// Taille d'une étoile de palmarès, rapportée à la largeur de l'emblème.
 const kBadgeEmblemStarRatio = 0.2;
@@ -31,10 +31,19 @@ double badgeEmblemHeightRatio({
       (hasPeriod ? _periodRatio : 0);
 }
 
-/// Le corps de l'emblème : un seul rectangle, découpé en bandes jointives.
+Color _shiftBadgeTone(Color color, double lightnessDelta) {
+  final hsl = HSLColor.fromColor(color);
+  final lightness = (hsl.lightness + lightnessDelta)
+      .clamp(0.0, 1.0)
+      .toDouble();
+  return hsl.withLightness(lightness).toColor();
+}
+
+/// Le corps de l'emblème : un seul rectangle, découpé en zones jointives.
 ///
-/// Toutes les bandes textuelles reprennent exactement la couleur principale
-/// du badge. Le texte est peint en blanc avec un contour noir afin de rester
+/// L'illustration et le socle texte restent dans la même famille de couleur,
+/// avec une légère différence de tonalité pour mieux distinguer les deux
+/// parties. Le texte est peint en blanc avec un contour noir afin de rester
 /// lisible quelle que soit la couleur choisie pour l'emblème.
 class BadgeEmblemBody extends StatelessWidget {
   const BadgeEmblemBody({
@@ -56,49 +65,53 @@ class BadgeEmblemBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasValue = value?.isNotEmpty == true;
     final period = descriptor.period;
+    final illustrationTone = _shiftBadgeTone(base, 0.025);
+    final bandsTone = _shiftBadgeTone(base, -0.055);
 
     return Container(
       width: size,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: base,
+        color: bandsTone,
         borderRadius: BorderRadius.circular(size * 0.16),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
+          Container(
             height: size * kBadgeIllustrationRatio,
             width: size,
-            child: Center(child: child),
+            color: illustrationTone,
+            alignment: Alignment.center,
+            child: child,
           ),
           if (hasValue)
             _Band(
               height: size * _valueRatio,
-              color: base,
+              color: bandsTone,
               child: _BandText(
                 value!,
-                fontSize: size * 0.17,
+                fontSize: size * 0.16,
                 color: Colors.white,
                 letterSpacing: 0,
               ),
             ),
           _Band(
             height: size * _labelRatio,
-            color: base,
+            color: bandsTone,
             child: _BandText(
               descriptor.label,
-              fontSize: size * 0.12,
+              fontSize: size * 0.095,
               color: Colors.white,
             ),
           ),
           if (period != null)
             _Band(
               height: size * _periodRatio,
-              color: base,
+              color: bandsTone,
               child: _BandText(
                 period,
-                fontSize: size * 0.1,
+                fontSize: size * 0.095,
                 color: Colors.white,
               ),
             ),
