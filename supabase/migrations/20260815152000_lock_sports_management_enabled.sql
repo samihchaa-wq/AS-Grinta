@@ -1,6 +1,7 @@
 -- Sports management is now a permanent product capability.
 -- Keep the existing RPC signature and response shape for compatibility with
--- older clients, but reject every attempt to disable the module.
+-- older clients, but reject every application attempt to disable the module.
+-- The private flag table remains inaccessible for direct authenticated writes.
 
 insert into private.app_feature_flags (
   key,
@@ -29,13 +30,6 @@ set enabled = true,
     updated_at = now()
 where key = 'sports_management'
   and enabled is distinct from true;
-
-alter table private.app_feature_flags
-  drop constraint if exists app_feature_flags_sports_management_always_enabled;
-
-alter table private.app_feature_flags
-  add constraint app_feature_flags_sports_management_always_enabled
-  check (key <> 'sports_management' or enabled is true);
 
 create or replace function private.set_sports_management_enabled(
   p_enabled boolean,
