@@ -20,11 +20,19 @@ jobs:
           ref: agent/pin-github-actions
           fetch-depth: 0
 
-      - name: Pin external actions and add regression guard
+      - name: Build immutable workflow commit object
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import textwrap
+          import urllib.request
           from pathlib import Path
 
           replacements = {
@@ -39,19 +47,24 @@ jobs:
               'supabase/setup-cli@v2': 'supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2',
               'denoland/setup-deno@v2': 'denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2',
           }
-
           workflow_dir = Path('.github/workflows')
-          changed = []
+          temp_path = workflow_dir / 'temp_pin_github_actions.yml'
+          changed_paths = []
+
           for path in sorted([*workflow_dir.glob('*.yml'), *workflow_dir.glob('*.yaml')]):
+              if path == temp_path:
+                  continue
               text = path.read_text()
               updated = text
               for old, new in replacements.items():
                   updated = updated.replace(old, new)
               if updated != text:
                   path.write_text(updated)
-                  changed.append(str(path))
+                  changed_paths.append(path)
 
-          guard = r'''name: GitHub action pin guard
+          guard_path = workflow_dir / 'github_action_pin_guard.yml'
+          guard_path.write_text(textwrap.dedent('''\
+          name: GitHub action pin guard
 
           on:
             pull_request:
@@ -92,22 +105,18 @@ jobs:
                         candidates.extend(root.rglob('*.yml'))
                         candidates.extend(root.rglob('*.yaml'))
 
-                    uses_pattern = re.compile(r'^\s*uses:\s*([^\s#]+)')
+                    uses_pattern = re.compile(r'^\\s*uses:\\s*([^\\s#]+)')
                     sha_pattern = re.compile(r'^[0-9a-fA-F]{40}$')
                     violations = []
-
                     for path in sorted(set(candidates)):
                         for line_number, line in enumerate(path.read_text().splitlines(), 1):
                             match = uses_pattern.match(line)
                             if not match:
                                 continue
-                            target = match.group(1).strip('"\'')
+                            target = match.group(1).strip('"\\'')
                             if target.startswith('./') or target.startswith('docker://'):
                                 continue
-                            if '@' not in target:
-                                violations.append((path, line_number, target))
-                                continue
-                            ref = target.rsplit('@', 1)[1]
+                            ref = target.rsplit('@', 1)[1] if '@' in target else ''
                             if not sha_pattern.fullmatch(ref):
                                 violations.append((path, line_number, target))
 
@@ -115,37 +124,80 @@ jobs:
                         for path, line_number, target in violations:
                             print(f'::error file={path},line={line_number}::Mutable GitHub Action ref: {target}')
                         raise SystemExit('External GitHub Actions must be pinned to a full 40-character commit SHA.')
-
                     print(f'Validated immutable action refs across {len(set(candidates))} YAML files.')
                     PY2
-          '''
-          guard = '\n'.join(line[10:] if line.startswith('          ') else line for line in guard.splitlines()).lstrip()
-          (workflow_dir / 'github_action_pin_guard.yml').write_text(guard + ('\n' if not guard.endswith('\n') else ''))
+          '''))
 
-          leftovers = []
-          for path in sorted([*workflow_dir.glob('*.yml'), *workflow_dir.glob('*.yaml')]):
-              text = path.read_text()
-              for old in replacements:
-                  if old in text:
-                      leftovers.append(f'{path}: {old}')
-          if leftovers:
-              raise SystemExit('Unpinned refs remain:\n' + '\n'.join(leftovers))
+          candidates = []
+          for root in (Path('.github/workflows'), Path('.github/actions')):
+              if root.exists():
+                  candidates.extend(root.rglob('*.yml'))
+                  candidates.extend(root.rglob('*.yaml'))
+          uses_pattern = re.compile(r'^\s*uses:\s*([^\s#]+)')
+          sha_pattern = re.compile(r'^[0-9a-fA-F]{40}$')
+          violations = []
+          for path in sorted(set(candidates)):
+              if path == temp_path:
+                  continue
+              for line_number, line in enumerate(path.read_text().splitlines(), 1):
+                  match = uses_pattern.match(line)
+                  if not match:
+                      continue
+                  target = match.group(1).strip('"\'')
+                  if target.startswith('./') or target.startswith('docker://'):
+                      continue
+                  ref = target.rsplit('@', 1)[1] if '@' in target else ''
+                  if not sha_pattern.fullmatch(ref):
+                      violations.append(f'{path}:{line_number}: {target}')
+          if violations:
+              raise SystemExit('Mutable refs remain:\n' + '\n'.join(violations))
 
-          print('Pinned workflows:')
-          for path in changed:
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          base_tree = subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
+
+          def post(path, payload):
+              request = urllib.request.Request(
+                  f'https://api.github.com/repos/{repo}/{path}',
+                  data=json.dumps(payload).encode(),
+                  headers={
+                      'Accept': 'application/vnd.github+json',
+                      'Authorization': f'Bearer {token}',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'Content-Type': 'application/json',
+                  },
+                  method='POST',
+              )
+              with urllib.request.urlopen(request) as response:
+                  return json.load(response)
+
+          entries = [
+              {
+                  'path': str(path),
+                  'mode': '100644',
+                  'type': 'blob',
+                  'content': path.read_text(),
+              }
+              for path in [*changed_paths, guard_path]
+          ]
+          entries.append({
+              'path': str(temp_path),
+              'mode': '100644',
+              'type': 'blob',
+              'sha': None,
+          })
+          tree = post('git/trees', {'base_tree': base_tree, 'tree': entries})
+          commit = post('git/commits', {
+              'message': 'Pin GitHub Actions to immutable commits',
+              'tree': tree['sha'],
+              'parents': [head],
+          })
+          print(f"REMOTE_COMMIT_SHA={commit['sha']}")
+          print(f"REMOTE_TREE_SHA={tree['sha']}")
+          print('Changed workflow files:')
+          for path in changed_paths:
               print(f'- {path}')
-          print('- .github/workflows/github_action_pin_guard.yml')
+          print(f'- {guard_path}')
+          print(f'- delete {temp_path}')
           PY
-
-          rm .github/workflows/temp_pin_github_actions.yml
-
-      - name: Commit immutable action pins
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows
-          git diff --cached --check
-          git commit -m "Pin GitHub Actions to immutable commits"
-          git push origin HEAD:agent/pin-github-actions
