@@ -81,9 +81,7 @@ class BadgeAdminRepository {
     return _client.storage.from('badge-images').getPublicUrl(path);
   }
 
-  /// Recharge l'image actuellement associée à un badge afin de pouvoir la
-  /// recadrer sans demander à l'administrateur de retrouver le fichier source.
-  Future<Uint8List> downloadBadgeImage(String imageUrl) async {
+  String _badgeImagePathFromPublicUrl(String imageUrl) {
     const marker = '/storage/v1/object/public/badge-images/';
     final uri = Uri.parse(imageUrl);
     final markerIndex = uri.path.indexOf(marker);
@@ -96,7 +94,18 @@ class BadgeAdminRepository {
     if (path.trim().isEmpty) {
       throw StateError('Chemin d’image de badge invalide.');
     }
+    return path;
+  }
 
+  Future<void> _removeUploadedBadgeImage(String imageUrl) async {
+    final path = _badgeImagePathFromPublicUrl(imageUrl);
+    await _client.storage.from('badge-images').remove([path]);
+  }
+
+  /// Recharge l'image actuellement associée à un badge afin de pouvoir la
+  /// recadrer sans demander à l'administrateur de retrouver le fichier source.
+  Future<Uint8List> downloadBadgeImage(String imageUrl) async {
+    final path = _badgeImagePathFromPublicUrl(imageUrl);
     return _client.storage.from('badge-images').download(path);
   }
 
@@ -113,27 +122,47 @@ class BadgeAdminRepository {
     });
   }
 
+  /// Crée un badge manuel directement avec son illustration finale.
+  ///
+  /// Le visuel est téléversé avant la RPC afin que la ligne `badges` soit créée
+  /// d'un seul coup avec son image. Si la création SQL échoue, le fichier tout
+  /// juste envoyé est supprimé en compensation pour éviter un objet orphelin.
   Future<void> createCustomBadge({
     required String name,
+    required Uint8List imageBytes,
     String description = '',
-    String emoji = '🏅',
     String? color,
   }) async {
+    if (imageBytes.isEmpty) {
+      throw ArgumentError.value(imageBytes, 'imageBytes', 'Image requise');
+    }
+
     final slug = name
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
         .replaceAll(RegExp(r'^_+|_+$'), '');
     final code =
         'custom_${slug.isEmpty ? 'badge' : slug}_${DateTime.now().millisecondsSinceEpoch}';
-    final trimmedEmoji = emoji.trim();
-    await _client.rpc('staff_create_badge', params: {
-      'p_code': code,
-      'p_name': name,
-      'p_emoji': trimmedEmoji.isEmpty ? '🏅' : trimmedEmoji,
-      'p_description': description,
-      'p_image_url': null,
-      'p_color': color ?? '#C0455B',
-    });
+
+    final imageUrl = await uploadBadgeImage(imageBytes, 'jpg');
+    try {
+      await _client.rpc('staff_create_badge', params: {
+        'p_code': code,
+        'p_name': name,
+        'p_emoji': '🏅',
+        'p_description': description,
+        'p_image_url': imageUrl,
+        'p_color': color ?? '#C0455B',
+      });
+    } catch (_) {
+      try {
+        await _removeUploadedBadgeImage(imageUrl);
+      } catch (_) {
+        // La création reste l'erreur principale. Le nettoyage du bucket est
+        // compensatoire et ne doit jamais masquer l'échec SQL d'origine.
+      }
+      rethrow;
+    }
   }
 
   Future<void> awardBadge(String code, String profileId) async {

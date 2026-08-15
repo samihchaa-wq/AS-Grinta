@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/badges/data/badge_admin_repository.dart';
 import 'package:as_grinta/features/badges/data/badge_repository.dart';
 import 'package:as_grinta/features/badges/presentation/badge_detail_sheet.dart';
@@ -7,9 +10,9 @@ import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
-/// Écran admin : créer un badge (nom + emoji) et le décerner manuellement.
+/// Écran admin : créer un badge manuel dans le format visuel actuel et le
+/// décerner à une personne.
 class BadgeAdminPage extends ConsumerStatefulWidget {
   const BadgeAdminPage({super.key});
 
@@ -20,8 +23,8 @@ class BadgeAdminPage extends ConsumerStatefulWidget {
 class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _emojiController = TextEditingController(text: '🏅');
   final _searchController = TextEditingController();
+  Uint8List? _badgeImageBytes;
   String _colorHex = '#C0455B';
   bool _creating = false;
   String _query = '';
@@ -45,42 +48,67 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _emojiController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
+  Future<void> _editNewBadgeImage() async {
+    if (_creating) return;
+    final badgeColor = parseBadgeColor(_colorHex) ?? kDefaultBadgeColor;
+    final edited = await showBadgeImageCropDialog(
+      context,
+      badgeColor: badgeColor,
+      initialBytes: _badgeImageBytes,
+    );
+    if (edited == null || !mounted) return;
+    setState(() => _badgeImageBytes = edited);
+  }
+
+  void _resetNewBadgeImage() {
+    if (_creating) return;
+    setState(() => _badgeImageBytes = null);
+  }
+
   Future<void> _createBadge() async {
     final name = _nameController.text.trim();
+    final imageBytes = _badgeImageBytes;
     if (name.isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Donne un nom au badge.')));
       return;
     }
+    if (imageBytes == null || imageBytes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choisis et recadre l’image du badge.')),
+      );
+      return;
+    }
+
     setState(() => _creating = true);
     try {
       final repo = ref.read(badgeAdminRepositoryProvider);
       await repo.createCustomBadge(
         name: name,
         description: _descController.text.trim(),
-        emoji: _emojiController.text.trim(),
+        imageBytes: imageBytes,
         color: _colorHex,
       );
       ref.invalidate(badgeCatalogProvider);
       if (mounted) {
         _nameController.clear();
         _descController.clear();
-        setState(() => _emojiController.text = '🏅');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Badge « $name » créé.')));
+        setState(() {
+          _badgeImageBytes = null;
+          _colorHex = '#C0455B';
+        });
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Badge « $name » créé.')));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _creating = false);
@@ -99,12 +127,13 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           _CreateBadgeCard(
             nameController: _nameController,
             descController: _descController,
-            emojiController: _emojiController,
+            imageBytes: _badgeImageBytes,
             creating: _creating,
             colorChoices: _colorChoices,
             selectedColor: _colorHex,
             onColorSelected: (c) => setState(() => _colorHex = c),
-            onEmojiChanged: () => setState(() {}),
+            onEditImage: _editNewBadgeImage,
+            onResetImage: _resetNewBadgeImage,
             onCreate: _createBadge,
           ),
           const SizedBox(height: 24),
@@ -195,9 +224,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                   children: [
                                     Text(
                                       b.name,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
                                     ),
                                     if (b.description.isNotEmpty) ...[
                                       const SizedBox(height: 4),
@@ -243,82 +272,174 @@ class _CreateBadgeCard extends StatelessWidget {
   const _CreateBadgeCard({
     required this.nameController,
     required this.descController,
-    required this.emojiController,
+    required this.imageBytes,
     required this.creating,
     required this.colorChoices,
     required this.selectedColor,
     required this.onColorSelected,
-    required this.onEmojiChanged,
+    required this.onEditImage,
+    required this.onResetImage,
     required this.onCreate,
   });
 
   final TextEditingController nameController;
   final TextEditingController descController;
-  final TextEditingController emojiController;
+  final Uint8List? imageBytes;
   final bool creating;
   final List<String> colorChoices;
   final String selectedColor;
   final ValueChanged<String> onColorSelected;
-  final VoidCallback onEmojiChanged;
+  final VoidCallback onEditImage;
+  final VoidCallback onResetImage;
   final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageBytes?.isNotEmpty == true;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(
-                  'Créer un badge',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const Spacer(),
-                BadgeEmblem(
-                  emoji: emojiController.text.trim().isEmpty
-                      ? '🏅'
-                      : emojiController.text.trim(),
-                  color: selectedColor,
-                  size: 72,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
             Text(
-              'Couleur de l’emblème',
+              'Créer un badge',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Le badge est maintenant créé directement dans son format final : '
+              'couleur, illustration recadrée, nom et description.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final hex in colorChoices)
-                  GestureDetector(
-                    onTap: () => onColorSelected(hex),
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: parseBadgeColor(hex),
-                        borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                          color: hex == selectedColor
-                              ? Colors.white
-                              : Colors.transparent,
-                          width: 2.5,
+            const SizedBox(height: 18),
+            Text(
+              '1. Couleur du badge',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              hasImage
+                  ? 'La couleur est verrouillée après le recadrage pour que le '
+                      'fond de l’illustration reste parfaitement identique.'
+                  : 'Choisis d’abord la couleur : elle sert aussi de fond à '
+                      'l’illustration pendant le recadrage.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 10),
+            IgnorePointer(
+              ignoring: hasImage || creating,
+              child: Opacity(
+                opacity: hasImage ? .55 : 1,
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final hex in colorChoices)
+                      GestureDetector(
+                        onTap: () => onColorSelected(hex),
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: parseBadgeColor(hex),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(
+                              color: hex == selectedColor
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
                         ),
                       ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              '2. Illustration',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  BadgeEmblem(
+                    emoji: '🏅',
+                    imageBytes: imageBytes,
+                    color: selectedColor,
+                    descriptor: const BadgeDescriptor('FAIT DE JEU'),
+                    size: 92,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          hasImage
+                              ? 'Illustration prête'
+                              : 'Ajoute l’image du badge',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          hasImage
+                              ? 'L’aperçu ci-contre est celui qui sera enregistré.'
+                              : 'Choisis un PNG ou JPEG, puis déplace et zoome '
+                                  'l’image exactement comme pour les badges existants.',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 10),
+                        FilledButton.tonalIcon(
+                          onPressed: creating ? null : onEditImage,
+                          icon: Icon(
+                            hasImage
+                                ? Icons.crop_rounded
+                                : Icons.photo_library_rounded,
+                          ),
+                          label: Text(
+                            hasImage
+                                ? 'Modifier le recadrage'
+                                : 'Choisir et recadrer',
+                          ),
+                        ),
+                        if (hasImage) ...[
+                          const SizedBox(height: 4),
+                          TextButton.icon(
+                            onPressed: creating ? null : onResetImage,
+                            icon: const Icon(
+                              Icons.restart_alt_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Changer la couleur'),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
+            Text(
+              '3. Informations',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: nameController,
+              enabled: !creating,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Nom du badge',
@@ -328,35 +449,23 @@ class _CreateBadgeCard extends StatelessWidget {
             const SizedBox(height: 12),
             TextField(
               controller: descController,
+              enabled: !creating,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: 'Description (facultatif)',
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emojiController,
-              onChanged: (_) => onEmojiChanged(),
-              textAlign: TextAlign.center,
-              maxLength: 4,
-              style: const TextStyle(fontSize: 26),
-              decoration: const InputDecoration(
-                labelText: 'Emoji du badge',
-                hintText: '🏅',
-                counterText: '',
-              ),
-            ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
-              'Choisis un emoji au clavier (comme les autres badges). '
-              'Sans emoji, une médaille 🏅 est utilisée par défaut.',
+              'Plus besoin d’emoji : l’illustration choisie devient le visuel '
+              'du badge et le socle « FAIT DE JEU » est généré automatiquement.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: creating ? null : onCreate,
+                onPressed: creating || !hasImage ? null : onCreate,
                 icon: creating
                     ? const SizedBox(
                         width: 18,
@@ -431,9 +540,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanizeError(e))));
       }
     } finally {
       if (mounted) setState(() => _busy.remove(person.id));
