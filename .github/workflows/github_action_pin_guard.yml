@@ -1,0 +1,73 @@
+name: GitHub action pin guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Reject mutable external action refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          candidates = []
+          for root in (Path('.github/workflows'), Path('.github/actions')):
+              if not root.exists():
+                  continue
+              candidates.extend(root.rglob('*.yml'))
+              candidates.extend(root.rglob('*.yaml'))
+
+          uses_pattern = re.compile(r'^\s*uses:\s*([^\s#]+)')
+          sha_pattern = re.compile(r'^[0-9a-fA-F]{40}$')
+          violations = []
+
+          for path in sorted(set(candidates)):
+              for line_number, line in enumerate(path.read_text().splitlines(), 1):
+                  match = uses_pattern.match(line)
+                  if not match:
+                      continue
+                  target = match.group(1).strip('"\'')
+                  if target.startswith('./') or target.startswith('docker://'):
+                      continue
+                  ref = target.rsplit('@', 1)[1] if '@' in target else ''
+                  if not sha_pattern.fullmatch(ref):
+                      violations.append((path, line_number, target))
+
+          if violations:
+              for path, line_number, target in violations:
+                  print(
+                      f'::error file={path},line={line_number}::'
+                      f'Mutable GitHub Action ref: {target}'
+                  )
+              raise SystemExit(
+                  'External GitHub Actions must be pinned to a full '
+                  '40-character commit SHA.'
+              )
+
+          print(
+              f'Validated immutable action refs across '
+              f'{len(set(candidates))} YAML files.'
+          )
+          PY
