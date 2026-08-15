@@ -129,6 +129,7 @@ Les documents à maintenir comme références actuelles sont :
 - `docs/business-security-matrix.md` — invariants de sécurité métier ;
 - `docs/privacy-and-retention.md` — données personnelles et conservation ;
 - `docs/database-release-process.md` — livraison Supabase et migrations ;
+- `docs/dependency-upgrade-plan.md` — politique de mise à jour Pub et migrations majeures ;
 - `docs/production-operations.md` — exploitation et diagnostic de production ;
 - `docs/observability.md` — références d’incident ;
 - `docs/repository-protection.md` — protections GitHub ;
