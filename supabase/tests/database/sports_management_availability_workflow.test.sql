@@ -276,6 +276,12 @@ select
   '61000000-0000-0000-0000-000000000001',
   now() + interval '10 days';
 
+update private.app_feature_flags
+set enabled = false,
+    updated_at = now(),
+    updated_by = '61000000-0000-0000-0000-000000000001'
+where key = 'sports_management';
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"61000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
