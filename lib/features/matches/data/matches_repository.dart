@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -234,7 +235,8 @@ class MatchesRepository {
       final loss = (map['loss'] as num?)?.toDouble();
       if (win == null || draw == null || loss == null) return null;
       return (win: win, draw: draw, loss: loss);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('matches.preview_odds', error, stackTrace);
       return null;
     }
   }
