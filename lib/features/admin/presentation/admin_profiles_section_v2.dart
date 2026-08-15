@@ -239,9 +239,8 @@ class _ProfileCard extends ConsumerWidget {
                     );
                   },
                   onArchiveToggle: () async {
-                    final nextStatus = policy.isArchived
-                        ? 'active'
-                        : 'archived';
+                    final nextStatus =
+                        policy.isArchived ? 'active' : 'archived';
                     if (!policy.isArchived) {
                       final confirmed = await _confirm(
                         context,
