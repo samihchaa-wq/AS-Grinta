@@ -126,15 +126,13 @@ class _ProfileCard extends ConsumerWidget {
         await action();
         ref.invalidate(adminDashboardProvider);
         if (success != null && context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(success)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(success)));
         }
       } catch (error) {
         if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(humanizeError(error))));
         }
       }
     }
@@ -241,8 +239,9 @@ class _ProfileCard extends ConsumerWidget {
                     );
                   },
                   onArchiveToggle: () async {
-                    final nextStatus =
-                        policy.isArchived ? 'active' : 'archived';
+                    final nextStatus = policy.isArchived
+                        ? 'active'
+                        : 'archived';
                     if (!policy.isArchived) {
                       final confirmed = await _confirm(
                         context,
@@ -301,10 +300,7 @@ class _StatusChip extends StatelessWidget {
       label: label,
       container: true,
       child: ExcludeSemantics(
-        child: Chip(
-          visualDensity: VisualDensity.compact,
-          label: Text(label),
-        ),
+        child: Chip(visualDensity: VisualDensity.compact, label: Text(label)),
       ),
     );
   }

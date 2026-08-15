@@ -142,9 +142,8 @@ Future<void> _resetPassword(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: link));
               if (dialogContext.mounted) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  const SnackBar(content: Text('Lien copié.')),
-                );
+                ScaffoldMessenger.of(dialogContext)
+                    .showSnackBar(const SnackBar(content: Text('Lien copié.')));
               }
             },
             icon: const Icon(Icons.copy_outlined),
@@ -159,9 +158,8 @@ Future<void> _resetPassword(
     );
   } catch (error) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(humanizeError(error))));
   }
 }
 
@@ -174,9 +172,8 @@ Future<_HistoricalChoice?> _pickHistorical(
     players = await repository.fetchHistoricalPlayers();
   } catch (error) {
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
     return null;
   }
