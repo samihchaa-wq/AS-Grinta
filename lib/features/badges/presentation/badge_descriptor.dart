@@ -84,6 +84,8 @@ String _rawDescriptorFor({
       return 'EL PRESIDENTE';
     case 'role_coach':
       return 'COACH';
+    case 'role_goalkeeper':
+      return 'GARDIEN';
   }
   if (category == 'palmares') return 'PALMARÈS';
   if (category == 'faits_de_jeu') return 'FAIT DE JEU';
