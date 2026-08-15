@@ -135,11 +135,19 @@ class AuthRepository {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) throw StateError('Utilisateur non authentifié.');
 
-    await _client.from('profiles').update({
-      'first_name': firstName.trim(),
-      'last_name': lastName.trim(),
-      'surnom': (surnom ?? '').trim(),
-    }).eq('id', userId);
+    final updated = await _client
+        .from('profiles')
+        .update({
+          'first_name': firstName.trim(),
+          'last_name': lastName.trim(),
+          'surnom': (surnom ?? '').trim(),
+        })
+        .eq('id', userId)
+        .select('id')
+        .maybeSingle();
+    if (updated == null) {
+      throw StateError('Le profil n’a pas pu être modifié.');
+    }
 
     await _client.auth.updateUser(
       UserAttributes(
@@ -180,9 +188,15 @@ class AuthRepository {
     // systématiquement « Bucket not found ». On stocke le chemin relatif, que
     // PlayerAvatar resigne à l'affichage.
     try {
-      await _client.from('profiles').update({
-        'photo_url': path,
-      }).eq('id', userId);
+      final updated = await _client
+          .from('profiles')
+          .update({'photo_url': path})
+          .eq('id', userId)
+          .select('id')
+          .maybeSingle();
+      if (updated == null) {
+        throw StateError('La photo du profil n’a pas pu être enregistrée.');
+      }
     } catch (_) {
       await bucket.remove([path]);
       rethrow;
