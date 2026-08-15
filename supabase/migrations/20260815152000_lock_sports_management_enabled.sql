@@ -2,17 +2,27 @@
 -- Keep the existing RPC signature for compatibility with older clients,
 -- but reject every attempt to disable the module.
 
-do $$
-begin
-  if not exists (
-    select 1
-    from private.app_feature_flags
-    where key = 'sports_management'
-  ) then
-    raise exception 'Sports-management feature flag is missing';
-  end if;
-end
-$$;
+insert into private.app_feature_flags (
+  key,
+  enabled,
+  config,
+  updated_at,
+  updated_by
+)
+values (
+  'sports_management',
+  true,
+  jsonb_build_object(
+    'availability_open_hours_before', 144,
+    'reminder_hours_before', jsonb_build_array(72, 24),
+    'usual_squad_size', 14,
+    'vote_duration_hours', 24,
+    'timezone', 'Europe/Paris'
+  ),
+  now(),
+  null
+)
+on conflict (key) do nothing;
 
 update private.app_feature_flags
 set enabled = true,
