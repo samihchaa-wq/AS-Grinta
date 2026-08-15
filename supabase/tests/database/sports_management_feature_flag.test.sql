@@ -18,8 +18,17 @@ select is(
     from private.app_feature_flags
     where key = 'sports_management'
   ),
-  false,
-  'le module de gestion sportive est désactivé par défaut'
+  true,
+  'le module de gestion sportive est activé en permanence'
+);
+select ok(
+  exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'private.app_feature_flags'::regclass
+      and conname = 'app_feature_flags_sports_management_always_enabled'
+  ),
+  'une contrainte empêche de désactiver le module de gestion sportive'
 );
 select is(
   (
@@ -107,7 +116,7 @@ select ok(
     'public.set_sports_management_enabled(boolean,text)',
     'EXECUTE'
   ),
-  'le point d’entrée d’administration est disponible aux utilisateurs connectés'
+  'le point d’entrée d’administration reste disponible aux anciens clients'
 );
 select ok(
   not has_function_privilege(
@@ -181,8 +190,8 @@ select is(
     public.get_public_feature_flags()
       #>> '{sports_management,enabled}'
   )::boolean,
-  false,
-  'la RPC de lecture renvoie la valeur serveur désactivée'
+  true,
+  'la RPC de lecture renvoie le module sportif activé'
 );
 
 select * from finish();
