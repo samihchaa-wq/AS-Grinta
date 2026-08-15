@@ -23,6 +23,8 @@ final featureFlagsWatchRetryDelayProvider =
 });
 
 class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
+  static const int _watchIncidentThreshold = 3;
+
   StreamSubscription<FeatureFlagChangeSignal>? _changeSubscription;
   Timer? _watchRetryTimer;
   FeatureFlagChangeSignal? _lastSignal;
@@ -75,6 +77,7 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
         },
         onError: _handleWatchError,
         onDone: _handleWatchDone,
+        cancelOnError: true,
       );
     } catch (error, stackTrace) {
       _handleWatchError(error, stackTrace);
@@ -85,7 +88,7 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
     if (_disposed || !ref.read(featureFlagsSessionReadyProvider)) return;
 
     _watchFailureCount += 1;
-    if (!_watchErrorLogged) {
+    if (_watchFailureCount >= _watchIncidentThreshold && !_watchErrorLogged) {
       _watchErrorLogged = true;
       AppLogger.error('feature_flags.watch', error, stackTrace);
     }
