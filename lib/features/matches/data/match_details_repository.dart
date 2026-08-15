@@ -355,11 +355,19 @@ class MatchDetailsRepository {
     required String matchId,
     required DateTime kickoffAt,
   }) async {
-    await _client.from('matches').update({
-      'match_date': kickoffAt.toIso8601String().split('T').first,
-      'match_time': _formatTime(kickoffAt),
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', matchId);
+    final updated = await _client
+        .from('matches')
+        .update({
+          'match_date': kickoffAt.toIso8601String().split('T').first,
+          'match_time': _formatTime(kickoffAt),
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', matchId)
+        .select('id')
+        .maybeSingle();
+    if (updated == null) {
+      throw StateError('Le report du match n’a pas pu être enregistré.');
+    }
   }
 
   String _formatTime(DateTime value) {
