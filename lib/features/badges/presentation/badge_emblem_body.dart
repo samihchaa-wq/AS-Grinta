@@ -2,10 +2,10 @@ import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:flutter/material.dart';
 
 /// Proportions des quatre zones de l'emblème, rapportées à sa largeur.
-const kBadgeIllustrationRatio = 0.82;
-const _valueRatio = 0.26;
-const _labelRatio = 0.22;
-const _periodRatio = 0.18;
+const kBadgeIllustrationRatio = 0.90;
+const _valueRatio = 0.23;
+const _labelRatio = 0.19;
+const _periodRatio = 0.16;
 
 /// Taille d'une étoile de palmarès, rapportée à la largeur de l'emblème.
 const kBadgeEmblemStarRatio = 0.2;
