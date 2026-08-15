@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('sports management cannot be disabled from admin', (tester) async {
+  testWidgets('sports management cannot be disabled from admin', (
+    tester,
+  ) async {
     final repository = _WidgetFeatureFlagsRepository();
     await tester.pumpWidget(_harness(repository));
     await tester.pumpAndSettle();
