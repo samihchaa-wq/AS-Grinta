@@ -11,7 +11,8 @@ void main() {
     expect(nameWithBadgesMinimumSize, statisticsBadgeSize);
   });
 
-  testWidgets('les bandes basses reprennent toutes la couleur principale',
+  testWidgets(
+      'illustration et socle gardent la même teinte avec deux tons distincts',
       (tester) async {
     const base = Color(0xFF57C785);
 
@@ -29,7 +30,7 @@ void main() {
       ),
     );
 
-    final coloredBands = tester
+    final coloredZones = tester
         .widgetList<Container>(
           find.descendant(
             of: find.byType(BadgeEmblemBody),
@@ -39,10 +40,62 @@ void main() {
         .where((container) => container.color != null)
         .toList();
 
-    expect(coloredBands, hasLength(3));
-    for (final band in coloredBands) {
-      expect(band.color, base);
+    expect(coloredZones, hasLength(4));
+
+    final illustrationTone = coloredZones.first.color!;
+    final textTone = coloredZones[1].color!;
+
+    expect(illustrationTone, isNot(textTone));
+    expect(HSLColor.fromColor(illustrationTone).hue,
+        closeTo(HSLColor.fromColor(textTone).hue, 0.01));
+    expect(HSLColor.fromColor(illustrationTone).lightness,
+        greaterThan(HSLColor.fromColor(textTone).lightness));
+
+    for (final band in coloredZones.skip(1)) {
+      expect(band.color, textTone);
     }
+  });
+
+  testWidgets('critère et temporalité ont exactement la même taille',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: BadgeEmblemBody(
+            size: 100,
+            base: Color(0xFF57C785),
+            descriptor: BadgeDescriptor('BUTS', 'SAISON'),
+            value: '12',
+            child: SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+
+    final labelStyle = tester
+        .widgetList<Text>(find.text('BUTS'))
+        .singleWhere((text) => text.style?.foreground == null)
+        .style!;
+    final periodStyle = tester
+        .widgetList<Text>(find.text('SAISON'))
+        .singleWhere((text) => text.style?.foreground == null)
+        .style!;
+
+    expect(labelStyle.fontSize, periodStyle.fontSize);
+
+    final coloredZones = tester
+        .widgetList<Container>(
+          find.descendant(
+            of: find.byType(BadgeEmblemBody),
+            matching: find.byType(Container),
+          ),
+        )
+        .where((container) => container.color != null)
+        .toList();
+
+    final labelHeight = coloredZones[2].constraints?.maxHeight;
+    final periodHeight = coloredZones[3].constraints?.maxHeight;
+    expect(labelHeight, periodHeight);
   });
 
   testWidgets('chiffres et lettres ont un contour noir et un remplissage blanc',
