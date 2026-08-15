@@ -12,7 +12,7 @@ void main() {
   });
 
   testWidgets(
-      'illustration et socle gardent la même teinte avec deux tons distincts',
+      'illustration et socle gardent la même teinte avec un contraste net',
       (tester) async {
     const base = Color(0xFF57C785);
 
@@ -50,6 +50,10 @@ void main() {
     expect(illustrationTone, isNot(textTone));
     expect(illustrationHsl.hue, closeTo(textHsl.hue, 0.5));
     expect(illustrationHsl.lightness, greaterThan(textHsl.lightness));
+    expect(
+      illustrationHsl.lightness - textHsl.lightness,
+      greaterThan(0.12),
+    );
 
     for (final band in coloredZones.skip(1)) {
       expect(band.color, textTone);
