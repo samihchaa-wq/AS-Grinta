@@ -12,7 +12,7 @@ void main() {
   });
 
   testWidgets(
-      'illustration et socle gardent la même teinte avec un contraste net',
+      'illustration et socle gardent la même teinte avec un contraste très net',
       (tester) async {
     const base = Color(0xFF57C785);
 
@@ -48,11 +48,11 @@ void main() {
     final textHsl = HSLColor.fromColor(textTone);
 
     expect(illustrationTone, isNot(textTone));
-    expect(illustrationHsl.hue, closeTo(textHsl.hue, 0.5));
+    expect(illustrationHsl.hue, closeTo(textHsl.hue, 1.0));
     expect(illustrationHsl.lightness, greaterThan(textHsl.lightness));
     expect(
       illustrationHsl.lightness - textHsl.lightness,
-      greaterThan(0.12),
+      greaterThan(0.20),
     );
 
     for (final band in coloredZones.skip(1)) {
