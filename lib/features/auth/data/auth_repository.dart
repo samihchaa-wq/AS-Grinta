@@ -149,15 +149,10 @@ class AuthRepository {
       throw StateError('Le profil n’a pas pu être modifié.');
     }
 
-    await _client.auth.updateUser(
-      UserAttributes(
-        data: {
-          'first_name': firstName.trim(),
-          'last_name': lastName.trim(),
-        },
-      ),
-    );
-
+    // `profiles` est la source de vérité de l'identité affichée dans l'app.
+    // Les métadonnées Auth ne servent qu'au bootstrap initial d'un compte ;
+    // les réécrire ici créerait une seconde étape susceptible d'échouer après
+    // une sauvegarde de profil déjà réussie.
     final profile = await fetchProfile();
     if (profile == null) {
       throw StateError('Le profil mis à jour est introuvable.');
