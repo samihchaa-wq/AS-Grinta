@@ -235,9 +235,8 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -351,10 +350,17 @@ class _AdminSquadPlanPageState extends ConsumerState<AdminSquadPlanPage> {
           else if (step == _AdminStep.composition &&
               isInternal &&
               _selectedMatchId != null)
-            InternalTeamCompositionView(
-              matchId: _selectedMatchId!,
-              editable: !_locked,
-            )
+            !_effectifReadyForComposition && !_postMatch
+                ? const GrintaEmptyState(
+                    icon: Icons.groups_rounded,
+                    title: 'Effectif à valider',
+                    message:
+                        'Valide d’abord l’effectif pour préparer la composition.',
+                  )
+                : InternalTeamCompositionView(
+                    matchId: _selectedMatchId!,
+                    editable: !_locked,
+                  )
           else if (_convocations != null && _composition != null)
             step == _AdminStep.effectif
                 ? _buildEffectif()

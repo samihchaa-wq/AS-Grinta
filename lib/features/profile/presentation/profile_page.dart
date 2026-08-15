@@ -58,100 +58,119 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final displayName = profile?.fullName.isNotEmpty == true
         ? profile!.fullName
         : 'Profil utilisateur';
+    final photoActionLabel = (profile?.photoUrl ?? '').trim().isEmpty
+        ? 'Ajouter une photo de profil'
+        : 'Modifier la photo de profil';
 
     return Scaffold(
       appBar: GrintaAppBar(title: const Text('Profil')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-              border: Border.all(
-                color: AppTheme.outline.withValues(alpha: .56),
+          Semantics(
+            container: true,
+            explicitChildNodes: true,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                border: Border.all(
+                  color: AppTheme.outline.withValues(alpha: .56),
+                ),
               ),
-            ),
-            child: Column(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(3),
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.surfaceHigh,
-                        border: Border.all(
-                          color: AppTheme.primaryBright.withValues(alpha: .36),
+              child: Column(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.surfaceHigh,
+                          border: Border.all(
+                            color: AppTheme.primaryBright.withValues(
+                              alpha: .36,
+                            ),
+                          ),
+                        ),
+                        child: PlayerAvatar(
+                          photoUrl: profile?.photoUrl,
+                          name: profile?.displayName ?? '',
+                          size: 96,
                         ),
                       ),
-                      child: PlayerAvatar(
-                        photoUrl: profile?.photoUrl,
-                        name: profile?.displayName ?? '',
-                        size: 96,
-                      ),
-                    ),
-                    Positioned(
-                      right: -2,
-                      bottom: 0,
-                      child: Material(
-                        color: AppTheme.primary,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: busy ? null : _pickAndUploadPhoto,
-                          child: const Padding(
-                            padding: EdgeInsets.all(9),
-                            child: Icon(
-                              Icons.photo_camera_rounded,
-                              size: 17,
-                              color: Colors.white,
+                      Positioned(
+                        right: -2,
+                        bottom: 0,
+                        child: Tooltip(
+                          message: photoActionLabel,
+                          child: Semantics(
+                            button: true,
+                            enabled: !busy,
+                            label: photoActionLabel,
+                            child: Material(
+                              color: AppTheme.primary,
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: busy ? null : _pickAndUploadPhoto,
+                                child: const Padding(
+                                  padding: EdgeInsets.all(9),
+                                  child: Icon(
+                                    Icons.photo_camera_rounded,
+                                    size: 17,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  displayName,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -.25,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if ((profile?.username ?? '').isNotEmpty)
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    displayName,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -.25,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if ((profile?.username ?? '').isNotEmpty)
+                        _ProfileMetaChip(
+                          icon: Icons.alternate_email_rounded,
+                          label: profile!.username!,
+                        ),
                       _ProfileMetaChip(
-                        icon: Icons.alternate_email_rounded,
-                        label: profile!.username!,
+                        icon: Icons.shield_outlined,
+                        label: profile == null
+                            ? 'Rôle inconnu'
+                            : profile.role.label,
                       ),
-                    _ProfileMetaChip(
-                      icon: Icons.shield_outlined,
-                      label:
-                          profile == null ? 'Rôle inconnu' : profile.role.label,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Ta photo apparaît sur les compositions.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Ta photo apparaît sur les compositions.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppTheme.textFaint),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -225,14 +244,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.error.withValues(alpha: .1),
+                color:
+                    Theme.of(context).colorScheme.error.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.error.withValues(alpha: .3),
+                  color:
+                      Theme.of(context).colorScheme.error.withValues(alpha: .3),
                 ),
               ),
               child: Row(
@@ -279,9 +296,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             style: OutlinedButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
               side: BorderSide(
-                color: Theme.of(context).colorScheme.error.withValues(
-                      alpha: .5,
-                    ),
+                color:
+                    Theme.of(context).colorScheme.error.withValues(alpha: .5),
               ),
             ),
           ),
@@ -308,9 +324,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         .uploadPhoto(bytes: cropped, fileExt: 'jpg');
     if (!mounted) return;
     final error = ref.read(authControllerProvider).error;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(error ?? 'Photo mise à jour.')));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(error ?? 'Photo mise à jour.')));
   }
 
   Future<void> _saveProfile() async {
@@ -349,9 +364,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     // indiscernable d'un enregistrement réussi. Le bandeau d'erreur du corps
     // de l'écran affiche déjà le détail, le SnackBar signale l'événement.
     final error = ref.read(authControllerProvider).error;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error ?? 'Profil enregistré.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(error ?? 'Profil enregistré.')));
   }
 
   Future<void> _changePassword(BuildContext context) async {
@@ -479,9 +493,10 @@ class _SectionHeading extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w900),
         ),
       ],
     );
