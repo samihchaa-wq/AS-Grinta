@@ -16,6 +16,8 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 
 part 'admin_season_section.dart';
 part 'admin_profiles_section_v2.dart';
+part 'admin_profile_actions.dart';
+part 'admin_profile_dialogs.dart';
 
 /// Lien public d'auto-inscription à partager dans la conversation du club.
 const _registerLink = 'https://samihchaa-wq.github.io/AS-Grinta/auth/register';
@@ -118,9 +120,16 @@ class AdminPage extends ConsumerWidget {
                   const SizedBox(height: 20),
                   _ProfilesSection(
                     title: 'Validés',
-                    profiles: groups.validated,
+                    profiles: groups.active,
                     emptyMessage: 'Aucun compte validé.',
-                    icon: Icons.verified_outlined,
+                    icon: Icons.verified_user_outlined,
+                  ),
+                  const SizedBox(height: 20),
+                  _ProfilesSection(
+                    title: 'Archivés',
+                    profiles: groups.archived,
+                    emptyMessage: 'Aucun compte archivé.',
+                    icon: Icons.archive_outlined,
                   ),
                 ],
               ],
