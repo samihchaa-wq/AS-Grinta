@@ -7,9 +7,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Une personne à qui décerner un badge.
 class AdminPerson {
-  const AdminPerson({required this.id, required this.name});
+  const AdminPerson({
+    required this.id,
+    required this.name,
+    this.isGoalkeeper = false,
+  });
   final String id;
   final String name;
+  final bool isGoalkeeper;
 }
 
 class BadgeAdminRepository {
@@ -27,7 +32,13 @@ class BadgeAdminRepository {
       final name = surnom.isNotEmpty
           ? surnom
           : (first.isNotEmpty ? first : 'Compte sans nom');
-      people.add(AdminPerson(id: m['id'].toString(), name: name));
+      people.add(
+        AdminPerson(
+          id: m['id'].toString(),
+          name: name,
+          isGoalkeeper: m['is_goalkeeper'] == true,
+        ),
+      );
     }
     people.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     return people;
