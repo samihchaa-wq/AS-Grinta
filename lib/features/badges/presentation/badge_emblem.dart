@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:as_grinta/features/badges/presentation/badge_descriptor.dart';
 import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/badges/presentation/badge_image_delivery.dart';
@@ -36,6 +38,7 @@ class BadgeEmblem extends StatelessWidget {
     required this.emoji,
     required this.size,
     this.imageUrl,
+    this.imageBytes,
     this.color,
     this.baremeLabel,
     this.descriptor,
@@ -46,6 +49,10 @@ class BadgeEmblem extends StatelessWidget {
   final String emoji;
   final double size;
   final String? imageUrl;
+
+  /// Image locale déjà préparée, utilisée notamment pour l'aperçu avant
+  /// création. Elle est prioritaire sur [imageUrl].
+  final Uint8List? imageBytes;
   final String? color;
   final String? baremeLabel;
 
@@ -68,21 +75,33 @@ class BadgeEmblem extends StatelessWidget {
     final base = parseBadgeColor(color) ?? kDefaultBadgeColor;
     final fallback = Text(emoji, style: TextStyle(fontSize: size * 0.49));
     final sourceUrl = imageUrl?.trim();
+    final localBytes = imageBytes;
     final decodedWidth = (size * MediaQuery.devicePixelRatioOf(context))
         .ceil()
         .clamp(1, kBadgeImageDeliveryWidth)
         .toInt();
-    final illustration = sourceUrl == null || sourceUrl.isEmpty
-        ? fallback
-        : Image.network(
-            badgeImageDeliveryUrl(sourceUrl),
+    final illustration = localBytes != null && localBytes.isNotEmpty
+        ? Image.memory(
+            localBytes,
             width: double.infinity,
             height: double.infinity,
             fit: BoxFit.cover,
             cacheWidth: decodedWidth,
             filterQuality: FilterQuality.medium,
+            gaplessPlayback: true,
             errorBuilder: (_, __, ___) => fallback,
-          );
+          )
+        : sourceUrl == null || sourceUrl.isEmpty
+            ? fallback
+            : Image.network(
+                badgeImageDeliveryUrl(sourceUrl),
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                cacheWidth: decodedWidth,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, __, ___) => fallback,
+              );
 
     final body = BadgeEmblemBody(
       size: size,
