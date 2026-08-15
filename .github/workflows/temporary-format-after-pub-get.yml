@@ -1,0 +1,37 @@
+name: Temporary formatter after pub get
+
+on:
+  push:
+    branches:
+      - fix/align-match-edit-layout
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/align-match-edit-layout
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+      - name: Reproduce CI formatting context and clean helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+          dart format lib/features/matches/presentation/match_form_page.dart
+          dart format --output=none --set-exit-if-changed lib/features/matches/presentation/match_form_page.dart
+          git checkout -- analysis_options.yaml || true
+          rm .github/workflows/temporary-format-after-pub-get.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/matches/presentation/match_form_page.dart .github/workflows/temporary-format-after-pub-get.yml
+          git commit -m "style(matches): match CI formatter context"
+          git push origin HEAD:fix/align-match-edit-layout
