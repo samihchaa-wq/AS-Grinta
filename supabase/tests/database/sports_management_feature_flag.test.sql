@@ -19,16 +19,7 @@ select is(
     where key = 'sports_management'
   ),
   true,
-  'le module de gestion sportive est activé en permanence'
-);
-select ok(
-  exists (
-    select 1
-    from pg_constraint
-    where conrelid = 'private.app_feature_flags'::regclass
-      and conname = 'app_feature_flags_sports_management_always_enabled'
-  ),
-  'une contrainte empêche de désactiver le module de gestion sportive'
+  'le module de gestion sportive est activé par défaut'
 );
 select is(
   (
