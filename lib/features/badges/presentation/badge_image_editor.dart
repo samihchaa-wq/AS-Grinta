@@ -13,6 +13,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 
+/// Ouvre l'éditeur partagé de visuel de badge et renvoie le JPEG final déjà
+/// recadré, ou `null` si l'administrateur annule.
+Future<Uint8List?> showBadgeImageCropDialog(
+  BuildContext context, {
+  required Color badgeColor,
+  Uint8List? initialBytes,
+}) {
+  return showDialog<Uint8List?>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _BadgeCropDialog(
+      badgeColor: badgeColor,
+      initialBytes: initialBytes,
+    ),
+  );
+}
+
 /// Action d'administration pour recadrer ou remplacer uniquement le visuel
 /// central d'un badge.
 class BadgeImageEditorButton extends ConsumerStatefulWidget {
@@ -65,13 +82,10 @@ class _BadgeImageEditorButtonState
 
     Uint8List? edited;
     try {
-      edited = await showDialog<Uint8List?>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => _BadgeCropDialog(
-          badgeColor: badgeColor,
-          initialBytes: initialBytes,
-        ),
+      edited = await showBadgeImageCropDialog(
+        context,
+        badgeColor: badgeColor,
+        initialBytes: initialBytes,
       );
     } finally {
       if (mounted && edited == null) setState(() => _busy = false);
