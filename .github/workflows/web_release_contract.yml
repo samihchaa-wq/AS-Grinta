@@ -1,0 +1,49 @@
+name: Web release shell contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'tool/stamp_web_release.py'
+      - 'tool/check_web_performance_budget.py'
+      - '.github/workflows/deploy_pages.yml'
+      - '.github/workflows/web_release_contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'tool/stamp_web_release.py'
+      - 'tool/check_web_performance_budget.py'
+      - '.github/workflows/deploy_pages.yml'
+      - '.github/workflows/web_release_contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-shell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Validate release scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            tool/stamp_web_release.py \
+            tool/check_web_performance_budget.py
+
+          cp web/index.html /tmp/as-grinta-index.html
+          WEB_INDEX_PATH=/tmp/as-grinta-index.html \
+          WEB_VERSION='contract-0123456789ab' \
+            python3 tool/stamp_web_release.py
+
+          grep -Fq 'build_version.js?v=contract-0123456789ab' /tmp/as-grinta-index.html
+          grep -Fq 'app_shell.js?v=contract-0123456789ab' /tmp/as-grinta-index.html
+          grep -Fq 'version-check' web/app_shell.js
+          grep -Fq "window.location.replace" web/app_shell.js
