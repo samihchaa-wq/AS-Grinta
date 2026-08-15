@@ -102,15 +102,13 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
           _badgeImageBytes = null;
           _colorHex = '#C0455B';
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Badge « $name » créé.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Badge « $name » créé.')));
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _creating = false);
@@ -169,8 +167,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
               final filtered = _query.isEmpty
                   ? badges
                   : badges
-                      .where((b) => b.name.toLowerCase().contains(_query))
-                      .toList();
+                        .where((b) => b.name.toLowerCase().contains(_query))
+                        .toList();
               if (filtered.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
@@ -226,9 +224,9 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                   children: [
                                     Text(
                                       b.name,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
                                     ),
                                     if (b.description.isNotEmpty) ...[
                                       const SizedBox(height: 4),
@@ -324,9 +322,9 @@ class _CreateBadgeCard extends StatelessWidget {
             Text(
               hasImage
                   ? 'La couleur est verrouillée après le recadrage pour que le '
-                      'fond de l’illustration reste parfaitement identique.'
+                        'fond de l’illustration reste parfaitement identique.'
                   : 'Choisis d’abord la couleur : elle sert aussi de fond à '
-                      'l’illustration pendant le recadrage.',
+                        'l’illustration pendant le recadrage.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
@@ -399,7 +397,7 @@ class _CreateBadgeCard extends StatelessWidget {
                           hasImage
                               ? 'L’aperçu ci-contre est celui qui sera enregistré.'
                               : 'Choisis un PNG ou JPEG, puis déplace et zoome '
-                                  'l’image exactement comme pour les badges existants.',
+                                    'l’image exactement comme pour les badges existants.',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 10),
@@ -420,7 +418,10 @@ class _CreateBadgeCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           TextButton.icon(
                             onPressed: creating ? null : onResetImage,
-                            icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                            icon: const Icon(
+                              Icons.restart_alt_rounded,
+                              size: 18,
+                            ),
                             label: const Text('Changer la couleur'),
                           ),
                         ],
@@ -539,9 +540,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanizeError(e))));
       }
     } finally {
       if (mounted) setState(() => _busy.remove(person.id));
@@ -622,8 +622,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   final filtered = _query.isEmpty
                       ? eligiblePeople
                       : eligiblePeople
-                          .where((p) => p.name.toLowerCase().contains(_query))
-                          .toList();
+                            .where((p) => p.name.toLowerCase().contains(_query))
+                            .toList();
                   return ListView(
                     shrinkWrap: true,
                     children: [
@@ -640,8 +640,9 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                                   ),
                                 )
                               : null,
-                          onChanged:
-                              _busy.contains(p.id) ? null : (_) => _toggle(p),
+                          onChanged: _busy.contains(p.id)
+                              ? null
+                              : (_) => _toggle(p),
                         ),
                       if (filtered.isEmpty)
                         Padding(
