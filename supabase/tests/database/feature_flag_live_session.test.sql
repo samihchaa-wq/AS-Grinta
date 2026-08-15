@@ -156,6 +156,15 @@ select set_config(
   ),
   true
 );
+select set_config(
+  'test.feature_flag_signal_updated_before',
+  (
+    select updated_at::text
+    from public.feature_flag_change_signals
+    where key = 'sports_management'
+  ),
+  true
+);
 
 select throws_ok(
   $$select public.set_sports_management_enabled(
@@ -180,16 +189,12 @@ select is(
 
 select is(
   (
-    select signal.updated_at
-    from public.feature_flag_change_signals signal
-    where signal.key = 'sports_management'
+    select updated_at
+    from public.feature_flag_change_signals
+    where key = 'sports_management'
   ),
-  (
-    select flag.updated_at
-    from private.app_feature_flags flag
-    where flag.key = 'sports_management'
-  ),
-  'le signal porte la date de la valeur autoritaire'
+  current_setting('test.feature_flag_signal_updated_before')::timestamptz,
+  'une désactivation refusée ne modifie pas la date du signal'
 );
 
 select is(
