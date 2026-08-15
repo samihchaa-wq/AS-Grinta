@@ -130,9 +130,10 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Score à modifier',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -147,9 +148,10 @@ class _InlineMatchPredictionCardState
               const SizedBox(height: AppSpacing.sectionGap),
               Text(
                 'Les cotes',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: AppSpacing.contentGap),
               Row(
@@ -245,9 +247,8 @@ class _InlineMatchPredictionCardState
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanizeError(error))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -372,6 +373,7 @@ class _ScorePicker extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
+              tooltip: 'Retirer un but pour $label',
               visualDensity: VisualDensity.compact,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
@@ -380,11 +382,13 @@ class _ScorePicker extends StatelessWidget {
             ),
             Text(
               '$value',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w800),
             ),
             IconButton(
+              tooltip: 'Ajouter un but pour $label',
               visualDensity: VisualDensity.compact,
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
               padding: EdgeInsets.zero,
