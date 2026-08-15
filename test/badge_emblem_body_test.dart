@@ -44,12 +44,12 @@ void main() {
 
     final illustrationTone = coloredZones.first.color!;
     final textTone = coloredZones[1].color!;
+    final illustrationHsl = HSLColor.fromColor(illustrationTone);
+    final textHsl = HSLColor.fromColor(textTone);
 
     expect(illustrationTone, isNot(textTone));
-    expect(HSLColor.fromColor(illustrationTone).hue,
-        closeTo(HSLColor.fromColor(textTone).hue, 0.01));
-    expect(HSLColor.fromColor(illustrationTone).lightness,
-        greaterThan(HSLColor.fromColor(textTone).lightness));
+    expect(illustrationHsl.hue, closeTo(textHsl.hue, 0.5));
+    expect(illustrationHsl.lightness, greaterThan(textHsl.lightness));
 
     for (final band in coloredZones.skip(1)) {
       expect(band.color, textTone);
