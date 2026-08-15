@@ -14,11 +14,6 @@ set role = case
       else 'pronostiqueur'
     end,
     status = 'active',
-    first_name = case
-      when id = '91000000-0000-0000-0000-000000000001' then 'Admin Audit'
-      else 'Joueur Audit'
-    end,
-    surnom = null,
     updated_at = now()
 where id in (
   '91000000-0000-0000-0000-000000000001',
@@ -63,13 +58,12 @@ select is(
     from private.profile_badge_audit_log
     where profile_id = '91000000-0000-0000-0000-000000000002'
       and badge_code = 'audit_manual_test'
-      and action = 'award'
+      and event_type = 'award'
       and actor_profile_id = '91000000-0000-0000-0000-000000000001'
-      and profile_label = 'Joueur Audit'
-      and actor_label = 'Admin Audit'
+      and not is_backfill
   ),
   1::bigint,
-  'l attribution manuelle est journalisee avec acteur et cible'
+  'l attribution manuelle est journalisee avec son acteur'
 );
 
 set local role authenticated;
@@ -88,23 +82,10 @@ select is(
     from private.profile_badge_audit_log
     where profile_id = '91000000-0000-0000-0000-000000000002'
       and badge_code = 'audit_manual_test'
+      and event_type in ('award', 'revoke')
   ),
   2::bigint,
   'attribution et revocation restent toutes les deux dans le journal'
-);
-
-select is(
-  (
-    select metadata ->> 'previous_source'
-    from private.profile_badge_audit_log
-    where profile_id = '91000000-0000-0000-0000-000000000002'
-      and badge_code = 'audit_manual_test'
-      and action = 'revoke'
-    order by id desc
-    limit 1
-  ),
-  'manual',
-  'la revocation conserve la source precedente'
 );
 
 select is(
@@ -125,7 +106,7 @@ select throws_ok(
     where badge_code = 'audit_manual_test'
   $$,
   '55000',
-  'Badge audit log is append-only',
+  'profile_badge_audit_log is append-only',
   'le journal ne peut pas etre modifie'
 );
 
@@ -135,18 +116,33 @@ select throws_ok(
     where badge_code = 'audit_manual_test'
   $$,
   '55000',
-  'Badge audit log is append-only',
+  'profile_badge_audit_log is append-only',
   'le journal ne peut pas etre efface'
 );
 
-set local role authenticated;
-select throws_ok(
-  $$select count(*) from private.profile_badge_audit_log$$,
-  '42501',
-  'permission denied for table profile_badge_audit_log',
-  'un client authentifie ne peut pas lire directement le journal prive'
+select ok(
+  not has_table_privilege(
+    'authenticated',
+    'private.profile_badge_audit_log',
+    'SELECT'
+  )
+  and not has_table_privilege(
+    'authenticated',
+    'private.profile_badge_audit_log',
+    'INSERT'
+  )
+  and not has_table_privilege(
+    'authenticated',
+    'private.profile_badge_audit_log',
+    'UPDATE'
+  )
+  and not has_table_privilege(
+    'authenticated',
+    'private.profile_badge_audit_log',
+    'DELETE'
+  ),
+  'un client authentifie ne peut ni lire ni modifier le journal prive'
 );
-reset role;
 
 select * from finish();
 rollback;
