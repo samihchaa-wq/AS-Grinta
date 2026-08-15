@@ -4,9 +4,7 @@ import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/features/admin/data/admin_repository.dart';
 import 'package:as_grinta/features/admin/presentation/admin_profile_policy.dart';
-import 'package:as_grinta/features/admin/presentation/admin_sports_management_section.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
-import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/players/data/roster_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,13 +31,8 @@ class AdminPage extends ConsumerWidget {
       appBar: GrintaAppBar(title: const Text('Admin'), admin: true),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref
-            ..invalidate(adminDashboardProvider)
-            ..invalidate(featureFlagsControllerProvider);
-          await Future.wait([
-            ref.read(adminDashboardProvider.future),
-            ref.read(featureFlagsControllerProvider.future),
-          ]);
+          ref.invalidate(adminDashboardProvider);
+          await ref.read(adminDashboardProvider.future);
         },
         child: dashboardAsync.when(
           loading: () => const Center(child: GrintaProgressIndicator()),
@@ -61,8 +54,6 @@ class AdminPage extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
-                const AdminSportsManagementSection(),
-                const SizedBox(height: 20),
                 _SeasonCard(dashboard: dashboard),
                 const SizedBox(height: 20),
                 Text(
