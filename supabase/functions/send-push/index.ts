@@ -3,6 +3,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
 import webpush from "npm:web-push@3.6.7";
 import { executePushDelivery } from "./delivery_policy.ts";
+import {
+  readBoundedJson,
+  RequestBodyTooLargeError,
+  secretsEqual,
+} from "./request_security.ts";
 import { refreshMatchWeather } from "./weather_refresh.ts";
 
 type SubscriptionRow = {
@@ -121,14 +126,17 @@ Deno.serve(async (req: Request) => {
   }
 
   const token = req.headers.get("x-push-token") ?? "";
-  if (token !== config.token) {
+  if (!(await secretsEqual(token, String(config.token)))) {
     return new Response("non autorisé", { status: 401 });
   }
 
   let body: PushRequestBody;
   try {
-    body = await req.json();
-  } catch {
+    body = await readBoundedJson<PushRequestBody>(req);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return new Response("corps trop volumineux", { status: 413 });
+    }
     return new Response("corps invalide", { status: 400 });
   }
 
