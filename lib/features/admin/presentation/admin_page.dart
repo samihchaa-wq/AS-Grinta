@@ -120,16 +120,9 @@ class AdminPage extends ConsumerWidget {
                   const SizedBox(height: 20),
                   _ProfilesSection(
                     title: 'Validés',
-                    profiles: groups.active,
+                    profiles: groups.validated,
                     emptyMessage: 'Aucun compte validé.',
-                    icon: Icons.verified_user_outlined,
-                  ),
-                  const SizedBox(height: 20),
-                  _ProfilesSection(
-                    title: 'Archivés',
-                    profiles: groups.archived,
-                    emptyMessage: 'Aucun compte archivé.',
-                    icon: Icons.archive_outlined,
+                    icon: Icons.verified_outlined,
                   ),
                 ],
               ],
