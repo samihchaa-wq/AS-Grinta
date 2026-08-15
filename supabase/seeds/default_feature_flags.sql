@@ -11,7 +11,7 @@ insert into private.app_feature_flags (
 values
   (
     'sports_management',
-    false,
+    true,
     jsonb_build_object(
       'availability_open_hours_before', 144,
       'reminder_hours_before', jsonb_build_array(72, 24),

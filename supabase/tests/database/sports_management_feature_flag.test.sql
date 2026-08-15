@@ -18,8 +18,8 @@ select is(
     from private.app_feature_flags
     where key = 'sports_management'
   ),
-  false,
-  'le module de gestion sportive est désactivé par défaut'
+  true,
+  'le module de gestion sportive est activé par défaut'
 );
 select is(
   (
@@ -107,7 +107,7 @@ select ok(
     'public.set_sports_management_enabled(boolean,text)',
     'EXECUTE'
   ),
-  'le point d’entrée d’administration est disponible aux utilisateurs connectés'
+  'le point d’entrée d’administration reste disponible aux anciens clients'
 );
 select ok(
   not has_function_privilege(
@@ -181,8 +181,8 @@ select is(
     public.get_public_feature_flags()
       #>> '{sports_management,enabled}'
   )::boolean,
-  false,
-  'la RPC de lecture renvoie la valeur serveur désactivée'
+  true,
+  'la RPC de lecture renvoie le module sportif activé'
 );
 
 select * from finish();

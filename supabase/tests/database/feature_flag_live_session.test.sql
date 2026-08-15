@@ -111,7 +111,7 @@ where id in (
 );
 
 update private.app_feature_flags
-set enabled = false,
+set enabled = true,
     updated_at = now(),
     updated_by = null
 where key = 'sports_management';
@@ -156,14 +156,23 @@ select set_config(
   ),
   true
 );
+select set_config(
+  'test.feature_flag_signal_updated_before',
+  (
+    select updated_at::text
+    from public.feature_flag_change_signals
+    where key = 'sports_management'
+  ),
+  true
+);
 
-select is(
-  public.set_sports_management_enabled(
-    true,
-    'Test de transition en session'
-  ) #>> '{sports_management,enabled}',
-  'true',
-  'la RPC active le module sportif'
+select throws_ok(
+  $$select public.set_sports_management_enabled(
+    false,
+    'Test de désactivation interdite'
+  )$$,
+  '22023',
+  'la RPC refuse de désactiver le module sportif'
 );
 
 reset role;
@@ -174,35 +183,38 @@ select is(
     from public.feature_flag_change_signals
     where key = 'sports_management'
   ),
-  current_setting('test.feature_flag_revision_before')::bigint + 1,
-  'la transition incrémente exactement une fois la révision'
+  current_setting('test.feature_flag_revision_before')::bigint,
+  'une désactivation refusée ne modifie pas la révision'
 );
 
 select is(
   (
-    select signal.updated_at
-    from public.feature_flag_change_signals signal
-    where signal.key = 'sports_management'
+    select updated_at
+    from public.feature_flag_change_signals
+    where key = 'sports_management'
   ),
+  current_setting('test.feature_flag_signal_updated_before')::timestamptz,
+  'une désactivation refusée ne modifie pas la date du signal'
+);
+
+select is(
   (
-    select flag.updated_at
-    from private.app_feature_flags flag
-    where flag.key = 'sports_management'
+    select enabled
+    from private.app_feature_flags
+    where key = 'sports_management'
   ),
-  'le signal porte la date de la valeur autoritaire'
+  true,
+  'le module sportif reste activé après la tentative de désactivation'
 );
 
 select ok(
-  exists (
+  not exists (
     select 1
     from private.app_feature_flag_audit
     where feature_key = 'sports_management'
-      and old_enabled = false
-      and new_enabled = true
-      and actor_profile_id = 'fa000000-0000-0000-0000-000000000001'
-      and justification = 'Test de transition en session'
+      and justification = 'Test de désactivation interdite'
   ),
-  'la transition temps réel reste auditée'
+  'une désactivation refusée ne crée aucune transition d’audit'
 );
 
 select * from finish();

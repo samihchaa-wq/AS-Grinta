@@ -362,20 +362,18 @@ select set_config(
 update public.profiles
 set status = 'active'
 where id = 'a1000000-0000-0000-0000-000000000002';
-update private.app_feature_flags
-set enabled = false, updated_at = now()
-where key = 'sports_management';
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"a1000000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',
-  true
-);
 select throws_ok(
-  $$select private.set_my_match_availability(
-    'a5000000-0000-0000-0000-000000000001','available',null
+  $$select private.set_sports_management_enabled(
+    false,
+    'test: permanent sports management'
   )$$,
-  '42501',
-  'le feature flag désactivé refuse toute réponse'
+  '22023',
+  'le module de gestion sportive ne peut plus être désactivé'
+);
+select is(
+  (select enabled from private.app_feature_flags where key = 'sports_management'),
+  true,
+  'le module de gestion sportive reste activé'
 );
 
 select * from finish();
