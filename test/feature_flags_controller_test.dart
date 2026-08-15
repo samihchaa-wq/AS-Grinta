@@ -127,58 +127,78 @@ void main() {
     expect(container.read(sportsManagementEnabledProvider), isFalse);
   });
 
-  test('reconnects after watcher errors without flooding incidents', () async {
-    final repository = _FakeFeatureFlagsRepository();
-    addTearDown(repository.dispose);
-    final incidents = <AppIncident>[];
-    AppLogger.sink = incidents.add;
+  test(
+    'only reports a sustained watcher outage after three failures',
+    () async {
+      final repository = _FakeFeatureFlagsRepository();
+      addTearDown(repository.dispose);
+      final incidents = <AppIncident>[];
+      AppLogger.sink = incidents.add;
 
-    final container = ProviderContainer(
-      overrides: [
-        featureFlagsRepositoryProvider.overrideWithValue(repository),
-        featureFlagsSessionReadyProvider.overrideWithValue(true),
-        featureFlagsWatchRetryDelayProvider.overrideWithValue(
-          (_) => Duration.zero,
+      final container = ProviderContainer(
+        overrides: [
+          featureFlagsRepositoryProvider.overrideWithValue(repository),
+          featureFlagsSessionReadyProvider.overrideWithValue(true),
+          featureFlagsWatchRetryDelayProvider.overrideWithValue(
+            (_) => Duration.zero,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(featureFlagsControllerProvider.future);
+      expect(repository.watchCount, 1);
+
+      repository.publishWatchError();
+      await pumpEventQueue(times: 20);
+      expect(repository.watchCount, greaterThan(1));
+      expect(
+        incidents.where(
+          (incident) => incident.operation == 'feature_flags.watch',
         ),
-      ],
-    );
-    addTearDown(container.dispose);
+        isEmpty,
+      );
 
-    await container.read(featureFlagsControllerProvider.future);
-    expect(repository.watchCount, 1);
+      repository.publishWatchError();
+      await pumpEventQueue(times: 20);
+      expect(repository.watchCount, greaterThan(2));
+      expect(
+        incidents.where(
+          (incident) => incident.operation == 'feature_flags.watch',
+        ),
+        isEmpty,
+      );
 
-    repository.publishWatchError();
-    await pumpEventQueue(times: 20);
+      repository.publishWatchError();
+      await pumpEventQueue(times: 20);
+      expect(repository.watchCount, greaterThan(3));
+      expect(
+        incidents.where(
+          (incident) => incident.operation == 'feature_flags.watch',
+        ),
+        hasLength(1),
+      );
 
-    expect(repository.watchCount, greaterThan(1));
-    expect(
-      incidents.where(
-        (incident) => incident.operation == 'feature_flags.watch',
-      ),
-      hasLength(1),
-    );
+      repository.publishWatchError();
+      await pumpEventQueue(times: 20);
+      expect(
+        incidents.where(
+          (incident) => incident.operation == 'feature_flags.watch',
+        ),
+        hasLength(1),
+      );
 
-    repository.publishWatchError();
-    await pumpEventQueue(times: 20);
+      repository.publishChange(
+        revision: 2,
+        enabled: true,
+        updatedAt: DateTime.utc(2026, 7, 20, 13),
+      );
+      await pumpEventQueue(times: 20);
 
-    expect(repository.watchCount, greaterThan(2));
-    expect(
-      incidents.where(
-        (incident) => incident.operation == 'feature_flags.watch',
-      ),
-      hasLength(1),
-    );
-
-    repository.publishChange(
-      revision: 2,
-      enabled: true,
-      updatedAt: DateTime.utc(2026, 7, 20, 13),
-    );
-    await pumpEventQueue(times: 20);
-
-    expect(repository.fetchCount, 2);
-    expect(container.read(sportsManagementEnabledProvider), isTrue);
-  });
+      expect(repository.fetchCount, 2);
+      expect(container.read(sportsManagementEnabledProvider), isTrue);
+    },
+  );
 }
 
 class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
