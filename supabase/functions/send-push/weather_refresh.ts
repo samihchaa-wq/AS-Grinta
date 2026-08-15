@@ -32,6 +32,31 @@ type ForecastResponse = {
   };
 };
 
+type WeatherFetch = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
+type WeatherFetchOptions = {
+  fetcher?: WeatherFetch;
+  maxAttempts?: number;
+  timeoutMs?: number;
+  sleep?: (milliseconds: number) => Promise<void>;
+};
+
+export const WEATHER_FETCH_MAX_ATTEMPTS = 2;
+export const WEATHER_FETCH_TIMEOUT_MS = 4_500;
+
+class WeatherHttpError extends Error {
+  constructor(status: number) {
+    super(`Open-Meteo ${status}`);
+    this.name = "WeatherHttpError";
+    this.status = status;
+  }
+
+  readonly status: number;
+}
+
 function finiteNumber(value: unknown): number | null {
   const number = typeof value === "number" ? value : Number(value);
   return Number.isFinite(number) ? number : null;
@@ -47,49 +72,125 @@ function boundedPercent(value: unknown): number | null {
   return number == null ? null : Math.min(100, Math.max(0, Math.round(number)));
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(12_000) });
-  if (!response.ok) throw new Error(`Open-Meteo ${response.status}`);
-  return await response.json() as T;
+export function isRetryableWeatherStatus(status: number): boolean {
+  return status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    status >= 500;
 }
 
-function geocodingQueries(address: string): string[] {
+export function weatherRetryDelayMs(completedAttempts: number): number {
+  const attempts = Math.max(1, Math.floor(completedAttempts));
+  return Math.min(250 * 2 ** (attempts - 1), 1_000);
+}
+
+export async function fetchWeatherJson<T>(
+  url: string,
+  options: WeatherFetchOptions = {},
+): Promise<T> {
+  const fetcher = options.fetcher ?? fetch;
+  const maxAttempts = Math.max(
+    1,
+    Math.floor(options.maxAttempts ?? WEATHER_FETCH_MAX_ATTEMPTS),
+  );
+  const timeoutMs = Math.max(
+    250,
+    Math.floor(options.timeoutMs ?? WEATHER_FETCH_TIMEOUT_MS),
+  );
+  const sleep = options.sleep ?? ((milliseconds: number) =>
+    new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetcher(url, {
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts) {
+        await sleep(weatherRetryDelayMs(attempt));
+        continue;
+      }
+      throw error;
+    }
+
+    if (!response.ok) {
+      const error = new WeatherHttpError(response.status);
+      lastError = error;
+      if (isRetryableWeatherStatus(response.status) && attempt < maxAttempts) {
+        await sleep(weatherRetryDelayMs(attempt));
+        continue;
+      }
+      throw error;
+    }
+
+    return await response.json() as T;
+  }
+
+  throw lastError ?? new Error("Open-Meteo indisponible");
+}
+
+export function geocodingQueries(address: string): string[] {
   const trimmed = address.trim();
-  const queries = [trimmed];
+  const queries: string[] = [];
   const postalCityMatch = trimmed.match(/\b\d{4,6}\b\s+([^,]+)/);
   const postalCity = postalCityMatch?.[0]?.trim();
   const cityOnly = postalCityMatch?.[1]?.trim();
-  if (postalCity && postalCity !== trimmed) queries.push(postalCity);
-  if (cityOnly && cityOnly !== trimmed && !queries.includes(cityOnly)) {
-    queries.push(cityOnly);
-  }
+
+  // Open-Meteo geocodes places rather than street addresses. Prefer the city
+  // extracted from a postal address, then progressively broader fallbacks.
+  if (cityOnly) queries.push(cityOnly);
+  if (postalCity) queries.push(postalCity);
 
   const segments = trimmed.split(",").map((part) => part.trim()).filter(Boolean);
   if (segments.length > 1) {
     const lastTwo = segments.slice(-2).join(" ");
-    if (!queries.includes(lastTwo)) queries.push(lastTwo);
-    const last = segments.at(-1)!;
-    if (!queries.includes(last)) queries.push(last);
+    queries.push(lastTwo);
+    queries.push(segments.at(-1)!);
   }
-  return [...new Set(queries)].slice(0, 5);
+  queries.push(trimmed);
+
+  return [...new Set(queries.filter(Boolean))].slice(0, 5);
 }
 
-async function geocode(address: string): Promise<{ latitude: number; longitude: number }> {
+export async function geocodeWeatherAddress(
+  address: string,
+  options: WeatherFetchOptions = {},
+): Promise<{ latitude: number; longitude: number }> {
+  let lastError: unknown;
+
   for (const query of geocodingQueries(address)) {
     const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
     url.searchParams.set("name", query);
     url.searchParams.set("count", "5");
     url.searchParams.set("language", "fr");
     url.searchParams.set("format", "json");
-    const data = await fetchJson<GeocodingResponse>(url.toString());
-    const result = data.results?.find((item) =>
-      finiteNumber(item.latitude) != null && finiteNumber(item.longitude) != null
-    );
-    if (result) {
-      return { latitude: Number(result.latitude), longitude: Number(result.longitude) };
+
+    try {
+      const data = await fetchWeatherJson<GeocodingResponse>(
+        url.toString(),
+        options,
+      );
+      const result = data.results?.find((item) =>
+        finiteNumber(item.latitude) != null && finiteNumber(item.longitude) != null
+      );
+      if (result) {
+        return {
+          latitude: Number(result.latitude),
+          longitude: Number(result.longitude),
+        };
+      }
+    } catch (error) {
+      // A street-level or transient geocoding failure must not prevent a city
+      // fallback from succeeding on the next query.
+      lastError = error;
     }
   }
-  throw new Error(`Adresse météo introuvable: ${address}`);
+
+  const suffix = lastError instanceof Error ? ` (${lastError.message})` : "";
+  throw new Error(`Adresse météo introuvable: ${address}${suffix}`);
 }
 
 function formatHour(epochSeconds: number, timezone: string): string {
@@ -152,7 +253,7 @@ async function forecastForMatch(
   url.searchParams.set("timeformat", "unixtime");
   url.searchParams.set("forecast_days", "8");
 
-  const data = await fetchJson<ForecastResponse>(url.toString());
+  const data = await fetchWeatherJson<ForecastResponse>(url.toString());
   const hourly = data.hourly;
   if (!hourly?.time?.length) throw new Error("Prévision horaire vide");
 
@@ -235,7 +336,7 @@ export async function refreshMatchWeather(
         longitude == null ||
         candidate.cached_geocoded_address !== candidate.resolved_address
       ) {
-        const location = await geocode(candidate.resolved_address);
+        const location = await geocodeWeatherAddress(candidate.resolved_address);
         latitude = location.latitude;
         longitude = location.longitude;
       }
