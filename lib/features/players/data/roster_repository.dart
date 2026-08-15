@@ -226,11 +226,19 @@ class RosterRepository {
     if (f.isEmpty) {
       throw ArgumentError('Le prénom est obligatoire.');
     }
-    await _client.from('season_players').update({
-      'first_name': f,
-      'is_goalkeeper': isGoalkeeper,
-      'is_coach': isCoach,
-    }).eq('id', id);
+    final updated = await _client
+        .from('season_players')
+        .update({
+          'first_name': f,
+          'is_goalkeeper': isGoalkeeper,
+          'is_coach': isCoach,
+        })
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (updated == null) {
+      throw StateError('Le joueur n’a pas pu être modifié.');
+    }
   }
 
   /// Téléverse la photo d'un joueur de l'effectif (utile pour les joueurs
@@ -256,9 +264,15 @@ class RosterRepository {
       // L'ancienne photo est supprimée du stockage côté serveur (trigger sur
       // season_players.photo_url). Le bucket étant privé, on enregistre le
       // chemin relatif : PlayerAvatar le resigne à l'affichage.
-      await _client
+      final updated = await _client
           .from('season_players')
-          .update({'photo_url': path}).eq('id', seasonPlayerId);
+          .update({'photo_url': path})
+          .eq('id', seasonPlayerId)
+          .select('id')
+          .maybeSingle();
+      if (updated == null) {
+        throw StateError('La photo du joueur n’a pas pu être enregistrée.');
+      }
     } catch (_) {
       await bucket.remove([path]);
       rethrow;
@@ -266,13 +280,27 @@ class RosterRepository {
   }
 
   Future<void> setActive({required String id, required bool active}) async {
-    await _client
+    final updated = await _client
         .from('season_players')
-        .update({'is_active': active}).eq('id', id);
+        .update({'is_active': active})
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (updated == null) {
+      throw StateError('Le statut du joueur n’a pas pu être modifié.');
+    }
   }
 
   Future<void> deletePlayer(String id) async {
-    await _client.from('season_players').delete().eq('id', id);
+    final deleted = await _client
+        .from('season_players')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (deleted == null) {
+      throw StateError('Le joueur n’a pas pu être supprimé.');
+    }
   }
 }
 
