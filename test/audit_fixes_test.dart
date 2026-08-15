@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
@@ -120,6 +122,33 @@ void main() {
         () => AppLogger.error('bootstrap.supabase', Exception('boom')),
         returnsNormally,
       );
+    });
+  });
+
+  group('contrats de gestion des erreurs', () {
+    test('le fallback des cotes automatiques reste observable', () {
+      final source = File(
+        'lib/features/matches/data/matches_repository.dart',
+      ).readAsStringSync();
+
+      expect(
+        source,
+        contains("AppLogger.error('matches.preview_odds', error, stackTrace)"),
+      );
+    });
+
+    test('la modification du profil garde une seule source de vérité', () {
+      final source = File(
+        'lib/features/auth/data/auth_repository.dart',
+      ).readAsStringSync();
+      final start = source.indexOf('Future<AuthProfile> updateProfile');
+      final end = source.indexOf('Future<AuthProfile> uploadProfilePhoto');
+
+      expect(start, greaterThanOrEqualTo(0));
+      expect(end, greaterThan(start));
+      final method = source.substring(start, end);
+      expect(method, contains(".from('profiles')"));
+      expect(method, isNot(contains('_client.auth.updateUser')));
     });
   });
 }
