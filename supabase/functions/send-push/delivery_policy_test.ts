@@ -1,3 +1,5 @@
+import "./weather_refresh_test.ts";
+
 import {
   classifyPushFailure,
   executePushDelivery,
