@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:as_grinta/features/admin/presentation/admin_sports_management_section.dart';
 import 'package:as_grinta/features/feature_flags/data/feature_flags_repository.dart';
 import 'package:as_grinta/features/feature_flags/domain/feature_flags.dart';
@@ -9,33 +7,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('an administrator can enable the module', (tester) async {
-    final repository = _WidgetFeatureFlagsRepository(initialEnabled: false);
+  testWidgets('sports management cannot be disabled from admin', (tester) async {
+    final repository = _WidgetFeatureFlagsRepository();
     await tester.pumpWidget(_harness(repository));
     await tester.pumpAndSettle();
 
-    expect(find.text('Désactivé'), findsOneWidget);
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-
-    expect(repository.lastEnabled, isTrue);
-    expect(find.text('Activé'), findsOneWidget);
-  });
-
-  testWidgets('disabling requires confirmation', (tester) async {
-    final repository = _WidgetFeatureFlagsRepository(initialEnabled: true);
-    await tester.pumpWidget(_harness(repository));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byType(Switch));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Désactiver le module ?'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Désactiver'));
-    await tester.pumpAndSettle();
-
-    expect(repository.lastEnabled, isFalse);
-    expect(find.text('Désactivé'), findsOneWidget);
+    expect(find.text('Activé en permanence'), findsOneWidget);
+    expect(find.byType(Switch), findsNothing);
+    expect(find.textContaining('Désactivé'), findsNothing);
+    expect(find.textContaining('Désactiver'), findsNothing);
+    expect(repository.lastEnabled, isNull);
   });
 }
 
@@ -52,15 +33,11 @@ Widget _harness(FeatureFlagsRepository repository) {
 }
 
 class _WidgetFeatureFlagsRepository implements FeatureFlagsRepository {
-  _WidgetFeatureFlagsRepository({required this.initialEnabled});
-
-  final bool initialEnabled;
   bool? lastEnabled;
-  String? lastJustification;
 
   @override
   Future<FeatureFlagsSnapshot> fetchFeatureFlags() async {
-    return _snapshot(initialEnabled);
+    return _snapshot();
   }
 
   @override
@@ -74,16 +51,15 @@ class _WidgetFeatureFlagsRepository implements FeatureFlagsRepository {
     String? justification,
   }) async {
     lastEnabled = enabled;
-    lastJustification = justification;
-    return _snapshot(enabled);
+    return _snapshot();
   }
 }
 
-FeatureFlagsSnapshot _snapshot(bool enabled) {
+FeatureFlagsSnapshot _snapshot() {
   return FeatureFlagsSnapshot(
     sourceAvailable: true,
     sportsManagement: SportsManagementFeature(
-      enabled: enabled,
+      enabled: true,
       availabilityOpenHoursBefore: 144,
       reminderHoursBefore: const [72, 24],
       usualSquadSize: 14,
