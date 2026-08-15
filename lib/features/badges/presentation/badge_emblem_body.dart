@@ -33,9 +33,8 @@ double badgeEmblemHeightRatio({
 
 Color _shiftBadgeTone(Color color, double lightnessDelta) {
   final hsl = HSLColor.fromColor(color);
-  final lightness = (hsl.lightness + lightnessDelta)
-      .clamp(0.0, 1.0)
-      .toDouble();
+  final shifted = hsl.lightness + lightnessDelta;
+  final lightness = shifted.clamp(0.0, 1.0).toDouble();
   return hsl.withLightness(lightness).toColor();
 }
 
