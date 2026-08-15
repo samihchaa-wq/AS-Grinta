@@ -59,6 +59,7 @@ Deno.test("rejette aussi un flux réellement trop grand sans Content-Length", as
     method: "POST",
     body: new Uint8Array(65),
   });
+  assertEquals(request.headers.get("content-length"), null);
 
   await assertRejectsWith(
     () => readBoundedJson(request, 64),
