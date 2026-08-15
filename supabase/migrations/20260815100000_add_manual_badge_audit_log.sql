@@ -17,6 +17,8 @@ create table private.profile_badge_audit_log (
 comment on table private.profile_badge_audit_log is
   'Append-only audit trail for staff badge awards and revocations.';
 
+alter table private.profile_badge_audit_log enable row level security;
+
 revoke all on table private.profile_badge_audit_log
   from public, anon, authenticated;
 grant select on table private.profile_badge_audit_log to service_role;
