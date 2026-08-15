@@ -401,7 +401,15 @@ class MatchesRepository {
       return;
     }
 
-    await _client.from('matches').update({'status': status}).eq('id', id);
+    final updated = await _client
+        .from('matches')
+        .update({'status': status})
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (updated == null) {
+      throw StateError('Le statut du match n’a pas pu être modifié.');
+    }
   }
 
   String _formatTime(DateTime value) {

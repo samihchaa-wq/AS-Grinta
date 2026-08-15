@@ -140,18 +140,34 @@ class ClubEventsRepository {
     required DateTime startsAt,
     required String location,
   }) async {
-    await _client.from('club_events').update({
-      'season_id': seasonId,
-      'title': title.trim(),
-      'starts_at': startsAt.toUtc().toIso8601String(),
-      'location': location.trim(),
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', id);
+    final updated = await _client
+        .from('club_events')
+        .update({
+          'season_id': seasonId,
+          'title': title.trim(),
+          'starts_at': startsAt.toUtc().toIso8601String(),
+          'location': location.trim(),
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (updated == null) {
+      throw StateError('L’événement n’a pas pu être modifié.');
+    }
     await _invalidateCache();
   }
 
   Future<void> deleteEvent(String id) async {
-    await _client.from('club_events').delete().eq('id', id);
+    final deleted = await _client
+        .from('club_events')
+        .delete()
+        .eq('id', id)
+        .select('id')
+        .maybeSingle();
+    if (deleted == null) {
+      throw StateError('L’événement n’a pas pu être supprimé.');
+    }
     await _invalidateCache();
   }
 
