@@ -127,7 +127,7 @@ void main() {
     expect(container.read(sportsManagementEnabledProvider), isFalse);
   });
 
-  test('reconnects after watcher errors without flooding incidents', () async {
+  test('only reports a sustained watcher outage after three failures', () async {
     final repository = _FakeFeatureFlagsRepository();
     addTearDown(repository.dispose);
     final incidents = <AppIncident>[];
@@ -149,8 +149,27 @@ void main() {
 
     repository.publishWatchError();
     await pumpEventQueue(times: 20);
-
     expect(repository.watchCount, greaterThan(1));
+    expect(
+      incidents.where(
+        (incident) => incident.operation == 'feature_flags.watch',
+      ),
+      isEmpty,
+    );
+
+    repository.publishWatchError();
+    await pumpEventQueue(times: 20);
+    expect(repository.watchCount, greaterThan(2));
+    expect(
+      incidents.where(
+        (incident) => incident.operation == 'feature_flags.watch',
+      ),
+      isEmpty,
+    );
+
+    repository.publishWatchError();
+    await pumpEventQueue(times: 20);
+    expect(repository.watchCount, greaterThan(3));
     expect(
       incidents.where(
         (incident) => incident.operation == 'feature_flags.watch',
@@ -160,8 +179,6 @@ void main() {
 
     repository.publishWatchError();
     await pumpEventQueue(times: 20);
-
-    expect(repository.watchCount, greaterThan(2));
     expect(
       incidents.where(
         (incident) => incident.operation == 'feature_flags.watch',
