@@ -16,7 +16,12 @@ BadgeDescriptor badgeDescriptorFor({
   String? code,
   String? metric,
   String? category,
+  String? name,
 }) {
+  final customName = name?.trim();
+  if (code?.startsWith('custom_') == true && customName?.isNotEmpty == true) {
+    return BadgeDescriptor(customName!);
+  }
   final raw = _rawDescriptorFor(code: code, metric: metric, category: category);
   final parts = raw.split(' · ');
   if (parts.length == 2) return BadgeDescriptor(parts.first, parts.last);

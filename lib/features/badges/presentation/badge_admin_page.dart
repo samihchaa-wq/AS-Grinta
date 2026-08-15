@@ -212,6 +212,7 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
                                   code: b.code,
                                   metric: b.metric,
                                   category: b.category,
+                                  name: b.name,
                                 ),
                                 showStar: b.hasStar,
                                 size: 81,
@@ -374,12 +375,19 @@ class _CreateBadgeCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  BadgeEmblem(
-                    emoji: '🏅',
-                    imageBytes: imageBytes,
-                    color: selectedColor,
-                    descriptor: const BadgeDescriptor('FAIT DE JEU'),
-                    size: 92,
+                  AnimatedBuilder(
+                    animation: nameController,
+                    builder: (context, _) => BadgeEmblem(
+                      emoji: '🏅',
+                      imageBytes: imageBytes,
+                      color: selectedColor,
+                      descriptor: BadgeDescriptor(
+                        nameController.text.trim().isEmpty
+                            ? 'NOM DU BADGE'
+                            : nameController.text.trim(),
+                      ),
+                      size: 92,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -458,7 +466,7 @@ class _CreateBadgeCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Plus besoin d’emoji : l’illustration choisie devient le visuel '
-              'du badge et le socle « FAIT DE JEU » est généré automatiquement.',
+              'du badge et son nom apparaît automatiquement sur le socle.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 18),
