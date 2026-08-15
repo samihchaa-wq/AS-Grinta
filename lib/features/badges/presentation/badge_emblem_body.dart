@@ -41,7 +41,7 @@ Color _shiftBadgeTone(Color color, double lightnessDelta) {
 /// Le corps de l'emblème : un seul rectangle, découpé en zones jointives.
 ///
 /// L'illustration et le socle texte restent dans la même famille de couleur,
-/// avec une légère différence de tonalité pour mieux distinguer les deux
+/// avec un socle nettement plus sombre pour distinguer immédiatement les deux
 /// parties. Le texte est peint en blanc avec un contour noir afin de rester
 /// lisible quelle que soit la couleur choisie pour l'emblème.
 class BadgeEmblemBody extends StatelessWidget {
@@ -65,7 +65,7 @@ class BadgeEmblemBody extends StatelessWidget {
     final hasValue = value?.isNotEmpty == true;
     final period = descriptor.period;
     final illustrationTone = _shiftBadgeTone(base, 0.025);
-    final bandsTone = _shiftBadgeTone(base, -0.055);
+    final bandsTone = _shiftBadgeTone(base, -0.14);
 
     return Container(
       width: size,
