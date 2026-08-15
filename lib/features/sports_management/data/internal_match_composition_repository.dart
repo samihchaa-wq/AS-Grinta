@@ -10,7 +10,7 @@ class InternalMatchCompositionRepository {
 
   Future<InternalMatchComposition?> fetch(String matchId) async {
     final response = await _client.rpc(
-      'admin_get_internal_composition',
+      'get_internal_composition',
       params: {'p_match_id': matchId},
     );
     return InternalMatchComposition.tryFromRpc(response);

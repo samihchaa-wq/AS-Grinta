@@ -11,20 +11,43 @@ final featureFlagsSessionReadyProvider = Provider<bool>((ref) {
   return !authState.isLoading && authState.isAuthenticated;
 });
 
+typedef FeatureFlagsWatchRetryDelay = Duration Function(int attempt);
+
+final featureFlagsWatchRetryDelayProvider =
+    Provider<FeatureFlagsWatchRetryDelay>((ref) {
+  return (attempt) {
+    if (attempt <= 1) return const Duration(seconds: 5);
+    if (attempt == 2) return const Duration(seconds: 15);
+    return const Duration(minutes: 1);
+  };
+});
+
 class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
   StreamSubscription<FeatureFlagChangeSignal>? _changeSubscription;
+  Timer? _watchRetryTimer;
   FeatureFlagChangeSignal? _lastSignal;
   bool _signalRefreshInProgress = false;
   bool _signalRefreshRequested = false;
+  bool _watchErrorLogged = false;
+  bool _disposed = false;
+  int _watchFailureCount = 0;
 
   @override
   Future<FeatureFlagsSnapshot> build() async {
+    _disposed = false;
     final sessionReady = ref.watch(featureFlagsSessionReadyProvider);
+    _watchRetryTimer?.cancel();
+    _watchRetryTimer = null;
     await _changeSubscription?.cancel();
     _changeSubscription = null;
     _lastSignal = null;
+    _watchFailureCount = 0;
+    _watchErrorLogged = false;
 
     ref.onDispose(() {
+      _disposed = true;
+      _watchRetryTimer?.cancel();
+      _watchRetryTimer = null;
       unawaited(_changeSubscription?.cancel() ?? Future<void>.value());
     });
 
@@ -38,15 +61,62 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
   }
 
   void _watchServerChanges() {
-    _changeSubscription = ref
-        .read(featureFlagsRepositoryProvider)
-        .watchSportsManagementChanges()
-        .listen(
-      _handleServerSignal,
-      onError: (Object error, StackTrace stackTrace) {
-        AppLogger.error('feature_flags.watch', error, stackTrace);
-      },
-    );
+    if (_disposed || !ref.read(featureFlagsSessionReadyProvider)) return;
+
+    try {
+      _changeSubscription = ref
+          .read(featureFlagsRepositoryProvider)
+          .watchSportsManagementChanges()
+          .listen(
+        (signal) {
+          _watchFailureCount = 0;
+          _watchErrorLogged = false;
+          _handleServerSignal(signal);
+        },
+        onError: _handleWatchError,
+        onDone: _handleWatchDone,
+      );
+    } catch (error, stackTrace) {
+      _handleWatchError(error, stackTrace);
+    }
+  }
+
+  void _handleWatchError(Object error, StackTrace stackTrace) {
+    if (_disposed || !ref.read(featureFlagsSessionReadyProvider)) return;
+
+    _watchFailureCount += 1;
+    if (!_watchErrorLogged) {
+      _watchErrorLogged = true;
+      AppLogger.error('feature_flags.watch', error, stackTrace);
+    }
+    _scheduleWatchRestart();
+  }
+
+  void _handleWatchDone() {
+    if (_disposed || !ref.read(featureFlagsSessionReadyProvider)) return;
+    if (_watchFailureCount == 0) {
+      _watchFailureCount = 1;
+    }
+    _scheduleWatchRestart();
+  }
+
+  void _scheduleWatchRestart() {
+    if (_disposed || _watchRetryTimer != null) return;
+    if (!ref.read(featureFlagsSessionReadyProvider)) return;
+
+    final attempt = _watchFailureCount <= 0 ? 1 : _watchFailureCount;
+    final delay = ref.read(featureFlagsWatchRetryDelayProvider)(attempt);
+    _watchRetryTimer = Timer(delay, () {
+      _watchRetryTimer = null;
+      unawaited(_restartServerWatch());
+    });
+  }
+
+  Future<void> _restartServerWatch() async {
+    await _changeSubscription?.cancel();
+    _changeSubscription = null;
+    if (_disposed || !ref.read(featureFlagsSessionReadyProvider)) return;
+    _watchServerChanges();
   }
 
   void _handleServerSignal(FeatureFlagChangeSignal signal) {

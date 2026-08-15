@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/features/feature_flags/data/feature_flags_repository.dart';
 import 'package:as_grinta/features/feature_flags/domain/feature_flags.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  tearDown(() => AppLogger.sink = null);
+
   test('does not call the server before authentication', () async {
     final repository = _FakeFeatureFlagsRepository();
     addTearDown(repository.dispose);
@@ -123,6 +126,59 @@ void main() {
     expect(repository.fetchCount, 1);
     expect(container.read(sportsManagementEnabledProvider), isFalse);
   });
+
+  test('reconnects after watcher errors without flooding incidents', () async {
+    final repository = _FakeFeatureFlagsRepository();
+    addTearDown(repository.dispose);
+    final incidents = <AppIncident>[];
+    AppLogger.sink = incidents.add;
+
+    final container = ProviderContainer(
+      overrides: [
+        featureFlagsRepositoryProvider.overrideWithValue(repository),
+        featureFlagsSessionReadyProvider.overrideWithValue(true),
+        featureFlagsWatchRetryDelayProvider.overrideWithValue(
+          (_) => Duration.zero,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(featureFlagsControllerProvider.future);
+    expect(repository.watchCount, 1);
+
+    repository.publishWatchError();
+    await pumpEventQueue(times: 20);
+
+    expect(repository.watchCount, greaterThan(1));
+    expect(
+      incidents.where(
+        (incident) => incident.operation == 'feature_flags.watch',
+      ),
+      hasLength(1),
+    );
+
+    repository.publishWatchError();
+    await pumpEventQueue(times: 20);
+
+    expect(repository.watchCount, greaterThan(2));
+    expect(
+      incidents.where(
+        (incident) => incident.operation == 'feature_flags.watch',
+      ),
+      hasLength(1),
+    );
+
+    repository.publishChange(
+      revision: 2,
+      enabled: true,
+      updatedAt: DateTime.utc(2026, 7, 20, 13),
+    );
+    await pumpEventQueue(times: 20);
+
+    expect(repository.fetchCount, 2);
+    expect(container.read(sportsManagementEnabledProvider), isTrue);
+  });
 }
 
 class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
@@ -157,6 +213,13 @@ class _FakeFeatureFlagsRepository implements FeatureFlagsRepository {
   }) {
     _changes.add(
       FeatureFlagChangeSignal(revision: revision, updatedAt: updatedAt),
+    );
+  }
+
+  void publishWatchError() {
+    _changes.addError(
+      StateError('realtime unavailable'),
+      StackTrace.current,
     );
   }
 
