@@ -443,6 +443,7 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
   @override
   Widget build(BuildContext context) {
     final peopleAsync = ref.watch(adminPeopleProvider);
+    final goalkeeperOnly = widget.badge.code == 'role_goalkeeper';
     return Padding(
       padding: EdgeInsets.only(
         left: 16,
@@ -482,9 +483,11 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
           ),
           const SizedBox(height: 12),
           TextField(
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Rechercher une personne…',
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search),
+              hintText: goalkeeperOnly
+                  ? 'Rechercher un gardien…'
+                  : 'Rechercher une personne…',
             ),
             onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
           ),
@@ -505,9 +508,12 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                 loading: () => const Center(child: GrintaProgressIndicator()),
                 error: (e, _) => Text(humanizeError(e)),
                 data: (people) {
+                  final eligiblePeople = goalkeeperOnly
+                      ? people.where((p) => p.isGoalkeeper).toList()
+                      : people;
                   final filtered = _query.isEmpty
-                      ? people
-                      : people
+                      ? eligiblePeople
+                      : eligiblePeople
                           .where((p) => p.name.toLowerCase().contains(_query))
                           .toList();
                   return ListView(
@@ -530,9 +536,13 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                               _busy.contains(p.id) ? null : (_) => _toggle(p),
                         ),
                       if (filtered.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('Aucune personne trouvée.'),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            goalkeeperOnly
+                                ? 'Aucun gardien trouvé.'
+                                : 'Aucune personne trouvée.',
+                          ),
                         ),
                     ],
                   );
