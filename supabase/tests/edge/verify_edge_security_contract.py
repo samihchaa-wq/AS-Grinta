@@ -27,6 +27,12 @@ def source(slug: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def function_file(slug: str, filename: str) -> str:
+    path = FUNCTIONS_DIR / slug / filename
+    require(path.is_file(), f"source Edge manquante: {path.relative_to(ROOT)}")
+    return path.read_text(encoding="utf-8")
+
+
 def require_in_order(text: str, first: str, second: str, message: str) -> None:
     first_index = text.find(first)
     second_index = text.find(second)
@@ -140,22 +146,44 @@ def main() -> int:
         'req.method !== "POST"',
         'req.headers.get("x-push-token")',
         '"internal_push_config"',
-        "token !== config.token",
+        "await secretsEqual(token, String(config.token))",
+        "readBoundedJson<PushRequestBody>(req)",
+        "RequestBodyTooLargeError",
         'return new Response("non autorisé", { status: 401 })',
+        'return new Response("corps trop volumineux", { status: 413 })',
     ):
         require(marker in push, f"send-push: garde absente: {marker}")
+    require(
+        "token !== config.token" not in push,
+        "send-push ne doit plus comparer le secret interne directement",
+    )
     require_in_order(
         push,
-        "token !== config.token",
-        "body = await req.json()",
+        "await secretsEqual(token, String(config.token))",
+        "readBoundedJson<PushRequestBody>(req)",
         "send-push doit valider le secret interne avant de traiter le corps",
     )
     require_in_order(
         push,
-        "token !== config.token",
+        "await secretsEqual(token, String(config.token))",
         'supabase.rpc("internal_push_dispatch"',
         "send-push doit valider le secret interne avant toute distribution",
     )
+
+    push_security = function_file("send-push", "request_security.ts")
+    for marker in (
+        "MAX_BODY_BYTES = 16_384",
+        'crypto.subtle.digest("SHA-256"',
+        "difference |= candidateDigest[index] ^ expectedDigest[index]",
+        'req.headers.get("content-length")',
+        "req.body.getReader()",
+        "totalBytes > maxBytes",
+        "await reader.cancel()",
+    ):
+        require(
+            marker in push_security,
+            f"send-push/request_security: garde absente: {marker}",
+        )
 
     for slug in ("claim-account", "send-prediction-reminders"):
         retired = source(slug)

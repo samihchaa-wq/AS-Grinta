@@ -54,9 +54,12 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Test push delivery resilience
+      - name: Test push delivery and request security
         shell: bash
-        run: deno test supabase/functions/send-push/delivery_policy_test.ts
+        run: |
+          deno test \
+            supabase/functions/send-push/delivery_policy_test.ts \
+            supabase/functions/send-push/request_security_test.ts
 
       - name: Start isolated Supabase database from canonical history
         shell: bash
