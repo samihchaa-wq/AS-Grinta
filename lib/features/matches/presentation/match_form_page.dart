@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
+import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -10,11 +11,6 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
-
-/// Valeur factice utilisée dans le menu déroulant « Adversaire » pour
-/// représenter le choix « Match entre nous » (pas d'adversaire réel).
-const _internalMatchSentinel = '__entre_nous__';
 
 class MatchFormPage extends ConsumerStatefulWidget {
   const MatchFormPage({super.key, this.match});
@@ -68,8 +64,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
 
-    // Efface immédiatement les cotes précédentes : un envoi ne doit jamais
-    // pouvoir se glisser avec les cotes d'un adversaire déjà abandonné.
     setState(() {
       _suggestingOdds = true;
       _oddsWin = null;
@@ -108,7 +102,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
     _selectedJersey = JerseyOption.fromId(match?.jerseyNote);
-    // Adresse du terrain d'AS Grinta, pour préremplir un match à domicile.
+
     Future.microtask(() async {
       final home =
           await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
@@ -125,17 +119,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     super.dispose();
   }
 
-  /// Préremplit l'adresse avec celle de l'équipe à domicile mémorisée : le
-  /// terrain d'AS Grinta pour un match à domicile, celui de l'adversaire pour
-  /// un match à l'extérieur. Ne touche pas un champ déjà renseigné.
   void _prefillAddress() {
     if (_addressController.text.trim().isNotEmpty) return;
     _applyRememberedAddress();
   }
 
-  /// Comme [_prefillAddress], mais remplace toujours le contenu actuel :
-  /// utilisé quand l'adversaire ou le lieu (domicile/extérieur) change, car
-  /// une adresse déjà saisie ne concerne alors plus la bonne équipe.
   void _refreshAddressForSelection() => _applyRememberedAddress();
 
   void _applyRememberedAddress() {
@@ -168,6 +156,32 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
   }
 
+  void _changeMatchKind(String? value) {
+    if (value == null) return;
+    if (widget.match?.isInternal ?? false) return;
+
+    setState(() {
+      if (value == 'entre_nous') {
+        _isInternal = true;
+        _matchType = 'entre_nous';
+        _opponentId = '';
+        _isHome = true;
+        _oddsWin = null;
+        _oddsDraw = null;
+        _oddsLoss = null;
+        _refreshAddressForSelection();
+      } else {
+        _isInternal = false;
+        _matchType = value;
+        _refreshAddressForSelection();
+      }
+    });
+
+    if (!_isInternal && _opponentId.isNotEmpty) {
+      _suggestOdds();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(matchesControllerProvider);
@@ -176,16 +190,14 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
     final feature =
         ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
-    final seasons = widget.match == null
-        ? state.seasons
-            .where((season) => season['status']?.toString() == 'open')
-            .toList()
-        : state.seasons;
+    final openSeasons = state.seasons
+        .where((season) => season['status']?.toString() == 'open')
+        .toList(growable: false);
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
 
-    if (_seasonId.isEmpty && seasons.isNotEmpty) {
-      _seasonId = seasons.first['id'].toString();
+    if (_seasonId.isEmpty && openSeasons.isNotEmpty) {
+      _seasonId = openSeasons.first['id'].toString();
     }
     if (sportsEnabled && !_squadDefaultApplied) {
       _squadDefaultApplied = true;
@@ -196,291 +208,278 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       }
     }
 
+    final busy = state.isLoading || _squadLimitLoading;
+    final colors = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: GrintaAppBar(
-        title: Text(
-          widget.match == null ? 'Créer un match' : 'Modifier',
-        ),
+        title: Text(widget.match == null ? 'Ajouter' : 'Modifier'),
         admin: true,
-        actions: [
-          if (widget.match != null && canManage)
-            IconButton(
-              tooltip: 'Supprimer le match',
-              onPressed: state.isLoading ? null : _confirmDelete,
-              icon: const Icon(Icons.delete_outline),
-            ),
-        ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            if (widget.match != null) ...[
+      body: Container(
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+        decoration: BoxDecoration(
+          color: colors.surface.withValues(alpha: 0.94),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: colors.outlineVariant.withValues(alpha: 0.45),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+            children: [
               DropdownButtonFormField<String>(
-                initialValue: _seasonId.isEmpty ? null : _seasonId,
-                decoration: const InputDecoration(labelText: 'Saison'),
-                items: seasons
-                    .map(
-                      (season) => DropdownMenuItem<String>(
-                        value: season['id'].toString(),
-                        child: Text(season['name'].toString()),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) => setState(() => _seasonId = value ?? ''),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Sélectionnez une saison'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (widget.match != null && widget.match!.isInternal)
-              const ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(Icons.groups_outlined),
-                title: Text('Match entre nous'),
-                subtitle: Text(
-                  'Le type d’un match ne peut pas être modifié après sa '
-                  'création.',
+                initialValue: _isInternal ? 'entre_nous' : _matchType,
+                decoration: const InputDecoration(
+                  labelText: 'Type',
+                  prefixIcon: Icon(Icons.category_outlined),
                 ),
-              )
-            else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _isInternal
-                          ? _internalMatchSentinel
-                          : (_opponentId.isEmpty ? null : _opponentId),
-                      decoration:
-                          const InputDecoration(labelText: 'Adversaire'),
-                      items: [
-                        if (widget.match == null)
-                          const DropdownMenuItem<String>(
-                            value: _internalMatchSentinel,
-                            child: Text('⚽ Match entre nous'),
-                          ),
-                        for (final opponent in opponents)
-                          DropdownMenuItem<String>(
-                            value: opponent['id'].toString(),
-                            child: Text(opponent['name'].toString()),
-                          ),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          if (value == _internalMatchSentinel) {
-                            _isInternal = true;
-                            _opponentId = '';
-                            _isHome = true;
-                          } else {
-                            _isInternal = false;
-                            _opponentId = value ?? '';
-                            _refreshAddressForSelection();
-                          }
-                        });
-                        if (!_isInternal) _suggestOdds();
-                      },
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Sélectionnez un adversaire'
-                          : null,
+                items: [
+                  if (!(widget.match?.isInternal ?? false)) ...const [
+                    DropdownMenuItem(
+                      value: 'championnat',
+                      child: Text('Championnat'),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    tooltip: 'Ajouter un adversaire',
-                    onPressed: _createOpponent,
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 12),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Date'),
-              subtitle: Text(_formatDate(_kickoffAt)),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: _pickDate,
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Heure'),
-              subtitle: Text(_formatTime(_kickoffAt)),
-              trailing: const Icon(Icons.schedule),
-              onTap: _pickTime,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _addressController,
-              textCapitalization: TextCapitalization.words,
-              maxLength: 300,
-              decoration: const InputDecoration(
-                labelText: 'Adresse (facultatif)',
-                hintText: 'Terrain, rue, ville…',
-                prefixIcon: Icon(Icons.place_outlined),
-              ),
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _rememberAddressAsDefault,
-              onChanged: (value) =>
-                  setState(() => _rememberAddressAsDefault = value ?? false),
-              title: const Text(
-                'Utiliser cette adresse par défaut pour les prochains matchs',
-              ),
-              subtitle: Text(
-                _isHome
-                    ? 'Met à jour le terrain par défaut d’AS Grinta.'
-                    : 'Met à jour le terrain par défaut de l’adversaire.',
-              ),
-              controlAffinity: ListTileControlAffinity.leading,
-            ),
-            if (!_isInternal) ...[
-              const SizedBox(height: 12),
-              DropdownButtonFormField<bool>(
-                initialValue: _isHome,
-                decoration: const InputDecoration(labelText: 'Lieu'),
-                items: const [
-                  DropdownMenuItem(value: true, child: Text('Domicile')),
-                  DropdownMenuItem(value: false, child: Text('Extérieur')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _isHome = value ?? true;
-                    _refreshAddressForSelection();
-                  });
-                  _suggestOdds();
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _matchType,
-                decoration: const InputDecoration(labelText: 'Type de match'),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'championnat',
-                    child: Text('Championnat'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'amical',
-                    child: Text('Match amical'),
-                  ),
-                ],
-                onChanged: (value) =>
-                    setState(() => _matchType = value ?? 'championnat'),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Maillot',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
+                    DropdownMenuItem(
+                      value: 'amical',
+                      child: Text('Amical'),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (final option in JerseyOption.values) ...[
-                    _JerseyOptionTile(
-                      option: option,
-                      selected: _selectedJersey == option,
-                      onTap: () => setState(() {
-                        _selectedJersey =
-                            _selectedJersey == option ? null : option;
-                      }),
-                    ),
-                    const SizedBox(width: 12),
                   ],
+                  if (widget.match == null || (widget.match?.isInternal ?? false))
+                    const DropdownMenuItem(
+                      value: 'entre_nous',
+                      child: Text('Match entre nous'),
+                    ),
                 ],
+                onChanged: (widget.match?.isInternal ?? false) || busy
+                    ? null
+                    : _changeMatchKind,
               ),
-            ],
-            if (sportsEnabled && !_isInternal) ...[
+              const SizedBox(height: 18),
+              if (!_isInternal) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue:
+                            _opponentId.isEmpty ? null : _opponentId,
+                        decoration:
+                            const InputDecoration(labelText: 'Adversaire'),
+                        items: opponents
+                            .map(
+                              (opponent) => DropdownMenuItem<String>(
+                                value: opponent['id'].toString(),
+                                child: Text(opponent['name'].toString()),
+                              ),
+                            )
+                            .toList(growable: false),
+                        onChanged: busy
+                            ? null
+                            : (value) {
+                                setState(() {
+                                  _opponentId = value ?? '';
+                                  _refreshAddressForSelection();
+                                });
+                                _suggestOdds();
+                              },
+                        validator: (value) =>
+                            value == null || value.isEmpty
+                                ? 'Sélectionnez un adversaire'
+                                : null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      tooltip: 'Ajouter un adversaire',
+                      onPressed: busy ? null : _createOpponent,
+                      icon: const Icon(Icons.add),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<bool>(
+                  initialValue: _isHome,
+                  decoration: const InputDecoration(labelText: 'Lieu'),
+                  items: const [
+                    DropdownMenuItem(value: true, child: Text('Domicile')),
+                    DropdownMenuItem(value: false, child: Text('Extérieur')),
+                  ],
+                  onChanged: busy
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _isHome = value ?? true;
+                            _refreshAddressForSelection();
+                          });
+                          _suggestOdds();
+                        },
+                ),
+              ],
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Date'),
+                subtitle: Text(_formatDate(_kickoffAt)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: busy ? null : _pickDate,
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Heure'),
+                subtitle: Text(_formatTime(_kickoffAt)),
+                trailing: const Icon(Icons.schedule),
+                onTap: busy ? null : _pickTime,
+              ),
               const SizedBox(height: 12),
               TextFormField(
-                controller: _squadSizeController,
-                enabled: !_squadLimitLoading,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Nombre de joueurs convoqués',
-                  suffixIcon: _squadLimitLoading
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: GrintaProgressIndicator(strokeWidth: 2),
-                        )
-                      : null,
+                controller: _addressController,
+                enabled: !busy,
+                textCapitalization: TextCapitalization.words,
+                maxLength: 300,
+                decoration: const InputDecoration(
+                  labelText: 'Adresse (facultatif)',
+                  hintText: 'Terrain, rue, ville…',
+                  prefixIcon: Icon(Icons.place_outlined),
                 ),
-                validator: (raw) {
-                  if (!sportsEnabled) return null;
-                  final value = int.tryParse(raw?.trim() ?? '');
-                  if (value == null || value < 1 || value > 30) {
-                    return 'Choisissez un nombre entre 1 et 30';
-                  }
-                  return null;
-                },
               ),
-            ],
-            if (!_isInternal) ...[
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Text(
-                    'Cotes',
-                    style: Theme.of(context).textTheme.titleMedium,
+              if (!_isInternal) ...[
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _rememberAddressAsDefault,
+                  onChanged: busy
+                      ? null
+                      : (value) => setState(
+                            () => _rememberAddressAsDefault = value ?? false,
+                          ),
+                  title: const Text(
+                    'Utiliser cette adresse par défaut pour les prochains matchs',
                   ),
-                  if (_suggestingOdds) ...[
-                    const Spacer(),
-                    const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: GrintaProgressIndicator(strokeWidth: 2),
+                  subtitle: Text(
+                    _isHome
+                        ? 'Met à jour le terrain par défaut d’AS Grinta.'
+                        : 'Met à jour le terrain par défaut de l’adversaire.',
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Maillot',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    for (final option in JerseyOption.values) ...[
+                      _JerseyOptionTile(
+                        option: option,
+                        selected: _selectedJersey == option,
+                        onTap: busy
+                            ? null
+                            : () => setState(() {
+                                  _selectedJersey =
+                                      _selectedJersey == option ? null : option;
+                                }),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                  ],
+                ),
+                if (sportsEnabled) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _squadSizeController,
+                    enabled: !busy,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre de joueurs convoqués',
+                      suffixIcon: _squadLimitLoading
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: GrintaProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                    ),
+                    validator: (raw) {
+                      final value = int.tryParse(raw?.trim() ?? '');
+                      if (value == null || value < 1 || value > 30) {
+                        return 'Choisissez un nombre entre 1 et 30';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Text(
+                      'Cotes',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    if (_suggestingOdds) ...[
+                      const Spacer(),
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: GrintaProgressIndicator(strokeWidth: 2),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
                     ),
                   ],
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _OddsDisplay(label: 'Victoire', value: _oddsWin),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _OddsDisplay(label: 'Nul', value: _oddsDraw),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _OddsDisplay(label: 'Défaite', value: _oddsLoss),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: canManage && !state.isLoading && !_squadLimitLoading
-                  ? _submit
-                  : null,
-              icon: const Icon(Icons.save_outlined),
-              label: const Text('Enregistrer'),
-            ),
-            if (widget.match != null && canManage) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.error,
                 ),
-                onPressed: state.isLoading ? null : _confirmDelete,
-                icon: const Icon(Icons.delete_forever_outlined),
-                label: const Text('Supprimer définitivement le match'),
+              ],
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: canManage && !busy ? _submit : null,
+                icon: busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: GrintaProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: Text(widget.match == null ? 'Ajouter' : 'Enregistrer'),
               ),
+              if (widget.match != null && canManage) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                  onPressed: busy ? null : _confirmDelete,
+                  icon: const Icon(Icons.delete_forever_outlined),
+                  label: const Text('Supprimer définitivement le match'),
+                ),
+              ],
+              if (state.error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  state.error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
             ],
-            if (state.error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                state.error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -515,7 +514,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         .read(matchesControllerProvider.notifier)
         .createOpponent(name.trim());
     if (!mounted || id == null) return;
-    setState(() => _opponentId = id);
+    setState(() {
+      _isInternal = false;
+      if (_matchType == 'entre_nous') _matchType = 'championnat';
+      _opponentId = id;
+    });
     await _suggestOdds();
   }
 
@@ -555,8 +558,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final date = await showDatePicker(
       context: context,
       initialDate: _kickoffAt,
-      // Déplacer un match sur un jour écoulé le fait passer sous le verrou
-      // T-15 : plus modifiable, plus annulable, plus supprimable.
       firstDate: DateUtils.dateOnly(_kickoffAt).isBefore(today)
           ? DateUtils.dateOnly(_kickoffAt)
           : today,
@@ -636,6 +637,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       }
       return;
     }
+
     final oddsWin = _oddsWin;
     final oddsDraw = _oddsDraw;
     final oddsLoss = _oddsLoss;
@@ -647,6 +649,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       );
       return;
     }
+
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
     final squadSizeLimit =
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
@@ -741,7 +744,7 @@ class _JerseyOptionTile extends StatelessWidget {
 
   final JerseyOption option;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
