@@ -9,7 +9,6 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -271,19 +270,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
                 ],
               ),
-            ),
-          ],
-          if (ref.watch(isAdminViewProvider)) ...[
-            const SizedBox(height: 24),
-            const _SectionHeading(
-              icon: Icons.admin_panel_settings_outlined,
-              title: 'Administration',
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () => context.push('/admin'),
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              label: const Text('Ouvrir l’administration'),
             ),
           ],
           const SizedBox(height: 24),
