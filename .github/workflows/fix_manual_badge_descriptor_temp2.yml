@@ -1,0 +1,94 @@
+name: Temporary manual badge descriptor fix v2
+
+on:
+  push:
+    branches:
+      - fix/manual-badge-name-descriptor
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/manual-badge-name-descriptor
+      - name: Patch manual badge descriptor
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f'Expected exactly one match in {path}')
+              p.write_text(text.replace(old, new))
+
+          descriptor = Path('lib/features/badges/presentation/badge_descriptor.dart')
+          text = descriptor.read_text()
+          old = "BadgeDescriptor badgeDescriptorFor({\n  String? code,\n  String? metric,\n  String? category,\n}) {\n  final raw = _rawDescriptorFor(code: code, metric: metric, category: category);"
+          new = "BadgeDescriptor badgeDescriptorFor({\n  String? code,\n  String? metric,\n  String? category,\n  String? name,\n}) {\n  final customName = name?.trim();\n  if (code?.startsWith('custom_') == true && customName?.isNotEmpty == true) {\n    return BadgeDescriptor(customName!);\n  }\n  final raw = _rawDescriptorFor(code: code, metric: metric, category: category);"
+          if text.count(old) != 1:
+              raise SystemExit('descriptor signature pattern mismatch')
+          descriptor.write_text(text.replace(old, new))
+
+          admin = Path('lib/features/badges/presentation/badge_admin_page.dart')
+          text = admin.read_text()
+          old = "descriptor: badgeDescriptorFor(\n                                  code: b.code,\n                                  metric: b.metric,\n                                  category: b.category,\n                                ),"
+          new = "descriptor: badgeDescriptorFor(\n                                  code: b.code,\n                                  metric: b.metric,\n                                  category: b.category,\n                                  name: b.name,\n                                ),"
+          if text.count(old) != 1:
+              raise SystemExit('admin badge descriptor pattern mismatch')
+          text = text.replace(old, new)
+          old = "BadgeEmblem(\n                    emoji: '🏅',\n                    imageBytes: imageBytes,\n                    color: selectedColor,\n                    descriptor: const BadgeDescriptor('FAIT DE JEU'),\n                    size: 92,\n                  ),"
+          new = "AnimatedBuilder(\n                    animation: nameController,\n                    builder: (context, _) => BadgeEmblem(\n                      emoji: '🏅',\n                      imageBytes: imageBytes,\n                      color: selectedColor,\n                      descriptor: BadgeDescriptor(\n                        nameController.text.trim().isEmpty\n                            ? 'NOM DU BADGE'\n                            : nameController.text.trim(),\n                      ),\n                      size: 92,\n                    ),\n                  ),"
+          if text.count(old) != 1:
+              raise SystemExit('admin preview pattern mismatch')
+          text = text.replace(old, new)
+          text = text.replace(
+              "'Plus besoin d’emoji : l’illustration choisie devient le visuel '\n              'du badge et le socle « FAIT DE JEU » est généré automatiquement.',",
+              "'Plus besoin d’emoji : l’illustration choisie devient le visuel '\n              'du badge et son nom apparaît automatiquement sur le socle.',",
+          )
+          admin.write_text(text)
+
+          armoire = Path('lib/features/badges/presentation/armoire_page.dart')
+          text = armoire.read_text()
+          pattern = r"category: badge\.def\.category,\n(?P<indent>\s*)\),"
+          matches = list(re.finditer(pattern, text))
+          if len(matches) != 2:
+              raise SystemExit(f'Expected 2 armoire descriptors, got {len(matches)}')
+          text = re.sub(
+              pattern,
+              lambda m: "category: badge.def.category,\n" + m.group('indent') + "  name: badge.def.name,\n" + m.group('indent') + "),",
+              text,
+          )
+          armoire.write_text(text)
+
+          detail = Path('lib/features/badges/presentation/badge_detail_sheet.dart')
+          text = detail.read_text()
+          for variable in ('currentBadge', 'tier'):
+              pattern = rf"category: {variable}\.category,\n(?P<indent>\s*)\),"
+              matches = list(re.finditer(pattern, text))
+              if len(matches) != 1:
+                  raise SystemExit(f'Expected 1 {variable} descriptor, got {len(matches)}')
+              text = re.sub(
+                  pattern,
+                  lambda m, variable=variable: f"category: {variable}.category,\n" + m.group('indent') + f"  name: {variable}.name,\n" + m.group('indent') + "),",
+                  text,
+              )
+          detail.write_text(text)
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/features/badges/presentation/badge_descriptor.dart lib/features/badges/presentation/badge_admin_page.dart lib/features/badges/presentation/armoire_page.dart lib/features/badges/presentation/badge_detail_sheet.dart
+          git commit -m "Use manual badge name as emblem label"
+          git push origin HEAD:fix/manual-badge-name-descriptor
