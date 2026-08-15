@@ -1,5 +1,10 @@
 part of 'admin_page.dart';
 
+final _adminHistoricalPlayersProvider =
+    FutureProvider<List<AdminHistoricalPlayer>>((ref) {
+  return ref.watch(adminRepositoryProvider).fetchHistoricalPlayers();
+});
+
 class _ProfilesSection extends StatelessWidget {
   const _ProfilesSection({
     required this.title,
@@ -120,6 +125,17 @@ class _ProfileCard extends ConsumerWidget {
       profile: profile,
       currentUserId: currentUserId,
     );
+    final historicalPlayersState = ref.watch(_adminHistoricalPlayersProvider);
+    final historicalPlayers = historicalPlayersState.asData?.value;
+    AdminHistoricalPlayer? historicalPlayer;
+    if (historicalPlayers != null) {
+      for (final player in historicalPlayers) {
+        if (player.linkedProfileId == profile.id) {
+          historicalPlayer = player;
+          break;
+        }
+      }
+    }
 
     Future<void> run(Future<void> Function() action, {String? success}) async {
       try {
@@ -163,6 +179,14 @@ class _ProfileCard extends ConsumerWidget {
             ),
             if (profile.username.trim().isNotEmpty)
               Text('Identifiant : ${profile.username}'),
+            if (!policy.isPending)
+              Text(
+                historicalPlayers == null
+                    ? 'Rattachement : …'
+                    : historicalPlayer == null
+                        ? 'Rattachement : aucun'
+                        : 'Rattachement : ${historicalPlayer.name}',
+              ),
             if (!policy.isSelf && !policy.isPending) ...[
               const SizedBox(height: 10),
               _RoleChoice(
@@ -226,7 +250,11 @@ class _ProfileCard extends ConsumerWidget {
                   onResetPassword: () =>
                       _resetPassword(context, ref, repository, profile),
                   onHistory: () async {
-                    final choice = await _pickHistorical(context, repository);
+                    final choice = await _pickHistorical(
+                      context,
+                      repository,
+                      profileId: profile.id,
+                    );
                     if (choice == null) return;
                     await run(
                       () => repository.setHistoricalProfile(
@@ -237,6 +265,7 @@ class _ProfileCard extends ConsumerWidget {
                           ? 'Historique détaché de ${profile.displayName}.'
                           : 'Historique rattaché à ${profile.displayName}.',
                     );
+                    ref.invalidate(_adminHistoricalPlayersProvider);
                   },
                   onArchiveToggle: () async {
                     final nextStatus =

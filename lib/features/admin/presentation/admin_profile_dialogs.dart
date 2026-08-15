@@ -164,8 +164,9 @@ Future<void> _resetPassword(
 
 Future<_HistoricalChoice?> _pickHistorical(
   BuildContext context,
-  AdminRepository repository,
-) async {
+  AdminRepository repository, {
+  required String profileId,
+}) async {
   List<AdminHistoricalPlayer> players;
   try {
     players = await repository.fetchHistoricalPlayers();
@@ -179,6 +180,13 @@ Future<_HistoricalChoice?> _pickHistorical(
   if (!context.mounted) return null;
 
   int? selectedId;
+  for (final player in players) {
+    if (player.linkedProfileId == profileId) {
+      selectedId = player.id;
+      break;
+    }
+  }
+
   return showDialog<_HistoricalChoice>(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
