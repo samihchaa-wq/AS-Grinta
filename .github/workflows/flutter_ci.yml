@@ -166,9 +166,11 @@ jobs:
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
+          set +e
           dart format --output=none --set-exit-if-changed "${files[@]}" \
             2>&1 | tee format.log
           format_status=${PIPESTATUS[0]}
+          set -e
           if [ "$format_status" -ne 0 ]; then
             echo '--- Diff exact produit par Dart format ---'
             git diff -- test/match_live_state_controller_test.dart || true
