@@ -87,9 +87,8 @@ void main() {
 
       // Régression : une réponse perdue impose une relecture autoritaire avant
       // que le coach puisse décider de rejouer ou non la même action.
-      final mutation = container
-          .read(provider.notifier)
-          .adjustScore(team: 'us', delta: 1);
+      final mutation =
+          container.read(provider.notifier).adjustScore(team: 'us', delta: 1);
 
       // Le serveur peut avoir validé le but alors que la réponse RPC s'est
       // perdue. La relecture autoritaire doit alors faire apparaître 1-0.
