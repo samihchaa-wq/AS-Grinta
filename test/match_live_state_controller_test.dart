@@ -126,9 +126,9 @@ void main() {
     await _flush();
 
     await container.read(provider.notifier).saveLiveLineup(
-          entries: const [],
-          expectedLineupRevision: 42,
-        );
+      entries: const [],
+      expectedLineupRevision: 42,
+    );
 
     expect(repository.lastExpectedLineupRevision, 42);
   });
