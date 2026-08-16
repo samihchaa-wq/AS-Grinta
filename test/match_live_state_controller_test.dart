@@ -103,6 +103,35 @@ void main() {
       );
     },
   );
+
+  test('saveLiveLineup forwards the rendered lineup revision', () async {
+    final repository = _ControlledMatchLiveRepository(_bundle(score: 0));
+    final container = ProviderContainer(
+      overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    addTearDown(repository.dispose);
+
+    final provider = matchLiveStateProvider('match-1');
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+
+    await container.read(provider.future);
+    await _waitUntil(() => repository.pendingFetches.length == 1);
+    repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
+    await _flush();
+
+    await container.read(provider.notifier).saveLiveLineup(
+          entries: const [],
+          expectedLineupRevision: 42,
+        );
+
+    expect(repository.lastExpectedLineupRevision, 42);
+  });
 }
 
 MatchLiveStateBundle _bundle({required int score}) {
@@ -139,6 +168,7 @@ class _ControlledMatchLiveRepository implements MatchLiveRepository {
   final Object? scoreMutationError;
   final StreamController<void> _changes = StreamController<void>.broadcast();
   final List<Completer<MatchLiveStateBundle>> pendingFetches = [];
+  int? lastExpectedLineupRevision;
   var _fetchCount = 0;
 
   void emitChange() => _changes.add(null);
@@ -162,6 +192,17 @@ class _ControlledMatchLiveRepository implements MatchLiveRepository {
   }) async {
     final error = scoreMutationError;
     if (error != null) throw error;
+    return initial;
+  }
+
+  @override
+  Future<MatchLiveStateBundle> saveLiveLineup({
+    required String matchId,
+    required List<Map<String, dynamic>> entries,
+    required int expectedLineupRevision,
+    List<({String playerIn, String playerOut})> substitutions = const [],
+  }) async {
+    lastExpectedLineupRevision = expectedLineupRevision;
     return initial;
   }
 
