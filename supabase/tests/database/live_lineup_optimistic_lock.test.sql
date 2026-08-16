@@ -4,9 +4,16 @@ set local search_path = public, extensions, pg_catalog;
 select no_plan();
 
 select ok(
-  to_regprocedure(
-    'public.coach_save_match_live_lineup(uuid,jsonb,jsonb,integer)'
-  ) is not null,
+  exists (
+    select 1
+    from pg_proc proc
+    join pg_namespace nsp on nsp.oid = proc.pronamespace
+    where nsp.nspname = 'public'
+      and proc.proname = 'coach_save_match_live_lineup'
+      and proc.pronargs = 4
+      and pg_get_function_arguments(proc.oid)
+        like '%p_expected_lineup_revision integer%'
+  ),
   'la RPC Live versionnée existe'
 );
 
@@ -93,12 +100,8 @@ values (
   '42000000-0000-0000-0000-000000000001'
 );
 
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"42000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
-  true
-);
 set local role authenticated;
+set local request.jwt.claim.sub = '42000000-0000-0000-0000-000000000001';
 
 select is(
   (
@@ -125,6 +128,7 @@ select throws_ok(
 );
 
 reset role;
+set local request.jwt.claim.sub = '';
 
 select is(
   (
