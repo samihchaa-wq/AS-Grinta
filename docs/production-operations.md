@@ -49,14 +49,16 @@ Le projet restant sur Supabase Free, la sauvegarde applicative est assurée par 
 - exécution hebdomadaire et déclenchement manuel possible ;
 - export logique de la base via la CLI Supabase ;
 - copie des buckets `app-assets`, `badge-images` et `profile-photos` ;
-- chiffrement AES-256 avant tout upload GitHub ;
-- seuls le fichier chiffré et son SHA-256 sont conservés comme artefacts ;
-- rétention limitée à 30 jours pour rester très largement sous les volumes d’artefacts attendus ;
+- chiffrement AES-256 avant tout stockage GitHub ;
+- seuls le fichier chiffré et son SHA-256 sont conservés ;
+- stockage dans une **draft release GitHub**, qui n’est listée que pour les utilisateurs disposant d’un accès push au dépôt ;
+- conservation des huit dernières sauvegardes hebdomadaires ;
+- aucun artefact GitHub Actions n’est utilisé pour le backup afin de ne pas consommer son quota de stockage facturable ;
 - aucune fonction Push de l’application n’est appelée par cette sauvegarde.
 
-Le secret GitHub `BACKUP_ENCRYPTION_PASSPHRASE` est recommandé pour disposer d’une clé de restauration indépendante des identifiants Supabase. Tant qu’il n’est pas configuré, le workflow utilise une clé dérivée des deux secrets Supabase déjà présents dans la CI ; cette solution de secours protège l’artefact en transit et au repos mais ne doit pas être considérée comme une clé d’archivage durable en cas de rotation de ces secrets.
+Le secret GitHub `BACKUP_ENCRYPTION_PASSPHRASE` est recommandé pour disposer d’une clé de restauration indépendante des identifiants Supabase. Tant qu’il n’est pas configuré, le workflow utilise une clé dérivée des deux secrets Supabase déjà présents dans la CI ; cette solution de secours protège l’archive mais ne doit pas être considérée comme une clé d’archivage durable en cas de rotation de ces secrets.
 
-Une sauvegarde n’est considérée comme valide qu’après contrôle d’un run vert et, périodiquement, un test de restauration sur un environnement isolé. Ne jamais tester une restauration destructive sur la production.
+La draft release de backup ne doit jamais être publiée. Une sauvegarde n’est considérée comme valide qu’après contrôle d’un run vert et, périodiquement, un test de restauration sur un environnement isolé. Ne jamais tester une restauration destructive sur la production.
 
 ## Contrôle des migrations
 
