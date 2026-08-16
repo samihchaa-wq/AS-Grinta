@@ -35,6 +35,23 @@ Les tâches planifiées métier attendues sont :
 
 Toujours lire `cron.job` avant une intervention : un ancien enregistrement dans `cron.job_run_details` n’est pas la preuve qu’une tâche est encore active.
 
+## Aperçu avant publication
+
+Le site public et son aperçu sont publiés par le même workflow, dans un seul artefact GitHub Pages :
+
+- la racine `https://samihchaa-wq.github.io/AS-Grinta/` est **toujours** construite depuis `main`, quel que soit le déclencheur ;
+- le sous-dossier `/preview/` est construit depuis la branche `preview`, lorsqu'elle existe.
+
+Pour donner un aperçu à relire, pousser le travail en cours sur la branche `preview` : la publication est déclenchée par cette poussée. La racine reste alors construite depuis `main` et l'application publique n'est jamais remplacée par du code non fusionné.
+
+L'aperçu est volontairement non bloquant. Une branche `preview` qui ne compile pas laisse la publication de la racine se terminer normalement, et le dossier `/preview/` est simplement absent de cette livraison.
+
+Trois limites à connaître :
+
+- l'aperçu utilise la **même base Supabase** que la production. Ce n'est pas un bac à sable : les actions qui y sont faites modifient les vraies données ;
+- l'aperçu est public, comme le site lui-même ; il reste protégé par l'authentification de l'application, pas par son adresse ;
+- le repli des liens profonds (`404.html`) est celui de la racine. Ouvrir directement une adresse interne de l'aperçu renvoie vers l'application publique ; il faut entrer par `/preview/`.
+
 ## Notifications
 
 Le coupe-circuit global des notifications est une **valeur opérationnelle**, pas une constante fonctionnelle. Vérifier le flag distant avant d’analyser une absence de push.
