@@ -42,6 +42,7 @@ abstract interface class MatchLiveRepository {
   Future<MatchLiveStateBundle> saveLiveLineup({
     required String matchId,
     required List<Map<String, dynamic>> entries,
+    required int expectedLineupRevision,
     List<({String playerIn, String playerOut})> substitutions,
   });
 
@@ -209,6 +210,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
   Future<MatchLiveStateBundle> saveLiveLineup({
     required String matchId,
     required List<Map<String, dynamic>> entries,
+    required int expectedLineupRevision,
     List<({String playerIn, String playerOut})> substitutions = const [],
   }) async {
     final response = await _client.rpc(
@@ -216,6 +218,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
       params: {
         'p_match_id': matchId,
         'p_entries': entries,
+        'p_expected_lineup_revision': expectedLineupRevision,
         'p_substitution': substitutions.isEmpty
             ? null
             : [
