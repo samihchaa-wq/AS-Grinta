@@ -20,11 +20,14 @@ jobs:
           cache: true
       - name: Install locked dependencies
         run: flutter pub get --enforce-lockfile
-      - name: Show exact formatter patch
+      - name: Show exact formatter output
         shell: bash
         run: |
           set -euo pipefail
           dart format --output=write test/match_live_state_controller_test.dart
+          echo '--- FORMATTER FILE START ---'
+          cat test/match_live_state_controller_test.dart
+          echo '--- FORMATTER FILE END ---'
           echo '--- FORMATTER PATCH START ---'
           git diff -- test/match_live_state_controller_test.dart
           echo '--- FORMATTER PATCH END ---'
