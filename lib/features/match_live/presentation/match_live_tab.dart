@@ -19,6 +19,18 @@ class MatchLiveTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen<String?>(matchLiveActionMessageProvider(matchId), (
+      previous,
+      next,
+    ) {
+      if (next == null || next == previous) return;
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      messenger
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(next)));
+      ref.read(matchLiveActionMessageProvider(matchId).notifier).state = null;
+    });
+
     final canEditAsync = ref.watch(isMatchCoachOrAdminProvider(matchId));
     final stateAsync = ref.watch(matchLiveStateProvider(matchId));
 
