@@ -52,6 +52,54 @@ void main() {
       reason: 'la réponse plus ancienne ne doit jamais remettre le Live à 1-0',
     );
   });
+
+  test('a failed mutation reloads authoritative state before reporting it',
+      () async {
+    final repository = _ControlledMatchLiveRepository(
+      _bundle(score: 0),
+      scoreMutationError: StateError('network response lost'),
+    );
+    final container = ProviderContainer(
+      overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+    addTearDown(repository.dispose);
+
+    final provider = matchLiveStateProvider('match-1');
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+    final messageSubscription = container.listen(
+      matchLiveActionMessageProvider('match-1'),
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(messageSubscription.close);
+
+    await container.read(provider.future);
+    await _waitUntil(() => repository.pendingFetches.length == 1);
+    repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
+    await _flush();
+
+    final mutation = container
+        .read(provider.notifier)
+        .adjustScore(team: 'us', delta: 1);
+
+    // Le serveur peut avoir validé le but alors que la réponse RPC s'est
+    // perdue. La relecture autoritaire doit alors faire apparaître 1-0.
+    await _waitUntil(() => repository.pendingFetches.length == 1);
+    repository.pendingFetches.removeAt(0).complete(_bundle(score: 1));
+
+    await expectLater(mutation, throwsA(isA<StateError>()));
+    expect(container.read(provider).value?.session.scoreAsGrinta, 1);
+    expect(
+      container.read(matchLiveActionMessageProvider('match-1')),
+      contains('Action non confirmée'),
+    );
+  });
 }
 
 MatchLiveStateBundle _bundle({required int score}) {
@@ -82,9 +130,13 @@ Future<void> _waitUntil(bool Function() predicate) async {
 Future<void> _flush() => Future<void>.delayed(Duration.zero);
 
 class _ControlledMatchLiveRepository implements MatchLiveRepository {
-  _ControlledMatchLiveRepository(this.initial);
+  _ControlledMatchLiveRepository(
+    this.initial, {
+    this.scoreMutationError,
+  });
 
   final MatchLiveStateBundle initial;
+  final Object? scoreMutationError;
   final StreamController<void> _changes = StreamController<void>.broadcast();
   final List<Completer<MatchLiveStateBundle>> pendingFetches = [];
   var _fetchCount = 0;
@@ -99,6 +151,18 @@ class _ControlledMatchLiveRepository implements MatchLiveRepository {
     final completer = Completer<MatchLiveStateBundle>();
     pendingFetches.add(completer);
     return completer.future;
+  }
+
+  @override
+  Future<MatchLiveStateBundle> adjustScore({
+    required String matchId,
+    required String team,
+    required int delta,
+    String? scorerParticipantId,
+  }) async {
+    final error = scoreMutationError;
+    if (error != null) throw error;
+    return initial;
   }
 
   @override
