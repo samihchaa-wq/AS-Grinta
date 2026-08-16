@@ -115,18 +115,28 @@ def main() -> int:
     register = source("register-account")
     for marker in (
         'req.method !== "POST"',
-        "MAX_BODY_BYTES",
+        "MAX_BODY_BYTES = 4_096",
+        "RequestBodyTooLargeError",
+        'req.headers.get("content-length")',
+        "req.body.getReader()",
+        "totalBytes > maxBytes",
+        "await reader.cancel()",
+        "readBoundedJson<Record<string, unknown>>(req, MAX_BODY_BYTES)",
         '"consume_registration_rate_limit"',
         "validatePassword(password)",
         "SUPABASE_SERVICE_ROLE_KEY",
         "admin.auth.admin.deleteUser",
     ):
         require(marker in register, f"register-account: garde absente: {marker}")
+    require(
+        "body = await req.json()" not in register,
+        "register-account ne doit pas revenir à une lecture non bornée avec req.json()",
+    )
     require_in_order(
         register,
-        "body = await req.json()",
+        "readBoundedJson<Record<string, unknown>>(req, MAX_BODY_BYTES)",
         "validatePassword(password)",
-        "register-account doit lire puis valider la demande avant la création Auth",
+        "register-account doit lire de façon bornée puis valider la demande avant la création Auth",
     )
     require_in_order(
         register,
