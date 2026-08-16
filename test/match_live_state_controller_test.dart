@@ -85,6 +85,8 @@ void main() {
       repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
       await _flush();
 
+      // Régression : une réponse perdue impose une relecture autoritaire avant
+      // que le coach puisse décider de rejouer ou non la même action.
       final mutation = container
           .read(provider.notifier)
           .adjustScore(team: 'us', delta: 1);
