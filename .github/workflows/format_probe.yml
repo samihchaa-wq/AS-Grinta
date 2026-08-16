@@ -18,6 +18,8 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
       - name: Show exact formatter patch
         shell: bash
         run: |
