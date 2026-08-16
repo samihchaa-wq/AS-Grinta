@@ -133,9 +133,7 @@ void main() {
     expect(repository.scoreOperationIds, hasLength(2));
     expect(repository.scoreOperationIds[1], repository.scoreOperationIds[0]);
     expect(
-      repository.scoreOperationIds.singleWhere(
-        (id) => id == repository.scoreOperationIds.first,
-      ),
+      repository.scoreOperationIds.first,
       matches(
         RegExp(
           r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
