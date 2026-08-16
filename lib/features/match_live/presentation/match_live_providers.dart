@@ -59,25 +59,36 @@ final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
 class MatchLiveStateController
     extends AutoDisposeFamilyAsyncNotifier<MatchLiveStateBundle, String> {
   StreamSubscription<void>? _subscription;
+  int _stateGeneration = 0;
 
   @override
   Future<MatchLiveStateBundle> build(String matchId) async {
     final repository = ref.watch(matchLiveRepositoryProvider);
+
+    // Charger d'abord un snapshot cohérent. L'abonnement est installé juste
+    // après et une relecture immédiate referme la petite fenêtre entre les deux.
+    // Cela évite surtout qu'un refresh lancé pendant build() soit ensuite
+    // écrasé par le résultat initial, plus ancien.
+    final initial = await repository.fetchLiveState(matchId);
     _subscription = repository.watchChanges(matchId).listen(
           (_) => unawaited(_refresh()),
           onError: (Object error, StackTrace stackTrace) =>
               AppLogger.error('match_live.watch_changes', error, stackTrace),
         );
     ref.onDispose(() => _subscription?.cancel());
-    return repository.fetchLiveState(matchId);
+    unawaited(_refresh());
+    return initial;
   }
 
   Future<void> _refresh() async {
+    final generation = ++_stateGeneration;
     final repository = ref.read(matchLiveRepositoryProvider);
     try {
       final bundle = await repository.fetchLiveState(arg);
+      if (generation != _stateGeneration) return;
       state = AsyncData(bundle);
     } catch (error, stackTrace) {
+      if (generation != _stateGeneration) return;
       state = AsyncError(error, stackTrace);
     }
   }
@@ -86,8 +97,17 @@ class MatchLiveStateController
     Future<MatchLiveStateBundle> Function(MatchLiveRepository repository)
         action,
   ) async {
+    // Une écriture invalide toutes les lectures déjà en vol. Si une nouvelle
+    // lecture ou une autre écriture démarre pendant celle-ci, son résultat est
+    // considéré comme plus récent et le bundle de cette action ne remplace pas
+    // cet état ; une relecture autoritaire tranche alors l'ordre réel serveur.
+    final generation = ++_stateGeneration;
     final repository = ref.read(matchLiveRepositoryProvider);
     final bundle = await action(repository);
+    if (generation != _stateGeneration) {
+      unawaited(_refresh());
+      return;
+    }
     state = AsyncData(bundle);
   }
 
