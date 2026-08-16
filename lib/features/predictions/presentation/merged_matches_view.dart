@@ -547,9 +547,8 @@ class _UpcomingMatchCard extends StatelessWidget {
               ? Text(
                   'Match entre nous',
                   textAlign: TextAlign.start,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 19,
                         color: AppTheme.textPrimary,
                       ),
                 )
@@ -557,10 +556,9 @@ class _UpcomingMatchCard extends StatelessWidget {
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: match.isHome,
-                  nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 16,
-                        height: 1.1,
-                        fontWeight: FontWeight.w800,
+                  nameStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 19,
+                        height: 1.05,
                       ),
                   foreground: AppTheme.textPrimary,
                   textAlign: TextAlign.start,

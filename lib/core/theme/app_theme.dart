@@ -40,14 +40,16 @@ abstract final class AppTheme {
   static const Color textSecondary = Color(0xFFDCE8F7);
   static const Color textFaint = Color(0xFF9FB4CC);
 
-  // Très fin liseré noir appliqué au texte clair pour qu'il reste
-  // net et lisible quel que soit ce qui se trouve derrière.
-  static const List<Shadow> textOutline = [
-    Shadow(offset: Offset(-.6, -.6), color: Colors.black),
-    Shadow(offset: Offset(.6, -.6), color: Colors.black),
-    Shadow(offset: Offset(-.6, .6), color: Colors.black),
-    Shadow(offset: Offset(.6, .6), color: Colors.black),
-  ];
+  // Deux familles embarquées (voir assets/fonts/README.md) :
+  // `display` porte les titres, les scores et les chiffres mis en avant,
+  // `body` porte le texte courant, les étiquettes et les boutons.
+  //
+  // La lisibilité du texte clair posé sur l'illustration de fond n'est plus
+  // assurée par un liseré noir autour de chaque lettre — qui épaississait tous
+  // les glyphes de l'application — mais par le voile sombre de
+  // `GrintaAppBackground`.
+  static const String display = 'BarlowCondensed';
+  static const String body = 'Inter';
 
   // Grille de 8 px et niveaux de surfaces communs.
   static const double spaceXs = 8;
@@ -102,6 +104,7 @@ abstract final class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: scheme,
+      fontFamily: body,
       scaffoldBackgroundColor: Colors.transparent,
       splashFactory: InkSparkle.splashFactory,
       visualDensity: VisualDensity.standard,
@@ -118,67 +121,89 @@ abstract final class AppTheme {
     );
 
     return base.copyWith(
+      // Quatre niveaux seulement : chiffre héros, titre, texte courant,
+      // étiquette. Les trois premiers niveaux de titre sont en `display`, tout
+      // le reste en `body` — c'est l'écart entre les niveaux qui porte la
+      // hiérarchie, pas le gras.
       textTheme: base.textTheme.copyWith(
         displaySmall: base.textTheme.displaySmall?.copyWith(
-          color: textPrimary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -1,
-          shadows: textOutline,
-        ),
-        headlineMedium: base.textTheme.headlineMedium?.copyWith(
-          color: textPrimary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -.55,
-          shadows: textOutline,
-        ),
-        headlineSmall: base.textTheme.headlineSmall?.copyWith(
-          color: textPrimary,
-          fontWeight: FontWeight.w800,
-          shadows: textOutline,
-        ),
-        titleLarge: base.textTheme.titleLarge?.copyWith(
-          color: textPrimary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -.2,
-          shadows: textOutline,
-        ),
-        titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontFamily: display,
+          fontSize: 40,
+          height: .96,
           color: textPrimary,
           fontWeight: FontWeight.w700,
-          shadows: textOutline,
+          letterSpacing: -.4,
+        ),
+        headlineMedium: base.textTheme.headlineMedium?.copyWith(
+          fontFamily: display,
+          fontSize: 32,
+          height: 1,
+          color: textPrimary,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -.25,
+        ),
+        headlineSmall: base.textTheme.headlineSmall?.copyWith(
+          fontFamily: display,
+          fontSize: 27,
+          height: 1.05,
+          color: textPrimary,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -.15,
+        ),
+        titleLarge: base.textTheme.titleLarge?.copyWith(
+          fontFamily: display,
+          fontSize: 24,
+          height: 1.1,
+          color: textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+        titleMedium: base.textTheme.titleMedium?.copyWith(
+          fontFamily: display,
+          fontSize: 19,
+          height: 1.15,
+          color: textPrimary,
+          fontWeight: FontWeight.w700,
         ),
         titleSmall: base.textTheme.titleSmall?.copyWith(
+          fontFamily: body,
           color: textPrimary,
-          shadows: textOutline,
+          fontWeight: FontWeight.w600,
         ),
         bodyLarge: base.textTheme.bodyLarge?.copyWith(
+          fontFamily: body,
+          fontSize: 15.5,
           color: textPrimary,
-          height: 1.4,
-          shadows: textOutline,
+          fontWeight: FontWeight.w400,
+          height: 1.45,
         ),
         bodyMedium: base.textTheme.bodyMedium?.copyWith(
+          fontFamily: body,
           color: textSecondary,
-          height: 1.4,
-          shadows: textOutline,
+          fontWeight: FontWeight.w400,
+          height: 1.45,
         ),
         bodySmall: base.textTheme.bodySmall?.copyWith(
+          fontFamily: body,
           color: textFaint,
-          height: 1.35,
-          shadows: textOutline,
+          fontWeight: FontWeight.w400,
+          height: 1.4,
         ),
         labelLarge: base.textTheme.labelLarge?.copyWith(
+          fontFamily: body,
           color: textPrimary,
-          fontWeight: FontWeight.w800,
-          letterSpacing: .05,
-          shadows: textOutline,
+          fontWeight: FontWeight.w600,
+          letterSpacing: .01,
         ),
         labelMedium: base.textTheme.labelMedium?.copyWith(
+          fontFamily: body,
           color: textSecondary,
-          shadows: textOutline,
+          fontWeight: FontWeight.w500,
         ),
         labelSmall: base.textTheme.labelSmall?.copyWith(
+          fontFamily: body,
           color: textFaint,
-          shadows: textOutline,
+          fontWeight: FontWeight.w500,
+          letterSpacing: .04,
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -192,11 +217,11 @@ abstract final class AppTheme {
         titleSpacing: 12,
         actionsPadding: EdgeInsets.only(right: 6),
         titleTextStyle: TextStyle(
+          fontFamily: display,
           color: textPrimary,
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -.3,
-          shadows: textOutline,
+          fontSize: 23,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -.1,
         ),
       ),
       cardTheme: CardThemeData(
@@ -234,7 +259,7 @@ abstract final class AppTheme {
             ),
           ),
           textStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -247,14 +272,14 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusSm),
           ),
-          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryBright,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
       iconTheme: const IconThemeData(color: textSecondary, size: 22),
@@ -302,7 +327,7 @@ abstract final class AppTheme {
           // y compris lorsque la fiche du match en affiche cinq côte à côte.
           minimumSize: WidgetStateProperty.all(const Size(48, 42)),
           textStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             return states.contains(WidgetState.selected)
@@ -330,8 +355,7 @@ abstract final class AppTheme {
         side: BorderSide(color: outline.withValues(alpha: .28)),
         labelStyle: const TextStyle(
           color: textPrimary,
-          fontWeight: FontWeight.w700,
-          shadows: textOutline,
+          fontWeight: FontWeight.w500,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
       ),
@@ -354,8 +378,7 @@ abstract final class AppTheme {
             fontSize: selected ? 11.5 : 11,
             height: 1.1,
             color: selected ? Colors.white : textFaint,
-            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-            shadows: textOutline,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           );
         }),
       ),

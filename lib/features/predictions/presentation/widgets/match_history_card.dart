@@ -57,10 +57,9 @@ class MatchHistoryCard extends ConsumerWidget {
                       // Les scores conservent le code résultat du composant :
                       // vert victoire, orange nul, rouge défaite.
                       nameStyle:
-                          Theme.of(context).textTheme.titleSmall?.copyWith(
-                                fontSize: 16,
-                                height: 1.1,
-                                fontWeight: FontWeight.w800,
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontSize: 19,
+                                height: 1.05,
                               ),
                       textAlign: TextAlign.start,
                     ),

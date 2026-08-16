@@ -29,6 +29,25 @@ Les erreurs importantes doivent être annoncées comme régions dynamiques et ne
 
 Utiliser les constantes de `AppTheme` pour les couleurs, espacements, rayons et surfaces. Les couleurs ou rayons codés en dur sont réservés aux cas réellement spécifiques et doivent rester exceptionnels.
 
+## Typographie
+
+Deux familles embarquées, déclarées dans `pubspec.yaml` et documentées dans `assets/fonts/README.md` :
+
+- `AppTheme.display` (Barlow Condensed) porte `displaySmall`, `headlineMedium`, `headlineSmall`, `titleLarge`, `titleMedium`, le titre des barres d'application et les noms d'équipe des cartes de match ;
+- `AppTheme.body` (Inter) est la famille par défaut du thème et porte `titleSmall`, les textes, les étiquettes, les boutons, les onglets et les puces.
+
+Quatre niveaux suffisent : chiffre héros, titre, texte courant, étiquette. La hiérarchie vient de l'écart entre ces niveaux, pas de la graisse.
+
+Aucune graisse 800 n'est embarquée, volontairement. Un `FontWeight.w800` ou `w900` posé dans un widget retombe sur la graisse 700. Préférer `w600` ou `w700` explicitement dans le code nouveau.
+
+Les fichiers de police conservent la fonctionnalité `tnum` (chiffres à chasse fixe), utile pour aligner les colonnes de statistiques et les scores.
+
+## Lisibilité sur le fond
+
+Le texte clair n'est plus entouré d'un liseré noir. La lisibilité par-dessus l'illustration de fond est assurée par le voile de `GrintaAppBackground` (`veilOpacity`).
+
+Un texte posé sur une image locale — photo de joueur, vignette — doit donc porter son propre voile ou son propre aplat, et non un contour de glyphes.
+
 ## Validation avant fusion
 
 Pour toute évolution visuelle :
