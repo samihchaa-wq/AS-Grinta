@@ -62,7 +62,7 @@ where key = 'sports_management';
 insert into public.seasons(id, name, status)
 values (
   '42000000-0000-0000-0000-000000000010',
-  'Saison test verrou Live',
+  '2097-2098',
   'open'
 );
 
