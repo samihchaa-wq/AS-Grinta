@@ -160,22 +160,14 @@ jobs:
       - name: Check formatting of all Dart files
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           mapfile -t files < <(git ls-files '*.dart')
           if [ "${#files[@]}" -eq 0 ]; then
             echo "::error::Aucun fichier Dart suivi par Git."
             exit 1
           fi
-          set +e
           dart format --output=none --set-exit-if-changed "${files[@]}" \
             2>&1 | tee format.log
-          format_status=${PIPESTATUS[0]}
-          set -e
-          if [ "$format_status" -ne 0 ]; then
-            echo '--- Diff exact produit par Dart format ---'
-            git diff -- test/match_live_state_controller_test.dart || true
-          fi
-          exit "$format_status"
 
       - name: Analyze with fatal warnings and infos
         shell: bash
