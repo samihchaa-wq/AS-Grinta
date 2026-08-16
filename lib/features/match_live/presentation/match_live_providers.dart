@@ -51,6 +51,12 @@ final matchLiveTimelineProvider =
   return ref.watch(matchLiveRepositoryProvider).fetchTimeline(matchId);
 });
 
+/// Message transitoire affiché au coach lorsqu'une écriture Live n'a pas pu
+/// être confirmée. Le contrôleur relit d'abord l'état autoritaire du serveur :
+/// le message ne remplace donc jamais le snapshot par une supposition locale.
+final matchLiveActionMessageProvider =
+    StateProvider.autoDispose.family<String?, String>((ref, matchId) => null);
+
 final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
     .family<MatchLiveStateController, MatchLiveStateBundle, String>(
   MatchLiveStateController.new,
@@ -103,12 +109,42 @@ class MatchLiveStateController
     // cet état ; une relecture autoritaire tranche alors l'ordre réel serveur.
     final generation = ++_stateGeneration;
     final repository = ref.read(matchLiveRepositoryProvider);
-    final bundle = await action(repository);
-    if (generation != _stateGeneration) {
-      unawaited(_refresh());
-      return;
+    try {
+      final bundle = await action(repository);
+      if (generation != _stateGeneration) {
+        unawaited(_refresh());
+        return;
+      }
+      state = AsyncData(bundle);
+    } catch (error, stackTrace) {
+      AppLogger.error('match_live.mutation', error, stackTrace);
+
+      var resynced = false;
+      if (generation == _stateGeneration) {
+        try {
+          final authoritative = await repository.fetchLiveState(arg);
+          if (generation == _stateGeneration) {
+            state = AsyncData(authoritative);
+            resynced = true;
+          }
+        } catch (refreshError, refreshStackTrace) {
+          AppLogger.error(
+            'match_live.mutation_resync',
+            refreshError,
+            refreshStackTrace,
+          );
+          if (generation == _stateGeneration) {
+            state = AsyncError(refreshError, refreshStackTrace);
+          }
+        }
+      }
+
+      ref.read(matchLiveActionMessageProvider(arg).notifier).state = resynced
+          ? 'Action non confirmée. L’état réel du serveur a été rechargé.'
+          : 'Action non confirmée. Impossible de relire le serveur : vérifie '
+              'le Live avant de continuer.';
+      Error.throwWithStackTrace(error, stackTrace);
     }
-    state = AsyncData(bundle);
   }
 
   Future<MatchLiveAddPlayerOptions> fetchAddPlayerOptions() {
