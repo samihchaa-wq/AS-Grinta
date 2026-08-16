@@ -28,6 +28,7 @@ abstract interface class MatchLiveRepository {
     required String matchId,
     required String team,
     required int delta,
+    required String operationId,
     String? scorerParticipantId,
   });
 
@@ -175,6 +176,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
     required String matchId,
     required String team,
     required int delta,
+    required String operationId,
     String? scorerParticipantId,
   }) async {
     final response = await _client.rpc(
@@ -184,6 +186,7 @@ class SupabaseMatchLiveRepository implements MatchLiveRepository {
         'p_team': team,
         'p_delta': delta,
         'p_scorer_participant_id': scorerParticipantId,
+        'p_operation_id': operationId,
       },
     );
     return MatchLiveStateBundle.fromRpc(response);
