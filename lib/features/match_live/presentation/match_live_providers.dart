@@ -54,8 +54,8 @@ final matchLiveTimelineProvider =
 /// Message transitoire affiché au coach lorsqu'une écriture Live n'a pas pu
 /// être confirmée. Le contrôleur relit d'abord l'état autoritaire du serveur :
 /// le message ne remplace donc jamais le snapshot par une supposition locale.
-final matchLiveActionMessageProvider = StateProvider.autoDispose
-    .family<String?, String>((ref, matchId) => null);
+final matchLiveActionMessageProvider =
+    StateProvider.autoDispose.family<String?, String>((ref, matchId) => null);
 
 final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
     .family<MatchLiveStateController, MatchLiveStateBundle, String>(
