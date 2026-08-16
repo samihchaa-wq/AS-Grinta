@@ -80,15 +80,22 @@ create or replace function public.coach_save_match_live_lineup(
   p_expected_lineup_revision integer
 )
 returns jsonb
-language sql
+language plpgsql
+security definer
 set search_path = ''
 as $function$
-  select private.save_match_live_lineup_versioned(
+begin
+  if (select auth.uid()) is null then
+    raise exception 'Authentication required' using errcode = '42501';
+  end if;
+
+  return private.save_match_live_lineup_versioned(
     p_match_id,
     p_entries,
     p_substitution,
     p_expected_lineup_revision
   );
+end;
 $function$;
 
 revoke all on function
