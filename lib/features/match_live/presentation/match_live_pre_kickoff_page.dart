@@ -296,6 +296,7 @@ class _MatchLivePreKickoffPageState
     ];
     await _controller.saveLiveLineup(
       entries: [for (final entry in entries) entry.toRpcJson()],
+      expectedLineupRevision: widget.bundle.session.lineupRevision,
     );
   }
 
@@ -313,6 +314,7 @@ class _MatchLivePreKickoffPageState
     ];
     await _controller.saveLiveLineup(
       entries: [for (final entry in entries) entry.toRpcJson()],
+      expectedLineupRevision: widget.bundle.session.lineupRevision,
     );
   }
 

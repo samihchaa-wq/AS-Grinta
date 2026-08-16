@@ -282,6 +282,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     try {
       await controller.saveLiveLineup(
         entries: [for (final entry in entries) entry.toRpcJson()],
+        expectedLineupRevision: bundle.session.lineupRevision,
         substitutions: pairs,
       );
       if (mounted) setState(() => _pending.clear());
@@ -533,6 +534,7 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
     ];
     await controller.saveLiveLineup(
       entries: [for (final entry in entries) entry.toRpcJson()],
+      expectedLineupRevision: bundle.session.lineupRevision,
     );
   }
 }
