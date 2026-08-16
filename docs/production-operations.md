@@ -31,7 +31,8 @@ Les tâches planifiées métier attendues sont :
 - `sports-availability-reminders` ;
 - `match-weather-refresh` ;
 - `sports-motm-jobs` ;
-- `prediction-j5-reminders`.
+- `prediction-j5-reminders` ;
+- `finish-due-internal-matches`.
 
 Toujours lire `cron.job` avant une intervention : un ancien enregistrement dans `cron.job_run_details` n’est pas la preuve qu’une tâche est encore active.
 
@@ -40,6 +41,34 @@ Toujours lire `cron.job` avant une intervention : un ancien enregistrement dans 
 Le coupe-circuit global des notifications est une **valeur opérationnelle**, pas une constante fonctionnelle. Vérifier le flag distant avant d’analyser une absence de push.
 
 Même lorsque les push sont suspendus, les transitions métier qui ne dépendent pas d’un envoi doivent continuer à fonctionner. Ne jamais déduire l’état d’une disponibilité, d’un prono ou d’un scrutin HDM uniquement à partir des journaux de push.
+
+## Sauvegarde gratuite
+
+Le projet restant sur Supabase Free, la sauvegarde applicative est assurée par `.github/workflows/free_encrypted_backup.yml` :
+
+- exécution hebdomadaire et déclenchement manuel possible ;
+- export logique de la base via la CLI Supabase ;
+- copie des buckets `app-assets`, `badge-images` et `profile-photos` ;
+- chiffrement AES-256 avant tout stockage GitHub ;
+- seuls le fichier chiffré et son SHA-256 sont conservés ;
+- stockage dans une **draft release GitHub**, qui n’est listée que pour les utilisateurs disposant d’un accès push au dépôt ;
+- conservation des huit dernières sauvegardes hebdomadaires ;
+- aucun artefact GitHub Actions n’est utilisé pour le backup afin de ne pas consommer son quota de stockage facturable ;
+- aucune fonction Push de l’application n’est appelée par cette sauvegarde.
+
+Le secret GitHub `BACKUP_ENCRYPTION_PASSPHRASE` est recommandé pour disposer d’une clé de restauration indépendante des identifiants Supabase. Tant qu’il n’est pas configuré, le workflow utilise une clé dérivée des deux secrets Supabase déjà présents dans la CI ; cette solution de secours protège l’archive mais ne doit pas être considérée comme une clé d’archivage durable en cas de rotation de ces secrets.
+
+La draft release de backup ne doit jamais être publiée. Une sauvegarde n’est considérée comme valide qu’après contrôle d’un run vert et, périodiquement, un test de restauration sur un environnement isolé. Ne jamais tester une restauration destructive sur la production.
+
+## Contrôle des migrations
+
+`.github/workflows/migration_inventory.yml` doit échouer si :
+
+- les secrets nécessaires au contrôle distant manquent ;
+- une migration existe seulement dans GitHub ou seulement en production ;
+- `supabase/production_migrations.lock` ne correspond pas exactement à l’historique distant.
+
+Le contrôle distant s’exécute sur les PR internes qui touchent les migrations ou le lock, sur les modifications correspondantes de `main`, quotidiennement et à la demande. Le lock ne doit être mis à jour qu’après une comparaison distante réussie.
 
 ## Contrôles avant un déploiement Supabase
 

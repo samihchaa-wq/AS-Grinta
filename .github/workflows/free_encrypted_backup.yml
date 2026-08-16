@@ -1,0 +1,157 @@
+name: Free encrypted production backup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/free_encrypted_backup.yml'
+  schedule:
+    - cron: '43 4 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: free-production-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Require backup credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ] || [ -z "${SUPABASE_DB_PASSWORD:-}" ]; then
+            echo "::error::Backup requires SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD."
+            exit 1
+          fi
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.111.0
+
+      - name: Export production database and Storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/as-grinta-backup"
+          mkdir -p "$work/database" "$work/storage"
+
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+          supabase db dump --linked --file "$work/database/roles.sql" --role-only
+          supabase db dump --linked --file "$work/database/schema.sql"
+          supabase db dump --linked --file "$work/database/data.sql" --data-only --use-copy \
+            -x 'storage.buckets_vectors' \
+            -x 'storage.vector_indexes'
+
+          for bucket in app-assets badge-images profile-photos; do
+            mkdir -p "$work/storage/$bucket"
+            supabase storage cp "ss://$bucket" "$work/storage/$bucket" \
+              --recursive --experimental --linked
+          done
+
+          printf 'project_ref=%s\ncreated_utc=%s\nsource_sha=%s\n' \
+            "$SUPABASE_PROJECT_ID" \
+            "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            "$GITHUB_SHA" > "$work/MANIFEST.txt"
+
+          test -s "$work/database/schema.sql"
+          test -s "$work/database/data.sql"
+
+      - name: Encrypt backup before storage
+        id: encrypt
+        shell: bash
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/as-grinta-backup"
+          stamp=$(date -u +'%Y%m%dT%H%M%SZ')
+          encrypted="$RUNNER_TEMP/as-grinta-production-${stamp}-${GITHUB_RUN_ID}.tar.gz.enc"
+
+          if [ -n "${BACKUP_ENCRYPTION_PASSPHRASE:-}" ]; then
+            backup_key="$BACKUP_ENCRYPTION_PASSPHRASE"
+          else
+            backup_key=$(printf '%s\0%s' "$SUPABASE_DB_PASSWORD" "$SUPABASE_ACCESS_TOKEN" \
+              | sha256sum | awk '{print $1}')
+            echo "::warning::BACKUP_ENCRYPTION_PASSPHRASE is not configured; this backup is encrypted with a key derived from the existing Supabase CI secrets. Configure a dedicated backup passphrase for long-term recovery."
+          fi
+
+          export BACKUP_KEY="$backup_key"
+          tar -C "$RUNNER_TEMP" -czf - as-grinta-backup \
+            | openssl enc -aes-256-cbc -pbkdf2 -salt \
+                -pass env:BACKUP_KEY \
+                -out "$encrypted"
+
+          test -s "$encrypted"
+          sha256sum "$encrypted" > "$encrypted.sha256"
+          rm -rf "$work"
+
+          echo "encrypted=$encrypted" >> "$GITHUB_OUTPUT"
+          echo "checksum=$encrypted.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Store encrypted backup in collaborator-only draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ENCRYPTED_FILE: ${{ steps.encrypt.outputs.encrypted }}
+          CHECKSUM_FILE: ${{ steps.encrypt.outputs.checksum }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_name='AS Grinta encrypted production backups'
+          release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq ".[] | select(.draft == true and .name == \"$release_name\") | .id" \
+            | head -n 1)
+
+          if [ -z "$release_id" ]; then
+            release_id=$(jq -n \
+              --arg tag 'as-grinta-backup-vault' \
+              --arg name "$release_name" \
+              --arg body 'Encrypted production recovery snapshots. Draft release: visible only to collaborators with push access. Never publish this release.' \
+              '{tag_name:$tag,target_commitish:"main",name:$name,body:$body,draft:true,prerelease:true}' \
+              | gh api --method POST "repos/$GITHUB_REPOSITORY/releases" --input - --jq '.id')
+          fi
+
+          upload_url=$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id" --jq '.upload_url')
+          upload_url=${upload_url%%\{*}
+
+          upload_asset() {
+            local file="$1"
+            local name
+            name=$(basename "$file")
+            curl --fail-with-body --silent --show-error --location \
+              --request POST \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              --header 'X-GitHub-Api-Version: 2022-11-28' \
+              --header 'Content-Type: application/octet-stream' \
+              --data-binary "@$file" \
+              "${upload_url}?name=${name}" >/dev/null
+          }
+
+          upload_asset "$ENCRYPTED_FILE"
+          upload_asset "$CHECKSUM_FILE"
+
+          # Conserver huit sauvegardes hebdomadaires (archive + checksum = 16 assets).
+          mapfile -t stale_asset_ids < <(
+            gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets?per_page=100" \
+              --jq 'sort_by(.created_at) | reverse | .[16:] | .[].id'
+          )
+          for asset_id in "${stale_asset_ids[@]}"; do
+            gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$asset_id"
+          done
+
+          echo "Encrypted backup stored in draft release id $release_id."
