@@ -1,0 +1,71 @@
+name: Generate canonical Supabase migration
+
+on:
+  push:
+    branches:
+      - 'db/**'
+    paths:
+      - '.github/migration-request.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migration-generator-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout requesting branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Read and validate migration request
+        id: request
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .github/migration-request.txt
+          name=$(tr -d '\r\n' < .github/migration-request.txt)
+          if [[ ! "$name" =~ ^[a-z0-9]+(_[a-z0-9]+)*$ ]]; then
+            echo "::error::Migration name must be snake_case: $name"
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.111.0
+
+      - name: Generate migration with Supabase CLI
+        env:
+          MIGRATION_NAME: ${{ steps.request.outputs.name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          before=$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)
+          supabase migration new "$MIGRATION_NAME"
+          mapfile -t generated < <(find supabase/migrations -maxdepth 1 -type f -name "*_${MIGRATION_NAME}.sql" -printf '%f\n' | sort)
+          test "${#generated[@]}" -eq 1
+          after=$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)
+          test "$after" -eq "$((before + 1))"
+          echo "Generated supabase/migrations/${generated[0]}"
+
+      - name: Commit generated migration
+        env:
+          MIGRATION_NAME: ${{ steps.request.outputs.name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/migration-request.txt
+          git add "supabase/migrations/"*"_${MIGRATION_NAME}.sql"
+          git commit -m "Generate ${MIGRATION_NAME} migration"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
