@@ -16,6 +16,13 @@ const corsHeaders = {
 };
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
+class RequestBodyTooLargeError extends Error {
+  constructor() {
+    super("Request body exceeds the allowed size");
+    this.name = "RequestBodyTooLargeError";
+  }
+}
+
 function jsonResponse(
   body: unknown,
   status = 200,
@@ -25,6 +32,41 @@ function jsonResponse(
     status,
     headers: { ...jsonHeaders, ...extraHeaders },
   });
+}
+
+async function readBoundedJson<T>(req: Request, maxBytes: number): Promise<T> {
+  const declaredLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new RequestBodyTooLargeError();
+  }
+  if (!req.body) {
+    throw new SyntaxError("Request body is empty");
+  }
+
+  const reader = req.body.getReader();
+  const decoder = new TextDecoder();
+  let totalBytes = 0;
+  let json = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel();
+        throw new RequestBodyTooLargeError();
+      }
+      json += decoder.decode(value, { stream: true });
+    }
+    json += decoder.decode();
+  } finally {
+    reader.releaseLock();
+  }
+
+  return JSON.parse(json) as T;
 }
 
 function normalizeName(value: string): string {
@@ -82,15 +124,13 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
-  const contentLength = Number(req.headers.get("content-length") ?? "0");
-  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-    return jsonResponse({ error: "Requête trop volumineuse." }, 413);
-  }
-
   let body: Record<string, unknown>;
   try {
-    body = await req.json();
-  } catch {
+    body = await readBoundedJson<Record<string, unknown>>(req, MAX_BODY_BYTES);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return jsonResponse({ error: "Requête trop volumineuse." }, 413);
+    }
     return jsonResponse({ error: "Requête invalide." }, 400);
   }
 
