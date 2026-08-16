@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
@@ -8,6 +9,24 @@ import 'package:as_grinta/features/match_live/domain/match_live_add_player_optio
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_timeline.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final Random _scoreOperationRandom = Random.secure();
+
+String _newScoreOperationId() {
+  final bytes = List<int>.generate(
+    16,
+    (_) => _scoreOperationRandom.nextInt(256),
+    growable: false,
+  );
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  final hex = bytes
+      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
+      .join();
+  return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+      '${hex.substring(20)}';
+}
 
 /// Vrai si l'utilisateur courant peut piloter le Tableau Blanc de ce match :
 /// admin, ou joueur du roster coché "Coach" (season_players.is_coach) pour
@@ -194,14 +213,25 @@ class MatchLiveStateController
     required int delta,
     String? scorerParticipantId,
   }) {
-    return _mutate(
-      (repository) => repository.adjustScore(
-        matchId: arg,
-        team: team,
-        delta: delta,
-        scorerParticipantId: scorerParticipantId,
-      ),
-    );
+    final operationId = _newScoreOperationId();
+    return _mutate((repository) async {
+      Future<MatchLiveStateBundle> send() => repository.adjustScore(
+            matchId: arg,
+            team: team,
+            delta: delta,
+            operationId: operationId,
+            scorerParticipantId: scorerParticipantId,
+          );
+
+      try {
+        return await send();
+      } catch (_) {
+        // Le premier appel peut avoir ete committe alors que sa reponse reseau
+        // a ete perdue. Un unique retry avec le meme UUID est sans effet double
+        // grace au ledger serveur.
+        return send();
+      }
+    });
   }
 
   Future<void> saveLiveLineup({
