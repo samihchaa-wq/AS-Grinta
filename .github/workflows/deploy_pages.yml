@@ -6,6 +6,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      target_sha:
+        description: 'Full main commit SHA to deploy. Leave empty for current main.'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -13,7 +18,7 @@ permissions:
   id-token: write
 
 env:
-  TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  TARGET_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.target_sha || github.event.workflow_run.head_sha || github.sha }}
 
 concurrency:
   group: pages
@@ -29,6 +34,21 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+      - name: Validate manual rollback target
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::target_sha must be a full 40-character commit SHA.'
+            exit 1
+          fi
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$TARGET_SHA" origin/main; then
+            echo '::error::Only commits already present in main history may be deployed.'
+            exit 1
+          fi
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
