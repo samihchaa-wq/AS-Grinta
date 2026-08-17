@@ -45,6 +45,7 @@ void main() {
       _route('/matches/m1/availability'),
       _route('/matches/m1/lineup'),
       _route('/matches/m1/vote'),
+      _route('/matches/matches/m1/finalize'),
       _route('/matches/m1/finalize'),
       _route('/matches/m1/composition'),
       _route('/matches/m1/guests'),
@@ -137,6 +138,7 @@ String? _expectedRedirect({
   final recoveryRoute = _isRecovery(uri, matchedLocation);
 
   if (authState.isLoading) {
+    if (matchedLocation == '/auth/sign-in') return null;
     return _loadingRedirect(uri, matchedLocation);
   }
 
