@@ -58,7 +58,10 @@ void main() {
     () async {
       final repository = _ControlledMatchLiveRepository(
         _bundle(score: 0),
-        scoreMutationError: StateError('network response lost'),
+        scoreMutationErrors: [
+          StateError('network response lost'),
+          StateError('retry also failed'),
+        ],
       );
       final container = ProviderContainer(
         overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
@@ -85,13 +88,9 @@ void main() {
       repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
       await _flush();
 
-      // Régression : une réponse perdue impose une relecture autoritaire avant
-      // que le coach puisse décider de rejouer ou non la même action.
       final mutation =
           container.read(provider.notifier).adjustScore(team: 'us', delta: 1);
 
-      // Le serveur peut avoir validé le but alors que la réponse RPC s'est
-      // perdue. La relecture autoritaire doit alors faire apparaître 1-0.
       await _waitUntil(() => repository.pendingFetches.length == 1);
       repository.pendingFetches.removeAt(0).complete(_bundle(score: 1));
 
@@ -101,6 +100,49 @@ void main() {
         container.read(matchLiveActionMessageProvider('match-1')),
         contains('Action non confirmée'),
       );
+    },
+  );
+
+  test(
+    'a lost score response retries with the exact same operation id',
+    () async {
+      final repository = _ControlledMatchLiveRepository(
+        _bundle(score: 0),
+        scoreMutationErrors: [StateError('network response lost after commit')],
+        scoreMutationResult: _bundle(score: 1),
+      );
+      final container = ProviderContainer(
+        overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      addTearDown(repository.dispose);
+
+      final provider = matchLiveStateProvider('match-1');
+      final subscription = container.listen(
+        provider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+
+      await container.read(provider.future);
+      await _waitUntil(() => repository.pendingFetches.length == 1);
+      repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
+      await _flush();
+
+      await container.read(provider.notifier).adjustScore(team: 'us', delta: 1);
+
+      expect(repository.scoreOperationIds, hasLength(2));
+      expect(repository.scoreOperationIds[1], repository.scoreOperationIds[0]);
+      expect(
+        repository.scoreOperationIds.first,
+        matches(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ),
+        ),
+      );
+      expect(container.read(provider).value?.session.scoreAsGrinta, 1);
     },
   );
 
@@ -162,10 +204,16 @@ Future<void> _waitUntil(bool Function() predicate) async {
 Future<void> _flush() => Future<void>.delayed(Duration.zero);
 
 class _ControlledMatchLiveRepository implements MatchLiveRepository {
-  _ControlledMatchLiveRepository(this.initial, {this.scoreMutationError});
+  _ControlledMatchLiveRepository(
+    this.initial, {
+    List<Object>? scoreMutationErrors,
+    this.scoreMutationResult,
+  }) : scoreMutationErrors = List<Object>.of(scoreMutationErrors ?? const []);
 
   final MatchLiveStateBundle initial;
-  final Object? scoreMutationError;
+  final MatchLiveStateBundle? scoreMutationResult;
+  final List<Object> scoreMutationErrors;
+  final List<String> scoreOperationIds = [];
   final StreamController<void> _changes = StreamController<void>.broadcast();
   final List<Completer<MatchLiveStateBundle>> pendingFetches = [];
   int? lastExpectedLineupRevision;
@@ -188,11 +236,14 @@ class _ControlledMatchLiveRepository implements MatchLiveRepository {
     required String matchId,
     required String team,
     required int delta,
+    required String operationId,
     String? scorerParticipantId,
   }) async {
-    final error = scoreMutationError;
-    if (error != null) throw error;
-    return initial;
+    scoreOperationIds.add(operationId);
+    if (scoreMutationErrors.isNotEmpty) {
+      throw scoreMutationErrors.removeAt(0);
+    }
+    return scoreMutationResult ?? initial;
   }
 
   @override
