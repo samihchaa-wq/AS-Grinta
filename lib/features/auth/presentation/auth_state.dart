@@ -7,6 +7,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+const _signInTimeout = Duration(seconds: 12);
+const _invalidCredentialsMessage =
+    'Connexion impossible. Vérifie ton identifiant et ton mot de passe.';
+const _signInUnavailableMessage =
+    'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.';
+
+String authSignInErrorMessage(Object error) {
+  if (error is supabase.AuthException) {
+    final code = error.code?.toLowerCase();
+    final message = error.message.toLowerCase();
+    if (code == 'invalid_credentials' ||
+        message.contains('invalid login credentials')) {
+      return _invalidCredentialsMessage;
+    }
+  }
+  return _signInUnavailableMessage;
+}
+
 class AuthState {
   const AuthState({
     this.isLoading = true,
@@ -17,8 +35,9 @@ class AuthState {
     this.error,
   });
 
-  /// Résolution de la session : c'est le seul drapeau que le routeur observe.
-  /// Le passer à vrai renvoie l'utilisateur sur `/auth/loading`.
+  /// Résolution de session ou connexion en cours. Le routeur utilise ce
+  /// drapeau pour protéger les autres routes, mais garde l'écran de connexion
+  /// monté pendant un envoi afin que son retour utilisateur ne soit pas perdu.
   final bool isLoading;
 
   /// Écriture en cours sur le profil. Volontairement distinct de [isLoading] :
@@ -210,19 +229,20 @@ class AuthController extends StateNotifier<AuthState> {
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _repository.signInWithUsername(
-        username: username,
-        password: password,
-      );
+      await _repository
+          .signInWithUsername(
+            username: username,
+            password: password,
+          )
+          .timeout(_signInTimeout);
       await _refreshProfile(retryAfterSignIn: true);
-    } catch (_) {
+    } catch (error) {
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: false,
         hasSession: _repository.hasSession,
         clearProfile: true,
-        error:
-            'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
+        error: authSignInErrorMessage(error),
       );
     }
   }
