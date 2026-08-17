@@ -116,7 +116,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/matches/:matchId/prediction',
                 builder: (context, state) => UpcomingMatchPredictionPage(
-                  matchId: matchId,
+                  matchId: state.pathParameters['matchId'] ?? '',
                 ),
               ),
               GoRoute(
