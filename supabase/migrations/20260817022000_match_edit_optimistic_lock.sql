@@ -80,7 +80,7 @@ revoke all on function public.admin_update_match_complete(
 grant execute on function public.admin_update_match_complete(
   uuid, uuid, uuid, date, time without time zone, text, text,
   numeric, numeric, numeric, timestamptz, integer, text, boolean, text, text
-) to authenticated;
+) to authenticated, service_role;
 
 create or replace function public.update_internal_match(
   p_match_id uuid,
@@ -155,4 +155,4 @@ revoke all on function public.update_internal_match(
 ) from public, anon;
 grant execute on function public.update_internal_match(
   uuid, uuid, date, time without time zone, text, timestamptz
-) to authenticated;
+) to authenticated, service_role;
