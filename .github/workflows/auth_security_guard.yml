@@ -31,8 +31,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -Fq 'static const minLength = 12;' lib/core/security/password_policy.dart
-          grep -Fq 'static const maxLength = 72;' lib/core/security/password_policy.dart
+          grep -Fq 'static const int minLength = 12;' lib/core/security/password_policy.dart
+          grep -Fq 'static const int maxLength = 72;' lib/core/security/password_policy.dart
           grep -Fq 'const MIN_PASSWORD_LENGTH = 12;' supabase/functions/register-account/index.ts
           grep -Fq 'const MAX_PASSWORD_LENGTH = 72;' supabase/functions/register-account/index.ts
           test "$(jq -r '.USERNAME_DOMAIN' config/production.json)" = 'pronos.as-grinta.local'
