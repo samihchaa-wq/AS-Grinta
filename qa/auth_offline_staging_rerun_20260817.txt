@@ -1,0 +1,1 @@
+Published staging QA rerun after PR #978 deployment and staging synchronization.
