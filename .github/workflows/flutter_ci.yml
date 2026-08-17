@@ -267,6 +267,13 @@ jobs:
             --dart-define=APP_VERSION="$APP_VERSION" \
             2>&1 | tee build-web.log
 
+      - name: Enforce web performance budget
+        shell: bash
+        env:
+          MAX_MAIN_DART_JS_BYTES: '5600000'
+          MAX_MAIN_DART_JS_GZIP_BYTES: '1600000'
+        run: python3 tool/check_web_performance_budget.py
+
       - name: Upload validation logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -285,4 +292,5 @@ jobs:
             coverage/lcov.info
             coverage-summary.txt
             build-web.log
+            web-performance-summary.txt
           if-no-files-found: warn

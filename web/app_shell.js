@@ -2,6 +2,57 @@
   'use strict';
 
   var asGrintaWebVersion = window.AS_GRINTA_WEB_VERSION || 'dev';
+  var deploymentCheckInFlight = false;
+  var deploymentCheckIntervalMs = 300000;
+  var deploymentMarker = '_asg_release';
+
+  function extractDeploymentVersion(source) {
+    var match = source.match(/AS_GRINTA_WEB_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    return match ? match[1] : '';
+  }
+
+  function clearCurrentDeploymentMarker() {
+    try {
+      var currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get(deploymentMarker) !== asGrintaWebVersion) {
+        return;
+      }
+      currentUrl.searchParams.delete(deploymentMarker);
+      window.history.replaceState(null, '', currentUrl.toString());
+    } catch (_) {}
+  }
+
+  async function checkDeploymentVersion() {
+    if (deploymentCheckInFlight) return;
+    deploymentCheckInFlight = true;
+    try {
+      var versionUrl = new URL('build_version.js', document.baseURI);
+      versionUrl.searchParams.set('version-check', String(Date.now()));
+      var response = await fetch(versionUrl.toString(), { cache: 'no-store' });
+      if (!response.ok) return;
+
+      var freshVersion = extractDeploymentVersion(await response.text());
+      if (!freshVersion || freshVersion === asGrintaWebVersion) return;
+
+      var targetUrl = new URL(window.location.href);
+      if (targetUrl.searchParams.get(deploymentMarker) === freshVersion) {
+        return;
+      }
+      targetUrl.searchParams.set(deploymentMarker, freshVersion);
+      window.location.replace(targetUrl.toString());
+    } catch (_) {
+      // Une vérification de fraîcheur ne doit jamais bloquer le démarrage.
+    } finally {
+      deploymentCheckInFlight = false;
+    }
+  }
+
+  clearCurrentDeploymentMarker();
+  checkDeploymentVersion();
+  setInterval(checkDeploymentVersion, deploymentCheckIntervalMs);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') checkDeploymentVersion();
+  });
 
   window.asGrintaUpdate = {
     _worker: null,
