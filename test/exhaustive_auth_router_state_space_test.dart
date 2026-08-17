@@ -70,6 +70,10 @@ void main() {
         '/auth/loading?redirect=%2Fauth%2Fnew-password%3Frecovery%3D1',
         matched: '/auth/loading',
       ),
+      _route(
+        '/auth/loading?redirect=%2Fauth%2Fregister',
+        matched: '/auth/loading',
+      ),
       _route('/auth/loading?redirect=%2Fstats', matched: '/auth/loading'),
       _route('/auth/sign-in?redirect=%2Fstats', matched: '/auth/sign-in'),
       _route('/auth/sign-in?redirect=%2Fhome', matched: '/auth/sign-in'),
@@ -143,6 +147,11 @@ String? _expectedRedirect({
   if (matchedLocation == '/auth/loading') {
     final pending = _pendingDestination(uri.queryParameters['redirect']);
     if (pending != null && _isRecoveryDestination(pending)) {
+      return pending;
+    }
+    if (pending != null &&
+        !authenticated &&
+        _isSignedOutAuthDestination(pending)) {
       return pending;
     }
     if (!authenticated) {
@@ -227,7 +236,8 @@ String? _loadingRedirect(Uri uri, String matchedLocation) {
     return '/auth/loading';
   }
   if (matchedLocation.startsWith('/auth') &&
-      !_isRecovery(uri, matchedLocation)) {
+      !_isRecovery(uri, matchedLocation) &&
+      matchedLocation != '/auth/register') {
     return '/auth/loading';
   }
   return '/auth/loading?redirect=${Uri.encodeComponent(uri.toString())}';
@@ -246,6 +256,11 @@ bool _isRecoveryDestination(String value) {
   return uri != null &&
       uri.path == '/auth/new-password' &&
       uri.queryParameters['recovery'] == '1';
+}
+
+bool _isSignedOutAuthDestination(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null && uri.path == '/auth/register';
 }
 
 String? _safeRedirect(String? value) {
