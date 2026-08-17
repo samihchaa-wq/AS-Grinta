@@ -137,6 +137,7 @@ String? _expectedRedirect({
   final recoveryRoute = _isRecovery(uri, matchedLocation);
 
   if (authState.isLoading) {
+    if (matchedLocation == '/auth/sign-in') return null;
     return _loadingRedirect(uri, matchedLocation);
   }
 

@@ -10,6 +10,11 @@ String? resolveAuthRedirect({
   final location = matchedLocation;
 
   if (authState.isLoading) {
+    // Pendant une tentative de connexion, conserver l'écran monté. Le faire
+    // transiter par /auth/loading détruit son listener Riverpod : l'erreur
+    // revient bien dans AuthState mais le SnackBar n'a alors plus d'écran pour
+    // l'afficher. Les autres routes restent protégées par l'écran de chargement.
+    if (location == '/auth/sign-in') return null;
     return _loadingRedirect(uri, location);
   }
 
