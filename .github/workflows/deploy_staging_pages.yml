@@ -130,9 +130,46 @@ jobs:
             --dart-define-from-file=config/staging.json \
             --dart-define=APP_VERSION="$app_version"
           WEB_VERSION="$web_version" python3 tool/stamp_web_release.py
+
+          prod_supabase_url="$(jq -r '.SUPABASE_URL' config/production.json)"
+          staging_supabase_url="$(jq -r '.SUPABASE_URL' config/staging.json)"
+          prod_supabase_host="${prod_supabase_url#https://}"
+          staging_supabase_host="${staging_supabase_url#https://}"
+          test -n "$prod_supabase_host"
+          test -n "$staging_supabase_host"
+          test "$prod_supabase_host" != "$staging_supabase_host"
+          PROD_SUPABASE_HOST="$prod_supabase_host" \
+          STAGING_SUPABASE_HOST="$staging_supabase_host" \
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          index_path = Path('build/web/index.html')
+          html = index_path.read_text()
+          production_host = os.environ['PROD_SUPABASE_HOST']
+          staging_host = os.environ['STAGING_SUPABASE_HOST']
+
+          if production_host not in html:
+              raise SystemExit('Production Supabase host is absent from the staging CSP template.')
+
+          html = html.replace(production_host, staging_host)
+
+          if production_host in html:
+              raise SystemExit('Production Supabase host remains in the staging HTML after CSP retargeting.')
+          if staging_host not in html:
+              raise SystemExit('Staging Supabase host is absent from the staging HTML after CSP retargeting.')
+
+          index_path.write_text(html)
+          PY
+
           cp build/web/index.html build/web/404.html
           grep -q '/AS-Grinta/staging/' build/web/index.html
           grep -q 'Content-Security-Policy' build/web/index.html
+          grep -Fq "$staging_supabase_host" build/web/index.html
+          if grep -Fq "$prod_supabase_host" build/web/index.html; then
+            echo '::error::Production Supabase remains allowed by the staging HTML CSP.'
+            exit 1
+          fi
 
       - name: Combine production and staging without replacing production root
         shell: bash
@@ -178,6 +215,8 @@ jobs:
           token="$(date +%s)"
           prod='https://samihchaa-wq.github.io/AS-Grinta/'
           staging='https://samihchaa-wq.github.io/AS-Grinta/staging/'
+          prod_supabase_host='ovzijmqrnsgcmryinkfa.supabase.co'
+          staging_supabase_host='dhwrtdnjwdkvdyvojvjl.supabase.co'
 
           fetch_after_pages_propagation() {
             local url="$1"
@@ -210,3 +249,13 @@ jobs:
           test -s /tmp/staging-auth-health.json
           grep -q '/AS-Grinta/' /tmp/prod.html
           grep -q '/AS-Grinta/staging/' /tmp/staging.html
+          grep -Fq "$prod_supabase_host" /tmp/prod.html
+          grep -Fq "$staging_supabase_host" /tmp/staging.html
+          if grep -Fq "$staging_supabase_host" /tmp/prod.html; then
+            echo '::error::Production HTML unexpectedly allows the staging Supabase host.'
+            exit 1
+          fi
+          if grep -Fq "$prod_supabase_host" /tmp/staging.html; then
+            echo '::error::Staging HTML unexpectedly allows the production Supabase host.'
+            exit 1
+          fi
