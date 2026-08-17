@@ -1,4 +1,5 @@
 import 'package:as_grinta/app/router/auth_redirect.dart';
+import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/app/shell/app_shell.dart';
 import 'package:as_grinta/features/admin/presentation/admin_menu_page.dart';
 import 'package:as_grinta/features/admin/presentation/admin_notification_page.dart';
@@ -47,7 +48,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
-    initialLocation: '/matches',
+    initialLocation: initialAppLocation(),
     refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
       authState: ref.read(authControllerProvider),
