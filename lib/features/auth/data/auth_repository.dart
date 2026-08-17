@@ -9,6 +9,98 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const _profilePhotoUploadTimeout = Duration(seconds: 15);
+const _profilePhotoWriteTimeout = Duration(seconds: 12);
+const _profilePhotoReadTimeout = Duration(seconds: 8);
+const _profilePhotoCleanupTimeout = Duration(seconds: 8);
+
+class ProfilePhotoUploadOutcomeUnknown implements Exception {
+  const ProfilePhotoUploadOutcomeUnknown();
+
+  @override
+  String toString() => 'Profile photo upload outcome is unknown.';
+}
+
+class ProfilePhotoWriteOutcomeUnknown implements Exception {
+  const ProfilePhotoWriteOutcomeUnknown();
+
+  @override
+  String toString() => 'Profile photo reference write outcome is unknown.';
+}
+
+class ProfilePhotoWriteConfirmedButRefreshFailed implements Exception {
+  const ProfilePhotoWriteConfirmedButRefreshFailed();
+
+  @override
+  String toString() =>
+      'Profile photo was saved but the refreshed profile could not be read.';
+}
+
+Future<void> uploadProfilePhotoObjectWithRetry({
+  required Future<void> Function() upload,
+  Duration timeout = _profilePhotoUploadTimeout,
+  int maxAttempts = 2,
+}) async {
+  Object? lastError;
+  for (var attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      await upload().timeout(timeout);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw ProfilePhotoUploadOutcomeUnknown();
+}
+
+Future<void> confirmProfilePhotoReferenceWrite({
+  required Future<void> Function() submit,
+  required Future<String?> Function() readBack,
+  required Future<void> Function() cleanup,
+  required String expectedPath,
+  Duration writeTimeout = _profilePhotoWriteTimeout,
+  Duration readTimeout = _profilePhotoReadTimeout,
+  Duration cleanupTimeout = _profilePhotoCleanupTimeout,
+}) async {
+  Future<void> bestEffortCleanup() async {
+    try {
+      await cleanup().timeout(cleanupTimeout);
+    } catch (_) {
+      // La suppression est compensatoire : elle ne doit jamais masquer la
+      // cause originale de l'échec de sauvegarde.
+    }
+  }
+
+  try {
+    await submit().timeout(writeTimeout);
+    return;
+  } on PostgrestException {
+    await bestEffortCleanup();
+    rethrow;
+  } on StateError {
+    await bestEffortCleanup();
+    rethrow;
+  } catch (_) {
+    // Réponse réseau perdue : la base peut avoir validé photo_url. Il serait
+    // dangereux de supprimer le fichier avant d'avoir relu la source de vérité.
+  }
+
+  try {
+    final currentPath = await readBack().timeout(readTimeout);
+    if (currentPath == expectedPath) {
+      return;
+    }
+    await bestEffortCleanup();
+    throw StateError('La photo du profil n’a pas pu être enregistrée.');
+  } on StateError {
+    rethrow;
+  } catch (_) {
+    // Impossible de savoir si la référence a été écrite : on conserve le
+    // fichier. Le supprimer pourrait casser un profil déjà mis à jour.
+    throw const ProfilePhotoWriteOutcomeUnknown();
+  }
+}
+
 class AuthRepository {
   AuthRepository(this._client);
 
@@ -171,37 +263,64 @@ class AuthRepository {
     final path =
         '$userId/avatar_${DateTime.now().millisecondsSinceEpoch}.${image.extension}';
     final bucket = _client.storage.from('profile-photos');
-    await bucket.uploadBinary(
-      path,
-      bytes,
-      fileOptions: FileOptions(
-        contentType: image.mimeType,
-        upsert: false,
-      ),
+
+    // Un retry reprend exactement le même chemin avec upsert=true : si le
+    // premier upload a réussi mais que son accusé s'est perdu, la seconde
+    // tentative ne crée pas un second objet.
+    await uploadProfilePhotoObjectWithRetry(
+      upload: () async {
+        await bucket.uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: image.mimeType,
+            upsert: true,
+          ),
+        );
+      },
     );
+
     // Le bucket profile-photos est privé : une URL publique y renvoie
     // systématiquement « Bucket not found ». On stocke le chemin relatif, que
     // PlayerAvatar resigne à l'affichage.
-    try {
-      final updated = await _client
-          .from('profiles')
-          .update({'photo_url': path})
-          .eq('id', userId)
-          .select('id')
-          .maybeSingle();
-      if (updated == null) {
-        throw StateError('La photo du profil n’a pas pu être enregistrée.');
-      }
-    } catch (_) {
-      await bucket.remove([path]);
-      rethrow;
-    }
+    await confirmProfilePhotoReferenceWrite(
+      expectedPath: path,
+      submit: () async {
+        final updated = await _client
+            .from('profiles')
+            .update({'photo_url': path})
+            .eq('id', userId)
+            .select('id')
+            .maybeSingle();
+        if (updated == null) {
+          throw StateError('La photo du profil n’a pas pu être enregistrée.');
+        }
+      },
+      readBack: () async {
+        final current = await _client
+            .from('profiles')
+            .select('photo_url')
+            .eq('id', userId)
+            .maybeSingle();
+        return current?['photo_url']?.toString();
+      },
+      cleanup: () async {
+        await bucket.remove([path]);
+      },
+    );
 
-    final profile = await fetchProfile();
-    if (profile == null) {
-      throw StateError('Le profil mis à jour est introuvable.');
+    _profileFetchesInFlight.clear();
+    try {
+      final profile = await fetchProfile();
+      if (profile == null) {
+        throw StateError('Le profil mis à jour est introuvable.');
+      }
+      return profile;
+    } catch (_) {
+      // La référence photo_url est déjà confirmée. Ne surtout pas compenser
+      // en supprimant le fichier parce qu'un simple refresh du profil échoue.
+      throw const ProfilePhotoWriteConfirmedButRefreshFailed();
     }
-    return profile;
   }
 }
 
