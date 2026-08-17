@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/widgets/grinta_auth_surface.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,21 +63,25 @@ class _AuthSignInPageState extends ConsumerState<AuthSignInPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AuthState>(authControllerProvider, (previous, next) {
-      if ((next.error ?? '').isNotEmpty &&
-          (previous?.error ?? '') != next.error) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(next.error!)));
-      }
-    });
-
     final authState = ref.watch(authControllerProvider);
+    final error = authState.error;
+
     return GrintaAuthSurface(
       subtitle: 'L’application de gestion sportive de l’AS Grinta.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (error != null && error.isNotEmpty) ...[
+            GrintaStatusBanner(
+              title: error == 'Ce compte n’est pas actif.'
+                  ? 'Accès refusé'
+                  : 'Connexion impossible',
+              message: error,
+              tone: GrintaStatusTone.error,
+              compact: true,
+            ),
+            const SizedBox(height: 16),
+          ],
           TextField(
             controller: _usernameController,
             textInputAction: TextInputAction.next,
