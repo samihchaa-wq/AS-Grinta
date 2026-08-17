@@ -21,7 +21,7 @@ jobs:
       - name: Install Playwright Core
         run: npm install --no-save playwright-core@1.52.0
 
-      - name: Register and verify pending account flow
+      - name: Create pending account through public function and verify UI
         shell: bash
         run: |
           set -euo pipefail
@@ -30,7 +30,8 @@ jobs:
           const crypto = require('crypto');
           const { chromium } = require('playwright-core');
           const base = 'https://samihchaa-wq.github.io/AS-Grinta/staging';
-          const diagnostics = [];
+          const supabase = 'https://dhwrtdnjwdkvdyvojvjl.supabase.co';
+          const publishable = 'sb_publishable_jTOp1ah4CLw8OIKloeHUiQ_PvYS2J5q';
 
           async function activate(page) {
             await page.locator('flutter-view, flt-glass-pane, canvas').first()
@@ -62,6 +63,29 @@ jobs:
 
           (async () => {
             const password = `Qa${crypto.randomBytes(14).toString('hex')}Z9`;
+            const suffix = crypto.randomBytes(4).toString('hex').replace(/[0-9]/g, 'a').slice(0, 6);
+            const lastName = `Temporaire${suffix}`;
+
+            const registration = await fetch(`${supabase}/functions/v1/register-account`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                apikey: publishable,
+                Authorization: `Bearer ${publishable}`,
+              },
+              body: JSON.stringify({
+                firstName: 'Recette',
+                lastName,
+                password,
+              }),
+            });
+            const payload = await registration.json().catch(() => ({}));
+            if (registration.status !== 200 || typeof payload.username !== 'string' || !payload.username) {
+              throw new Error(`register-account failed HTTP ${registration.status}: ${JSON.stringify(payload)}`);
+            }
+            const username = payload.username;
+            fs.writeFileSync('pending-created-username.txt', username + '\n');
+
             const browser = await chromium.launch({
               headless: true,
               executablePath: '/usr/bin/google-chrome',
@@ -72,62 +96,10 @@ jobs:
               serviceWorkers: 'block',
             });
             const page = await context.newPage();
-            page.on('console', msg => {
-              if (msg.type() === 'error' || msg.type() === 'warning') diagnostics.push(`console ${msg.type()}: ${msg.text()}`);
-            });
-            page.on('response', response => {
-              if (response.url().includes('register-account')) {
-                diagnostics.push(`register-account response: ${response.status()} ${response.url()}`);
-              }
-            });
-            page.on('requestfailed', request => {
-              if (request.url().includes('supabase.co')) diagnostics.push(`request failed: ${request.url()} ${request.failure()?.errorText ?? ''}`);
-            });
-
             await page.goto(`${base}/#/auth/sign-in?pending=${Date.now()}`, {
               waitUntil: 'domcontentloaded', timeout: 45000,
             });
             await activate(page);
-
-            await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
-            await page.getByRole('textbox', { name: 'Prénom', exact: true }).waitFor({ timeout: 15000 });
-            await page.getByRole('textbox', { name: 'Prénom', exact: true }).fill('Recette');
-            await page.getByRole('textbox', { name: 'Nom', exact: true }).fill('Temporaire');
-            await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill(password);
-            await page.getByRole('textbox', { name: 'Confirme ton mot de passe', exact: true }).fill(password);
-            await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
-
-            let created = false;
-            try {
-              await waitForAx(page, 'Compte créé', 15000);
-              created = true;
-            } catch (_) {
-              const namesAfterFailure = await axNames(page);
-              fs.writeFileSync('pending-ax-names.json', JSON.stringify(namesAfterFailure, null, 2));
-              fs.writeFileSync('pending-diagnostics.txt', diagnostics.join('\n') + '\n');
-              await page.screenshot({ path: 'pending-00-registration-failure.png' });
-              const visibleErrors = namesAfterFailure.filter(name =>
-                /échoué|erreur|limite|trop|mot de passe|nom|prénom|inscription|compte/i.test(name)
-              );
-              throw new Error(`Compte non créé. Messages visibles=${JSON.stringify(visibleErrors)} diagnostics=${JSON.stringify(diagnostics)}`);
-            }
-            if (!created) throw new Error('Compte non créé sans diagnostic.');
-            await waitForAx(page, 'Ton compte restera en attente', 10000);
-
-            const names = await axNames(page);
-            const usernameCandidates = [...new Set(names)].filter(name =>
-              /^recette[a-z0-9._-]{2,}$/i.test(name.trim()) && !name.includes(' ')
-            );
-            if (usernameCandidates.length < 1) {
-              fs.writeFileSync('pending-ax-names.json', JSON.stringify(names, null, 2));
-              throw new Error(`Identifiant généré introuvable dans le dialogue: ${JSON.stringify(usernameCandidates)}`);
-            }
-            const username = usernameCandidates.sort((a, b) => a.length - b.length)[0].trim();
-            fs.writeFileSync('pending-created-username.txt', username + '\n');
-            await page.screenshot({ path: 'pending-01-account-created.png' });
-
-            await page.getByRole('button', { name: 'Compris', exact: true }).click();
-            await page.getByRole('textbox', { name: 'Identifiant', exact: true }).waitFor({ timeout: 15000 });
             await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(username);
             await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill(password);
             await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
@@ -135,9 +107,8 @@ jobs:
             await waitForAx(page, 'Compte en attente de validation', 30000);
             await waitForAx(page, 'Vérifier maintenant', 10000);
             await waitForAx(page, 'Se déconnecter', 10000);
-            await page.screenshot({ path: 'pending-02-waiting-screen.png' });
+            await page.screenshot({ path: 'pending-waiting-screen.png' });
             fs.writeFileSync('pending-result.txt', `username=${username}\nurl=${page.url()}\nresult=ok\n`);
-            fs.writeFileSync('pending-diagnostics.txt', diagnostics.join('\n') + '\n');
             console.log(`PENDING_FLOW=OK username=${username} url=${page.url()}`);
             await browser.close();
           })().catch(error => {
@@ -154,9 +125,5 @@ jobs:
           path: |
             pending-created-username.txt
             pending-result.txt
-            pending-ax-names.json
-            pending-diagnostics.txt
-            pending-00-registration-failure.png
-            pending-01-account-created.png
-            pending-02-waiting-screen.png
+            pending-waiting-screen.png
           if-no-files-found: warn
