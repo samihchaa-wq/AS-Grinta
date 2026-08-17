@@ -94,6 +94,13 @@ class PredictionsController extends StateNotifier<PredictionsState> {
           )
           .toList();
       state = state.copyWith(items: items, clearSaving: true, clearError: true);
+    } on PredictionWriteOutcomeUnknown catch (error, stackTrace) {
+      AppLogger.error('predictions.save_outcome_unknown', error, stackTrace);
+      state = state.copyWith(
+        clearSaving: true,
+        error: 'Connexion interrompue : ton pronostic a peut-être été '
+            'enregistré. Actualise la page avant de réessayer.',
+      );
     } catch (error, stackTrace) {
       AppLogger.error('predictions.save', error, stackTrace);
       state = state.copyWith(
