@@ -1,0 +1,195 @@
+name: QA apply auth race fix v2
+
+on:
+  push:
+    branches: [fix/auth-signin-offline-feedback]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: qa-apply-auth-race-fix-v2
+  cancel-in-progress: false
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/auth-signin-offline-feedback
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Apply reviewed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          auth = Path('lib/features/auth/presentation/auth_state.dart')
+          text = auth.read_text()
+          changed = False
+
+          if "rendered.contains('invalid_credentials')" not in text:
+              pattern = re.compile(
+                  r"String authSignInErrorMessage\(Object error\) \{\n"
+                  r"  if \(error is supabase\.AuthException\) \{\n"
+                  r"    final code = error\.code\?\.toLowerCase\(\);\n"
+                  r"    final message = error\.message\.toLowerCase\(\);\n"
+                  r"    if \(code == 'invalid_credentials' \|\|\n"
+                  r"        message\.contains\('invalid login credentials'\)\) \{\n"
+                  r"      return _invalidCredentialsMessage;\n"
+                  r"    \}\n"
+                  r"  \}\n"
+                  r"  return _signInUnavailableMessage;\n"
+                  r"\}"
+              )
+              replacement = """String authSignInErrorMessage(Object error) {
+            if (error is supabase.AuthException) {
+              final code = error.code?.toLowerCase();
+              final message = error.message.toLowerCase();
+              if (code == 'invalid_credentials' ||
+                  message.contains('invalid login credentials')) {
+                return _invalidCredentialsMessage;
+              }
+            }
+
+            // Selon la plateforme et la version du client Auth, l'erreur peut
+            // être enveloppée avant d'arriver ici. On ne classe comme mauvais
+            // identifiants que les marqueurs explicites renvoyés par GoTrue.
+            final rendered = error.toString().toLowerCase();
+            if (rendered.contains('invalid_credentials') ||
+                rendered.contains('invalid login credentials')) {
+              return _invalidCredentialsMessage;
+            }
+            return _signInUnavailableMessage;
+          }"""
+              text, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit(f'Mapper auth inattendu: {count} occurrence.')
+              changed = True
+
+          if 'Un signedOut tardif peut arriver' not in text:
+              pattern = re.compile(
+                  r"      if \(event\.event == supabase\.AuthChangeEvent\.signedOut\) \{\n"
+                  r"        _retryRefreshQueued = false;\n"
+                  r"        state = const AuthState\(isLoading: false\);\n"
+                  r"        return;\n"
+                  r"      \}"
+              )
+              replacement = """      if (event.event == supabase.AuthChangeEvent.signedOut) {
+                _retryRefreshQueued = false;
+                // Un signedOut tardif peut arriver après l'échec d'une tentative
+                // de connexion. Il doit remettre la session à zéro sans effacer
+                // le message que l'utilisateur vient de recevoir.
+                state = state.copyWith(
+                  isLoading: false,
+                  isSaving: false,
+                  isAuthenticated: false,
+                  hasSession: false,
+                  clearProfile: true,
+                );
+                return;
+              }"""
+              text, count = pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit(f'Bloc signedOut inattendu: {count} occurrence.')
+              changed = True
+
+          auth.write_text(text)
+
+          controller_test = Path('test/auth_controller_test.dart')
+          tests = controller_test.read_text()
+          if 'late signedOut keeps the sign-in error visible' not in tests:
+              marker = "    test('signOut clears the authenticated state', () async {\n"
+              if marker not in tests:
+                  raise SystemExit('Point insertion test signedOut introuvable.')
+              block = """    test('late signedOut keeps the sign-in error visible', () async {
+              final repository = _FakeAuthRepository(
+                fetchResults: [null],
+                signInError: StateError('backend failure'),
+              );
+              final controller = AuthController(repository);
+              addTearDown(controller.dispose);
+              await _flushAsync();
+
+              await controller.signIn(
+                username: 'samih@example.com',
+                password: 'password123',
+              );
+              expect(
+                controller.state.error,
+                'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
+              );
+
+              repository.emit(supabase.AuthChangeEvent.signedOut);
+              await _flushAsync();
+
+              expect(controller.state.isLoading, isFalse);
+              expect(controller.state.hasSession, isFalse);
+              expect(controller.state.profile, isNull);
+              expect(
+                controller.state.error,
+                'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
+              );
+            });
+
+          """
+              controller_test.write_text(tests.replace(marker, block + marker, 1))
+              changed = True
+
+          mapper_test = Path('test/auth_signin_error_message_test.dart')
+          mapper_tests = mapper_test.read_text()
+          if 'wrapped invalid-credentials text keeps the credential message' not in mapper_tests:
+              marker = "  test('timeout is reported as a temporary connection problem', () {\n"
+              if marker not in mapper_tests:
+                  raise SystemExit('Point insertion test mapper introuvable.')
+              block = """  test('wrapped invalid-credentials text keeps the credential message', () {
+              expect(
+                authSignInErrorMessage(
+                  StateError(
+                    'AuthApiException(message: Invalid login credentials, '
+                    'statusCode: 400, code: invalid_credentials)',
+                  ),
+                ),
+                'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
+              );
+            });
+
+          """
+              mapper_test.write_text(mapper_tests.replace(marker, block + marker, 1))
+              changed = True
+
+          print('changed=', changed)
+          PY
+
+          dart format lib/features/auth/presentation/auth_state.dart \
+            test/auth_controller_test.dart \
+            test/auth_signin_error_message_test.dart
+
+      - name: Commit patch if needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/auth/presentation/auth_state.dart \
+            test/auth_controller_test.dart \
+            test/auth_signin_error_message_test.dart
+          git commit -m 'fix(auth): conserver le retour utilisateur après échec'
+          git push origin HEAD:fix/auth-signin-offline-feedback
