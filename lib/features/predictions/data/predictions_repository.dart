@@ -1,8 +1,52 @@
+import 'dart:async';
+
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/features/predictions/domain/prediction_scoring.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+const _predictionReadTimeout = Duration(seconds: 8);
+const _predictionWriteTimeout = Duration(seconds: 12);
+
+class PredictionWriteOutcomeUnknown implements Exception {
+  const PredictionWriteOutcomeUnknown();
+
+  @override
+  String toString() => 'Prediction write outcome is unknown.';
+}
+
+Future<void> confirmPredictionWrite({
+  required Future<void> Function() submit,
+  required Future<bool> Function() readBackMatchesExpected,
+  Duration writeTimeout = _predictionWriteTimeout,
+  Duration readTimeout = _predictionReadTimeout,
+}) async {
+  try {
+    await submit().timeout(writeTimeout);
+    return;
+  } on PostgrestException {
+    // Le serveur a explicitement refusé l'écriture : l'échec est certain.
+    rethrow;
+  } on StateError {
+    // Un résultat RPC inattendu est également un échec certain, pas une
+    // coupure réseau ambiguë à confirmer par une lecture.
+    rethrow;
+  } catch (_) {
+    // Timeout, transport interrompu ou accusé perdu : l'écriture a peut-être
+    // été appliquée. On ne la rejoue pas ; on relit son état serveur.
+  }
+
+  try {
+    if (await readBackMatchesExpected().timeout(readTimeout)) {
+      return;
+    }
+  } catch (_) {
+    // La relecture est elle-même indisponible : le résultat reste inconnu.
+  }
+
+  throw const PredictionWriteOutcomeUnknown();
+}
 
 class MatchPredictionItem {
   const MatchPredictionItem({
@@ -222,17 +266,28 @@ class PredictionsRepository {
       throw ArgumentError('Les scores doivent être compris entre 0 et 99.');
     }
 
-    final result = await _client.rpc(
-      'save_match_prediction',
-      params: {
-        'p_match_id': matchId,
-        'p_score_as_grinta': scoreGrinta,
-        'p_score_adverse': scoreOpponent,
+    await confirmPredictionWrite(
+      submit: () async {
+        final result = await _client.rpc(
+          'save_match_prediction',
+          params: {
+            'p_match_id': matchId,
+            'p_score_as_grinta': scoreGrinta,
+            'p_score_adverse': scoreOpponent,
+          },
+        );
+        if (result != true) {
+          throw StateError('Le pronostic n’a pas pu être enregistré.');
+        }
+      },
+      readBackMatchesExpected: () async {
+        final current = await fetchMatchPrediction(matchId);
+        return current != null &&
+            current.isFilled &&
+            current.scoreGrinta == scoreGrinta &&
+            current.scoreOpponent == scoreOpponent;
       },
     );
-    if (result != true) {
-      throw StateError('Le pronostic n’a pas pu être enregistré.');
-    }
   }
 }
 
