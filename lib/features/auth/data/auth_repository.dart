@@ -9,6 +9,7 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const _signInTimeout = Duration(seconds: 12);
 const _profilePhotoUploadTimeout = Duration(seconds: 15);
 const _profilePhotoWriteTimeout = Duration(seconds: 12);
 const _profilePhotoReadTimeout = Duration(seconds: 8);
@@ -124,10 +125,12 @@ class AuthRepository {
     final email = normalized.contains('@')
         ? normalized
         : '$normalized@${AppConfig.usernameDomain}';
-    final response = await _client.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    final response = await _client.auth
+        .signInWithPassword(
+          email: email,
+          password: password,
+        )
+        .timeout(_signInTimeout);
     if (response.session == null || response.user == null) {
       throw const AuthException('Session non créée après authentification.');
     }
