@@ -300,6 +300,24 @@ class AuthController extends StateNotifier<AuthState> {
         profile: profile,
         clearError: true,
       );
+    } on ProfilePhotoWriteConfirmedButRefreshFailed {
+      state = state.copyWith(
+        isSaving: false,
+        error: 'Photo enregistrée, mais le profil n’a pas pu être actualisé. '
+            'Actualise la page.',
+      );
+    } on ProfilePhotoUploadOutcomeUnknown {
+      state = state.copyWith(
+        isSaving: false,
+        error: 'Connexion interrompue pendant l’envoi de la photo. '
+            'Actualise le profil avant de réessayer.',
+      );
+    } on ProfilePhotoWriteOutcomeUnknown {
+      state = state.copyWith(
+        isSaving: false,
+        error: 'Connexion interrompue : la photo a peut-être été enregistrée. '
+            'Actualise le profil avant de réessayer.',
+      );
     } catch (_) {
       state = state.copyWith(
         isSaving: false,
