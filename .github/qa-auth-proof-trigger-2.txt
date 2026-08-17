@@ -1,0 +1,1 @@
+rerun published staging auth proof after second fix
