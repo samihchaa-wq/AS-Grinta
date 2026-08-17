@@ -93,7 +93,7 @@ insert into public.matches(
 values (
   'e5000000-0000-0000-0000-000000000001',
   'e3000000-0000-0000-0000-000000000001',
-  date '2099-04-01',
+  current_date - 1,
   time '20:00',
   'domicile',
   90,
