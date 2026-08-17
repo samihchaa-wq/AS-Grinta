@@ -30,6 +30,18 @@ void main() {
     );
   });
 
+  test('wrapped invalid-credentials text keeps the credential message', () {
+    expect(
+      authSignInErrorMessage(
+        StateError(
+          'AuthApiException(message: Invalid login credentials, '
+          'statusCode: 400, code: invalid_credentials)',
+        ),
+      ),
+      'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
+    );
+  });
+
   test('timeout is reported as a temporary connection problem', () {
     expect(
       authSignInErrorMessage(TimeoutException('auth timed out')),
