@@ -79,6 +79,9 @@ values (
   null
 );
 
+-- Les trois joueurs sont créés par le même parcours réel : actifs au départ.
+-- Le troisième sera archivé avant le verrou après avoir déjà eu un prono,
+-- ce qui reproduit le cas qui provoquait l'incohérence de classement.
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper,
   is_active, position, profile_id
@@ -99,7 +102,7 @@ values
   (
     'c9300000-0000-0000-0000-000000000003',
     'c9200000-0000-0000-0000-000000000001',
-    'Archive', 'AvantLock', false, false, 3,
+    'Archive', 'AvantLock', false, true, 3,
     null
   );
 
@@ -119,6 +122,12 @@ values
     'c9100000-0000-0000-0000-000000000002',
     'c9300000-0000-0000-0000-000000000002',
     'clean_sheets', 1, true
+  ),
+  (
+    'c9200000-0000-0000-0000-000000000001',
+    'c9100000-0000-0000-0000-000000000002',
+    'c9300000-0000-0000-0000-000000000003',
+    'buts', 5, true
   )
 on conflict (
   season_id, predictor_profile_id, season_player_id, category
@@ -127,6 +136,12 @@ do update set
   predicted_value_30 = excluded.predicted_value_30,
   is_filled = true,
   updated_at = now();
+
+-- Un joueur peut être archivé après qu'un prono a déjà été enregistré mais
+-- avant le verrou. Il ne doit donc pas entrer dans le contrat figé au lock.
+update public.season_players
+set is_active = false
+where id = 'c9300000-0000-0000-0000-000000000003';
 
 select set_config(
   'request.jwt.claims',
@@ -197,24 +212,6 @@ select ok(
   ),
   'archiver ou reactiver apres le lock ne change pas le contrat'
 );
-
-insert into public.season_predictions(
-  season_id, predictor_profile_id, season_player_id,
-  category, predicted_value_30, is_filled
-)
-values (
-  'c9200000-0000-0000-0000-000000000001',
-  'c9100000-0000-0000-0000-000000000002',
-  'c9300000-0000-0000-0000-000000000003',
-  'buts', 5, true
-)
-on conflict (
-  season_id, predictor_profile_id, season_player_id, category
-)
-do update set
-  predicted_value_30 = excluded.predicted_value_30,
-  is_filled = true,
-  updated_at = now();
 
 insert into public.matches(
   id, season_id, match_date, match_time, location,
