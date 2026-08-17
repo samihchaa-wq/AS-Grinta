@@ -98,10 +98,7 @@ class SupabaseMatchAvailabilityRepository
 
   Future<MatchAvailability?> _fetchMyAvailability(String matchId) async {
     final response = await _client
-        .rpc(
-          'get_my_match_availability',
-          params: {'p_match_id': matchId},
-        )
+        .rpc('get_my_match_availability', params: {'p_match_id': matchId})
         .timeout(_availabilityReadTimeout);
     if (response == null) return null;
     return MatchAvailability.fromRpc(response);
@@ -157,7 +154,7 @@ class SupabaseMatchAvailabilityRepository
 
 final matchAvailabilityRepositoryProvider =
     Provider<MatchAvailabilityRepository>((ref) {
-  return SupabaseMatchAvailabilityRepository(
-    ref.watch(supabaseClientProvider),
-  );
-});
+      return SupabaseMatchAvailabilityRepository(
+        ref.watch(supabaseClientProvider),
+      );
+    });

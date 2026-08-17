@@ -89,32 +89,38 @@ void main() {
       expect(readBackCalls, 0);
     });
 
-    test('distinguishes saved-but-refresh-failed from unknown outcome', () async {
-      await expectLater(
-        confirmMatchAvailabilityWrite(
-          submit: () async => {'changed': true},
-          readBack: () async => throw TimeoutException('read timeout'),
-          expectedStatus: MatchAvailabilityStatus.available,
-          expectedPrivateComment: null,
-        ),
-        throwsA(isA<MatchAvailabilityWriteConfirmedButRefreshFailed>()),
-      );
-    });
+    test(
+      'distinguishes saved-but-refresh-failed from unknown outcome',
+      () async {
+        await expectLater(
+          confirmMatchAvailabilityWrite(
+            submit: () async => {'changed': true},
+            readBack: () async => throw TimeoutException('read timeout'),
+            expectedStatus: MatchAvailabilityStatus.available,
+            expectedPrivateComment: null,
+          ),
+          throwsA(isA<MatchAvailabilityWriteConfirmedButRefreshFailed>()),
+        );
+      },
+    );
 
-    test('checks the private comment when confirming an absent response', () async {
-      final expected = _availability(
-        MatchAvailabilityStatus.absent,
-        privateComment: 'Blessé',
-      );
+    test(
+      'checks the private comment when confirming an absent response',
+      () async {
+        final expected = _availability(
+          MatchAvailabilityStatus.absent,
+          privateComment: 'Blessé',
+        );
 
-      final result = await confirmMatchAvailabilityWrite(
-        submit: () async => throw TimeoutException('ack lost'),
-        readBack: () async => expected,
-        expectedStatus: MatchAvailabilityStatus.absent,
-        expectedPrivateComment: 'Blessé',
-      );
+        final result = await confirmMatchAvailabilityWrite(
+          submit: () async => throw TimeoutException('ack lost'),
+          readBack: () async => expected,
+          expectedStatus: MatchAvailabilityStatus.absent,
+          expectedPrivateComment: 'Blessé',
+        );
 
-      expect(result.privateComment, 'Blessé');
-    });
+        expect(result.privateComment, 'Blessé');
+      },
+    );
   });
 }

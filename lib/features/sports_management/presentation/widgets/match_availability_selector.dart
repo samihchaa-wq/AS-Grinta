@@ -118,7 +118,9 @@ class _MatchAvailabilitySelectorState
     setState(() => _saving = true);
 
     try {
-      await ref.read(matchAvailabilityRepositoryProvider).setMyAvailability(
+      await ref
+          .read(matchAvailabilityRepositoryProvider)
+          .setMyAvailability(
             matchId: availability.matchId,
             status: status,
             privateComment: privateComment,
@@ -130,9 +132,8 @@ class _MatchAvailabilitySelectorState
 
       if (!mounted) return;
       final label = _statusLabel(status);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$label enregistré.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$label enregistré.')));
     } on MatchAvailabilityWriteConfirmedButRefreshFailed {
       ref
         ..invalidate(myMatchAvailabilityProvider(widget.matchId))
@@ -162,16 +163,17 @@ class _MatchAvailabilitySelectorState
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(humanizeError(error))),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
   String _statusLabel(MatchAvailabilityStatus status) {
-    return status == MatchAvailabilityStatus.available ? 'Présent' : status.label;
+    return status == MatchAvailabilityStatus.available
+        ? 'Présent'
+        : status.label;
   }
 }
 
@@ -203,8 +205,9 @@ class _AvailabilityPanel extends StatelessWidget {
         availability.status == MatchAvailabilityStatus.available;
     final selectedAbsent =
         availability.status == MatchAvailabilityStatus.absent;
-    final secondary =
-        embeddedOnDark ? const Color(0xFFD7C8FF) : AppTheme.textSecondary;
+    final secondary = embeddedOnDark
+        ? const Color(0xFFD7C8FF)
+        : AppTheme.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(12),
