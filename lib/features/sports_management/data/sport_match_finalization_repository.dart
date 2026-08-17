@@ -12,7 +12,9 @@ class SportMatchFinalizationWriteOutcomeUnknown implements Exception {
   const SportMatchFinalizationWriteOutcomeUnknown();
 
   @override
-  String toString() => 'Sport match finalization outcome is unknown.';
+  String toString() =>
+      'Connexion interrompue : le match a peut-être été validé. '
+      'Tes saisies restent affichées. Actualise la page avant de réessayer.';
 }
 
 bool sportMatchFinalizationMatchesSubmitted(
