@@ -153,4 +153,5 @@ select is(
   'la vraie modification conserve le nouveau score'
 );
 
+select * from finish();
 rollback;
