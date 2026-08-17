@@ -1,0 +1,51 @@
+name: Temporary format internal match patch
+
+on:
+  push:
+    branches: ['db/internal-match-atomic-update']
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: db/internal-match-atomic-update
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Resolve locked dependencies and format
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+          dart format \
+            lib/features/matches/data/matches_repository.dart \
+            lib/features/matches/presentation/matches_controller.dart \
+            test/internal_match_atomic_update_contract_test.dart
+          rm .github/workflows/tmp_format_internal_match.yml
+          git diff --check
+
+      - name: Commit exact CI formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            lib/features/matches/data/matches_repository.dart \
+            lib/features/matches/presentation/matches_controller.dart \
+            test/internal_match_atomic_update_contract_test.dart \
+            .github/workflows/tmp_format_internal_match.yml
+          git commit -m 'style: format atomic internal match patch'
+          git push origin HEAD:db/internal-match-atomic-update
