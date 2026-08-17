@@ -216,12 +216,12 @@ class MatchLiveStateController
     final operationId = _newScoreOperationId();
     return _mutate((repository) async {
       Future<MatchLiveStateBundle> send() => repository.adjustScore(
-            matchId: arg,
-            team: team,
-            delta: delta,
-            operationId: operationId,
-            scorerParticipantId: scorerParticipantId,
-          );
+        matchId: arg,
+        team: team,
+        delta: delta,
+        operationId: operationId,
+        scorerParticipantId: scorerParticipantId,
+      );
 
       try {
         return await send();
