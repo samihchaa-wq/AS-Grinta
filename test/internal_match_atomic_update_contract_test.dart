@@ -12,6 +12,7 @@ String _methodBlock(String source, String startMarker, String endMarker) {
 }
 
 void main() {
+  // Empêche le retour à deux écritures serveur successives pour un même match.
   test('un match entre nous est sauvegardé avec une seule RPC', () {
     final repositorySource = File(
       'lib/features/matches/data/matches_repository.dart',
