@@ -24,7 +24,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Use browser hash as the Web initial location for experiment
+      - name: Force register as GoRouter initial location for experiment
         shell: bash
         run: |
           set -euo pipefail
@@ -33,13 +33,13 @@ jobs:
           p = Path('lib/app/router/app_router.dart')
           text = p.read_text()
           needle = "    initialLocation: '/matches',\n"
-          replacement = "    initialLocation: Uri.base.fragment.startsWith('/')\n        ? Uri.base.fragment\n        : '/matches',\n"
+          replacement = "    initialLocation: '/auth/register',\n"
           if text.count(needle) < 2:
               raise SystemExit('Expected both global and shell-branch initialLocation entries.')
           text = text.replace(needle, replacement, 1)
           p.write_text(text)
           PY
-          grep -Fq "initialLocation: Uri.base.fragment.startsWith('/')" lib/app/router/app_router.dart
+          grep -Fq "initialLocation: '/auth/register'," lib/app/router/app_router.dart
           count=$(grep -Fc "initialLocation: '/matches'," lib/app/router/app_router.dart || true)
           test "$count" = '1'
           git diff -- lib/app/router/app_router.dart
@@ -81,7 +81,7 @@ jobs:
       - name: Install Playwright Core
         run: npm install --no-save playwright-core@1.52.0
 
-      - name: Serve and inspect cold registration deep-link
+      - name: Serve and inspect forced registration startup
         shell: bash
         run: |
           set -euo pipefail
@@ -138,7 +138,7 @@ jobs:
             fs.appendFileSync('register-deeplink-result.txt', `prenomVisible=${fieldVisible}\n`);
             await browser.close();
             if (!finalUrl.includes('/auth/register') || !fieldVisible) {
-              throw new Error(`Cold registration still lost: ${finalUrl}; prenomVisible=${fieldVisible}`);
+              throw new Error(`Forced registration startup still lost: ${finalUrl}; prenomVisible=${fieldVisible}`);
             }
           })().catch(error => {
             console.error(error);
