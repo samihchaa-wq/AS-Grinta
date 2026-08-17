@@ -68,7 +68,7 @@ jobs:
             --no-web-resources-cdn \
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$app_version"
-          python3 tool/stamp_web_release.py
+          WEB_VERSION="$web_version" python3 tool/stamp_web_release.py
           MAX_MAIN_DART_JS_BYTES=5600000 \
           MAX_MAIN_DART_JS_GZIP_BYTES=1600000 \
             python3 tool/check_web_performance_budget.py
@@ -103,7 +103,7 @@ jobs:
             --no-web-resources-cdn \
             --dart-define-from-file=config/staging.json \
             --dart-define=APP_VERSION="$app_version"
-          python3 tool/stamp_web_release.py
+          WEB_VERSION="$web_version" python3 tool/stamp_web_release.py
           cp build/web/index.html build/web/404.html
           grep -q '/AS-Grinta/staging/' build/web/index.html
           grep -q 'Content-Security-Policy' build/web/index.html
