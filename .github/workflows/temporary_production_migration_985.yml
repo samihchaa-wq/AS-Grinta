@@ -54,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase db push --linked --include-all --dry-run | tee /tmp/prod-migration-dry-run.log
+          supabase db push --linked --include-all --dry-run 2>&1 | tee /tmp/prod-migration-dry-run.log
           grep -q '20260817175500' /tmp/prod-migration-dry-run.log
 
       - name: Apply migration 480
@@ -67,5 +67,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase migration list | tee /tmp/prod-migration-list.log
+          supabase migration list 2>&1 | tee /tmp/prod-migration-list.log
           awk -F'|' '{ remote=$2; gsub(/[^0-9]/, "", remote); if (remote == "20260817175500") found=1 } END { exit !found }' /tmp/prod-migration-list.log
