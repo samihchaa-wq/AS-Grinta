@@ -28,24 +28,28 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           auth = Path('lib/features/auth/presentation/auth_state.dart')
           text = auth.read_text()
+          changed = False
 
-          old_mapper = """String authSignInErrorMessage(Object error) {
-            if (error is supabase.AuthException) {
-              final code = error.code?.toLowerCase();
-              final message = error.message.toLowerCase();
-              if (code == 'invalid_credentials' ||
-                  message.contains('invalid login credentials')) {
-                return _invalidCredentialsMessage;
-              }
-            }
-            return _signInUnavailableMessage;
-          }
-          """.replace('          ', '')
-          new_mapper = """String authSignInErrorMessage(Object error) {
+          if "rendered.contains('invalid_credentials')" not in text:
+              mapper_pattern = re.compile(
+                  r"String authSignInErrorMessage\(Object error\) \{\n"
+                  r"  if \(error is supabase\.AuthException\) \{\n"
+                  r"    final code = error\.code\?\.toLowerCase\(\);\n"
+                  r"    final message = error\.message\.toLowerCase\(\);\n"
+                  r"    if \(code == 'invalid_credentials' \|\|\n"
+                  r"        message\.contains\('invalid login credentials'\)\) \{\n"
+                  r"      return _invalidCredentialsMessage;\n"
+                  r"    \}\n"
+                  r"  \}\n"
+                  r"  return _signInUnavailableMessage;\n"
+                  r"\}"
+              )
+              replacement = """String authSignInErrorMessage(Object error) {
             if (error is supabase.AuthException) {
               final code = error.code?.toLowerCase();
               final message = error.message.toLowerCase();
@@ -64,16 +68,21 @@ jobs:
               return _invalidCredentialsMessage;
             }
             return _signInUnavailableMessage;
-          }
-          """.replace('          ', '')
+          }"""
+              text, count = mapper_pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit(f'Mapper auth inattendu: {count} occurrence remplacée.')
+              changed = True
 
-          old_signed_out = """      if (event.event == supabase.AuthChangeEvent.signedOut) {
-                _retryRefreshQueued = false;
-                state = const AuthState(isLoading: false);
-                return;
-              }
-          """.replace('      ', '')
-          new_signed_out = """      if (event.event == supabase.AuthChangeEvent.signedOut) {
+          if 'Un signedOut tardif peut arriver' not in text:
+              signed_out_pattern = re.compile(
+                  r"      if \(event\.event == supabase\.AuthChangeEvent\.signedOut\) \{\n"
+                  r"        _retryRefreshQueued = false;\n"
+                  r"        state = const AuthState\(isLoading: false\);\n"
+                  r"        return;\n"
+                  r"      \}"
+              )
+              replacement = """      if (event.event == supabase.AuthChangeEvent.signedOut) {
                 _retryRefreshQueued = false;
                 // Un signedOut tardif peut arriver après l'échec d'une tentative
                 // de connexion. Il doit remettre la session à zéro sans effacer
@@ -86,29 +95,23 @@ jobs:
                   clearProfile: true,
                 );
                 return;
-              }
-          """.replace('      ', '')
-
-          changed = False
-          if old_mapper in text:
-              text = text.replace(old_mapper, new_mapper, 1)
+              }"""
+              text, count = signed_out_pattern.subn(replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit(
+                      f'Bloc signedOut inattendu: {count} occurrence remplacée.'
+                  )
               changed = True
-          elif new_mapper not in text:
-              raise SystemExit('Mapper auth inattendu: patch refusé.')
-
-          if old_signed_out in text:
-              text = text.replace(old_signed_out, new_signed_out, 1)
-              changed = True
-          elif new_signed_out not in text:
-              raise SystemExit('Bloc signedOut inattendu: patch refusé.')
 
           auth.write_text(text)
 
           controller_test = Path('test/auth_controller_test.dart')
           tests = controller_test.read_text()
-          marker = """    test('signOut clears the authenticated state', () async {
-          """
-          late_event_test = """    test('late signedOut keeps the sign-in error visible', () async {
+          if 'late signedOut keeps the sign-in error visible' not in tests:
+              marker = "    test('signOut clears the authenticated state', () async {\n"
+              if marker not in tests:
+                  raise SystemExit('Point insertion test signedOut introuvable.')
+              late_event_test = """    test('late signedOut keeps the sign-in error visible', () async {
               final repository = _FakeAuthRepository(
                 fetchResults: [null],
                 signInError: StateError('backend failure'),
@@ -139,18 +142,17 @@ jobs:
             });
 
           """
-          if 'late signedOut keeps the sign-in error visible' not in tests:
-              if marker not in tests:
-                  raise SystemExit('Point insertion test signedOut introuvable.')
               tests = tests.replace(marker, late_event_test + marker, 1)
+              controller_test.write_text(tests)
               changed = True
-          controller_test.write_text(tests)
 
           mapper_test = Path('test/auth_signin_error_message_test.dart')
           mapper_tests = mapper_test.read_text()
-          marker2 = """  test('timeout is reported as a temporary connection problem', () {
-          """
-          wrapped_test = """  test('wrapped invalid-credentials text keeps the credential message', () {
+          if 'wrapped invalid-credentials text keeps the credential message' not in mapper_tests:
+              marker = "  test('timeout is reported as a temporary connection problem', () {\n"
+              if marker not in mapper_tests:
+                  raise SystemExit('Point insertion test mapper introuvable.')
+              wrapped_test = """  test('wrapped invalid-credentials text keeps the credential message', () {
               expect(
                 authSignInErrorMessage(
                   StateError(
@@ -163,15 +165,11 @@ jobs:
             });
 
           """
-          if 'wrapped invalid-credentials text keeps the credential message' not in mapper_tests:
-              if marker2 not in mapper_tests:
-                  raise SystemExit('Point insertion test mapper introuvable.')
-              mapper_tests = mapper_tests.replace(marker2, wrapped_test + marker2, 1)
+              mapper_tests = mapper_tests.replace(marker, wrapped_test + marker, 1)
+              mapper_test.write_text(mapper_tests)
               changed = True
-          mapper_test.write_text(mapper_tests)
 
-          if not changed:
-              print('Patch déjà appliqué.')
+          print('changed=', changed)
           PY
 
           dart format lib/features/auth/presentation/auth_state.dart \
