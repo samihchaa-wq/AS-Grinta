@@ -45,6 +45,25 @@ void main() {
       );
       expect(attempts, 2);
     });
+
+    test('does not retry an explicit storage rejection', () async {
+      var attempts = 0;
+      const serverError = StorageException(
+        'Upload refused',
+        statusCode: '403',
+      );
+
+      await expectLater(
+        uploadProfilePhotoObjectWithRetry(
+          upload: () async {
+            attempts += 1;
+            throw serverError;
+          },
+        ),
+        throwsA(same(serverError)),
+      );
+      expect(attempts, 1);
+    });
   });
 
   group('confirmProfilePhotoReferenceWrite', () {
