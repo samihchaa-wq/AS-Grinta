@@ -106,10 +106,13 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('archived profiles are signed out and rejected', () async {
+    test(
+        'archived profiles preserve their rejection when signedOut fires during signOut',
+        () async {
       final repository = _FakeAuthRepository(
         fetchResults: [_archivedProfile],
         hasSession: true,
+        emitSignedOutDuringSignOut: true,
       );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
@@ -266,10 +269,12 @@ class _FakeAuthRepository implements AuthRepository {
     required List<Object?> fetchResults,
     this.signInError,
     this.hasSession = false,
+    this.emitSignedOutDuringSignOut = false,
   }) : _fetchResults = List<Object?>.from(fetchResults);
 
   final List<Object?> _fetchResults;
   final Object? signInError;
+  final bool emitSignedOutDuringSignOut;
   final StreamController<supabase.AuthState> _authController =
       StreamController<supabase.AuthState>.broadcast();
 
@@ -310,6 +315,10 @@ class _FakeAuthRepository implements AuthRepository {
   Future<void> signOut() async {
     signOutCalls += 1;
     hasSession = false;
+    if (emitSignedOutDuringSignOut) {
+      emit(supabase.AuthChangeEvent.signedOut);
+      await Future<void>.delayed(Duration.zero);
+    }
   }
 
   @override
