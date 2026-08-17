@@ -1,0 +1,32 @@
+name: QA archived fix regression
+
+on:
+  push:
+    branches: [qa/auth-archived-probe]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/auth-archived-message-race
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+      - name: Check changed Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib/features/auth/presentation/auth_state.dart test/auth_controller_test.dart
+      - name: Analyze changed auth files
+        run: flutter analyze --fatal-infos --fatal-warnings lib/features/auth/presentation/auth_state.dart test/auth_controller_test.dart
+      - name: Run AuthController regression
+        run: flutter test test/auth_controller_test.dart
