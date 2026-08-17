@@ -48,7 +48,8 @@ void main() {
   });
 
   group('confirmProfilePhotoReferenceWrite', () {
-    test('does not read back or clean up after an acknowledged write', () async {
+    test('does not read back or clean up after an acknowledged write',
+        () async {
       var readBackCalls = 0;
       var cleanupCalls = 0;
 
@@ -83,7 +84,8 @@ void main() {
       expect(cleanupCalls, 0);
     });
 
-    test('cleans up when read-back proves the reference was not written', () async {
+    test('cleans up when read-back proves the reference was not written',
+        () async {
       var cleanupCalls = 0;
 
       await expectLater(
