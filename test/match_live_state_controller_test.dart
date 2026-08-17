@@ -103,45 +103,48 @@ void main() {
     },
   );
 
-  test('a lost score response retries with the exact same operation id', () async {
-    final repository = _ControlledMatchLiveRepository(
-      _bundle(score: 0),
-      scoreMutationErrors: [StateError('network response lost after commit')],
-      scoreMutationResult: _bundle(score: 1),
-    );
-    final container = ProviderContainer(
-      overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
-    );
-    addTearDown(container.dispose);
-    addTearDown(repository.dispose);
+  test(
+    'a lost score response retries with the exact same operation id',
+    () async {
+      final repository = _ControlledMatchLiveRepository(
+        _bundle(score: 0),
+        scoreMutationErrors: [StateError('network response lost after commit')],
+        scoreMutationResult: _bundle(score: 1),
+      );
+      final container = ProviderContainer(
+        overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      addTearDown(repository.dispose);
 
-    final provider = matchLiveStateProvider('match-1');
-    final subscription = container.listen(
-      provider,
-      (_, __) {},
-      fireImmediately: true,
-    );
-    addTearDown(subscription.close);
+      final provider = matchLiveStateProvider('match-1');
+      final subscription = container.listen(
+        provider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
 
-    await container.read(provider.future);
-    await _waitUntil(() => repository.pendingFetches.length == 1);
-    repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
-    await _flush();
+      await container.read(provider.future);
+      await _waitUntil(() => repository.pendingFetches.length == 1);
+      repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
+      await _flush();
 
-    await container.read(provider.notifier).adjustScore(team: 'us', delta: 1);
+      await container.read(provider.notifier).adjustScore(team: 'us', delta: 1);
 
-    expect(repository.scoreOperationIds, hasLength(2));
-    expect(repository.scoreOperationIds[1], repository.scoreOperationIds[0]);
-    expect(
-      repository.scoreOperationIds.first,
-      matches(
-        RegExp(
-          r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+      expect(repository.scoreOperationIds, hasLength(2));
+      expect(repository.scoreOperationIds[1], repository.scoreOperationIds[0]);
+      expect(
+        repository.scoreOperationIds.first,
+        matches(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+          ),
         ),
-      ),
-    );
-    expect(container.read(provider).value?.session.scoreAsGrinta, 1);
-  });
+      );
+      expect(container.read(provider).value?.session.scoreAsGrinta, 1);
+    },
+  );
 
   test('saveLiveLineup forwards the rendered lineup revision', () async {
     final repository = _ControlledMatchLiveRepository(_bundle(score: 0));
