@@ -30,6 +30,7 @@ jobs:
           const crypto = require('crypto');
           const { chromium } = require('playwright-core');
           const base = 'https://samihchaa-wq.github.io/AS-Grinta/staging';
+          const diagnostics = [];
 
           async function activate(page) {
             await page.locator('flutter-view, flt-glass-pane, canvas').first()
@@ -71,6 +72,18 @@ jobs:
               serviceWorkers: 'block',
             });
             const page = await context.newPage();
+            page.on('console', msg => {
+              if (msg.type() === 'error' || msg.type() === 'warning') diagnostics.push(`console ${msg.type()}: ${msg.text()}`);
+            });
+            page.on('response', response => {
+              if (response.url().includes('register-account')) {
+                diagnostics.push(`register-account response: ${response.status()} ${response.url()}`);
+              }
+            });
+            page.on('requestfailed', request => {
+              if (request.url().includes('supabase.co')) diagnostics.push(`request failed: ${request.url()} ${request.failure()?.errorText ?? ''}`);
+            });
+
             await page.goto(`${base}/#/auth/sign-in?pending=${Date.now()}`, {
               waitUntil: 'domcontentloaded', timeout: 45000,
             });
@@ -83,8 +96,23 @@ jobs:
             await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill(password);
             await page.getByRole('textbox', { name: 'Confirme ton mot de passe', exact: true }).fill(password);
             await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
-            await waitForAx(page, 'Compte créé', 30000);
-            await waitForAx(page, 'Ton compte restera en attente', 30000);
+
+            let created = false;
+            try {
+              await waitForAx(page, 'Compte créé', 15000);
+              created = true;
+            } catch (_) {
+              const namesAfterFailure = await axNames(page);
+              fs.writeFileSync('pending-ax-names.json', JSON.stringify(namesAfterFailure, null, 2));
+              fs.writeFileSync('pending-diagnostics.txt', diagnostics.join('\n') + '\n');
+              await page.screenshot({ path: 'pending-00-registration-failure.png' });
+              const visibleErrors = namesAfterFailure.filter(name =>
+                /échoué|erreur|limite|trop|mot de passe|nom|prénom|inscription|compte/i.test(name)
+              );
+              throw new Error(`Compte non créé. Messages visibles=${JSON.stringify(visibleErrors)} diagnostics=${JSON.stringify(diagnostics)}`);
+            }
+            if (!created) throw new Error('Compte non créé sans diagnostic.');
+            await waitForAx(page, 'Ton compte restera en attente', 10000);
 
             const names = await axNames(page);
             const usernameCandidates = [...new Set(names)].filter(name =>
@@ -109,6 +137,7 @@ jobs:
             await waitForAx(page, 'Se déconnecter', 10000);
             await page.screenshot({ path: 'pending-02-waiting-screen.png' });
             fs.writeFileSync('pending-result.txt', `username=${username}\nurl=${page.url()}\nresult=ok\n`);
+            fs.writeFileSync('pending-diagnostics.txt', diagnostics.join('\n') + '\n');
             console.log(`PENDING_FLOW=OK username=${username} url=${page.url()}`);
             await browser.close();
           })().catch(error => {
@@ -126,6 +155,8 @@ jobs:
             pending-created-username.txt
             pending-result.txt
             pending-ax-names.json
+            pending-diagnostics.txt
+            pending-00-registration-failure.png
             pending-01-account-created.png
             pending-02-waiting-screen.png
           if-no-files-found: warn
