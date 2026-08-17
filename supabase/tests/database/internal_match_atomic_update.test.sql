@@ -10,10 +10,11 @@ select ok(
     join pg_namespace nsp on nsp.oid = proc.pronamespace
     where nsp.nspname = 'public'
       and proc.proname = 'update_internal_match'
-      and proc.pronargs = 5
+      and proc.pronargs = 6
       and pg_get_function_arguments(proc.oid) like '%p_address text%'
+      and pg_get_function_arguments(proc.oid) like '%p_expected_updated_at timestamp with time zone%'
   ),
-  'la RPC atomique de modification d’un match entre nous existe'
+  'la RPC atomique et verrouillée de modification d’un match entre nous existe'
 );
 
 select ok(
@@ -23,23 +24,23 @@ select ok(
     join pg_namespace nsp on nsp.oid = proc.pronamespace
     where nsp.nspname = 'public'
       and proc.proname = 'update_internal_match'
-      and proc.pronargs = 4
+      and proc.pronargs in (4, 5)
   ),
-  'l’ancienne RPC non atomique de modification d’un match entre nous est supprimée'
+  'les anciennes RPC de modification d’un match entre nous sont supprimées'
 );
 
 select ok(
   has_function_privilege(
     'authenticated',
-    'public.update_internal_match(uuid,uuid,date,time without time zone,text)',
+    'public.update_internal_match(uuid,uuid,date,time without time zone,text,timestamp with time zone)',
     'EXECUTE'
   )
   and not has_function_privilege(
     'anon',
-    'public.update_internal_match(uuid,uuid,date,time without time zone,text)',
+    'public.update_internal_match(uuid,uuid,date,time without time zone,text,timestamp with time zone)',
     'EXECUTE'
   ),
-  'la RPC atomique est réservée aux clients authentifiés'
+  'la RPC atomique et verrouillée est réservée aux clients authentifiés'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)
@@ -70,7 +71,8 @@ insert into public.matches(
   planned_duration_minutes,
   status,
   match_type,
-  created_by
+  created_by,
+  updated_at
 )
 values (
   '43000000-0000-0000-0000-000000000020',
@@ -82,7 +84,8 @@ values (
   90,
   'a_venir',
   'entre_nous',
-  '43000000-0000-0000-0000-000000000001'
+  '43000000-0000-0000-0000-000000000001',
+  timestamptz '2026-02-01 00:00:00+00'
 );
 
 set local role authenticated;
@@ -94,7 +97,8 @@ select is(
     '43000000-0000-0000-0000-000000000011',
     date '2096-06-08',
     '21:15'::time,
-    'Nouvelle adresse'
+    'Nouvelle adresse',
+    timestamptz '2026-02-01 00:00:00+00'
   ),
   true,
   'la date, l’heure, la saison et l’adresse sont enregistrées par un seul appel'
@@ -118,12 +122,13 @@ set local request.jwt.claim.sub = '43000000-0000-0000-0000-000000000001';
 
 select throws_ok(
   format(
-    'select public.update_internal_match(%L::uuid,%L::uuid,%L::date,%L::time,%L)',
+    'select public.update_internal_match(%L::uuid,%L::uuid,%L::date,%L::time,%L,%L::timestamptz)',
     '43000000-0000-0000-0000-000000000020',
     '43000000-0000-0000-0000-000000000010',
     '2096-06-15',
     '22:30',
-    repeat('x', 301)
+    repeat('x', 301),
+    (select updated_at::text from public.matches where id = '43000000-0000-0000-0000-000000000020')
   ),
   '22023',
   'une adresse invalide fait échouer toute la sauvegarde'
