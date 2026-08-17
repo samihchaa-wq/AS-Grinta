@@ -152,7 +152,7 @@ jobs:
               }
             });
 
-            await runCase('registration-via-button-and-validation', async () => {
+            await runCase('registration-via-button-and-empty-validation', async () => {
               const { context, page } = await openSignIn(browser);
               try {
                 await waitForAxName(page, 'Identifiant');
@@ -167,7 +167,14 @@ jobs:
                 await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
                 await waitForAxName(page, 'Renseigne ton prénom et ton nom.');
                 await capture(page, '04-register-empty-error');
+              } finally {
+                await context.close();
+              }
+            });
 
+            await runCase('registration-weak-password', async () => {
+              const { context, page } = await openRoute(browser, '/auth/register');
+              try {
                 await page.getByRole('textbox', { name: 'Prénom', exact: true }).fill('Recette');
                 await page.getByRole('textbox', { name: 'Nom', exact: true }).fill('Grinta');
                 await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('abc');
@@ -222,7 +229,8 @@ jobs:
                 await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-offline-${Date.now()}`);
                 await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MotDePasseOffline123');
                 await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-                await waitForAxName(page, 'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.', 20000);
+                await waitForAxName(page, 'Connexion perdue', 20000);
+                await waitForAxName(page, 'Réessayer');
                 await capture(page, '09-sign-in-offline-network-message');
               } finally {
                 await context.close();
