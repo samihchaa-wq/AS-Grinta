@@ -48,6 +48,49 @@ jobs:
           python3 -m http.server 8080 --directory build/web >/tmp/http.log 2>&1 &
           echo $! > /tmp/http.pid
           sleep 2
+      - name: Verify cold registration deep-link
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright-core');
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            const requested = 'http://127.0.0.1:8080/#/auth/register';
+            await page.goto(requested, {
+              waitUntil: 'domcontentloaded', timeout: 45000,
+            });
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(1800);
+            await page.evaluate(() => {
+              const placeholder = document.querySelector('flt-semantics-placeholder');
+              if (placeholder instanceof HTMLElement) placeholder.click();
+            }).catch(() => {});
+            await page.getByRole('textbox', { name: 'Prénom', exact: true })
+              .waitFor({ timeout: 15000 });
+            if (!page.url().includes('/auth/register')) {
+              throw new Error(`Le deep-link inscription a été perdu: ${page.url()}`);
+            }
+            await page.screenshot({ path: 'runtime-auth-register-cold-start.png' });
+            if (fs.statSync('runtime-auth-register-cold-start.png').size < 4000) {
+              throw new Error('capture inscription à froid anormalement vide');
+            }
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
       - name: Inspect rendered app on multiple viewports
         run: |
           node <<'NODE'
