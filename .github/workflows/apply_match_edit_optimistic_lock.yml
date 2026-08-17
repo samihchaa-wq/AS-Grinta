@@ -1,4 +1,4 @@
-name: Build match edit optimistic lock patch
+name: Apply match edit optimistic lock patch
 
 on:
   push:
@@ -6,13 +6,16 @@ on:
       - fix/match-edit-optimistic-lock
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/match-edit-optimistic-lock
+          fetch-depth: 0
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           flutter-version: '3.47.0'
@@ -24,16 +27,20 @@ jobs:
 
           repo = Path('lib/features/matches/data/matches_repository.dart')
           text = repo.read_text()
-          text = text.replace(
-              "    required DateTime kickoffAt,\n    String? address,\n  }) async {",
-              "    required DateTime kickoffAt,\n    required DateTime expectedUpdatedAt,\n    String? address,\n  }) async {",
+          start = text.index('  Future<void> updateInternalMatch({')
+          end = text.index('  /// Cotes suggérées', start)
+          method = text[start:end]
+          method = method.replace(
+              "    required DateTime kickoffAt,\n    String? address,",
+              "    required DateTime kickoffAt,\n    required DateTime expectedUpdatedAt,\n    String? address,",
               1,
           )
-          text = text.replace(
+          method = method.replace(
               "        'p_match_time': _formatTime(kickoffAt),\n        'p_address': address,",
               "        'p_match_time': _formatTime(kickoffAt),\n        'p_address': address,\n        'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),",
               1,
           )
+          text = text[:start] + method + text[end:]
           start = text.index('  Future<void> updateMatch({')
           tail = text[start:]
           tail = tail.replace(
@@ -70,7 +77,6 @@ jobs:
               1,
           )
           text = text[:start] + method + text[end:]
-
           start = text.index('  Future<void> updateInternalMatch({')
           end = text.index('  bool _validOdds', start)
           method = text[start:end]
@@ -133,11 +139,12 @@ jobs:
           PY
       - name: Format changed Dart files
         run: dart format lib/features/matches/data/matches_repository.dart lib/features/matches/presentation/matches_controller.dart lib/features/matches/presentation/match_form_page.dart test/match_edit_optimistic_lock_contract_test.dart
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: match-edit-optimistic-lock-patch
-          path: |
-            lib/features/matches/data/matches_repository.dart
-            lib/features/matches/presentation/matches_controller.dart
-            lib/features/matches/presentation/match_form_page.dart
-            test/match_edit_optimistic_lock_contract_test.dart
+      - name: Remove temporary workflow
+        run: rm .github/workflows/apply_match_edit_optimistic_lock.yml
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "fix(matches): reject stale concurrent edits"
+          git push origin HEAD:fix/match-edit-optimistic-lock
