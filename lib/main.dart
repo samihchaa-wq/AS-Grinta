@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:as_grinta/app/app.dart';
+import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/widgets/grinta_background.dart';
@@ -15,6 +16,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() {
   runZonedGuarded(() {
     WidgetsFlutterBinding.ensureInitialized();
+    // Le MaterialApp de bootstrap peut normaliser le hash avant que GoRouter
+    // ne soit créé. Capturer la destination demandée ici préserve un deep-link
+    // ouvert à froid pendant toute l'initialisation Supabase.
+    captureInitialAppLocation();
 
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
