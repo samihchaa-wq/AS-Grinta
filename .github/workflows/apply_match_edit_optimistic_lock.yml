@@ -1,0 +1,212 @@
+name: Apply match edit optimistic lock patch
+
+on:
+  push:
+    branches:
+      - fix/match-edit-optimistic-lock
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix/match-edit-optimistic-lock
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+      - name: Patch client
+        shell: python
+        run: |
+          from pathlib import Path
+
+          repo = Path('lib/features/matches/data/matches_repository.dart')
+          text = repo.read_text()
+          text = text.replace(
+          '''  Future<void> updateInternalMatch({
+              required String id,
+              required String seasonId,
+              required DateTime kickoffAt,
+              String? address,
+            }) async {''',
+          '''  Future<void> updateInternalMatch({
+              required String id,
+              required String seasonId,
+              required DateTime kickoffAt,
+              required DateTime expectedUpdatedAt,
+              String? address,
+            }) async {''')
+          text = text.replace(
+          '''        'p_match_time': _formatTime(kickoffAt),
+                  'p_address': address,
+                },
+              );''',
+          '''        'p_match_time': _formatTime(kickoffAt),
+                  'p_address': address,
+                  'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),
+                },
+              );''', 1)
+          text = text.replace(
+          '''    required double oddsLoss,
+              int? squadSizeLimit,''',
+          '''    required double oddsLoss,
+              required DateTime expectedUpdatedAt,
+              int? squadSizeLimit,''', 1)
+          text = text.replace(
+          '''        'p_loss': oddsLoss,
+                  'p_squad_size_limit': squadSizeLimit,''',
+          '''        'p_loss': oddsLoss,
+                  'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),
+                  'p_squad_size_limit': squadSizeLimit,''', 1)
+          repo.write_text(text)
+
+          controller = Path('lib/features/matches/presentation/matches_controller.dart')
+          text = controller.read_text()
+          text = text.replace(
+          '''    required double oddsLoss,
+              int? squadSizeLimit,''',
+          '''    required double oddsLoss,
+              required DateTime? expectedUpdatedAt,
+              int? squadSizeLimit,''', 1)
+          marker = '''    if (squadSizeLimit != null && (squadSizeLimit < 1 || squadSizeLimit > 30)) {
+              state = state.copyWith(
+                isLoading: false,
+                error: 'Le nombre de convoqués doit être compris entre 1 et 30.',
+              );
+              return;
+            }
+            state = state.copyWith(isLoading: true, clearError: true);'''
+          replacement = '''    if (squadSizeLimit != null && (squadSizeLimit < 1 || squadSizeLimit > 30)) {
+              state = state.copyWith(
+                isLoading: false,
+                error: 'Le nombre de convoqués doit être compris entre 1 et 30.',
+              );
+              return;
+            }
+            if (expectedUpdatedAt == null) {
+              state = state.copyWith(
+                isLoading: false,
+                error: 'Le match a changé. Recharge l’écran avant d’enregistrer.',
+              );
+              return;
+            }
+            state = state.copyWith(isLoading: true, clearError: true);'''
+          idx = text.find(marker, text.find('Future<void> updateMatch'))
+          assert idx >= 0
+          text = text[:idx] + text[idx:].replace(marker, replacement, 1)
+          text = text.replace(
+          '''        oddsLoss: oddsLoss,
+                  squadSizeLimit: squadSizeLimit,''',
+          '''        oddsLoss: oddsLoss,
+                  expectedUpdatedAt: expectedUpdatedAt,
+                  squadSizeLimit: squadSizeLimit,''', 1)
+          text = text.replace(
+          '''  Future<void> updateInternalMatch({
+              required String id,
+              required String seasonId,
+              required DateTime kickoffAt,
+              String? address,''',
+          '''  Future<void> updateInternalMatch({
+              required String id,
+              required String seasonId,
+              required DateTime kickoffAt,
+              required DateTime? expectedUpdatedAt,
+              String? address,''')
+          marker2 = '''    if (id.isEmpty || seasonId.isEmpty) {
+              state = state.copyWith(
+                isLoading: false,
+                error: 'Match et saison obligatoires.',
+              );
+              return;
+            }
+            state = state.copyWith(isLoading: true, clearError: true);'''
+          replacement2 = '''    if (id.isEmpty || seasonId.isEmpty) {
+              state = state.copyWith(
+                isLoading: false,
+                error: 'Match et saison obligatoires.',
+              );
+              return;
+            }
+            if (expectedUpdatedAt == null) {
+              state = state.copyWith(
+                isLoading: false,
+                error: 'Le match a changé. Recharge l’écran avant d’enregistrer.',
+              );
+              return;
+            }
+            state = state.copyWith(isLoading: true, clearError: true);'''
+          idx = text.find(marker2, text.find('Future<void> updateInternalMatch'))
+          assert idx >= 0
+          text = text[:idx] + text[idx:].replace(marker2, replacement2, 1)
+          text = text.replace(
+          '''        kickoffAt: kickoffAt,
+                  address: address,
+                );''',
+          '''        kickoffAt: kickoffAt,
+                  expectedUpdatedAt: expectedUpdatedAt,
+                  address: address,
+                );''', 1)
+          controller.write_text(text)
+
+          form = Path('lib/features/matches/presentation/match_form_page.dart')
+          text = form.read_text()
+          text = text.replace(
+          '''          kickoffAt: _kickoffAt,
+                  address: address.isEmpty ? null : address,
+                  rememberAddressAsDefault: _rememberAddressAsDefault,''',
+          '''          kickoffAt: _kickoffAt,
+                  expectedUpdatedAt: widget.match!.updatedAt,
+                  address: address.isEmpty ? null : address,
+                  rememberAddressAsDefault: _rememberAddressAsDefault,''', 1)
+          text = text.replace(
+          '''        oddsLoss: oddsLoss,
+                squadSizeLimit: squadSizeLimit,
+                address: address.isEmpty ? null : address,''',
+          '''        oddsLoss: oddsLoss,
+                expectedUpdatedAt: widget.match!.updatedAt,
+                squadSizeLimit: squadSizeLimit,
+                address: address.isEmpty ? null : address,''', 1)
+          form.write_text(text)
+
+          test = Path('test/match_edit_optimistic_lock_contract_test.dart')
+          test.write_text('''import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('les éditions de match transmettent la version chargée', () {
+    final repository = File(
+      'lib/features/matches/data/matches_repository.dart',
+    ).readAsStringSync();
+    final controller = File(
+      'lib/features/matches/presentation/matches_controller.dart',
+    ).readAsStringSync();
+    final form = File(
+      'lib/features/matches/presentation/match_form_page.dart',
+    ).readAsStringSync();
+
+    expect(repository, contains("'p_expected_updated_at'"));
+    expect(repository, contains('expectedUpdatedAt.toUtc().toIso8601String()'));
+    expect(controller, contains('required DateTime? expectedUpdatedAt'));
+    expect(controller, contains('expectedUpdatedAt: expectedUpdatedAt'));
+    expect(form, contains('expectedUpdatedAt: widget.match!.updatedAt'));
+  });
+}
+''')
+      - name: Format changed Dart files
+        run: dart format lib/features/matches/data/matches_repository.dart lib/features/matches/presentation/matches_controller.dart lib/features/matches/presentation/match_form_page.dart test/match_edit_optimistic_lock_contract_test.dart
+      - name: Remove temporary workflow
+        run: rm .github/workflows/apply_match_edit_optimistic_lock.yml
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "fix(matches): reject stale concurrent edits"
+          git push origin HEAD:fix/match-edit-optimistic-lock
