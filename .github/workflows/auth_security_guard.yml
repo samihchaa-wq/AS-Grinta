@@ -1,0 +1,76 @@
+name: Auth security guard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/auth_security_guard.yml'
+      - 'lib/core/security/password_policy.dart'
+      - 'supabase/functions/register-account/index.ts'
+      - 'config/production.json'
+  schedule:
+    - cron: '17 6 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-password-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ovzijmqrnsgcmryinkfa
+      REQUIRED_CHARACTERS: 'abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Verify application password contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'static const minLength = 12;' lib/core/security/password_policy.dart
+          grep -Fq 'static const maxLength = 72;' lib/core/security/password_policy.dart
+          grep -Fq 'const MIN_PASSWORD_LENGTH = 12;' supabase/functions/register-account/index.ts
+          grep -Fq 'const MAX_PASSWORD_LENGTH = 72;' supabase/functions/register-account/index.ts
+          test "$(jq -r '.USERNAME_DOMAIN' config/production.json)" = 'pronos.as-grinta.local'
+
+      - name: Verify production Auth password policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN is missing."
+            exit 1
+          fi
+
+          curl -LfsS \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_REF}/config/auth" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Accept: application/json" \
+            -o /tmp/auth-config.json
+
+          jq '{
+            password_hibp_enabled,
+            password_min_length,
+            password_required_characters,
+            security_update_password_require_reauthentication
+          }' /tmp/auth-config.json > /tmp/auth-password-policy.json
+
+          jq -e --arg required "$REQUIRED_CHARACTERS" '
+            .password_min_length >= 12 and
+            .password_required_characters == $required and
+            .security_update_password_require_reauthentication == false
+          ' /tmp/auth-password-policy.json > /dev/null || {
+            cat /tmp/auth-password-policy.json
+            echo "::error::La politique Supabase Auth n'est plus alignée avec le contrat AS-Grinta."
+            exit 1
+          }
+
+          if [ "$(jq -r '.password_hibp_enabled' /tmp/auth-password-policy.json)" != 'true' ]; then
+            echo "::warning::Leaked Password Protection reste indisponible sur le plan Free ; la complexité gratuite demeure contrôlée."
+          fi
+
+          cat /tmp/auth-password-policy.json
