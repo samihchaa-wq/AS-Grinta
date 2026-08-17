@@ -26,6 +26,28 @@ void main() {
       );
     });
 
+    test('keeps sign-in mounted while an authentication request is loading',
+        () {
+      const state = AuthState(isLoading: true);
+
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/auth/sign-in'),
+          matchedLocation: '/auth/sign-in',
+        ),
+        isNull,
+      );
+      expect(
+        resolveAuthRedirect(
+          authState: state,
+          uri: Uri.parse('/auth/sign-in?redirect=%2Fstats'),
+          matchedLocation: '/auth/sign-in',
+        ),
+        isNull,
+      );
+    });
+
     test('carries the recovery destination through the loading route', () {
       const loading = AuthState(isLoading: true);
 
@@ -49,6 +71,46 @@ void main() {
           matchedLocation: '/auth/loading',
         ),
         '/auth/new-password?recovery=1',
+      );
+    });
+
+    test('carries registration through the initial loading route', () {
+      const loading = AuthState(isLoading: true);
+
+      expect(
+        resolveAuthRedirect(
+          authState: loading,
+          uri: Uri.parse('/auth/register'),
+          matchedLocation: '/auth/register',
+        ),
+        '/auth/loading?redirect=%2Fauth%2Fregister',
+      );
+
+      const signedOut = AuthState(isLoading: false);
+
+      expect(
+        resolveAuthRedirect(
+          authState: signedOut,
+          uri: Uri.parse('/auth/loading?redirect=%2Fauth%2Fregister'),
+          matchedLocation: '/auth/loading',
+        ),
+        '/auth/register',
+      );
+
+      const authenticated = AuthState(
+        isLoading: false,
+        isAuthenticated: true,
+        hasSession: true,
+        profile: _userProfile,
+      );
+
+      expect(
+        resolveAuthRedirect(
+          authState: authenticated,
+          uri: Uri.parse('/auth/loading?redirect=%2Fauth%2Fregister'),
+          matchedLocation: '/auth/loading',
+        ),
+        '/matches',
       );
     });
 
