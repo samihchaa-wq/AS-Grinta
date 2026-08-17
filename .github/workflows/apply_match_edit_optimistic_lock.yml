@@ -79,7 +79,6 @@ jobs:
               "    required DateTime kickoffAt,\n    required DateTime? expectedUpdatedAt,\n    String? address,",
               1,
           )
-          marker = "    state = state.copyWith(isLoading: true, clearError: true);"
           method = method.replace(
               marker,
               "    if (expectedUpdatedAt == null) {\n      state = state.copyWith(\n        isLoading: false,\n        error: 'Le match a changé. Recharge l’écran avant d’enregistrer.',\n      );\n      return;\n    }\n" + marker,
@@ -108,30 +107,29 @@ jobs:
           )
           form.write_text(text[:update_start] + update_tail)
 
-          Path('test/match_edit_optimistic_lock_contract_test.dart').write_text("""import 'dart:io';
-
-import 'package:flutter_test/flutter_test.dart';
-
-void main() {
-  test('les éditions de match transmettent la version chargée', () {
-    final repository = File(
-      'lib/features/matches/data/matches_repository.dart',
-    ).readAsStringSync();
-    final controller = File(
-      'lib/features/matches/presentation/matches_controller.dart',
-    ).readAsStringSync();
-    final form = File(
-      'lib/features/matches/presentation/match_form_page.dart',
-    ).readAsStringSync();
-
-    expect(repository, contains(\"'p_expected_updated_at'\"));
-    expect(repository, contains('expectedUpdatedAt.toUtc().toIso8601String()'));
-    expect(controller, contains('required DateTime? expectedUpdatedAt'));
-    expect(controller, contains('expectedUpdatedAt: expectedUpdatedAt'));
-    expect(form, contains('expectedUpdatedAt: widget.match!.updatedAt'));
-  });
-}
-""")
+          test_content = (
+              "import 'dart:io';\n\n"
+              "import 'package:flutter_test/flutter_test.dart';\n\n"
+              "void main() {\n"
+              "  test('les éditions de match transmettent la version chargée', () {\n"
+              "    final repository = File(\n"
+              "      'lib/features/matches/data/matches_repository.dart',\n"
+              "    ).readAsStringSync();\n"
+              "    final controller = File(\n"
+              "      'lib/features/matches/presentation/matches_controller.dart',\n"
+              "    ).readAsStringSync();\n"
+              "    final form = File(\n"
+              "      'lib/features/matches/presentation/match_form_page.dart',\n"
+              "    ).readAsStringSync();\n\n"
+              "    expect(repository, contains(\"'p_expected_updated_at'\"));\n"
+              "    expect(repository, contains('expectedUpdatedAt.toUtc().toIso8601String()'));\n"
+              "    expect(controller, contains('required DateTime? expectedUpdatedAt'));\n"
+              "    expect(controller, contains('expectedUpdatedAt: expectedUpdatedAt'));\n"
+              "    expect(form, contains('expectedUpdatedAt: widget.match!.updatedAt'));\n"
+              "  });\n"
+              "}\n"
+          )
+          Path('test/match_edit_optimistic_lock_contract_test.dart').write_text(test_content)
           PY
       - name: Format changed Dart files
         run: dart format lib/features/matches/data/matches_repository.dart lib/features/matches/presentation/matches_controller.dart lib/features/matches/presentation/match_form_page.dart test/match_edit_optimistic_lock_contract_test.dart
