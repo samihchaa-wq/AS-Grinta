@@ -1,0 +1,170 @@
+name: QA auth offline staging proof
+
+on:
+  push:
+    branches: [qa/auth-offline-staging-proof]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-auth-offline-staging-proof
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
+
+      - name: Exercise published staging sign-in
+        env:
+          STAGING_URL: https://samihchaa-wq.github.io/AS-Grinta/staging
+        run: |
+          mkdir -p qa-auth-offline-proof
+          node <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright-core');
+
+          const base = process.env.STAGING_URL.replace(/\/$/, '');
+          const credentialMessage =
+            'Connexion impossible. Vérifie ton identifiant et ton mot de passe.';
+          const networkMessage =
+            'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.';
+
+          async function activateSemantics(page) {
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(1800);
+            await page.evaluate(() => {
+              const placeholder = document.querySelector('flt-semantics-placeholder');
+              if (placeholder instanceof HTMLElement) placeholder.click();
+            }).catch(() => {});
+            await page.waitForTimeout(600);
+          }
+
+          async function axNames(page) {
+            const cdp = await page.context().newCDPSession(page);
+            await cdp.send('Accessibility.enable');
+            const tree = await cdp.send('Accessibility.getFullAXTree');
+            return tree.nodes
+              .map(node => String(node.name?.value ?? '').trim())
+              .filter(Boolean);
+          }
+
+          async function waitForAxName(page, expected, timeout) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              const names = await axNames(page);
+              if (names.some(name => name.includes(expected))) return;
+              await page.waitForTimeout(200);
+            }
+            throw new Error(
+              `Message absent après ${timeout} ms: ${expected}\n` +
+              (await axNames(page)).join('\n'),
+            );
+          }
+
+          async function openSignIn(browser) {
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            await page.goto(
+              `${base}/#/auth/sign-in?qa=${Date.now()}`,
+              { waitUntil: 'networkidle', timeout: 90000 },
+            );
+            await activateSemantics(page);
+            await page.getByRole('button', { name: 'Se connecter', exact: true })
+              .waitFor({ state: 'visible', timeout: 15000 });
+            return { context, page };
+          }
+
+          async function capture(page, stem, extra = '') {
+            await page.screenshot({
+              path: `qa-auth-offline-proof/${stem}.png`,
+              fullPage: true,
+            });
+            fs.writeFileSync(
+              `qa-auth-offline-proof/${stem}.txt`,
+              `${extra}\n\n${(await axNames(page)).join('\n')}\n`,
+            );
+          }
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const report = [];
+
+            // Référence : serveur joignable + identifiants faux.
+            {
+              const { context, page } = await openSignIn(browser);
+              await page.getByRole('textbox', { name: 'Identifiant', exact: true })
+                .fill(`qa-inexistant-${Date.now()}`);
+              await page.getByRole('textbox', { name: 'Mot de passe', exact: true })
+                .fill('MauvaisMotDePasse123');
+              const started = Date.now();
+              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+              await waitForAxName(page, credentialMessage, 20000);
+              const elapsed = Date.now() - started;
+              report.push(`bad-credentials-ms=${elapsed}`);
+              await capture(page, 'bad-credentials', `elapsedMs=${elapsed}`);
+              await context.close();
+            }
+
+            // Défaut observé avant correction : après coupure réseau, la page
+            // restait en chargement plus de 20 s. Le staging corrigé doit
+            // reprendre la main autour de 12 s avec un message réseau clair.
+            {
+              const { context, page } = await openSignIn(browser);
+              await page.getByRole('textbox', { name: 'Identifiant', exact: true })
+                .fill(`qa-offline-${Date.now()}`);
+              await page.getByRole('textbox', { name: 'Mot de passe', exact: true })
+                .fill('MotDePasseOffline123');
+              await context.setOffline(true);
+              const started = Date.now();
+              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+              await waitForAxName(page, networkMessage, 18000);
+              const elapsed = Date.now() - started;
+              report.push(`offline-feedback-ms=${elapsed}`);
+              if (elapsed < 10000 || elapsed > 16000) {
+                throw new Error(`Retour hors ligne hors plage attendue: ${elapsed} ms`);
+              }
+              await capture(page, 'offline-feedback', `elapsedMs=${elapsed}`);
+              await context.close();
+            }
+
+            fs.writeFileSync(
+              'qa-auth-offline-proof/result.txt',
+              `${report.join('\n')}\nstatus=PASS\n`,
+            );
+            await browser.close();
+          })().catch(error => {
+            fs.writeFileSync(
+              'qa-auth-offline-proof/failure.txt',
+              String(error.stack || error),
+            );
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload published staging proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-auth-offline-staging-proof
+          path: qa-auth-offline-proof/
+          if-no-files-found: error
