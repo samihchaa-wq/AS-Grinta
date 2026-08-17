@@ -41,16 +41,16 @@ Future<void> uploadProfilePhotoObjectWithRetry({
   Duration timeout = _profilePhotoUploadTimeout,
   int maxAttempts = 2,
 }) async {
-  Object? lastError;
   for (var attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       await upload().timeout(timeout);
       return;
-    } catch (error) {
-      lastError = error;
+    } catch (_) {
+      // Le chemin est stable et l'upload est en upsert : un second essai ne
+      // crée pas un nouvel objet si le premier accusé réseau s'est perdu.
     }
   }
-  throw ProfilePhotoUploadOutcomeUnknown();
+  throw const ProfilePhotoUploadOutcomeUnknown();
 }
 
 Future<void> confirmProfilePhotoReferenceWrite({
