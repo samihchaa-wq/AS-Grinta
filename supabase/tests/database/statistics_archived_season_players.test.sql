@@ -62,7 +62,7 @@ values
     'QA',
     'Archive',
     false,
-    false,
+    true,
     1
   ),
   (
@@ -117,6 +117,12 @@ values (
   2,
   false
 );
+
+-- Reproduit le vrai cycle de vie : le joueur participe d'abord à la saison,
+-- puis sa fiche historique est désactivée après que ses statistiques existent.
+update public.season_players
+set is_active = false
+where id = 'e4000000-0000-0000-0000-000000000001';
 
 select is(
   (
