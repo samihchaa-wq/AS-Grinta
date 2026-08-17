@@ -178,8 +178,29 @@ jobs:
           token="$(date +%s)"
           prod='https://samihchaa-wq.github.io/AS-Grinta/'
           staging='https://samihchaa-wq.github.io/AS-Grinta/staging/'
-          curl --retry 5 --retry-delay 5 -LfsS "${prod}?smoke=${token}" -o /tmp/prod.html
-          curl --retry 5 --retry-delay 5 -LfsS "${staging}?smoke=${token}" -o /tmp/staging.html
+
+          fetch_after_pages_propagation() {
+            local url="$1"
+            local destination="$2"
+            local label="$3"
+            local status=''
+
+            for attempt in $(seq 1 18); do
+              status="$(curl -L -sS -o "$destination" -w '%{http_code}' "${url}?smoke=${token}" || true)"
+              if [ "$status" = '200' ] && [ -s "$destination" ]; then
+                echo "${label} available after attempt ${attempt}."
+                return 0
+              fi
+              echo "Waiting for GitHub Pages propagation: ${label} returned HTTP ${status:-transport-error} (attempt ${attempt}/18)."
+              sleep 5
+            done
+
+            echo "::error::${label} did not become available after the Pages propagation window (last HTTP ${status:-transport-error})."
+            return 1
+          }
+
+          fetch_after_pages_propagation "$prod" /tmp/prod.html production
+          fetch_after_pages_propagation "$staging" /tmp/staging.html staging
           curl --retry 5 --retry-delay 3 -LfsS \
             'https://dhwrtdnjwdkvdyvojvjl.supabase.co/auth/v1/health' \
             -H 'apikey: sb_publishable_jTOp1ah4CLw8OIKloeHUiQ_PvYS2J5q' \
