@@ -32,11 +32,14 @@ String? resolveAuthRedirect({
 
   if (location == '/auth/loading') {
     // L'écran de chargement a mémorisé la destination initiale : un lien de
-    // réinitialisation ouvert à froid doit y revenir, pas retomber sur la
-    // connexion.
+    // réinitialisation ou d'inscription ouvert à froid doit y revenir, pas
+    // retomber sur la connexion.
     final pending = _pendingDestination(uri.queryParameters['redirect']);
-    if (pending != null && _isRecoveryDestination(pending)) {
-      return pending;
+    if (pending != null) {
+      if (_isRecoveryDestination(pending)) return pending;
+      if (!authState.isAuthenticated && _isSignedOutAuthDestination(pending)) {
+        return pending;
+      }
     }
     if (!authState.isAuthenticated) {
       return pending == null
@@ -121,7 +124,12 @@ String? _preservableDestination(Uri uri, String location) {
 
   final isRecoveryRoute = location == '/auth/new-password' &&
       uri.queryParameters['recovery'] == '1';
-  if (location.startsWith('/auth') && !isRecoveryRoute) return null;
+  final isSignedOutAuthRoute = location == '/auth/register';
+  if (location.startsWith('/auth') &&
+      !isRecoveryRoute &&
+      !isSignedOutAuthRoute) {
+    return null;
+  }
 
   return uri.toString();
 }
@@ -141,6 +149,11 @@ bool _isRecoveryDestination(String value) {
   return uri != null &&
       uri.path == '/auth/new-password' &&
       uri.queryParameters['recovery'] == '1';
+}
+
+bool _isSignedOutAuthDestination(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null && uri.path == '/auth/register';
 }
 
 bool _isSportsManagementRoute(Uri uri) {
