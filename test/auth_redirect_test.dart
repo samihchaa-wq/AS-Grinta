@@ -26,7 +26,8 @@ void main() {
       );
     });
 
-    test('keeps sign-in mounted while an authentication request is loading', () {
+    test('keeps sign-in mounted while an authentication request is loading',
+        () {
       const state = AuthState(isLoading: true);
 
       expect(
