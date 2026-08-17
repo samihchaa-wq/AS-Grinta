@@ -282,6 +282,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
+    required DateTime? expectedUpdatedAt,
     int? squadSizeLimit,
     String? address,
     bool rememberAddressAsDefault = false,
@@ -313,6 +314,13 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       return;
     }
+    if (expectedUpdatedAt == null) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le match a changé. Recharge l’écran avant d’enregistrer.',
+      );
+      return;
+    }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updateMatch(
@@ -325,6 +333,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        expectedUpdatedAt: expectedUpdatedAt,
         squadSizeLimit: squadSizeLimit,
         address: address,
         rememberAddressAsDefault: rememberAddressAsDefault,
@@ -378,6 +387,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required String id,
     required String seasonId,
     required DateTime kickoffAt,
+    required DateTime? expectedUpdatedAt,
     String? address,
     bool rememberAddressAsDefault = false,
   }) async {
@@ -392,12 +402,20 @@ class MatchesController extends StateNotifier<MatchesState> {
       );
       return;
     }
+    if (expectedUpdatedAt == null) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Le match a changé. Recharge l’écran avant d’enregistrer.',
+      );
+      return;
+    }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.updateInternalMatch(
         id: id,
         seasonId: seasonId,
         kickoffAt: kickoffAt,
+        expectedUpdatedAt: expectedUpdatedAt,
         address: address,
       );
       await load(

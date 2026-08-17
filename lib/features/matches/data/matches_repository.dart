@@ -199,6 +199,7 @@ class MatchesRepository {
     required String id,
     required String seasonId,
     required DateTime kickoffAt,
+    required DateTime expectedUpdatedAt,
     String? address,
   }) async {
     final result = await _client.rpc(
@@ -209,6 +210,7 @@ class MatchesRepository {
         'p_match_date': kickoffAt.toIso8601String().split('T').first,
         'p_match_time': _formatTime(kickoffAt),
         'p_address': address,
+        'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),
       },
     );
     if (result != true) {
@@ -255,6 +257,7 @@ class MatchesRepository {
     required double oddsWin,
     required double oddsDraw,
     required double oddsLoss,
+    required DateTime expectedUpdatedAt,
     int? squadSizeLimit,
     String? address,
     bool rememberAddressAsDefault = false,
@@ -274,6 +277,7 @@ class MatchesRepository {
         'p_win': oddsWin,
         'p_draw': oddsDraw,
         'p_loss': oddsLoss,
+        'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),
         'p_squad_size_limit': squadSizeLimit,
         'p_address': address,
         'p_remember_address_as_default': rememberAddressAsDefault,

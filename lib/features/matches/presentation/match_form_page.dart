@@ -624,6 +624,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           id: widget.match!.id,
           seasonId: _seasonId,
           kickoffAt: _kickoffAt,
+          expectedUpdatedAt: widget.match!.updatedAt,
           address: address.isEmpty ? null : address,
           rememberAddressAsDefault: _rememberAddressAsDefault,
         );
@@ -677,6 +678,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        expectedUpdatedAt: widget.match!.updatedAt,
         squadSizeLimit: squadSizeLimit,
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
