@@ -107,12 +107,17 @@ select is(
 select is(
   (select count(*) from public.profiles),
   0::bigint,
-  'un compte en attente ne lit aucun profil'
+  'un compte en attente ne lit aucun profil via les tables'
 );
-select throws_ok(
-  $$select public.get_my_profile()$$,
-  '42501',
-  'le chargement de profil refuse explicitement un compte en attente'
+select is(
+  public.get_my_profile() #>> '{id}',
+  'e4000000-0000-0000-0000-000000000003',
+  'un compte en attente charge uniquement son propre profil via le RPC de bootstrap'
+);
+select is(
+  public.get_my_profile() #>> '{status}',
+  'pending',
+  'le bootstrap expose le statut pending pour permettre la redirection vers l’écran d’attente'
 );
 select throws_ok(
   $$insert into public.push_subscriptions(
