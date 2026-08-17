@@ -1,0 +1,131 @@
+name: QA auth pending account probe
+
+on:
+  push:
+    branches: [qa/auth-prelogin-audit]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
+
+      - name: Register and verify pending account flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const { chromium } = require('playwright-core');
+          const base = 'https://samihchaa-wq.github.io/AS-Grinta/staging';
+
+          async function activate(page) {
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(1800);
+            await page.evaluate(() => {
+              const p = document.querySelector('flt-semantics-placeholder');
+              if (p instanceof HTMLElement) p.click();
+            }).catch(() => {});
+            await page.waitForTimeout(600);
+          }
+
+          async function axNames(page) {
+            const cdp = await page.context().newCDPSession(page);
+            await cdp.send('Accessibility.enable');
+            const tree = await cdp.send('Accessibility.getFullAXTree');
+            return tree.nodes.map(n => String(n.name?.value ?? '')).filter(Boolean);
+          }
+
+          async function waitForAx(page, text, timeout = 20000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              const names = await axNames(page);
+              if (names.some(name => name.includes(text))) return;
+              await page.waitForTimeout(250);
+            }
+            throw new Error(`Texte introuvable: ${text}; url=${page.url()}`);
+          }
+
+          (async () => {
+            const password = `Qa${crypto.randomBytes(14).toString('hex')}Z9`;
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            await page.goto(`${base}/#/auth/sign-in?pending=${Date.now()}`, {
+              waitUntil: 'domcontentloaded', timeout: 45000,
+            });
+            await activate(page);
+
+            await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+            await page.getByRole('textbox', { name: 'Prénom', exact: true }).waitFor({ timeout: 15000 });
+            await page.getByRole('textbox', { name: 'Prénom', exact: true }).fill('Recette');
+            await page.getByRole('textbox', { name: 'Nom', exact: true }).fill('Temporaire');
+            await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill(password);
+            await page.getByRole('textbox', { name: 'Confirme ton mot de passe', exact: true }).fill(password);
+            await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+            await waitForAx(page, 'Compte créé', 30000);
+            await waitForAx(page, 'Ton compte restera en attente', 30000);
+
+            const names = await axNames(page);
+            const usernameCandidates = [...new Set(names)].filter(name =>
+              /^recette[a-z0-9._-]{2,}$/i.test(name.trim()) && !name.includes(' ')
+            );
+            if (usernameCandidates.length < 1) {
+              fs.writeFileSync('pending-ax-names.json', JSON.stringify(names, null, 2));
+              throw new Error(`Identifiant généré introuvable dans le dialogue: ${JSON.stringify(usernameCandidates)}`);
+            }
+            const username = usernameCandidates.sort((a, b) => a.length - b.length)[0].trim();
+            fs.writeFileSync('pending-created-username.txt', username + '\n');
+            await page.screenshot({ path: 'pending-01-account-created.png' });
+
+            await page.getByRole('button', { name: 'Compris', exact: true }).click();
+            await page.getByRole('textbox', { name: 'Identifiant', exact: true }).waitFor({ timeout: 15000 });
+            await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(username);
+            await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill(password);
+            await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+
+            await waitForAx(page, 'Compte en attente de validation', 30000);
+            await waitForAx(page, 'Vérifier maintenant', 10000);
+            await waitForAx(page, 'Se déconnecter', 10000);
+            await page.screenshot({ path: 'pending-02-waiting-screen.png' });
+            fs.writeFileSync('pending-result.txt', `username=${username}\nurl=${page.url()}\nresult=ok\n`);
+            console.log(`PENDING_FLOW=OK username=${username} url=${page.url()}`);
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload pending evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-auth-pending-probe
+          path: |
+            pending-created-username.txt
+            pending-result.txt
+            pending-ax-names.json
+            pending-01-account-created.png
+            pending-02-waiting-screen.png
+          if-no-files-found: warn
