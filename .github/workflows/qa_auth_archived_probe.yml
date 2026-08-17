@@ -104,6 +104,11 @@ jobs:
               if (tree.nodes.some(n => String(n.name?.value ?? '').includes(text))) return;
               await page.waitForTimeout(250);
             }
+            await page.screenshot({ path: 'archived-sign-in.png' });
+            fs.writeFileSync(
+              'archived-result.txt',
+              `username=${credentials.username}\nurl=${page.url()}\nresult=missing-inactive-message\n`,
+            );
             throw new Error(`Texte introuvable: ${text}; url=${page.url()}`);
           }
 
