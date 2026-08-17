@@ -1,1 +1,0 @@
-remove_legacy_live_score_rpc
