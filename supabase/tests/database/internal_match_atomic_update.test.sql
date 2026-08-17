@@ -17,6 +17,18 @@ select ok(
 );
 
 select ok(
+  not exists (
+    select 1
+    from pg_proc proc
+    join pg_namespace nsp on nsp.oid = proc.pronamespace
+    where nsp.nspname = 'public'
+      and proc.proname = 'update_internal_match'
+      and proc.pronargs = 4
+  ),
+  'l’ancienne RPC non atomique de modification d’un match entre nous est supprimée'
+);
+
+select ok(
   has_function_privilege(
     'authenticated',
     'public.update_internal_match(uuid,uuid,date,time without time zone,text)',
