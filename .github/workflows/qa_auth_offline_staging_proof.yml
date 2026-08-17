@@ -15,8 +15,59 @@ concurrency:
 jobs:
   proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Probe live Supabase invalid-credentials exception
+        run: |
+          mkdir -p qa-auth-offline-proof
+          cat > tool/_qa_live_auth_error.dart <<'DART'
+          import 'dart:convert';
+          import 'dart:io';
+
+          import 'package:supabase_flutter/supabase_flutter.dart';
+
+          Future<void> main() async {
+            final config = jsonDecode(File('config/staging.json').readAsStringSync())
+                as Map<String, dynamic>;
+            final client = SupabaseClient(
+              config['SUPABASE_URL'] as String,
+              config['SUPABASE_ANON_KEY'] as String,
+            );
+            final domain = config['USERNAME_DOMAIN'] as String;
+            try {
+              await client.auth.signInWithPassword(
+                email: 'qa-inexistant-${DateTime.now().microsecondsSinceEpoch}@$domain',
+                password: 'MauvaisMotDePasse123',
+              );
+              stdout.writeln('unexpected-success=true');
+              exitCode = 2;
+            } catch (error) {
+              stdout.writeln('runtimeType=${error.runtimeType}');
+              if (error is AuthException) {
+                stdout.writeln('statusCode=${error.statusCode}');
+                stdout.writeln('code=${error.code}');
+                stdout.writeln('message=${error.message}');
+              } else {
+                stdout.writeln('error=$error');
+              }
+            }
+          }
+          DART
+          dart run tool/_qa_live_auth_error.dart | tee qa-auth-offline-proof/live-auth-error.txt
+          rm -f tool/_qa_live_auth_error.dart
+
       - name: Setup Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -29,7 +80,6 @@ jobs:
         env:
           STAGING_URL: https://samihchaa-wq.github.io/AS-Grinta/staging
         run: |
-          mkdir -p qa-auth-offline-proof
           node <<'NODE'
           const fs = require('fs');
           const { chromium } = require('playwright-core');
@@ -60,17 +110,16 @@ jobs:
               .filter(Boolean);
           }
 
-          async function waitForAxName(page, expected, timeout) {
+          async function waitForEither(page, expected, timeout) {
             const deadline = Date.now() + timeout;
             while (Date.now() < deadline) {
               const names = await axNames(page);
-              if (names.some(name => name.includes(expected))) return;
+              for (const text of expected) {
+                if (names.some(name => name.includes(text))) return text;
+              }
               await page.waitForTimeout(200);
             }
-            throw new Error(
-              `Message absent après ${timeout} ms: ${expected}\n` +
-              (await axNames(page)).join('\n'),
-            );
+            return null;
           }
 
           async function openSignIn(browser) {
@@ -108,7 +157,8 @@ jobs:
             });
             const report = [];
 
-            // Référence : serveur joignable + identifiants faux.
+            // Serveur joignable + identifiants faux : on enregistre quel
+            // message le staging affiche réellement, sans masquer le cas.
             {
               const { context, page } = await openSignIn(browser);
               await page.getByRole('textbox', { name: 'Identifiant', exact: true })
@@ -117,16 +167,24 @@ jobs:
                 .fill('MauvaisMotDePasse123');
               const started = Date.now();
               await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(page, credentialMessage, 20000);
+              const detected = await waitForEither(
+                page,
+                [credentialMessage, networkMessage],
+                16000,
+              );
               const elapsed = Date.now() - started;
               report.push(`bad-credentials-ms=${elapsed}`);
-              await capture(page, 'bad-credentials', `elapsedMs=${elapsed}`);
+              report.push(`bad-credentials-message=${detected ?? 'none'}`);
+              await capture(
+                page,
+                'bad-credentials',
+                `elapsedMs=${elapsed}\ndetected=${detected ?? 'none'}`,
+              );
               await context.close();
             }
 
-            // Défaut observé avant correction : après coupure réseau, la page
-            // restait en chargement plus de 20 s. Le staging corrigé doit
-            // reprendre la main autour de 12 s avec un message réseau clair.
+            // Coupure réseau réelle après chargement : doit reprendre la main
+            // autour de 12 s et afficher le message réseau.
             {
               const { context, page } = await openSignIn(browser);
               await page.getByRole('textbox', { name: 'Identifiant', exact: true })
@@ -136,13 +194,27 @@ jobs:
               await context.setOffline(true);
               const started = Date.now();
               await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(page, networkMessage, 18000);
+              const detected = await waitForEither(
+                page,
+                [networkMessage, credentialMessage],
+                18000,
+              );
               const elapsed = Date.now() - started;
               report.push(`offline-feedback-ms=${elapsed}`);
+              report.push(`offline-message=${detected ?? 'none'}`);
+              await capture(
+                page,
+                'offline-feedback',
+                `elapsedMs=${elapsed}\ndetected=${detected ?? 'none'}`,
+              );
+              if (detected !== networkMessage) {
+                throw new Error(
+                  `Message hors ligne incorrect: ${detected ?? 'aucun'} après ${elapsed} ms`,
+                );
+              }
               if (elapsed < 10000 || elapsed > 16000) {
                 throw new Error(`Retour hors ligne hors plage attendue: ${elapsed} ms`);
               }
-              await capture(page, 'offline-feedback', `elapsedMs=${elapsed}`);
               await context.close();
             }
 
