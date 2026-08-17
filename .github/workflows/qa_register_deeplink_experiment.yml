@@ -24,7 +24,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Remove only GoRouter initialLocation for experiment
+      - name: Use browser hash as the Web initial location for experiment
         shell: bash
         run: |
           set -euo pipefail
@@ -33,11 +33,13 @@ jobs:
           p = Path('lib/app/router/app_router.dart')
           text = p.read_text()
           needle = "    initialLocation: '/matches',\n"
+          replacement = "    initialLocation: Uri.base.fragment.startsWith('/')\n        ? Uri.base.fragment\n        : '/matches',\n"
           if text.count(needle) < 2:
               raise SystemExit('Expected both global and shell-branch initialLocation entries.')
-          text = text.replace(needle, '', 1)
+          text = text.replace(needle, replacement, 1)
           p.write_text(text)
           PY
+          grep -Fq "initialLocation: Uri.base.fragment.startsWith('/')" lib/app/router/app_router.dart
           count=$(grep -Fc "initialLocation: '/matches'," lib/app/router/app_router.dart || true)
           test "$count" = '1'
           git diff -- lib/app/router/app_router.dart
