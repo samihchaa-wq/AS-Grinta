@@ -165,7 +165,7 @@ select is(
     select count(*)::integer
     from public.match_live_events
     where match_id = '43000000-0000-0000-0000-000000000020'
-      and type = 'goal_us'
+      and event_type = 'goal_us'
   ),
   1,
   'le retry du +1 ne cree pas de second evenement de but'
@@ -216,7 +216,7 @@ select is(
     select count(*)::integer
     from public.match_live_events
     where match_id = '43000000-0000-0000-0000-000000000020'
-      and type = 'goal_us'
+      and event_type = 'goal_us'
   ),
   0,
   'le retry du -1 ne supprime pas un autre but'
