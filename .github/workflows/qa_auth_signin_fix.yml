@@ -70,7 +70,7 @@ jobs:
           const fs = require('fs');
           const { chromium } = require('playwright-core');
           const root = 'http://127.0.0.1:8091';
-          const tokenEndpoint = '**/auth/v1/token?grant_type=password*';
+          const tokenEndpoint = '**/auth/v1/token*';
 
           async function activate(page) {
             await page.locator('flutter-view, flt-glass-pane, canvas').first()
@@ -94,11 +94,17 @@ jobs:
 
           async function waitForAxName(page, text, timeout = 20000) {
             const deadline = Date.now() + timeout;
+            const observed = new Set();
             while (Date.now() < deadline) {
               const names = await axNames(page);
+              names.filter(name => name.includes('Connexion')).forEach(name => observed.add(name));
               if (names.some(name => name.includes(text))) return;
-              await page.waitForTimeout(200);
+              await page.waitForTimeout(150);
             }
+            fs.writeFileSync(
+              'qa-auth-fix-artifacts/observed-connection-messages.txt',
+              `${[...observed].join('\n')}\n`,
+            );
             throw new Error(`Texte introuvable: ${text}`);
           }
 
@@ -135,19 +141,19 @@ jobs:
               args: ['--no-sandbox', '--disable-dev-shm-usage'],
             });
 
+            // Mauvais identifiants contre le vrai projet staging. Ce cas avait
+            // déjà révélé le défaut initial et évite de dépendre d'un faux
+            // payload GoTrue qui pourrait ne pas reproduire son AuthException.
             {
               const { context, page } = await open(browser);
               try {
-                let intercepted = 0;
-                await page.route(tokenEndpoint, async route => {
-                  intercepted += 1;
-                  await route.fulfill({
-                    status: 400,
-                    contentType: 'application/json',
-                    body: JSON.stringify({
-                      code: 'invalid_credentials',
-                      msg: 'Invalid login credentials',
-                    }),
+                const tokenResponses = [];
+                page.on('response', async response => {
+                  if (!response.url().includes('/auth/v1/token')) return;
+                  tokenResponses.push({
+                    status: response.status(),
+                    url: response.url(),
+                    body: await response.text().catch(() => '<illisible>'),
                   });
                 });
                 await page.getByRole('textbox', { name: 'Identifiant', exact: true })
@@ -158,11 +164,15 @@ jobs:
                 await waitForAxName(
                   page,
                   'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
-                  10000,
+                  20000,
                 );
-                if (intercepted !== 1) {
-                  throw new Error(`Requête bad credentials interceptée ${intercepted} fois`);
+                if (tokenResponses.length < 1) {
+                  throw new Error('Aucune réponse GoTrue observée pour les mauvais identifiants');
                 }
+                fs.writeFileSync(
+                  'qa-auth-fix-artifacts/bad-credentials-response.json',
+                  JSON.stringify(tokenResponses, null, 2),
+                );
                 await capture(page, 'after-bad-credentials');
               } catch (error) {
                 await capture(page, 'failure-bad-credentials');
@@ -172,11 +182,18 @@ jobs:
               }
             }
 
+            // La requête GoTrue est volontairement suspendue. Le timeout
+            // applicatif doit reprendre la main avant l'abandon réseau simulé.
             {
               const { context, page } = await open(browser);
               try {
                 let intercepted = 0;
                 await page.route(tokenEndpoint, async route => {
+                  const url = new URL(route.request().url());
+                  if (url.searchParams.get('grant_type') !== 'password') {
+                    await route.continue();
+                    return;
+                  }
                   intercepted += 1;
                   await new Promise(resolve => setTimeout(resolve, 30000));
                   await route.abort('timedout').catch(() => {});
@@ -205,6 +222,10 @@ jobs:
                 );
                 await capture(page, 'after-stalled-network');
               } catch (error) {
+                fs.writeFileSync(
+                  'qa-auth-fix-artifacts/stalled-interception.txt',
+                  `intercepted=${intercepted}\n`,
+                );
                 await capture(page, 'failure-stalled-network');
                 throw error;
               } finally {
