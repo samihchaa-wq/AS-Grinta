@@ -1,0 +1,132 @@
+name: QA register deep-link experiment
+
+on:
+  push:
+    branches: [qa/auth-prelogin-audit]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Remove only GoRouter initialLocation for experiment
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "initialLocation: '/matches'," lib/app/router/app_router.dart
+          sed -i "/initialLocation: '\/matches',/d" lib/app/router/app_router.dart
+          if grep -Fq "initialLocation: '/matches'," lib/app/router/app_router.dart; then
+            echo '::error::Experimental initialLocation removal failed.'
+            exit 1
+          fi
+          git diff -- lib/app/router/app_router.dart
+
+      - name: Build local staging variant
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter pub get
+          app_version=$(awk '/^version:/{print $2}' pubspec.yaml)
+          flutter build web \
+            --release \
+            --base-href "/" \
+            --pwa-strategy=none \
+            --no-web-resources-cdn \
+            --dart-define-from-file=config/staging.json \
+            --dart-define=APP_VERSION="$app_version"
+
+          prod_host='ovzijmqrnsgcmryinkfa.supabase.co'
+          staging_host='dhwrtdnjwdkvdyvojvjl.supabase.co'
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('build/web/index.html')
+          text = p.read_text()
+          text = text.replace('ovzijmqrnsgcmryinkfa.supabase.co', 'dhwrtdnjwdkvdyvojvjl.supabase.co')
+          p.write_text(text)
+          PY
+          grep -Fq "$staging_host" build/web/index.html
+          if grep -Fq "$prod_host" build/web/index.html; then
+            echo '::error::Production host remains in experimental staging CSP.'
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
+
+      - name: Serve and verify cold registration deep-link
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --directory build/web >/tmp/qa-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/ >/dev/null; then break; fi
+            sleep 1
+          done
+
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            await page.goto(`http://127.0.0.1:8080/#/auth/register?qa=${Date.now()}`, {
+              waitUntil: 'domcontentloaded',
+              timeout: 45000,
+            });
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(1800);
+            await page.evaluate(() => {
+              const p = document.querySelector('flt-semantics-placeholder');
+              if (p instanceof HTMLElement) p.click();
+            }).catch(() => {});
+            await page.waitForTimeout(800);
+            await page.getByRole('textbox', { name: 'Prénom', exact: true }).waitFor({ timeout: 15000 });
+            console.log(`FINAL_URL=${page.url()}`);
+            if (!page.url().includes('/auth/register')) {
+              throw new Error(`Cold registration still lost: ${page.url()}`);
+            }
+            await page.screenshot({ path: 'register-deeplink-experiment.png' });
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload experiment screenshot
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-register-deeplink-experiment
+          path: register-deeplink-experiment.png
+          if-no-files-found: warn
