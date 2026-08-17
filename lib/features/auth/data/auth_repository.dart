@@ -45,6 +45,10 @@ Future<void> uploadProfilePhotoObjectWithRetry({
     try {
       await upload().timeout(timeout);
       return;
+    } on StorageException {
+      // Le serveur Storage a répondu explicitement : ce n'est pas un accusé
+      // réseau perdu et l'appelant doit conserver cette erreur certaine.
+      rethrow;
     } catch (_) {
       // Le chemin est stable et l'upload est en upsert : un second essai ne
       // crée pas un nouvel objet si le premier accusé réseau s'est perdu.
