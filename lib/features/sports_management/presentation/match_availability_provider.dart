@@ -26,6 +26,6 @@ final myMatchAvailabilityProvider = FutureProvider.autoDispose
       error,
       stackTrace,
     );
-    return null;
+    Error.throwWithStackTrace(error, stackTrace);
   }
 });
