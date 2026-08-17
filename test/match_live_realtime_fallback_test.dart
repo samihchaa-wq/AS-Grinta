@@ -23,6 +23,12 @@ void main() {
       fireImmediately: true,
     );
     addTearDown(subscription.close);
+    final degradedSubscription = container.listen(
+      matchLiveRealtimeDegradedProvider('match-1'),
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(degradedSubscription.close);
 
     await container.read(provider.future);
     await _flush();
