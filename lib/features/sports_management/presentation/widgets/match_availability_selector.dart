@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/sports_management/data/match_availability_board_repository.dart';
@@ -128,24 +129,49 @@ class _MatchAvailabilitySelectorState
       await ref.read(myMatchAvailabilityProvider(widget.matchId).future);
 
       if (!mounted) return;
-      final label = status == MatchAvailabilityStatus.available
-          ? 'Présent'
-          : status.label;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$label enregistré.')));
-    } catch (_) {
+      final label = _statusLabel(status);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$label enregistré.')));
+    } on MatchAvailabilityWriteConfirmedButRefreshFailed {
+      ref
+        ..invalidate(myMatchAvailabilityProvider(widget.matchId))
+        ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
+      if (!mounted) return;
+      final label = _statusLabel(status);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$label enregistré, mais l’écran n’a pas pu être actualisé. '
+            'Actualise la page avant toute nouvelle action.',
+          ),
+        ),
+      );
+    } on MatchAvailabilityWriteOutcomeUnknown {
+      ref
+        ..invalidate(myMatchAvailabilityProvider(widget.matchId))
+        ..invalidate(matchAvailabilityBoardProvider(widget.matchId));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Impossible d’enregistrer ta disponibilité pour le moment.',
+            'Connexion interrompue : ta disponibilité a peut-être été '
+            'enregistrée. Actualise la page avant de réessayer.',
           ),
         ),
       );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  String _statusLabel(MatchAvailabilityStatus status) {
+    return status == MatchAvailabilityStatus.available
+        ? 'Présent'
+        : status.label;
   }
 }
 
