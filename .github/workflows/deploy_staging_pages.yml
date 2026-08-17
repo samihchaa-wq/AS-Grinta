@@ -20,7 +20,7 @@ env:
   STAGING_REF: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.staging_sha || 'staging' }}
 
 concurrency:
-  group: pages-staging
+  group: pages
   cancel-in-progress: false
 
 jobs:
