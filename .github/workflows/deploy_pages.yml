@@ -86,6 +86,13 @@ jobs:
             --no-web-resources-cdn \
             --dart-define-from-file=config/production.json \
             --dart-define=APP_VERSION="$APP_VERSION"
+      - name: Version critical web shell assets
+        run: python3 tool/stamp_web_release.py
+      - name: Enforce web performance budget
+        env:
+          MAX_MAIN_DART_JS_BYTES: '5600000'
+          MAX_MAIN_DART_JS_GZIP_BYTES: '1600000'
+        run: python3 tool/check_web_performance_budget.py
       - name: Add SPA fallback
         run: cp build/web/index.html build/web/404.html
       - name: Validate generated assets
@@ -98,9 +105,11 @@ jobs:
           test -s build/web/main.dart.js
           test -s build/web/favicon.svg
           grep -Fq "$WEB_VERSION" build/web/build_version.js
+          grep -Fq "build_version.js?v=$WEB_VERSION" build/web/index.html
+          grep -Fq "app_shell.js?v=$WEB_VERSION" build/web/index.html
+          grep -q 'version-check' build/web/app_shell.js
           grep -q '/AS-Grinta/' build/web/index.html
           grep -q 'Content-Security-Policy' build/web/index.html
-          grep -q 'app_shell.js' build/web/index.html
           grep -q 'staleWhileRevalidate' build/web/sw.js
           grep -a -q 'Clean sheets' build/web/main.dart.js
           if grep -a -q 'Tous les pronostics (' build/web/main.dart.js; then
@@ -155,9 +164,13 @@ jobs:
           test -s /tmp/flutter_bootstrap.js
           test -s /tmp/main.dart.js
           test -s /tmp/favicon.svg
+          web_version=$(sed -nE "s/.*AS_GRINTA_WEB_VERSION = '([^']+)'.*/\1/p" /tmp/build_version.js | head -n 1)
+          test -n "$web_version"
           grep -Fq "${TARGET_SHA:0:12}" /tmp/build_version.js
+          grep -Fq "build_version.js?v=$web_version" /tmp/index.html
+          grep -Fq "app_shell.js?v=$web_version" /tmp/index.html
+          grep -q 'version-check' /tmp/app_shell.js
           grep -q 'Content-Security-Policy' /tmp/index.html
-          grep -q 'app_shell.js' /tmp/index.html
           grep -q '/AS-Grinta/' /tmp/index.html
           grep -a -q 'Clean sheets' /tmp/main.dart.js
           if grep -a -q 'Tous les pronostics (' /tmp/main.dart.js; then
