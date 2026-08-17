@@ -18,82 +18,72 @@ jobs:
           ref: db/internal-match-atomic-update
           fetch-depth: 0
 
+      - name: Setup Flutter formatter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Apply minimal client patch
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           repo = Path('lib/features/matches/data/matches_repository.dart')
           text = repo.read_text()
-          old = """  Future<void> updateInternalMatch({
-            required String id,
-            required String seasonId,
-            required DateTime kickoffAt,
-          }) async {
-            final result = await _client.rpc(
-              'update_internal_match',
-              params: {
-                'p_match_id': id,
-                'p_season_id': seasonId,
-                'p_match_date': kickoffAt.toIso8601String().split('T').first,
-                'p_match_time': _formatTime(kickoffAt),
-              },
-            );
-          """
-          new = """  Future<void> updateInternalMatch({
-            required String id,
-            required String seasonId,
-            required DateTime kickoffAt,
-            String? address,
-          }) async {
-            final result = await _client.rpc(
-              'update_internal_match',
-              params: {
-                'p_match_id': id,
-                'p_season_id': seasonId,
-                'p_match_date': kickoffAt.toIso8601String().split('T').first,
-                'p_match_time': _formatTime(kickoffAt),
-                'p_address': address,
-              },
-            );
-          """
-          if old not in text:
-              raise SystemExit('repository target block not found')
-          repo.write_text(text.replace(old, new, 1))
+          start = text.index('  Future<void> updateInternalMatch({')
+          end = text.index('  /// Cotes suggérées', start)
+          block = text[start:end]
+          block, count = re.subn(
+              r'(required DateTime kickoffAt,\n)(\s*\}\) async \{)',
+              r'\1    String? address,\n\2',
+              block,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('repository signature target not found')
+          block, count = re.subn(
+              r"('p_match_time': _formatTime\(kickoffAt\),\n)",
+              r"\1        'p_address': address,\n",
+              block,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('repository params target not found')
+          repo.write_text(text[:start] + block + text[end:])
 
           controller = Path('lib/features/matches/presentation/matches_controller.dart')
           text = controller.read_text()
-          old = """      await _repository.updateInternalMatch(
-                id: id,
-                seasonId: seasonId,
-                kickoffAt: kickoffAt,
-              );
-              await _repository.setMatchAddress(
-                matchId: id,
-                address: address,
-                rememberAsDefault: rememberAddressAsDefault,
-              );
-          """
-          new = """      await _repository.updateInternalMatch(
-                id: id,
-                seasonId: seasonId,
-                kickoffAt: kickoffAt,
-                address: address,
-              );
-          """
-          if old not in text:
-              raise SystemExit('controller target block not found')
-          controller.write_text(text.replace(old, new, 1))
+          start = text.index('  Future<void> updateInternalMatch({')
+          end = text.index('  bool _validOdds', start)
+          block = text[start:end]
+          block, count = re.subn(
+              r'(kickoffAt: kickoffAt,\n\s*\);)',
+              'kickoffAt: kickoffAt,\n        address: address,\n      );',
+              block,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('controller update call target not found')
+          block, count = re.subn(
+              r'\n\s*await _repository\.setMatchAddress\(\n\s*matchId: id,\n\s*address: address,\n\s*rememberAsDefault: rememberAddressAsDefault,\n\s*\);',
+              '',
+              block,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit('controller second RPC target not found')
+          controller.write_text(text[:start] + block + text[end:])
           PY
 
           dart format lib/features/matches/data/matches_repository.dart \
-            lib/features/matches/presentation/matches_controller.dart || true
+            lib/features/matches/presentation/matches_controller.dart
 
           rm .github/workflows/tmp_patch_internal_match.yml
           git diff --check
-          git diff --exit-code -- .github/workflows/flutter_ci.yml
 
       - name: Commit patch and remove temporary workflow
         shell: bash
