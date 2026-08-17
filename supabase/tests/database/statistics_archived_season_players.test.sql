@@ -9,24 +9,21 @@ values (
   'QA Archive'
 );
 
-insert into public.profiles(
-  id,
-  first_name,
-  last_name,
-  email,
-  role,
-  status,
-  player_id
-)
+-- Le profil est créé par le trigger Auth ; on l'attache ensuite à l'identité
+-- joueur canonique pour respecter le même contrat que la production.
+insert into auth.users(id, email, raw_user_meta_data)
 values (
   'e2000000-0000-0000-0000-000000000001',
-  'QA',
-  'Archive',
   'qa-archive@example.invalid',
-  'admin',
-  'active',
-  'e1000000-0000-0000-0000-000000000001'
+  '{"first_name":"QA","last_name":"Archive"}'::jsonb
 );
+
+update public.profiles
+set role = 'admin',
+    status = 'active',
+    player_id = 'e1000000-0000-0000-0000-000000000001',
+    updated_at = now()
+where id = 'e2000000-0000-0000-0000-000000000001';
 
 -- Ces dates futures rendent la saison de test déterministe même si le socle
 -- canonique contient déjà une saison ouverte.
