@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   format:
-    if: github.event.head_commit.message != 'style: format availability resilience'
+    if: "${{ github.event.head_commit.message != 'style: format availability resilience' }}"
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
