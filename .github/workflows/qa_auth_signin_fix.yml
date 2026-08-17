@@ -71,6 +71,11 @@ jobs:
           const { chromium } = require('playwright-core');
           const root = 'http://127.0.0.1:8091';
           const tokenEndpoint = '**/auth/v1/token*';
+          const corsHeaders = {
+            'access-control-allow-origin': '*',
+            'access-control-allow-methods': 'POST, OPTIONS',
+            'access-control-allow-headers': 'authorization, apikey, content-type, x-client-info',
+          };
 
           async function activate(page) {
             await page.locator('flutter-view, flt-glass-pane, canvas').first()
@@ -141,19 +146,33 @@ jobs:
               args: ['--no-sandbox', '--disable-dev-shm-usage'],
             });
 
-            // Mauvais identifiants contre le vrai projet staging. Ce cas avait
-            // déjà révélé le défaut initial et évite de dépendre d'un faux
-            // payload GoTrue qui pourrait ne pas reproduire son AuthException.
+            // Reproduit la réponse GoTrue invalid_credentials tout en répondant
+            // correctement au preflight CORS de la build servie en localhost.
             {
               const { context, page } = await open(browser);
+              let credentialPosts = 0;
               try {
-                const tokenResponses = [];
-                page.on('response', async response => {
-                  if (!response.url().includes('/auth/v1/token')) return;
-                  tokenResponses.push({
-                    status: response.status(),
-                    url: response.url(),
-                    body: await response.text().catch(() => '<illisible>'),
+                await page.route(tokenEndpoint, async route => {
+                  const request = route.request();
+                  const url = new URL(request.url());
+                  if (url.searchParams.get('grant_type') !== 'password') {
+                    await route.continue();
+                    return;
+                  }
+                  if (request.method() === 'OPTIONS') {
+                    await route.fulfill({ status: 204, headers: corsHeaders, body: '' });
+                    return;
+                  }
+                  credentialPosts += 1;
+                  await route.fulfill({
+                    status: 400,
+                    contentType: 'application/json',
+                    headers: corsHeaders,
+                    body: JSON.stringify({
+                      code: 'invalid_credentials',
+                      message: 'Invalid login credentials',
+                      msg: 'Invalid login credentials',
+                    }),
                   });
                 });
                 await page.getByRole('textbox', { name: 'Identifiant', exact: true })
@@ -164,17 +183,21 @@ jobs:
                 await waitForAxName(
                   page,
                   'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
-                  20000,
+                  10000,
                 );
-                if (tokenResponses.length < 1) {
-                  throw new Error('Aucune réponse GoTrue observée pour les mauvais identifiants');
+                if (credentialPosts !== 1) {
+                  throw new Error(`Requête bad credentials interceptée ${credentialPosts} fois`);
                 }
                 fs.writeFileSync(
-                  'qa-auth-fix-artifacts/bad-credentials-response.json',
-                  JSON.stringify(tokenResponses, null, 2),
+                  'qa-auth-fix-artifacts/bad-credentials-result.txt',
+                  `credential-posts=${credentialPosts}\n`,
                 );
                 await capture(page, 'after-bad-credentials');
               } catch (error) {
+                fs.writeFileSync(
+                  'qa-auth-fix-artifacts/bad-credentials-result.txt',
+                  `credential-posts=${credentialPosts}\n`,
+                );
                 await capture(page, 'failure-bad-credentials');
                 throw error;
               } finally {
@@ -182,16 +205,22 @@ jobs:
               }
             }
 
-            // La requête GoTrue est volontairement suspendue. Le timeout
-            // applicatif doit reprendre la main avant l'abandon réseau simulé.
+            // Laisse réussir le preflight puis suspend uniquement le POST
+            // d'authentification. Le timeout applicatif de 12 s doit rendre la
+            // main avec un message réseau avant l'abandon simulé à 30 s.
             {
               const { context, page } = await open(browser);
+              let intercepted = 0;
               try {
-                let intercepted = 0;
                 await page.route(tokenEndpoint, async route => {
-                  const url = new URL(route.request().url());
+                  const request = route.request();
+                  const url = new URL(request.url());
                   if (url.searchParams.get('grant_type') !== 'password') {
                     await route.continue();
+                    return;
+                  }
+                  if (request.method() === 'OPTIONS') {
+                    await route.fulfill({ status: 204, headers: corsHeaders, body: '' });
                     return;
                   }
                   intercepted += 1;
@@ -218,7 +247,7 @@ jobs:
                 }
                 fs.writeFileSync(
                   'qa-auth-fix-artifacts/offline-result.txt',
-                  `stalled-network-feedback-ms=${elapsed}\n`,
+                  `stalled-network-feedback-ms=${elapsed}\nintercepted=${intercepted}\n`,
                 );
                 await capture(page, 'after-stalled-network');
               } catch (error) {
