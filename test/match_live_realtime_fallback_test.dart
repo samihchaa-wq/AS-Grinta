@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('a Realtime error enables fallback and triggers a server resync', () async {
+  test('a Realtime error enables fallback and triggers a server resync',
+      () async {
     final repository = _RealtimeFallbackRepository(_bundle());
     final container = ProviderContainer(
       overrides: [matchLiveRepositoryProvider.overrideWithValue(repository)],

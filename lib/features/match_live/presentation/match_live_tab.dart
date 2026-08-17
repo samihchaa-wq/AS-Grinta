@@ -198,7 +198,8 @@ class _RealtimeFallbackNotice extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
       liveRegion: true,
-      label: 'Connexion temps réel interrompue. Synchronisation de secours active.',
+      label:
+          'Connexion temps réel interrompue. Synchronisation de secours active.',
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.errorContainer,
