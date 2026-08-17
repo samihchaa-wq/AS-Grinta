@@ -1,0 +1,76 @@
+name: Visual evidence guard
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: visual-evidence-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  require-before-after:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require before/after evidence for visual changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          files="$(mktemp)"
+          page=1
+
+          while :; do
+            response="$(curl -LfsS \
+              -H 'Accept: application/vnd.github+json' \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "${api}/pulls/${PR_NUMBER}/files?per_page=100&page=${page}")"
+            count="$(jq 'length' <<<"$response")"
+            jq -r '.[].filename' <<<"$response" >> "$files"
+            if [ "$count" -lt 100 ]; then
+              break
+            fi
+            page=$((page + 1))
+          done
+
+          visual_change=false
+          while IFS= read -r path; do
+            case "$path" in
+              lib/*/presentation/*|lib/core/theme/*|lib/core/widgets/*|assets/*|web/*)
+                visual_change=true
+                echo "Visual-impact file: $path"
+                ;;
+            esac
+          done < "$files"
+
+          if [ "$visual_change" != true ]; then
+            echo 'No visual-impact files detected; before/after evidence is not required.'
+            exit 0
+          fi
+
+          body="$(curl -LfsS \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "${api}/pulls/${PR_NUMBER}" | jq -r '.body // ""')"
+
+          before="$(printf '%s\n' "$body" | sed -nE 's/^[[:space:]]*-[[:space:]]*Avant:[[:space:]]*(https?:\/\/[^[:space:]]+).*$/\1/p' | head -n 1)"
+          after="$(printf '%s\n' "$body" | sed -nE 's/^[[:space:]]*-[[:space:]]*Après:[[:space:]]*(https?:\/\/[^[:space:]]+).*$/\1/p' | head -n 1)"
+
+          if [ -z "$before" ] || [ -z "$after" ]; then
+            echo '::error::Cette PR touche l’interface. Ajoutez deux liens de captures dans la description, exactement sous la forme « - Avant: https://… » et « - Après: https://… ».'
+            exit 1
+          fi
+
+          echo 'Before/after visual evidence detected.'
