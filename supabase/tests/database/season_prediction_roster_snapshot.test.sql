@@ -6,7 +6,7 @@ select no_plan();
 select ok(
   to_regclass('public.season_prediction_roster_captures') is not null
   and to_regclass('public.season_prediction_roster_members') is not null,
-  'le snapshot de l effectif des pronos saison existe'
+  'les tables du snapshot existent'
 );
 
 select ok(
@@ -18,23 +18,18 @@ select ok(
       'public.season_prediction_roster_members'::regclass
     )
   ),
-  'RLS est activee sur les tables de snapshot'
+  'RLS est activee sur les snapshots'
 );
 
 select ok(
   has_table_privilege(
-    'authenticated',
-    'public.season_prediction_roster_captures',
-    'SELECT'
-  )
-  and has_table_privilege(
     'authenticated',
     'public.season_prediction_roster_members',
     'SELECT'
   )
   and not has_table_privilege(
     'authenticated',
-    'public.season_prediction_roster_captures',
+    'public.season_prediction_roster_members',
     'INSERT'
   )
   and not has_table_privilege(
@@ -42,7 +37,7 @@ select ok(
     'public.season_prediction_roster_members',
     'UPDATE'
   ),
-  'un joueur peut lire le contrat mais ne peut pas le modifier'
+  'un joueur peut lire mais pas reecrire le snapshot'
 );
 
 insert into auth.users(id, email, raw_user_meta_data)
@@ -79,9 +74,6 @@ values (
   null
 );
 
--- Les trois joueurs sont créés par le même parcours réel : actifs au départ.
--- Le troisième sera archivé avant le verrou après avoir déjà eu un prono,
--- ce qui reproduit le cas qui provoquait l'incohérence de classement.
 insert into public.season_players(
   id, season_id, first_name, last_name, is_goalkeeper,
   is_active, position, profile_id
@@ -106,39 +98,25 @@ values
     null
   );
 
-insert into public.season_predictions(
-  season_id, predictor_profile_id, season_player_id,
-  category, predicted_value_30, is_filled
-)
-values
-  (
-    'c9200000-0000-0000-0000-000000000001',
-    'c9100000-0000-0000-0000-000000000002',
+-- Les seeds existent deja. Le pronostiqueur remplit les trois joueurs tant
+-- qu'ils sont actifs, puis le troisieme est archive avant le lock.
+update public.season_predictions
+set predicted_value_30 = case season_player_id
+      when 'c9300000-0000-0000-0000-000000000001'::uuid then 2
+      when 'c9300000-0000-0000-0000-000000000002'::uuid then 1
+      when 'c9300000-0000-0000-0000-000000000003'::uuid then 5
+      else predicted_value_30
+    end,
+    is_filled = true,
+    updated_at = now()
+where season_id = 'c9200000-0000-0000-0000-000000000001'
+  and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
+  and season_player_id in (
     'c9300000-0000-0000-0000-000000000001',
-    'buts', 2, true
-  ),
-  (
-    'c9200000-0000-0000-0000-000000000001',
-    'c9100000-0000-0000-0000-000000000002',
     'c9300000-0000-0000-0000-000000000002',
-    'clean_sheets', 1, true
-  ),
-  (
-    'c9200000-0000-0000-0000-000000000001',
-    'c9100000-0000-0000-0000-000000000002',
-    'c9300000-0000-0000-0000-000000000003',
-    'buts', 5, true
-  )
-on conflict (
-  season_id, predictor_profile_id, season_player_id, category
-)
-do update set
-  predicted_value_30 = excluded.predicted_value_30,
-  is_filled = true,
-  updated_at = now();
+    'c9300000-0000-0000-0000-000000000003'
+  );
 
--- Un joueur peut être archivé après qu'un prono a déjà été enregistré mais
--- avant le verrou. Il ne doit donc pas entrer dans le contrat figé au lock.
 update public.season_players
 set is_active = false
 where id = 'c9300000-0000-0000-0000-000000000003';
@@ -155,7 +133,7 @@ select ok(
     'c9200000-0000-0000-0000-000000000001'::uuid,
     true
   ),
-  'le verrouillage de la saison reussit'
+  'le lock reussit'
 );
 
 reset role;
@@ -167,7 +145,7 @@ select is(
     where season_id = 'c9200000-0000-0000-0000-000000000001'
   ),
   2::bigint,
-  'le lock capture exactement les deux joueurs actifs'
+  'le lock fige seulement les deux joueurs encore actifs'
 );
 
 select ok(
@@ -188,31 +166,26 @@ select ok(
     from public.season_prediction_roster_members
     where season_player_id = 'c9300000-0000-0000-0000-000000000003'
   ),
-  'le snapshot fige aussi la categorie et exclut un joueur deja inactif'
+  'le snapshot fige le perimetre et les categories'
 );
 
-update public.season_players
-set is_active = false
-where id = 'c9300000-0000-0000-0000-000000000002';
-
+-- Une reactivation apres lock ne doit pas agrandir le concours.
 update public.season_players
 set is_active = true
 where id = 'c9300000-0000-0000-0000-000000000003';
 
-select ok(
-  exists (
-    select 1
+select is(
+  (
+    select count(*)
     from public.season_prediction_roster_members
-    where season_player_id = 'c9300000-0000-0000-0000-000000000002'
-  )
-  and not exists (
-    select 1
-    from public.season_prediction_roster_members
-    where season_player_id = 'c9300000-0000-0000-0000-000000000003'
+    where season_id = 'c9200000-0000-0000-0000-000000000001'
   ),
-  'archiver ou reactiver apres le lock ne change pas le contrat'
+  2::bigint,
+  'reactiver un joueur apres le lock ne change pas le snapshot'
 );
 
+-- Match reellement passe : le contrat existant interdit a juste titre de
+-- marquer termine un match futur.
 insert into public.matches(
   id, season_id, match_date, match_time, location,
   planned_duration_minutes, status, score_as_grinta, score_adverse,
@@ -221,15 +194,15 @@ insert into public.matches(
 values (
   'c9400000-0000-0000-0000-000000000001',
   'c9200000-0000-0000-0000-000000000001',
-  date '2098-10-01',
-  time '20:00',
+  ((now() - interval '2 hours') at time zone 'Europe/Paris')::date,
+  ((now() - interval '2 hours') at time zone 'Europe/Paris')::time,
   'Terrain snapshot',
   90,
   'termine',
   3,
   0,
   'entre_nous',
-  timestamptz '2098-10-01 18:00:00+00'
+  now() - interval '2 hours'
 );
 
 insert into public.match_player_stats(
@@ -255,6 +228,25 @@ values
     false
   );
 
+-- Le gardien peut etre archive apres le lock sans disparaitre du contrat.
+update public.season_players
+set is_active = false
+where id = 'c9300000-0000-0000-0000-000000000002';
+
+select ok(
+  exists (
+    select 1
+    from public.season_prediction_roster_members
+    where season_player_id = 'c9300000-0000-0000-0000-000000000002'
+  )
+  and not exists (
+    select 1
+    from public.season_prediction_roster_members
+    where season_player_id = 'c9300000-0000-0000-0000-000000000003'
+  ),
+  'archivage et reactivation apres lock ne reecrivent pas le contrat'
+);
+
 update public.seasons
 set status = 'archived'
 where id = 'c9200000-0000-0000-0000-000000000001';
@@ -274,7 +266,7 @@ select is(
       and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
   ),
   2::bigint,
-  'le classement conserve les deux membres du snapshot apres archivage'
+  'seuls les deux membres figes produisent des points'
 );
 
 select is(
@@ -285,7 +277,7 @@ select is(
       and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
   ),
   12::bigint,
-  'les deux pronostics exacts valent toujours 12 points au total'
+  'les deux pronostics exacts valent 12 points au total'
 );
 
 select ok(
@@ -295,7 +287,7 @@ select ok(
     where season_id = 'c9200000-0000-0000-0000-000000000001'
       and season_player_id = 'c9300000-0000-0000-0000-000000000003'
   ),
-  'un joueur reactive apres le lock ne peut pas entrer retroactivement dans le score'
+  'le joueur reactive apres lock reste exclu meme avec un ancien prono rempli'
 );
 
 reset role;
@@ -308,7 +300,7 @@ select throws_ok(
   $$,
   '23514',
   'Season prediction roster is frozen; season/category cannot be changed',
-  'la categorie d un membre snapshot ne peut plus etre reecrite'
+  'la categorie d un membre fige ne peut pas etre modifiee'
 );
 
 select throws_ok(
@@ -318,9 +310,11 @@ select throws_ok(
   $$,
   '23514',
   'Season prediction roster is frozen; archived prediction members cannot be deleted',
-  'un membre snapshot ne peut pas etre supprime directement'
+  'un membre fige ne peut pas etre supprime directement'
 );
 
+-- Une reouverture explicite efface l'ancien contrat. Le prochain lock prend
+-- alors le nouvel effectif actif : Buteur + Archive, sans le gardien archive.
 update public.seasons
 set status = 'open',
     season_predictions_locked_at = null
@@ -333,12 +327,25 @@ select is(
     where season_id = 'c9200000-0000-0000-0000-000000000001'
   ),
   0::bigint,
-  'reouvrir et deverrouiller efface le snapshot precedent'
+  'deverrouiller efface le snapshot precedent'
 );
 
-update public.seasons
-set season_predictions_locked_at = now()
-where id = 'c9200000-0000-0000-0000-000000000001';
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"c9100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select ok(
+  public.set_season_predictions_lock(
+    'c9200000-0000-0000-0000-000000000001'::uuid,
+    true
+  ),
+  'le second lock reussit'
+);
+
+reset role;
 
 select ok(
   exists (
@@ -356,7 +363,7 @@ select ok(
     from public.season_prediction_roster_members
     where season_player_id = 'c9300000-0000-0000-0000-000000000002'
   ),
-  'un nouveau lock recapture exactement le nouvel effectif actif'
+  'un nouveau lock recapture le nouvel effectif actif'
 );
 
 select * from finish();
