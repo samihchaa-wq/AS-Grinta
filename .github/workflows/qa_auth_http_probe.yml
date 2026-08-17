@@ -1,0 +1,60 @@
+name: QA auth HTTP probe
+
+on:
+  push:
+    branches: [qa/auth-offline-staging-proof]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Probe invalid credentials response
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-auth-http-probe
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import subprocess
+          import time
+
+          config = json.loads(pathlib.Path('config/staging.json').read_text())
+          url = config['SUPABASE_URL'].rstrip('/') + '/auth/v1/token?grant_type=password'
+          key = config['SUPABASE_ANON_KEY']
+          domain = config['USERNAME_DOMAIN']
+          email = f'qa-http-{int(time.time() * 1000)}@{domain}'
+          payload = json.dumps({'email': email, 'password': 'MauvaisMotDePasse123'})
+
+          cmd = [
+              'curl', '-sS', '-o', 'qa-auth-http-probe/body.json',
+              '-w', '%{http_code}',
+              '-X', 'POST', url,
+              '-H', f'apikey: {key}',
+              '-H', f'Authorization: Bearer {key}',
+              '-H', 'Content-Type: application/json',
+              '--data', payload,
+          ]
+          result = subprocess.run(cmd, check=True, text=True, capture_output=True)
+          status = result.stdout.strip()
+          pathlib.Path('qa-auth-http-probe/status.txt').write_text(status + '\n')
+          print('HTTP status:', status)
+          print('Body:')
+          print(pathlib.Path('qa-auth-http-probe/body.json').read_text())
+          PY
+
+      - name: Upload probe
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-auth-http-probe
+          path: qa-auth-http-probe/
+          if-no-files-found: error
