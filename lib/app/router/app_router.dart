@@ -49,6 +49,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: initialAppLocation(),
+    overridePlatformDefaultLocation: kIsWeb,
     refreshListenable: refreshNotifier,
     redirect: (context, state) => resolveAuthRedirect(
       authState: ref.read(authControllerProvider),
@@ -115,7 +116,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/matches/:matchId/prediction',
                 builder: (context, state) => UpcomingMatchPredictionPage(
-                  matchId: state.pathParameters['matchId'] ?? '',
+                  matchId: matchId,
                 ),
               ),
               GoRoute(
