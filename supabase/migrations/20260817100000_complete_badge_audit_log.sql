@@ -1,16 +1,7 @@
 begin;
 
 alter table private.profile_badge_audit_log
-  add column if not exists source text;
-
-update private.profile_badge_audit_log
-set source = 'manual'
-where source is null;
-
-alter table private.profile_badge_audit_log
-  alter column source set not null;
-
-alter table private.profile_badge_audit_log
+  add column if not exists source text not null default 'manual',
   add column if not exists metadata jsonb not null default '{}'::jsonb,
   add column if not exists state_before jsonb,
   add column if not exists state_after jsonb;
