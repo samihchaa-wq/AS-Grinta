@@ -192,12 +192,17 @@ select ok(
     'private.save_match_effectif(uuid,integer,jsonb,text)',
     'EXECUTE'
   )
-  and has_function_privilege(
+  and not has_function_privilege(
     'authenticated',
     'private.save_match_effectif(uuid,integer,jsonb,text)',
     'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'private.save_match_effectif(uuid,integer,jsonb,text)',
+    'EXECUTE'
   ),
-  'le relais privé effectif n’hérite plus d’un droit PUBLIC'
+  'le relais privé effectif obsolète reste réservé au service_role'
 );
 
 select is(
