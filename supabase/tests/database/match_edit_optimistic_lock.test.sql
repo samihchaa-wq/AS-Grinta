@@ -29,6 +29,44 @@ select ok(
   'la modification entre nous expose une version attendue'
 );
 
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.admin_update_match_complete(uuid,uuid,uuid,date,time without time zone,text,text,numeric,numeric,numeric,timestamp with time zone,integer,text,boolean,text,text)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.admin_update_match_complete(uuid,uuid,uuid,date,time without time zone,text,text,numeric,numeric,numeric,timestamp with time zone,integer,text,boolean,text,text)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'public.admin_update_match_complete(uuid,uuid,uuid,date,time without time zone,text,text,numeric,numeric,numeric,timestamp with time zone,integer,text,boolean,text,text)',
+    'EXECUTE'
+  ),
+  'la modification complète conserve les droits authenticated/service_role sans anon'
+);
+
+select ok(
+  has_function_privilege(
+    'authenticated',
+    'public.update_internal_match(uuid,uuid,date,time without time zone,text,timestamp with time zone)',
+    'EXECUTE'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.update_internal_match(uuid,uuid,date,time without time zone,text,timestamp with time zone)',
+    'EXECUTE'
+  )
+  and not has_function_privilege(
+    'anon',
+    'public.update_internal_match(uuid,uuid,date,time without time zone,text,timestamp with time zone)',
+    'EXECUTE'
+  ),
+  'la modification entre nous conserve les droits authenticated/service_role sans anon'
+);
+
 insert into auth.users(id, email, raw_user_meta_data)
 values (
   '44000000-0000-0000-0000-000000000001',
