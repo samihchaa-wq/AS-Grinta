@@ -14,9 +14,13 @@ const _signInUnavailableMessage =
     'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.';
 
 String authSignInErrorMessage(Object error) {
-  if (error is supabase.AuthException &&
-      error.code?.toLowerCase() == 'invalid_credentials') {
-    return _invalidCredentialsMessage;
+  if (error is supabase.AuthException) {
+    final code = error.code?.toLowerCase();
+    final message = error.message.toLowerCase();
+    if (code == 'invalid_credentials' ||
+        message.contains('invalid login credentials')) {
+      return _invalidCredentialsMessage;
+    }
   }
   return _signInUnavailableMessage;
 }
