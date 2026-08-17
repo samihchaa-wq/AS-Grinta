@@ -24,8 +24,7 @@ String _newScoreOperationId() {
       .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
       .join();
   return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
-      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
-      '${hex.substring(20)}';
+      '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
 }
 
 /// Vrai si l'utilisateur courant peut piloter le Tableau Blanc de ce match :
@@ -216,12 +215,12 @@ class MatchLiveStateController
     final operationId = _newScoreOperationId();
     return _mutate((repository) async {
       Future<MatchLiveStateBundle> send() => repository.adjustScore(
-        matchId: arg,
-        team: team,
-        delta: delta,
-        operationId: operationId,
-        scorerParticipantId: scorerParticipantId,
-      );
+            matchId: arg,
+            team: team,
+            delta: delta,
+            operationId: operationId,
+            scorerParticipantId: scorerParticipantId,
+          );
 
       try {
         return await send();
