@@ -11,6 +11,7 @@ import 'package:as_grinta/features/match_live/domain/match_live_timeline.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final Random _scoreOperationRandom = Random.secure();
+const Duration matchLiveFallbackPollInterval = Duration(seconds: 30);
 
 String _newScoreOperationId() {
   final bytes = List<int>.generate(
@@ -71,6 +72,12 @@ final matchLiveTimelineProvider = FutureProvider.autoDispose
 final matchLiveActionMessageProvider =
     StateProvider.autoDispose.family<String?, String>((ref, matchId) => null);
 
+/// Indique qu'une erreur a été signalée par le flux Realtime. Le Live continue
+/// alors à se resynchroniser par lecture serveur périodique jusqu'au prochain
+/// signal Realtime reçu.
+final matchLiveRealtimeDegradedProvider =
+    StateProvider.autoDispose.family<bool, String>((ref, matchId) => false);
+
 final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
     .family<MatchLiveStateController, MatchLiveStateBundle, String>(
   MatchLiveStateController.new,
@@ -79,6 +86,7 @@ final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
 class MatchLiveStateController
     extends AutoDisposeFamilyAsyncNotifier<MatchLiveStateBundle, String> {
   StreamSubscription<void>? _subscription;
+  Timer? _fallbackPollTimer;
   int _stateGeneration = 0;
 
   @override
@@ -90,12 +98,28 @@ class MatchLiveStateController
     // Cela évite surtout qu'un refresh lancé pendant build() soit ensuite
     // écrasé par le résultat initial, plus ancien.
     final initial = await repository.fetchLiveState(matchId);
+    ref.read(matchLiveRealtimeDegradedProvider(matchId).notifier).state = false;
     _subscription = repository.watchChanges(matchId).listen(
-          (_) => unawaited(_refresh()),
-          onError: (Object error, StackTrace stackTrace) =>
-              AppLogger.error('match_live.watch_changes', error, stackTrace),
-        );
-    ref.onDispose(() => _subscription?.cancel());
+      (_) {
+        ref.read(matchLiveRealtimeDegradedProvider(matchId).notifier).state =
+            false;
+        unawaited(_refresh());
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        AppLogger.error('match_live.watch_changes', error, stackTrace);
+        ref.read(matchLiveRealtimeDegradedProvider(matchId).notifier).state =
+            true;
+        unawaited(_refresh());
+      },
+    );
+    _fallbackPollTimer = Timer.periodic(
+      matchLiveFallbackPollInterval,
+      (_) => unawaited(_refresh()),
+    );
+    ref.onDispose(() {
+      _subscription?.cancel();
+      _fallbackPollTimer?.cancel();
+    });
     unawaited(_refresh());
     return initial;
   }
