@@ -5,7 +5,7 @@ select no_plan();
 
 select ok(
   to_regclass('private.profile_badge_audit_log') is not null,
-  'le journal privé des badges manuels existe'
+  'le journal privé des badges existe'
 );
 
 select ok(
@@ -81,21 +81,16 @@ select ok(
   ),
   'un administrateur peut attribuer le badge manuel'
 );
-reset role;
 
-select is(
-  (
-    select count(*)
-    from public.profile_badges pb
-    join public.badges b on b.id = pb.badge_id
-    where pb.profile_id = '91000000-0000-0000-0000-000000000002'
-      and b.code = 'audit_manual_test'
-      and pb.source = 'manual'
-      and pb.awarded_by = '91000000-0000-0000-0000-000000000001'
+-- Même action, même état : ne doit ni réécrire la ligne ni ajouter un événement.
+select ok(
+  public.staff_award_badge(
+    '91000000-0000-0000-0000-000000000002',
+    'audit_manual_test'
   ),
-  1::bigint,
-  'l’attribution courante conserve son acteur'
+  'une attribution manuelle répétée reste idempotente'
 );
+reset role;
 
 select is(
   (
@@ -105,10 +100,14 @@ select is(
       and profile_id = '91000000-0000-0000-0000-000000000002'
       and badge_code = 'audit_manual_test'
       and actor_profile_id = '91000000-0000-0000-0000-000000000001'
+      and source = 'manual'
+      and metadata ->> 'reason' = 'manual_award'
+      and state_before is null
+      and state_after ->> 'source' = 'manual'
       and not is_backfill
   ),
   1::bigint,
-  'l’attribution écrit un événement immuable avec son acteur'
+  'l’attribution idempotente ne produit qu’un seul événement complet'
 );
 
 select set_config(
@@ -129,27 +128,62 @@ reset role;
 select is(
   (
     select count(*)
-    from public.profile_badges pb
-    join public.badges b on b.id = pb.badge_id
-    where pb.profile_id = '91000000-0000-0000-0000-000000000002'
-      and b.code = 'audit_manual_test'
-  ),
-  0::bigint,
-  'le badge est bien retiré de l’état courant'
-);
-
-select is(
-  (
-    select count(*)
     from private.profile_badge_audit_log
     where event_type = 'revoke'
       and profile_id = '91000000-0000-0000-0000-000000000002'
       and badge_code = 'audit_manual_test'
       and actor_profile_id = '91000000-0000-0000-0000-000000000001'
+      and source = 'manual'
+      and metadata ->> 'reason' = 'manual_revoke'
+      and state_before ->> 'source' = 'manual'
+      and state_after is null
       and not is_backfill
   ),
   1::bigint,
-  'le retrait reste dans le journal après suppression du badge courant'
+  'le retrait produit un événement complet et durable'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"91000000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+select ok(
+  public.staff_award_badge(
+    '91000000-0000-0000-0000-000000000002',
+    'audit_manual_test'
+  ),
+  'le badge peut être réattribué après retrait'
+);
+reset role;
+
+select is(
+  (
+    select count(*)
+    from private.profile_badge_audit_log
+    where event_type = 'award'
+      and profile_id = '91000000-0000-0000-0000-000000000002'
+      and badge_code = 'audit_manual_test'
+      and source = 'manual'
+      and not is_backfill
+  ),
+  2::bigint,
+  'la réattribution conserve les deux attributions dans l’historique'
+);
+
+select is(
+  (
+    select count(*)
+    from public.profile_badges pb
+    join public.badges b on b.id = pb.badge_id
+    where pb.profile_id = '91000000-0000-0000-0000-000000000002'
+      and b.code = 'audit_manual_test'
+      and pb.source = 'manual'
+      and pb.awarded_by = '91000000-0000-0000-0000-000000000001'
+  ),
+  1::bigint,
+  'la réattribution restaure exactement un état courant'
 );
 
 select throws_ok(
