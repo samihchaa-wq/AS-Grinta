@@ -135,6 +135,9 @@ class _LiveAddPlayerAction extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final realtimeDegraded = ref.watch(
+      matchLiveRealtimeDegradedProvider(matchId),
+    );
     final action = compact
         ? Align(
             alignment: Alignment.centerRight,
@@ -170,6 +173,11 @@ class _LiveAddPlayerAction extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (realtimeDegraded)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(12, 6, 12, 2),
+            child: _RealtimeFallbackNotice(),
+          ),
         Padding(
           padding: compact
               ? const EdgeInsets.fromLTRB(12, 4, 12, 0)
@@ -178,6 +186,40 @@ class _LiveAddPlayerAction extends ConsumerWidget {
         ),
         child,
       ],
+    );
+  }
+}
+
+class _RealtimeFallbackNotice extends StatelessWidget {
+  const _RealtimeFallbackNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      liveRegion: true,
+      label: 'Connexion temps réel interrompue. Synchronisation de secours active.',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.errorContainer,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.sync_problem_rounded, color: colors.onErrorContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Temps réel interrompu. Synchronisation de secours active.',
+                  style: TextStyle(color: colors.onErrorContainer),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
