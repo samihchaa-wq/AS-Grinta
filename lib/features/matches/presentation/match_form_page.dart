@@ -91,7 +91,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _kickoffAt = match?.kickoffAt ??
+    _kickoffAt =
+        match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
     _matchType = match?.matchType ?? 'championnat';
@@ -104,8 +105,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _selectedJersey = JerseyOption.fromId(match?.jerseyNote);
 
     Future.microtask(() async {
-      final home =
-          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
+      final home = await ref
+          .read(matchesRepositoryProvider)
+          .fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       _prefillAddress();
@@ -131,7 +133,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+      final opponent = ref
+          .read(matchesControllerProvider)
+          .opponents
+          .firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -188,8 +193,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role?.isAdmin ?? false;
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature =
-        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
+    final feature = ref
+        .watch(featureFlagsControllerProvider)
+        .valueOrNull
+        ?.sportsManagement;
     final openSeasons = state.seasons
         .where((season) => season['status']?.toString() == 'open')
         .toList(growable: false);
@@ -350,8 +357,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   onChanged: busy
                       ? null
                       : (value) => setState(
-                            () => _rememberAddressAsDefault = value ?? false,
-                          ),
+                          () => _rememberAddressAsDefault = value ?? false,
+                        ),
                   title: const Text(
                     'Utiliser cette adresse par défaut pour les prochains matchs',
                   ),
@@ -365,9 +372,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 const SizedBox(height: 16),
                 Text(
                   'Maillot',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
+                  style: Theme.of(context).textTheme.titleSmall
                       ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
@@ -380,9 +385,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                         onTap: busy
                             ? null
                             : () => setState(() {
-                                  _selectedJersey =
-                                      _selectedJersey == option ? null : option;
-                                }),
+                                _selectedJersey = _selectedJersey == option
+                                    ? null
+                                    : option;
+                              }),
                       ),
                       const SizedBox(width: 12),
                     ],
@@ -523,7 +529,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Future<void> _confirmDelete() async {
     final match = widget.match;
     if (match == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
@@ -624,6 +631,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           id: widget.match!.id,
           seasonId: _seasonId,
           kickoffAt: _kickoffAt,
+          expectedUpdatedAt: widget.match!.updatedAt,
           address: address.isEmpty ? null : address,
           rememberAddressAsDefault: _rememberAddressAsDefault,
         );
@@ -648,8 +656,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
 
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-    final squadSizeLimit =
-        sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+    final squadSizeLimit = sportsEnabled
+        ? int.parse(_squadSizeController.text.trim())
+        : null;
     final jerseyNote = _selectedJersey?.id;
     if (widget.match == null) {
       await notifier.createMatch(
@@ -677,6 +686,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         oddsWin: oddsWin,
         oddsDraw: oddsDraw,
         oddsLoss: oddsLoss,
+        expectedUpdatedAt: widget.match!.updatedAt,
         squadSizeLimit: squadSizeLimit,
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
