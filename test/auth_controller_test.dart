@@ -124,10 +124,15 @@ void main() {
       expect(controller.state.error, 'Ce compte n’est pas actif.');
     });
 
-    test('signIn exposes a stable user-facing error on failure', () async {
+    test('signIn reports invalid credentials without blaming the network',
+        () async {
       final repository = _FakeAuthRepository(
         fetchResults: [null],
-        signInError: StateError('backend failure'),
+        signInError: const supabase.AuthException(
+          'Invalid login credentials',
+          statusCode: '400',
+          code: 'invalid_credentials',
+        ),
       );
       final controller = AuthController(repository);
       addTearDown(controller.dispose);
@@ -145,6 +150,31 @@ void main() {
       expect(
         controller.state.error,
         'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
+      );
+    });
+
+    test('signIn reports a temporary outage for non-credential failures',
+        () async {
+      final repository = _FakeAuthRepository(
+        fetchResults: [null],
+        signInError: StateError('backend failure'),
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      await _flushAsync();
+
+      await controller.signIn(
+        username: 'samih@example.com',
+        password: 'password123',
+      );
+
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
+      expect(controller.state.profile, isNull);
+      expect(
+        controller.state.error,
+        'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
       );
     });
 
