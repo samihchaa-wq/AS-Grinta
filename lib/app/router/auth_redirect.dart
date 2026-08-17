@@ -37,8 +37,7 @@ String? resolveAuthRedirect({
     final pending = _pendingDestination(uri.queryParameters['redirect']);
     if (pending != null) {
       if (_isRecoveryDestination(pending)) return pending;
-      if (!authState.isAuthenticated &&
-          _isSignedOutAuthDestination(pending)) {
+      if (!authState.isAuthenticated && _isSignedOutAuthDestination(pending)) {
         return pending;
       }
     }
