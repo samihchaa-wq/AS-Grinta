@@ -398,11 +398,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         id: id,
         seasonId: seasonId,
         kickoffAt: kickoffAt,
-      );
-      await _repository.setMatchAddress(
-        matchId: id,
         address: address,
-        rememberAsDefault: rememberAddressAsDefault,
       );
       await load(
         seasonId: state.selectedSeasonId,
