@@ -20,9 +20,8 @@ String _newScoreOperationId() {
   );
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  final hex = bytes
-      .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-      .join();
+  final hex =
+      bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
   return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
       '${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
 }
@@ -32,50 +31,50 @@ String _newScoreOperationId() {
 /// la saison du match. Purement indicatif côté client pour choisir l'écran à
 /// afficher — l'autorisation réelle est toujours revérifiée côté serveur par
 /// private.is_match_coach_or_admin dans chaque RPC d'écriture.
-final isMatchCoachOrAdminProvider = FutureProvider.autoDispose
-    .family<bool, String>((ref, matchId) async {
-      if (ref.watch(isAdminViewProvider)) return true;
+final isMatchCoachOrAdminProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, matchId) async {
+  if (ref.watch(isAdminViewProvider)) return true;
 
-      final profileId = ref.watch(
-        authControllerProvider.select((state) => state.profile?.id),
-      );
-      if (profileId == null) return false;
+  final profileId = ref.watch(
+    authControllerProvider.select((state) => state.profile?.id),
+  );
+  if (profileId == null) return false;
 
-      final client = ref.watch(supabaseClientProvider);
-      final match = await client
-          .from('matches')
-          .select('season_id')
-          .eq('id', matchId)
-          .maybeSingle();
-      final seasonId = match?['season_id']?.toString();
-      if (seasonId == null) return false;
+  final client = ref.watch(supabaseClientProvider);
+  final match = await client
+      .from('matches')
+      .select('season_id')
+      .eq('id', matchId)
+      .maybeSingle();
+  final seasonId = match?['season_id']?.toString();
+  if (seasonId == null) return false;
 
-      final coachRow = await client
-          .from('season_players')
-          .select('id')
-          .eq('season_id', seasonId)
-          .eq('profile_id', profileId)
-          .eq('is_coach', true)
-          .eq('is_active', true)
-          .maybeSingle();
-      return coachRow != null;
-    });
+  final coachRow = await client
+      .from('season_players')
+      .select('id')
+      .eq('season_id', seasonId)
+      .eq('profile_id', profileId)
+      .eq('is_coach', true)
+      .eq('is_active', true)
+      .maybeSingle();
+  return coachRow != null;
+});
 
 final matchLiveTimelineProvider = FutureProvider.autoDispose
     .family<MatchLiveTimeline?, String>((ref, matchId) {
-      return ref.watch(matchLiveRepositoryProvider).fetchTimeline(matchId);
-    });
+  return ref.watch(matchLiveRepositoryProvider).fetchTimeline(matchId);
+});
 
 /// Message transitoire affiché au coach lorsqu'une écriture Live n'a pas pu
 /// être confirmée. Le contrôleur relit d'abord l'état autoritaire du serveur :
 /// le message ne remplace donc jamais le snapshot par une supposition locale.
-final matchLiveActionMessageProvider = StateProvider.autoDispose
-    .family<String?, String>((ref, matchId) => null);
+final matchLiveActionMessageProvider =
+    StateProvider.autoDispose.family<String?, String>((ref, matchId) => null);
 
 final matchLiveStateProvider = AsyncNotifierProvider.autoDispose
     .family<MatchLiveStateController, MatchLiveStateBundle, String>(
-      MatchLiveStateController.new,
-    );
+  MatchLiveStateController.new,
+);
 
 class MatchLiveStateController
     extends AutoDisposeFamilyAsyncNotifier<MatchLiveStateBundle, String> {
@@ -91,9 +90,7 @@ class MatchLiveStateController
     // Cela évite surtout qu'un refresh lancé pendant build() soit ensuite
     // écrasé par le résultat initial, plus ancien.
     final initial = await repository.fetchLiveState(matchId);
-    _subscription = repository
-        .watchChanges(matchId)
-        .listen(
+    _subscription = repository.watchChanges(matchId).listen(
           (_) => unawaited(_refresh()),
           onError: (Object error, StackTrace stackTrace) =>
               AppLogger.error('match_live.watch_changes', error, stackTrace),
@@ -118,7 +115,7 @@ class MatchLiveStateController
 
   Future<void> _mutate(
     Future<MatchLiveStateBundle> Function(MatchLiveRepository repository)
-    action,
+        action,
   ) async {
     // Une écriture invalide toutes les lectures déjà en vol. Si une nouvelle
     // lecture ou une autre écriture démarre pendant celle-ci, son résultat est
@@ -159,7 +156,7 @@ class MatchLiveStateController
       ref.read(matchLiveActionMessageProvider(arg).notifier).state = resynced
           ? 'Action non confirmée. L’état réel du serveur a été rechargé.'
           : 'Action non confirmée. Impossible de relire le serveur : vérifie '
-                'le Live avant de continuer.';
+              'le Live avant de continuer.';
       Error.throwWithStackTrace(error, stackTrace);
     }
   }
@@ -214,12 +211,12 @@ class MatchLiveStateController
     final operationId = _newScoreOperationId();
     return _mutate((repository) async {
       Future<MatchLiveStateBundle> send() => repository.adjustScore(
-        matchId: arg,
-        team: team,
-        delta: delta,
-        operationId: operationId,
-        scorerParticipantId: scorerParticipantId,
-      );
+            matchId: arg,
+            team: team,
+            delta: delta,
+            operationId: operationId,
+            scorerParticipantId: scorerParticipantId,
+          );
 
       try {
         return await send();
