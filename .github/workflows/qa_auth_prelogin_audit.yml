@@ -36,6 +36,7 @@ jobs:
           const { chromium } = require('playwright-core');
           const base = process.env.BASE_URL.replace(/\/$/, '');
           const report = [];
+          const defects = [];
           const runtimeIssues = [];
 
           async function activateFlutterSemantics(page) {
@@ -119,6 +120,17 @@ jobs:
             throw new Error(`Texte introuvable dans l’accessibilité: ${text}; url=${page.url()}`);
           }
 
+          async function runCase(name, fn) {
+            try {
+              await fn();
+              report.push(`${name}=ok`);
+            } catch (error) {
+              const message = String(error.stack || error);
+              defects.push(`${name}: ${message}`);
+              console.error(`[${name}] ${message}`);
+            }
+          }
+
           (async () => {
             const browser = await chromium.launch({
               headless: true,
@@ -126,90 +138,106 @@ jobs:
               args: ['--no-sandbox', '--disable-dev-shm-usage'],
             });
 
-            {
+            await runCase('registration-cold-start', async () => {
               const { context, page } = await openRoute(browser, '/auth/register');
-              await waitForAxName(page, 'Prénom');
-              if (!page.url().includes('/auth/register')) {
-                throw new Error(`DEFECT cold-start: /auth/register perdu, URL finale=${page.url()}`);
+              try {
+                await capture(page, '01-register-cold-start');
+                await waitForAxName(page, 'Prénom');
+                if (!page.url().includes('/auth/register')) {
+                  throw new Error(`route perdue, URL finale=${page.url()}`);
+                }
+                report.push(`registration-cold-start-url=${page.url()}`);
+              } finally {
+                await context.close();
               }
-              await capture(page, '01-register-cold-start');
-              report.push(`registration-cold-start=ok url=${page.url()}`);
-              await context.close();
-            }
+            });
 
-            {
+            await runCase('registration-via-button-and-validation', async () => {
               const { context, page } = await openSignIn(browser);
-              await waitForAxName(page, 'Identifiant');
-              await capture(page, '02-sign-in');
-              await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
-              await waitForAxName(page, 'Prénom');
-              if (!page.url().includes('/auth/register')) {
-                throw new Error(`Le bouton inscription n’ouvre pas /auth/register: ${page.url()}`);
+              try {
+                await waitForAxName(page, 'Identifiant');
+                await capture(page, '02-sign-in');
+                await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+                await waitForAxName(page, 'Prénom');
+                if (!page.url().includes('/auth/register')) {
+                  throw new Error(`bouton inscription: URL finale=${page.url()}`);
+                }
+                await capture(page, '03-register-via-button');
+
+                await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+                await waitForAxName(page, 'Renseigne ton prénom et ton nom.');
+                await capture(page, '04-register-empty-error');
+
+                await page.getByRole('textbox', { name: 'Prénom', exact: true }).fill('Recette');
+                await page.getByRole('textbox', { name: 'Nom', exact: true }).fill('Grinta');
+                await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('abc');
+                await page.getByRole('textbox', { name: 'Confirme ton mot de passe', exact: true }).fill('abc');
+                await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+                await waitForAxName(page, 'Le mot de passe doit contenir entre 12 et 72 caractères.');
+                await capture(page, '05-register-weak-password');
+              } finally {
+                await context.close();
               }
-              await capture(page, '03-register-via-button');
+            });
 
-              await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
-              await waitForAxName(page, 'Renseigne ton prénom et ton nom.');
-              await capture(page, '04-register-empty-error');
-
-              await page.getByRole('textbox', { name: 'Prénom', exact: true }).fill('Recette');
-              await page.getByRole('textbox', { name: 'Nom', exact: true }).fill('Grinta');
-              await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('abc');
-              await page.getByRole('textbox', { name: 'Confirme ton mot de passe', exact: true }).fill('abc');
-              await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
-              await waitForAxName(page, 'Le mot de passe doit contenir entre 12 et 72 caractères.');
-              await capture(page, '05-register-weak-password');
-              report.push(`registration-route=ok url=${page.url()}`);
-              await context.close();
-            }
-
-            {
+            await runCase('forgot-password-dialog', async () => {
               const { context, page } = await openSignIn(browser);
-              await page.getByRole('button', { name: 'Mot de passe oublié ?', exact: true }).click();
-              await waitForAxName(page, 'Mot de passe oublié');
-              await waitForAxName(page, 'Demande à un administrateur du club');
-              await capture(page, '06-forgot-password-dialog');
-              report.push('forgot-password-dialog=ok');
-              await context.close();
-            }
+              try {
+                await page.getByRole('button', { name: 'Mot de passe oublié ?', exact: true }).click();
+                await waitForAxName(page, 'Mot de passe oublié');
+                await waitForAxName(page, 'Demande à un administrateur du club');
+                await capture(page, '06-forgot-password-dialog');
+              } finally {
+                await context.close();
+              }
+            });
 
-            {
+            await runCase('sign-in-empty-validation', async () => {
               const { context, page } = await openSignIn(browser);
-              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(page, 'Renseigne ton identifiant et ton mot de passe.');
-              await capture(page, '07-sign-in-empty-error');
-              report.push('sign-in-empty-validation=ok');
-              await context.close();
-            }
+              try {
+                await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+                await waitForAxName(page, 'Renseigne ton identifiant et ton mot de passe.');
+                await capture(page, '07-sign-in-empty-error');
+              } finally {
+                await context.close();
+              }
+            });
 
-            {
+            await runCase('bad-credentials-message', async () => {
               const { context, page } = await openSignIn(browser);
-              await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-inexistant-${Date.now()}`);
-              await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MauvaisMotDePasse123');
-              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(page, 'Connexion impossible. Vérifie ton identifiant et ton mot de passe.', 20000);
-              await capture(page, '08-sign-in-bad-credentials');
-              report.push('bad-credentials-message=credential-error');
-              await context.close();
-            }
+              try {
+                await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-inexistant-${Date.now()}`);
+                await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MauvaisMotDePasse123');
+                await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+                await waitForAxName(page, 'Connexion impossible. Vérifie ton identifiant et ton mot de passe.', 20000);
+                await capture(page, '08-sign-in-bad-credentials');
+              } finally {
+                await context.close();
+              }
+            });
 
-            {
+            await runCase('offline-network-message', async () => {
               const { context, page } = await openSignIn(browser, { offlineAfterLoad: true });
-              await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-offline-${Date.now()}`);
-              await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MotDePasseOffline123');
-              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(page, 'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.', 20000);
-              await capture(page, '09-sign-in-offline-network-message');
-              report.push('offline-message=network-error');
-              await context.close();
-            }
+              try {
+                await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-offline-${Date.now()}`);
+                await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MotDePasseOffline123');
+                await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+                await waitForAxName(page, 'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.', 20000);
+                await capture(page, '09-sign-in-offline-network-message');
+              } finally {
+                await context.close();
+              }
+            });
 
             fs.writeFileSync('qa-auth-artifacts/interaction-report.txt', report.join('\n') + '\n');
+            fs.writeFileSync('qa-auth-artifacts/defects.txt', defects.join('\n\n') + (defects.length ? '\n' : ''));
             fs.writeFileSync('qa-auth-artifacts/runtime-issues.txt', runtimeIssues.join('\n') + (runtimeIssues.length ? '\n' : ''));
             await browser.close();
+            if (defects.length) {
+              throw new Error(`${defects.length} cas de recette en échec. Voir defects.txt.`);
+            }
           })().catch(error => {
             fs.writeFileSync('qa-auth-artifacts/failure.txt', String(error.stack || error));
-            fs.writeFileSync('qa-auth-artifacts/runtime-issues.txt', runtimeIssues.join('\n') + (runtimeIssues.length ? '\n' : ''));
             console.error(error);
             process.exit(1);
           });
