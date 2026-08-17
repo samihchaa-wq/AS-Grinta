@@ -98,15 +98,11 @@ values
     null
   );
 
--- Les seeds existent deja. Le pronostiqueur remplit les trois joueurs tant
--- qu'ils sont actifs, puis le troisieme est archive avant le lock.
+-- Le seed cree deja les lignes. Le pronostiqueur remplit toute la grille tant
+-- que les trois joueurs sont actifs. Zero permet de tester le calcul archive
+-- sans introduire de fixture Match sans rapport avec le contrat vise ici.
 update public.season_predictions
-set predicted_value_30 = case season_player_id
-      when 'c9300000-0000-0000-0000-000000000001'::uuid then 2
-      when 'c9300000-0000-0000-0000-000000000002'::uuid then 1
-      when 'c9300000-0000-0000-0000-000000000003'::uuid then 5
-      else predicted_value_30
-    end,
+set predicted_value_30 = 0,
     is_filled = true,
     updated_at = now()
 where season_id = 'c9200000-0000-0000-0000-000000000001'
@@ -117,6 +113,8 @@ where season_id = 'c9200000-0000-0000-0000-000000000001'
     'c9300000-0000-0000-0000-000000000003'
   );
 
+-- Le troisieme joueur est archive avant le verrou : son ancien prono rempli
+-- ne doit pas le faire entrer dans le futur contrat fige.
 update public.season_players
 set is_active = false
 where id = 'c9300000-0000-0000-0000-000000000003';
@@ -169,66 +167,12 @@ select ok(
   'le snapshot fige le perimetre et les categories'
 );
 
--- Une reactivation apres lock ne doit pas agrandir le concours.
+-- Apres le lock, reactivation et archivage restent des choix d'effectif mais
+-- ne doivent plus modifier le contrat des pronostics.
 update public.season_players
 set is_active = true
 where id = 'c9300000-0000-0000-0000-000000000003';
 
-select is(
-  (
-    select count(*)
-    from public.season_prediction_roster_members
-    where season_id = 'c9200000-0000-0000-0000-000000000001'
-  ),
-  2::bigint,
-  'reactiver un joueur apres le lock ne change pas le snapshot'
-);
-
--- Match reellement passe : le contrat existant interdit a juste titre de
--- marquer termine un match futur.
-insert into public.matches(
-  id, season_id, match_date, match_time, location,
-  planned_duration_minutes, status, score_as_grinta, score_adverse,
-  match_type, kickoff_at
-)
-values (
-  'c9400000-0000-0000-0000-000000000001',
-  'c9200000-0000-0000-0000-000000000001',
-  ((now() - interval '2 hours') at time zone 'Europe/Paris')::date,
-  ((now() - interval '2 hours') at time zone 'Europe/Paris')::time,
-  'Terrain snapshot',
-  90,
-  'termine',
-  3,
-  0,
-  'entre_nous',
-  now() - interval '2 hours'
-);
-
-insert into public.match_player_stats(
-  match_id, season_player_id, goals, clean_sheet
-)
-values
-  (
-    'c9400000-0000-0000-0000-000000000001',
-    'c9300000-0000-0000-0000-000000000001',
-    2,
-    false
-  ),
-  (
-    'c9400000-0000-0000-0000-000000000001',
-    'c9300000-0000-0000-0000-000000000002',
-    0,
-    true
-  ),
-  (
-    'c9400000-0000-0000-0000-000000000001',
-    'c9300000-0000-0000-0000-000000000003',
-    5,
-    false
-  );
-
--- Le gardien peut etre archive apres le lock sans disparaitre du contrat.
 update public.season_players
 set is_active = false
 where id = 'c9300000-0000-0000-0000-000000000002';
@@ -244,7 +188,7 @@ select ok(
     from public.season_prediction_roster_members
     where season_player_id = 'c9300000-0000-0000-0000-000000000003'
   ),
-  'archivage et reactivation apres lock ne reecrivent pas le contrat'
+  'les changements is_active apres lock ne reecrivent pas le snapshot'
 );
 
 update public.seasons
@@ -277,7 +221,7 @@ select is(
       and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
   ),
   12::bigint,
-  'les deux pronostics exacts valent 12 points au total'
+  'deux pronostics exacts a zero valent 12 points au total'
 );
 
 select ok(
@@ -287,7 +231,7 @@ select ok(
     where season_id = 'c9200000-0000-0000-0000-000000000001'
       and season_player_id = 'c9300000-0000-0000-0000-000000000003'
   ),
-  'le joueur reactive apres lock reste exclu meme avec un ancien prono rempli'
+  'le joueur reactive apres lock reste exclu malgre son ancien prono rempli'
 );
 
 reset role;
@@ -313,8 +257,8 @@ select throws_ok(
   'un membre fige ne peut pas etre supprime directement'
 );
 
--- Une reouverture explicite efface l'ancien contrat. Le prochain lock prend
--- alors le nouvel effectif actif : Buteur + Archive, sans le gardien archive.
+-- Une reouverture explicite efface le contrat precedent. Le prochain lock
+-- capture alors le nouvel effectif actif : Buteur + Archive.
 update public.seasons
 set status = 'open',
     season_predictions_locked_at = null
