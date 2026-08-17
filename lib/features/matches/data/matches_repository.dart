@@ -57,8 +57,10 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response =
-        await _client.from('seasons').select('id, name, status').order('name');
+    final response = await _client
+        .from('seasons')
+        .select('id, name, status')
+        .order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
@@ -199,6 +201,7 @@ class MatchesRepository {
     required String id,
     required String seasonId,
     required DateTime kickoffAt,
+    String? address,
   }) async {
     final result = await _client.rpc(
       'update_internal_match',
@@ -207,6 +210,7 @@ class MatchesRepository {
         'p_season_id': seasonId,
         'p_match_date': kickoffAt.toIso8601String().split('T').first,
         'p_match_time': _formatTime(kickoffAt),
+        'p_address': address,
       },
     );
     if (result != true) {
