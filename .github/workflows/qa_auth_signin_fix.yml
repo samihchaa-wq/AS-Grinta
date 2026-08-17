@@ -30,7 +30,9 @@ jobs:
         run: flutter pub get --enforce-lockfile
 
       - name: Run auth controller tests
-        run: flutter test test/auth_controller_test.dart
+        run: |
+          flutter test test/auth_controller_test.dart
+          flutter test test/auth_signin_error_message_test.dart
 
       - name: Build web against staging
         run: |
@@ -49,7 +51,7 @@ jobs:
       - name: Install Playwright Core
         run: npm install --no-save playwright-core@1.52.0
 
-      - name: Exercise bad credentials and offline timeout
+      - name: Exercise bad credentials and stalled network
         run: |
           mkdir -p qa-auth-fix-artifacts
           python3 -m http.server 8091 --directory build/web > qa-auth-fix-artifacts/server.log 2>&1 &
@@ -66,6 +68,7 @@ jobs:
           const fs = require('fs');
           const { chromium } = require('playwright-core');
           const root = 'http://127.0.0.1:8091';
+          const tokenEndpoint = /\/auth\/v1\/token\?grant_type=password/;
 
           async function activate(page) {
             await page.locator('flutter-view, flt-glass-pane, canvas').first()
@@ -78,16 +81,35 @@ jobs:
             await page.waitForTimeout(500);
           }
 
-          async function waitForAxName(page, text, timeout = 20000) {
+          async function axNames(page) {
             const cdp = await page.context().newCDPSession(page);
             await cdp.send('Accessibility.enable');
+            const ax = await cdp.send('Accessibility.getFullAXTree');
+            return ax.nodes
+              .map(node => String(node.name?.value ?? '').trim())
+              .filter(Boolean);
+          }
+
+          async function waitForAxName(page, text, timeout = 20000) {
             const deadline = Date.now() + timeout;
             while (Date.now() < deadline) {
-              const ax = await cdp.send('Accessibility.getFullAXTree');
-              if (ax.nodes.some(n => String(n.name?.value ?? '').includes(text))) return;
+              const names = await axNames(page);
+              if (names.some(name => name.includes(text))) return;
               await page.waitForTimeout(200);
             }
             throw new Error(`Texte introuvable: ${text}`);
+          }
+
+          async function capture(page, stem) {
+            await page.screenshot({
+              path: `qa-auth-fix-artifacts/${stem}.png`,
+              fullPage: true,
+            }).catch(() => {});
+            const names = await axNames(page).catch(() => []);
+            fs.writeFileSync(
+              `qa-auth-fix-artifacts/${stem}-ax.txt`,
+              `${names.join('\n')}\n`,
+            );
           }
 
           async function open(browser) {
@@ -96,7 +118,10 @@ jobs:
               serviceWorkers: 'block',
             });
             const page = await context.newPage();
-            await page.goto(`${root}/#/auth/sign-in`, { waitUntil: 'networkidle', timeout: 90000 });
+            await page.goto(`${root}/#/auth/sign-in`, {
+              waitUntil: 'networkidle',
+              timeout: 90000,
+            });
             await activate(page);
             return { context, page };
           }
@@ -108,55 +133,77 @@ jobs:
               args: ['--no-sandbox', '--disable-dev-shm-usage'],
             });
 
-            // Mauvais identifiants : le message doit rester spécifique.
+            // Mauvais identifiants : on simule exactement la réponse GoTrue
+            // afin que la preuve navigateur ne dépende pas de la disponibilité
+            // du projet staging au moment du run.
             {
               const { context, page } = await open(browser);
-              await page.getByRole('textbox', { name: 'Identifiant', exact: true })
-                .fill(`qa-invalid-${Date.now()}`);
-              await page.getByRole('textbox', { name: 'Mot de passe', exact: true })
-                .fill('MauvaisMotDePasse123');
-              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(
-                page,
-                'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
-                20000,
-              );
-              await page.screenshot({
-                path: 'qa-auth-fix-artifacts/after-bad-credentials.png',
-                fullPage: true,
-              });
-              await context.close();
+              try {
+                await page.route(tokenEndpoint, async route => {
+                  await route.fulfill({
+                    status: 400,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                      code: 'invalid_credentials',
+                      msg: 'Invalid login credentials',
+                    }),
+                  });
+                });
+                await page.getByRole('textbox', { name: 'Identifiant', exact: true })
+                  .fill(`qa-invalid-${Date.now()}`);
+                await page.getByRole('textbox', { name: 'Mot de passe', exact: true })
+                  .fill('MauvaisMotDePasse123');
+                await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+                await waitForAxName(
+                  page,
+                  'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
+                  10000,
+                );
+                await capture(page, 'after-bad-credentials');
+              } catch (error) {
+                await capture(page, 'failure-bad-credentials');
+                throw error;
+              } finally {
+                await context.close();
+              }
             }
 
-            // Hors ligne : la tentative doit sortir du chargement et expliquer
-            // le problème réseau au lieu d'accuser le mot de passe.
+            // Réseau suspendu : la requête HTTP ne répond jamais. Le timeout
+            // applicatif de 12 s doit reprendre la main, sortir du chargement
+            // et afficher un message réseau spécifique.
             {
               const { context, page } = await open(browser);
-              await page.getByRole('textbox', { name: 'Identifiant', exact: true })
-                .fill(`qa-offline-${Date.now()}`);
-              await page.getByRole('textbox', { name: 'Mot de passe', exact: true })
-                .fill('MotDePasseOffline123');
-              await context.setOffline(true);
-              const started = Date.now();
-              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
-              await waitForAxName(
-                page,
-                'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
-                18000,
-              );
-              const elapsed = Date.now() - started;
-              if (elapsed > 16000) {
-                throw new Error(`Retour hors ligne trop lent: ${elapsed} ms`);
+              try {
+                await page.route(tokenEndpoint, async route => {
+                  await new Promise(resolve => setTimeout(resolve, 30000));
+                  await route.abort('timedout').catch(() => {});
+                });
+                await page.getByRole('textbox', { name: 'Identifiant', exact: true })
+                  .fill(`qa-stalled-${Date.now()}`);
+                await page.getByRole('textbox', { name: 'Mot de passe', exact: true })
+                  .fill('MotDePasseReseau123');
+                const started = Date.now();
+                await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+                await waitForAxName(
+                  page,
+                  'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
+                  18000,
+                );
+                const elapsed = Date.now() - started;
+                if (elapsed < 10000 || elapsed > 16000) {
+                  throw new Error(`Timeout applicatif inattendu: ${elapsed} ms`);
+                }
+                fs.writeFileSync(
+                  'qa-auth-fix-artifacts/offline-result.txt',
+                  `stalled-network-feedback-ms=${elapsed}\n`,
+                );
+                await capture(page, 'after-stalled-network');
+              } catch (error) {
+                await capture(page, 'failure-stalled-network');
+                throw error;
+              } finally {
+                await context.close();
               }
-              fs.writeFileSync(
-                'qa-auth-fix-artifacts/offline-result.txt',
-                `offline-feedback-ms=${elapsed}\n`,
-              );
-              await page.screenshot({
-                path: 'qa-auth-fix-artifacts/after-offline.png',
-                fullPage: true,
-              });
-              await context.close();
             }
 
             await browser.close();
