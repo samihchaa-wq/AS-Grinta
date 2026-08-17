@@ -1,0 +1,106 @@
+name: QA auth overflow probe
+
+on:
+  push:
+    branches: [qa/auth-prelogin-audit]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
+
+      - name: Measure mobile horizontal overflow
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright-core');
+          const base = 'https://samihchaa-wq.github.io/AS-Grinta/staging';
+
+          async function activate(page) {
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(1800);
+            await page.evaluate(() => {
+              const p = document.querySelector('flt-semantics-placeholder');
+              if (p instanceof HTMLElement) p.click();
+            }).catch(() => {});
+            await page.waitForTimeout(500);
+          }
+
+          async function metrics(page, label) {
+            const value = await page.evaluate(() => ({
+              innerWidth: window.innerWidth,
+              clientWidth: document.documentElement.clientWidth,
+              documentScrollWidth: document.documentElement.scrollWidth,
+              bodyScrollWidth: document.body?.scrollWidth ?? 0,
+              scrollingElementScrollWidth: document.scrollingElement?.scrollWidth ?? 0,
+              scrollX: window.scrollX,
+            }));
+            return { label, ...value, overflow: value.scrollingElementScrollWidth - value.innerWidth };
+          }
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            await page.goto(`${base}/#/auth/sign-in?overflow=${Date.now()}`, {
+              waitUntil: 'domcontentloaded',
+              timeout: 45000,
+            });
+            await activate(page);
+
+            const results = [];
+            results.push(await metrics(page, 'sign-in'));
+
+            await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+            await page.getByRole('textbox', { name: 'Prénom', exact: true }).waitFor({ timeout: 15000 });
+            results.push(await metrics(page, 'register'));
+
+            await page.goto(`${base}/#/auth/sign-in?overflow=${Date.now()}`, {
+              waitUntil: 'domcontentloaded',
+              timeout: 45000,
+            });
+            await activate(page);
+            await page.getByRole('button', { name: 'Mot de passe oublié ?', exact: true }).click();
+            await page.getByRole('button', { name: 'Compris', exact: true }).waitFor({ timeout: 15000 });
+            results.push(await metrics(page, 'forgot-password-dialog'));
+
+            fs.writeFileSync('overflow-metrics.json', JSON.stringify(results, null, 2));
+            console.log(JSON.stringify(results, null, 2));
+            const realOverflow = results.filter(item => item.overflow > 1);
+            if (realOverflow.length) {
+              throw new Error(`Horizontal overflow detected: ${JSON.stringify(realOverflow)}`);
+            }
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload metrics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-auth-overflow-metrics
+          path: overflow-metrics.json
+          if-no-files-found: warn
