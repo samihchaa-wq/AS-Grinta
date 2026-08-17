@@ -1,0 +1,57 @@
+name: Temporary patch initial route
+
+on:
+  push:
+    branches: [fix/auth-register-web-initial-route]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: fix/auth-register-web-initial-route
+          fetch-depth: 0
+
+      - name: Apply minimal router patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/app/router/app_router.dart')
+          text = p.read_text()
+          import_line = "import 'package:as_grinta/app/router/initial_app_location.dart';\n"
+          anchor = "import 'package:as_grinta/app/router/auth_redirect.dart';\n"
+          if import_line not in text:
+              if anchor not in text:
+                  raise SystemExit('auth_redirect import anchor not found')
+              text = text.replace(anchor, anchor + import_line, 1)
+          needle = "    initialLocation: '/matches',\n"
+          replacement = "    initialLocation: initialAppLocation(),\n"
+          if replacement not in text:
+              if text.count(needle) < 2:
+                  raise SystemExit('global initialLocation anchor not found')
+              text = text.replace(needle, replacement, 1)
+          p.write_text(text)
+          PY
+          git diff --check
+          git diff -- lib/app/router/app_router.dart
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/app/router/app_router.dart
+          git commit -m 'fix(auth): préserver la route Web initiale'
+          git push origin HEAD:fix/auth-register-web-initial-route
