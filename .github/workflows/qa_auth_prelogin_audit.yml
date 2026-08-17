@@ -1,0 +1,224 @@
+name: QA auth prelogin audit
+
+on:
+  push:
+    branches: [qa/auth-prelogin-audit]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: qa-auth-prelogin-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright Core
+        run: npm install --no-save playwright-core@1.52.0
+
+      - name: Exercise public staging auth screens
+        env:
+          BASE_URL: https://samihchaa-wq.github.io/AS-Grinta/staging
+        run: |
+          mkdir -p qa-auth-artifacts
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const { chromium } = require('playwright-core');
+          const base = process.env.BASE_URL.replace(/\/$/, '');
+          const report = [];
+          const runtimeIssues = [];
+
+          async function activateFlutterSemantics(page) {
+            await page.locator('flutter-view, flt-glass-pane, canvas').first()
+              .waitFor({ state: 'attached', timeout: 45000 });
+            await page.waitForTimeout(1800);
+            await page.evaluate(() => {
+              const placeholder = document.querySelector('flt-semantics-placeholder');
+              if (placeholder instanceof HTMLElement) placeholder.click();
+            }).catch(() => {});
+            await page.waitForTimeout(600);
+          }
+
+          async function gotoAfterPagesPropagation(page, url, route) {
+            let lastStatus = 'sans réponse';
+            let lastError = null;
+            for (let attempt = 1; attempt <= 18; attempt += 1) {
+              try {
+                const response = await page.goto(url, {
+                  waitUntil: 'domcontentloaded',
+                  timeout: 45000,
+                });
+                lastStatus = response?.status() ?? 'sans réponse';
+                if (!response || response.status() < 400) return response;
+              } catch (error) {
+                lastError = error;
+                lastStatus = `transport: ${error.message}`;
+              }
+              if (attempt < 18) await page.waitForTimeout(5000);
+            }
+            throw lastError ?? new Error(`${route} HTTP ${lastStatus} après propagation`);
+          }
+
+          async function openRoute(browser, route, { offlineAfterLoad = false } = {}) {
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              serviceWorkers: 'block',
+            });
+            const page = await context.newPage();
+            page.on('pageerror', error => runtimeIssues.push(`pageerror ${route}: ${error.message}`));
+            page.on('console', message => {
+              if (message.type() === 'error') runtimeIssues.push(`console ${route}: ${message.text()}`);
+            });
+            const separator = route.includes('?') ? '&' : '?';
+            const url = `${base}/#${route}${separator}qa=${Date.now()}`;
+            await gotoAfterPagesPropagation(page, url, route);
+            await activateFlutterSemantics(page);
+            if (offlineAfterLoad) {
+              await context.setOffline(true);
+              await page.waitForTimeout(300);
+            }
+            return { context, page };
+          }
+
+          async function openSignIn(browser, options = {}) {
+            return openRoute(browser, '/auth/sign-in', options);
+          }
+
+          async function capture(page, name) {
+            const target = path.join('qa-auth-artifacts', `${name}.png`);
+            await page.screenshot({ path: target, fullPage: true });
+            if (fs.statSync(target).size < 4000) throw new Error(`${name}: capture anormalement vide`);
+            const cdp = await page.context().newCDPSession(page);
+            await cdp.send('Accessibility.enable');
+            const ax = await cdp.send('Accessibility.getFullAXTree');
+            fs.writeFileSync(
+              path.join('qa-auth-artifacts', `${name}-ax.json`),
+              JSON.stringify(ax.nodes, null, 2),
+            );
+          }
+
+          async function waitForAxName(page, text, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            const cdp = await page.context().newCDPSession(page);
+            await cdp.send('Accessibility.enable');
+            while (Date.now() < deadline) {
+              const ax = await cdp.send('Accessibility.getFullAXTree');
+              if (ax.nodes.some(node => String(node.name?.value ?? '').includes(text))) return;
+              await page.waitForTimeout(250);
+            }
+            throw new Error(`Texte introuvable dans l’accessibilité: ${text}; url=${page.url()}`);
+          }
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+
+            {
+              const { context, page } = await openRoute(browser, '/auth/register');
+              await waitForAxName(page, 'Prénom');
+              if (!page.url().includes('/auth/register')) {
+                throw new Error(`DEFECT cold-start: /auth/register perdu, URL finale=${page.url()}`);
+              }
+              await capture(page, '01-register-cold-start');
+              report.push(`registration-cold-start=ok url=${page.url()}`);
+              await context.close();
+            }
+
+            {
+              const { context, page } = await openSignIn(browser);
+              await waitForAxName(page, 'Identifiant');
+              await capture(page, '02-sign-in');
+              await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+              await waitForAxName(page, 'Prénom');
+              if (!page.url().includes('/auth/register')) {
+                throw new Error(`Le bouton inscription n’ouvre pas /auth/register: ${page.url()}`);
+              }
+              await capture(page, '03-register-via-button');
+
+              await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+              await waitForAxName(page, 'Renseigne ton prénom et ton nom.');
+              await capture(page, '04-register-empty-error');
+
+              await page.getByRole('textbox', { name: 'Prénom', exact: true }).fill('Recette');
+              await page.getByRole('textbox', { name: 'Nom', exact: true }).fill('Grinta');
+              await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('abc');
+              await page.getByRole('textbox', { name: 'Confirme ton mot de passe', exact: true }).fill('abc');
+              await page.getByRole('button', { name: 'Créer mon compte', exact: true }).click();
+              await waitForAxName(page, 'Le mot de passe doit contenir entre 12 et 72 caractères.');
+              await capture(page, '05-register-weak-password');
+              report.push(`registration-route=ok url=${page.url()}`);
+              await context.close();
+            }
+
+            {
+              const { context, page } = await openSignIn(browser);
+              await page.getByRole('button', { name: 'Mot de passe oublié ?', exact: true }).click();
+              await waitForAxName(page, 'Mot de passe oublié');
+              await waitForAxName(page, 'Demande à un administrateur du club');
+              await capture(page, '06-forgot-password-dialog');
+              report.push('forgot-password-dialog=ok');
+              await context.close();
+            }
+
+            {
+              const { context, page } = await openSignIn(browser);
+              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+              await waitForAxName(page, 'Renseigne ton identifiant et ton mot de passe.');
+              await capture(page, '07-sign-in-empty-error');
+              report.push('sign-in-empty-validation=ok');
+              await context.close();
+            }
+
+            {
+              const { context, page } = await openSignIn(browser);
+              await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-inexistant-${Date.now()}`);
+              await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MauvaisMotDePasse123');
+              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+              await waitForAxName(page, 'Connexion impossible. Vérifie ton identifiant et ton mot de passe.', 20000);
+              await capture(page, '08-sign-in-bad-credentials');
+              report.push('bad-credentials-message=credential-error');
+              await context.close();
+            }
+
+            {
+              const { context, page } = await openSignIn(browser, { offlineAfterLoad: true });
+              await page.getByRole('textbox', { name: 'Identifiant', exact: true }).fill(`qa-offline-${Date.now()}`);
+              await page.getByRole('textbox', { name: 'Mot de passe', exact: true }).fill('MotDePasseOffline123');
+              await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+              await waitForAxName(page, 'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.', 20000);
+              await capture(page, '09-sign-in-offline-network-message');
+              report.push('offline-message=network-error');
+              await context.close();
+            }
+
+            fs.writeFileSync('qa-auth-artifacts/interaction-report.txt', report.join('\n') + '\n');
+            fs.writeFileSync('qa-auth-artifacts/runtime-issues.txt', runtimeIssues.join('\n') + (runtimeIssues.length ? '\n' : ''));
+            await browser.close();
+          })().catch(error => {
+            fs.writeFileSync('qa-auth-artifacts/failure.txt', String(error.stack || error));
+            fs.writeFileSync('qa-auth-artifacts/runtime-issues.txt', runtimeIssues.join('\n') + (runtimeIssues.length ? '\n' : ''));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Upload auth audit artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: qa-auth-prelogin-interactions
+          path: qa-auth-artifacts/
+          if-no-files-found: error
