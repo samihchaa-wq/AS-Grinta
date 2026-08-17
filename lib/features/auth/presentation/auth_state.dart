@@ -12,6 +12,7 @@ const _invalidCredentialsMessage =
     'Connexion impossible. Vérifie ton identifiant et ton mot de passe.';
 const _signInUnavailableMessage =
     'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.';
+const _inactiveAccountMessage = 'Ce compte n’est pas actif.';
 
 String authSignInErrorMessage(Object error) {
   if (error is supabase.AuthException) {
@@ -85,8 +86,13 @@ class AuthController extends StateNotifier<AuthState> {
 
       _authGeneration += 1;
       if (event.event == supabase.AuthChangeEvent.signedOut) {
+        final preservedError = _signedOutErrorToPreserve ??
+            (state.error == _inactiveAccountMessage
+                ? _inactiveAccountMessage
+                : null);
+        _signedOutErrorToPreserve = null;
         _retryRefreshQueued = false;
-        state = const AuthState(isLoading: false);
+        state = AuthState(isLoading: false, error: preservedError);
         return;
       }
       // La boucle de réessai n'a de sens qu'après une vraie connexion, le
@@ -117,6 +123,7 @@ class AuthController extends StateNotifier<AuthState> {
   Timer? _loadingFallback;
   Future<void>? _refreshInFlight;
   bool _retryRefreshQueued = false;
+  String? _signedOutErrorToPreserve;
   int _authGeneration = 0;
 
   Future<void> _refreshProfile({bool retryAfterSignIn = false}) {
@@ -188,15 +195,25 @@ class AuthController extends StateNotifier<AuthState> {
       if (profile?.isPending == true) return;
 
       // Un compte archivé/inactif ne doit en revanche conserver aucune session.
+      // Supabase émet `signedOut` avant que `signOut()` ne rende la main. On
+      // transmet donc explicitement le message à cet événement interne : sinon
+      // il remplace l'état avant que ce refresh puisse afficher l'explication.
       if (profile != null && !profile.isActive) {
-        await _repository.signOut();
+        _signedOutErrorToPreserve = _inactiveAccountMessage;
+        try {
+          await _repository.signOut();
+        } catch (_) {
+          _signedOutErrorToPreserve = null;
+          rethrow;
+        }
         if (refreshGeneration != _authGeneration) return;
+        _signedOutErrorToPreserve = null;
         state = state.copyWith(
           isLoading: false,
           isAuthenticated: false,
           hasSession: false,
           clearProfile: true,
-          error: 'Ce compte n’est pas actif.',
+          error: _inactiveAccountMessage,
         );
       }
     } catch (_) {
@@ -264,6 +281,7 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
+    _signedOutErrorToPreserve = null;
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.signOut();
