@@ -28,12 +28,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -F "initialLocation: '/matches'," lib/app/router/app_router.dart
-          sed -i "/initialLocation: '\/matches',/d" lib/app/router/app_router.dart
-          if grep -Fq "initialLocation: '/matches'," lib/app/router/app_router.dart; then
-            echo '::error::Experimental initialLocation removal failed.'
-            exit 1
-          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/app/router/app_router.dart')
+          text = p.read_text()
+          needle = "    initialLocation: '/matches',\n"
+          if text.count(needle) < 2:
+              raise SystemExit('Expected both global and shell-branch initialLocation entries.')
+          text = text.replace(needle, '', 1)
+          p.write_text(text)
+          PY
+          count=$(grep -Fc "initialLocation: '/matches'," lib/app/router/app_router.dart || true)
+          test "$count" = '1'
           git diff -- lib/app/router/app_router.dart
 
       - name: Build local staging variant
@@ -73,19 +79,25 @@ jobs:
       - name: Install Playwright Core
         run: npm install --no-save playwright-core@1.52.0
 
-      - name: Serve and verify cold registration deep-link
+      - name: Serve and inspect cold registration deep-link
         shell: bash
         run: |
           set -euo pipefail
           python3 -m http.server 8080 --directory build/web >/tmp/qa-http.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=false
           for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:8080/ >/dev/null; then break; fi
+            if curl -fsS http://127.0.0.1:8080/ >/dev/null; then
+              ready=true
+              break
+            fi
             sleep 1
           done
+          test "$ready" = true
 
           node <<'NODE'
+          const fs = require('fs');
           const { chromium } = require('playwright-core');
           (async () => {
             const browser = await chromium.launch({
@@ -98,7 +110,8 @@ jobs:
               serviceWorkers: 'block',
             });
             const page = await context.newPage();
-            await page.goto(`http://127.0.0.1:8080/#/auth/register?qa=${Date.now()}`, {
+            const requested = `http://127.0.0.1:8080/#/auth/register?qa=${Date.now()}`;
+            await page.goto(requested, {
               waitUntil: 'domcontentloaded',
               timeout: 45000,
             });
@@ -109,24 +122,34 @@ jobs:
               const p = document.querySelector('flt-semantics-placeholder');
               if (p instanceof HTMLElement) p.click();
             }).catch(() => {});
-            await page.waitForTimeout(800);
-            await page.getByRole('textbox', { name: 'Prénom', exact: true }).waitFor({ timeout: 15000 });
-            console.log(`FINAL_URL=${page.url()}`);
-            if (!page.url().includes('/auth/register')) {
-              throw new Error(`Cold registration still lost: ${page.url()}`);
-            }
+            await page.waitForTimeout(1500);
+            const finalUrl = page.url();
+            console.log(`REQUESTED_URL=${requested}`);
+            console.log(`FINAL_URL=${finalUrl}`);
+            fs.writeFileSync('register-deeplink-result.txt', `requested=${requested}\nfinal=${finalUrl}\n`);
             await page.screenshot({ path: 'register-deeplink-experiment.png' });
+            let fieldVisible = false;
+            try {
+              await page.getByRole('textbox', { name: 'Prénom', exact: true }).waitFor({ timeout: 3000 });
+              fieldVisible = true;
+            } catch (_) {}
+            fs.appendFileSync('register-deeplink-result.txt', `prenomVisible=${fieldVisible}\n`);
             await browser.close();
+            if (!finalUrl.includes('/auth/register') || !fieldVisible) {
+              throw new Error(`Cold registration still lost: ${finalUrl}; prenomVisible=${fieldVisible}`);
+            }
           })().catch(error => {
             console.error(error);
             process.exit(1);
           });
           NODE
 
-      - name: Upload experiment screenshot
+      - name: Upload experiment evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: qa-register-deeplink-experiment
-          path: register-deeplink-experiment.png
+          path: |
+            register-deeplink-experiment.png
+            register-deeplink-result.txt
           if-no-files-found: warn
