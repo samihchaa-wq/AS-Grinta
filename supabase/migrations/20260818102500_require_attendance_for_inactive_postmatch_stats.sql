@@ -1,7 +1,97 @@
--- A player can leave the active roster after having played a match. Keep
--- historical finalization possible, but only when the match already records
--- that inactive player as present. This preserves the existing rejection of
--- arbitrary inactive season players.
+-- A player can leave the active roster after having participated in a match.
+-- Keep historical finalization possible without reopening the roster broadly:
+-- an inactive season player may be marked present only if they already belong
+-- to this match's sports participant snapshot. Once attendance is recorded,
+-- scorer/clean-sheet validation can use that match-specific proof.
+
+create or replace function public.staff_set_match_attendance(
+  p_match_id uuid,
+  p_present uuid[]
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_season_id uuid;
+  v_player uuid;
+  v_profiles uuid[];
+begin
+  if not public.is_match_staff() then
+    raise exception 'Active administrator role required' using errcode = '42501';
+  end if;
+  if p_match_id is null then
+    raise exception 'Match id is required' using errcode = '22023';
+  end if;
+
+  select season_id
+  into v_season_id
+  from public.matches
+  where id = p_match_id;
+
+  if not found then
+    raise exception 'Match not found' using errcode = 'P0002';
+  end if;
+
+  select array_agg(distinct player.profile_id)
+  into v_profiles
+  from public.match_attendance attendance
+  join public.season_players player
+    on player.id = attendance.season_player_id
+  where attendance.match_id = p_match_id
+    and player.profile_id is not null;
+
+  delete from public.match_attendance
+  where match_id = p_match_id;
+
+  if p_present is not null then
+    foreach v_player in array p_present
+    loop
+      if not exists (
+        select 1
+        from public.season_players player
+        where player.id = v_player
+          and player.season_id = v_season_id
+          and (
+            player.is_active
+            or exists (
+              select 1
+              from public.match_sport_participants participant
+              where participant.match_id = p_match_id
+                and participant.season_player_id = player.id
+            )
+          )
+      ) then
+        raise exception 'Player is not active in the match season'
+          using errcode = '22023';
+      end if;
+
+      insert into public.match_attendance(match_id, season_player_id)
+      values (p_match_id, v_player)
+      on conflict do nothing;
+    end loop;
+  end if;
+
+  select array_cat(
+    coalesce(v_profiles, '{}'),
+    coalesce(array_agg(distinct player.profile_id), '{}')
+  )
+  into v_profiles
+  from public.season_players player
+  where player.id = any (coalesce(p_present, '{}'))
+    and player.profile_id is not null;
+
+  if v_profiles is not null then
+    foreach v_player in array v_profiles
+    loop
+      perform public.recalculate_profile_badges(v_player);
+    end loop;
+  end if;
+
+  return true;
+end;
+$function$;
 
 create or replace function public.finalize_match_postgame(
   p_match_id uuid,
