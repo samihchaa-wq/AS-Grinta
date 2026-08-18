@@ -304,23 +304,9 @@ select throws_ok(
   'un membre fige ne peut pas etre supprime directement'
 );
 
--- Une reouverture explicite efface le contrat precedent. Le prochain lock
--- capture alors le nouvel effectif actif : Buteur + Archive.
-update public.seasons
-set status = 'open',
-    season_predictions_locked_at = null
-where id = 'c9200000-0000-0000-0000-000000000001';
-
-select is(
-  (
-    select count(*)
-    from public.season_prediction_roster_captures
-    where season_id = 'c9200000-0000-0000-0000-000000000001'
-  ),
-  0::bigint,
-  'deverrouiller efface le snapshot precedent'
-);
-
+-- Une saison revelee avec de vrais pronostics est maintenant un contrat
+-- historique irreversible : ni la reouverture ni le deverrouillage ne doivent
+-- pouvoir effacer ou recapturer le roster.
 select set_config(
   'request.jwt.claims',
   '{"sub":"c9100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
@@ -328,15 +314,40 @@ select set_config(
 );
 set local role authenticated;
 
-select ok(
-  public.set_season_predictions_lock(
-    'c9200000-0000-0000-0000-000000000001'::uuid,
-    true
-  ),
-  'le second lock reussit'
+select throws_ok(
+  $$
+    select public.set_season_status(
+      'c9200000-0000-0000-0000-000000000001'::uuid,
+      'open'
+    )
+  $$,
+  '22023',
+  'Une saison avec des données de compétition ne peut pas être rouverte.',
+  'une saison archivee avec pronostics reveles ne peut pas etre rouverte'
 );
 
 reset role;
+
+select throws_ok(
+  $$
+    update public.seasons
+    set season_predictions_locked_at = null
+    where id = 'c9200000-0000-0000-0000-000000000001'
+  $$,
+  '22023',
+  'Les pronostics de saison révélés sont définitivement figés.',
+  'le verrou revele ne peut pas etre efface directement'
+);
+
+select is(
+  (
+    select count(*)
+    from public.season_prediction_roster_captures
+    where season_id = 'c9200000-0000-0000-0000-000000000001'
+  ),
+  1::bigint,
+  'le snapshot capture reste present apres les tentatives de reouverture'
+);
 
 select ok(
   exists (
@@ -347,14 +358,14 @@ select ok(
   and exists (
     select 1
     from public.season_prediction_roster_members
-    where season_player_id = 'c9300000-0000-0000-0000-000000000003'
+    where season_player_id = 'c9300000-0000-0000-0000-000000000002'
   )
   and not exists (
     select 1
     from public.season_prediction_roster_members
-    where season_player_id = 'c9300000-0000-0000-0000-000000000002'
+    where season_player_id = 'c9300000-0000-0000-0000-000000000003'
   ),
-  'un nouveau lock recapture le nouvel effectif actif'
+  'le roster historique original reste immuable'
 );
 
 select * from finish();

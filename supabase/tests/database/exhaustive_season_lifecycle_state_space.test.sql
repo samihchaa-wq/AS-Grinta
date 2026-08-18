@@ -405,6 +405,17 @@ security definer
 set search_path = ''
 as $function$
 begin
+  -- The state-space reuses the same rows between mutually incompatible cases.
+  -- Clear the previous artificial prediction first so the normal competition
+  -- guards can legitimately reset an uncommitted lock/status for the next case.
+  update public.season_predictions prediction
+  set category = case when player.is_goalkeeper then 'clean_sheets' else 'buts' end,
+      predicted_value_30 = 0,
+      is_filled = false
+  from public.season_players player
+  where prediction.season_player_id = player.id
+    and prediction.season_id = 'b6200000-0000-0000-0000-000000000001';
+
   update public.seasons
   set status = 'archived', season_predictions_locked_at = null
   where id in (
