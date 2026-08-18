@@ -115,7 +115,6 @@ select is(
   'le report recalcule le cutoff de liste d’attente'
 );
 
--- Both players answer while the match is still well before T-15.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
 select lives_ok(
@@ -167,7 +166,6 @@ select lives_ok(
 );
 reset role;
 
--- Withdrawal happens after publication, so Beta is promoted from the waitlist.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
 select lives_ok(
@@ -196,8 +194,6 @@ select ok(
   'la promotion est tracée'
 );
 
--- Time-travel test setup: publication already happened; now move the clock
--- target to T-10 without invoking a business edit after the lock.
 set local session_replication_role = replica;
 update public.matches
 set kickoff_at = now() + interval '10 minutes',
@@ -236,7 +232,6 @@ select lives_ok(
   'le Live démarre avec une feuille cohérente'
 );
 
--- Internal matches must never enter the prediction contract.
 select set_config(
   'test.cross_stage_internal_match',
   public.create_internal_match(
@@ -264,8 +259,6 @@ select throws_ok(
 );
 reset role;
 
--- Create the second match while Alpha is active, then deactivate him. This
--- proves the historical participant exists before the roster status changes.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
 select set_config(
@@ -293,12 +286,11 @@ update public.season_players
 set is_active=false
 where id='fa400000-0000-0000-0000-000000000001';
 
--- Time-travel the already-created match into the past, then validate it.
 set local session_replication_role = replica;
 update public.matches
-set kickoff_at=now()-interval '2 hours',
-    match_date=((now()-interval '2 hours') at time zone 'Europe/Paris')::date,
-    match_time=((now()-interval '2 hours') at time zone 'Europe/Paris')::time
+set kickoff_at=now()-interval '1 day 2 hours',
+    match_date=((now()-interval '1 day 2 hours') at time zone 'Europe/Paris')::date,
+    match_time=((now()-interval '1 day 2 hours') at time zone 'Europe/Paris')::time
 where id=current_setting('test.cross_stage_final_match')::uuid;
 set local session_replication_role = origin;
 
