@@ -53,8 +53,8 @@ select is(
     join pg_proc procedure on procedure.oid = to_regprocedure(expected.signature)
     where procedure.prosecdef
   ),
-  0::bigint,
-  'les RPC publiques restent SECURITY INVOKER'
+  6::bigint,
+  'les RPC publiques ciblées sont des frontières SECURITY DEFINER'
 );
 
 select ok(
