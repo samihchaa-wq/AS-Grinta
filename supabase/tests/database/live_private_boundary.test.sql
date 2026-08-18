@@ -41,6 +41,7 @@ select is(
     join pg_namespace n on n.oid = p.pronamespace
     join pg_temp.live_private_targets target on target.name = p.proname
     where n.nspname = 'private'
+      and p.prokind = 'f'
   ),
   13::bigint,
   'the thirteen Live private implementation functions exist'
@@ -53,6 +54,7 @@ select is(
     join pg_namespace n on n.oid = p.pronamespace
     join pg_temp.live_private_targets target on target.name = p.proname
     where n.nspname = 'private'
+      and p.prokind = 'f'
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
   ),
   0::bigint,
@@ -66,6 +68,7 @@ select is(
     join pg_namespace n on n.oid = p.pronamespace
     join pg_temp.live_public_targets target on target.name = p.proname
     where n.nspname = 'public'
+      and p.prokind = 'f'
       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
       and not has_function_privilege('anon', p.oid, 'EXECUTE')
   ),
@@ -80,6 +83,7 @@ select is(
     join pg_namespace n on n.oid = p.pronamespace
     join pg_temp.live_public_targets target on target.name = p.proname
     where n.nspname = 'public'
+      and p.prokind = 'f'
       and p.prosecdef
       and coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']
       and position('private.is_active_profile()' in pg_get_functiondef(p.oid)) > 0
@@ -95,6 +99,7 @@ select is(
     join pg_namespace n on n.oid = p.pronamespace
     join pg_temp.live_private_targets target on target.name = p.proname
     where n.nspname = 'private'
+      and p.prokind = 'f'
       and position('private.is_match_coach_or_admin(p_match_id)' in pg_get_functiondef(p.oid)) > 0
   ),
   11::bigint,
@@ -107,6 +112,7 @@ select is(
     from pg_proc p
     join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private'
+      and p.prokind = 'f'
       and p.proname in ('get_match_live_timeline', 'match_live_snapshot')
       and position('private.is_active_profile()' in pg_get_functiondef(p.oid)) > 0
   ),
