@@ -56,8 +56,8 @@ select is(
       and p.prosecdef
       and coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']
       and (
-        pg_get_functiondef(p.oid) ~* 'private\\.is_active_profile\\s*\\('
-        or pg_get_functiondef(p.oid) ~* 'private\\.is_admin\\s*\\('
+        position('private.is_active_profile()' in pg_get_functiondef(p.oid)) > 0
+        or position('private.is_admin()' in pg_get_functiondef(p.oid)) > 0
       )
   ),
   7::bigint,
