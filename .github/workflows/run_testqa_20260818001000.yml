@@ -1,4 +1,5 @@
 name: Deploy migration 20260818001000
+# Trigger once now that the workflow already exists on main.
 
 on:
   push:
