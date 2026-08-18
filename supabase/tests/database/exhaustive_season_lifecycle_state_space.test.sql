@@ -405,21 +405,17 @@ security definer
 set search_path = ''
 as $function$
 begin
-  -- This helper deliberately synthesizes mutually incompatible database
-  -- states. Reset the previous artificial case without exercising production
-  -- lifecycle guards, then immediately restore normal trigger behavior before
-  -- building the next state under test.
-  perform set_config('session_replication_role', 'replica', true);
-  update public.season_predictions
-  set category = case
-        when player.is_goalkeeper then 'clean_sheets'
-        else 'buts'
-      end,
+  -- The state-space reuses the same rows between mutually incompatible cases.
+  -- Clear the previous artificial prediction first so the normal competition
+  -- guards can legitimately reset an uncommitted lock/status for the next case.
+  update public.season_predictions prediction
+  set category = case when player.is_goalkeeper then 'clean_sheets' else 'buts' end,
       predicted_value_30 = 0,
       is_filled = false
   from public.season_players player
-  where public.season_predictions.season_player_id = player.id
-    and public.season_predictions.season_id = 'b6200000-0000-0000-0000-000000000001';
+  where prediction.season_player_id = player.id
+    and prediction.season_id = 'b6200000-0000-0000-0000-000000000001';
+
   update public.seasons
   set status = 'archived', season_predictions_locked_at = null
   where id in (
@@ -427,8 +423,6 @@ begin
     'b6200000-0000-0000-0000-000000000002',
     'b6200000-0000-0000-0000-000000000003'
   );
-  perform set_config('session_replication_role', 'origin', true);
-
   update public.seasons
   set status = p_status,
       season_predictions_locked_at = case when p_locked then now() else null end
