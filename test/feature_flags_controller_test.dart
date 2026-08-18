@@ -29,28 +29,32 @@ void main() {
     expect(repository.watchCount, 0);
     expect(snapshot.sourceAvailable, isFalse);
     expect(snapshot.sportsManagement.enabled, isFalse);
-  });
-
-  test('fails closed when the server flag cannot be loaded', () async {
-    final repository = _FakeFeatureFlagsRepository(throwOnFetch: true);
-    addTearDown(repository.dispose);
-    final container = ProviderContainer(
-      overrides: [
-        featureFlagsRepositoryProvider.overrideWithValue(repository),
-        featureFlagsSessionReadyProvider.overrideWithValue(true),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    final snapshot = await container.read(
-      featureFlagsControllerProvider.future,
-    );
-
-    expect(snapshot.sourceAvailable, isFalse);
-    expect(snapshot.sportsManagement.enabled, isFalse);
-    expect(repository.watchCount, 1);
     expect(container.read(sportsManagementEnabledProvider), isFalse);
   });
+
+  test(
+    'keeps permanent sports management enabled when the server flag cannot load',
+    () async {
+      final repository = _FakeFeatureFlagsRepository(throwOnFetch: true);
+      addTearDown(repository.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          featureFlagsRepositoryProvider.overrideWithValue(repository),
+          featureFlagsSessionReadyProvider.overrideWithValue(true),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final snapshot = await container.read(
+        featureFlagsControllerProvider.future,
+      );
+
+      expect(snapshot.sourceAvailable, isFalse);
+      expect(snapshot.sportsManagement.enabled, isFalse);
+      expect(repository.watchCount, 1);
+      expect(container.read(sportsManagementEnabledProvider), isTrue);
+    },
+  );
 
   test('updates the server flag and publishes the new value', () async {
     final repository = _FakeFeatureFlagsRepository();
@@ -88,6 +92,7 @@ void main() {
     final initial = await container.read(featureFlagsControllerProvider.future);
     expect(initial.sportsManagement.enabled, isFalse);
     expect(repository.fetchCount, 1);
+    expect(container.read(sportsManagementEnabledProvider), isTrue);
 
     repository.publishChange(
       revision: 2,
@@ -124,7 +129,7 @@ void main() {
     await pumpEventQueue();
 
     expect(repository.fetchCount, 1);
-    expect(container.read(sportsManagementEnabledProvider), isFalse);
+    expect(container.read(sportsManagementEnabledProvider), isTrue);
   });
 
   test(
