@@ -13,12 +13,12 @@ select ok(
 );
 
 select ok(
-  has_function_privilege(
-    'authenticated',
-    'private.create_postmatch_composition(uuid,text,jsonb,boolean,text)',
-    'EXECUTE'
+  (
+    select p.prosecdef
+    from pg_proc p
+    where p.oid = 'public.admin_create_postmatch_composition(uuid,text,jsonb,boolean,text)'::regprocedure
   ),
-  'le wrapper peut appeler son implémentation privée'
+  'le wrapper public peut appeler l’implémentation privée via une frontière SECURITY DEFINER'
 );
 
 select ok(
