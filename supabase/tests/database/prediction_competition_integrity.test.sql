@@ -104,9 +104,7 @@ update public.matches set kickoff_at='2015-03-17 20:00:00+00',match_date='2015-0
 where id=current_setting('test.match')::uuid;
 set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
 select public.finalize_match_postgame(current_setting('test.match')::uuid,1,'[]'::jsonb,null,2);
-reset role;
 update public.profiles set status='archived' where id='fc100000-0000-0000-0000-000000000002';
 select ok(exists(select 1 from public.v_classement_general
   where profile_id='fc100000-0000-0000-0000-000000000002'),
@@ -134,8 +132,8 @@ update public.matches set kickoff_at='2014-03-17 20:00:00+00',match_date='2014-0
 where id=current_setting('test.title_match')::uuid;
 set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
 select public.finalize_match_postgame(current_setting('test.title_match')::uuid,0,'[]'::jsonb,null,1);
+set local role authenticated;
 select public.set_season_status('fc200000-0000-0000-0000-000000000003','archived');
 reset role;
 select ok(not exists(select 1 from public.season_awards
