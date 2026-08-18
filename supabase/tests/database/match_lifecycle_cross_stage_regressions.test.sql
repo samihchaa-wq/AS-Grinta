@@ -28,7 +28,6 @@ insert into public.season_players(
 ('fa400000-0000-0000-0000-000000000002','fa200000-0000-0000-0000-000000000001','Beta','Cross',false,true,2,'fa100000-0000-0000-0000-000000000003'),
 ('fa400000-0000-0000-0000-000000000003','fa200000-0000-0000-0000-000000000001','Ghost','Inactive',false,true,3,null);
 
--- Ghost becomes inactive before any match snapshot exists.
 update public.season_players
 set is_active=false
 where id='fa400000-0000-0000-0000-000000000003';
@@ -116,7 +115,6 @@ select is(
  'reschedule recalculates waitlist cutoff'
 );
 
--- Availability and convocation publication.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
 select public.set_my_match_availability(current_setting('test.cross_match')::uuid,'available',null);
@@ -134,7 +132,6 @@ select public.admin_set_match_convocation(
  'not_convoked',true,'Cross stage'
 );
 select public.admin_publish_match_convocations(current_setting('test.cross_match')::uuid,'Cross stage');
-
 select public.admin_save_match_composition(
  current_setting('test.cross_match')::uuid,
  '4-4-2',
@@ -158,7 +155,6 @@ select public.admin_save_match_composition(
 select public.admin_publish_match_composition(current_setting('test.cross_match')::uuid,false,'Cross stage');
 reset role;
 
--- Alpha withdraws after publication; Beta must be promoted.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000002","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
 select public.set_my_match_availability(current_setting('test.cross_match')::uuid,'absent','After publication');
@@ -179,7 +175,6 @@ select is(
  'waitlisted player is promoted'
 );
 
--- Test-only time travel after publication to enter T-15.
 set local session_replication_role=replica;
 update public.matches
 set kickoff_at=now()+interval '10 minutes',
@@ -219,7 +214,6 @@ select lives_ok(
  'Live starts with reconciled current convocations'
 );
 
--- Internal matches are not prediction targets.
 select set_config(
  'test.internal_match',
  public.create_internal_match(
@@ -248,7 +242,6 @@ select throws_ok(
 );
 reset role;
 
--- Historical inactive participant proof.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 set local role authenticated;
 select set_config(
@@ -289,8 +282,10 @@ set kickoff_at=timestamp with time zone '2015-03-17 20:00:00+00',
 where id=current_setting('test.final_match')::uuid;
 set local session_replication_role=origin;
 
+-- The internal helper is intentionally not executable by authenticated. Test
+-- its business guard as owner while keeping the admin JWT in request claims.
 select set_config('request.jwt.claims','{"sub":"fa100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
+reset role;
 select throws_ok(
  format(
    'select public.staff_set_match_attendance(%L::uuid,array[%L::uuid])',
@@ -302,6 +297,7 @@ select throws_ok(
  'unrelated inactive player remains rejected'
 );
 
+set local role authenticated;
 select lives_ok(
  format(
    $sql$select public.admin_finalize_match_sport_postgame(
