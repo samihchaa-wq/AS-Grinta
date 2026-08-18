@@ -1,0 +1,97 @@
+name: Deploy migration 20260818001000
+
+on:
+  push:
+    branches:
+      - 'release/run-testqa-20260818001000'
+    paths:
+      - '.github/workflows/run_testqa_20260818001000.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-migration-20260818001000
+  cancel-in-progress: false
+
+env:
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
+  EXPECTED_BEFORE_COUNT: '483'
+  EXPECTED_BEFORE_LATEST: '20260817225600'
+  EXPECTED_AFTER_COUNT: '484'
+  EXPECTED_AFTER_LATEST: '20260818001000'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact deployment branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require deployment secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test -n "${SUPABASE_DB_PASSWORD:-}"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.111.0
+
+      - name: Link production
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Verify exact pre-deployment inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list > /tmp/migrations-before.txt
+          cat /tmp/migrations-before.txt
+          awk -F'|' '{ remote=$2; gsub(/[^0-9]/, "", remote); if (length(remote) == 14 && remote ~ /^[0-9]+$/) print remote }' /tmp/migrations-before.txt | sort -u > /tmp/remote-before.txt
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | sed -nE 's/^([0-9]{14})_.+\.sql$/\1/p' | sort -u > /tmp/local.txt
+          before_count=$(wc -l < /tmp/remote-before.txt | tr -d ' ')
+          before_latest=$(tail -n 1 /tmp/remote-before.txt)
+          test "$before_count" = "$EXPECTED_BEFORE_COUNT"
+          test "$before_latest" = "$EXPECTED_BEFORE_LATEST"
+          comm -23 /tmp/remote-before.txt /tmp/local.txt > /tmp/remote-only.txt
+          comm -13 /tmp/remote-before.txt /tmp/local.txt > /tmp/local-only.txt
+          test ! -s /tmp/remote-only.txt
+          test "$(wc -l < /tmp/local-only.txt | tr -d ' ')" = '1'
+          test "$(cat /tmp/local-only.txt)" = "$EXPECTED_AFTER_LATEST"
+
+      - name: Dry-run the single pending migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --password "$SUPABASE_DB_PASSWORD" --dry-run | tee /tmp/dry-run.txt
+          grep -q '20260818001000' /tmp/dry-run.txt
+
+      - name: Apply the single pending migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --password "$SUPABASE_DB_PASSWORD" --yes
+
+      - name: Verify exact post-deployment inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list > /tmp/migrations-after.txt
+          cat /tmp/migrations-after.txt
+          awk -F'|' '{ remote=$2; gsub(/[^0-9]/, "", remote); if (length(remote) == 14 && remote ~ /^[0-9]+$/) print remote }' /tmp/migrations-after.txt | sort -u > /tmp/remote-after.txt
+          after_count=$(wc -l < /tmp/remote-after.txt | tr -d ' ')
+          after_latest=$(tail -n 1 /tmp/remote-after.txt)
+          test "$after_count" = "$EXPECTED_AFTER_COUNT"
+          test "$after_latest" = "$EXPECTED_AFTER_LATEST"
+          cmp -s /tmp/remote-after.txt /tmp/local.txt
