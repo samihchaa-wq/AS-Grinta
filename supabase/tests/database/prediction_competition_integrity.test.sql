@@ -133,6 +133,17 @@ where id=current_setting('test.title_match')::uuid;
 set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 select public.finalize_match_postgame(current_setting('test.title_match')::uuid,0,'[]'::jsonb,null,1);
+set local session_replication_role=replica;
+update public.match_sport_motm_elections
+set closes_at=now()-interval '1 minute'
+where match_id=current_setting('test.title_match')::uuid;
+update public.match_sport_finalizations
+set validated_at=now()-interval '25 hours'
+where match_id=current_setting('test.title_match')::uuid;
+update public.matches
+set result_validated_at=now()-interval '25 hours'
+where id=current_setting('test.title_match')::uuid;
+set local session_replication_role=origin;
 set local role authenticated;
 select public.set_season_status('fc200000-0000-0000-0000-000000000003','archived');
 reset role;
