@@ -62,14 +62,11 @@ as $function$
 begin
   if old.status = 'a_venir' and new.status = 'termine' then
     perform private.assert_match_postgame_correction_open(old.id);
-  elsif old.status = 'termine'
-        and new.status = 'termine'
-        and (
-          new.score_as_grinta is distinct from old.score_as_grinta
-          or new.score_adverse is distinct from old.score_adverse
-          or new.result_validated_at is distinct from old.result_validated_at
-        )
-  then
+  elsif old.status = 'termine' and new.status = 'termine' then
+    -- The UPDATE explicitly targets post-match authority columns. Validate the
+    -- correction window even when a retry writes identical values: equality is
+    -- not proof that no post-match side effect occurred elsewhere in the same
+    -- transaction.
     perform private.assert_match_postgame_correction_open(old.id);
   end if;
 
