@@ -84,7 +84,6 @@ set kickoff_at='2009-03-17 20:00:00+00',
 where id=current_setting('test.overall_match')::uuid;
 set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fe100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
 select public.finalize_match_postgame(
   current_setting('test.overall_match')::uuid,
   0,
@@ -94,6 +93,7 @@ select public.finalize_match_postgame(
   null,
   1
 );
+set local role authenticated;
 select public.set_season_status('fe200000-0000-0000-0000-000000000001','archived');
 reset role;
 
@@ -176,7 +176,6 @@ set kickoff_at='2008-03-17 20:00:00+00',
 where id=current_setting('test.bonus_match')::uuid;
 set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fe100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-set local role authenticated;
 select public.finalize_match_postgame(
   current_setting('test.bonus_match')::uuid,
   0,
@@ -186,6 +185,7 @@ select public.finalize_match_postgame(
   null,
   2
 );
+set local role authenticated;
 select public.set_season_status('fe200000-0000-0000-0000-000000000002','archived');
 reset role;
 
