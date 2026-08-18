@@ -203,9 +203,11 @@ final featureFlagsControllerProvider =
   FeatureFlagsController.new,
 );
 
-/// Sports management is a permanent product capability. The remote snapshot
-/// still supplies configuration and observability data, but a temporary read
-/// failure must never reactivate the legacy match lifecycle.
 final sportsManagementEnabledProvider = Provider<bool>((ref) {
-  return ref.watch(featureFlagsSessionReadyProvider);
+  return ref
+          .watch(featureFlagsControllerProvider)
+          .valueOrNull
+          ?.sportsManagement
+          .enabled ??
+      false;
 });
