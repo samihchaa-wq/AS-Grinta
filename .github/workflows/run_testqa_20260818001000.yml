@@ -1,11 +1,11 @@
 name: Deploy migration 20260818001000
-# Trigger once now that the workflow already exists on main.
 
 on:
-  push:
+  pull_request_target:
     branches: [main]
+    types: [opened, synchronize, reopened]
     paths:
-      - '.github/workflows/run_testqa_20260818001000.yml'
+      - '.github/testqa-production-deploy.trigger'
 
 permissions:
   contents: read
@@ -25,12 +25,16 @@ env:
 
 jobs:
   deploy:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'release/run-testqa-production'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Checkout exact deployment commit
+      - name: Checkout trusted main revision only
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           fetch-depth: 0
           persist-credentials: false
 
