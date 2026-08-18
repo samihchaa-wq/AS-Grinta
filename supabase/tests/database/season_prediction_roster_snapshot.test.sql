@@ -99,10 +99,14 @@ values
   );
 
 -- Le seed cree deja les lignes. Le pronostiqueur remplit toute la grille tant
--- que les trois joueurs sont actifs. Zero permet de tester le calcul archive
--- sans introduire de fixture Match sans rapport avec le contrat vise ici.
+-- que les trois joueurs sont actifs. Le joueur qui sera archive avant le lock
+-- recoit volontairement une valeur tres differente : s'il fuit plus tard dans
+-- flags/bonus, les assertions de snapshot le detecteront.
 update public.season_predictions
-set predicted_value_30 = 0,
+set predicted_value_30 = case
+      when season_player_id = 'c9300000-0000-0000-0000-000000000003' then 99
+      else 0
+    end,
     is_filled = true,
     updated_at = now()
 where season_id = 'c9200000-0000-0000-0000-000000000001'
@@ -232,6 +236,49 @@ select ok(
       and season_player_id = 'c9300000-0000-0000-0000-000000000003'
   ),
   'le joueur reactive apres lock reste exclu malgre son ancien prono rempli'
+);
+
+select is(
+  (
+    select count(*)
+    from public.v_season_prediction_flags
+    where season_id = 'c9200000-0000-0000-0000-000000000001'
+      and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
+  ),
+  2::bigint,
+  'les compteurs plus-proches/exacts utilisent le meme roster fige'
+);
+
+select is(
+  (
+    select coalesce(sum(bon_pari), 0)
+    from public.v_season_prediction_flags
+    where season_id = 'c9200000-0000-0000-0000-000000000001'
+      and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
+  ),
+  2::bigint,
+  'les deux membres figes sont les seuls plus-proches comptabilises'
+);
+
+select is(
+  (
+    select coalesce(sum(exact), 0)
+    from public.v_season_prediction_flags
+    where season_id = 'c9200000-0000-0000-0000-000000000001'
+      and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
+  ),
+  2::bigint,
+  'les deux membres figes sont les seuls exacts comptabilises'
+);
+
+select ok(
+  not exists (
+    select 1
+    from public.v_season_prediction_bonus
+    where season_id = 'c9200000-0000-0000-0000-000000000001'
+      and predictor_profile_id = 'c9100000-0000-0000-0000-000000000002'
+  ),
+  'un joueur reactive hors snapshot ne cree pas de duel pour le bonus d ordre'
 );
 
 reset role;
