@@ -140,6 +140,8 @@ jobs:
       SUPABASE_PROJECT_ID: ovzijmqrnsgcmryinkfa
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
 
       - name: Require Supabase verification secrets
         shell: bash
@@ -175,18 +177,32 @@ jobs:
             | sort -u > /tmp/local-versions.txt
           test -s /tmp/local-versions.txt
 
-      - name: Require exact GitHub versus production inventory
+      - name: Require compatible GitHub versus production inventory
         shell: bash
         run: |
           set -euo pipefail
           comm -23 /tmp/remote-versions.txt /tmp/local-versions.txt > /tmp/remote-only.txt
           comm -13 /tmp/remote-versions.txt /tmp/local-versions.txt > /tmp/local-only.txt
+
+          : > /tmp/allowed-local-only.txt
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="origin/${{ github.base_ref }}"
+            git diff --name-only --diff-filter=A "$base...HEAD" -- 'supabase/migrations/*.sql' \
+              | sed -nE 's#^.*/([0-9]{14})_[a-z0-9_]+\.sql$#\1#p' \
+              | sort -u > /tmp/allowed-local-only.txt
+          fi
+
           remote_only=$(wc -l < /tmp/remote-only.txt | tr -d ' ')
           local_only=$(wc -l < /tmp/local-only.txt | tr -d ' ')
+          allowed_local_only=$(wc -l < /tmp/allowed-local-only.txt | tr -d ' ')
+
           {
             echo "## Supabase migration inventory"
             echo "- Versions présentes seulement en production : $remote_only"
             echo "- Versions présentes seulement dans GitHub : $local_only"
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              echo "- Nouvelles versions autorisées par cette PR : $allowed_local_only"
+            fi
             if [ "$remote_only" -gt 0 ]; then
               echo
               echo "### Production seulement"
@@ -203,8 +219,20 @@ jobs:
           cat /tmp/remote-only.txt
           echo "Local-only versions:"
           cat /tmp/local-only.txt
+          echo "Allowed local-only versions for this event:"
+          cat /tmp/allowed-local-only.txt
 
-          if [ "$remote_only" -ne 0 ] || [ "$local_only" -ne 0 ]; then
+          if [ "$remote_only" -ne 0 ]; then
+            echo "::error::Production contains migration versions that GitHub does not contain."
+            exit 1
+          fi
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if ! cmp -s /tmp/local-only.txt /tmp/allowed-local-only.txt; then
+              echo "::error::A pull request may only be ahead of production by migration files newly added by that pull request."
+              exit 1
+            fi
+          elif [ "$local_only" -ne 0 ]; then
             echo "::error::GitHub and production migration inventories differ."
             exit 1
           fi
