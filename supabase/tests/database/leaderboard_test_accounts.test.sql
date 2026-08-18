@@ -36,6 +36,16 @@ select ok(
 );
 
 select ok(
+  has_column_privilege(
+    'authenticated',
+    'public.profiles',
+    'is_test_account',
+    'SELECT'
+  ),
+  'authenticated clients can evaluate the leaderboard test-account predicate'
+);
+
+select ok(
   not has_column_privilege(
     'authenticated',
     'public.profiles',
@@ -93,6 +103,40 @@ select ok(
   ),
   'an active QA account is excluded from the leaderboard'
 );
+
+-- Reproduce the real Data API execution context. This catches regressions
+-- where a security_invoker view references a profile column that authenticated
+-- can no longer SELECT, even though privileged pgTAP queries still pass.
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"fb100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select is(
+  (
+    select count(*)
+    from public.v_classement_general
+    where profile_id in (
+      'fb100000-0000-0000-0000-000000000001'::uuid,
+      'fb100000-0000-0000-0000-000000000002'::uuid
+    )
+  ),
+  1::bigint,
+  'an authenticated player can read the leaderboard and still cannot see the QA account'
+);
+
+select ok(
+  exists (
+    select 1
+    from public.v_classement_general
+    where profile_id = 'fb100000-0000-0000-0000-000000000001'
+  ),
+  'the authenticated player sees the real leaderboard entry'
+);
+
+reset role;
 
 select * from finish();
 rollback;
