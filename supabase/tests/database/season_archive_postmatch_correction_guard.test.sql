@@ -206,5 +206,31 @@ select ok(
   'the pre-correction leader receives no stale overall title'
 );
 
+-- Even if deadline data is later corrupted/reopened, archived season state is
+-- an independent hard stop for the post-match correction workflow. This also
+-- closes the archive/correction race after row-lock serialization.
+set local session_replication_role=replica;
+update public.match_sport_finalizations
+set validated_at=now()
+where match_id=current_setting('test.archive_guard_match')::uuid;
+update public.matches
+set result_validated_at=now()
+where id=current_setting('test.archive_guard_match')::uuid;
+set local session_replication_role=origin;
+
+select throws_ok(
+  format(
+    'select public.finalize_match_postgame(%L::uuid,0,%L::jsonb,null,1)',
+    current_setting('test.archive_guard_match'),
+    jsonb_build_array(jsonb_build_object(
+      'season_player_id','fb400000-0000-0000-0000-000000000001',
+      'goals',1
+    ))::text
+  ),
+  '22023',
+  'La fenêtre de correction du match est fermée.',
+  'archived season rejects correction even if a deadline appears open again'
+);
+
 select * from finish();
 rollback;
