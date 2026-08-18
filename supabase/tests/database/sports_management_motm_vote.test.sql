@@ -35,8 +35,8 @@ select is(
     join pg_proc procedure on procedure.oid = to_regprocedure(expected.signature)
     where procedure.prosecdef
   ),
-  0::bigint,
-  'les RPC publiques HDM restent SECURITY INVOKER'
+  4::bigint,
+  'les RPC publiques HDM sont des frontières SECURITY DEFINER gardées'
 );
 
 select ok(
