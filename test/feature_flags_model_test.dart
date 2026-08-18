@@ -64,5 +64,17 @@ void main() {
       expect(snapshot.sourceAvailable, isFalse);
       expect(snapshot.sportsManagement.enabled, isFalse);
     });
+
+    test('permanent sports fallback keeps the capability enabled', () {
+      const snapshot = FeatureFlagsSnapshot.permanentSportsFallback();
+
+      expect(snapshot.sourceAvailable, isFalse);
+      expect(snapshot.sportsManagement.enabled, isTrue);
+      expect(snapshot.sportsManagement.usualSquadSize, 14);
+      expect(snapshot.sportsManagement.availabilityOpenHoursBefore, 144);
+      expect(snapshot.sportsManagement.reminderHoursBefore, [72, 24]);
+      expect(snapshot.sportsManagement.voteDurationHours, 24);
+      expect(snapshot.sportsManagement.timezone, 'Europe/Paris');
+    });
   });
 }

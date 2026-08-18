@@ -15,7 +15,6 @@ import 'package:as_grinta/features/feature_flags/presentation/feature_flags_cont
 import 'package:as_grinta/features/matches/data/calendar_history_repository.dart';
 import 'package:as_grinta/features/matches/presentation/historical_match_detail_page.dart';
 import 'package:as_grinta/features/matches/presentation/match_details_page.dart';
-import 'package:as_grinta/features/matches/presentation/match_finalization_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_page.dart';
 import 'package:as_grinta/features/matches/presentation/upcoming_match_prediction_page.dart';
 import 'package:as_grinta/features/more/presentation/more_page.dart';
@@ -106,12 +105,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: '/matches/:matchId/finalize',
-                builder: (context, state) {
-                  final matchId = state.pathParameters['matchId'] ?? '';
-                  return ref.read(sportsManagementEnabledProvider)
-                      ? SportMatchFinalizationPage(matchId: matchId)
-                      : MatchFinalizationPage(matchId: matchId);
-                },
+                builder: (context, state) => SportMatchFinalizationPage(
+                  matchId: state.pathParameters['matchId'] ?? '',
+                ),
               ),
               GoRoute(
                 path: '/matches/:matchId/prediction',

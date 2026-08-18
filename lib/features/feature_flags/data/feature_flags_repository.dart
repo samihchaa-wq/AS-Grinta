@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/logging/app_logger.dart';
 import 'package:as_grinta/core/providers/supabase_provider.dart';
 import 'package:as_grinta/features/feature_flags/domain/feature_flags.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,8 +44,13 @@ class SupabaseFeatureFlagsRepository implements FeatureFlagsRepository {
 
   @override
   Future<FeatureFlagsSnapshot> fetchFeatureFlags() async {
-    final response = await _client.rpc('get_public_feature_flags');
-    return FeatureFlagsSnapshot.fromRpc(response);
+    try {
+      final response = await _client.rpc('get_public_feature_flags');
+      return FeatureFlagsSnapshot.fromRpc(response);
+    } catch (error, stackTrace) {
+      AppLogger.error('feature_flags.fetch', error, stackTrace);
+      return const FeatureFlagsSnapshot.permanentSportsFallback();
+    }
   }
 
   @override

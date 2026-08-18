@@ -18,6 +18,15 @@ class SportsManagementFeature {
         timezone = 'Europe/Paris',
         updatedAt = null;
 
+  const SportsManagementFeature.permanentFallback()
+      : enabled = true,
+        availabilityOpenHoursBefore = 144,
+        reminderHoursBefore = const [72, 24],
+        usualSquadSize = 14,
+        voteDurationHours = 24,
+        timezone = 'Europe/Paris',
+        updatedAt = null;
+
   final bool enabled;
   final int availabilityOpenHoursBefore;
   final List<int> reminderHoursBefore;
@@ -60,10 +69,18 @@ class FeatureFlagsSnapshot {
       : sportsManagement = const SportsManagementFeature.disabled(),
         sourceAvailable = false;
 
+  /// Sports management is permanent in the product. If the remote config is
+  /// temporarily unreadable, keep the capability enabled with conservative
+  /// defaults while marking the source unavailable for observability.
+  const FeatureFlagsSnapshot.permanentSportsFallback()
+      : sportsManagement = const SportsManagementFeature.permanentFallback(),
+        sourceAvailable = false;
+
   final SportsManagementFeature sportsManagement;
 
-  /// False means that the server value could not be read. Consumers must fail
-  /// closed and treat every optional feature as disabled.
+  /// False means that the server value could not be read. Optional features
+  /// should normally fail closed; permanent capabilities may use an explicit
+  /// fallback snapshot instead.
   final bool sourceAvailable;
 
   factory FeatureFlagsSnapshot.fromRpc(Object? payload) {
