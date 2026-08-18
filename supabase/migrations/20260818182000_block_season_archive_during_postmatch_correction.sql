@@ -1,13 +1,13 @@
 -- A season must not become immutable while one of its matches is unfinished
--- or while a finished match is still mutable. Otherwise an in-window
--- score/stat correction can change prediction leaderboards after season_awards
--- have already been persisted.
+-- or while a finalized match is still inside the post-match correction window.
+-- Otherwise score/stat corrections can change prediction leaderboards after
+-- season_awards have already been persisted.
 --
--- Archive takes row locks on unfinished/finished matches before deciding that
--- the season is final. This serializes archive with a correction already in
+-- Archive takes row locks on every non-cancelled match that can still affect
+-- competition finality. This serializes season archive with a correction in
 -- flight: either the correction commits first and its result is awarded, or
--- archive commits first and the correction is then rejected because its
--- parent season is archived.
+-- season archive commits first and any resumed finalization/correction is
+-- rejected at the matches table boundary.
 
 create or replace function private.assert_match_postgame_correction_open(p_match_id uuid)
 returns void
@@ -50,6 +50,41 @@ $function$;
 comment on function private.assert_match_postgame_correction_open(uuid) is
   'Refuse les corrections post-match après leur échéance ou après archivage de la saison.';
 
+-- Defense in depth for the current and future server RPCs. The latest
+-- finalize_match_postgame replacement no longer called the historical helper,
+-- so enforce the contract where the authoritative score/status row changes.
+create or replace function private.guard_match_postgame_finality_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  if old.status = 'a_venir' and new.status = 'termine' then
+    perform private.assert_match_postgame_correction_open(old.id);
+  elsif old.status = 'termine'
+        and new.status = 'termine'
+        and (
+          new.score_as_grinta is distinct from old.score_as_grinta
+          or new.score_adverse is distinct from old.score_adverse
+          or new.result_validated_at is distinct from old.result_validated_at
+        )
+  then
+    perform private.assert_match_postgame_correction_open(old.id);
+  end if;
+
+  return new;
+end;
+$function$;
+
+drop trigger if exists trg_guard_match_postgame_finality_update
+  on public.matches;
+create trigger trg_guard_match_postgame_finality_update
+before update of status, score_as_grinta, score_adverse, result_validated_at
+on public.matches
+for each row
+execute function private.guard_match_postgame_finality_update();
+
 create or replace function private.assert_season_archive_ready(p_season_id uuid)
 returns void
 language plpgsql
@@ -62,14 +97,14 @@ declare
   v_match_status text;
   v_closes_at timestamptz;
 begin
-  -- Lock every match that can still affect the final competition state in a
-  -- deterministic order. If a correction already owns one of these rows,
-  -- archive waits for it and evaluates the committed corrected state.
+  -- Lock every non-cancelled match that may still influence the season. Include
+  -- already archived matches too: match archive must not be a way to bypass
+  -- the 24 h season-award finality window.
   for v_match_id, v_match_status in
     select match.id, match.status::text
     from public.matches match
     where match.season_id = p_season_id
-      and match.status in ('a_venir', 'termine')
+      and match.status in ('a_venir', 'termine', 'archive')
     order by match.id
     for update
   loop
@@ -87,8 +122,9 @@ begin
         'Impossible d’archiver la saison : un match possède encore une fenêtre de correction ouverte.'
         using errcode = '22023',
               detail = format(
-                'match_id=%s correction_closes_at=%s',
+                'match_id=%s status=%s correction_closes_at=%s',
                 v_match_id,
+                v_match_status,
                 coalesce(v_closes_at::text, 'unknown')
               );
     end if;
@@ -97,7 +133,7 @@ end;
 $function$;
 
 comment on function private.assert_season_archive_ready(uuid) is
-  'Verrouille les matchs non finaux et refuse l archivage avant finalite sportive et post-match.';
+  'Verrouille les matchs non annules et refuse l archivage avant finalite sportive et post-match.';
 
 -- Preserve the safe-empty-season recovery contract introduced in
 -- 20260818161100. This migration only adds archive readiness; it must not make
@@ -141,6 +177,8 @@ end;
 $function$;
 
 revoke execute on function private.assert_match_postgame_correction_open(uuid)
+  from public, anon, authenticated;
+revoke execute on function private.guard_match_postgame_finality_update()
   from public, anon, authenticated;
 revoke execute on function private.assert_season_archive_ready(uuid)
   from public, anon, authenticated;
