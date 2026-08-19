@@ -42,8 +42,8 @@ select is(
     join pg_proc p on p.oid = to_regprocedure(expected.signature)
     where p.prosecdef
   ),
-  0::bigint,
-  'les RPC publiques restent SECURITY INVOKER'
+  6::bigint,
+  'les RPC publiques de liste d’attente durcies sont des frontières SECURITY DEFINER gardées'
 );
 
 insert into auth.users (id, email, raw_user_meta_data)
