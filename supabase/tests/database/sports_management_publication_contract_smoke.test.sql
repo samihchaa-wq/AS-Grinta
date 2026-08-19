@@ -18,8 +18,8 @@ select is(
       'public.admin_publish_match_effectif(uuid,integer,jsonb,text)'
     )
   ),
-  false,
-  'la RPC publique reste SECURITY INVOKER'
+  true,
+  'la RPC publique impose sa frontière admin en SECURITY DEFINER'
 );
 
 select ok(
