@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
@@ -12,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
-  testWidgets('loading screen displays grey content placeholders',
+  testWidgets('post-startup loading screen renders no loader visual',
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -28,17 +27,22 @@ void main() {
     final loader = find.byType(GrintaLoader);
     expect(loader, findsOneWidget);
     expect(
-      find.descendant(of: loader, matching: find.byType(GrintaSkeleton)),
-      findsOneWidget,
+      find.descendant(
+        of: loader,
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
     );
     expect(
-      find.descendant(of: loader, matching: find.byType(CustomPaint)),
+      find.descendant(
+        of: loader,
+        matching: find.byType(LinearProgressIndicator),
+      ),
       findsNothing,
     );
   });
 
-  testWidgets('determinate statistic rings do not become animated loaders',
-      (tester) async {
+  testWidgets('determinate statistic rings stay visible', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -63,7 +67,7 @@ void main() {
     expect(values, [0, .5, 1]);
   });
 
-  testWidgets('page-sized indeterminate state uses grey placeholders',
+  testWidgets('indeterminate progress indicator renders nothing',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -76,16 +80,34 @@ void main() {
     final loader = find.byType(GrintaProgressIndicator);
     expect(loader, findsOneWidget);
     expect(
-      find.descendant(of: loader, matching: find.byType(GrintaSkeleton)),
-      findsOneWidget,
-    );
-    expect(
       find.descendant(
         of: loader,
         matching: find.byType(CircularProgressIndicator),
       ),
       findsNothing,
     );
+    expect(
+      find.descendant(
+        of: loader,
+        matching: find.byType(LinearProgressIndicator),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('startup progress bar is the only indeterminate loader visual',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: GrintaStartupProgressBar()),
+      ),
+    );
+
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    final indicator = tester.widget<LinearProgressIndicator>(
+      find.byType(LinearProgressIndicator),
+    );
+    expect(indicator.value, isNull);
   });
 }
 
