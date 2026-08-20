@@ -201,13 +201,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
                 width: _cropSize,
                 height: _cropSize,
                 child: !_ready
-                    ? const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
+                    ? const ColoredBox(color: Color(0x1FFFFFFF))
                     : ClipRect(
                         child: InteractiveViewer(
                           transformationController: _transformationController,
@@ -244,13 +238,7 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
         ),
         FilledButton(
           onPressed: !_ready || _busy ? null : _confirm,
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(widget.confirmLabel),
+          child: Text(widget.confirmLabel),
         ),
       ],
     );

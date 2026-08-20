@@ -205,12 +205,7 @@ class _MatchLiveAddPlayerSheetState
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: _busy ? null : _submit,
-              icon: _busy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.add_rounded),
+              icon: const Icon(Icons.add_rounded),
               label: Text(_submitLabel),
             ),
           ],

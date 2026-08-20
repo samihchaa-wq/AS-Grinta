@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/auth/data/auth_repository.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_loading_page.dart';
@@ -11,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
-  testWidgets('loading screen displays the authentication loader',
+  testWidgets('loading screen displays grey content placeholders',
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -27,8 +28,12 @@ void main() {
     final loader = find.byType(GrintaLoader);
     expect(loader, findsOneWidget);
     expect(
-      find.descendant(of: loader, matching: find.byType(CustomPaint)),
+      find.descendant(of: loader, matching: find.byType(GrintaSkeleton)),
       findsOneWidget,
+    );
+    expect(
+      find.descendant(of: loader, matching: find.byType(CustomPaint)),
+      findsNothing,
     );
   });
 
@@ -58,7 +63,7 @@ void main() {
     expect(values, [0, .5, 1]);
   });
 
-  testWidgets('page-sized indeterminate loader keeps a stable 92px size',
+  testWidgets('page-sized indeterminate state uses grey placeholders',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -69,12 +74,18 @@ void main() {
     );
 
     final loader = find.byType(GrintaProgressIndicator);
-    final paint = find.descendant(
-      of: loader,
-      matching: find.byType(CustomPaint),
+    expect(loader, findsOneWidget);
+    expect(
+      find.descendant(of: loader, matching: find.byType(GrintaSkeleton)),
+      findsOneWidget,
     );
-    expect(paint, findsOneWidget);
-    expect(tester.getSize(paint), const Size.square(92));
+    expect(
+      find.descendant(
+        of: loader,
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsNothing,
+    );
   });
 }
 

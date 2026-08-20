@@ -194,11 +194,8 @@ class _BootstrapSplash extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 GrintaAnimatedCrest(width: crestWidth.toDouble()),
-                const SizedBox(height: 26),
-                const GrintaLoader.inline(
-                  message: 'Échauffement en cours…',
-                  semanticLabel: 'Démarrage de ASG',
-                ),
+                const SizedBox(height: 28),
+                const GrintaStartupProgressBar(),
               ],
             ),
           ),
