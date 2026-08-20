@@ -284,22 +284,13 @@ class FormationPitchEditor extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    // Prénom en blanc ombré sous la photo, comme sur la
-                    // composition d'un match terminé : plus lisible qu'un
-                    // bandeau noir et jamais posé sur le visage.
-                    Text(
-                      entry.displayName.trim(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: nameFontSize,
-                        fontWeight: FontWeight.w800,
-                        shadows: const [
-                          Shadow(color: Colors.black87, blurRadius: 3),
-                        ],
-                      ),
+                    // Prénom sur fond translucide sous la photo, comme sur
+                    // la composition d'un match terminé : jamais posé sur le
+                    // visage, et lisible même par-dessus les tracés blancs
+                    // du terrain.
+                    PitchPlayerName(
+                      label: entry.displayName.trim(),
+                      fontSize: nameFontSize,
                     ),
                   ],
                 ),
