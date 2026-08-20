@@ -1,9 +1,49 @@
-import 'dart:math' as math;
-
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:flutter/material.dart';
 
-/// Loader animé et unifié pour toute l'application.
+/// Barre de progression réservée au démarrage de l'application.
+///
+/// C'est le seul indicateur de chargement animé conservé dans l'interface.
+/// Tous les chargements intervenant une fois l'application ouverte utilisent
+/// des aperçus gris du contenu ou, dans les petits contrôles, aucun indicateur.
+class GrintaStartupProgressBar extends StatelessWidget {
+  const GrintaStartupProgressBar({
+    super.key,
+    this.width = 132,
+    this.semanticLabel = 'Démarrage de ASG',
+  });
+
+  final double width;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: semanticLabel,
+      liveRegion: true,
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: width,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 4,
+              backgroundColor: AppTheme.primaryBright.withValues(alpha: 0.2),
+              color: AppTheme.accent,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compatibilité avec les anciens appels de chargement.
+///
+/// Les variantes page et inline affichent désormais des blocs gris qui
+/// préfigurent le contenu. La variante bouton est volontairement invisible :
+/// le bouton reste simplement désactivé pendant l'action.
 class GrintaLoader extends StatelessWidget {
   const GrintaLoader.page({
     super.key,
@@ -24,29 +64,36 @@ class GrintaLoader extends StatelessWidget {
         message = null;
 
   final double size;
-
-  /// Conservé pour ne pas casser les appels existants. Le loader reste
-  /// volontairement sans texte, quelle que soit sa taille.
   final String? message;
   final String semanticLabel;
 
   @override
   Widget build(BuildContext context) {
+    if (size <= 32) return const SizedBox.shrink();
+
+    final viewportWidth = MediaQuery.sizeOf(context).width;
+    final width = (viewportWidth - 48).clamp(180.0, 420.0).toDouble();
+    final rows = size >= 80 ? 5 : 2;
+
     return Semantics(
       label: semanticLabel,
       liveRegion: true,
       child: ExcludeSemantics(
-        child: _GrintaSpinnerMark(size: size),
+        child: SizedBox(
+          width: width,
+          child: GrintaSkeleton.rows(itemCount: rows),
+        ),
       ),
     );
   }
 }
 
-/// Remplacement des anciens [CircularProgressIndicator].
+/// Remplacement compatible des anciens [CircularProgressIndicator].
 ///
-/// Une valeur non nulle reste un indicateur circulaire déterminé. La signature
-/// animée est réservée aux vrais chargements indéterminés, afin d'éviter que
-/// les anneaux de statistiques deviennent plusieurs loaders simultanés.
+/// Une valeur non nulle reste un indicateur circulaire déterminé : ces anneaux
+/// servent notamment à afficher des statistiques et ne sont pas des loaders.
+/// Un indicateur indéterminé n'affiche plus jamais de cercle. Dans un grand
+/// espace il devient un aperçu gris ; dans un petit contrôle il disparaît.
 class GrintaProgressIndicator extends StatelessWidget {
   const GrintaProgressIndicator({
     super.key,
@@ -95,28 +142,42 @@ class GrintaProgressIndicator extends StatelessWidget {
       );
     }
 
-    final effectiveConstraints = constraints ?? const BoxConstraints();
     return Semantics(
-      label: semanticsLabel ?? 'Chargement en cours',
+      label: semanticsLabel ?? 'Chargement du contenu',
       value: semanticsValue,
       liveRegion: true,
       child: ExcludeSemantics(
         child: Padding(
           padding: padding ?? EdgeInsets.zero,
           child: ConstrainedBox(
-            constraints: effectiveConstraints,
+            constraints: constraints ?? const BoxConstraints(),
             child: LayoutBuilder(
               builder: (context, box) {
                 final candidates = <double>[
                   if (box.hasBoundedWidth) box.maxWidth,
                   if (box.hasBoundedHeight) box.maxHeight,
                 ];
-                final available =
-                    candidates.isEmpty ? 32.0 : candidates.reduce(math.min);
-                final size = available >= 160
-                    ? 92.0
-                    : available.clamp(16.0, 32.0).toDouble();
-                return Center(child: _GrintaSpinnerMark(size: size));
+                if (candidates.isEmpty) return const SizedBox.shrink();
+
+                var available = candidates.first;
+                for (final candidate in candidates.skip(1)) {
+                  if (candidate < available) available = candidate;
+                }
+
+                // Dans un bouton, une icône ou une petite cellule, aucun
+                // remplacement visuel : l'état désactivé suffit.
+                if (available < 120) return const SizedBox.shrink();
+
+                final width = (box.hasBoundedWidth ? box.maxWidth : 360.0)
+                    .clamp(180.0, 420.0)
+                    .toDouble();
+                final rows = available >= 260 ? 4 : 2;
+                return Center(
+                  child: SizedBox(
+                    width: width,
+                    child: GrintaSkeleton.rows(itemCount: rows),
+                  ),
+                );
               },
             ),
           ),
@@ -126,8 +187,8 @@ class GrintaProgressIndicator extends StatelessWidget {
   }
 }
 
-/// Préserve les barres déterminées et remplace seulement leur état
-/// indéterminé par la signature animée du club.
+/// Préserve uniquement les barres de progression déterminées.
+/// Les anciennes barres indéterminées secondaires sont supprimées.
 class GrintaLinearProgressIndicator extends StatelessWidget {
   const GrintaLinearProgressIndicator({
     super.key,
@@ -160,184 +221,16 @@ class GrintaLinearProgressIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (value != null) {
-      return LinearProgressIndicator(
-        value: value,
-        backgroundColor: backgroundColor,
-        color: color,
-        valueColor: valueColor,
-        minHeight: minHeight,
-        semanticsLabel: semanticsLabel,
-        semanticsValue: semanticsValue,
-      );
-    }
+    if (value == null) return const SizedBox.shrink();
 
-    return Semantics(
-      label: semanticsLabel ?? 'Chargement en cours',
-      value: semanticsValue,
-      liveRegion: true,
-      child: const ExcludeSemantics(
-        child: SizedBox(
-          height: 32,
-          child: Center(child: _GrintaSpinnerMark(size: 32)),
-        ),
-      ),
+    return LinearProgressIndicator(
+      value: value,
+      backgroundColor: backgroundColor,
+      color: color,
+      valueColor: valueColor,
+      minHeight: minHeight,
+      semanticsLabel: semanticsLabel,
+      semanticsValue: semanticsValue,
     );
-  }
-}
-
-/// Signature animée de chargement : deux arcs aux couleurs du club qui
-/// tournent l'un derrière l'autre.
-///
-/// Le tracé est purement géométrique, donc il reste lisible aussi bien à 16
-/// pixels dans un bouton qu'à 92 pixels au centre d'une page. L'écusson, lui,
-/// est réservé aux écrans de démarrage où il dispose de la place nécessaire.
-class _GrintaSpinnerMark extends StatefulWidget {
-  const _GrintaSpinnerMark({required this.size});
-
-  final double size;
-
-  @override
-  State<_GrintaSpinnerMark> createState() => _GrintaSpinnerMarkState();
-}
-
-class _GrintaSpinnerMarkState extends State<_GrintaSpinnerMark>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  bool _reduceMotion = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-    if (reduceMotion == _reduceMotion && _controller.isAnimating) return;
-
-    _reduceMotion = reduceMotion;
-    if (_reduceMotion) {
-      _controller
-        ..stop()
-        ..value = 0;
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: SizedBox.square(
-        dimension: widget.size,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) => CustomPaint(
-            isComplex: false,
-            willChange: !_reduceMotion,
-            painter: _GrintaSpinnerPainter(
-              progress: _controller.value,
-              reduceMotion: _reduceMotion,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GrintaSpinnerPainter extends CustomPainter {
-  const _GrintaSpinnerPainter({
-    required this.progress,
-    required this.reduceMotion,
-  });
-
-  final double progress;
-  final bool reduceMotion;
-
-  static const double _tau = math.pi * 2;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final shortestSide = math.min(size.width, size.height);
-    final stroke = (shortestSide * 0.115).clamp(2.0, 9.0).toDouble();
-    final rect = Rect.fromCircle(
-      center: Offset(size.width / 2, size.height / 2),
-      radius: (shortestSide - stroke) / 2,
-    );
-
-    canvas.drawCircle(
-      rect.center,
-      rect.width / 2,
-      Paint()
-        ..color = AppTheme.primaryBright.withValues(alpha: 0.16)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke,
-    );
-
-    if (reduceMotion) {
-      _drawArc(
-          canvas, rect, stroke, -math.pi / 2, _tau * 0.72, AppTheme.accent);
-      return;
-    }
-
-    // L'arc principal s'allonge puis se rétracte pendant qu'il tourne : c'est
-    // ce qui donne l'impression d'un mouvement continu sans jamais s'arrêter.
-    final head = progress * _tau * 1.45;
-    final breath = (math.sin(progress * _tau - math.pi / 2) + 1) / 2;
-    final mainSweep = (0.16 + Curves.easeInOut.transform(breath) * 0.54) * _tau;
-
-    const trailSweep = _tau * 0.13;
-    const gap = _tau * 0.085;
-
-    _drawArc(
-      canvas,
-      rect,
-      stroke,
-      head - gap - trailSweep,
-      trailSweep,
-      AppTheme.primaryBright,
-    );
-    _drawArc(canvas, rect, stroke, head, mainSweep, AppTheme.accent);
-  }
-
-  void _drawArc(
-    Canvas canvas,
-    Rect rect,
-    double stroke,
-    double start,
-    double sweep,
-    Color color,
-  ) {
-    canvas.drawArc(
-      rect,
-      start,
-      sweep,
-      false,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _GrintaSpinnerPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.reduceMotion != reduceMotion;
   }
 }
