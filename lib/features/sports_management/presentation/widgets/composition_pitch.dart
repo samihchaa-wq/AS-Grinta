@@ -299,6 +299,7 @@ class CompositionPlayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (entry.isVacant) return const VacantSlotMarker();
     final label = entry.displayName.trim();
     return GestureDetector(
       onTap: onTap,
@@ -342,6 +343,50 @@ class CompositionPlayerTile extends StatelessWidget {
           const SizedBox(height: 2),
           PitchPlayerName(label: label),
         ],
+      ),
+    );
+  }
+}
+
+/// Emplacement du terrain dont le joueur est inconnu, sur une composition
+/// reconstruite depuis les archives du club : une case grise barrée d'un
+/// tiret, sans photo, sans initiales et sans nom, pour qu'on lise « on ne
+/// sait pas qui jouait là » au lieu d'un joueur qui n'a jamais existé.
+class VacantSlotMarker extends StatelessWidget {
+  const VacantSlotMarker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: "Poste sans joueur connu dans l'archive",
+      child: ExcludeSemantics(
+        child: SizedBox(
+          width: 60,
+          height: 64,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0x33000000),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white38, width: 2),
+              ),
+              child: const Center(
+                child: Text(
+                  '\u2014',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -126,6 +126,7 @@ class _MpgCompletedCard extends StatelessWidget {
     final field = _displayFieldEntries(
       composition.entriesFor(MatchCompositionZone.field),
     );
+    final hasVacantSlots = field.any((entry) => entry.isVacant);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -146,6 +147,16 @@ class _MpgCompletedCard extends StatelessWidget {
                 context,
               ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
             ),
+            if (hasVacantSlots) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Les emplacements grisés — sont des postes dont la feuille '
+                'de match n’a pas gardé le nom du joueur.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary),
+              ),
+            ],
             const SizedBox(height: 16),
             Center(
               child: ConstrainedBox(

@@ -51,6 +51,7 @@ class MatchCompositionEntry {
     this.photoUrl,
     this.goals = 0,
     this.isMotm = false,
+    this.isVacant = false,
   });
 
   factory MatchCompositionEntry.fromJson(Map<String, dynamic> json) {
@@ -93,6 +94,14 @@ class MatchCompositionEntry {
   final String? photoUrl;
   final int goals;
   final bool isMotm;
+
+  /// Emplacement du terrain dont on ne connaît pas le joueur.
+  ///
+  /// N'existe que sur les compositions reconstruites depuis les archives du
+  /// club : quand une vieille feuille de match donne le schéma mais pas le
+  /// nom d'un titulaire, l'archive garde la place et l'appli l'affiche comme
+  /// un emplacement vide plutôt que comme un joueur.
+  final bool isVacant;
   final int sortOrder;
   final String availabilityStatus;
   final String convocationStatus;
@@ -126,6 +135,7 @@ class MatchCompositionEntry {
       photoUrl: photoUrl,
       goals: goals,
       isMotm: isMotm,
+      isVacant: isVacant,
       sortOrder: sortOrder ?? this.sortOrder,
       availabilityStatus: availabilityStatus,
       convocationStatus: convocationStatus,
