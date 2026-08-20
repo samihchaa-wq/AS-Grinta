@@ -368,12 +368,12 @@ class _TeamDropZone extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 56),
           decoration: BoxDecoration(
             color: highlighted
-                ? AppTheme.accent.withValues(alpha: .18)
+                ? AppTheme.primary.withValues(alpha: .18)
                 : AppTheme.surface.withValues(alpha: .5),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: highlighted
-                  ? AppTheme.accent
+                  ? AppTheme.primaryBright
                   : AppTheme.outline.withValues(alpha: .3),
               width: highlighted ? 2 : 1,
             ),

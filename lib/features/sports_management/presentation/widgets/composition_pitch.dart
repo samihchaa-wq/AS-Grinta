@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/app_typography.dart';
 import 'package:as_grinta/core/widgets/grinta_pitch.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
@@ -195,7 +196,7 @@ class CompositionDropZone extends StatelessWidget {
             color: highlighted ? AppTheme.surfaceHigh : AppTheme.surface,
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: highlighted ? AppTheme.accent : AppTheme.outline,
+              color: highlighted ? AppTheme.primaryBright : AppTheme.outline,
               width: highlighted ? 2 : 1,
             ),
           ),
@@ -371,11 +372,9 @@ class GoalBadge extends StatelessWidget {
               ),
               child: Text(
                 '$goals',
-                style: const TextStyle(
+                style: AppTypography.number(
                   color: Colors.white,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
+                  fontSize: 9.5,
                 ),
               ),
             ),
@@ -402,12 +401,7 @@ class SubstituteHistoryBadge extends StatelessWidget {
       ),
       child: Text(
         '$count',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-          height: 1,
-        ),
+        style: AppTypography.number(color: Colors.white, fontSize: 10),
       ),
     );
   }

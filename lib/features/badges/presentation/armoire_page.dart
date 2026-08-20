@@ -400,7 +400,7 @@ class _BadgeTile extends ConsumerWidget {
                       width: 11,
                       height: 11,
                       decoration: BoxDecoration(
-                        color: AppTheme.accent,
+                        color: AppTheme.reward,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: AppTheme.background,

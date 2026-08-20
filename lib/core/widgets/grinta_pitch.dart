@@ -109,7 +109,9 @@ class GrintaPitchSurface extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(AppTheme.radiusXl),
                 border: Border.all(
-                  color: highlighted ? AppTheme.accent : AppTheme.outlineStrong,
+                  color: highlighted
+                      ? AppTheme.primaryBright
+                      : AppTheme.outlineStrong,
                   width: highlighted ? 2 : 1,
                 ),
                 boxShadow: const [
@@ -336,12 +338,12 @@ class _DashedRingPainter extends CustomPainter {
       radius - 1,
       Paint()
         ..color = highlighted
-            ? AppTheme.accent.withValues(alpha: .3)
+            ? AppTheme.primary.withValues(alpha: .3)
             : AppTheme.background.withValues(alpha: .28),
     );
 
     final stroke = Paint()
-      ..color = highlighted ? AppTheme.accent : Colors.white
+      ..color = highlighted ? AppTheme.primaryBright : Colors.white
       ..style = PaintingStyle.stroke
       ..strokeWidth = highlighted ? 2 : 1.4
       ..strokeCap = StrokeCap.round;
