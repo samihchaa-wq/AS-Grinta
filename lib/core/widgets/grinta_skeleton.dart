@@ -8,14 +8,14 @@ import 'package:flutter/material.dart';
 class GrintaSkeleton extends StatelessWidget {
   const GrintaSkeleton({super.key, required this.child});
 
-  GrintaSkeleton.list({
+  const GrintaSkeleton.list({
     super.key,
     int itemCount = 4,
     double itemHeight = 96,
     double spacing = 12,
   }) : child = const SizedBox.shrink();
 
-  GrintaSkeleton.rows({super.key, int itemCount = 6})
+  const GrintaSkeleton.rows({super.key, int itemCount = 6})
       : child = const SizedBox.shrink();
 
   final Widget child;
