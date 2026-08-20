@@ -1,7 +1,6 @@
-import 'dart:ui';
-
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/app_typography.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +25,22 @@ class GrintaAppBar extends AppBar {
             admin: admin,
           ),
         );
+
+  /// Style commun des actions de la barre : un carré de 34 px, dont la cible
+  /// tactile reste portée à 48 px par Material.
+  static ButtonStyle actionStyle(BuildContext context) => IconButton.styleFrom(
+        foregroundColor: AppTheme.textSecondary,
+        backgroundColor: AppTheme.surfaceHigh,
+        fixedSize: const Size.square(34),
+        minimumSize: const Size.square(34),
+        maximumSize: const Size.square(34),
+        padding: EdgeInsets.zero,
+        tapTargetSize: MaterialTapTargetSize.padded,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusXs),
+          side: const BorderSide(color: AppTheme.outlineMarked),
+        ),
+      );
 }
 
 class _HeaderBackdrop extends StatelessWidget {
@@ -33,26 +48,12 @@ class _HeaderBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppTheme.surface.withValues(alpha: .94),
-                AppTheme.surface.withValues(alpha: .74),
-              ],
-            ),
-            border: Border(
-              bottom: BorderSide(
-                color: AppTheme.accent.withValues(alpha: .22),
-              ),
-            ),
-          ),
-        ),
+    // Fond plat : plus rien ne passe derrière la barre, donc plus besoin de
+    // flouter quoi que ce soit ni de détourer le titre.
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceBar,
+        border: Border(bottom: BorderSide(color: AppTheme.progressTrack)),
       ),
     );
   }
@@ -73,22 +74,16 @@ class _GrintaTitleBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenGutter,
+        horizontal: AppSpacing.contentGap,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 48,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Image.asset(
-                'assets/images/as_grinta_logo.webp',
-                height: 42,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.high,
-              ),
-            ),
+          Image.asset(
+            'assets/images/as_grinta_logo.webp',
+            height: 30,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
           ),
           const SizedBox(width: AppSpacing.contentGap),
           Expanded(
@@ -96,17 +91,22 @@ class _GrintaTitleBar extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.left,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.3,
-                  ),
+              style: const TextStyle(
+                fontFamily: AppTypography.ui,
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                height: 1.2,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -.2,
+              ),
               child: pageName,
             ),
           ),
           if (admin || (actions?.isNotEmpty ?? false)) ...[
             const SizedBox(width: 6),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 44),
+            IconButtonTheme(
+              data:
+                  IconButtonThemeData(style: GrintaAppBar.actionStyle(context)),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -132,14 +132,7 @@ List<Widget> grintaHomeActions(BuildContext context) => [
       const SizedBox(width: 2),
       IconButton(
         tooltip: 'Paramètres',
-        iconSize: 22,
-        visualDensity: VisualDensity.compact,
-        padding: const EdgeInsets.all(7),
-        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-        style: IconButton.styleFrom(
-          foregroundColor: AppTheme.textSecondary,
-          backgroundColor: AppTheme.surfaceHigh.withValues(alpha: .46),
-        ),
+        iconSize: 19,
         icon: const Icon(Icons.settings_outlined),
         onPressed: () => context.push('/more'),
       ),

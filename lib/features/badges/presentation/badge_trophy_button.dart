@@ -13,24 +13,20 @@ class BadgeTrophyButton extends ConsumerWidget {
 
     return IconButton(
       tooltip: 'Armoire à badges',
-      visualDensity: VisualDensity.compact,
-      padding: const EdgeInsets.all(4),
-      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-      style: IconButton.styleFrom(
-        foregroundColor: AppTheme.reward,
-        backgroundColor: AppTheme.reward.withValues(alpha: .08),
-        side: BorderSide(color: AppTheme.reward.withValues(alpha: .18)),
-      ),
+      // Le carré, le fond et la bordure viennent du style commun des actions
+      // de la barre du haut ; seul l'or des récompenses reste propre au
+      // trophée.
+      style: IconButton.styleFrom(foregroundColor: AppTheme.reward),
       icon: SizedBox(
-        width: 30,
-        height: 30,
+        width: 22,
+        height: 22,
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
             const Icon(
               Icons.emoji_events_rounded,
-              size: 21,
+              size: 19,
               color: AppTheme.reward,
             ),
             const ExcludeSemantics(
@@ -38,12 +34,12 @@ class BadgeTrophyButton extends ConsumerWidget {
             ),
             if (hasUnseen)
               Positioned(
-                top: -4,
-                right: -4,
+                top: -5,
+                right: -5,
                 child: Container(
                   key: const ValueKey('badge-unseen-indicator'),
-                  width: 14,
-                  height: 14,
+                  width: 12,
+                  height: 12,
                   decoration: BoxDecoration(
                     color: AppTheme.accent,
                     shape: BoxShape.circle,

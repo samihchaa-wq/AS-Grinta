@@ -84,6 +84,7 @@ class _StatsHubPageState extends State<StatsHubPage> {
             ),
             if (hasPeriod)
               GrintaSecondaryTabs<StatisticsPeriod>(
+                secondLevel: true,
                 segments: const [
                   ButtonSegment(
                     value: StatisticsPeriod.current,
