@@ -1,10 +1,7 @@
-import 'package:as_grinta/core/widgets/grinta_app_background.dart';
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-/// Fond de démarrage affiché avant que l'application complète soit montée.
-///
-/// Il réutilise exactement la même DA que l'application afin d'éviter un
-/// flash d'ancien branding pendant l'initialisation Supabase.
+/// Fond uni de démarrage affiché avant que l'application complète soit montée.
 class GrintaBackground extends StatelessWidget {
   const GrintaBackground({required this.child, super.key});
 
@@ -12,12 +9,9 @@ class GrintaBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        const GrintaAppBackground(),
-        child,
-      ],
+    return ColoredBox(
+      color: AppTheme.background,
+      child: child,
     );
   }
 }
