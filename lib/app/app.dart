@@ -5,7 +5,6 @@ import 'package:as_grinta/core/network/connectivity_service.dart';
 import 'package:as_grinta/core/sync/shared_data_sync.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/grinta_accessibility_scope.dart';
-import 'package:as_grinta/core/widgets/grinta_app_background.dart';
 import 'package:as_grinta/core/widgets/grinta_status_banner.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
@@ -77,7 +76,7 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
         GlobalCupertinoLocalizations.delegate,
       ],
       theme: AppTheme.dark.copyWith(
-        scaffoldBackgroundColor: Colors.transparent,
+        scaffoldBackgroundColor: AppTheme.background,
         materialTapTargetSize: MaterialTapTargetSize.padded,
         visualDensity: VisualDensity.standard,
       ),
@@ -96,37 +95,35 @@ class _AsGrintaAppState extends ConsumerState<AsGrintaApp>
             ),
           ),
           child: GrintaAccessibilityScope(
-            child: Stack(
-              children: [
-                const Positioned.fill(child: GrintaAppBackground()),
-                Column(
-                  children: [
-                    if (!isOnline)
-                      Material(
-                        color: Theme.of(context).colorScheme.surface,
-                        child: SafeArea(
-                          bottom: false,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                            child: GrintaStatusBanner(
-                              title: 'Connexion perdue',
-                              message:
-                                  'Les données affichées peuvent être obsolètes.',
-                              tone: GrintaStatusTone.warning,
-                              compact: true,
-                              action: TextButton(
-                                onPressed: () =>
-                                    ref.invalidate(onlineStatusProvider),
-                                child: const Text('Réessayer'),
-                              ),
+            child: ColoredBox(
+              color: AppTheme.background,
+              child: Column(
+                children: [
+                  if (!isOnline)
+                    Material(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: SafeArea(
+                        bottom: false,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                          child: GrintaStatusBanner(
+                            title: 'Connexion perdue',
+                            message:
+                                'Les données affichées peuvent être obsolètes.',
+                            tone: GrintaStatusTone.warning,
+                            compact: true,
+                            action: TextButton(
+                              onPressed: () =>
+                                  ref.invalidate(onlineStatusProvider),
+                              child: const Text('Réessayer'),
                             ),
                           ),
                         ),
                       ),
-                    Expanded(child: child ?? const SizedBox.shrink()),
-                  ],
-                ),
-              ],
+                    ),
+                  Expanded(child: child ?? const SizedBox.shrink()),
+                ],
+              ),
             ),
           ),
         );
