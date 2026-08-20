@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -46,9 +47,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
                   key: _fieldKey,
                   duration: const Duration(milliseconds: 150),
                   decoration: BoxDecoration(
-                    color: highlighted
-                        ? const Color(0xFF205E48)
-                        : const Color(0xFF174936),
+                    color: const Color(0xFF124529),
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
                       color: highlighted
@@ -69,8 +68,12 @@ class _CompositionPitchState extends State<CompositionPitch> {
                     child: Stack(
                       clipBehavior: Clip.hardEdge,
                       children: [
-                        const Positioned.fill(
-                          child: CustomPaint(painter: PitchPainter()),
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: FootballPitchPainter(
+                              highlighted: highlighted,
+                            ),
+                          ),
                         ),
                         for (final entry in widget.entries)
                           _positionedPlayer(
@@ -633,69 +636,3 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
 /// Traçage des lignes d'un terrain de foot. Public afin d'être partagé par
 /// la composition Live et par la fiche d'un match archivé : les deux
 /// affichages doivent rester visuellement identiques.
-class PitchPainter extends CustomPainter {
-  const PitchPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xAAFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final inset = size.shortestSide * 0.045;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-    );
-    canvas.drawRect(rect, paint);
-    canvas.drawLine(
-      Offset(rect.left, rect.center.dy),
-      Offset(rect.right, rect.center.dy),
-      paint,
-    );
-    canvas.drawCircle(rect.center, size.width * 0.13, paint);
-    canvas.drawCircle(rect.center, 2.5, paint..style = PaintingStyle.fill);
-    paint.style = PaintingStyle.stroke;
-
-    final penaltyWidth = rect.width * 0.58;
-    final penaltyHeight = rect.height * 0.16;
-    final topPenalty = Rect.fromCenter(
-      center: Offset(rect.center.dx, rect.top + penaltyHeight / 2),
-      width: penaltyWidth,
-      height: penaltyHeight,
-    );
-    final bottomPenalty = Rect.fromCenter(
-      center: Offset(rect.center.dx, rect.bottom - penaltyHeight / 2),
-      width: penaltyWidth,
-      height: penaltyHeight,
-    );
-    canvas.drawRect(topPenalty, paint);
-    canvas.drawRect(bottomPenalty, paint);
-
-    final goalWidth = rect.width * 0.30;
-    final goalDepth = rect.height * 0.025;
-    canvas.drawRect(
-      Rect.fromLTWH(
-        rect.center.dx - goalWidth / 2,
-        rect.top - goalDepth,
-        goalWidth,
-        goalDepth,
-      ),
-      paint,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(
-        rect.center.dx - goalWidth / 2,
-        rect.bottom,
-        goalWidth,
-        goalDepth,
-      ),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

@@ -3,6 +3,7 @@ import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
+import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
 
 const List<({Offset source, Offset target})> _legacyFlat442DisplayMap = [
@@ -122,7 +123,7 @@ class FormationPitchEditor extends StatelessWidget {
             final legacyFlat442 = _usesLegacyFlat442Layout(entries);
             return DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xFF174936),
+                color: const Color(0xFF124529),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: const Color(0xFF6DAD8B), width: 1.5),
                 boxShadow: const [
@@ -138,7 +139,7 @@ class FormationPitchEditor extends StatelessWidget {
                 child: Stack(
                   children: [
                     const Positioned.fill(
-                      child: CustomPaint(painter: _PitchPainter()),
+                      child: CustomPaint(painter: FootballPitchPainter()),
                     ),
                     for (final slot in slots)
                       _slot(
@@ -324,50 +325,4 @@ class FormationPitchEditor extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PitchPainter extends CustomPainter {
-  const _PitchPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xAAFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final inset = size.shortestSide * .045;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-    );
-    canvas
-      ..drawRect(rect, paint)
-      ..drawLine(
-        Offset(rect.left, rect.center.dy),
-        Offset(rect.right, rect.center.dy),
-        paint,
-      )
-      ..drawCircle(rect.center, size.width * .13, paint)
-      ..drawRect(
-        Rect.fromCenter(
-          center: Offset(rect.center.dx, rect.top + rect.height * .08),
-          width: rect.width * .58,
-          height: rect.height * .16,
-        ),
-        paint,
-      )
-      ..drawRect(
-        Rect.fromCenter(
-          center: Offset(rect.center.dx, rect.bottom - rect.height * .08),
-          width: rect.width * .58,
-          height: rect.height * .16,
-        ),
-        paint,
-      );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
