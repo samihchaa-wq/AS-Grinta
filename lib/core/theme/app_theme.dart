@@ -149,8 +149,11 @@ abstract final class AppTheme {
       onPrimaryContainer: textPrimary,
       secondary: accent,
       onSecondary: background,
-      secondaryContainer: Color(0xFF393506),
-      onSecondaryContainer: Color(0xFFFFF6A8),
+      // Fond des boutons « tonals » (le « + » du calendrier, par exemple).
+      // Il suivait autrefois le jaune du blason, ce qui donnait un olive
+      // terne : il rejoint la couleur d'action unique.
+      secondaryContainer: progressTrack,
+      onSecondaryContainer: primaryBright,
       tertiary: reward,
       onTertiary: background,
       surface: surface,
