@@ -65,20 +65,6 @@ class FootballPitchPainter extends CustomPainter {
         stripe,
       );
     }
-
-    // Trace fine du rouleau de tonte. Sans elle, chaque bande reste un aplat
-    // parfaitement lisse, ce qui trahit immédiatement l'image de synthèse.
-    final mow = Paint()
-      ..color = const Color(0x0EFFFFFF)
-      ..strokeWidth = 1;
-    final step = math.max(3.0, surface.height / 180);
-    for (var y = surface.top; y < surface.bottom; y += step * 2) {
-      canvas.drawLine(
-        Offset(surface.left, y),
-        Offset(surface.right, y),
-        mow,
-      );
-    }
   }
 
   /// Éclairage de stade : un peu plus de lumière au centre, des angles qui
@@ -256,4 +242,41 @@ class FootballPitchPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) =>
       oldDelegate is! FootballPitchPainter ||
       oldDelegate.highlighted != highlighted;
+}
+
+/// Prénom d'un joueur posé sur le terrain.
+///
+/// Le fond translucide remplace l'ombre portée utilisée jusqu'ici. Sur les
+/// tracés blancs — filet des cages, lignes de surface — le texte ombré se
+/// confondait avec le décor : le nom du gardien, qui tombe sur la cage,
+/// devenait illisible.
+class PitchPlayerName extends StatelessWidget {
+  const PitchPlayerName({super.key, required this.label, this.fontSize = 11});
+
+  final String label;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xD1071527),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
 }
