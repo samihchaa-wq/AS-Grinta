@@ -185,17 +185,7 @@ class _BootstrapSplash extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 240),
-                  child: Image.asset(
-                    'assets/images/as_grinta_logo.webp',
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                  ),
-                ),
-                const SizedBox(height: 26),
-                const GrintaLoader.inline(
+                const GrintaLoader.startup(
                   message: 'Échauffement en cours…',
                   semanticLabel: 'Démarrage de ASG',
                 ),

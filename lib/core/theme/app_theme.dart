@@ -472,6 +472,9 @@ abstract final class AppTheme {
         circularTrackColor: progressTrack,
         linearTrackColor: progressTrack,
         linearMinHeight: 2,
+        // Le tirer-pour-rafraîchir garde son geste : seule sa pastille
+        // reprend les couleurs du fil de progression.
+        refreshBackgroundColor: surface,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primary,

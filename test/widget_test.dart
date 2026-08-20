@@ -58,7 +58,7 @@ void main() {
     expect(values, [0, .5, 1]);
   });
 
-  testWidgets('page-sized indeterminate loader keeps a stable 92px size',
+  testWidgets('a large empty zone loads as a skeleton, never as a mark',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -68,13 +68,71 @@ void main() {
       ),
     );
 
-    final loader = find.byType(GrintaProgressIndicator);
-    final paint = find.descendant(
-      of: loader,
-      matching: find.byType(CustomPaint),
+    expect(
+      find.descendant(
+        of: find.byType(GrintaProgressIndicator),
+        matching: find.byType(GrintaSkeletonLines),
+      ),
+      findsOneWidget,
     );
-    expect(paint, findsOneWidget);
-    expect(tester.getSize(paint), const Size.square(92));
+    expect(find.byType(GrintaSpinnerArc), findsNothing);
+  });
+
+  testWidgets('a button-sized zone loads as a 16px arc', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox.square(
+              dimension: 18,
+              child: GrintaProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final arc = find.byType(GrintaSpinnerArc);
+    expect(arc, findsOneWidget);
+    expect(tester.widget<GrintaSpinnerArc>(arc).size, lessThanOrEqualTo(20));
+    expect(find.byType(GrintaSkeletonLines), findsNothing);
+  });
+
+  testWidgets('an indeterminate bar becomes the 2px progress thread',
+      (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: GrintaLinearProgressIndicator()),
+      ),
+    );
+
+    final thread = find.byType(GrintaProgressThread);
+    expect(thread, findsOneWidget);
+    expect(tester.getSize(thread).height, 2);
+  });
+
+  testWidgets('reduced animations stop every loading state', (tester) async {
+    await tester.pumpWidget(
+      const MediaQuery(
+        data: MediaQueryData(disableAnimations: true),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                GrintaSkeletonLines(),
+                GrintaProgressThread(),
+                GrintaSpinnerArc(),
+                GrintaDotsLoader(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Sans cette garantie, `pumpAndSettle` ne rendrait jamais la main : une
+    // animation encore en cours ferait expirer le test.
+    await tester.pumpAndSettle();
   });
 }
 

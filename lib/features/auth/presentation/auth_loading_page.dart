@@ -105,7 +105,7 @@ class _AuthLoadingPageState extends ConsumerState<AuthLoadingPage> {
     if (auth.profile?.isPending != true) {
       return const Scaffold(
         body: Center(
-          child: GrintaLoader.page(
+          child: GrintaLoader.startup(
             message: 'Préparation de ton espace…',
             semanticLabel: 'Préparation de ton espace',
           ),
