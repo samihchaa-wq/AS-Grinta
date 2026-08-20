@@ -185,9 +185,11 @@ MatchComposition? _compositionFromHistorical(
 ) {
   if (!detail.hasComposition) return null;
 
-  int goalsFor(String name) => detail.scorers
-      .where((scorer) => scorer.name == name)
-      .fold<int>(0, (total, scorer) => total + scorer.goals);
+  int goalsFor(String name) => name.isEmpty
+      ? 0
+      : detail.scorers
+          .where((scorer) => scorer.name == name)
+          .fold<int>(0, (total, scorer) => total + scorer.goals);
 
   final entries = <MatchCompositionEntry>[
     for (var i = 0; i < detail.fieldPlayers.length; i += 1)
@@ -196,7 +198,8 @@ MatchComposition? _compositionFromHistorical(
         zone: MatchCompositionZone.field,
         sortOrder: i,
         goals: goalsFor(detail.fieldPlayers[i].name),
-        isMotm: detail.motmNames.contains(detail.fieldPlayers[i].name),
+        isMotm: !detail.fieldPlayers[i].isVacant &&
+            detail.motmNames.contains(detail.fieldPlayers[i].name),
       ),
     for (var i = 0; i < detail.benchPlayers.length; i += 1)
       _entryFromHistorical(
@@ -231,17 +234,20 @@ MatchCompositionEntry _entryFromHistorical(
     participantId: 'historical-${zone.wireValue}-$sortOrder-${player.name}',
     seasonPlayerId: player.name,
     displayName: player.name,
-    isGoalkeeper: player.isGoalkeeper,
+    isGoalkeeper: player.isGoalkeeper && !player.isVacant,
     zone: zone,
     sortOrder: sortOrder,
     availabilityStatus: 'available',
-    convocationStatus: 'convoked',
+    // Un emplacement vide n'est pas quelqu'un qu'on a convoqué : on le
+    // marque comme tel pour qu'aucun écran ne puisse le traiter en joueur.
+    convocationStatus: player.isVacant ? 'not_applicable' : 'convoked',
     selectionStatus: isField ? 'starter' : 'substitute',
     x: isField ? player.xPct / 100 : null,
     y: isField ? player.yPct / 100 : null,
     photoUrl: player.photoUrl,
     goals: goals,
     isMotm: isMotm,
+    isVacant: player.isVacant,
   );
 }
 
