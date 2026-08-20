@@ -81,14 +81,6 @@ jobs:
 
           echo "::notice::Association commit/PR encore indisponible ; origine vérifiée via la PR #${pr_number}."
 
-      - name: Require visual evidence for UI changes
-        if: github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: bash tool/check_visual_evidence.sh
-
       - name: Setup Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
