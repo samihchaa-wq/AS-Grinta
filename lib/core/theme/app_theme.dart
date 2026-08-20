@@ -448,6 +448,38 @@ abstract final class AppTheme {
           );
         }),
       ),
+      // Toute rangée de réglage (« Paramètres », « Administration »,
+      // « Homme du match », « Liste d'attente ») est la même rangée : elle
+      // est donc décrite une seule fois, ici.
+      listTileTheme: const ListTileThemeData(
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        minLeadingWidth: 22,
+        horizontalTitleGap: 14,
+        minVerticalPadding: 10,
+        // La même teinte discrète pour l'icône de gauche et le chevron de
+        // droite : la rangée ne doit pas crier, c'est son titre qui compte.
+        iconColor: textLabelDim,
+        titleTextStyle: TextStyle(
+          fontFamily: AppTypography.ui,
+          color: textPrimary,
+          fontSize: 14.5,
+          height: 1.25,
+          fontWeight: FontWeight.w700,
+        ),
+        subtitleTextStyle: TextStyle(
+          fontFamily: AppTypography.ui,
+          color: textFaint,
+          fontSize: 12.5,
+          height: 1.35,
+          fontWeight: FontWeight.w400,
+        ),
+        leadingAndTrailingTextStyle: TextStyle(
+          fontFamily: AppTypography.ui,
+          color: textLabel,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,

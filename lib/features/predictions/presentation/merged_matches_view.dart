@@ -1,6 +1,7 @@
 import 'package:as_grinta/app/shell/module_navigation.dart';
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/theme/app_typography.dart';
 import 'package:as_grinta/core/theme/calendar_card_palette.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
@@ -435,10 +436,12 @@ class _FeedSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   ) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black,
+        // Le bandeau reprend le fond d'écran : il sépare deux sections, il
+        // n'est pas lui-même un bloc.
+        color: AppTheme.background,
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.outline.withValues(
+            color: AppTheme.outlineStrong.withValues(
               alpha: overlapsContent ? .5 : .25,
             ),
           ),
@@ -452,10 +455,13 @@ class _FeedSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
           alignment: Alignment.centerLeft,
           child: Text(
             title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
+            style: const TextStyle(
+              fontFamily: AppTypography.ui,
+              color: AppTheme.textPrimary,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .2,
+            ),
           ),
         ),
       ),

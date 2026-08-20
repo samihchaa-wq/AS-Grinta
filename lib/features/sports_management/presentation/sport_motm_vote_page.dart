@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -353,7 +354,11 @@ class _VoteHeader extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Column(
           children: [
-            const Text('👑', style: TextStyle(fontSize: 42)),
+            const Icon(
+              Icons.workspace_premium_rounded,
+              size: 34,
+              color: AppTheme.reward,
+            ),
             const SizedBox(height: 8),
             MatchFixture(
               homeName: vote.isHome ? 'AS Grinta' : vote.opponentName,
@@ -406,7 +411,11 @@ class _Results extends StatelessWidget {
           Card(
             child: ListTile(
               leading: candidate.isWinner
-                  ? const Text('👑', style: TextStyle(fontSize: 22))
+                  ? const Icon(
+                      Icons.workspace_premium_rounded,
+                      size: 22,
+                      color: AppTheme.reward,
+                    )
                   : null,
               title: Text(candidate.displayName),
               trailing: Text(

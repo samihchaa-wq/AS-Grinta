@@ -512,7 +512,12 @@ class _ParticipantCard extends StatelessWidget {
               value: participant.present,
               onChanged: saving ? null : onPresentChanged,
               secondary: CircleAvatar(
-                child: Text(participant.isGoalkeeper ? '🧤' : '⚽'),
+                child: Icon(
+                  participant.isGoalkeeper
+                      ? Icons.back_hand_rounded
+                      : Icons.sports_soccer_rounded,
+                  size: 18,
+                ),
               ),
               title: Text(
                 participant.displayName.trim(),

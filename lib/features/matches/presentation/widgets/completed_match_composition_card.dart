@@ -208,14 +208,20 @@ class CompletedPlayersList extends StatelessWidget {
                   ),
                   if (players[index].goals > 0) ...[
                     const SizedBox(width: 12),
-                    Text(
-                      players[index].goals == 1
-                          ? '⚽'
-                          : '⚽ ×${players[index].goals}',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
+                    const Icon(
+                      Icons.sports_soccer_rounded,
+                      size: 17,
+                      color: AppTheme.textSecondary,
                     ),
+                    if (players[index].goals > 1) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '×${players[index].goals}',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ],
                   ],
                 ],
               ),

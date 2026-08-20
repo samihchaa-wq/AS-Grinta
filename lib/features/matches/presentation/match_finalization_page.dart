@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/features/matches/data/match_details_repository.dart';
@@ -317,7 +318,13 @@ class _MatchFinalizationPageState extends ConsumerState<MatchFinalizationPage> {
                           value: member.id,
                           child: Row(
                             children: [
-                              Text(member.isGoalkeeper ? '🧤' : '⚽'),
+                              Icon(
+                                member.isGoalkeeper
+                                    ? Icons.back_hand_rounded
+                                    : Icons.sports_soccer_rounded,
+                                size: 17,
+                                color: AppTheme.textLabel,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -433,9 +440,12 @@ class _AttendanceCard extends StatelessWidget {
               CheckboxListTile(
                 dense: true,
                 controlAffinity: ListTileControlAffinity.trailing,
-                secondary: Text(
-                  member.isGoalkeeper ? '🧤' : '⚽',
-                  style: const TextStyle(fontSize: 20),
+                secondary: Icon(
+                  member.isGoalkeeper
+                      ? Icons.back_hand_rounded
+                      : Icons.sports_soccer_rounded,
+                  size: 20,
+                  color: AppTheme.textLabel,
                 ),
                 title: Text(member.name),
                 value: presentPlayerIds.contains(member.id),
@@ -500,9 +510,12 @@ class _ScorerRowTile extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Text(
-                      hasPlayer ? '⚽' : '➕',
-                      style: const TextStyle(fontSize: 18),
+                    Icon(
+                      hasPlayer
+                          ? Icons.sports_soccer_rounded
+                          : Icons.add_rounded,
+                      size: 18,
+                      color: AppTheme.textLabel,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -606,9 +619,12 @@ class _PlayerPickerSheetState extends State<_PlayerPickerSheet> {
               children: [
                 for (final member in results)
                   ListTile(
-                    leading: Text(
-                      member.isGoalkeeper ? '🧤' : '⚽',
-                      style: const TextStyle(fontSize: 20),
+                    leading: Icon(
+                      member.isGoalkeeper
+                          ? Icons.back_hand_rounded
+                          : Icons.sports_soccer_rounded,
+                      size: 20,
+                      color: AppTheme.textLabel,
                     ),
                     title: Text(member.name),
                     onTap: () => Navigator.pop(context, member.id),
