@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:as_grinta/app/app.dart';
 import 'package:as_grinta/app/router/initial_app_location.dart';
 import 'package:as_grinta/core/config/app_config.dart';
 import 'package:as_grinta/core/logging/app_logger.dart';
+import 'package:as_grinta/core/widgets/grinta_animated_crest.dart';
 import 'package:as_grinta/core/widgets/grinta_background.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/incident_error_view.dart';
@@ -176,6 +178,12 @@ class _BootstrapSplash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sur les écrans très étroits, l'écusson doit rester dans la page une fois
+    // les marges retirées.
+    final crestWidth = math
+        .min(240.0, MediaQuery.sizeOf(context).width - 64)
+        .clamp(120.0, 240.0);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SafeArea(
@@ -185,15 +193,7 @@ class _BootstrapSplash extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 240),
-                  child: Image.asset(
-                    'assets/images/as_grinta_logo.webp',
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.high,
-                  ),
-                ),
+                GrintaAnimatedCrest(width: crestWidth.toDouble()),
                 const SizedBox(height: 26),
                 const GrintaLoader.inline(
                   message: 'Échauffement en cours…',
