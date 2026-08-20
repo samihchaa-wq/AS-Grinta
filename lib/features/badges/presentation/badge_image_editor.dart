@@ -129,25 +129,13 @@ class _BadgeImageEditorButtonState
       return IconButton.filledTonal(
         tooltip: tooltip,
         onPressed: _busy ? null : _editImage,
-        icon: _busy
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(icon),
+        icon: Icon(icon),
       );
     }
 
     return FilledButton.tonalIcon(
       onPressed: _busy ? null : _editImage,
-      icon: _busy
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon),
+      icon: Icon(icon),
       label: Text(tooltip),
     );
   }
@@ -339,15 +327,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                     ? Center(
                         child: FilledButton.icon(
                           onPressed: _picking ? null : _pickImage,
-                          icon: _picking
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.photo_library_rounded),
+                          icon: const Icon(Icons.photo_library_rounded),
                           label: const Text('Choisir une image'),
                         ),
                       )
@@ -437,13 +417,7 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
           onPressed: _saving || _picking || bytes == null || _imageError != null
               ? null
               : _confirm,
-          icon: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.check_rounded),
+          icon: const Icon(Icons.check_rounded),
           label: const Text('Enregistrer'),
         ),
       ],
