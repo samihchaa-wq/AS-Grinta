@@ -2,7 +2,7 @@ import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/match_form_page.dart';
@@ -137,7 +137,7 @@ class _MatchesPageState extends ConsumerState<MatchesPage> {
                 ),
               const SizedBox(height: 16),
               if (state.isLoading)
-                const Center(child: GrintaProgressIndicator())
+                GrintaSkeleton.list(itemCount: 4, itemHeight: 108)
               else if (state.error != null)
                 Card(
                   child: Padding(

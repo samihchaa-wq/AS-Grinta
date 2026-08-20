@@ -217,6 +217,54 @@
     },
   };
 
+  // Écran de démarrage HTML : il occupe l'attente avant que Flutter n'affiche
+  // sa première image. Sans lui, le premier chargement laisse une page vide.
+  var splashStalledTimer = null;
+  var splashDismissed = false;
+
+  function dismissSplash() {
+    if (splashDismissed) return;
+    splashDismissed = true;
+    if (splashStalledTimer) {
+      clearTimeout(splashStalledTimer);
+      splashStalledTimer = null;
+    }
+    var splash = document.getElementById('asg-splash');
+    if (!splash) return;
+    splash.classList.add('asg-splash-out');
+    setTimeout(function () {
+      if (splash.parentNode) splash.parentNode.removeChild(splash);
+    }, 400);
+  }
+
+  function showSplashStalled() {
+    splashStalledTimer = null;
+    var inner = document.querySelector('#asg-splash .asg-splash-inner');
+    if (splashDismissed || !inner || document.querySelector('.asg-stalled')) return;
+
+    var block = document.createElement('div');
+    block.className = 'asg-stalled';
+    block.setAttribute('role', 'alert');
+
+    var text = document.createElement('p');
+    text.style.margin = '0';
+    text.textContent = 'Le chargement prend plus de temps que d’habitude.';
+
+    var retry = document.createElement('button');
+    retry.type = 'button';
+    retry.textContent = 'Recharger';
+    retry.addEventListener('click', function () {
+      window.location.reload();
+    });
+
+    block.appendChild(text);
+    block.appendChild(retry);
+    inner.appendChild(block);
+  }
+
+  window.addEventListener('flutter-first-frame', dismissSplash);
+  splashStalledTimer = setTimeout(showSplashStalled, 15000);
+
   var bootstrap = document.createElement('script');
   bootstrap.src = 'flutter_bootstrap.js?v=' + encodeURIComponent(asGrintaWebVersion);
   bootstrap.async = true;
