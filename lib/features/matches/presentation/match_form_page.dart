@@ -371,9 +371,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                       ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
                   children: [
-                    for (final option in JerseyOption.values) ...[
+                    for (final option in JerseyOption.values)
                       _JerseyOptionTile(
                         option: option,
                         selected: _selectedJersey == option,
@@ -384,8 +386,6 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                                       _selectedJersey == option ? null : option;
                                 }),
                       ),
-                      const SizedBox(width: 12),
-                    ],
                   ],
                 ),
                 if (sportsEnabled) ...[
@@ -756,7 +756,19 @@ class _JerseyOptionTile extends StatelessWidget {
         height: 96,
         child: Stack(
           children: [
-            Center(child: Image.asset(option.assetPath, fit: BoxFit.contain)),
+            Center(
+              child: Image.asset(
+                option.assetPath,
+                fit: BoxFit.contain,
+                semanticLabel: 'Maillot ${option.label}',
+                // Sans repli, une illustration manquante ou non chargée laisse
+                // une case vide et le maillot devient impossible à choisir.
+                errorBuilder: (context, _, __) => _JerseyFallback(
+                  label: option.label,
+                  selected: selected,
+                ),
+              ),
+            ),
             if (selected)
               Positioned(
                 right: 0,
@@ -769,6 +781,37 @@ class _JerseyOptionTile extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Repli du sélecteur de maillot quand l'illustration ne peut pas être chargée.
+class _JerseyFallback extends StatelessWidget {
+  const _JerseyFallback({required this.label, required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: selected ? colors.primary : colors.outlineVariant,
+          width: selected ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.checkroom_rounded, color: colors.onSurfaceVariant),
+          const SizedBox(height: 6),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ],
       ),
     );
   }

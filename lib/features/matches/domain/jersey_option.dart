@@ -3,6 +3,7 @@
 /// d'illustrations). La valeur stockée en base (`jersey_note`) est
 /// simplement l'identifiant du maillot choisi.
 enum JerseyOption {
+  mint('mint', 'assets/images/jerseys/jersey_mint.png', 'Menthe'),
   orange('orange', 'assets/images/jerseys/jersey_orange.png', 'Orange'),
   blue('blue', 'assets/images/jerseys/jersey_blue.png', 'Bleu');
 

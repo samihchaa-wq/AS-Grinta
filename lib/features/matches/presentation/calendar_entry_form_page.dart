@@ -395,9 +395,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
-        Row(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            for (final option in JerseyOption.values) ...[
+            for (final option in JerseyOption.values)
               _JerseyOptionTile(
                 option: option,
                 selected: _selectedJersey == option,
@@ -405,8 +407,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                   _selectedJersey = _selectedJersey == option ? null : option;
                 }),
               ),
-              const SizedBox(width: 12),
-            ],
           ],
         ),
         if (sportsEnabled) ...[
