@@ -33,6 +33,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/images/backgrounds/as_grinta_app_background.webp
     - assets/images/module_backgrounds/
     - assets/images/as_grinta_logo.webp
     - assets/images/jerseys/
