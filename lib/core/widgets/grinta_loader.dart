@@ -36,7 +36,7 @@ class GrintaLoader extends StatelessWidget {
       label: semanticLabel,
       liveRegion: true,
       child: ExcludeSemantics(
-        child: _BouncingBallMark(size: size),
+        child: _GrintaSpinnerMark(size: size),
       ),
     );
   }
@@ -44,9 +44,9 @@ class GrintaLoader extends StatelessWidget {
 
 /// Remplacement des anciens [CircularProgressIndicator].
 ///
-/// Une valeur non nulle reste un indicateur circulaire déterminé. Le ballon
-/// animé est réservé aux vrais chargements indéterminés, afin d'éviter que les
-/// anneaux de statistiques deviennent plusieurs loaders simultanés.
+/// Une valeur non nulle reste un indicateur circulaire déterminé. La signature
+/// animée est réservée aux vrais chargements indéterminés, afin d'éviter que
+/// les anneaux de statistiques deviennent plusieurs loaders simultanés.
 class GrintaProgressIndicator extends StatelessWidget {
   const GrintaProgressIndicator({
     super.key,
@@ -116,7 +116,7 @@ class GrintaProgressIndicator extends StatelessWidget {
                 final size = available >= 160
                     ? 92.0
                     : available.clamp(16.0, 32.0).toDouble();
-                return Center(child: _BouncingBallMark(size: size));
+                return Center(child: _GrintaSpinnerMark(size: size));
               },
             ),
           ),
@@ -127,7 +127,7 @@ class GrintaProgressIndicator extends StatelessWidget {
 }
 
 /// Préserve les barres déterminées et remplace seulement leur état
-/// indéterminé par le ballon rebondissant.
+/// indéterminé par la signature animée du club.
 class GrintaLinearProgressIndicator extends StatelessWidget {
   const GrintaLinearProgressIndicator({
     super.key,
@@ -179,23 +179,29 @@ class GrintaLinearProgressIndicator extends StatelessWidget {
       child: const ExcludeSemantics(
         child: SizedBox(
           height: 32,
-          child: Center(child: _BouncingBallMark(size: 32)),
+          child: Center(child: _GrintaSpinnerMark(size: 32)),
         ),
       ),
     );
   }
 }
 
-class _BouncingBallMark extends StatefulWidget {
-  const _BouncingBallMark({required this.size});
+/// Signature animée de chargement : deux arcs aux couleurs du club qui
+/// tournent l'un derrière l'autre.
+///
+/// Le tracé est purement géométrique, donc il reste lisible aussi bien à 16
+/// pixels dans un bouton qu'à 92 pixels au centre d'une page. L'écusson, lui,
+/// est réservé aux écrans de démarrage où il dispose de la place nécessaire.
+class _GrintaSpinnerMark extends StatefulWidget {
+  const _GrintaSpinnerMark({required this.size});
 
   final double size;
 
   @override
-  State<_BouncingBallMark> createState() => _BouncingBallMarkState();
+  State<_GrintaSpinnerMark> createState() => _GrintaSpinnerMarkState();
 }
 
-class _BouncingBallMarkState extends State<_BouncingBallMark>
+class _GrintaSpinnerMarkState extends State<_GrintaSpinnerMark>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   bool _reduceMotion = false;
@@ -205,7 +211,7 @@ class _BouncingBallMarkState extends State<_BouncingBallMark>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1100),
+      duration: const Duration(milliseconds: 1500),
     );
   }
 
@@ -242,8 +248,9 @@ class _BouncingBallMarkState extends State<_BouncingBallMark>
           builder: (context, _) => CustomPaint(
             isComplex: false,
             willChange: !_reduceMotion,
-            painter: _BouncingBallPainter(
-              progress: _reduceMotion ? 0 : _controller.value,
+            painter: _GrintaSpinnerPainter(
+              progress: _controller.value,
+              reduceMotion: _reduceMotion,
             ),
           ),
         ),
@@ -252,172 +259,85 @@ class _BouncingBallMarkState extends State<_BouncingBallMark>
   }
 }
 
-class _BouncingBallPainter extends CustomPainter {
-  const _BouncingBallPainter({required this.progress});
+class _GrintaSpinnerPainter extends CustomPainter {
+  const _GrintaSpinnerPainter({
+    required this.progress,
+    required this.reduceMotion,
+  });
 
   final double progress;
+  final bool reduceMotion;
+
+  static const double _tau = math.pi * 2;
 
   @override
   void paint(Canvas canvas, Size size) {
     final shortestSide = math.min(size.width, size.height);
-    final radius = shortestSide * 0.205;
-    final groundY = size.height * 0.78;
-    final bounce = 4 * progress * (1 - progress);
-    final center = Offset(
-      size.width / 2,
-      groundY - radius - size.height * 0.42 * bounce,
+    final stroke = (shortestSide * 0.115).clamp(2.0, 9.0).toDouble();
+    final rect = Rect.fromCircle(
+      center: Offset(size.width / 2, size.height / 2),
+      radius: (shortestSide - stroke) / 2,
     );
 
-    _drawImpactRipple(canvas, size, groundY, radius);
-    _drawShadow(canvas, size, groundY, radius, bounce);
-    _drawBall(canvas, center, radius, progress);
-  }
-
-  void _drawImpactRipple(
-    Canvas canvas,
-    Size size,
-    double groundY,
-    double radius,
-  ) {
-    const rippleDuration = 0.2;
-    if (progress > rippleDuration) return;
-
-    final phase = Curves.easeOut.transform(progress / rippleDuration);
-    final opacity = (1 - phase) * 0.68;
-    final rect = Rect.fromCenter(
-      center: Offset(size.width / 2, groundY + radius * 0.08),
-      width: radius * (2.05 + phase * 2.35),
-      height: radius * (0.38 + phase * 0.42),
-    );
-
-    canvas.drawOval(
-      rect,
-      Paint()
-        ..color = AppTheme.primaryBright.withValues(alpha: opacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1, size.width * 0.018),
-    );
-    canvas.drawArc(
-      rect,
-      math.pi * 0.96,
-      math.pi * 0.7,
-      false,
-      Paint()
-        ..color = AppTheme.accent.withValues(alpha: opacity * 0.92)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1, size.width * 0.022)
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  void _drawShadow(
-    Canvas canvas,
-    Size size,
-    double groundY,
-    double radius,
-    double bounce,
-  ) {
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width / 2, groundY + radius * 0.08),
-        width: radius * (2.25 - bounce * 0.72),
-        height: radius * (0.38 - bounce * 0.1),
-      ),
-      Paint()..color = Colors.black.withValues(alpha: 0.25 - bounce * 0.12),
-    );
-  }
-
-  void _drawBall(
-    Canvas canvas,
-    Offset center,
-    double radius,
-    double progress,
-  ) {
-    final distanceFromImpact = math.min(progress, 1 - progress);
-    final impact = (1 - (distanceFromImpact / 0.13)).clamp(0.0, 1.0).toDouble();
-    final easedImpact = Curves.easeOut.transform(impact);
-
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.scale(1 + easedImpact * 0.14, 1 - easedImpact * 0.18);
-    canvas.rotate(progress * math.pi * 2);
-
-    final ballRect = Rect.fromCircle(center: Offset.zero, radius: radius);
     canvas.drawCircle(
-      Offset.zero,
-      radius * 1.08,
-      Paint()..color = AppTheme.primaryBright.withValues(alpha: 0.1),
-    );
-    canvas.drawCircle(
-      Offset.zero,
-      radius,
+      rect.center,
+      rect.width / 2,
       Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.38, -0.44),
-          radius: 1.05,
-          colors: [
-            Colors.white,
-            Color(0xFFF3F6FC),
-            AppTheme.primaryBright,
-          ],
-          stops: [0, 0.68, 1],
-        ).createShader(ballRect),
+        ..color = AppTheme.primaryBright.withValues(alpha: 0.16)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke,
     );
 
-    final darkPaint = Paint()..color = AppTheme.background;
-    final seamPaint = Paint()
-      ..color = AppTheme.background.withValues(alpha: 0.58)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(0.8, radius * 0.075)
-      ..strokeCap = StrokeCap.round;
-
-    final pentagon = Path();
-    for (var i = 0; i < 5; i++) {
-      final angle = -math.pi / 2 + i * math.pi * 2 / 5;
-      final point = Offset(
-        math.cos(angle) * radius * 0.31,
-        math.sin(angle) * radius * 0.31,
-      );
-      if (i == 0) {
-        pentagon.moveTo(point.dx, point.dy);
-      } else {
-        pentagon.lineTo(point.dx, point.dy);
-      }
-    }
-    pentagon.close();
-    canvas.drawPath(pentagon, darkPaint);
-
-    for (var i = 0; i < 5; i++) {
-      final angle = -math.pi / 2 + i * math.pi * 2 / 5;
-      final inner = Offset(
-        math.cos(angle) * radius * 0.31,
-        math.sin(angle) * radius * 0.31,
-      );
-      final outer = Offset(
-        math.cos(angle) * radius * 0.78,
-        math.sin(angle) * radius * 0.78,
-      );
-      canvas.drawLine(inner, outer, seamPaint);
-      canvas.drawCircle(outer, radius * 0.125, darkPaint);
+    if (reduceMotion) {
+      _drawArc(
+          canvas, rect, stroke, -math.pi / 2, _tau * 0.72, AppTheme.accent);
+      return;
     }
 
+    // L'arc principal s'allonge puis se rétracte pendant qu'il tourne : c'est
+    // ce qui donne l'impression d'un mouvement continu sans jamais s'arrêter.
+    final head = progress * _tau * 1.45;
+    final breath = (math.sin(progress * _tau - math.pi / 2) + 1) / 2;
+    final mainSweep = (0.16 + Curves.easeInOut.transform(breath) * 0.54) * _tau;
+
+    const trailSweep = _tau * 0.13;
+    const gap = _tau * 0.085;
+
+    _drawArc(
+      canvas,
+      rect,
+      stroke,
+      head - gap - trailSweep,
+      trailSweep,
+      AppTheme.primaryBright,
+    );
+    _drawArc(canvas, rect, stroke, head, mainSweep, AppTheme.accent);
+  }
+
+  void _drawArc(
+    Canvas canvas,
+    Rect rect,
+    double stroke,
+    double start,
+    double sweep,
+    Color color,
+  ) {
     canvas.drawArc(
-      Rect.fromCircle(center: Offset.zero, radius: radius * 0.82),
-      -2.45,
-      0.92,
+      rect,
+      start,
+      sweep,
       false,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.58)
+        ..color = color
         ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1, radius * 0.1)
+        ..strokeWidth = stroke
         ..strokeCap = StrokeCap.round,
     );
-
-    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _BouncingBallPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _GrintaSpinnerPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.reduceMotion != reduceMotion;
   }
 }

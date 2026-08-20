@@ -3,9 +3,9 @@ import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/grinta_secondary_tabs.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
+import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
@@ -183,11 +183,9 @@ class _PlayersPanelState extends ConsumerState<_PlayersPanel> {
     );
 
     return async.when(
-      loading: () => const Center(
-        child: GrintaLoader.page(
-          message: 'Les stats entrent sur le terrain…',
-          semanticLabel: 'Chargement des statistiques joueurs',
-        ),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: GrintaSkeleton.rows(itemCount: 7),
       ),
       error: (error, _) => _Message(
         title: 'Statistiques indisponibles',

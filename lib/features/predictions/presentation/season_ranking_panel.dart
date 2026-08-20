@@ -2,8 +2,8 @@ export 'package:as_grinta/features/predictions/data/leaderboard_repository.dart'
 
 import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/name_validation.dart';
-import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/core/widgets/sticky_header_table.dart';
+import 'package:as_grinta/core/widgets/grinta_skeleton.dart';
 import 'package:as_grinta/features/badges/presentation/badge_display_scope.dart';
 import 'package:as_grinta/features/badges/presentation/name_with_badges.dart';
 import 'package:as_grinta/features/predictions/data/leaderboard_repository.dart';
@@ -45,11 +45,9 @@ class _SeasonRankingPanelState extends ConsumerState<SeasonRankingPanel> {
   Widget build(BuildContext context) {
     final leaderboardAsync = ref.watch(leaderboardProvider);
     return leaderboardAsync.when(
-      loading: () => const Center(
-        child: GrintaLoader.page(
-          message: 'Les buteurs prennent position…',
-          semanticLabel: 'Chargement du classement des buteurs',
-        ),
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: GrintaSkeleton.rows(itemCount: 6),
       ),
       error: (error, _) => Card(
         child: Padding(
