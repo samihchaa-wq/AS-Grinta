@@ -26,11 +26,15 @@ void main() {
 
     test('une vignette de banc reprend les mesures d’un titulaire', () {
       final metrics = benchAndPitchMetrics(361);
-      // Photo et prénom viennent des mêmes formules : c'est ce partage qui
-      // garantit qu'un remplaçant occupe la place d'un titulaire.
-      expect(metrics.avatarSize, closeTo(metrics.width * .82, 0.01));
-      expect(metrics.nameFontSize, greaterThanOrEqualTo(10.5));
-      expect(metrics.nameFontSize, lessThanOrEqualTo(12.5));
+      // Maillot, largeur et prénom viennent tous du terrain partagé : c'est
+      // ce partage qui garantit qu'un remplaçant occupe la place d'un
+      // titulaire.
+      expect(metrics.avatarSize, metrics.pitch.jerseyDiameter);
+      expect(metrics.width, metrics.pitch.slotWidth);
+      expect(metrics.height, metrics.pitch.slotHeight);
+      expect(metrics.nameFontSize, metrics.pitch.nameFontSize);
+      expect(metrics.nameFontSize, greaterThanOrEqualTo(8.5));
+      expect(metrics.nameFontSize, lessThanOrEqualTo(11));
     });
 
     test('les marqueurs restent dans des bornes lisibles', () {

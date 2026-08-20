@@ -196,6 +196,7 @@ class _MatchLivePreKickoffPageState
         Center(
           child: FormationPitchEditor(
             slots: formationForCode(lineup.formationCode).slots,
+            formationLabel: formationForCode(lineup.formationCode).code,
             entries: field,
             editable: widget.canEdit,
             markerMetrics: metrics,

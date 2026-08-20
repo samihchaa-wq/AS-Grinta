@@ -1,6 +1,7 @@
 import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
+import 'package:as_grinta/core/widgets/grinta_pitch.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_event.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_session.dart';
 import 'package:as_grinta/features/match_live/domain/match_live_state_bundle.dart';
@@ -130,6 +131,8 @@ class _MatchLiveRunningPageState extends ConsumerState<MatchLiveRunningPage> {
                   Expanded(
                     child: FormationPitchEditor(
                       slots: formationForCode(lineup.formationCode).slots,
+                      formationLabel:
+                          formationForCode(lineup.formationCode).code,
                       entries: field,
                       editable: canEdit,
                       finishedBenchCounts: bundle.substituteCounts,

@@ -1,5 +1,6 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/drag_auto_scroll.dart';
+import 'package:as_grinta/core/widgets/grinta_pitch.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/composition_pitch.dart';
@@ -50,20 +51,25 @@ Offset _displayPosition(
 /// Le banc du Tableau Blanc s'appuie sur les mêmes valeurs : sans cela ses
 /// vignettes gardaient une taille fixe et paraissaient plus grosses que les
 /// titulaires dès que le terrain se réduisait pour laisser la place au banc.
+///
+/// Les valeurs elles-mêmes viennent du terrain partagé : il n'existe qu'une
+/// seule définition d'une vignette de joueur dans l'application.
 class FormationMarkerMetrics {
-  const FormationMarkerMetrics(this.width);
+  const FormationMarkerMetrics(this.pitch);
 
-  /// Taille des marqueurs pour un terrain large de [pitchWidth].
+  /// Taille des marqueurs pour un terrain large de `pitchWidth`.
   factory FormationMarkerMetrics.forPitch(double pitchWidth) =>
-      FormationMarkerMetrics((pitchWidth / 5.6).clamp(44.0, 64.0).toDouble());
+      FormationMarkerMetrics(GrintaPitchMetrics.forPitch(pitchWidth));
 
-  final double width;
+  final GrintaPitchMetrics pitch;
 
-  double get height => width * 1.32;
+  double get width => pitch.slotWidth;
 
-  double get avatarSize => width * .82;
+  double get height => pitch.slotHeight;
 
-  double get nameFontSize => (width * .18).clamp(10.5, 12.5).toDouble();
+  double get avatarSize => pitch.jerseyDiameter;
+
+  double get nameFontSize => pitch.nameFontSize;
 }
 
 class FormationPitchEditor extends StatelessWidget {
@@ -76,6 +82,7 @@ class FormationPitchEditor extends StatelessWidget {
     this.editable = true,
     this.finishedBenchCounts = const {},
     this.markerMetrics,
+    this.formationLabel,
   });
 
   final List<FootballFormationSlot> slots;
@@ -93,6 +100,9 @@ class FormationPitchEditor extends StatelessWidget {
   /// Tableau Blanc) doit afficher exactement les mêmes vignettes ; sinon elle
   /// est déduite de la largeur réelle du terrain.
   final FormationMarkerMetrics? markerMetrics;
+
+  /// Dispositif affiché en bas à gauche du terrain (« 4-4-2 », « 3-5-2 »…).
+  final String? formationLabel;
 
   MatchCompositionEntry? _entryFor(
     FootballFormationSlot slot,
@@ -113,49 +123,20 @@ class FormationPitchEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 540),
-      child: AspectRatio(
-        aspectRatio: .68,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final legacyFlat442 = _usesLegacyFlat442Layout(entries);
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF174936),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: const Color(0xFF6DAD8B), width: 1.5),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 18,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(26),
-                child: Stack(
-                  children: [
-                    const Positioned.fill(
-                      child: CustomPaint(painter: _PitchPainter()),
-                    ),
-                    for (final slot in slots)
-                      _slot(
-                        context,
-                        constraints.biggest,
-                        slot,
-                        _entryFor(slot, legacyFlat442),
-                        finishedBenchCounts,
-                        legacyFlat442,
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    final legacyFlat442 = _usesLegacyFlat442Layout(entries);
+    return GrintaPitchSurface(
+      formationLabel: formationLabel,
+      builder: (context, size) => [
+        for (final slot in slots)
+          _slot(
+            context,
+            size,
+            slot,
+            _entryFor(slot, legacyFlat442),
+            finishedBenchCounts,
+            legacyFlat442,
+          ),
+      ],
     );
   }
 
@@ -167,16 +148,15 @@ class FormationPitchEditor extends StatelessWidget {
     Map<String, int> finishedBenchCounts,
     bool legacyFlat442,
   ) {
-    // Mêmes proportions que la composition d'un match terminé
-    // (CompositionPitch) : photo généreuse, prénom juste dessous. Les
-    // marqueurs suivent la largeur du terrain, qui se réduit quand le banc
-    // s'affiche à côté, pour rester lisibles sans se chevaucher.
+    // Mêmes vignettes que partout ailleurs : le maillot vient du terrain
+    // partagé. Elles suivent la largeur du terrain, qui se réduit quand le
+    // banc s'affiche à côté, pour rester lisibles sans se chevaucher.
     final metrics =
         markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
+    final pitch = metrics.pitch;
     final width = metrics.width;
     final height = metrics.height;
-    final avatarSize = metrics.avatarSize;
-    final nameFontSize = metrics.nameFontSize;
+    final diameter = metrics.avatarSize;
 
     // Les coordonnées historiques de l'ancien 4-4-2 étaient très tassées
     // vers le bas. On conserve les données brutes mais on les rééquilibre
@@ -204,38 +184,12 @@ class FormationPitchEditor extends StatelessWidget {
         builder: (context, candidates, rejected) {
           final highlighted = candidates.isNotEmpty;
           if (entry == null) {
-            // L'emplacement vide reste carré, à la taille de la photo, pour
-            // que la grille des postes garde son alignement.
             return Align(
               alignment: Alignment.topCenter,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                width: avatarSize,
-                height: avatarSize,
-                decoration: BoxDecoration(
-                  color: highlighted
-                      ? AppTheme.accent.withValues(alpha: .32)
-                      : Colors.white.withValues(alpha: .10),
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(
-                    color: highlighted ? AppTheme.accent : Colors.white54,
-                    width: highlighted ? 2 : 1,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add, color: Colors.white, size: 18),
-                    Text(
-                      slot.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
+              child: GrintaPitchEmptySlot(
+                metrics: pitch,
+                positionLabel: slot.label,
+                highlighted: highlighted,
               ),
             );
           }
@@ -246,35 +200,36 @@ class FormationPitchEditor extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: editable ? () => onRemoveFromField(entry) : null,
-              borderRadius: BorderRadius.circular(16),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: highlighted
-                      ? [
-                          BoxShadow(
-                            color: AppTheme.accent.withValues(alpha: .9),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Stack(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: width,
+                    height: diameter,
+                    child: Stack(
                       clipBehavior: Clip.none,
+                      alignment: Alignment.center,
                       children: [
-                        PlayerAvatar(
-                          photoUrl: entry.photoUrl,
-                          name: entry.displayName,
-                          isGoalkeeper: entry.isGoalkeeper,
-                          size: avatarSize,
+                        GrintaPitchJersey(
+                          diameter: diameter,
+                          label: CompositionPlayerTile.initialsOf(
+                            entry.displayName,
+                          ),
+                          highlighted: entry.isGoalkeeper || highlighted,
+                          photo: (entry.photoUrl?.trim().isNotEmpty ?? false)
+                              ? PlayerAvatar(
+                                  photoUrl: entry.photoUrl,
+                                  name: entry.displayName,
+                                  isGoalkeeper: entry.isGoalkeeper,
+                                  size: diameter,
+                                  fallbackScale: 1,
+                                )
+                              : null,
                         ),
                         if (finishedBenchCount > 0)
                           Positioned(
-                            right: -2,
+                            right: (width - diameter) / 2 - diameter * .18,
                             top: -2,
                             child: SubstituteHistoryBadge(
                               count: finishedBenchCount,
@@ -282,26 +237,15 @@ class FormationPitchEditor extends StatelessWidget {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    // Prénom en blanc ombré sous la photo, comme sur la
-                    // composition d'un match terminé : plus lisible qu'un
-                    // bandeau noir et jamais posé sur le visage.
-                    Text(
-                      entry.displayName.trim(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: nameFontSize,
-                        fontWeight: FontWeight.w800,
-                        shadows: const [
-                          Shadow(color: Colors.black87, blurRadius: 3),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 3),
+                  // Le nom repose sur une plaque sombre : posé à même le
+                  // vert, il se perdait dès que la pelouse s'éclaircissait.
+                  GrintaPitchNamePlate(
+                    name: entry.displayName.trim(),
+                    fontSize: pitch.nameFontSize,
+                  ),
+                ],
               ),
             ),
           );
@@ -324,50 +268,4 @@ class FormationPitchEditor extends StatelessWidget {
       ),
     );
   }
-}
-
-class _PitchPainter extends CustomPainter {
-  const _PitchPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xAAFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final inset = size.shortestSide * .045;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-    );
-    canvas
-      ..drawRect(rect, paint)
-      ..drawLine(
-        Offset(rect.left, rect.center.dy),
-        Offset(rect.right, rect.center.dy),
-        paint,
-      )
-      ..drawCircle(rect.center, size.width * .13, paint)
-      ..drawRect(
-        Rect.fromCenter(
-          center: Offset(rect.center.dx, rect.top + rect.height * .08),
-          width: rect.width * .58,
-          height: rect.height * .16,
-        ),
-        paint,
-      )
-      ..drawRect(
-        Rect.fromCenter(
-          center: Offset(rect.center.dx, rect.bottom - rect.height * .08),
-          width: rect.width * .58,
-          height: rect.height * .16,
-        ),
-        paint,
-      );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -368,8 +368,12 @@ const double _benchGap = AppSpacing.contentGap;
 const double _benchColumnMargin = AppSpacing.compactCardPadding;
 
 FormationMarkerMetrics benchAndPitchMetrics(double availableWidth) {
-  final pitchWidth =
-      (availableWidth - _benchGap - _benchColumnMargin) * 5.6 / 6.6;
+  // Le banc et le terrain se partagent la largeur : la colonne du banc vaut
+  // une vignette plus sa marge, le terrain prend tout le reste. Le rapport
+  // entre vignette et terrain vient du terrain partagé, pour que les deux
+  // blocs ne divergent jamais.
+  final pitchWidth = (availableWidth - _benchGap - _benchColumnMargin) /
+      (1 + GrintaPitchMetrics.slotWidthRatio);
   return FormationMarkerMetrics.forPitch(pitchWidth);
 }
 

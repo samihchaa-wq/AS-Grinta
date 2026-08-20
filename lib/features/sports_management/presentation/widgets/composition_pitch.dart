@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/theme/app_theme.dart';
+import 'package:as_grinta/core/widgets/grinta_pitch.dart';
 import 'package:as_grinta/features/sports_management/domain/match_composition.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,77 +31,33 @@ class _CompositionPitchState extends State<CompositionPitch> {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 540),
-      child: AspectRatio(
-        aspectRatio: 0.68,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return DragTarget<MatchCompositionEntry>(
-              onWillAcceptWithDetails: (details) =>
-                  widget.editable && details.data.canBeSelected,
-              onAcceptWithDetails: _acceptOnField,
-              builder: (context, candidates, rejected) {
-                final highlighted = candidates.isNotEmpty;
-                return AnimatedContainer(
-                  key: _fieldKey,
-                  duration: const Duration(milliseconds: 150),
-                  decoration: BoxDecoration(
-                    color: highlighted
-                        ? const Color(0xFF205E48)
-                        : const Color(0xFF174936),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: highlighted
-                          ? AppTheme.accent
-                          : const Color(0xFF6DAD8B),
-                      width: highlighted ? 3 : 1.5,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x33000000),
-                        blurRadius: 18,
-                        offset: Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: Stack(
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        const Positioned.fill(
-                          child: CustomPaint(painter: PitchPainter()),
-                        ),
-                        for (final entry in widget.entries)
-                          _positionedPlayer(
-                            context,
-                            entry,
-                            constraints.biggest,
-                          ),
-                        if (widget.editable && widget.entries.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: Text(
-                                'Glisse un joueur ici ou utilise son menu.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
+    return DragTarget<MatchCompositionEntry>(
+      onWillAcceptWithDetails: (details) =>
+          widget.editable && details.data.canBeSelected,
+      onAcceptWithDetails: _acceptOnField,
+      builder: (context, candidates, rejected) {
+        return GrintaPitchSurface(
+          surfaceKey: _fieldKey,
+          highlighted: candidates.isNotEmpty,
+          overlay: widget.editable && widget.entries.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text(
+                    'Glisse un joueur ici ou utilise son menu.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                );
-              },
-            );
-          },
-        ),
-      ),
+                )
+              : null,
+          builder: (context, size) => [
+            for (final entry in widget.entries)
+              _positionedPlayer(context, entry, size),
+          ],
+        );
+      },
     );
   }
 
@@ -109,8 +66,9 @@ class _CompositionPitchState extends State<CompositionPitch> {
     MatchCompositionEntry entry,
     Size size,
   ) {
-    const markerWidth = 64.0;
-    const markerHeight = 84.0;
+    final metrics = GrintaPitchMetrics.forPitch(size.width);
+    final markerWidth = metrics.slotWidth;
+    final markerHeight = metrics.slotHeight;
     final x = (entry.x ?? 0.5).clamp(0.08, 0.92).toDouble();
     final y = (entry.y ?? 0.5).clamp(0.06, 0.94).toDouble();
     final left = (x * size.width - markerWidth / 2)
@@ -122,6 +80,7 @@ class _CompositionPitchState extends State<CompositionPitch> {
 
     final marker = CompositionPlayerTile(
       entry: entry,
+      metrics: metrics,
       onTap:
           widget.onPlayerTap == null ? null : () => widget.onPlayerTap!(entry),
     );
@@ -289,14 +248,35 @@ class CompositionDropZone extends StatelessWidget {
 }
 
 class CompositionPlayerTile extends StatelessWidget {
-  const CompositionPlayerTile({super.key, required this.entry, this.onTap});
+  const CompositionPlayerTile({
+    super.key,
+    required this.entry,
+    this.onTap,
+    this.metrics,
+  });
 
   final MatchCompositionEntry entry;
   final VoidCallback? onTap;
 
+  /// Dimensions imposées par le terrain qui affiche la vignette. Hors du
+  /// terrain (banc, liste des remplaçants), la taille de référence s'applique
+  /// pour qu'un remplaçant ait exactement l'allure d'un titulaire.
+  final GrintaPitchMetrics? metrics;
+
+  /// Initiales affichées dans le maillot quand aucune photo n'est disponible.
+  static String initialsOf(String name) {
+    final word = name.trim().split(RegExp(r'\s+')).first;
+    if (word.isEmpty) return '?';
+    return (word.length >= 2 ? word.substring(0, 2) : word).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final label = entry.displayName.trim();
+    final pitch = metrics ?? GrintaPitchMetrics.forPitch(380);
+    final diameter = pitch.jerseyDiameter;
+    final photoUrl = entry.photoUrl?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -304,50 +284,51 @@ class CompositionPlayerTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 60,
-            height: 64,
+            width: pitch.slotWidth,
+            height: diameter,
             child: Stack(
               clipBehavior: Clip.none,
+              alignment: Alignment.center,
               children: [
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: PlayerAvatar(
-                    photoUrl: entry.photoUrl,
-                    name: entry.displayName,
-                    isGoalkeeper: entry.isGoalkeeper,
-                    size: 52,
-                  ),
+                GrintaPitchJersey(
+                  diameter: diameter,
+                  label: initialsOf(entry.displayName),
+                  highlighted: entry.isGoalkeeper,
+                  photo: hasPhoto
+                      ? PlayerAvatar(
+                          photoUrl: entry.photoUrl,
+                          name: entry.displayName,
+                          isGoalkeeper: entry.isGoalkeeper,
+                          size: diameter,
+                          fallbackScale: 1,
+                        )
+                      : null,
                 ),
                 if (entry.isMotm)
-                  const Positioned(
-                    top: -4,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Text('👑', style: TextStyle(fontSize: 20)),
+                  Positioned(
+                    top: -diameter * .28,
+                    child: Icon(
+                      Icons.workspace_premium_rounded,
+                      size: diameter * .46,
+                      color: AppTheme.reward,
+                      shadows: const [
+                        Shadow(color: Colors.black54, blurRadius: 3),
+                      ],
                     ),
                   ),
                 if (entry.goals > 0)
                   Positioned(
-                    left: 0,
-                    top: 40,
+                    left: (pitch.slotWidth - diameter) / 2 - diameter * .26,
+                    bottom: 0,
                     child: GoalBadge(goals: entry.goals),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
-            ),
+          const SizedBox(height: 3),
+          GrintaPitchNamePlate(
+            name: entry.displayName.trim(),
+            fontSize: pitch.nameFontSize,
           ),
         ],
       ),
@@ -355,12 +336,12 @@ class CompositionPlayerTile extends StatelessWidget {
   }
 }
 
-/// Ballon « but » posé sur le côté de la photo d'un joueur, sur le modèle
-/// des feuilles de match Flashscore : un unique ⚽ (peu importe le nombre
-/// de buts), sans pastille ni contour, avec un petit chiffre en
-/// surimpression au coin supérieur quand le joueur a inscrit plus d'un
-/// but. Partagé par la composition Live et la fiche d'un match archivé
-/// pour que les deux affichages restent visuellement identiques.
+/// Ballon « but » posé sur le côté du maillot d'un joueur, sur le modèle
+/// des feuilles de match Flashscore : un unique ballon (peu importe le
+/// nombre de buts), avec un petit chiffre en surimpression au coin
+/// supérieur quand le joueur a inscrit plus d'un but. Partagé par la
+/// composition Live et la fiche d'un match archivé pour que les deux
+/// affichages restent visuellement identiques.
 class GoalBadge extends StatelessWidget {
   const GoalBadge({super.key, required this.goals});
 
@@ -371,7 +352,12 @@ class GoalBadge extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        const Text('⚽', style: TextStyle(fontSize: 11, height: 1)),
+        const Icon(
+          Icons.sports_soccer_rounded,
+          size: 13,
+          color: Colors.white,
+          shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+        ),
         if (goals > 1)
           Positioned(
             top: -5,
@@ -379,7 +365,7 @@ class GoalBadge extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 0.5),
               decoration: BoxDecoration(
-                color: const Color(0xFF2E3A59),
+                color: AppTheme.background.withValues(alpha: .88),
                 borderRadius: BorderRadius.circular(5),
                 border: Border.all(color: Colors.white70, width: 0.5),
               ),
@@ -410,7 +396,7 @@ class SubstituteHistoryBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       decoration: BoxDecoration(
-        color: const Color(0xFF2E3A59),
+        color: AppTheme.background.withValues(alpha: .88),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.white70, width: .8),
       ),
@@ -628,74 +614,4 @@ class _PlayerAvatarState extends State<PlayerAvatar> {
       },
     );
   }
-}
-
-/// Traçage des lignes d'un terrain de foot. Public afin d'être partagé par
-/// la composition Live et par la fiche d'un match archivé : les deux
-/// affichages doivent rester visuellement identiques.
-class PitchPainter extends CustomPainter {
-  const PitchPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xAAFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    final inset = size.shortestSide * 0.045;
-    final rect = Rect.fromLTWH(
-      inset,
-      inset,
-      size.width - inset * 2,
-      size.height - inset * 2,
-    );
-    canvas.drawRect(rect, paint);
-    canvas.drawLine(
-      Offset(rect.left, rect.center.dy),
-      Offset(rect.right, rect.center.dy),
-      paint,
-    );
-    canvas.drawCircle(rect.center, size.width * 0.13, paint);
-    canvas.drawCircle(rect.center, 2.5, paint..style = PaintingStyle.fill);
-    paint.style = PaintingStyle.stroke;
-
-    final penaltyWidth = rect.width * 0.58;
-    final penaltyHeight = rect.height * 0.16;
-    final topPenalty = Rect.fromCenter(
-      center: Offset(rect.center.dx, rect.top + penaltyHeight / 2),
-      width: penaltyWidth,
-      height: penaltyHeight,
-    );
-    final bottomPenalty = Rect.fromCenter(
-      center: Offset(rect.center.dx, rect.bottom - penaltyHeight / 2),
-      width: penaltyWidth,
-      height: penaltyHeight,
-    );
-    canvas.drawRect(topPenalty, paint);
-    canvas.drawRect(bottomPenalty, paint);
-
-    final goalWidth = rect.width * 0.30;
-    final goalDepth = rect.height * 0.025;
-    canvas.drawRect(
-      Rect.fromLTWH(
-        rect.center.dx - goalWidth / 2,
-        rect.top - goalDepth,
-        goalWidth,
-        goalDepth,
-      ),
-      paint,
-    );
-    canvas.drawRect(
-      Rect.fromLTWH(
-        rect.center.dx - goalWidth / 2,
-        rect.bottom,
-        goalWidth,
-        goalDepth,
-      ),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

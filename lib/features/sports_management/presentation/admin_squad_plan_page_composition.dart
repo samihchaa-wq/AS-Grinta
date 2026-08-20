@@ -615,6 +615,7 @@ extension _AdminSquadPlanComposition on _AdminSquadPlanPageState {
         Center(
           child: FormationPitchEditor(
             slots: formationForCode(composition.formationCode).slots,
+            formationLabel: formationForCode(composition.formationCode).code,
             entries: field,
             editable: !_compositionLocked,
             onDroppedOnSlot: _dropOnSlot,
