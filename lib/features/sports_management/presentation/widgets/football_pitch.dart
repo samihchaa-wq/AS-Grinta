@@ -122,7 +122,7 @@ class FootballPitchPainter extends CustomPainter {
         ),
       );
 
-      // Surface de but (18,32 m sur 5,5 m), absente jusqu'ici.
+      // Surface de but (18,32 m sur 5,5 m).
       markings.addRect(
         Rect.fromCenter(
           center: Offset(centreX, goalLine + inward * 5.5 * my / 2),
@@ -144,17 +144,6 @@ class FootballPitchPainter extends CustomPainter {
           math.pi - 2 * half,
         );
       }
-
-      // Cage : 7,32 m entre les poteaux, tracée derrière la ligne de but.
-      final goalDepth = 2.2 * my;
-      final goal = Rect.fromLTWH(
-        centreX - 7.32 * mx / 2,
-        top ? pitch.top - goalDepth : pitch.bottom,
-        7.32 * mx,
-        goalDepth,
-      );
-      markings.addRect(goal);
-      _addNet(markings, goal);
     }
 
     // Arcs de corner (1 m), un quart de cercle tourné vers l'intérieur.
@@ -219,25 +208,6 @@ class FootballPitchPainter extends CustomPainter {
     }
   }
 
-  /// Maillage sommaire du filet, pour que la cage ne soit pas un rectangle
-  /// vide.
-  void _addNet(Path path, Rect goal) {
-    const columns = 6;
-    const rows = 2;
-    for (var i = 1; i < columns; i++) {
-      final x = goal.left + goal.width * i / columns;
-      path
-        ..moveTo(x, goal.top)
-        ..lineTo(x, goal.bottom);
-    }
-    for (var i = 1; i < rows; i++) {
-      final y = goal.top + goal.height * i / rows;
-      path
-        ..moveTo(goal.left, y)
-        ..lineTo(goal.right, y);
-    }
-  }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) =>
       oldDelegate is! FootballPitchPainter ||
@@ -247,9 +217,8 @@ class FootballPitchPainter extends CustomPainter {
 /// Prénom d'un joueur posé sur le terrain.
 ///
 /// Le fond translucide remplace l'ombre portée utilisée jusqu'ici. Sur les
-/// tracés blancs — filet des cages, lignes de surface — le texte ombré se
-/// confondait avec le décor : le nom du gardien, qui tombe sur la cage,
-/// devenait illisible.
+/// tracés blancs — lignes de surface — le texte ombré se confondait avec le
+/// décor : le nom du gardien devenait illisible.
 class PitchPlayerName extends StatelessWidget {
   const PitchPlayerName({super.key, required this.label, this.fontSize = 11});
 
