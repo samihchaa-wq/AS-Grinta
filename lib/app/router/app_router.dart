@@ -23,6 +23,7 @@ import 'package:as_grinta/features/players/presentation/players_registry_page.da
 import 'package:as_grinta/features/predictions/presentation/pronos_hub_page.dart';
 import 'package:as_grinta/features/privacy/presentation/privacy_page.dart';
 import 'package:as_grinta/features/profile/presentation/profile_page.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_guests_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_squad_plan_page.dart';
 import 'package:as_grinta/features/sports_management/presentation/admin_waitlist_page.dart';
@@ -218,6 +219,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : state.uri.queryParameters['view'] ?? 'matches';
           return '/stats?section=rankings&view=$view';
         },
+      ),
+      // Hors de la barre de navigation : le bilan de saison est un passage
+      // ponctuel, ouvert depuis le calendrier pendant l'intersaison.
+      GoRoute(
+        path: '/wrapped',
+        builder: (_, __) => const SeasonWrappedPage(),
       ),
       GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
       GoRoute(

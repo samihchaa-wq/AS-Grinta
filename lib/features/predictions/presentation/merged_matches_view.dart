@@ -19,6 +19,7 @@ import 'package:as_grinta/features/matches/presentation/widgets/admin_match_opti
 import 'package:as_grinta/features/matches/presentation/widgets/calendar_feed_event_card.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/historical_match_card.dart';
 import 'package:as_grinta/features/predictions/presentation/widgets/match_history_card.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_entry_card.dart';
 import 'package:as_grinta/features/sports_management/presentation/widgets/match_availability_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -294,6 +295,8 @@ class _MergedMatchesViewState extends ConsumerState<MergedMatchesView> {
             const SliverToBoxAdapter(
               child: SizedBox(height: AppSpacing.microGap),
             ),
+            // Entre deux saisons seulement : l'accès au bilan personnel.
+            const SliverToBoxAdapter(child: SeasonWrappedEntryCard()),
             if (state.isLoading)
               const SliverPadding(
                 padding: EdgeInsets.symmetric(
