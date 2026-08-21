@@ -28,8 +28,12 @@ abstract final class AppTheme {
   static const Color surfaceHigh = Color(0xFF102A4A);
   static const Color surfaceHero = Color(0xFF173D6E);
   static const Color outline = Color(0xFF2A527E);
-  static const Color primary = Color(0xFF3475C9);
-  static const Color primaryBright = Color(0xFF67A9F3);
+  // Bleu royal de l'écusson AS La Grinta (échantillonné sur le blason, ~#05299D)
+  // repris comme fil conducteur : `primary` en porte l'identité pour les boutons
+  // et actions, `primaryBright` en donne une déclinaison claire, lisible sur le
+  // fond bleu nuit, pour les liens, icônes et bordures de champ actif.
+  static const Color primary = Color(0xFF1A4AC0);
+  static const Color primaryBright = Color(0xFF6E93F6);
   static const Color accent = Color(0xFFFBE80C);
   static const Color reward = Color(0xFFFFD84A);
   static const Color success = Color(0xFF48C98B);
