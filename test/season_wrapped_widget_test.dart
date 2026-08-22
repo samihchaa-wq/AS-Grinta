@@ -273,15 +273,15 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    // La police du bilan n'existe qu'en moyenne et en grasse : rien ne doit
-    // depasser la moyenne.
+    // La moyenne tassait une police deja condensee : une phrase entiere
+    // finissait en bloc noir sur le telephone. Rien ne doit la depasser.
     for (var i = 0; i < 7; i += 1) {
       for (final texte in tester.widgetList<Text>(find.byType(Text))) {
         final poids = texte.style?.fontWeight;
         if (poids == null) continue;
         expect(
           poids.value,
-          lessThanOrEqualTo(FontWeight.w500.value),
+          lessThanOrEqualTo(FontWeight.w400.value),
           reason: 'ecran ${i + 1} : « ${texte.data} » en ${poids.value}',
         );
       }

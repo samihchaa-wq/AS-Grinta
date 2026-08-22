@@ -65,7 +65,7 @@ class SeasonWrappedButton extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 9,
                       height: 1.3,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w400,
                       color: AppTheme.textPrimary,
                     ),
                   ),
