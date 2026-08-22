@@ -109,12 +109,32 @@ class WrappedSkin {
 abstract final class WrappedType {
   static const String display = 'Oswald';
 
+  /// La graisse la plus fine de la police. Les versions plus grasses tassaient
+  /// les lettres d'une police déjà condensée : sur le téléphone, une phrase
+  /// entière finissait en bloc noir.
+  static const FontWeight _fine = FontWeight.w300;
+
+  /// Un cran au-dessus, pour ce qui doit tenir tête au fond : les chiffres
+  /// géants et les pastilles de classement.
+  static const FontWeight _pleine = FontWeight.w400;
+
   static TextStyle label(Color color, {double size = 13}) => TextStyle(
         fontFamily: display,
         fontSize: size,
         height: 1.2,
         letterSpacing: 2.2,
-        fontWeight: FontWeight.w500,
+        fontWeight: _fine,
+        color: color,
+      );
+
+  /// Le titre en haut d'un écran : il annonce ce qu'on regarde, il se lit de
+  /// loin et pas à la loupe.
+  static TextStyle heading(Color color, {double size = 28}) => TextStyle(
+        fontFamily: display,
+        fontSize: size,
+        height: 1.1,
+        letterSpacing: 1.2,
+        fontWeight: _fine,
         color: color,
       );
 
@@ -123,7 +143,7 @@ abstract final class WrappedType {
         fontSize: size,
         height: 1,
         letterSpacing: -.2,
-        fontWeight: FontWeight.w500,
+        fontWeight: _pleine,
         color: color,
       );
 
@@ -132,7 +152,7 @@ abstract final class WrappedType {
         fontSize: size,
         height: .82,
         letterSpacing: -3,
-        fontWeight: FontWeight.w500,
+        fontWeight: _pleine,
         color: color,
       );
 
@@ -140,7 +160,7 @@ abstract final class WrappedType {
         fontFamily: display,
         fontSize: size,
         height: 1.35,
-        fontWeight: FontWeight.w500,
+        fontWeight: _fine,
         color: color,
       );
 }
@@ -295,7 +315,7 @@ class WrappedRankBadge extends StatelessWidget {
           fontFamily: WrappedType.display,
           fontSize: size,
           height: 1.15,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
           letterSpacing: .6,
           color: skin.badgeText,
         ),

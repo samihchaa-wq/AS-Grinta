@@ -100,9 +100,13 @@ class _SlideLabel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(height: 4, width: 46, color: skin.figure),
-          const SizedBox(height: 12),
-          Text(text.toUpperCase(), style: WrappedType.label(skin.muted)),
+          Container(height: 5, width: 62, color: skin.figure),
+          const SizedBox(height: 14),
+          Text(
+            text.toUpperCase(),
+            maxLines: 2,
+            style: WrappedType.heading(skin.text),
+          ),
         ],
       ),
     );
@@ -699,9 +703,11 @@ class WrappedRecapLine extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: WrappedType.label(
-                skin.muted.withValues(alpha: .72),
+                // La graisse fine perd en presence : on la rattrape par
+                // le contraste plutot qu'en reepaississant.
+                skin.muted.withValues(alpha: .92),
                 size: size - 2,
-              ).copyWith(fontWeight: FontWeight.w500, letterSpacing: 1.4),
+              ).copyWith(letterSpacing: 1.4),
             ),
           ),
           Expanded(
@@ -712,7 +718,7 @@ class WrappedRecapLine extends StatelessWidget {
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
               style: WrappedType.title(skin.figure, size: size + 5)
-                  .copyWith(fontWeight: FontWeight.w500),
+                  .copyWith(fontWeight: FontWeight.w400),
             ),
           ),
           SizedBox(

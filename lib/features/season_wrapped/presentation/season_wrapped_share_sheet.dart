@@ -146,13 +146,18 @@ class _ShareStatLine extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: WrappedType.label(skin.muted, size: 10),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
                   stat.value,
-                  style: WrappedType.figure(skin.figure, size: 54),
+                  // L'interlignage serre des chiffres geants faisait remonter
+                  // le chiffre par-dessus son intitule.
+                  style: WrappedType.figure(
+                    skin.figure,
+                    size: 54,
+                  ).copyWith(height: 1),
                 ),
               ),
             ],

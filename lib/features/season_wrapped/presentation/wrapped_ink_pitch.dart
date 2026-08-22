@@ -190,7 +190,7 @@ class _InkPitchPainter extends CustomPainter {
           fontFamily: WrappedType.display,
           fontSize: radius * .78,
           height: 1,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
           color: markText.withValues(alpha: reveal),
         ),
       ),
