@@ -149,8 +149,10 @@ values (
   '{"first_name":"Parts","last_name":"Bilan"}'::jsonb
 );
 
+-- La base n autorise qu une seule saison ouverte : celle du test de
+-- reouverture ci-dessus. Cette saison de calcul naît donc archivee.
 insert into public.seasons (id, name, status)
-values ('7f000000-0000-0000-0000-000000000003', '2099-2100', 'open');
+values ('7f000000-0000-0000-0000-000000000003', '2099-2100', 'archived');
 
 insert into public.season_players (
   id, season_id, first_name, last_name, is_active
