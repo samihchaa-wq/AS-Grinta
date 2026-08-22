@@ -18,6 +18,7 @@ dependencies:
   # qui pesait 171 à 250 ko par avatar là où un JPEG équivalent en fait ~30.
   image: ^4.5.4
   image_picker: ^1.1.2
+  audioplayers: ^6.1.0
   share_plus: ^10.1.4
   shared_preferences: ^2.5.3
   supabase_flutter: ^2.8.4
@@ -36,3 +37,14 @@ flutter:
     - assets/images/module_backgrounds/
     - assets/images/as_grinta_logo.webp
     - assets/images/jerseys/
+    - assets/audio/wrapped.mp3
+
+  # La condensée de stade du bilan de saison : elle porte les chiffres et les
+  # titres. Licence SIL OFL dans assets/fonts.
+  fonts:
+    - family: Oswald
+      fonts:
+        - asset: assets/fonts/Oswald-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Oswald-Bold.ttf
+          weight: 700
