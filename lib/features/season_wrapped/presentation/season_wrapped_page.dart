@@ -6,7 +6,8 @@ import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository
 import 'package:as_grinta/features/season_wrapped/data/wrapped_music.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_motion.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/wrapped_paper.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
+import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_slides.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class SeasonWrappedPage extends ConsumerWidget {
     final wrapped = ref.watch(mySeasonWrappedProvider);
 
     return Scaffold(
-      backgroundColor: WrappedPaper.paper,
+      backgroundColor: AppTheme.background,
       body: wrapped.when(
         loading: () => const Center(
           child: GrintaLoader.page(message: 'Préparation de ton bilan'),
@@ -64,7 +65,8 @@ class _WrappedMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WrappedPaperBackground(
+    return WrappedBackdrop(
+      skin: WrappedSkin.night,
       child: SafeArea(
         child: Stack(
           children: [
@@ -94,7 +96,7 @@ class _CloseButton extends StatelessWidget {
       child: IconButton(
         tooltip: 'Fermer',
         onPressed: () => Navigator.of(context).maybePop(),
-        icon: const Icon(Icons.close, color: WrappedPaper.ink),
+        icon: const Icon(Icons.close, color: AppTheme.textPrimary),
       ),
     );
   }
@@ -262,7 +264,7 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
     final playerName = ref.read(wrappedPlayerNameProvider);
     final chosen = await showModalBottomSheet<SeasonWrappedSheet>(
       context: context,
-      backgroundColor: WrappedPaper.paper,
+      backgroundColor: AppTheme.background,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -273,23 +275,23 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'PARTAGER UNE PARTIE',
-                  style: WrappedPaper.label(size: 11),
+                  style: WrappedType.label(AppTheme.textFaint, size: 12),
                 ),
               ),
             ),
             for (final sheet in widget.wrapped.sheets)
               ListTile(
-                title: Text(sheet.title, style: WrappedPaper.title(size: 20)),
+                title: Text(
+                  sheet.title.toUpperCase(),
+                  style: WrappedType.title(AppTheme.textPrimary, size: 22),
+                ),
                 subtitle: Text(
                   sheet.stats.map((stat) => stat.label).join(' · '),
-                  style: WrappedPaper.body(
-                    size: 11,
-                    color: WrappedPaper.inkSoft,
-                  ),
+                  style: WrappedType.body(AppTheme.textFaint, size: 12),
                 ),
                 trailing: const Icon(
                   Icons.ios_share,
-                  color: WrappedPaper.ink,
+                  color: AppTheme.accent,
                   size: 20,
                 ),
                 onTap: () => Navigator.of(context).pop(sheet),
@@ -317,6 +319,7 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
   @override
   Widget build(BuildContext context) {
     final playerName = ref.watch(wrappedPlayerNameProvider);
+    final skin = WrappedSkin.sequence[_index];
     final slides = buildWrappedSlides(
       wrapped: widget.wrapped,
       playerName: playerName,
@@ -356,8 +359,10 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
                   count: _slideCount,
                   index: _index,
                   animation: _progress,
+                  color: skin.text,
                 ),
                 _StoryControls(
+                  color: skin.text,
                   muted: _muted,
                   onToggleMute: _toggleMute,
                   onClose: () => Navigator.of(context).maybePop(),
@@ -427,7 +432,7 @@ class _CaptureHost extends StatelessWidget {
       textDirection: TextDirection.ltr,
       child: MediaQuery(
         data: const MediaQueryData(),
-        child: Material(color: WrappedPaper.paper, child: child),
+        child: Material(color: AppTheme.background, child: child),
       ),
     );
   }
@@ -438,11 +443,13 @@ class _ProgressBar extends StatelessWidget {
     required this.count,
     required this.index,
     required this.animation,
+    required this.color,
   });
 
   final int count;
   final int index;
   final Animation<double> animation;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -469,11 +476,8 @@ class _ProgressBar extends StatelessWidget {
                         return LinearProgressIndicator(
                           value: value,
                           minHeight: 3,
-                          backgroundColor:
-                              WrappedPaper.ink.withValues(alpha: .16),
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                            WrappedPaper.ink,
-                          ),
+                          backgroundColor: color.withValues(alpha: .28),
+                          valueColor: AlwaysStoppedAnimation<Color>(color),
                         );
                       },
                     ),
@@ -489,11 +493,13 @@ class _ProgressBar extends StatelessWidget {
 
 class _StoryControls extends StatelessWidget {
   const _StoryControls({
+    required this.color,
     required this.muted,
     required this.onToggleMute,
     required this.onClose,
   });
 
+  final Color color;
   final bool muted;
   final VoidCallback onToggleMute;
   final VoidCallback onClose;
@@ -510,7 +516,7 @@ class _StoryControls extends StatelessWidget {
             tooltip: muted ? 'Remettre la musique' : 'Couper la musique',
             onPressed: onToggleMute,
             iconSize: 20,
-            color: WrappedPaper.ink,
+            color: color,
             icon: Icon(muted ? Icons.volume_off : Icons.volume_up),
           ),
           IconButton(
@@ -518,7 +524,7 @@ class _StoryControls extends StatelessWidget {
             tooltip: 'Fermer',
             onPressed: onClose,
             iconSize: 20,
-            color: WrappedPaper.ink,
+            color: color,
             icon: const Icon(Icons.close),
           ),
         ],

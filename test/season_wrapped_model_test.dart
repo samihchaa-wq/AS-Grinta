@@ -1,5 +1,5 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, dynamic> _payload({
@@ -139,9 +139,9 @@ void main() {
   });
 
   test('le rang s’écrit en ordinal français, sans effectif', () {
-    expect(seasonWrappedOrdinal(1), '1er');
-    expect(seasonWrappedOrdinal(2), '2e');
-    expect(seasonWrappedOrdinal(11), '11e');
+    expect(wrappedOrdinal(1), '1er');
+    expect(wrappedOrdinal(2), '2e');
+    expect(wrappedOrdinal(11), '11e');
   });
 
   test('un état sans bilan disponible ne propose pas de saison', () {

@@ -1,4 +1,4 @@
-import 'package:as_grinta/features/season_wrapped/presentation/wrapped_paper.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:flutter/material.dart';
 
@@ -41,14 +41,16 @@ List<Offset> wrappedPositionSpots(String? family) {
   ];
 }
 
-/// Le terrain tel qu'un entraîneur le griffonne sur sa feuille : des traits
-/// d'encre sur le papier, sans pelouse ni couleur.
+/// Le terrain réduit à ses lignes, aux couleurs de l'écran qui l'accueille.
 class WrappedInkPitch extends StatelessWidget {
   const WrappedInkPitch({
     super.key,
+    required this.skin,
     this.spots = const [],
     this.progress = 1,
   });
+
+  final WrappedSkin skin;
 
   /// Les emplacements à encercler, en coordonnées relatives.
   final List<Offset> spots;
@@ -61,24 +63,36 @@ class WrappedInkPitch extends StatelessWidget {
     return AspectRatio(
       aspectRatio: 3 / 4,
       child: CustomPaint(
-        painter: _InkPitchPainter(spots: spots, progress: progress),
+        painter: _InkPitchPainter(
+          spots: spots,
+          progress: progress,
+          line: skin.text,
+          mark: skin.figure,
+        ),
       ),
     );
   }
 }
 
 class _InkPitchPainter extends CustomPainter {
-  const _InkPitchPainter({required this.spots, required this.progress});
+  const _InkPitchPainter({
+    required this.spots,
+    required this.progress,
+    required this.line,
+    required this.mark,
+  });
 
   final List<Offset> spots;
   final double progress;
+  final Color line;
+  final Color mark;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final line = Paint()
+    final stroke = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6
-      ..color = WrappedPaper.ink.withValues(alpha: .45);
+      ..color = line.withValues(alpha: .40);
 
     final inset = size.shortestSide * .04;
     final pitch = Rect.fromLTWH(
@@ -88,13 +102,13 @@ class _InkPitchPainter extends CustomPainter {
       size.height - inset * 2,
     );
 
-    canvas.drawRect(pitch, line);
+    canvas.drawRect(pitch, stroke);
     canvas.drawLine(
       Offset(pitch.left, pitch.center.dy),
       Offset(pitch.right, pitch.center.dy),
-      line,
+      stroke,
     );
-    canvas.drawCircle(pitch.center, pitch.width * .13, line);
+    canvas.drawCircle(pitch.center, pitch.width * .13, stroke);
 
     // Surfaces de réparation, haut et bas.
     final areaWidth = pitch.width * .58;
@@ -107,7 +121,7 @@ class _InkPitchPainter extends CustomPainter {
           areaWidth,
           areaHeight,
         ),
-        line,
+        stroke,
       );
     }
 
@@ -127,7 +141,7 @@ class _InkPitchPainter extends CustomPainter {
       canvas.drawCircle(
         center,
         radius * share,
-        Paint()..color = WrappedPaper.stamp.withValues(alpha: .16 * share),
+        Paint()..color = mark.withValues(alpha: .22 * share),
       );
       canvas.drawCircle(
         center,
@@ -135,12 +149,15 @@ class _InkPitchPainter extends CustomPainter {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.4
-          ..color = WrappedPaper.stamp.withValues(alpha: .85 * share),
+          ..color = mark.withValues(alpha: .95 * share),
       );
     }
   }
 
   @override
   bool shouldRepaint(_InkPitchPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.spots != spots;
+      oldDelegate.progress != progress ||
+      oldDelegate.spots != spots ||
+      oldDelegate.line != line ||
+      oldDelegate.mark != mark;
 }

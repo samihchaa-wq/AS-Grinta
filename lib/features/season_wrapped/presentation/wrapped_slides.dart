@@ -1,38 +1,41 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_ink_pitch.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_motion.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/wrapped_paper.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter/material.dart';
 
 /// Les écrans du bilan, dans l'ordre de lecture.
 ///
-/// L'ordre n'est pas neutre : on ouvre sur la feuille vierge, on avance du
-/// chiffre le plus modeste au plus flatteur, et on referme sur la feuille
-/// complète, prête à partager.
+/// L'ordre n'est pas neutre : on ouvre sur la saison, on avance du chiffre le
+/// plus modeste au plus flatteur, et on referme sur le récapitulatif, prêt à
+/// partager.
 List<Widget> buildWrappedSlides({
   required SeasonWrapped wrapped,
   required String? playerName,
   required VoidCallback onShare,
   required VoidCallback onShareByTheme,
 }) {
+  final skins = WrappedSkin.sequence;
+
   return [
-    _OpeningSlide(wrapped: wrapped, playerName: playerName),
+    _OpeningSlide(skin: skins[0], wrapped: wrapped, playerName: playerName),
     _FigureSlide(
-      seed: 1,
+      skin: skins[1],
       label: 'Matchs joués',
+      ghostWord: 'Présent',
       value: wrapped.matchesPlayed,
       rank: wrapped.matchesPlayedRank,
       caption: wrapped.matchesPlayed <= 1
           ? 'Une feuille de match à ton nom.'
           : 'Autant de fois où tu as répondu présent.',
     ),
-    _ResponsivenessSlide(wrapped: wrapped),
-    _PositionSlide(wrapped: wrapped),
-    _VersatilitySlide(wrapped: wrapped),
-    _ContributionSlide(wrapped: wrapped),
-    _ResultsSlide(wrapped: wrapped),
+    _ResponsivenessSlide(skin: skins[2], wrapped: wrapped),
+    _PositionSlide(skin: skins[3], wrapped: wrapped),
+    _VersatilitySlide(skin: skins[4], wrapped: wrapped),
+    _ContributionSlide(skin: skins[5], wrapped: wrapped),
+    _ResultsSlide(skin: skins[6], wrapped: wrapped),
     _ClosingSlide(
+      skin: skins[7],
       wrapped: wrapped,
       playerName: playerName,
       onShare: onShare,
@@ -41,44 +44,46 @@ List<Widget> buildWrappedSlides({
   ];
 }
 
-/// Ossature commune : l'en-tête de la feuille, puis le contenu centré.
+/// Ossature commune : le contenu occupe toute la hauteur, du haut au bas.
 class _SlideFrame extends StatelessWidget {
-  const _SlideFrame({required this.seed, required this.child});
+  const _SlideFrame({
+    required this.skin,
+    this.ghostWord,
+    required this.top,
+    required this.middle,
+    this.bottom,
+  });
 
-  final int seed;
-  final Widget child;
+  final WrappedSkin skin;
+  final String? ghostWord;
+  final Widget top;
+  final Widget middle;
+  final Widget? bottom;
 
   @override
   Widget build(BuildContext context) {
-    return WrappedPaperBackground(
-      seed: seed,
+    return WrappedBackdrop(
+      skin: skin,
+      ghostWord: ghostWord,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(30, 64, 24, 24),
+          padding: const EdgeInsets.fromLTRB(24, 74, 24, 28),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'AS GRINTA · FEUILLE DE SAISON',
-                style: WrappedPaper.label(size: 10),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                  height: 1.4, color: WrappedPaper.ink.withValues(alpha: .25)),
+              top,
               Expanded(
-                child: Align(
-                  // Un peu au-dessus du centre optique : une feuille se lit
-                  // du haut, pas du milieu.
-                  alignment: const Alignment(0, -.2),
+                child: Center(
                   child: SingleChildScrollView(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
-                      children: [child],
+                      children: [middle],
                     ),
                   ),
                 ),
               ),
+              if (bottom != null) bottom!,
             ],
           ),
         ),
@@ -87,11 +92,12 @@ class _SlideFrame extends StatelessWidget {
   }
 }
 
-/// Intitulé de rubrique, souligné comme une case de formulaire.
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
+/// Intitulé de rubrique : capitales espacées, barre de couleur en dessous.
+class _SlideLabel extends StatelessWidget {
+  const _SlideLabel({required this.text, required this.skin});
 
   final String text;
+  final WrappedSkin skin;
 
   @override
   Widget build(BuildContext context) {
@@ -99,15 +105,71 @@ class _FieldLabel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(text.toUpperCase(), style: WrappedPaper.label()),
-          const SizedBox(height: 4),
-          SizedBox(
-            width: 54,
-            child: Container(
-              height: 2,
-              color: WrappedPaper.stamp.withValues(alpha: .55),
-            ),
+          Container(height: 4, width: 46, color: skin.figure),
+          const SizedBox(height: 12),
+          Text(text.toUpperCase(), style: WrappedType.label(skin.muted)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le chiffre, aussi grand que la largeur le permet.
+class _GiantFigure extends StatelessWidget {
+  const _GiantFigure({
+    required this.value,
+    required this.skin,
+    this.suffix = '',
+    this.decimals = 0,
+  });
+
+  final num value;
+  final WrappedSkin skin;
+  final String suffix;
+  final int decimals;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: WrappedCountUp(
+        value: value,
+        suffix: suffix,
+        decimals: decimals,
+        style: WrappedType.figure(skin.figure),
+      ),
+    );
+  }
+}
+
+class _Caption extends StatelessWidget {
+  const _Caption({
+    required this.text,
+    required this.skin,
+    required this.rank,
+    this.delay = const Duration(milliseconds: 1400),
+  });
+
+  final String text;
+  final WrappedSkin skin;
+  final int? rank;
+  final Duration delay;
+
+  @override
+  Widget build(BuildContext context) {
+    return WrappedReveal(
+      delay: delay,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Text(text, style: WrappedType.body(skin.text)),
           ),
+          if (rank != null) ...[
+            const SizedBox(width: 14),
+            WrappedRankBadge(rank: rank!, skin: skin),
+          ],
         ],
       ),
     );
@@ -115,57 +177,59 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _OpeningSlide extends StatelessWidget {
-  const _OpeningSlide({required this.wrapped, required this.playerName});
+  const _OpeningSlide({
+    required this.skin,
+    required this.wrapped,
+    required this.playerName,
+  });
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
   final String? playerName;
 
   @override
   Widget build(BuildContext context) {
     return _SlideFrame(
-      seed: 0,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      skin: skin,
+      ghostWord: 'Grinta',
+      top: _SlideLabel(text: 'Ta saison', skin: skin),
+      middle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          WrappedReveal(
-            child: Text('Saison', style: WrappedPaper.label(size: 13)),
-          ),
-          const SizedBox(height: 6),
           WrappedReveal(
             delay: const Duration(milliseconds: 120),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                wrapped.seasonName,
-                style: WrappedPaper.figure(size: 76),
+                wrapped.seasonName.replaceAll('-', '\n'),
+                // Sur deux lignes, les chiffres ont besoin de respirer :
+                // l'interligne serré des écrans à un seul nombre les
+                // ferait se chevaucher.
+                style: WrappedType.figure(skin.figure, size: 128)
+                    .copyWith(height: .95),
               ),
             ),
           ),
-          const SizedBox(height: 22),
-          WrappedTypewriter(
-            delay: const Duration(milliseconds: 620),
-            text: playerName == null || playerName!.isEmpty
-                ? 'Ta saison, en huit cases.'
-                : '$playerName — ta saison, en huit cases.',
-            style: WrappedPaper.body(size: 15),
-          ),
           const SizedBox(height: 26),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1500),
-            child: WrappedStamp(text: 'Saison close', angle: -.06),
-          ),
-          const SizedBox(height: 26),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1800),
-            child: Text(
-              'Les rangs te situent parmi les ${wrapped.rosterSize} joueurs '
-              'ayant disputé au moins un match.',
-              style: WrappedPaper.body(size: 12, color: WrappedPaper.inkSoft),
+          if (playerName != null && playerName!.isNotEmpty)
+            WrappedReveal(
+              delay: const Duration(milliseconds: 700),
+              child: Text(
+                playerName!.toUpperCase(),
+                style: WrappedType.title(skin.text, size: 34),
+              ),
             ),
-          ),
         ],
+      ),
+      bottom: WrappedReveal(
+        delay: const Duration(milliseconds: 1100),
+        child: Text(
+          'Huit écrans. Les rangs te situent parmi les '
+          '${wrapped.rosterSize} joueurs ayant disputé au moins un match.',
+          style: WrappedType.body(skin.muted, size: 14),
+        ),
       ),
     );
   }
@@ -174,65 +238,46 @@ class _OpeningSlide extends StatelessWidget {
 /// Écran d'un seul chiffre : le format le plus efficace du bilan.
 class _FigureSlide extends StatelessWidget {
   const _FigureSlide({
-    required this.seed,
+    required this.skin,
     required this.label,
     required this.value,
     required this.rank,
     required this.caption,
+    this.ghostWord,
     this.suffix = '',
     this.decimals = 0,
   });
 
-  final int seed;
+  final WrappedSkin skin;
   final String label;
   final num value;
   final int? rank;
   final String caption;
+  final String? ghostWord;
   final String suffix;
   final int decimals;
 
   @override
   Widget build(BuildContext context) {
     return _SlideFrame(
-      seed: seed,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _FieldLabel(label),
-          const SizedBox(height: 14),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: WrappedCountUp(
-              value: value,
-              suffix: suffix,
-              decimals: decimals,
-              style: WrappedPaper.figure(size: 150),
-            ),
-          ),
-          const SizedBox(height: 18),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1500),
-            child: Text(caption, style: WrappedPaper.body(size: 14)),
-          ),
-          if (rank != null) ...[
-            const SizedBox(height: 26),
-            WrappedReveal(
-              delay: const Duration(milliseconds: 1850),
-              child:
-                  WrappedStamp(text: '${seasonWrappedOrdinal(rank!)} du club'),
-            ),
-          ],
-        ],
+      skin: skin,
+      ghostWord: ghostWord,
+      top: _SlideLabel(text: label, skin: skin),
+      middle: _GiantFigure(
+        value: value,
+        skin: skin,
+        suffix: suffix,
+        decimals: decimals,
       ),
+      bottom: _Caption(text: caption, skin: skin, rank: rank),
     );
   }
 }
 
 class _ResponsivenessSlide extends StatelessWidget {
-  const _ResponsivenessSlide({required this.wrapped});
+  const _ResponsivenessSlide({required this.skin, required this.wrapped});
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
 
   @override
@@ -241,55 +286,47 @@ class _ResponsivenessSlide extends StatelessWidget {
 
     if (hours == null) {
       return _SlideFrame(
-        seed: 2,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _FieldLabel('Réactivité'),
-            const SizedBox(height: 14),
-            WrappedReveal(
-              delay: const Duration(milliseconds: 200),
-              child: Text(
-                'Aucune réponse\nenregistrée',
-                style: WrappedPaper.title(size: 34),
-              ),
-            ),
-            const SizedBox(height: 18),
-            WrappedReveal(
-              delay: const Duration(milliseconds: 700),
-              child: Text(
-                'Les disponibilités ouvrent six jours avant chaque match. '
-                'La saison prochaine, tu y es.',
-                style: WrappedPaper.body(size: 14),
-              ),
-            ),
-          ],
+        skin: skin,
+        ghostWord: 'Dispo',
+        top: _SlideLabel(text: 'Réactivité', skin: skin),
+        middle: WrappedReveal(
+          delay: const Duration(milliseconds: 200),
+          child: Text(
+            'Aucune réponse enregistrée',
+            style: WrappedType.title(skin.figure, size: 52),
+          ),
+        ),
+        bottom: _Caption(
+          text: 'Les disponibilités ouvrent six jours avant chaque match. '
+              'La saison prochaine, tu y es.',
+          skin: skin,
+          rank: null,
+          delay: const Duration(milliseconds: 700),
         ),
       );
     }
 
-    // Sous deux jours, l'heure parle mieux que la fraction de journée.
+    // Au-delà de deux jours, la journée parle mieux que l'heure.
     final showDays = hours >= 48;
     final value = showDays ? hours / 24 : hours;
 
     return _FigureSlide(
-      seed: 2,
+      skin: skin,
+      ghostWord: 'Dispo',
       label: 'Tu réponds présent en',
       value: value,
       decimals: value >= 10 ? 0 : 1,
-      suffix: showDays ? ' jours' : ' h',
+      suffix: showDays ? ' j' : ' h',
       rank: wrapped.avgResponseRank,
-      caption: wrapped.avgResponseRank == null
-          ? 'Délai moyen entre l’ouverture des disponibilités et ta réponse.'
-          : 'En moyenne, après l’ouverture des disponibilités.',
+      caption: 'En moyenne, après l’ouverture des disponibilités.',
     );
   }
 }
 
 class _PositionSlide extends StatelessWidget {
-  const _PositionSlide({required this.wrapped});
+  const _PositionSlide({required this.skin, required this.wrapped});
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
 
   @override
@@ -298,60 +335,66 @@ class _PositionSlide extends StatelessWidget {
     final reduced = wrappedReducedMotion(context);
 
     return _SlideFrame(
-      seed: 3,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      skin: skin,
+      top: _SlideLabel(text: 'Ton poste', skin: skin),
+      middle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _FieldLabel('Ton poste'),
-          const SizedBox(height: 14),
           WrappedReveal(
             delay: const Duration(milliseconds: 160),
-            child: Text(
-              wrapped.topPosition ?? 'Jamais aligné au coup d’envoi',
-              style: WrappedPaper.title(size: 36),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                (wrapped.topPosition ?? 'Jamais aligné').toUpperCase(),
+                style: WrappedType.title(skin.figure, size: 46),
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           Center(
             child: SizedBox(
-              width: 216,
+              width: 250,
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: reduced ? 1 : 0, end: 1),
                 duration: reduced
                     ? Duration.zero
                     : const Duration(milliseconds: 1500),
                 curve: Curves.easeOutCubic,
-                builder: (context, progress, _) =>
-                    WrappedInkPitch(spots: spots, progress: progress),
+                builder: (context, progress, _) => WrappedInkPitch(
+                  skin: skin,
+                  spots: spots,
+                  progress: progress,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1300),
-            child: Text(
-              spots.isEmpty
-                  ? 'Tu n’apparais dans aucune composition de départ.'
-                  : 'Le poste où tu as été aligné le plus souvent.',
-              style: WrappedPaper.body(size: 13),
-            ),
-          ),
         ],
+      ),
+      bottom: _Caption(
+        text: spots.isEmpty
+            ? 'Tu n’apparais dans aucune composition de départ.'
+            : 'Le poste où tu as été aligné le plus souvent.',
+        skin: skin,
+        rank: null,
+        delay: const Duration(milliseconds: 1300),
       ),
     );
   }
 }
 
 class _VersatilitySlide extends StatelessWidget {
-  const _VersatilitySlide({required this.wrapped});
+  const _VersatilitySlide({required this.skin, required this.wrapped});
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
 
   @override
   Widget build(BuildContext context) {
     return _FigureSlide(
-      seed: 4,
+      skin: skin,
+      ghostWord: 'Partout',
       label: 'Polyvalence',
       value: wrapped.versatility,
       suffix: wrapped.versatility <= 1 ? ' poste' : ' postes',
@@ -367,95 +410,101 @@ class _VersatilitySlide extends StatelessWidget {
 }
 
 class _ContributionSlide extends StatelessWidget {
-  const _ContributionSlide({required this.wrapped});
+  const _ContributionSlide({required this.skin, required this.wrapped});
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
 
   @override
   Widget build(BuildContext context) {
     return _SlideFrame(
-      seed: 5,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      skin: skin,
+      ghostWord: 'Buts',
+      top: _SlideLabel(text: 'Ton apport', skin: skin),
+      middle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _FieldLabel('Ton apport'),
-          const SizedBox(height: 20),
-          _InlineFigure(
+          _StackedFigure(
+            skin: skin,
             label: 'Buts',
             value: wrapped.goals,
             rank: wrapped.goalsRank,
             delay: const Duration(milliseconds: 200),
           ),
-          const SizedBox(height: 26),
-          _InlineFigure(
+          const SizedBox(height: 30),
+          _StackedFigure(
+            skin: skin,
             label: 'Homme du match',
             value: wrapped.motm,
             rank: wrapped.motmRank,
-            delay: const Duration(milliseconds: 900),
-          ),
-          const SizedBox(height: 24),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1700),
-            child: Text(
-              wrapped.motm == 0
-                  ? 'Le vote Homme du match reste anonyme, comme toujours.'
-                  : 'Élu par tes coéquipiers. Les bulletins, eux, restent secrets.',
-              style: WrappedPaper.body(size: 13, color: WrappedPaper.inkSoft),
-            ),
+            delay: const Duration(milliseconds: 800),
           ),
         ],
+      ),
+      bottom: WrappedReveal(
+        delay: const Duration(milliseconds: 1500),
+        child: Text(
+          wrapped.motm == 0
+              ? 'Le vote Homme du match reste anonyme, comme toujours.'
+              : 'Élu par tes coéquipiers. Les bulletins restent secrets.',
+          style: WrappedType.body(skin.muted, size: 14),
+        ),
       ),
     );
   }
 }
 
-class _InlineFigure extends StatelessWidget {
-  const _InlineFigure({
+class _StackedFigure extends StatelessWidget {
+  const _StackedFigure({
+    required this.skin,
     required this.label,
     required this.value,
     required this.rank,
     required this.delay,
     this.suffix = '',
-    this.decimals = 0,
   });
 
+  final WrappedSkin skin;
   final String label;
   final num value;
   final int? rank;
   final Duration delay;
   final String suffix;
-  final int decimals;
 
   @override
   Widget build(BuildContext context) {
     return WrappedReveal(
       delay: delay,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label.toUpperCase(), style: WrappedPaper.label(size: 11)),
-                const SizedBox(height: 2),
+                Text(
+                  label.toUpperCase(),
+                  style: WrappedType.label(skin.muted, size: 12),
+                ),
+                const SizedBox(height: 4),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: WrappedCountUp(
                     value: value,
                     suffix: suffix,
-                    decimals: decimals,
-                    delay: delay + const Duration(milliseconds: 160),
-                    style: WrappedPaper.figure(size: 68),
+                    delay: delay + const Duration(milliseconds: 140),
+                    style: WrappedType.figure(skin.figure, size: 92),
                   ),
                 ),
               ],
             ),
           ),
-          if (rank != null)
-            WrappedStamp(text: seasonWrappedOrdinal(rank!), size: 13),
+          if (rank != null) ...[
+            const SizedBox(width: 12),
+            WrappedRankBadge(rank: rank!, skin: skin, size: 15),
+          ],
         ],
       ),
     );
@@ -463,8 +512,9 @@ class _InlineFigure extends StatelessWidget {
 }
 
 class _ResultsSlide extends StatelessWidget {
-  const _ResultsSlide({required this.wrapped});
+  const _ResultsSlide({required this.skin, required this.wrapped});
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
 
   @override
@@ -472,49 +522,54 @@ class _ResultsSlide extends StatelessWidget {
     final winPct = wrapped.winPct;
 
     return _SlideFrame(
-      seed: 6,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      skin: skin,
+      ghostWord: 'Équipe',
+      top: _SlideLabel(text: 'L’équipe quand tu étais là', skin: skin),
+      middle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _FieldLabel('L’équipe quand tu étais là'),
-          const SizedBox(height: 20),
           WrappedReveal(
             delay: const Duration(milliseconds: 200),
             child: Row(
               children: [
-                _ResultBlock(letter: 'V', value: wrapped.wins),
-                _ResultBlock(letter: 'N', value: wrapped.draws),
-                _ResultBlock(letter: 'D', value: wrapped.losses),
+                _ResultBlock(skin: skin, letter: 'V', value: wrapped.wins),
+                _ResultBlock(skin: skin, letter: 'N', value: wrapped.draws),
+                _ResultBlock(skin: skin, letter: 'D', value: wrapped.losses),
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 30),
           if (winPct != null)
-            _InlineFigure(
+            _StackedFigure(
+              skin: skin,
               label: 'Pourcentage de victoire',
-              value: winPct,
+              value: winPct.round(),
               suffix: ' %',
-              decimals: winPct >= 10 ? 0 : 1,
               rank: wrapped.winPctRank,
-              delay: const Duration(milliseconds: 900),
+              delay: const Duration(milliseconds: 800),
             ),
-          const SizedBox(height: 24),
-          _InlineFigure(
-            label: 'Matchs sans encaisser',
-            value: wrapped.cleanMatches,
-            rank: wrapped.cleanMatchesRank,
-            delay: const Duration(milliseconds: 1500),
-          ),
         ],
+      ),
+      bottom: _Caption(
+        text: '${wrapped.cleanMatches} match'
+            '${wrapped.cleanMatches > 1 ? 's' : ''} sans encaisser.',
+        skin: skin,
+        rank: wrapped.cleanMatchesRank,
+        delay: const Duration(milliseconds: 1500),
       ),
     );
   }
 }
 
 class _ResultBlock extends StatelessWidget {
-  const _ResultBlock({required this.letter, required this.value});
+  const _ResultBlock({
+    required this.skin,
+    required this.letter,
+    required this.value,
+  });
 
+  final WrappedSkin skin;
   final String letter;
   final int value;
 
@@ -524,12 +579,16 @@ class _ResultBlock extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(letter, style: WrappedPaper.label(size: 12)),
+          Text(letter, style: WrappedType.label(skin.muted, size: 13)),
           const SizedBox(height: 2),
-          WrappedCountUp(
-            value: value,
-            delay: const Duration(milliseconds: 320),
-            style: WrappedPaper.figure(size: 56),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: WrappedCountUp(
+              value: value,
+              delay: const Duration(milliseconds: 320),
+              style: WrappedType.figure(skin.figure, size: 76),
+            ),
           ),
         ],
       ),
@@ -539,12 +598,14 @@ class _ResultBlock extends StatelessWidget {
 
 class _ClosingSlide extends StatelessWidget {
   const _ClosingSlide({
+    required this.skin,
     required this.wrapped,
     required this.playerName,
     required this.onShare,
     required this.onShareByTheme,
   });
 
+  final WrappedSkin skin;
   final SeasonWrapped wrapped;
   final String? playerName;
   final VoidCallback onShare;
@@ -553,98 +614,92 @@ class _ClosingSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SlideFrame(
-      seed: 7,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      skin: skin,
+      top: _SlideLabel(text: 'Ta saison en entier', skin: skin),
+      middle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _FieldLabel('Ta feuille'),
-          const SizedBox(height: 14),
           for (var i = 0; i < wrapped.stats.length; i += 1)
             WrappedReveal(
-              delay: Duration(milliseconds: 120 + i * 90),
-              child: _RecapLine(stat: wrapped.stats[i]),
+              delay: Duration(milliseconds: 100 + i * 80),
+              child: WrappedRecapLine(stat: wrapped.stats[i], skin: skin),
             ),
-          const SizedBox(height: 18),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1100),
-            child: Row(
-              children: [
-                WrappedStamp(text: 'Vu et approuvé', size: 12),
-                const Spacer(),
-                if (playerName != null && playerName!.isNotEmpty)
-                  Text(playerName!, style: WrappedPaper.body(size: 13)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-          WrappedReveal(
-            delay: const Duration(milliseconds: 1300),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton.icon(
-                  onPressed: onShare,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: WrappedPaper.ink,
-                    foregroundColor: WrappedPaper.paper,
-                    shape: const RoundedRectangleBorder(),
-                  ),
-                  icon: const Icon(Icons.ios_share, size: 18),
-                  label: const Text('Partager ma feuille'),
-                ),
-                const SizedBox(height: 6),
-                TextButton(
-                  onPressed: onShareByTheme,
-                  style: TextButton.styleFrom(
-                    foregroundColor: WrappedPaper.inkSoft,
-                  ),
-                  child: const Text('Partager par thème'),
-                ),
-              ],
-            ),
-          ),
         ],
+      ),
+      bottom: WrappedReveal(
+        delay: const Duration(milliseconds: 1000),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (playerName != null && playerName!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Text(
+                  playerName!.toUpperCase(),
+                  style: WrappedType.title(skin.text, size: 26),
+                ),
+              ),
+            FilledButton.icon(
+              onPressed: onShare,
+              style: FilledButton.styleFrom(
+                backgroundColor: skin.badge,
+                foregroundColor: skin.badgeText,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                textStyle: WrappedType.label(skin.badgeText, size: 14),
+              ),
+              icon: const Icon(Icons.ios_share, size: 18),
+              label: const Text('PARTAGER MA SAISON'),
+            ),
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: onShareByTheme,
+              style: TextButton.styleFrom(foregroundColor: skin.muted),
+              child: Text(
+                'Partager par thème',
+                style: WrappedType.body(skin.muted, size: 14),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _RecapLine extends StatelessWidget {
-  const _RecapLine({required this.stat});
+/// Une ligne du récapitulatif : intitulé à gauche, valeur à droite, rang au
+/// bout. Les colonnes sont fixes pour que rien n'ondule d'une ligne à l'autre.
+class WrappedRecapLine extends StatelessWidget {
+  const WrappedRecapLine({
+    super.key,
+    required this.stat,
+    required this.skin,
+    this.dense = false,
+  });
 
   final SeasonWrappedStat stat;
+  final WrappedSkin skin;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
+    final size = dense ? 12.0 : 14.0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: EdgeInsets.symmetric(vertical: dense ? 3 : 5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             flex: 7,
             child: Text(
-              stat.shortLabel,
+              stat.shortLabel.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: WrappedPaper.body(size: 11),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: WrappedPaper.ink.withValues(alpha: .22),
-                    ),
-                  ),
-                ),
-                child: const SizedBox(height: 10, width: double.infinity),
-              ),
+              style: WrappedType.label(skin.muted, size: size - 2),
             ),
           ),
           Expanded(
@@ -654,19 +709,15 @@ class _RecapLine extends StatelessWidget {
               maxLines: 1,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: WrappedPaper.body(size: 12).copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+              style: WrappedType.title(skin.figure, size: size + 4),
             ),
           ),
-          // Colonne de rang de largeur fixe : les valeurs restent alignées
-          // qu'un critère soit classé ou non.
           SizedBox(
-            width: 34,
+            width: dense ? 30 : 36,
             child: Text(
-              stat.isRanked ? seasonWrappedOrdinal(stat.rank!) : '',
+              stat.isRanked ? wrappedOrdinal(stat.rank!) : '',
               textAlign: TextAlign.right,
-              style: WrappedPaper.label(size: 11, color: WrappedPaper.stamp),
+              style: WrappedType.label(skin.badge, size: size - 3),
             ),
           ),
         ],

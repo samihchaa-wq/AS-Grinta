@@ -39,15 +39,9 @@ flutter:
     - assets/images/jerseys/
     - assets/audio/
 
-  # Deux familles pour le bilan de saison : une machine à écrire pour les
-  # intitulés, une condensée de stade pour les chiffres. Licences SIL OFL
-  # dans assets/fonts.
+  # La condensée de stade du bilan de saison : elle porte les chiffres et les
+  # titres. Licence SIL OFL dans assets/fonts.
   fonts:
-    - family: Courier Prime
-      fonts:
-        - asset: assets/fonts/CourierPrime-Regular.ttf
-        - asset: assets/fonts/CourierPrime-Bold.ttf
-          weight: 700
     - family: Oswald
       fonts:
         - asset: assets/fonts/Oswald-Medium.ttf

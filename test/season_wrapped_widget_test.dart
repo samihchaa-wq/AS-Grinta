@@ -98,9 +98,10 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('AS GRINTA · FEUILLE DE SAISON'), findsOneWidget);
-    expect(find.text('2026-2027'), findsOneWidget);
-    expect(find.textContaining('Samih'), findsOneWidget);
+    expect(find.text('TA SAISON'), findsOneWidget);
+    // Le millésime est posé sur deux lignes, en très grand.
+    expect(find.text('2026\n2027'), findsOneWidget);
+    expect(find.text('SAMIH'), findsOneWidget);
     // Huit écrans, donc huit segments de progression.
     expect(find.byType(LinearProgressIndicator), findsNWidgets(8));
   });
@@ -126,7 +127,7 @@ void main() {
     await tester.tapAt(Offset(width * .1, height * .55));
     await tester.pump();
     await tester.pump();
-    expect(find.text('2026-2027'), findsOneWidget);
+    expect(find.text('2026\n2027'), findsOneWidget);
   });
 
   testWidgets('la dernière page propose le partage', (tester) async {
@@ -146,8 +147,8 @@ void main() {
       await tester.pump();
     }
 
-    expect(find.text('TA FEUILLE'), findsOneWidget);
-    expect(find.text('Partager ma feuille'), findsOneWidget);
+    expect(find.text('TA SAISON EN ENTIER'), findsOneWidget);
+    expect(find.text('PARTAGER MA SAISON'), findsOneWidget);
     expect(find.text('Partager par thème'), findsOneWidget);
     // Les valeurs du récapitulatif sont bien celles du bilan.
     expect(find.text('12'), findsOneWidget);
@@ -204,9 +205,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('AS GRINTA · FEUILLE DE SAISON'), findsOneWidget);
-    expect(find.text('Ma saison'), findsOneWidget);
-    expect(find.text('Samih'), findsOneWidget);
+    expect(find.text('AS GRINTA · 2026-2027'), findsOneWidget);
+    expect(find.text('MA SAISON'), findsOneWidget);
+    expect(find.text('SAMIH'), findsOneWidget);
   });
 
   testWidgets('la feuille se transforme en une vraie image', (tester) async {

@@ -1,5 +1,6 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/wrapped_paper.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_slides.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter/material.dart';
 
 /// Taille logique des images partagées. Capturées à trois fois cette taille,
@@ -8,13 +9,15 @@ const double kSeasonWrappedShareWidth = 360;
 const double kSeasonWrappedShareHeight = 450;
 const double kSeasonWrappedSharePixelRatio = 3;
 
-/// « 1er », puis « 2e », « 3e »…
-String seasonWrappedOrdinal(int rank) => rank == 1 ? '1er' : '${rank}e';
-
 /// En-tête commun aux images partagées.
 class _ShareHeader extends StatelessWidget {
-  const _ShareHeader({required this.seasonName, required this.title});
+  const _ShareHeader({
+    required this.skin,
+    required this.seasonName,
+    required this.title,
+  });
 
+  final WrappedSkin skin;
   final String seasonName;
   final String title;
 
@@ -23,16 +26,18 @@ class _ShareHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('AS GRINTA · FEUILLE DE SAISON',
-            style: WrappedPaper.label(size: 9)),
-        const SizedBox(height: 5),
-        Container(height: 1.4, color: WrappedPaper.ink.withValues(alpha: .25)),
-        const SizedBox(height: 14),
-        Text(title, style: WrappedPaper.title(size: 27)),
-        const SizedBox(height: 2),
+        Container(height: 4, width: 40, color: skin.figure),
+        const SizedBox(height: 10),
         Text(
-          'Saison $seasonName',
-          style: WrappedPaper.body(size: 11, color: WrappedPaper.inkSoft),
+          'AS GRINTA · $seasonName',
+          style: WrappedType.label(skin.muted, size: 11),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          title.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: WrappedType.title(skin.text, size: 32),
         ),
       ],
     );
@@ -40,28 +45,19 @@ class _ShareHeader extends StatelessWidget {
 }
 
 class _ShareSignature extends StatelessWidget {
-  const _ShareSignature({required this.playerName});
+  const _ShareSignature({required this.skin, required this.playerName});
 
+  final WrappedSkin skin;
   final String? playerName;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const WrappedStamp(text: 'Vu et approuvé', size: 10, angle: -.1),
-        const Spacer(),
-        if (playerName != null && playerName!.isNotEmpty)
-          Flexible(
-            child: Text(
-              playerName!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: WrappedPaper.body(size: 13).copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-      ],
+    if (playerName == null || playerName!.isEmpty) return const SizedBox();
+    return Text(
+      playerName!.toUpperCase(),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: WrappedType.title(skin.figure, size: 22),
     );
   }
 }
@@ -83,29 +79,45 @@ class SeasonWrappedShareSheet extends StatelessWidget {
   final String seasonName;
   final String? playerName;
 
+  /// Une image par thème, chacune son habillage : trois images identiques
+  /// n'auraient aucune raison d'être partagées séparément.
+  WrappedSkin get _skin => switch (sheet.title) {
+        'Ma présence' => WrappedSkin.night,
+        'Mon apport' => WrappedSkin.flash,
+        _ => WrappedSkin.deep,
+      };
+
   @override
   Widget build(BuildContext context) {
+    final skin = _skin;
+
     return SizedBox(
       width: kSeasonWrappedShareWidth,
       height: kSeasonWrappedShareHeight,
-      child: WrappedPaperBackground(
-        seed: sheet.title.length,
+      child: WrappedBackdrop(
+        skin: skin,
+        ghostWord: sheet.title.split(' ').last,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(34, 26, 26, 22),
+          padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _ShareHeader(seasonName: seasonName, title: sheet.title),
+              _ShareHeader(
+                skin: skin,
+                seasonName: seasonName,
+                title: sheet.title,
+              ),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final stat in sheet.stats) _ShareStatLine(stat: stat),
+                    for (final stat in sheet.stats)
+                      _ShareStatLine(stat: stat, skin: skin),
                   ],
                 ),
               ),
-              _ShareSignature(playerName: playerName),
+              _ShareSignature(skin: skin, playerName: playerName),
             ],
           ),
         ),
@@ -115,9 +127,10 @@ class SeasonWrappedShareSheet extends StatelessWidget {
 }
 
 class _ShareStatLine extends StatelessWidget {
-  const _ShareStatLine({required this.stat});
+  const _ShareStatLine({required this.stat, required this.skin});
 
   final SeasonWrappedStat stat;
+  final WrappedSkin skin;
 
   @override
   Widget build(BuildContext context) {
@@ -132,27 +145,30 @@ class _ShareStatLine extends StatelessWidget {
                 stat.label.toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: WrappedPaper.label(size: 9),
+                style: WrappedType.label(skin.muted, size: 10),
               ),
               const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(stat.value, style: WrappedPaper.figure(size: 40)),
+                child: Text(
+                  stat.value,
+                  style: WrappedType.figure(skin.figure, size: 54),
+                ),
               ),
             ],
           ),
         ),
         if (stat.isRanked) ...[
           const SizedBox(width: 10),
-          WrappedStamp(text: seasonWrappedOrdinal(stat.rank!), size: 11),
+          WrappedRankBadge(rank: stat.rank!, skin: skin, size: 13),
         ],
       ],
     );
   }
 }
 
-/// La feuille complète : les neuf critères sur une seule image.
+/// La saison entière : les neuf critères sur une seule image.
 class SeasonWrappedFullShareSheet extends StatelessWidget {
   const SeasonWrappedFullShareSheet({
     super.key,
@@ -165,94 +181,39 @@ class SeasonWrappedFullShareSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const skin = WrappedSkin.night;
+
     return SizedBox(
       width: kSeasonWrappedShareWidth,
       height: kSeasonWrappedShareHeight,
-      child: WrappedPaperBackground(
-        seed: 42,
+      child: WrappedBackdrop(
+        skin: skin,
+        ghostWord: wrapped.seasonName.split('-').last,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(34, 26, 26, 22),
+          padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _ShareHeader(seasonName: wrapped.seasonName, title: 'Ma saison'),
-              const SizedBox(height: 10),
+              _ShareHeader(
+                skin: skin,
+                seasonName: wrapped.seasonName,
+                title: 'Ma saison',
+              ),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     for (final stat in wrapped.stats)
-                      _ShareRecapLine(stat: stat),
+                      WrappedRecapLine(stat: stat, skin: skin, dense: true),
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
-              _ShareSignature(playerName: playerName),
+              _ShareSignature(skin: skin, playerName: playerName),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ShareRecapLine extends StatelessWidget {
-  const _ShareRecapLine({required this.stat});
-
-  final SeasonWrappedStat stat;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          flex: 7,
-          child: Text(
-            stat.shortLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: WrappedPaper.body(size: 10),
-          ),
-        ),
-        Expanded(
-          flex: 2,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: WrappedPaper.ink.withValues(alpha: .22),
-                  ),
-                ),
-              ),
-              child: const SizedBox(height: 9, width: double.infinity),
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 10,
-          child: Text(
-            stat.value,
-            maxLines: 1,
-            textAlign: TextAlign.right,
-            overflow: TextOverflow.ellipsis,
-            style: WrappedPaper.body(size: 11).copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 28,
-          child: Text(
-            stat.isRanked ? seasonWrappedOrdinal(stat.rank!) : '',
-            textAlign: TextAlign.right,
-            style: WrappedPaper.label(size: 10, color: WrappedPaper.stamp),
-          ),
-        ),
-      ],
     );
   }
 }
