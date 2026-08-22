@@ -101,6 +101,7 @@ class WrappedSkin {
     deep,
     flash,
     royal,
+    deep,
     flash,
   ];
 }

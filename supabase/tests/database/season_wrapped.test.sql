@@ -258,5 +258,74 @@ select is(
   'l unite en trop va au poste le mieux classe, les autres parts sont intactes'
 );
 
+-- Les badges de la saison : ceux décrochés dans la fenêtre, pas les autres.
+--
+-- La saison de test n'a pas de suivante : sa fenêtre court donc de sa
+-- création jusqu'au calcul. Un badge daté d'avant doit rester dehors.
+update public.season_players
+set profile_id = '7f000000-0000-0000-0000-0000000000f1'
+where id = '7f000000-0000-0000-0000-0000000000b1';
+
+delete from public.profile_badges
+where profile_id = '7f000000-0000-0000-0000-0000000000f1';
+
+insert into public.profile_badges (profile_id, badge_id, source, awarded_at)
+select
+  '7f000000-0000-0000-0000-0000000000f1',
+  classe.id,
+  'manual',
+  case when classe.rang = 1 then now() - interval '400 days' else now() end
+from (
+  select id, code, row_number() over (order by code) as rang
+  from public.badges
+) classe
+where classe.rang <= 2;
+
+select is(
+  private.build_season_wrapped('7f000000-0000-0000-0000-000000000003'),
+  1,
+  'le bilan se recalcule avec les badges'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.season_wrapped wrapped,
+      lateral jsonb_array_elements(wrapped.badges) badge
+    where wrapped.season_id = '7f000000-0000-0000-0000-000000000003'
+      and badge->>'code' =
+        (select code from public.badges order by code offset 1 limit 1)
+  ),
+  1,
+  'un badge decroche pendant la saison figure au bilan'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.season_wrapped wrapped,
+      lateral jsonb_array_elements(wrapped.badges) badge
+    where wrapped.season_id = '7f000000-0000-0000-0000-000000000003'
+      and badge->>'code' =
+        (select code from public.badges order by code limit 1)
+  ),
+  0,
+  'un badge decroche avant la saison reste dehors'
+);
+
+select is(
+  (
+    select badge_count
+    from public.season_wrapped
+    where season_id = '7f000000-0000-0000-0000-000000000003'
+  ),
+  (
+    select jsonb_array_length(badges)
+    from public.season_wrapped
+    where season_id = '7f000000-0000-0000-0000-000000000003'
+  ),
+  'le nombre annonce correspond a la liste'
+);
+
 select finish();
 rollback;
