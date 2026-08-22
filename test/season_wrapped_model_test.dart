@@ -153,16 +153,27 @@ void main() {
     );
   });
 
-  test('le délai de réponse change d’unité selon sa durée', () {
+  test('le délai de réponse s’écrit en heures et minutes', () {
     String delayFor(num hours) => _stat(
           SeasonWrapped.fromJson(_payload(avgResponseHours: hours)),
           'Réactivité aux disponibilités',
         ).value;
 
+    // Sous l'heure, la minute suffit.
     expect(delayFor(0.5), '30 min');
+    expect(delayFor(0.7), '42 min');
+    // Une heure ronde ne s'encombre pas d'un « 00 ».
     expect(delayFor(6), '6 h');
-    expect(delayFor(30.5), '30,5 h');
-    expect(delayFor(72), '3 jours');
+    expect(delayFor(6.5), '6 h 30');
+    // Les minutes s'écrivent sur deux chiffres.
+    expect(delayFor(6.08), '6 h 05');
+    // Au-delà de la journée, on reste en heures plutôt qu'en jours.
+    expect(delayFor(30.5), '30 h 30');
+    expect(delayFor(72), '72 h');
+    // Une réponse quasi immédiate ne doit pas produire « 0 h ».
+    expect(delayFor(0), '0 min');
+    // Le report de 60 minutes ne doit jamais donner « 6 h 60 ».
+    expect(delayFor(6.999), '7 h');
   });
 
   test('la polyvalence s’accorde au singulier', () {

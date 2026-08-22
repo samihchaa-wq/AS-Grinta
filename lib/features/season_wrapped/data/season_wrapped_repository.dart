@@ -261,22 +261,33 @@ class SeasonWrapped {
   List<SeasonWrappedStat> get stats =>
       [for (final sheet in sheets) ...sheet.stats];
 
-  static String _formatNumber(double value) {
-    final rounded = value.roundToDouble();
-    if ((value - rounded).abs() < 0.005) return rounded.toStringAsFixed(0);
-    return value.toStringAsFixed(1).replaceAll('.', ',');
+  static String _formatDelay(double hours) =>
+      WrappedDelay.fromHours(hours).text;
+}
+
+/// Un délai de réponse s'écrit en heures et minutes : « 6 h 30 », « 42 min ».
+///
+/// Le nombre et son unité restent séparés : l'écran du bilan fait défiler le
+/// nombre seul, et n'affiche l'unité qu'une fois le défilement terminé.
+class WrappedDelay {
+  const WrappedDelay({required this.figure, required this.suffix});
+
+  factory WrappedDelay.fromHours(double hours) {
+    final minutes = (hours * 60).round();
+    if (minutes < 60) return WrappedDelay(figure: minutes, suffix: ' min');
+    return WrappedDelay(
+      figure: minutes ~/ 60,
+      // Les minutes s'écrivent sur deux chiffres : « 6 h 05 », jamais « 6 h 5 ».
+      suffix: minutes % 60 == 0
+          ? ' h'
+          : ' h ${(minutes % 60).toString().padLeft(2, '0')}',
+    );
   }
 
-  /// Un délai de réponse se lit mieux en jours dès qu'il dépasse la journée.
-  static String _formatDelay(double hours) {
-    if (hours < 1) {
-      final minutes = (hours * 60).round();
-      return '$minutes min';
-    }
-    if (hours < 48) return '${_formatNumber(hours)} h';
-    final days = hours / 24;
-    return '${_formatNumber(days)} jours';
-  }
+  final int figure;
+  final String suffix;
+
+  String get text => '$figure$suffix';
 }
 
 class SeasonWrappedRepository {

@@ -119,13 +119,11 @@ class _GiantFigure extends StatelessWidget {
     required this.value,
     required this.skin,
     this.suffix = '',
-    this.decimals = 0,
   });
 
   final num value;
   final WrappedSkin skin;
   final String suffix;
-  final int decimals;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +133,6 @@ class _GiantFigure extends StatelessWidget {
       child: WrappedCountUp(
         value: value,
         suffix: suffix,
-        decimals: decimals,
         style: WrappedType.figure(skin.figure),
       ),
     );
@@ -246,7 +243,6 @@ class _FigureSlide extends StatelessWidget {
     required this.rank,
     required this.caption,
     this.suffix = '',
-    this.decimals = 0,
   });
 
   final WrappedSkin skin;
@@ -255,19 +251,13 @@ class _FigureSlide extends StatelessWidget {
   final int? rank;
   final String caption;
   final String suffix;
-  final int decimals;
 
   @override
   Widget build(BuildContext context) {
     return _SlideFrame(
       skin: skin,
       top: _SlideLabel(text: label, skin: skin),
-      middle: _GiantFigure(
-        value: value,
-        skin: skin,
-        suffix: suffix,
-        decimals: decimals,
-      ),
+      middle: _GiantFigure(value: value, skin: skin, suffix: suffix),
       bottom: _Caption(text: caption, skin: skin, rank: rank),
     );
   }
@@ -304,16 +294,13 @@ class _ResponsivenessSlide extends StatelessWidget {
       );
     }
 
-    // Au-delà de deux jours, la journée parle mieux que l'heure.
-    final showDays = hours >= 48;
-    final value = showDays ? hours / 24 : hours;
+    final delay = WrappedDelay.fromHours(hours);
 
     return _FigureSlide(
       skin: skin,
       label: 'Délai moyen de réponse',
-      value: value,
-      decimals: value >= 10 ? 0 : 1,
-      suffix: showDays ? ' j' : ' h',
+      value: delay.figure,
+      suffix: delay.suffix,
       rank: wrapped.avgResponseRank,
       caption: 'En moyenne, entre l’ouverture des disponibilités '
           'et ta réponse.',
