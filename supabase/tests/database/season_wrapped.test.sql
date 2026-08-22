@@ -15,6 +15,22 @@ select ok(
   'anon ne lit pas les bilans'
 );
 
+-- Socle commun a toutes les tables metier : hors compte authentifie et
+-- actif, la table n existe pas.
+select ok(
+  exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'season_wrapped'
+      and policyname = 'active_authenticated_profile_only'
+      and permissive = 'RESTRICTIVE'
+      and cmd = 'ALL'
+      and roles = array['authenticated']::name[]
+  ),
+  'le bilan porte le socle de securite des tables metier'
+);
+
 select ok(
   has_table_privilege('authenticated', 'public.season_wrapped', 'select'),
   'authenticated peut lire ses propres bilans via RLS'

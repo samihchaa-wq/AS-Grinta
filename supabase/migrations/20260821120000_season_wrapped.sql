@@ -44,6 +44,15 @@ create index if not exists season_wrapped_profile_idx
 
 alter table public.season_wrapped enable row level security;
 
+-- Socle de sécurité commun à toutes les tables métier : hors compte
+-- authentifié et actif, la table n'existe pas.
+drop policy if exists active_authenticated_profile_only on public.season_wrapped;
+create policy active_authenticated_profile_only
+  on public.season_wrapped
+  as restrictive for all to authenticated
+  using ((select private.is_active_profile()))
+  with check ((select private.is_active_profile()));
+
 -- Chacun ne lit que son propre bilan. Un admin peut lire l'ensemble pour
 -- pouvoir diagnostiquer un bilan qui paraît faux.
 drop policy if exists season_wrapped_read on public.season_wrapped;
