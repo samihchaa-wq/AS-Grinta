@@ -270,22 +270,34 @@ class SeasonWrapped {
 /// Le nombre et son unité restent séparés : l'écran du bilan fait défiler le
 /// nombre seul, et n'affiche l'unité qu'une fois le défilement terminé.
 class WrappedDelay {
-  const WrappedDelay({required this.figure, required this.suffix});
+  const WrappedDelay({
+    required this.figure,
+    required this.suffix,
+    this.minutes,
+  });
 
   factory WrappedDelay.fromHours(double hours) {
-    final minutes = (hours * 60).round();
-    if (minutes < 60) return WrappedDelay(figure: minutes, suffix: ' min');
+    final total = (hours * 60).round();
+    if (total < 60) return WrappedDelay(figure: total, suffix: ' min');
+
+    final reste = total % 60;
     return WrappedDelay(
-      figure: minutes ~/ 60,
+      figure: total ~/ 60,
       // Les minutes s'écrivent sur deux chiffres : « 6 h 05 », jamais « 6 h 5 ».
-      suffix: minutes % 60 == 0
-          ? ' h'
-          : ' h ${(minutes % 60).toString().padLeft(2, '0')}',
+      suffix: reste == 0 ? ' h' : ' h ${reste.toString().padLeft(2, '0')}',
+      minutes: reste == 0 ? null : reste,
     );
   }
 
+  /// Le nombre mis en avant : les heures, ou les minutes sous l'heure.
   final int figure;
+
+  /// L'unité, minutes comprises quand il y en a : « h 30 ».
   final String suffix;
+
+  /// Les minutes, quand le délai en compte. L'écran du bilan les fait défiler
+  /// séparément, une fois les heures arrivées.
+  final int? minutes;
 
   String get text => '$figure$suffix';
 }

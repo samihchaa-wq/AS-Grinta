@@ -83,6 +83,95 @@ class _WrappedRevealState extends State<WrappedReveal>
 ///
 /// C'est l'effet le plus payant du bilan : voir le chiffre grimper donne au
 /// résultat une valeur que le même chiffre posé d'un coup n'a pas.
+/// Un délai qui monte en deux temps : les heures d'abord, les minutes une
+/// fois les heures arrivées.
+///
+/// Les deux nombres qui montaient ensemble se lisaient mal : les minutes
+/// paraissaient déjà posées pendant que les heures défilaient encore. Le
+/// gabarit reste « 0 h 00 » du début à la fin, pour que rien ne saute.
+class WrappedDelayCountUp extends StatefulWidget {
+  const WrappedDelayCountUp({
+    super.key,
+    required this.hours,
+    required this.minutes,
+    required this.style,
+    this.delay = const Duration(milliseconds: 260),
+    this.hoursDuration = const Duration(milliseconds: 1150),
+    this.minutesDuration = const Duration(milliseconds: 700),
+  });
+
+  final int hours;
+  final int minutes;
+  final TextStyle style;
+  final Duration delay;
+  final Duration hoursDuration;
+  final Duration minutesDuration;
+
+  @override
+  State<WrappedDelayCountUp> createState() => _WrappedDelayCountUpState();
+}
+
+class _WrappedDelayCountUpState extends State<WrappedDelayCountUp>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: widget.hoursDuration + widget.minutesDuration,
+  );
+
+  /// La part du temps total consacrée aux heures.
+  late final double _bascule = widget.hoursDuration.inMilliseconds /
+      (widget.hoursDuration + widget.minutesDuration).inMilliseconds;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (wrappedReducedMotion(context)) {
+      _controller.value = 1;
+    } else if (_controller.status == AnimationStatus.dismissed) {
+      Future<void>.delayed(widget.delay, () {
+        if (mounted) _controller.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _texte(double heures, double minutes) =>
+      '${heures.round()} h ${minutes.round().toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    if (wrappedReducedMotion(context)) {
+      return Text(
+        _texte(widget.hours.toDouble(), widget.minutes.toDouble()),
+        style: widget.style,
+      );
+    }
+
+    // Même courbe que les autres compteurs : la fin compte plus que le début.
+    final heures = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(0, _bascule, curve: Curves.easeOutQuart),
+    );
+    final minutes = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(_bascule, 1, curve: Curves.easeOutQuart),
+    );
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => Text(
+        _texte(widget.hours * heures.value, widget.minutes * minutes.value),
+        style: widget.style,
+      ),
+    );
+  }
+}
+
 class WrappedCountUp extends StatefulWidget {
   const WrappedCountUp({
     super.key,

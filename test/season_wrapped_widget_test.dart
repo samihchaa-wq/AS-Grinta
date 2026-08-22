@@ -22,7 +22,8 @@ SeasonWrapped _wrapped() => SeasonWrapped.fromJson({
       'win_pct': 58.33,
       'win_pct_rank': 2,
       'win_pct_pool': 9,
-      'avg_response_hours': 5,
+      // Cinq heures et demie : le cas qui fait défiler heures puis minutes.
+      'avg_response_hours': 5.5,
       'avg_response_rank': 1,
       'avg_response_pool': 9,
       'goals': 5,
@@ -290,6 +291,78 @@ void main() {
       await tester.pump();
       await tester.pump();
     }
+  });
+
+  testWidgets('le délai monte en deux temps : les heures, puis les minutes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    // Sans le réglage « réduire les animations » : c'est l'animation qu'on
+    // vient regarder.
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides()),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 2; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+    }
+
+    String? affiche() {
+      final trouves = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((t) => t.data)
+          .whereType<String>()
+          .where((t) => t.contains(' h '));
+      return trouves.isEmpty ? null : trouves.first;
+    }
+
+    int heuresDe(String texte) => int.parse(texte.split(' h ').first);
+    int minutesDe(String texte) => int.parse(texte.split(' h ').last);
+
+    // Le gabarit est complet des la premiere image : rien ne surgit en route.
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(affiche(), isNotNull, reason: 'le délai doit être affiché');
+
+    // Pendant que les heures montent, les minutes restent à zéro.
+    var heuresVues = <int>{};
+    for (var ms = 320; ms <= 1300; ms += 120) {
+      await tester.pump(const Duration(milliseconds: 120));
+      final texte = affiche()!;
+      heuresVues.add(heuresDe(texte));
+      expect(
+        minutesDe(texte),
+        0,
+        reason: 'à $ms ms les minutes ne doivent pas avoir bougé : $texte',
+      );
+    }
+    expect(
+      heuresVues.length,
+      greaterThan(1),
+      reason: 'les heures doivent défiler, pas sauter à leur valeur',
+    );
+
+    // Puis les minutes prennent le relais, heures arrivées.
+    final minutesVues = <int>{};
+    for (var i = 0; i < 8; i += 1) {
+      await tester.pump(const Duration(milliseconds: 90));
+      final texte = affiche()!;
+      expect(heuresDe(texte), 5, reason: 'les heures sont arrivées : $texte');
+      minutesVues.add(minutesDe(texte));
+    }
+    expect(
+      minutesVues.length,
+      greaterThan(1),
+      reason: 'les minutes doivent défiler à leur tour',
+    );
+
+    await tester.pumpAndSettle();
+    expect(affiche(), '5 h 30');
   });
 
   testWidgets('la réactivité s’annonce comme une moyenne', (tester) async {

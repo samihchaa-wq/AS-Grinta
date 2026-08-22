@@ -242,7 +242,6 @@ class _FigureSlide extends StatelessWidget {
     required this.value,
     required this.rank,
     required this.caption,
-    this.suffix = '',
   });
 
   final WrappedSkin skin;
@@ -250,14 +249,13 @@ class _FigureSlide extends StatelessWidget {
   final num value;
   final int? rank;
   final String caption;
-  final String suffix;
 
   @override
   Widget build(BuildContext context) {
     return _SlideFrame(
       skin: skin,
       top: _SlideLabel(text: label, skin: skin),
-      middle: _GiantFigure(value: value, skin: skin, suffix: suffix),
+      middle: _GiantFigure(value: value, skin: skin),
       bottom: _Caption(text: caption, skin: skin, rank: rank),
     );
   }
@@ -295,15 +293,33 @@ class _ResponsivenessSlide extends StatelessWidget {
     }
 
     final delay = WrappedDelay.fromHours(hours);
+    final minutes = delay.minutes;
 
-    return _FigureSlide(
+    return _SlideFrame(
       skin: skin,
-      label: 'Délai moyen de réponse',
-      value: delay.figure,
-      suffix: delay.suffix,
-      rank: wrapped.avgResponseRank,
-      caption: 'En moyenne, entre l’ouverture des disponibilités '
-          'et ta réponse.',
+      top: _SlideLabel(text: 'Délai moyen de réponse', skin: skin),
+      middle: minutes == null
+          ? _GiantFigure(
+              value: delay.figure,
+              skin: skin,
+              suffix: delay.suffix,
+            )
+          // Un délai en deux nombres se lit en deux temps.
+          : FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: WrappedDelayCountUp(
+                hours: delay.figure,
+                minutes: minutes,
+                style: WrappedType.figure(skin.figure),
+              ),
+            ),
+      bottom: _Caption(
+        text: 'En moyenne, entre l’ouverture des disponibilités '
+            'et ta réponse.',
+        skin: skin,
+        rank: wrapped.avgResponseRank,
+      ),
     );
   }
 }
