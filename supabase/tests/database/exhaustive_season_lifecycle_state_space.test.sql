@@ -405,9 +405,6 @@ security definer
 set search_path = ''
 as $function$
 begin
-  -- The state-space reuses the same rows between mutually incompatible cases.
-  -- Clear the previous artificial prediction first so the normal competition
-  -- guards can legitimately reset an uncommitted lock/status for the next case.
   update public.season_predictions prediction
   set category = case when player.is_goalkeeper then 'clean_sheets' else 'buts' end,
       predicted_value_30 = 0,
@@ -479,9 +476,10 @@ begin
           v_status, v_locked,
           'b6100000-0000-0000-0000-000000000002', 7
         );
-        v_expected := v_status = 'open'
-          and not v_locked
-          and v_value between 0 and 99;
+        -- Direct authenticated table mutation is no longer a supported path in
+        -- any season state. The public complete-form RPC is exercised in the
+        -- dedicated season_prediction_write_path test.
+        v_expected := false;
         v_ok := true;
         v_state := null;
         v_message := null;
@@ -503,7 +501,7 @@ begin
         where season_id = 'b6200000-0000-0000-0000-000000000001'
           and predictor_profile_id = 'b6100000-0000-0000-0000-000000000002'
           and season_player_id = 'b6300000-0000-0000-0000-000000000001';
-        v_expected_value := case when v_expected then v_value else 7 end;
+        v_expected_value := 7;
 
         insert into pg_temp.season_prediction_write_state_space values (
           v_status, v_locked, v_value, v_expected, v_ok,
@@ -527,11 +525,11 @@ from pg_temp.season_prediction_write_state_space
 order by season_status, locked, proposed_value;
 
 select is((select count(*) from pg_temp.season_prediction_write_state_space), 24::bigint,
-  '24 écritures de pronostic saisonnier sont exécutées sous RLS');
-select is((select count(*) from pg_temp.season_prediction_write_state_space where expected_success), 2::bigint,
-  'seules deux valeurs passent sur une saison ouverte et déverrouillée');
+  '24 écritures directes de pronostic saisonnier sont tentées sous RLS');
+select is((select count(*) from pg_temp.season_prediction_write_state_space where expected_success), 0::bigint,
+  'aucune écriture directe authentifiée n’est autorisée');
 select is((select count(*) from pg_temp.season_prediction_write_state_space where mismatch), 0::bigint,
-  'statut, verrou, propriété et bornes protègent les écritures');
+  'le chemin table direct reste fermé quel que soit le statut, verrou ou valeur');
 
 create temporary table pg_temp.season_prediction_validator_state_space(
   player_kind text not null,
