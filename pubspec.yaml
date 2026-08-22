@@ -18,6 +18,7 @@ dependencies:
   # qui pesait 171 à 250 ko par avatar là où un JPEG équivalent en fait ~30.
   image: ^4.5.4
   image_picker: ^1.1.2
+  audioplayers: ^6.1.0
   share_plus: ^10.1.4
   shared_preferences: ^2.5.3
   supabase_flutter: ^2.8.4
@@ -36,3 +37,20 @@ flutter:
     - assets/images/module_backgrounds/
     - assets/images/as_grinta_logo.webp
     - assets/images/jerseys/
+    - assets/audio/
+
+  # Deux familles pour le bilan de saison : une machine à écrire pour les
+  # intitulés, une condensée de stade pour les chiffres. Licences SIL OFL
+  # dans assets/fonts.
+  fonts:
+    - family: Courier Prime
+      fonts:
+        - asset: assets/fonts/CourierPrime-Regular.ttf
+        - asset: assets/fonts/CourierPrime-Bold.ttf
+          weight: 700
+    - family: Oswald
+      fonts:
+        - asset: assets/fonts/Oswald-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Oswald-Bold.ttf
+          weight: 700

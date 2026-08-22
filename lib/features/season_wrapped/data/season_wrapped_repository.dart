@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -38,12 +39,18 @@ class SeasonWrappedStat {
     required this.value,
     this.rank,
     this.note,
-  });
+    String? shortLabel,
+  }) : _shortLabel = shortLabel;
 
   final String label;
   final String value;
   final int? rank;
   final String? note;
+  final String? _shortLabel;
+
+  /// Intitulé court, pour la récapitulation où les neuf lignes doivent tenir
+  /// côte à côte sans se faire couper.
+  String get shortLabel => _shortLabel ?? label;
 
   bool get isRanked => rank != null;
 }
@@ -156,6 +163,7 @@ class SeasonWrapped {
           ),
           SeasonWrappedStat(
             label: 'Réactivité aux disponibilités',
+            shortLabel: 'Réactivité',
             value: avgResponseHours == null
                 ? 'Aucune réponse'
                 : _formatDelay(avgResponseHours!),
@@ -166,6 +174,7 @@ class SeasonWrapped {
           ),
           SeasonWrappedStat(
             label: 'Poste le plus joué',
+            shortLabel: 'Poste',
             value: topPosition ?? 'Jamais aligné au coup d’envoi',
           ),
         ],
@@ -196,11 +205,15 @@ class SeasonWrapped {
         stats: [
           SeasonWrappedStat(
             label: 'Victoires, nuls, défaites',
+            shortLabel: 'Bilan',
             value: '$wins V · $draws N · $losses D',
           ),
           SeasonWrappedStat(
             label: 'Pourcentage de victoire',
-            value: winPct == null ? '—' : '${_formatNumber(winPct!)} %',
+            shortLabel: '% de victoire',
+            // Un pourcentage de victoire se lit en entier : la décimale
+            // n'apprend rien sur une vingtaine de matchs.
+            value: winPct == null ? '—' : '${winPct!.round()} %',
             rank: winPctRank,
             note: winPctRank == null && matchesPlayed > 0
                 ? 'Non classé : moins de huit matchs joués.'
@@ -208,6 +221,7 @@ class SeasonWrapped {
           ),
           SeasonWrappedStat(
             label: 'Matchs sans encaisser',
+            shortLabel: 'Sans encaisser',
             value: '$cleanMatches',
             rank: cleanMatchesRank,
           ),
@@ -268,4 +282,12 @@ final seasonWrappedStateProvider =
 
 final mySeasonWrappedProvider = FutureProvider<SeasonWrapped?>((ref) async {
   return ref.watch(seasonWrappedRepositoryProvider).fetchMine();
+});
+
+/// Le nom qui signe le bilan et les images partagées.
+///
+/// Isolé dans son propre fournisseur pour que l'écran ne dépende pas
+/// directement de l'authentification : c'est la seule chose dont il a besoin.
+final wrappedPlayerNameProvider = Provider<String?>((ref) {
+  return ref.watch(authControllerProvider).profile?.displayName;
 });

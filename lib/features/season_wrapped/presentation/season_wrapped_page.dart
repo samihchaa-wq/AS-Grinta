@@ -1,12 +1,13 @@
 import 'dart:ui' as ui;
 
-import 'package:as_grinta/core/theme/app_spacing.dart';
-import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
 import 'package:as_grinta/core/widgets/grinta_empty_state.dart';
 import 'package:as_grinta/core/widgets/grinta_loader.dart';
-import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
+import 'package:as_grinta/features/season_wrapped/data/wrapped_music.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_motion.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_paper.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_slides.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -25,79 +26,197 @@ class SeasonWrappedPage extends ConsumerWidget {
     final wrapped = ref.watch(mySeasonWrappedProvider);
 
     return Scaffold(
-      appBar: GrintaAppBar(title: const Text('Ma saison')),
+      backgroundColor: WrappedPaper.paper,
       body: wrapped.when(
-        loading: () => const GrintaLoader.page(
-          message: 'Préparation de ton bilan',
+        loading: () => const Center(
+          child: GrintaLoader.page(message: 'Préparation de ton bilan'),
         ),
-        error: (_, __) => const GrintaEmptyState(
+        error: (_, __) => const _WrappedMessage(
           icon: Icons.cloud_off_outlined,
           title: 'Bilan indisponible',
           message: 'Ton bilan n’a pas pu être chargé. Réessaie plus tard.',
         ),
         data: (data) {
           if (data == null) {
-            return const GrintaEmptyState(
-              icon: Icons.emoji_events_outlined,
+            return const _WrappedMessage(
+              icon: Icons.description_outlined,
               title: 'Pas encore de bilan',
               message: 'Ton bilan apparaîtra à la fin de la saison.',
             );
           }
-          return _WrappedBody(wrapped: data);
+          return _WrappedStory(wrapped: data);
         },
       ),
     );
   }
 }
 
-class _WrappedBody extends ConsumerStatefulWidget {
-  const _WrappedBody({required this.wrapped});
+class _WrappedMessage extends StatelessWidget {
+  const _WrappedMessage({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return WrappedPaperBackground(
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: GrintaEmptyState(
+                icon: icon,
+                title: title,
+                message: message,
+              ),
+            ),
+            const _CloseButton(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CloseButton extends StatelessWidget {
+  const _CloseButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 4,
+      right: 4,
+      child: IconButton(
+        tooltip: 'Fermer',
+        onPressed: () => Navigator.of(context).maybePop(),
+        icon: const Icon(Icons.close, color: WrappedPaper.ink),
+      ),
+    );
+  }
+}
+
+class _WrappedStory extends ConsumerStatefulWidget {
+  const _WrappedStory({required this.wrapped});
 
   final SeasonWrapped wrapped;
 
   @override
-  ConsumerState<_WrappedBody> createState() => _WrappedBodyState();
+  ConsumerState<_WrappedStory> createState() => _WrappedStoryState();
 }
 
-class _WrappedBodyState extends ConsumerState<_WrappedBody> {
-  /// La feuille en cours de capture. Elle est dessinée hors écran le temps
-  /// d'une image, photographiée, puis oubliée.
-  SeasonWrappedSheet? _sheetBeingCaptured;
-  String? _nameBeingCaptured;
-  final GlobalKey _captureKey = GlobalKey();
-  bool _isSharing = false;
+class _WrappedStoryState extends ConsumerState<_WrappedStory>
+    with SingleTickerProviderStateMixin {
+  /// L'ouverture se lit plus longtemps que les autres : le texte s'y écrit
+  /// à la machine. La dernière page ne défile pas — on y reste.
+  static const Duration _openingDuration = Duration(milliseconds: 6800);
+  static const Duration _slideDuration = Duration(milliseconds: 5600);
 
-  Future<void> _share(SeasonWrappedSheet sheet) async {
+  late final AnimationController _progress = AnimationController(vsync: this)
+    ..addStatusListener(_onSegmentFinished);
+
+  final WrappedMusic _music = WrappedMusic();
+  final GlobalKey _captureKey = GlobalKey();
+
+  int _index = 0;
+  bool _muted = false;
+  bool _isSharing = false;
+  Widget? _sheetBeingCaptured;
+  String? _capturedName;
+
+  int get _slideCount => 8;
+  bool get _isLastSlide => _index == _slideCount - 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _startSegment();
+    WrappedMusic.readMuted().then((muted) {
+      if (!mounted) return;
+      setState(() => _muted = muted);
+      if (!muted) _music.start();
+    });
+  }
+
+  @override
+  void dispose() {
+    _progress.dispose();
+    _music.dispose();
+    super.dispose();
+  }
+
+  void _startSegment() {
+    if (_isLastSlide) {
+      _progress.stop();
+      _progress.value = 1;
+      return;
+    }
+    _progress
+      ..duration = _index == 0 ? _openingDuration : _slideDuration
+      ..forward(from: 0);
+  }
+
+  void _onSegmentFinished(AnimationStatus status) {
+    if (status == AnimationStatus.completed && !_isLastSlide) {
+      _goTo(_index + 1);
+    }
+  }
+
+  void _goTo(int next) {
+    if (next < 0 || next >= _slideCount) return;
+    setState(() => _index = next);
+    _startSegment();
+  }
+
+  void _pause() {
+    _progress.stop();
+    if (!_muted) _music.pause();
+  }
+
+  void _resume() {
+    if (!_isLastSlide) _progress.forward();
+    if (!_muted) _music.resume();
+  }
+
+  Future<void> _toggleMute() async {
+    final muted = !_muted;
+    setState(() => _muted = muted);
+    await WrappedMusic.writeMuted(muted);
+    if (muted) {
+      await _music.pause();
+    } else {
+      await _music.resume();
+    }
+  }
+
+  /// Photographie une feuille dessinée hors écran, puis ouvre le partage du
+  /// système — enregistrer l'image, l'envoyer, la publier.
+  Future<void> _shareSheet(Widget sheet) async {
     if (_isSharing) return;
-    // Le nom n'est lu qu'ici : l'affichage du bilan ne doit dépendre que du
-    // bilan lui-même.
+    _pause();
     setState(() {
       _isSharing = true;
       _sheetBeingCaptured = sheet;
-      _nameBeingCaptured =
-          ref.read(authControllerProvider).profile?.displayName;
+      _capturedName = ref.read(wrappedPlayerNameProvider);
     });
 
     try {
       final image = await _capture();
       if (image == null) throw StateError('capture vide');
+      final name = 'as-grinta-${widget.wrapped.seasonName}.png';
       await Share.shareXFiles(
-        [
-          XFile.fromData(
-            image,
-            mimeType: 'image/png',
-            name: 'as-grinta-${widget.wrapped.seasonName}.png',
-          ),
-        ],
-        fileNameOverrides: ['as-grinta-${widget.wrapped.seasonName}.png'],
+        [XFile.fromData(image, mimeType: 'image/png', name: name)],
+        fileNameOverrides: [name],
       );
     } catch (error, stackTrace) {
       debugPrint('Partage du bilan impossible : $error\n$stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('L’image n’a pas pu être préparée.'),
-          ),
+          const SnackBar(content: Text('L’image n’a pas pu être préparée.')),
         );
       }
     } finally {
@@ -105,8 +224,9 @@ class _WrappedBodyState extends ConsumerState<_WrappedBody> {
         setState(() {
           _isSharing = false;
           _sheetBeingCaptured = null;
-          _nameBeingCaptured = null;
+          _capturedName = null;
         });
+        _resume();
       }
     }
   }
@@ -137,28 +257,115 @@ class _WrappedBodyState extends ConsumerState<_WrappedBody> {
     }
   }
 
+  Future<void> _openThemeSharing() async {
+    _pause();
+    final playerName = ref.read(wrappedPlayerNameProvider);
+    final chosen = await showModalBottomSheet<SeasonWrappedSheet>(
+      context: context,
+      backgroundColor: WrappedPaper.paper,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'PARTAGER UNE PARTIE',
+                  style: WrappedPaper.label(size: 11),
+                ),
+              ),
+            ),
+            for (final sheet in widget.wrapped.sheets)
+              ListTile(
+                title: Text(sheet.title, style: WrappedPaper.title(size: 20)),
+                subtitle: Text(
+                  sheet.stats.map((stat) => stat.label).join(' · '),
+                  style: WrappedPaper.body(
+                    size: 11,
+                    color: WrappedPaper.inkSoft,
+                  ),
+                ),
+                trailing: const Icon(
+                  Icons.ios_share,
+                  color: WrappedPaper.ink,
+                  size: 20,
+                ),
+                onTap: () => Navigator.of(context).pop(sheet),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (chosen == null) {
+      _resume();
+      return;
+    }
+    await _shareSheet(
+      SeasonWrappedShareSheet(
+        sheet: chosen,
+        seasonName: widget.wrapped.seasonName,
+        playerName: playerName,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sheets = widget.wrapped.sheets;
+    final playerName = ref.watch(wrappedPlayerNameProvider);
+    final slides = buildWrappedSlides(
+      wrapped: widget.wrapped,
+      playerName: playerName,
+      onShare: () => _shareSheet(
+        SeasonWrappedFullShareSheet(
+          wrapped: widget.wrapped,
+          playerName: playerName,
+        ),
+      ),
+      onShareByTheme: _openThemeSharing,
+    );
 
     return Stack(
       children: [
-        ListView.separated(
-          padding: const EdgeInsets.all(AppSpacing.cardPadding),
-          itemCount: sheets.length + 1,
-          separatorBuilder: (_, __) =>
-              const SizedBox(height: AppSpacing.sectionGap),
-          itemBuilder: (context, index) {
-            if (index == 0) return _WrappedHeader(wrapped: widget.wrapped);
-            final sheet = sheets[index - 1];
-            return _SheetCard(
-              sheet: sheet,
-              isSharing: _isSharing,
-              onShare: () => _share(sheet),
-            );
-          },
+        // Le contenu de l'écran courant seulement : une page voisine
+        // préchargée jouerait ses animations hors champ.
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: wrappedReducedMotion(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 320),
+            child: KeyedSubtree(
+              key: ValueKey<int>(_index),
+              child: slides[_index],
+            ),
+          ),
         ),
-        // Hors champ : la feuille en cours de capture, peinte mais invisible.
+        Positioned.fill(child: _buildGestureLayer()),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            child: Column(
+              children: [
+                _ProgressBar(
+                  count: _slideCount,
+                  index: _index,
+                  animation: _progress,
+                ),
+                _StoryControls(
+                  muted: _muted,
+                  onToggleMute: _toggleMute,
+                  onClose: () => Navigator.of(context).maybePop(),
+                ),
+              ],
+            ),
+          ),
+        ),
         if (_sheetBeingCaptured != null)
           Positioned(
             left: -kSeasonWrappedShareWidth * 4,
@@ -166,10 +373,9 @@ class _WrappedBodyState extends ConsumerState<_WrappedBody> {
             child: IgnorePointer(
               child: RepaintBoundary(
                 key: _captureKey,
-                child: SeasonWrappedShareSheet(
-                  sheet: _sheetBeingCaptured!,
-                  seasonName: widget.wrapped.seasonName,
-                  playerName: _nameBeingCaptured,
+                child: _CaptureHost(
+                  playerName: _capturedName,
+                  child: _sheetBeingCaptured!,
                 ),
               ),
             ),
@@ -177,31 +383,29 @@ class _WrappedBodyState extends ConsumerState<_WrappedBody> {
       ],
     );
   }
-}
 
-class _WrappedHeader extends StatelessWidget {
-  const _WrappedHeader({required this.wrapped});
-
-  final SeasonWrapped wrapped;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildGestureLayer() {
+    // La zone basse est laissée libre : c'est là que se trouvent les boutons
+    // de la dernière page.
+    return Row(
       children: [
-        Text(
-          'Saison ${wrapped.seasonName}',
-          style: theme.textTheme.titleLarge,
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => _goTo(_index - 1),
+            onLongPressStart: (_) => _pause(),
+            onLongPressEnd: (_) => _resume(),
+            onLongPressCancel: _resume,
+          ),
         ),
-        const SizedBox(height: AppSpacing.microGap),
-        Text(
-          'Ton bilan, figé à la clôture de la saison. Les rangs te situent '
-          'parmi les ${wrapped.rosterSize} joueurs ayant disputé au moins '
-          'un match.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _isLastSlide ? null : () => _goTo(_index + 1),
+            onLongPressStart: (_) => _pause(),
+            onLongPressEnd: (_) => _resume(),
+            onLongPressCancel: _resume,
           ),
         ),
       ],
@@ -209,84 +413,116 @@ class _WrappedHeader extends StatelessWidget {
   }
 }
 
-class _SheetCard extends StatelessWidget {
-  const _SheetCard({
-    required this.sheet,
-    required this.isSharing,
-    required this.onShare,
-  });
+/// Enveloppe la feuille capturée : la police et la direction du texte
+/// doivent être fixées, l'image ne dépend pas du thème de l'appareil.
+class _CaptureHost extends StatelessWidget {
+  const _CaptureHost({required this.child, required this.playerName});
 
-  final SeasonWrappedSheet sheet;
-  final bool isSharing;
-  final VoidCallback onShare;
+  final Widget child;
+  final String? playerName;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(sheet.title, style: theme.textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.contentGap),
-            for (final stat in sheet.stats) ...[
-              _StatLine(stat: stat),
-              const SizedBox(height: AppSpacing.contentGap),
-            ],
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: isSharing ? null : onShare,
-                icon: const Icon(Icons.ios_share, size: 18),
-                label: const Text('Partager'),
-              ),
-            ),
-          ],
-        ),
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: MediaQuery(
+        data: const MediaQueryData(),
+        child: Material(color: WrappedPaper.paper, child: child),
       ),
     );
   }
 }
 
-class _StatLine extends StatelessWidget {
-  const _StatLine({required this.stat});
+class _ProgressBar extends StatelessWidget {
+  const _ProgressBar({
+    required this.count,
+    required this.index,
+    required this.animation,
+  });
 
-  final SeasonWrappedStat stat;
+  final int count;
+  final int index;
+  final Animation<double> animation;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                stat.label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Text(stat.value, style: theme.textTheme.titleLarge),
-              if (stat.note != null)
-                Text(
-                  stat.note!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Row(
+        children: [
+          for (var i = 0; i < count; i += 1)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(2),
+                  child: SizedBox(
+                    height: 3,
+                    child: AnimatedBuilder(
+                      animation: animation,
+                      builder: (context, _) {
+                        final value = i < index
+                            ? 1.0
+                            : i == index
+                                ? animation.value
+                                : 0.0;
+                        return LinearProgressIndicator(
+                          value: value,
+                          minHeight: 3,
+                          backgroundColor:
+                              WrappedPaper.ink.withValues(alpha: .16),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            WrappedPaper.ink,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-            ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StoryControls extends StatelessWidget {
+  const _StoryControls({
+    required this.muted,
+    required this.onToggleMute,
+    required this.onClose,
+  });
+
+  final bool muted;
+  final VoidCallback onToggleMute;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          IconButton(
+            key: const ValueKey('wrapped-mute-button'),
+            tooltip: muted ? 'Remettre la musique' : 'Couper la musique',
+            onPressed: onToggleMute,
+            iconSize: 20,
+            color: WrappedPaper.ink,
+            icon: Icon(muted ? Icons.volume_off : Icons.volume_up),
           ),
-        ),
-        if (stat.isRanked) SeasonWrappedRankChip(rank: stat.rank!),
-      ],
+          IconButton(
+            key: const ValueKey('wrapped-close-button'),
+            tooltip: 'Fermer',
+            onPressed: onClose,
+            iconSize: 20,
+            color: WrappedPaper.ink,
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
     );
   }
 }

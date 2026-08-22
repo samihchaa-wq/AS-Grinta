@@ -1,9 +1,9 @@
+import 'dart:ui' as ui;
+
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,12 +34,26 @@ SeasonWrapped _wrapped() => SeasonWrapped.fromJson({
       'top_position': 'Milieu',
     });
 
-Widget _host(Widget child, List<Override> overrides) {
+Widget _host(
+  Widget child,
+  List<Override> overrides, {
+  bool reducedMotion = false,
+}) {
   return ProviderScope(
     overrides: overrides,
-    child: MaterialApp(home: child),
+    child: MaterialApp(
+      home: MediaQuery(
+        data: MediaQueryData(disableAnimations: reducedMotion),
+        child: child,
+      ),
+    ),
   );
 }
+
+List<Override> _storyOverrides() => [
+      mySeasonWrappedProvider.overrideWith((ref) async => _wrapped()),
+      wrappedPlayerNameProvider.overrideWithValue('Samih'),
+    ];
 
 void main() {
   testWidgets('le bouton reste invisible pendant la saison', (tester) async {
@@ -77,61 +91,121 @@ void main() {
     expect(find.byKey(const ValueKey('season-wrapped-button')), findsOneWidget);
   });
 
-  testWidgets('le bilan tient en trois feuilles partageables', (tester) async {
-    // Un écran haut, pour que la liste construise ses trois feuilles d'un coup.
-    tester.view.physicalSize = const Size(1200, 3200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
+  testWidgets('le bilan ouvre sur la feuille de saison', (tester) async {
     await tester.pumpWidget(
-      _host(
-        const SeasonWrappedPage(),
-        [mySeasonWrappedProvider.overrideWith((ref) async => _wrapped())],
-      ),
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
-    expect(find.text('Saison 2026-2027'), findsOneWidget);
-    expect(find.text('Ma présence'), findsOneWidget);
-    expect(find.text('Mes résultats'), findsOneWidget);
-    expect(find.text('Mon apport'), findsOneWidget);
-    expect(find.text('Partager'), findsNWidgets(3));
+    expect(find.text('AS GRINTA · FEUILLE DE SAISON'), findsOneWidget);
+    expect(find.text('2026-2027'), findsOneWidget);
+    expect(find.textContaining('Samih'), findsOneWidget);
+    // Huit écrans, donc huit segments de progression.
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(8));
   });
 
-  testWidgets('le rang s’affiche seul, sans effectif', (tester) async {
-    tester.view.physicalSize = const Size(1200, 3200);
+  testWidgets('un appui à droite avance, un appui à gauche revient',
+      (tester) async {
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    final height =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    await tester.tapAt(Offset(width * .8, height * .55));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('MATCHS JOUÉS'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
+
+    await tester.tapAt(Offset(width * .1, height * .55));
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('2026-2027'), findsOneWidget);
+  });
+
+  testWidgets('la dernière page propose le partage', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      _host(
-        const SeasonWrappedPage(),
-        [mySeasonWrappedProvider.overrideWith((ref) async => _wrapped())],
-      ),
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
-    expect(find.text('4e'), findsOneWidget);
-    expect(find.textContaining('4e sur'), findsNothing);
-    // Un critère qui ne se classe pas n'affiche aucun rang.
+    for (var i = 0; i < 7; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    expect(find.text('TA FEUILLE'), findsOneWidget);
+    expect(find.text('Partager ma feuille'), findsOneWidget);
+    expect(find.text('Partager par thème'), findsOneWidget);
+    // Les valeurs du récapitulatif sont bien celles du bilan.
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('58 %'), findsOneWidget);
     expect(find.text('7 V · 2 N · 3 D'), findsOneWidget);
+  });
+
+  testWidgets('le pourcentage garde son signe', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 6; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    expect(find.text('L’ÉQUIPE QUAND TU ÉTAIS LÀ'), findsOneWidget);
+    expect(find.text('58 %'), findsOneWidget);
+  });
+
+  testWidgets('la musique se coupe et se remet', (tester) async {
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    final mute = find.byKey(const ValueKey('wrapped-mute-button'));
+    expect(mute, findsOneWidget);
+    expect(
+      tester.widget<IconButton>(mute).tooltip,
+      'Couper la musique',
+    );
   });
 
   testWidgets('la feuille partagée porte le nom du joueur', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: SeasonWrappedShareSheet(
-          sheet: _wrapped().sheets.first,
-          seasonName: '2026-2027',
-          playerName: 'Samih',
+        home: Center(
+          child: SeasonWrappedFullShareSheet(
+            wrapped: _wrapped(),
+            playerName: 'Samih',
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('AS GRINTA'), findsOneWidget);
-    expect(find.text('Saison 2026-2027'), findsOneWidget);
-    expect(find.text('Ma présence'), findsOneWidget);
+    expect(find.text('AS GRINTA · FEUILLE DE SAISON'), findsOneWidget);
+    expect(find.text('Ma saison'), findsOneWidget);
     expect(find.text('Samih'), findsOneWidget);
   });
 
@@ -179,7 +253,10 @@ void main() {
     await tester.pumpWidget(
       _host(
         const SeasonWrappedPage(),
-        [mySeasonWrappedProvider.overrideWith((ref) async => null)],
+        [
+          mySeasonWrappedProvider.overrideWith((ref) async => null),
+          wrappedPlayerNameProvider.overrideWithValue('Samih'),
+        ],
       ),
     );
     await tester.pumpAndSettle();
