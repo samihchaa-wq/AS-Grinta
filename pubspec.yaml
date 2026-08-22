@@ -37,7 +37,7 @@ flutter:
     - assets/images/module_backgrounds/
     - assets/images/as_grinta_logo.webp
     - assets/images/jerseys/
-    - assets/audio/
+    - assets/audio/wrapped.mp3
 
   # La condensée de stade du bilan de saison : elle porte les chiffres et les
   # titres. Licence SIL OFL dans assets/fonts.

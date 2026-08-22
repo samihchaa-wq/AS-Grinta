@@ -1,4 +1,6 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
+import 'package:as_grinta/features/season_wrapped/data/wrapped_music.dart';
+import 'package:flutter/services.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,6 +44,18 @@ SeasonWrappedStat _stat(SeasonWrapped wrapped, String label) =>
     wrapped.stats.firstWhere((stat) => stat.label == label);
 
 void main() {
+  // Le lecteur avale silencieusement une piste absente : sans ce test, un
+  // fichier renomme couperait la musique sans que personne le remarque.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('la piste du bilan est bien embarquee', () async {
+    final data = await rootBundle.load('assets/${WrappedMusic.assetPath}');
+
+    expect(data.lengthInBytes, greaterThan(0));
+    // Au-dela de deux megaoctets, l'ouverture du bilan traine sur un reseau
+    // lent : la piste doit rester courte et compressee.
+    expect(data.lengthInBytes, lessThan(2 * 1024 * 1024));
+  });
   test('les neuf critères tiennent en trois feuilles', () {
     final wrapped = SeasonWrapped.fromJson(_payload());
 
