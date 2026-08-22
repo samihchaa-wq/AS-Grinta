@@ -300,8 +300,7 @@ class _WaitlistTile extends StatelessWidget {
     final attendance = entry.previousSeasonAttendanceCount;
     final previousSeasonPresence = total > 0 ? '$attendance' : 'Aucune donnée';
     final waitlistCount = entry.currentSeasonWaitlistCount;
-    final waitlistCountText =
-        Text('Liste d’attente cette saison : $waitlistCount fois');
+    final waitlistCountText = Text('Tour cette saison : $waitlistCount fois');
     final card = Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
@@ -314,7 +313,7 @@ class _WaitlistTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 3),
-            Text('Présence saison précédente : $previousSeasonPresence'),
+            Text('Saison précédente : $previousSeasonPresence'),
             if (editable)
               Row(
                 children: [

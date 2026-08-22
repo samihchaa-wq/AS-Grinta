@@ -23,9 +23,9 @@ void main() {
 
       expect(find.text('Alice'), findsOneWidget);
       expect(find.text('Bruno'), findsOneWidget);
-      expect(find.text('Présence saison précédente : 2'), findsOneWidget);
+      expect(find.text('Saison précédente : 2'), findsOneWidget);
       expect(
-        find.text('Liste d’attente cette saison : 3 fois'),
+        find.text('Tour cette saison : 3 fois'),
         findsOneWidget,
       );
 
@@ -84,7 +84,7 @@ void main() {
       expect(
         find.descendant(
           of: brunoCard,
-          matching: find.text('Liste d’attente cette saison : 2 fois'),
+          matching: find.text('Tour cette saison : 2 fois'),
         ),
         findsOneWidget,
       );
