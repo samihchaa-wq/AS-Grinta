@@ -34,6 +34,11 @@ SeasonWrapped _wrapped() => SeasonWrapped.fromJson({
       'clean_matches_rank': 2,
       'versatility': 3,
       'versatility_rank': 1,
+      'badge_count': 2,
+      'badges': [
+        {'code': 'a', 'name': 'Fidèle', 'emoji': '📅'},
+        {'code': 'b', 'name': 'Mur', 'emoji': '🧱'},
+      ],
       'top_position': 'Milieu',
       'position_shares': [
         {'position': 'Milieu', 'share': 60},
@@ -171,8 +176,8 @@ void main() {
     // Le millésime est posé sur deux lignes, en très grand.
     expect(find.text('2026\n2027'), findsOneWidget);
     expect(find.text('SAMIH'), findsOneWidget);
-    // Sept écrans, donc sept segments de progression.
-    expect(find.byType(LinearProgressIndicator), findsNWidgets(7));
+    // Huit écrans, donc huit segments de progression.
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(8));
   });
 
   testWidgets('un appui à droite avance, un appui à gauche revient',
@@ -417,7 +422,7 @@ void main() {
     expect(find.textContaining('sans encaisser.'), findsNothing);
   });
 
-  testWidgets('la dernière page propose le partage', (tester) async {
+  testWidgets('les badges de la saison ont leur écran', (tester) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -429,6 +434,32 @@ void main() {
     await tester.pump();
 
     for (var i = 0; i < 6; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    expect(find.text('TES BADGES'), findsOneWidget);
+    // Le compte, puis chaque badge nommé.
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('Fidèle'), findsOneWidget);
+    expect(find.text('Mur'), findsOneWidget);
+    // Les badges ne sont pas classés : la comparaison n'aurait pas de sens.
+    expect(find.byType(WrappedRankBadge), findsNothing);
+  });
+
+  testWidgets('la dernière page propose le partage', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 7; i += 1) {
       await tester.tapAt(const Offset(900, 1500));
       await tester.pump();
       await tester.pump();

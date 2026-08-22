@@ -79,16 +79,22 @@ void main() {
     final wrapped = SeasonWrapped.fromJson(_payload());
 
     expect(wrapped.sheets, hasLength(3));
-    expect(wrapped.stats, hasLength(9));
     expect(
       wrapped.sheets.map((sheet) => sheet.title),
       ['Ma présence', 'Mon apport', 'Mes résultats'],
     );
+
+    // Les neuf critères, et eux seuls, se répartissent dans les feuilles.
+    final criteres = [for (final f in wrapped.sheets) ...f.stats];
+    expect(criteres, hasLength(9));
     // Aucun critère ne se perd ni ne se répète entre deux feuilles.
-    expect(
-      wrapped.stats.map((stat) => stat.label).toSet(),
-      hasLength(9),
-    );
+    expect(criteres.map((stat) => stat.label).toSet(), hasLength(9));
+
+    // Le récapitulatif y ajoute les badges, qui ne sont pas un critère et ne
+    // figurent donc dans aucune feuille à partager.
+    expect(wrapped.stats, hasLength(10));
+    expect(wrapped.stats.last.label, 'Badges décrochés');
+    expect(wrapped.stats.last.rank, isNull);
   });
 
   test('un critère classé porte le rang et la taille du classement', () {

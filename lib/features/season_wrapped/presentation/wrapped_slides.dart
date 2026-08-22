@@ -32,8 +32,9 @@ List<Widget> buildWrappedSlides({
     _PositionSlide(skin: skins[3], wrapped: wrapped),
     _ContributionSlide(skin: skins[4], wrapped: wrapped),
     _ResultsSlide(skin: skins[5], wrapped: wrapped),
+    _BadgesSlide(skin: skins[6], wrapped: wrapped),
     _ClosingSlide(
-      skin: skins[6],
+      skin: skins[7],
       wrapped: wrapped,
       playerName: playerName,
       onShare: onShare,
@@ -578,6 +579,99 @@ class _ResultsSlide extends StatelessWidget {
         skin: skin,
         rank: null,
         delay: const Duration(milliseconds: 1600),
+      ),
+    );
+  }
+}
+
+class _BadgesSlide extends StatelessWidget {
+  const _BadgesSlide({required this.skin, required this.wrapped});
+
+  final WrappedSkin skin;
+  final SeasonWrapped wrapped;
+
+  @override
+  Widget build(BuildContext context) {
+    final badges = wrapped.badges;
+
+    if (badges.isEmpty) {
+      return _SlideFrame(
+        skin: skin,
+        top: _SlideLabel(text: 'Tes badges', skin: skin),
+        middle: WrappedReveal(
+          delay: const Duration(milliseconds: 200),
+          child: Text(
+            'Aucun badge cette saison',
+            style: WrappedType.title(skin.figure, size: 46),
+          ),
+        ),
+        bottom: _Caption(
+          text: 'Ils se décrochent en jouant, en marquant, en gardant ta cage '
+              'inviolée. La saison prochaine, tu y es.',
+          skin: skin,
+          rank: null,
+          delay: const Duration(milliseconds: 700),
+        ),
+      );
+    }
+
+    return _SlideFrame(
+      skin: skin,
+      top: _SlideLabel(text: 'Tes badges', skin: skin),
+      middle: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _GiantFigure(value: badges.length, skin: skin),
+          const SizedBox(height: 28),
+          WrappedReveal(
+            delay: const Duration(milliseconds: 900),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final badge in badges)
+                  _BadgeChip(badge: badge, skin: skin),
+              ],
+            ),
+          ),
+        ],
+      ),
+      bottom: _Caption(
+        text: badges.length == 1
+            ? 'Décroché cette saison.'
+            : 'Décrochés cette saison, du premier au dernier.',
+        skin: skin,
+        rank: null,
+        delay: const Duration(milliseconds: 1500),
+      ),
+    );
+  }
+}
+
+class _BadgeChip extends StatelessWidget {
+  const _BadgeChip({required this.badge, required this.skin});
+
+  final SeasonWrappedBadge badge;
+  final WrappedSkin skin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: skin.figure.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (badge.emoji.isNotEmpty) ...[
+            Text(badge.emoji, style: const TextStyle(fontSize: 15)),
+            const SizedBox(width: 7),
+          ],
+          Text(badge.name, style: WrappedType.body(skin.text, size: 15)),
+        ],
       ),
     );
   }

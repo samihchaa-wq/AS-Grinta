@@ -56,6 +56,27 @@ class SeasonWrappedStat {
 }
 
 /// La part de titularisations à un poste.
+/// Un badge décroché pendant la saison.
+class SeasonWrappedBadge {
+  const SeasonWrappedBadge({
+    required this.code,
+    required this.name,
+    required this.emoji,
+  });
+
+  factory SeasonWrappedBadge.fromJson(Map<String, dynamic> json) {
+    return SeasonWrappedBadge(
+      code: json['code']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      emoji: json['emoji']?.toString() ?? '',
+    );
+  }
+
+  final String code;
+  final String name;
+  final String emoji;
+}
+
 class SeasonWrappedPosition {
   const SeasonWrappedPosition({required this.position, required this.share});
 
@@ -108,6 +129,8 @@ class SeasonWrapped {
     required this.versatilityRank,
     required this.topPosition,
     required this.positionShares,
+    required this.badges,
+    required this.badgeCount,
   });
 
   factory SeasonWrapped.fromJson(Map<String, dynamic> json) {
@@ -144,6 +167,11 @@ class SeasonWrapped {
             Map<String, dynamic>.from(entry as Map),
           ),
       ],
+      badges: [
+        for (final entry in (json['badges'] as List? ?? const []))
+          SeasonWrappedBadge.fromJson(Map<String, dynamic>.from(entry as Map)),
+      ],
+      badgeCount: asInt('badge_count'),
     );
   }
 
@@ -172,6 +200,10 @@ class SeasonWrapped {
 
   /// Les postes occupés, du plus joué au moins joué.
   final List<SeasonWrappedPosition> positionShares;
+
+  /// Les badges décrochés pendant la saison, du plus ancien au plus récent.
+  final List<SeasonWrappedBadge> badges;
+  final int badgeCount;
 
   /// Les neuf critères, répartis en trois feuilles partageables.
   ///
@@ -258,8 +290,17 @@ class SeasonWrapped {
   }
 
   /// Tous les critères, feuilles confondues.
-  List<SeasonWrappedStat> get stats =>
-      [for (final sheet in sheets) ...sheet.stats];
+  /// Le récapitulatif reprend les neuf critères, puis les badges. Ceux-ci ne
+  /// sont pas classés : un joueur qui débute en décroche mécaniquement plus
+  /// qu'un ancien, le comparatif n'aurait pas de sens.
+  List<SeasonWrappedStat> get stats => [
+        for (final sheet in sheets) ...sheet.stats,
+        SeasonWrappedStat(
+          label: 'Badges décrochés',
+          shortLabel: 'Badges',
+          value: '$badgeCount',
+        ),
+      ];
 
   static String _formatDelay(double hours) =>
       WrappedDelay.fromHours(hours).text;
@@ -364,6 +405,13 @@ SeasonWrapped demoSeasonWrapped(String seasonName) {
       {'position': 'Milieu défensif', 'share': 52},
       {'position': 'Défenseur central', 'share': 33},
       {'position': 'Milieu', 'share': 15},
+    ],
+    'badge_count': 4,
+    'badges': [
+      {'code': 'matches_played__50', 'name': 'Fidèle', 'emoji': '📅'},
+      {'code': 'clean_sheets__10', 'name': 'Mur', 'emoji': '🧱'},
+      {'code': 'motm__first', 'name': 'Homme du match', 'emoji': '⭐'},
+      {'code': 'season_top_scorer', 'name': 'Meilleur buteur', 'emoji': '🥇'},
     ],
   });
 }
