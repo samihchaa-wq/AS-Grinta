@@ -180,11 +180,29 @@ select
   'domicile', 90, '7f000000-0000-0000-0000-0000000000f1'
 from generate_series(1, 8) n;
 
+-- Les participants s accrochent au suivi sportif du match, pas au match.
+insert into public.match_sport_workflows (
+  match_id, availability_opens_at, created_by, updated_by
+)
+select
+  ('7f000000-0000-0000-0000-0000000000c' || n)::uuid,
+  now() - ((n + 6) || ' days')::interval,
+  '7f000000-0000-0000-0000-0000000000f1',
+  '7f000000-0000-0000-0000-0000000000f1'
+from generate_series(1, 8) n;
+
 insert into public.match_sport_participants (id, match_id, season_player_id)
 select
   ('7f000000-0000-0000-0000-0000000000d' || n)::uuid,
   ('7f000000-0000-0000-0000-0000000000c' || n)::uuid,
   '7f000000-0000-0000-0000-0000000000b1'
+from generate_series(1, 8) n;
+
+-- Les entrees de composition s accrochent a la composition du match.
+insert into public.match_compositions (match_id, last_modified_by)
+select
+  ('7f000000-0000-0000-0000-0000000000c' || n)::uuid,
+  '7f000000-0000-0000-0000-0000000000f1'
 from generate_series(1, 8) n;
 
 -- Trois fois milieu, trois fois attaquant, deux fois defenseur central,
