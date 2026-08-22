@@ -467,6 +467,7 @@ class _StackedFigure extends StatelessWidget {
     required this.rank,
     required this.delay,
     this.suffix = '',
+    this.size = 92,
   });
 
   final WrappedSkin skin;
@@ -475,6 +476,9 @@ class _StackedFigure extends StatelessWidget {
   final int? rank;
   final Duration delay;
   final String suffix;
+
+  /// Un écran qui empile plusieurs chiffres les écrit plus petits.
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -499,7 +503,7 @@ class _StackedFigure extends StatelessWidget {
                     value: value,
                     suffix: suffix,
                     delay: delay + const Duration(milliseconds: 140),
-                    style: WrappedType.figure(skin.figure, size: 92),
+                    style: WrappedType.figure(skin.figure, size: size),
                   ),
                 ),
               ],
@@ -542,7 +546,7 @@ class _ResultsSlide extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 34),
           if (winPct != null)
             _StackedFigure(
               skin: skin,
@@ -551,15 +555,26 @@ class _ResultsSlide extends StatelessWidget {
               suffix: ' %',
               rank: wrapped.winPctRank,
               delay: const Duration(milliseconds: 800),
+              size: 76,
             ),
+          const SizedBox(height: 34),
+          // Un des neuf critères : il se lit comme les autres, pas en note
+          // de bas de page.
+          _StackedFigure(
+            skin: skin,
+            label: 'Matchs sans encaisser',
+            value: wrapped.cleanMatches,
+            rank: wrapped.cleanMatchesRank,
+            delay: const Duration(milliseconds: 1200),
+            size: 76,
+          ),
         ],
       ),
       bottom: _Caption(
-        text: '${wrapped.cleanMatches} match'
-            '${wrapped.cleanMatches > 1 ? 's' : ''} sans encaisser.',
+        text: 'Uniquement les matchs où tu étais présent.',
         skin: skin,
-        rank: wrapped.cleanMatchesRank,
-        delay: const Duration(milliseconds: 1500),
+        rank: null,
+        delay: const Duration(milliseconds: 1600),
       ),
     );
   }
