@@ -223,10 +223,10 @@ void main() {
     expect(find.textContaining('Deux postes'), findsOneWidget);
   });
 
-  testWidgets('le mot de fond tient dans la largeur de l’écran',
-      (tester) async {
-    const screen = Size(390, 844);
-    tester.view.physicalSize = screen;
+  testWidgets('plus aucun mot géant ne traîne au fond des écrans', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -236,23 +236,59 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    await tester.tapAt(const Offset(300, 400));
-    await tester.pump();
-    await tester.pump();
+    // « BUTS » sert aussi d'intitulé : seuls les mots qui ne meublaient que le
+    // fond peuvent être cherchés par leur texte.
+    const meubles = ['GRINTA', 'PRÉSENT', 'DISPO', 'ÉQUIPE'];
 
-    // Ce mot est un decor, mais il doit rester lisible : rogne par les bords,
-    // il ne ressemblait plus a rien.
-    final ghost = find.text('PRÉSENT');
-    expect(ghost, findsOneWidget);
-    expect(tester.getSize(ghost).width, lessThanOrEqualTo(screen.width));
+    for (var i = 0; i < 7; i += 1) {
+      for (final mot in meubles) {
+        expect(find.text(mot), findsNothing,
+            reason: 'écran ${i + 1}, « $mot »');
+      }
 
-    // Et il ne doit pas manger la legende posee juste en dessous.
-    final caption = find.textContaining('Autant de fois');
-    expect(caption, findsOneWidget);
-    expect(
-      tester.getBottomLeft(ghost).dy,
-      lessThanOrEqualTo(tester.getTopLeft(caption).dy),
+      // Ces mots étaient les seuls dessinés en contour. Sur le téléphone le
+      // contour sortait plein, et le mot masquait le texte à lire.
+      for (final texte in tester.widgetList<Text>(find.byType(Text))) {
+        expect(
+          texte.style?.foreground,
+          isNull,
+          reason: 'écran ${i + 1} : « ${texte.data} » est dessiné en contour',
+        );
+      }
+
+      await tester.tapAt(const Offset(300, 400));
+      await tester.pump();
+      await tester.pump();
+    }
+  });
+
+  testWidgets('aucun texte du bilan n’est en gras', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
     );
+    await tester.pump();
+    await tester.pump();
+
+    // La police du bilan n'existe qu'en moyenne et en grasse : rien ne doit
+    // depasser la moyenne.
+    for (var i = 0; i < 7; i += 1) {
+      for (final texte in tester.widgetList<Text>(find.byType(Text))) {
+        final poids = texte.style?.fontWeight;
+        if (poids == null) continue;
+        expect(
+          poids.value,
+          lessThanOrEqualTo(FontWeight.w500.value),
+          reason: 'ecran ${i + 1} : « ${texte.data} » en ${poids.value}',
+        );
+      }
+      await tester.tapAt(const Offset(300, 400));
+      await tester.pump();
+      await tester.pump();
+    }
   });
 
   testWidgets('la réactivité s’annonce comme une moyenne', (tester) async {

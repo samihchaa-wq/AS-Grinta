@@ -96,8 +96,6 @@ class SeasonWrappedShareSheet extends StatelessWidget {
       height: kSeasonWrappedShareHeight,
       child: WrappedBackdrop(
         skin: skin,
-        ghostWord: sheet.title.split(' ').last,
-        ghostPlacement: WrappedGhostPlacement.corner,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
           child: Column(
@@ -189,8 +187,6 @@ class SeasonWrappedFullShareSheet extends StatelessWidget {
       height: kSeasonWrappedShareHeight,
       child: WrappedBackdrop(
         skin: skin,
-        ghostWord: wrapped.seasonName.split('-').last,
-        ghostPlacement: WrappedGhostPlacement.corner,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
           child: Column(
