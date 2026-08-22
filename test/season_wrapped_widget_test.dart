@@ -161,6 +161,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('TA SAISON'), findsOneWidget);
+    expect(find.text('L’année est finie. Voici ton résumé…'), findsOneWidget);
     // Le millésime est posé sur deux lignes, en très grand.
     expect(find.text('2026\n2027'), findsOneWidget);
     expect(find.text('SAMIH'), findsOneWidget);
@@ -190,6 +191,28 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('2026\n2027'), findsOneWidget);
+  });
+
+  testWidgets('la réactivité s’annonce comme une moyenne', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 2; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    // Le chiffre est une moyenne, jamais un cumul : l'écran doit le dire.
+    expect(find.text('DÉLAI MOYEN DE RÉPONSE'), findsOneWidget);
+    expect(find.textContaining('En moyenne'), findsOneWidget);
   });
 
   testWidgets('la dernière page propose le partage', (tester) async {

@@ -79,7 +79,7 @@ class WrappedSkin {
     badge: AppTheme.background,
     badgeText: AppTheme.accent,
     motif: WrappedMotif.rays,
-    motifColor: Color(0x1A041224),
+    motifColor: Color(0x0F041224),
   );
 
   static const WrappedSkin deep = WrappedSkin(
@@ -194,11 +194,33 @@ class WrappedBackdrop extends StatelessWidget {
                       foreground: Paint()
                         ..style = PaintingStyle.stroke
                         ..strokeWidth = 2
-                        ..color = skin.motifColor.withValues(alpha: .3),
+                        ..color = skin.motifColor.withValues(alpha: .22),
                     ),
                   ),
                 ),
               ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 240,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        skin.background.last.withValues(alpha: 0),
+                        skin.background.last.withValues(alpha: .55),
+                        skin.background.last.withValues(alpha: .82),
+                      ],
+                      stops: const [0, .55, 1],
+                    ),
+                  ),
+                ),
+              ),
+            ),
             child,
           ],
         ),
