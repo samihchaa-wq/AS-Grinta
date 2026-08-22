@@ -223,6 +223,38 @@ void main() {
     expect(find.textContaining('Deux postes'), findsOneWidget);
   });
 
+  testWidgets('le mot de fond tient dans la largeur de l’écran',
+      (tester) async {
+    const screen = Size(390, 844);
+    tester.view.physicalSize = screen;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tapAt(const Offset(300, 400));
+    await tester.pump();
+    await tester.pump();
+
+    // Ce mot est un decor, mais il doit rester lisible : rogne par les bords,
+    // il ne ressemblait plus a rien.
+    final ghost = find.text('PRÉSENT');
+    expect(ghost, findsOneWidget);
+    expect(tester.getSize(ghost).width, lessThanOrEqualTo(screen.width));
+
+    // Et il ne doit pas manger la legende posee juste en dessous.
+    final caption = find.textContaining('Autant de fois');
+    expect(caption, findsOneWidget);
+    expect(
+      tester.getBottomLeft(ghost).dy,
+      lessThanOrEqualTo(tester.getTopLeft(caption).dy),
+    );
+  });
+
   testWidgets('la réactivité s’annonce comme une moyenne', (tester) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;

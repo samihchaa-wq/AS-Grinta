@@ -146,11 +146,23 @@ abstract final class WrappedType {
 }
 
 /// Le fond d'un écran : dégradé, motif, et un mot géant en creux.
+/// Où poser le mot géant de fond, selon la place que le contenu laisse.
+enum WrappedGhostPlacement {
+  /// Le mot tient dans la largeur, posé au-dessus de la légende : il se lit.
+  /// C'est le cas des écrans du bilan, dont le bas reste libre.
+  band,
+
+  /// Le mot déborde du coin bas droit. Il ne se lit pas, il meuble : c'est le
+  /// cas des images à partager, dont le contenu occupe toute la hauteur.
+  corner,
+}
+
 class WrappedBackdrop extends StatelessWidget {
   const WrappedBackdrop({
     super.key,
     required this.skin,
     this.ghostWord,
+    this.ghostPlacement = WrappedGhostPlacement.band,
     required this.child,
   });
 
@@ -159,6 +171,7 @@ class WrappedBackdrop extends StatelessWidget {
   /// Un mot repris en très grand, détouré, derrière le contenu. C'est lui qui
   /// remplit l'écran sans ajouter d'information à lire.
   final String? ghostWord;
+  final WrappedGhostPlacement ghostPlacement;
   final Widget child;
 
   @override
@@ -173,10 +186,13 @@ class WrappedBackdrop extends StatelessWidget {
       ),
       child: CustomPaint(
         painter: _MotifPainter(motif: skin.motif, color: skin.motifColor),
-        child: Stack(
+        child: LayoutBuilder(
+          builder: (context, constraints) => Stack(
           fit: StackFit.expand,
           children: [
-            if (ghostWord != null && ghostWord!.isNotEmpty)
+            if (ghostWord != null &&
+                ghostWord!.isNotEmpty &&
+                ghostPlacement == WrappedGhostPlacement.corner)
               Positioned(
                 right: -34,
                 bottom: -46,
@@ -220,10 +236,90 @@ class WrappedBackdrop extends StatelessWidget {
                 ),
               ),
             ),
+            if (ghostWord != null &&
+                ghostWord!.isNotEmpty &&
+                ghostPlacement == WrappedGhostPlacement.band)
+              Positioned(
+                left: constraints.maxWidth * .06,
+                right: constraints.maxWidth * .06,
+                bottom: MediaQuery.paddingOf(context).bottom
+                    + constraints.maxHeight * .125,
+                child: IgnorePointer(
+                  child: _GhostWord(
+                    word: ghostWord!,
+                    skin: skin,
+                    maxFontSize: constraints.maxWidth * .28,
+                  ),
+                ),
+              ),
             child,
           ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// Le mot géant posé au bas de l'écran. Il est dessiné à la taille qui tient
+/// dans la largeur disponible : un mot long s'écrit plus petit plutôt que de
+/// sortir du cadre, où il ne se lisait plus.
+class _GhostWord extends StatelessWidget {
+  const _GhostWord({
+    required this.word,
+    required this.skin,
+    required this.maxFontSize,
+  });
+
+  final String word;
+  final WrappedSkin skin;
+
+  /// Au-dela, un mot court occuperait la moitie de l'ecran. La valeur suit la
+  /// largeur du support : le meme dessin sert l'ecran du telephone et l'image
+  /// partagee, bien plus grande.
+  final double maxFontSize;
+
+  TextStyle _styleFor(double fontSize, {Paint? foreground}) {
+    return TextStyle(
+      fontFamily: WrappedType.display,
+      fontSize: fontSize,
+      height: 1,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -fontSize * .03,
+      foreground: foreground,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final upper = word.toUpperCase();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final probe = TextPainter(
+          text: TextSpan(text: upper, style: _styleFor(maxFontSize)),
+          textDirection: Directionality.of(context),
+          maxLines: 1,
+        )..layout();
+
+        final fontSize = probe.width <= 0
+            ? maxFontSize
+            : math.min(
+                maxFontSize,
+                maxFontSize * constraints.maxWidth / probe.width,
+              );
+
+        return Text(
+          upper,
+          maxLines: 1,
+          style: _styleFor(
+            fontSize,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = math.max(2, fontSize * .024)
+              ..color = skin.motifColor.withValues(alpha: .34),
+          ),
+        );
+      },
     );
   }
 }
