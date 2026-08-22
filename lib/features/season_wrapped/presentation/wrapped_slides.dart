@@ -67,7 +67,7 @@ class _SlideFrame extends StatelessWidget {
       ghostWord: ghostWord,
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 74, 24, 28),
+          padding: const EdgeInsets.fromLTRB(24, 74, 24, 40),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -164,7 +164,12 @@ class _Caption extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Text(text, style: WrappedType.body(skin.text)),
+            child: Text(
+              text,
+              style: WrappedType.body(skin.text, size: 16).copyWith(
+                height: 1.3,
+              ),
+            ),
           ),
           if (rank != null) ...[
             const SizedBox(width: 14),
@@ -226,9 +231,8 @@ class _OpeningSlide extends StatelessWidget {
       bottom: WrappedReveal(
         delay: const Duration(milliseconds: 1100),
         child: Text(
-          'Huit écrans. Les rangs te situent parmi les '
-          '${wrapped.rosterSize} joueurs ayant disputé au moins un match.',
-          style: WrappedType.body(skin.muted, size: 14),
+          'L’année est finie. Voici ton résumé…',
+          style: WrappedType.title(skin.text, size: 22),
         ),
       ),
     );
@@ -313,12 +317,13 @@ class _ResponsivenessSlide extends StatelessWidget {
     return _FigureSlide(
       skin: skin,
       ghostWord: 'Dispo',
-      label: 'Tu réponds présent en',
+      label: 'Délai moyen de réponse',
       value: value,
       decimals: value >= 10 ? 0 : 1,
       suffix: showDays ? ' j' : ' h',
       rank: wrapped.avgResponseRank,
-      caption: 'En moyenne, après l’ouverture des disponibilités.',
+      caption: 'En moyenne, entre l’ouverture des disponibilités '
+          'et ta réponse.',
     );
   }
 }
@@ -689,7 +694,7 @@ class WrappedRecapLine extends StatelessWidget {
     final size = dense ? 12.0 : 14.0;
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: dense ? 3 : 5),
+      padding: EdgeInsets.symmetric(vertical: dense ? 3 : 7),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -699,7 +704,10 @@ class WrappedRecapLine extends StatelessWidget {
               stat.shortLabel.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: WrappedType.label(skin.muted, size: size - 2),
+              style: WrappedType.label(
+                skin.muted.withValues(alpha: .72),
+                size: size - 2,
+              ).copyWith(fontWeight: FontWeight.w400, letterSpacing: 1.4),
             ),
           ),
           Expanded(
@@ -709,7 +717,8 @@ class WrappedRecapLine extends StatelessWidget {
               maxLines: 1,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: WrappedType.title(skin.figure, size: size + 4),
+              style: WrappedType.title(skin.figure, size: size + 5)
+                  .copyWith(fontWeight: FontWeight.w500),
             ),
           ),
           SizedBox(
