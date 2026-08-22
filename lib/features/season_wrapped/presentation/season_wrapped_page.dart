@@ -367,6 +367,7 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
         ),
       ),
       onShareByTheme: _openThemeSharing,
+      preview: widget.preview,
     );
 
     return Stack(

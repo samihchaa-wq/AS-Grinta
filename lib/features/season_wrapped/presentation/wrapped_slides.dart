@@ -1,8 +1,12 @@
+import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem_body.dart';
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_ink_pitch.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_motion.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Les écrans du bilan, dans l'ordre de lecture.
 ///
@@ -14,6 +18,7 @@ List<Widget> buildWrappedSlides({
   required String? playerName,
   required VoidCallback onShare,
   required VoidCallback onShareByTheme,
+  bool preview = false,
 }) {
   final skins = WrappedSkin.sequence;
 
@@ -32,7 +37,7 @@ List<Widget> buildWrappedSlides({
     _PositionSlide(skin: skins[3], wrapped: wrapped),
     _ContributionSlide(skin: skins[4], wrapped: wrapped),
     _ResultsSlide(skin: skins[5], wrapped: wrapped),
-    _BadgesSlide(skin: skins[6], wrapped: wrapped),
+    _BadgesSlide(skin: skins[6], wrapped: wrapped, preview: preview),
     _ClosingSlide(
       skin: skins[7],
       wrapped: wrapped,
@@ -584,17 +589,49 @@ class _ResultsSlide extends StatelessWidget {
   }
 }
 
-class _BadgesSlide extends StatelessWidget {
-  const _BadgesSlide({required this.skin, required this.wrapped});
+class _BadgesSlide extends ConsumerWidget {
+  const _BadgesSlide({
+    required this.skin,
+    required this.wrapped,
+    required this.preview,
+  });
 
   final WrappedSkin skin;
   final SeasonWrapped wrapped;
+  final bool preview;
+
+  /// Au-delà, la grille déborde de l'écran.
+  static const int _maxVignettes = 6;
 
   @override
-  Widget build(BuildContext context) {
-    final badges = wrapped.badges;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final etatArmoire = ref.watch(myArmoireProvider);
+    final armoire = etatArmoire.valueOrNull;
+    final validees = armoire?.validated ?? const <ArmoireBadge>[];
+    final parCode = {for (final badge in validees) badge.def.code: badge};
 
-    if (badges.isEmpty) {
+    // En aperçu, les chiffres sont fictifs : on montre les vraies vignettes de
+    // la personne qui regarde, faute de quoi l'écran ne montrerait rien.
+    final vignettes = preview
+        ? (armoire?.recent ?? const <ArmoireBadge>[])
+        : [
+            for (final badge in wrapped.badges)
+              if (parCode[badge.code] != null) parCode[badge.code]!,
+          ];
+
+    // Un badge que l'armoire ne connaît pas garde son nom seul. Tant que
+    // l'armoire charge, on n'affiche rien plutôt qu'une liste de noms qui
+    // serait remplacée par les vignettes une seconde plus tard.
+    final sansVignette = preview || etatArmoire.isLoading
+        ? const <SeasonWrappedBadge>[]
+        : [
+            for (final badge in wrapped.badges)
+              if (parCode[badge.code] == null) badge,
+          ];
+
+    final total = preview ? vignettes.length : wrapped.badges.length;
+
+    if (total == 0) {
       return _SlideFrame(
         skin: skin,
         top: _SlideLabel(text: 'Tes badges', skin: skin),
@@ -615,6 +652,9 @@ class _BadgesSlide extends StatelessWidget {
       );
     }
 
+    final montrees = vignettes.take(_maxVignettes).toList();
+    final restants = total - montrees.length - sansVignette.length;
+
     return _SlideFrame(
       skin: skin,
       top: _SlideLabel(text: 'Tes badges', skin: skin),
@@ -622,28 +662,153 @@ class _BadgesSlide extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _GiantFigure(value: badges.length, skin: skin),
-          const SizedBox(height: 28),
+          _GiantFigure(value: total, skin: skin),
+          const SizedBox(height: 26),
           WrappedReveal(
             delay: const Duration(milliseconds: 900),
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final badge in badges)
-                  _BadgeChip(badge: badge, skin: skin),
-              ],
+            child: LayoutBuilder(
+              builder: (context, contraintes) {
+                // Trois vignettes par ligne, comme dans l'armoire à badges.
+                const colonnes = 3;
+                const ecart = 12.0;
+                final largeur =
+                    (contraintes.maxWidth - (colonnes - 1) * ecart) / colonnes;
+                final embleme = largeur < 87 ? largeur : 87.0;
+                // Tous les emblèmes n'ont pas la même hauteur : un badge de
+                // palmarès porte une étoile et n'affiche pas de nombre. On
+                // réserve la plus grande hauteur pour tout le monde, et on
+                // pose chaque emblème sur ce même socle : sinon les lignes de
+                // la grille se décalent les unes par rapport aux autres.
+                var hauteur = 0.0;
+                for (final badge in montrees) {
+                  final h = _hauteurEmbleme(badge) * embleme;
+                  if (h > hauteur) hauteur = h;
+                }
+                return Wrap(
+                  spacing: ecart,
+                  runSpacing: 16,
+                  children: [
+                    for (final badge in montrees)
+                      _BadgeTile(
+                        badge: badge,
+                        skin: skin,
+                        largeur: largeur,
+                        embleme: embleme,
+                        hauteurEmbleme: hauteur,
+                      ),
+                    for (final badge in sansVignette.take(_maxVignettes))
+                      _BadgeChip(badge: badge, skin: skin),
+                  ],
+                );
+              },
             ),
           ),
+          if (restants > 0) ...[
+            const SizedBox(height: 14),
+            WrappedReveal(
+              delay: const Duration(milliseconds: 1100),
+              child: Text(
+                restants == 1 ? 'et un autre' : 'et $restants autres',
+                style: WrappedType.body(skin.muted, size: 15),
+              ),
+            ),
+          ],
         ],
       ),
       bottom: _Caption(
-        text: badges.length == 1
+        text: total == 1
             ? 'Décroché cette saison.'
             : 'Décrochés cette saison, du premier au dernier.',
         skin: skin,
         rank: null,
         delay: const Duration(milliseconds: 1500),
+      ),
+    );
+  }
+}
+
+/// La vignette exacte de l'armoire à badges : illustration, valeur atteinte et
+/// critère. Redessiner un badge ici, c'est prendre le risque qu'il diverge.
+/// La hauteur d'un emblème rapportée à sa largeur, telle que l'armoire la
+/// calcule.
+double _hauteurEmbleme(ArmoireBadge badge) {
+  final valeur = baremeLabelFor(badge.def.metric, badge.displayValue);
+  final descripteur = badgeDescriptorFor(
+    code: badge.def.code,
+    metric: badge.def.metric,
+    category: badge.def.category,
+    name: badge.def.name,
+  );
+  return badgeEmblemHeightRatio(
+    hasValue: valeur != null,
+    hasPeriod: descripteur.period != null,
+    hasStar: badge.def.hasStar,
+  );
+}
+
+class _BadgeTile extends StatelessWidget {
+  const _BadgeTile({
+    required this.badge,
+    required this.skin,
+    required this.largeur,
+    required this.embleme,
+    required this.hauteurEmbleme,
+  });
+
+  final ArmoireBadge badge;
+  final WrappedSkin skin;
+  final double largeur;
+  final double embleme;
+  final double hauteurEmbleme;
+
+  /// Deux lignes de nom, réservées même quand une seule est écrite : sans
+  /// cela, les vignettes n'ont pas la même hauteur et les lignes se décalent.
+  static const double _hauteurNom = 32;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: largeur,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: hauteurEmbleme,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: BadgeEmblem(
+                emoji: badge.def.emoji,
+                imageUrl: badge.def.imageUrl,
+                color: badge.def.color,
+                baremeLabel: baremeLabelFor(
+                  badge.def.metric,
+                  badge.displayValue,
+                ),
+                descriptor: badgeDescriptorFor(
+                  code: badge.def.code,
+                  metric: badge.def.metric,
+                  category: badge.def.category,
+                  name: badge.def.name,
+                ),
+                showStar: badge.def.hasStar,
+                starCount: badge.stars,
+                size: embleme,
+              ),
+            ),
+          ),
+          const SizedBox(height: 7),
+          SizedBox(
+            height: _hauteurNom,
+            child: Text(
+              badge.def.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style:
+                  WrappedType.body(skin.text, size: 13).copyWith(height: 1.2),
+            ),
+          ),
+        ],
       ),
     );
   }

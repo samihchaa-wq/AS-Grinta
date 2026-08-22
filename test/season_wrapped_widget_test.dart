@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
@@ -62,9 +64,45 @@ Widget _host(
   );
 }
 
-List<Override> _storyOverrides() => [
+ArmoireBadge _badgeArmoire(
+  String code,
+  String nom, {
+  String? metric = 'matches_played',
+  String category = 'joueur_all_time',
+  bool etoile = false,
+}) =>
+    ArmoireBadge(
+      def: BadgeDef(
+        code: code,
+        name: nom,
+        description: '',
+        emoji: '📅',
+        imageUrl: null,
+        color: null,
+        family: 'joueur',
+        kind: 'tier',
+        category: category,
+        metric: metric,
+        threshold: 50,
+        sortOrder: 1,
+        hasStar: etoile,
+      ),
+      state: BadgeState.validated,
+      displayValue: 132,
+    );
+
+List<Override> _storyOverrides({List<ArmoireBadge> armoire = const []}) => [
       mySeasonWrappedProvider.overrideWith((ref) async => _wrapped()),
       wrappedPlayerNameProvider.overrideWithValue('Samih'),
+      // Sans cette surcharge l'armoire tenterait de joindre la base : l'écran
+      // des badges retomberait sur son affichage de secours sans le dire.
+      myArmoireProvider.overrideWith(
+        (ref) async => Armoire(
+          validated: armoire,
+          inProgress: const [],
+          locked: const [],
+        ),
+      ),
     ];
 
 List<Override> _buttonOverrides({
@@ -446,6 +484,88 @@ void main() {
     expect(find.text('Mur'), findsOneWidget);
     // Les badges ne sont pas classés : la comparaison n'aurait pas de sens.
     expect(find.byType(WrappedRankBadge), findsNothing);
+  });
+
+  testWidgets('un badge connu de l’armoire garde sa vraie vignette', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(
+        const SeasonWrappedPage(),
+        // L'armoire connaît « Fidèle », pas « Mur ».
+        _storyOverrides(armoire: [_badgeArmoire('a', 'Fidèle')]),
+        reducedMotion: true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 6; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    // Le badge connu est dessiné comme dans l'armoire, avec sa valeur et son
+    // critère — pas seulement son nom.
+    expect(find.byType(BadgeEmblem), findsOneWidget);
+    // La vignette empile la valeur atteinte et le critère mesuré.
+    expect(find.text('132'), findsWidgets);
+    expect(find.textContaining('CARRIÈRE'), findsWidgets);
+    // Celui que l'armoire ignore garde son nom seul, sans disparaître.
+    expect(find.text('Mur'), findsOneWidget);
+  });
+
+  testWidgets('les vignettes de badges sont alignées entre elles',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(
+        const SeasonWrappedPage(),
+        // Deux vignettes de hauteurs naturelles différentes : l'une porte une
+        // étoile et pas de nombre, l'autre l'inverse.
+        _storyOverrides(
+          armoire: [
+            _badgeArmoire('a', 'Fidèle'),
+            _badgeArmoire(
+              'b',
+              'Mur',
+              metric: 'title_most_present',
+              category: 'palmares',
+              etoile: true,
+            ),
+          ],
+        ),
+        reducedMotion: true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 6; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    final vignettes = tester.widgetList<BadgeEmblem>(find.byType(BadgeEmblem));
+    expect(vignettes.length, 2);
+
+    final boites = find
+        .byType(BadgeEmblem)
+        .evaluate()
+        .map((element) => tester.getRect(find.byWidget(element.widget)))
+        .toList();
+    // Les deux vignettes reposent sur la même ligne du bas : sans cela, les
+    // noms écrits en dessous ne s'alignent plus.
+    expect((boites[0].bottom - boites[1].bottom).abs(), lessThan(0.5));
   });
 
   testWidgets('la dernière page propose le partage', (tester) async {
