@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Musique de fond du bilan de saison.
@@ -19,8 +20,11 @@ class WrappedMusic {
   static const String assetPath = 'audio/wrapped.mp3';
   static const String _mutedPreferenceKey = 'season_wrapped_music_muted';
 
-  final AudioPlayer _player = AudioPlayer();
+  // Créé à la demande : un remplaçant de test n'a pas à instancier de
+  // lecteur audio.
+  late final AudioPlayer _player = AudioPlayer();
   bool _started = false;
+  bool _paused = false;
 
   /// `true` quand le joueur a coupé le son la dernière fois.
   static Future<bool> readMuted() async {
@@ -51,12 +55,15 @@ class WrappedMusic {
       await _player.setReleaseMode(ReleaseMode.loop);
       await _player.setVolume(.55);
       await _player.play(AssetSource(assetPath));
+      _paused = false;
     } catch (error) {
       debugPrint('Musique du bilan indisponible : $error');
     }
   }
 
   Future<void> pause() async {
+    if (!_started || _paused) return;
+    _paused = true;
     try {
       await _player.pause();
     } catch (error) {
@@ -64,12 +71,18 @@ class WrappedMusic {
     }
   }
 
+  /// Reprend là où la pause a laissé la piste.
+  ///
+  /// Ne fait rien si la musique n'a jamais été mise en pause : demander à
+  /// reprendre une lecture déjà en cours la faisait repartir du début.
   Future<void> resume() async {
+    if (!_started) {
+      await start();
+      return;
+    }
+    if (!_paused) return;
+    _paused = false;
     try {
-      if (!_started) {
-        await start();
-        return;
-      }
       await _player.resume();
     } catch (error) {
       debugPrint('Musique du bilan non reprise : $error');
@@ -85,3 +98,6 @@ class WrappedMusic {
     }
   }
 }
+
+/// La musique du bilan, remplaçable dans les tests.
+final wrappedMusicProvider = Provider<WrappedMusic>((ref) => WrappedMusic());
