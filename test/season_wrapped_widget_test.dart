@@ -33,6 +33,10 @@ SeasonWrapped _wrapped() => SeasonWrapped.fromJson({
       'versatility': 3,
       'versatility_rank': 1,
       'top_position': 'Milieu',
+      'position_shares': [
+        {'position': 'Milieu', 'share': 60},
+        {'position': 'Milieu défensif', 'share': 40},
+      ],
     });
 
 Widget _host(
@@ -165,8 +169,8 @@ void main() {
     // Le millésime est posé sur deux lignes, en très grand.
     expect(find.text('2026\n2027'), findsOneWidget);
     expect(find.text('SAMIH'), findsOneWidget);
-    // Huit écrans, donc huit segments de progression.
-    expect(find.byType(LinearProgressIndicator), findsNWidgets(8));
+    // Sept écrans, donc sept segments de progression.
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(7));
   });
 
   testWidgets('un appui à droite avance, un appui à gauche revient',
@@ -191,6 +195,32 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('2026\n2027'), findsOneWidget);
+  });
+
+  testWidgets('les postes et la polyvalence tiennent en un écran',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 3; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    expect(find.text('TON POSTE'), findsOneWidget);
+    expect(find.text('LE PLUS SOUVENT'), findsOneWidget);
+    expect(find.text('MILIEU'), findsOneWidget);
+    // La polyvalence n'a plus d'écran a elle : elle se lit sur le terrain.
+    expect(find.text('POLYVALENCE'), findsNothing);
+    expect(find.textContaining('Deux postes'), findsOneWidget);
   });
 
   testWidgets('la réactivité s’annonce comme une moyenne', (tester) async {
@@ -226,7 +256,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 7; i += 1) {
+    for (var i = 0; i < 6; i += 1) {
       await tester.tapAt(const Offset(900, 1500));
       await tester.pump();
       await tester.pump();
@@ -252,7 +282,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 6; i += 1) {
+    for (var i = 0; i < 5; i += 1) {
       await tester.tapAt(const Offset(900, 1500));
       await tester.pump();
       await tester.pump();

@@ -146,21 +146,29 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
   late final AnimationController _progress = AnimationController(vsync: this)
     ..addStatusListener(_onSegmentFinished);
 
-  final WrappedMusic _music = WrappedMusic();
+  // Résolue à l'ouverture, pas à la volée : la fermeture de l'écran doit
+  // pouvoir arrêter la musique alors que le fournisseur n'est plus joignable.
+  late final WrappedMusic _music;
   final GlobalKey _captureKey = GlobalKey();
 
   int _index = 0;
   bool _muted = false;
+
+  /// `true` pendant un appui maintenu ou un partage. Sans ce drapeau, chaque
+  /// appui simple demandait une reprise de la musique — et le lecteur web
+  /// repartait alors du début.
+  bool _suspended = false;
   bool _isSharing = false;
   Widget? _sheetBeingCaptured;
   String? _capturedName;
 
-  int get _slideCount => 8;
+  int get _slideCount => 7;
   bool get _isLastSlide => _index == _slideCount - 1;
 
   @override
   void initState() {
     super.initState();
+    _music = ref.read(wrappedMusicProvider);
     _startSegment();
     WrappedMusic.readMuted().then((muted) {
       if (!mounted) return;
@@ -200,11 +208,15 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
   }
 
   void _pause() {
+    if (_suspended) return;
+    _suspended = true;
     _progress.stop();
     if (!_muted) _music.pause();
   }
 
   void _resume() {
+    if (!_suspended) return;
+    _suspended = false;
     if (!_isLastSlide) _progress.forward();
     if (!_muted) _music.resume();
   }

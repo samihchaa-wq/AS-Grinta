@@ -55,6 +55,23 @@ class SeasonWrappedStat {
   bool get isRanked => rank != null;
 }
 
+/// La part de titularisations à un poste.
+class SeasonWrappedPosition {
+  const SeasonWrappedPosition({required this.position, required this.share});
+
+  factory SeasonWrappedPosition.fromJson(Map<String, dynamic> json) {
+    return SeasonWrappedPosition(
+      position: json['position']?.toString() ?? '',
+      share: (json['share'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final String position;
+
+  /// Pourcentage entier des titularisations du joueur à ce poste.
+  final int share;
+}
+
 /// Une feuille du bilan : plusieurs critères qui se partagent en une image.
 class SeasonWrappedSheet {
   const SeasonWrappedSheet({
@@ -90,6 +107,7 @@ class SeasonWrapped {
     required this.versatility,
     required this.versatilityRank,
     required this.topPosition,
+    required this.positionShares,
   });
 
   factory SeasonWrapped.fromJson(Map<String, dynamic> json) {
@@ -120,6 +138,12 @@ class SeasonWrapped {
       versatility: asInt('versatility'),
       versatilityRank: asNullableInt('versatility_rank'),
       topPosition: json['top_position']?.toString(),
+      positionShares: [
+        for (final entry in (json['position_shares'] as List? ?? const []))
+          SeasonWrappedPosition.fromJson(
+            Map<String, dynamic>.from(entry as Map),
+          ),
+      ],
     );
   }
 
@@ -145,6 +169,9 @@ class SeasonWrapped {
   final int versatility;
   final int? versatilityRank;
   final String? topPosition;
+
+  /// Les postes occupés, du plus joué au moins joué.
+  final List<SeasonWrappedPosition> positionShares;
 
   /// Les neuf critères, répartis en trois feuilles partageables.
   ///
@@ -310,6 +337,11 @@ SeasonWrapped demoSeasonWrapped(String seasonName) {
     'versatility': 3,
     'versatility_rank': 2,
     'top_position': 'Milieu défensif',
+    'position_shares': [
+      {'position': 'Milieu défensif', 'share': 52},
+      {'position': 'Défenseur central', 'share': 33},
+      {'position': 'Milieu', 'share': 15},
+    ],
   });
 }
 

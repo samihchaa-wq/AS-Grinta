@@ -31,11 +31,10 @@ List<Widget> buildWrappedSlides({
     ),
     _ResponsivenessSlide(skin: skins[2], wrapped: wrapped),
     _PositionSlide(skin: skins[3], wrapped: wrapped),
-    _VersatilitySlide(skin: skins[4], wrapped: wrapped),
-    _ContributionSlide(skin: skins[5], wrapped: wrapped),
-    _ResultsSlide(skin: skins[6], wrapped: wrapped),
+    _ContributionSlide(skin: skins[4], wrapped: wrapped),
+    _ResultsSlide(skin: skins[5], wrapped: wrapped),
     _ClosingSlide(
-      skin: skins[7],
+      skin: skins[6],
       wrapped: wrapped,
       playerName: playerName,
       onShare: onShare,
@@ -336,8 +335,28 @@ class _PositionSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spots = wrappedPositionSpots(wrapped.topPosition);
+    final positions = wrapped.positionShares;
     final reduced = wrappedReducedMotion(context);
+
+    if (positions.isEmpty) {
+      return _SlideFrame(
+        skin: skin,
+        top: _SlideLabel(text: 'Ton poste', skin: skin),
+        middle: WrappedReveal(
+          delay: const Duration(milliseconds: 160),
+          child: Text(
+            'Jamais aligné au coup d’envoi',
+            style: WrappedType.title(skin.figure, size: 40),
+          ),
+        ),
+        bottom: _Caption(
+          text: 'Tu n’apparais dans aucune composition de départ.',
+          skin: skin,
+          rank: null,
+          delay: const Duration(milliseconds: 700),
+        ),
+      );
+    }
 
     return _SlideFrame(
       skin: skin,
@@ -346,70 +365,57 @@ class _PositionSlide extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          WrappedReveal(
-            delay: const Duration(milliseconds: 160),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                (wrapped.topPosition ?? 'Jamais aligné').toUpperCase(),
-                style: WrappedType.title(skin.figure, size: 46),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
           Center(
             child: SizedBox(
-              width: 250,
+              width: 268,
               child: TweenAnimationBuilder<double>(
                 tween: Tween(begin: reduced ? 1 : 0, end: 1),
                 duration: reduced
                     ? Duration.zero
-                    : const Duration(milliseconds: 1500),
+                    : const Duration(milliseconds: 1600),
                 curve: Curves.easeOutCubic,
                 builder: (context, progress, _) => WrappedInkPitch(
                   skin: skin,
-                  spots: spots,
+                  positions: positions,
                   progress: progress,
                 ),
               ),
             ),
           ),
+          const SizedBox(height: 22),
+          WrappedReveal(
+            delay: const Duration(milliseconds: 1400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'LE PLUS SOUVENT',
+                  style: WrappedType.label(skin.muted, size: 12),
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    (wrapped.topPosition ?? '').toUpperCase(),
+                    style: WrappedType.title(skin.figure, size: 42),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       bottom: _Caption(
-        text: spots.isEmpty
-            ? 'Tu n’apparais dans aucune composition de départ.'
-            : 'Le poste où tu as été aligné le plus souvent.',
+        text: switch (positions.length) {
+          1 => 'Un seul poste. Le coach sait où te trouver.',
+          2 => 'Deux postes différents cette saison.',
+          _ => '${positions.length} postes différents. Couteau suisse.',
+        },
         skin: skin,
-        rank: null,
-        delay: const Duration(milliseconds: 1300),
+        rank: wrapped.versatilityRank,
+        delay: const Duration(milliseconds: 1700),
       ),
-    );
-  }
-}
-
-class _VersatilitySlide extends StatelessWidget {
-  const _VersatilitySlide({required this.skin, required this.wrapped});
-
-  final WrappedSkin skin;
-  final SeasonWrapped wrapped;
-
-  @override
-  Widget build(BuildContext context) {
-    return _FigureSlide(
-      skin: skin,
-      ghostWord: 'Partout',
-      label: 'Polyvalence',
-      value: wrapped.versatility,
-      suffix: wrapped.versatility <= 1 ? ' poste' : ' postes',
-      rank: wrapped.versatilityRank,
-      caption: switch (wrapped.versatility) {
-        0 => 'Aucune composition de départ cette saison.',
-        1 => 'Un poste, toujours le même. Le coach sait où te trouver.',
-        2 => 'Deux postes différents occupés cette saison.',
-        _ => 'Autant de postes différents occupés. Couteau suisse.',
-      },
     );
   }
 }

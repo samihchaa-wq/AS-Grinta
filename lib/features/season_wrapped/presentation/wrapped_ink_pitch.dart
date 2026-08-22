@@ -1,3 +1,4 @@
+import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:as_grinta/features/sports_management/domain/football_formation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,22 @@ const Map<String, String> wrappedPositionFamilies = <String, String>{
   'BUD': 'Attaquant',
 };
 
+/// Un point du terrain pour représenter chaque poste.
+///
+/// Un poste couvre parfois plusieurs emplacements symétriques — deux couloirs
+/// pour un arrière latéral. En marquer un seul évite d'écrire deux fois le
+/// même pourcentage sur le terrain.
+const Map<String, Offset> wrappedPositionAnchors = <String, Offset>{
+  'Gardien': Offset(.50, .90),
+  'Arrière latéral': Offset(.13, .68),
+  'Défenseur central': Offset(.50, .74),
+  'Milieu défensif': Offset(.50, .56),
+  'Milieu': Offset(.50, .40),
+  'Milieu offensif': Offset(.50, .24),
+  'Ailier': Offset(.13, .18),
+  'Attaquant': Offset(.50, .08),
+};
+
 /// Les emplacements du terrain qui composent un poste.
 List<Offset> wrappedPositionSpots(String? family) {
   if (family == null) return const [];
@@ -41,19 +58,20 @@ List<Offset> wrappedPositionSpots(String? family) {
   ];
 }
 
-/// Le terrain réduit à ses lignes, aux couleurs de l'écran qui l'accueille.
+/// Le terrain réduit à ses lignes, avec la part de titularisations à chaque
+/// poste occupé.
 class WrappedInkPitch extends StatelessWidget {
   const WrappedInkPitch({
     super.key,
     required this.skin,
-    this.spots = const [],
+    this.positions = const [],
     this.progress = 1,
   });
 
   final WrappedSkin skin;
 
-  /// Les emplacements à encercler, en coordonnées relatives.
-  final List<Offset> spots;
+  /// Les postes occupés et leur part, du plus joué au moins joué.
+  final List<SeasonWrappedPosition> positions;
 
   /// Avancement de l'apparition des marques, de 0 à 1.
   final double progress;
@@ -64,10 +82,11 @@ class WrappedInkPitch extends StatelessWidget {
       aspectRatio: 3 / 4,
       child: CustomPaint(
         painter: _InkPitchPainter(
-          spots: spots,
+          positions: positions,
           progress: progress,
           line: skin.text,
           mark: skin.figure,
+          markText: skin.background.last,
         ),
       ),
     );
@@ -76,16 +95,18 @@ class WrappedInkPitch extends StatelessWidget {
 
 class _InkPitchPainter extends CustomPainter {
   const _InkPitchPainter({
-    required this.spots,
+    required this.positions,
     required this.progress,
     required this.line,
     required this.mark,
+    required this.markText,
   });
 
-  final List<Offset> spots;
+  final List<SeasonWrappedPosition> positions;
   final double progress;
   final Color line;
   final Color mark;
+  final Color markText;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -125,39 +146,66 @@ class _InkPitchPainter extends CustomPainter {
       );
     }
 
-    // Les postes occupés, marqués à la craie.
-    if (spots.isEmpty || progress <= 0) return;
-    final radius = pitch.shortestSide * .062;
-    for (var i = 0; i < spots.length; i += 1) {
-      // Les marques apparaissent l'une après l'autre.
-      final share = ((progress * spots.length) - i).clamp(0.0, 1.0);
+    if (positions.isEmpty || progress <= 0) return;
+
+    // Le poste le plus joué porte le plus gros disque, sans jamais devenir
+    // illisible pour les postes occupés une fois ou deux.
+    final biggest = positions
+        .map((position) => position.share)
+        .fold<int>(1, (a, b) => a > b ? a : b);
+    final maxRadius = pitch.shortestSide * .095;
+    final minRadius = pitch.shortestSide * .062;
+
+    for (var i = 0; i < positions.length; i += 1) {
+      final share = ((progress * positions.length) - i).clamp(0.0, 1.0);
       if (share <= 0) continue;
 
-      final spot = spots[i];
+      final entry = positions[i];
+      final anchor = wrappedPositionAnchors[entry.position];
+      if (anchor == null) continue;
+
       final center = Offset(
-        pitch.left + spot.dx * pitch.width,
-        pitch.top + spot.dy * pitch.height,
+        pitch.left + anchor.dx * pitch.width,
+        pitch.top + anchor.dy * pitch.height,
       );
-      canvas.drawCircle(
-        center,
-        radius * share,
-        Paint()..color = mark.withValues(alpha: .22 * share),
-      );
-      canvas.drawCircle(
-        center,
-        radius * share,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.4
-          ..color = mark.withValues(alpha: .95 * share),
-      );
+      final ratio = biggest == 0 ? 1.0 : entry.share / biggest;
+      final radius = (minRadius + (maxRadius - minRadius) * ratio) * share;
+
+      canvas.drawCircle(center, radius, Paint()..color = mark);
+      _paintShare(canvas, center, radius, entry.share, share);
     }
+  }
+
+  void _paintShare(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    int share,
+    double reveal,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: '$share%',
+        style: TextStyle(
+          fontFamily: WrappedType.display,
+          fontSize: radius * .78,
+          height: 1,
+          fontWeight: FontWeight.w700,
+          color: markText.withValues(alpha: reveal),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(
+      canvas,
+      center - Offset(painter.width / 2, painter.height / 2),
+    );
   }
 
   @override
   bool shouldRepaint(_InkPitchPainter oldDelegate) =>
       oldDelegate.progress != progress ||
-      oldDelegate.spots != spots ||
+      oldDelegate.positions != positions ||
       oldDelegate.line != line ||
       oldDelegate.mark != mark;
 }

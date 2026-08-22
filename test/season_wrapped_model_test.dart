@@ -37,6 +37,10 @@ Map<String, dynamic> _payload({
     'versatility': 3,
     'versatility_rank': 1,
     'top_position': topPosition,
+    'position_shares': [
+      {'position': 'Milieu', 'share': 70},
+      {'position': 'Attaquant', 'share': 30},
+    ],
   };
 }
 
@@ -56,6 +60,21 @@ void main() {
     // lent : la piste doit rester courte et compressee.
     expect(data.lengthInBytes, lessThan(2 * 1024 * 1024));
   });
+  test('la répartition des postes est lue et ordonnée', () {
+    final wrapped = SeasonWrapped.fromJson(_payload());
+
+    expect(wrapped.positionShares, hasLength(2));
+    expect(wrapped.positionShares.first.position, 'Milieu');
+    expect(wrapped.positionShares.first.share, 70);
+    expect(wrapped.positionShares.last.share, 30);
+  });
+
+  test('un joueur jamais titularisé n’a aucune répartition', () {
+    final json = _payload()..remove('position_shares');
+
+    expect(SeasonWrapped.fromJson(json).positionShares, isEmpty);
+  });
+
   test('les neuf critères tiennent en trois feuilles', () {
     final wrapped = SeasonWrapped.fromJson(_payload());
 
