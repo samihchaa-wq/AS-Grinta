@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
@@ -55,16 +56,28 @@ List<Override> _storyOverrides() => [
       wrappedPlayerNameProvider.overrideWithValue('Samih'),
     ];
 
+List<Override> _buttonOverrides({
+  required bool available,
+  required bool admin,
+}) =>
+    [
+      seasonWrappedStateProvider.overrideWith(
+        (ref) async => available
+            ? const SeasonWrappedState(
+                available: true,
+                seasonName: '2026-2027',
+              )
+            : const SeasonWrappedState.unavailable(),
+      ),
+      isAdminViewProvider.overrideWithValue(admin),
+    ];
+
 void main() {
   testWidgets('le bouton reste invisible pendant la saison', (tester) async {
     await tester.pumpWidget(
       _host(
         const Scaffold(body: SeasonWrappedButton()),
-        [
-          seasonWrappedStateProvider.overrideWith(
-            (ref) async => const SeasonWrappedState.unavailable(),
-          ),
-        ],
+        _buttonOverrides(available: false, admin: false),
       ),
     );
     await tester.pumpAndSettle();
@@ -72,23 +85,72 @@ void main() {
     expect(find.byKey(const ValueKey('season-wrapped-button')), findsNothing);
   });
 
-  testWidgets('le bouton apparaît entre deux saisons', (tester) async {
+  testWidgets('un administrateur garde un accès en aperçu', (tester) async {
     await tester.pumpWidget(
       _host(
         const Scaffold(body: SeasonWrappedButton()),
-        [
-          seasonWrappedStateProvider.overrideWith(
-            (ref) async => const SeasonWrappedState(
-              available: true,
-              seasonName: '2026-2027',
-            ),
-          ),
-        ],
+        _buttonOverrides(available: false, admin: true),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('season-wrapped-button')), findsOneWidget);
+    final button = find.byKey(const ValueKey('season-wrapped-button'));
+    expect(button, findsOneWidget);
+    expect(tester.widget<IconButton>(button).tooltip, 'Ma saison (aperçu)');
+  });
+
+  testWidgets('l’aperçu annonce ses chiffres d’exemple', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const SeasonWrappedPage(preview: true),
+        [
+          seasonWrappedStateProvider.overrideWith(
+            (ref) async => const SeasonWrappedState.unavailable(),
+          ),
+          wrappedPlayerNameProvider.overrideWithValue('Samih'),
+        ],
+        reducedMotion: true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('wrapped-preview-badge')),
+      findsOneWidget,
+    );
+    expect(find.text('APERÇU · CHIFFRES D’EXEMPLE'), findsOneWidget);
+    expect(find.text('SAMIH'), findsOneWidget);
+  });
+
+  test('la saison en cours se déduit du mois', () {
+    expect(
+      SeasonWrappedPage.currentSeasonName(DateTime(2026, 8, 22)),
+      '2026-2027',
+    );
+    expect(
+      SeasonWrappedPage.currentSeasonName(DateTime(2027, 3, 4)),
+      '2026-2027',
+    );
+    expect(
+      SeasonWrappedPage.currentSeasonName(DateTime(2027, 7, 1)),
+      '2027-2028',
+    );
+  });
+
+  testWidgets('le bouton apparaît entre deux saisons', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const Scaffold(body: SeasonWrappedButton()),
+        _buttonOverrides(available: true, admin: false),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(const ValueKey('season-wrapped-button'));
+    expect(button, findsOneWidget);
+    // Un vrai bilan n'est jamais présenté comme un aperçu.
+    expect(tester.widget<IconButton>(button).tooltip, 'Ma saison');
   });
 
   testWidgets('le bilan ouvre sur la feuille de saison', (tester) async {

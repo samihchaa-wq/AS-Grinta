@@ -284,6 +284,35 @@ final mySeasonWrappedProvider = FutureProvider<SeasonWrapped?>((ref) async {
   return ref.watch(seasonWrappedRepositoryProvider).fetchMine();
 });
 
+/// Bilan de démonstration, réservé à l'aperçu administrateur.
+///
+/// Aucune donnée réelle n'existe tant qu'une saison n'a pas été jouée dans
+/// l'application. Ces chiffres n'ont donc qu'un rôle : montrer le rendu.
+SeasonWrapped demoSeasonWrapped(String seasonName) {
+  return SeasonWrapped.fromJson({
+    'season_name': seasonName,
+    'roster_size': 19,
+    'matches_played': 21,
+    'matches_played_rank': 3,
+    'wins': 12,
+    'draws': 4,
+    'losses': 5,
+    'win_pct': 57.14,
+    'win_pct_rank': 5,
+    'avg_response_hours': 6.5,
+    'avg_response_rank': 2,
+    'goals': 9,
+    'goals_rank': 4,
+    'motm': 2,
+    'motm_rank': 3,
+    'clean_matches': 8,
+    'clean_matches_rank': 1,
+    'versatility': 3,
+    'versatility_rank': 2,
+    'top_position': 'Milieu défensif',
+  });
+}
+
 /// Le nom qui signe le bilan et les images partagées.
 ///
 /// Isolé dans son propre fournisseur pour que l'écran ne dépende pas

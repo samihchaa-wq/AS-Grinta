@@ -224,7 +224,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ponctuel, ouvert depuis le calendrier pendant l'intersaison.
       GoRoute(
         path: '/wrapped',
-        builder: (_, __) => const SeasonWrappedPage(),
+        builder: (context, state) => SeasonWrappedPage(
+          preview: state.uri.queryParameters['apercu'] == '1',
+        ),
       ),
       GoRoute(path: '/predictions', redirect: (_, __) => '/matches'),
       GoRoute(

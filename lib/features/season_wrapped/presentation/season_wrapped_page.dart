@@ -20,10 +20,34 @@ import 'package:share_plus/share_plus.dart';
 /// L'écran n'est atteignable que pendant l'intersaison. Les chiffres sont
 /// figés au moment de la clôture : ils ne bougent plus.
 class SeasonWrappedPage extends ConsumerWidget {
-  const SeasonWrappedPage({super.key});
+  const SeasonWrappedPage({super.key, this.preview = false});
+
+  /// Aperçu administrateur : des chiffres d'exemple, annoncés comme tels.
+  /// Il ne consulte pas la base, et fonctionne donc avant même que le calcul
+  /// des bilans soit déployé.
+  final bool preview;
+
+  /// Une saison commence en juillet.
+  static String currentSeasonName(DateTime now) {
+    final start = now.month >= 7 ? now.year : now.year - 1;
+    return '$start-${start + 1}';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (preview) {
+      final seasonName =
+          ref.watch(seasonWrappedStateProvider).valueOrNull?.seasonName ??
+              currentSeasonName(DateTime.now());
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: _WrappedStory(
+          wrapped: demoSeasonWrapped(seasonName),
+          preview: true,
+        ),
+      );
+    }
+
     final wrapped = ref.watch(mySeasonWrappedProvider);
 
     return Scaffold(
@@ -103,9 +127,10 @@ class _CloseButton extends StatelessWidget {
 }
 
 class _WrappedStory extends ConsumerStatefulWidget {
-  const _WrappedStory({required this.wrapped});
+  const _WrappedStory({required this.wrapped, this.preview = false});
 
   final SeasonWrapped wrapped;
+  final bool preview;
 
   @override
   ConsumerState<_WrappedStory> createState() => _WrappedStoryState();
@@ -363,6 +388,7 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
                 ),
                 _StoryControls(
                   color: skin.text,
+                  preview: widget.preview,
                   muted: _muted,
                   onToggleMute: _toggleMute,
                   onClose: () => Navigator.of(context).maybePop(),
@@ -494,12 +520,14 @@ class _ProgressBar extends StatelessWidget {
 class _StoryControls extends StatelessWidget {
   const _StoryControls({
     required this.color,
+    required this.preview,
     required this.muted,
     required this.onToggleMute,
     required this.onClose,
   });
 
   final Color color;
+  final bool preview;
   final bool muted;
   final VoidCallback onToggleMute;
   final VoidCallback onClose;
@@ -509,8 +537,24 @@ class _StoryControls extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
+          if (preview)
+            // Des chiffres d'exemple ne doivent jamais pouvoir passer pour
+            // un vrai bilan : l'aperçu le dit sur chaque écran.
+            Container(
+              key: const ValueKey('wrapped-preview-badge'),
+              margin: const EdgeInsets.only(left: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.admin,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                'APERÇU · CHIFFRES D’EXEMPLE',
+                style: WrappedType.label(AppTheme.textPrimary, size: 10),
+              ),
+            ),
+          const Spacer(),
           IconButton(
             key: const ValueKey('wrapped-mute-button'),
             tooltip: muted ? 'Remettre la musique' : 'Couper la musique',
