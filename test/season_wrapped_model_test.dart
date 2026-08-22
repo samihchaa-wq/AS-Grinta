@@ -1,5 +1,5 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Map<String, dynamic> _payload({
@@ -42,8 +42,20 @@ SeasonWrappedStat _stat(SeasonWrapped wrapped, String label) =>
     wrapped.stats.firstWhere((stat) => stat.label == label);
 
 void main() {
-  test('les neuf critères sont toujours présents', () {
-    expect(SeasonWrapped.fromJson(_payload()).stats, hasLength(9));
+  test('les neuf critères tiennent en trois feuilles', () {
+    final wrapped = SeasonWrapped.fromJson(_payload());
+
+    expect(wrapped.sheets, hasLength(3));
+    expect(wrapped.stats, hasLength(9));
+    expect(
+      wrapped.sheets.map((sheet) => sheet.title),
+      ['Ma présence', 'Mon apport', 'Mes résultats'],
+    );
+    // Aucun critère ne se perd ni ne se répète entre deux feuilles.
+    expect(
+      wrapped.stats.map((stat) => stat.label).toSet(),
+      hasLength(9),
+    );
   });
 
   test('un critère classé porte le rang et la taille du classement', () {
@@ -52,7 +64,6 @@ void main() {
 
     expect(matches.value, '12');
     expect(matches.rank, 4);
-    expect(matches.pool, 14);
     expect(matches.isRanked, isTrue);
   });
 
@@ -127,10 +138,10 @@ void main() {
     expect(_stat(SeasonWrapped.fromJson(json), 'Polyvalence').value, '1 poste');
   });
 
-  test('le rang s’écrit en ordinal français', () {
-    expect(frenchOrdinal(1), '1er');
-    expect(frenchOrdinal(2), '2e');
-    expect(frenchOrdinal(11), '11e');
+  test('le rang s’écrit en ordinal français, sans effectif', () {
+    expect(seasonWrappedOrdinal(1), '1er');
+    expect(seasonWrappedOrdinal(2), '2e');
+    expect(seasonWrappedOrdinal(11), '11e');
   });
 
   test('un état sans bilan disponible ne propose pas de saison', () {

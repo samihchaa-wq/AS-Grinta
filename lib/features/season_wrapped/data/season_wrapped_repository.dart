@@ -37,17 +37,26 @@ class SeasonWrappedStat {
     required this.label,
     required this.value,
     this.rank,
-    this.pool,
     this.note,
   });
 
   final String label;
   final String value;
   final int? rank;
-  final int? pool;
   final String? note;
 
-  bool get isRanked => rank != null && pool != null;
+  bool get isRanked => rank != null;
+}
+
+/// Une feuille du bilan : plusieurs critères qui se partagent en une image.
+class SeasonWrappedSheet {
+  const SeasonWrappedSheet({
+    required this.title,
+    required this.stats,
+  });
+
+  final String title;
+  final List<SeasonWrappedStat> stats;
 }
 
 class SeasonWrapped {
@@ -130,69 +139,86 @@ class SeasonWrapped {
   final int? versatilityRank;
   final String? topPosition;
 
-  /// Les neuf critères, dans l'ordre d'affichage.
-  List<SeasonWrappedStat> get stats {
+  /// Les neuf critères, répartis en trois feuilles partageables.
+  ///
+  /// Une feuille par thème plutôt qu'une image par chiffre : trois images se
+  /// regardent, neuf se subissent. Trois critères chacune, pour que les trois
+  /// images aient la même allure.
+  List<SeasonWrappedSheet> get sheets {
     return [
-      SeasonWrappedStat(
-        label: 'Matchs joués',
-        value: '$matchesPlayed',
-        rank: matchesPlayedRank,
-        pool: rosterSize,
+      SeasonWrappedSheet(
+        title: 'Ma présence',
+        stats: [
+          SeasonWrappedStat(
+            label: 'Matchs joués',
+            value: '$matchesPlayed',
+            rank: matchesPlayedRank,
+          ),
+          SeasonWrappedStat(
+            label: 'Réactivité aux disponibilités',
+            value: avgResponseHours == null
+                ? 'Aucune réponse'
+                : _formatDelay(avgResponseHours!),
+            rank: avgResponseRank,
+            note: avgResponseHours != null && avgResponseRank == null
+                ? 'Non classé : moins de huit réponses.'
+                : null,
+          ),
+          SeasonWrappedStat(
+            label: 'Poste le plus joué',
+            value: topPosition ?? 'Jamais aligné au coup d’envoi',
+          ),
+        ],
       ),
-      SeasonWrappedStat(
-        label: 'Poste le plus joué',
-        value: topPosition ?? 'Jamais aligné au coup d’envoi',
+      SeasonWrappedSheet(
+        title: 'Mon apport',
+        stats: [
+          SeasonWrappedStat(
+            label: 'Buts',
+            value: '$goals',
+            rank: goalsRank,
+          ),
+          SeasonWrappedStat(
+            label: 'Homme du match',
+            value: '$motm',
+            rank: motmRank,
+          ),
+          SeasonWrappedStat(
+            label: 'Polyvalence',
+            value:
+                versatility <= 1 ? '$versatility poste' : '$versatility postes',
+            rank: versatilityRank,
+          ),
+        ],
       ),
-      SeasonWrappedStat(
-        label: 'Victoires, nuls, défaites',
-        value: '$wins V · $draws N · $losses D',
-      ),
-      SeasonWrappedStat(
-        label: 'Pourcentage de victoire',
-        value: winPct == null ? '—' : '${_formatNumber(winPct!)} %',
-        rank: winPctRank,
-        pool: winPctPool,
-        note: winPctRank == null && matchesPlayed > 0
-            ? 'Non classé : moins de huit matchs joués.'
-            : null,
-      ),
-      SeasonWrappedStat(
-        label: 'Réactivité aux disponibilités',
-        value: avgResponseHours == null
-            ? 'Aucune réponse'
-            : _formatDelay(avgResponseHours!),
-        rank: avgResponseRank,
-        pool: avgResponsePool,
-        note: avgResponseHours != null && avgResponseRank == null
-            ? 'Non classé : moins de huit réponses.'
-            : null,
-      ),
-      SeasonWrappedStat(
-        label: 'Buts',
-        value: '$goals',
-        rank: goalsRank,
-        pool: rosterSize,
-      ),
-      SeasonWrappedStat(
-        label: 'Homme du match',
-        value: '$motm',
-        rank: motmRank,
-        pool: rosterSize,
-      ),
-      SeasonWrappedStat(
-        label: 'Matchs sans encaisser',
-        value: '$cleanMatches',
-        rank: cleanMatchesRank,
-        pool: rosterSize,
-      ),
-      SeasonWrappedStat(
-        label: 'Polyvalence',
-        value: versatility <= 1 ? '$versatility poste' : '$versatility postes',
-        rank: versatilityRank,
-        pool: rosterSize,
+      SeasonWrappedSheet(
+        title: 'Mes résultats',
+        stats: [
+          SeasonWrappedStat(
+            label: 'Victoires, nuls, défaites',
+            value: '$wins V · $draws N · $losses D',
+          ),
+          SeasonWrappedStat(
+            label: 'Pourcentage de victoire',
+            value: winPct == null ? '—' : '${_formatNumber(winPct!)} %',
+            rank: winPctRank,
+            note: winPctRank == null && matchesPlayed > 0
+                ? 'Non classé : moins de huit matchs joués.'
+                : null,
+          ),
+          SeasonWrappedStat(
+            label: 'Matchs sans encaisser',
+            value: '$cleanMatches',
+            rank: cleanMatchesRank,
+          ),
+        ],
       ),
     ];
   }
+
+  /// Tous les critères, feuilles confondues.
+  List<SeasonWrappedStat> get stats =>
+      [for (final sheet in sheets) ...sheet.stats];
 
   static String _formatNumber(double value) {
     final rounded = value.roundToDouble();

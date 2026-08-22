@@ -1,7 +1,11 @@
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_entry_card.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -38,10 +42,10 @@ Widget _host(Widget child, List<Override> overrides) {
 }
 
 void main() {
-  testWidgets('la carte reste invisible pendant la saison', (tester) async {
+  testWidgets('le bouton reste invisible pendant la saison', (tester) async {
     await tester.pumpWidget(
       _host(
-        const Scaffold(body: SeasonWrappedEntryCard()),
+        const Scaffold(body: SeasonWrappedButton()),
         [
           seasonWrappedStateProvider.overrideWith(
             (ref) async => const SeasonWrappedState.unavailable(),
@@ -51,13 +55,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Ma saison'), findsNothing);
+    expect(find.byKey(const ValueKey('season-wrapped-button')), findsNothing);
   });
 
-  testWidgets('la carte apparaît entre deux saisons', (tester) async {
+  testWidgets('le bouton apparaît entre deux saisons', (tester) async {
     await tester.pumpWidget(
       _host(
-        const Scaffold(body: SeasonWrappedEntryCard()),
+        const Scaffold(body: SeasonWrappedButton()),
         [
           seasonWrappedStateProvider.overrideWith(
             (ref) async => const SeasonWrappedState(
@@ -70,12 +74,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Ma saison'), findsOneWidget);
-    expect(find.textContaining('2026-2027'), findsOneWidget);
+    expect(find.byKey(const ValueKey('season-wrapped-button')), findsOneWidget);
   });
 
-  testWidgets('le bilan affiche les neuf critères', (tester) async {
-    // Un écran haut, pour que la liste construise ses neuf cartes d'un coup.
+  testWidgets('le bilan tient en trois feuilles partageables', (tester) async {
+    // Un écran haut, pour que la liste construise ses trois feuilles d'un coup.
     tester.view.physicalSize = const Size(1200, 3200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -89,14 +92,87 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Saison 2026-2027'), findsOneWidget);
-    expect(find.text('Matchs joués'), findsOneWidget);
-    expect(find.text('Poste le plus joué'), findsOneWidget);
-    expect(find.text('Polyvalence'), findsOneWidget);
+    expect(find.text('Ma présence'), findsOneWidget);
+    expect(find.text('Mes résultats'), findsOneWidget);
+    expect(find.text('Mon apport'), findsOneWidget);
+    expect(find.text('Partager'), findsNWidgets(3));
+  });
 
-    // Un critère classé montre son rang, un critère non classé n'en a pas.
-    expect(find.text('4e sur 14'), findsOneWidget);
-    expect(find.text('1er sur 9'), findsOneWidget);
+  testWidgets('le rang s’affiche seul, sans effectif', (tester) async {
+    tester.view.physicalSize = const Size(1200, 3200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(
+        const SeasonWrappedPage(),
+        [mySeasonWrappedProvider.overrideWith((ref) async => _wrapped())],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('4e'), findsOneWidget);
+    expect(find.textContaining('4e sur'), findsNothing);
+    // Un critère qui ne se classe pas n'affiche aucun rang.
     expect(find.text('7 V · 2 N · 3 D'), findsOneWidget);
+  });
+
+  testWidgets('la feuille partagée porte le nom du joueur', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SeasonWrappedShareSheet(
+          sheet: _wrapped().sheets.first,
+          seasonName: '2026-2027',
+          playerName: 'Samih',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('AS GRINTA'), findsOneWidget);
+    expect(find.text('Saison 2026-2027'), findsOneWidget);
+    expect(find.text('Ma présence'), findsOneWidget);
+    expect(find.text('Samih'), findsOneWidget);
+  });
+
+  testWidgets('la feuille se transforme en une vraie image', (tester) async {
+    final captureKey = GlobalKey();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        // Centrée, la feuille garde sa taille propre — comme dans l'écran,
+        // où elle est posée hors champ sans contrainte d'étirement.
+        home: Center(
+          child: RepaintBoundary(
+            key: captureKey,
+            child: SeasonWrappedShareSheet(
+              sheet: _wrapped().sheets.first,
+              seasonName: '2026-2027',
+              playerName: 'Samih',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final boundary =
+        captureKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+
+    // L'encodage PNG est un vrai travail asynchrone : il doit sortir du temps
+    // simulé du test, sinon il ne se termine jamais.
+    await tester.runAsync(() async {
+      final image = await boundary.toImage(
+        pixelRatio: kSeasonWrappedSharePixelRatio,
+      );
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+
+      expect(image.width, (kSeasonWrappedShareWidth * 3).round());
+      expect(image.height, (kSeasonWrappedShareHeight * 3).round());
+      expect(bytes, isNotNull);
+      expect(bytes!.lengthInBytes, greaterThan(0));
+      image.dispose();
+    });
   });
 
   testWidgets('un joueur sans bilan voit un message clair', (tester) async {
