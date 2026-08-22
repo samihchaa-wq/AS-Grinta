@@ -70,7 +70,32 @@ select public.admin_update_match_complete(
 reset role;
 select is((select predictions_closed_at from public.matches where id=current_setting('test.match')::uuid),
   null::timestamptz,'reschedule clears stale manual close');
+
+-- The season cannot be archived while either fixture is still upcoming. Close
+-- the internal fixture and finalize the competitive match before archive.
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+set local role authenticated;
+select throws_ok(
+  $$select public.set_season_status('fc200000-0000-0000-0000-000000000001'::uuid,'archived')$$,
+  '22023','Impossible d’archiver la saison : un match n’est pas encore finalisé.',
+  'season archive rejects an upcoming match');
+select public.cancel_match(current_setting('test.internal')::uuid);
+reset role;
+
+set local session_replication_role=replica;
+update public.matches set kickoff_at='2015-03-17 20:00:00+00',match_date='2015-03-17',match_time='21:00:00'
+where id=current_setting('test.match')::uuid;
+set local session_replication_role=origin;
+select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
+select public.finalize_match_postgame(current_setting('test.match')::uuid,1,'[]'::jsonb,null,2);
+set local session_replication_role=replica;
+update public.match_sport_finalizations
+set validated_at=now()-interval '25 hours'
+where match_id=current_setting('test.match')::uuid;
+update public.matches
+set result_validated_at=now()-interval '25 hours'
+where id=current_setting('test.match')::uuid;
+set local session_replication_role=origin;
 set local role authenticated;
 select public.set_season_status('fc200000-0000-0000-0000-000000000001','archived');
 reset role;
@@ -99,12 +124,6 @@ select ok(exists(select 1 from public.season_prediction_roster_captures
   where season_id='fc200000-0000-0000-0000-000000000002'),
   'committed roster snapshot survives archive');
 
-set local session_replication_role=replica;
-update public.matches set kickoff_at='2015-03-17 20:00:00+00',match_date='2015-03-17',match_time='21:00:00'
-where id=current_setting('test.match')::uuid;
-set local session_replication_role=origin;
-select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
-select public.finalize_match_postgame(current_setting('test.match')::uuid,1,'[]'::jsonb,null,2);
 update public.profiles set status='archived' where id='fc100000-0000-0000-0000-000000000002';
 select ok(exists(select 1 from public.v_classement_general
   where profile_id='fc100000-0000-0000-0000-000000000002'),
@@ -133,6 +152,17 @@ where id=current_setting('test.title_match')::uuid;
 set local session_replication_role=origin;
 select set_config('request.jwt.claims','{"sub":"fc100000-0000-0000-0000-000000000001","role":"authenticated","aud":"authenticated"}',true);
 select public.finalize_match_postgame(current_setting('test.title_match')::uuid,0,'[]'::jsonb,null,1);
+set local session_replication_role=replica;
+update public.match_sport_motm_elections
+set closes_at=now()-interval '1 minute'
+where match_id=current_setting('test.title_match')::uuid;
+update public.match_sport_finalizations
+set validated_at=now()-interval '25 hours'
+where match_id=current_setting('test.title_match')::uuid;
+update public.matches
+set result_validated_at=now()-interval '25 hours'
+where id=current_setting('test.title_match')::uuid;
+set local session_replication_role=origin;
 set local role authenticated;
 select public.set_season_status('fc200000-0000-0000-0000-000000000003','archived');
 reset role;

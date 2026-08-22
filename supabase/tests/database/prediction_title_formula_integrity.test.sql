@@ -93,6 +93,17 @@ select public.finalize_match_postgame(
   null,
   1
 );
+set local session_replication_role=replica;
+update public.match_sport_motm_elections
+set closes_at=now()-interval '1 minute'
+where match_id=current_setting('test.overall_match')::uuid;
+update public.match_sport_finalizations
+set validated_at=now()-interval '25 hours'
+where match_id=current_setting('test.overall_match')::uuid;
+update public.matches
+set result_validated_at=now()-interval '25 hours'
+where id=current_setting('test.overall_match')::uuid;
+set local session_replication_role=origin;
 set local role authenticated;
 select public.set_season_status('fe200000-0000-0000-0000-000000000001','archived');
 reset role;
@@ -185,6 +196,17 @@ select public.finalize_match_postgame(
   null,
   2
 );
+set local session_replication_role=replica;
+update public.match_sport_motm_elections
+set closes_at=now()-interval '1 minute'
+where match_id=current_setting('test.bonus_match')::uuid;
+update public.match_sport_finalizations
+set validated_at=now()-interval '25 hours'
+where match_id=current_setting('test.bonus_match')::uuid;
+update public.matches
+set result_validated_at=now()-interval '25 hours'
+where id=current_setting('test.bonus_match')::uuid;
+set local session_replication_role=origin;
 set local role authenticated;
 select public.set_season_status('fe200000-0000-0000-0000-000000000002','archived');
 reset role;
