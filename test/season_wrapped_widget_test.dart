@@ -5,6 +5,7 @@ import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_share_sheet.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/wrapped_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -311,6 +312,36 @@ void main() {
     // Le chiffre est une moyenne, jamais un cumul : l'écran doit le dire.
     expect(find.text('DÉLAI MOYEN DE RÉPONSE'), findsOneWidget);
     expect(find.textContaining('En moyenne'), findsOneWidget);
+  });
+
+  testWidgets('les matchs sans encaisser se lisent comme les autres stats', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    for (var i = 0; i < 5; i += 1) {
+      await tester.tapAt(const Offset(900, 1500));
+      await tester.pump();
+      await tester.pump();
+    }
+
+    // C'est un des neuf criteres : intitule, grand chiffre et classement,
+    // pas une note de bas de page.
+    expect(find.text('L’ÉQUIPE QUAND TU ÉTAIS LÀ'), findsOneWidget);
+    expect(find.text('MATCHS SANS ENCAISSER'), findsOneWidget);
+    expect(find.text('6'), findsOneWidget);
+    // Deux statistiques classées sur cet écran : le pourcentage de victoire
+    // et les matchs sans encaisser.
+    expect(find.byType(WrappedRankBadge), findsNWidgets(2));
+    expect(find.textContaining('sans encaisser.'), findsNothing);
   });
 
   testWidgets('la dernière page propose le partage', (tester) async {
