@@ -188,72 +188,72 @@ class WrappedBackdrop extends StatelessWidget {
         painter: _MotifPainter(motif: skin.motif, color: skin.motifColor),
         child: LayoutBuilder(
           builder: (context, constraints) => Stack(
-          fit: StackFit.expand,
-          children: [
-            if (ghostWord != null &&
-                ghostWord!.isNotEmpty &&
-                ghostPlacement == WrappedGhostPlacement.corner)
+            fit: StackFit.expand,
+            children: [
+              if (ghostWord != null &&
+                  ghostWord!.isNotEmpty &&
+                  ghostPlacement == WrappedGhostPlacement.corner)
+                Positioned(
+                  right: -34,
+                  bottom: -46,
+                  child: IgnorePointer(
+                    child: Text(
+                      ghostWord!.toUpperCase(),
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontFamily: WrappedType.display,
+                        fontSize: 168,
+                        height: .8,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -6,
+                        foreground: Paint()
+                          ..style = PaintingStyle.stroke
+                          ..strokeWidth = 2
+                          ..color = skin.motifColor.withValues(alpha: .22),
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
-                right: -34,
-                bottom: -46,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 240,
                 child: IgnorePointer(
-                  child: Text(
-                    ghostWord!.toUpperCase(),
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontFamily: WrappedType.display,
-                      fontSize: 168,
-                      height: .8,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -6,
-                      foreground: Paint()
-                        ..style = PaintingStyle.stroke
-                        ..strokeWidth = 2
-                        ..color = skin.motifColor.withValues(alpha: .22),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          skin.background.last.withValues(alpha: 0),
+                          skin.background.last.withValues(alpha: .55),
+                          skin.background.last.withValues(alpha: .82),
+                        ],
+                        stops: const [0, .55, 1],
+                      ),
                     ),
                   ),
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 240,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        skin.background.last.withValues(alpha: 0),
-                        skin.background.last.withValues(alpha: .55),
-                        skin.background.last.withValues(alpha: .82),
-                      ],
-                      stops: const [0, .55, 1],
+              if (ghostWord != null &&
+                  ghostWord!.isNotEmpty &&
+                  ghostPlacement == WrappedGhostPlacement.band)
+                Positioned(
+                  left: constraints.maxWidth * .06,
+                  right: constraints.maxWidth * .06,
+                  bottom: MediaQuery.paddingOf(context).bottom +
+                      constraints.maxHeight * .125,
+                  child: IgnorePointer(
+                    child: _GhostWord(
+                      word: ghostWord!,
+                      skin: skin,
+                      maxFontSize: constraints.maxWidth * .28,
                     ),
                   ),
                 ),
-              ),
-            ),
-            if (ghostWord != null &&
-                ghostWord!.isNotEmpty &&
-                ghostPlacement == WrappedGhostPlacement.band)
-              Positioned(
-                left: constraints.maxWidth * .06,
-                right: constraints.maxWidth * .06,
-                bottom: MediaQuery.paddingOf(context).bottom
-                    + constraints.maxHeight * .125,
-                child: IgnorePointer(
-                  child: _GhostWord(
-                    word: ghostWord!,
-                    skin: skin,
-                    maxFontSize: constraints.maxWidth * .28,
-                  ),
-                ),
-              ),
-            child,
-          ],
+              child,
+            ],
           ),
         ),
       ),
