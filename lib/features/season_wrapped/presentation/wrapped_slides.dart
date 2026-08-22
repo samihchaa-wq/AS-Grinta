@@ -22,7 +22,6 @@ List<Widget> buildWrappedSlides({
     _FigureSlide(
       skin: skins[1],
       label: 'Matchs joués',
-      ghostWord: 'Présent',
       value: wrapped.matchesPlayed,
       rank: wrapped.matchesPlayedRank,
       caption: wrapped.matchesPlayed <= 1
@@ -47,14 +46,12 @@ List<Widget> buildWrappedSlides({
 class _SlideFrame extends StatelessWidget {
   const _SlideFrame({
     required this.skin,
-    this.ghostWord,
     required this.top,
     required this.middle,
     this.bottom,
   });
 
   final WrappedSkin skin;
-  final String? ghostWord;
   final Widget top;
   final Widget middle;
   final Widget? bottom;
@@ -63,7 +60,6 @@ class _SlideFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return WrappedBackdrop(
       skin: skin,
-      ghostWord: ghostWord,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 74, 24, 40),
@@ -195,7 +191,6 @@ class _OpeningSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SlideFrame(
       skin: skin,
-      ghostWord: 'Grinta',
       top: _SlideLabel(text: 'Ta saison', skin: skin),
       middle: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -246,7 +241,6 @@ class _FigureSlide extends StatelessWidget {
     required this.value,
     required this.rank,
     required this.caption,
-    this.ghostWord,
     this.suffix = '',
     this.decimals = 0,
   });
@@ -256,7 +250,6 @@ class _FigureSlide extends StatelessWidget {
   final num value;
   final int? rank;
   final String caption;
-  final String? ghostWord;
   final String suffix;
   final int decimals;
 
@@ -264,7 +257,6 @@ class _FigureSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SlideFrame(
       skin: skin,
-      ghostWord: ghostWord,
       top: _SlideLabel(text: label, skin: skin),
       middle: _GiantFigure(
         value: value,
@@ -290,7 +282,6 @@ class _ResponsivenessSlide extends StatelessWidget {
     if (hours == null) {
       return _SlideFrame(
         skin: skin,
-        ghostWord: 'Dispo',
         top: _SlideLabel(text: 'Réactivité', skin: skin),
         middle: WrappedReveal(
           delay: const Duration(milliseconds: 200),
@@ -315,7 +306,6 @@ class _ResponsivenessSlide extends StatelessWidget {
 
     return _FigureSlide(
       skin: skin,
-      ghostWord: 'Dispo',
       label: 'Délai moyen de réponse',
       value: value,
       decimals: value >= 10 ? 0 : 1,
@@ -430,7 +420,6 @@ class _ContributionSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SlideFrame(
       skin: skin,
-      ghostWord: 'Buts',
       top: _SlideLabel(text: 'Ton apport', skin: skin),
       middle: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -534,7 +523,6 @@ class _ResultsSlide extends StatelessWidget {
 
     return _SlideFrame(
       skin: skin,
-      ghostWord: 'Équipe',
       top: _SlideLabel(text: 'L’équipe quand tu étais là', skin: skin),
       middle: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -713,7 +701,7 @@ class WrappedRecapLine extends StatelessWidget {
               style: WrappedType.label(
                 skin.muted.withValues(alpha: .72),
                 size: size - 2,
-              ).copyWith(fontWeight: FontWeight.w400, letterSpacing: 1.4),
+              ).copyWith(fontWeight: FontWeight.w500, letterSpacing: 1.4),
             ),
           ),
           Expanded(
