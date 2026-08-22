@@ -19,7 +19,7 @@ dependencies:
   image: ^4.5.4
   image_picker: ^1.1.2
   audioplayers: ^6.1.0
-  share_plus: ^10.1.4
+  share_plus: ^13.3.0
   shared_preferences: ^2.5.3
   supabase_flutter: ^2.8.4
   url_launcher: ^6.3.1
