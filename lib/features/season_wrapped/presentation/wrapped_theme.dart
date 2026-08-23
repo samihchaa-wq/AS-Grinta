@@ -93,13 +93,19 @@ class WrappedSkin {
     motifColor: Color(0x1AFFD84A),
   );
 
-  /// L'ordre de passage des habillages sur les sept écrans.
+  /// L'ordre de passage des habillages, écran par écran. Deux écrans qui se
+  /// suivent ne portent jamais le même : c'est ce qui donne l'impression
+  /// d'avancer.
   static const List<WrappedSkin> sequence = [
     night,
     royal,
-    night,
     deep,
     flash,
+    night,
+    royal,
+    deep,
+    flash,
+    night,
     royal,
     deep,
     flash,
