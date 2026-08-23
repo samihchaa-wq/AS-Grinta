@@ -83,11 +83,12 @@ ArmoireBadge _badgeArmoire(
         kind: 'tier',
         category: category,
         metric: metric,
-        threshold: 50,
+        threshold: 100,
         sortOrder: 1,
         hasStar: etoile,
       ),
       state: BadgeState.validated,
+      // Le joueur en est à 132, mais le badge s'obtient à 100.
       displayValue: 132,
     );
 
@@ -98,11 +99,10 @@ const _ecranButs = 4;
 const _ecranHdm = 5;
 const _ecranSansEncaisser = 6;
 const _ecranPoste = 7;
-const _ecranPolyvalence = 8;
-const _ecranReactivite = 9;
-const _ecranBadges = 10;
-const _ecranCloture = 11;
-const _nombreEcrans = 12;
+const _ecranReactivite = 8;
+const _ecranBadges = 9;
+const _ecranCloture = 10;
+const _nombreEcrans = 11;
 
 /// Avance de [pas] écrans depuis celui affiché.
 Future<void> _avancer(WidgetTester tester, int pas) async {
@@ -267,7 +267,7 @@ void main() {
     expect(find.text('2026\n2027'), findsOneWidget);
   });
 
-  testWidgets('le poste et la polyvalence ont chacun leur écran',
+  testWidgets('le poste et la polyvalence tiennent en un écran',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
@@ -284,13 +284,8 @@ void main() {
     expect(find.text('TON POSTE'), findsOneWidget);
     expect(find.text('LE PLUS SOUVENT'), findsOneWidget);
     expect(find.text('MILIEU'), findsOneWidget);
-    // Le terrain montre où l'on a joué ; le compte des postes vient après.
-    expect(find.text('POLYVALENCE'), findsNothing);
-
-    await _avancer(tester, _ecranPolyvalence - _ecranPoste);
-
-    expect(find.text('POLYVALENCE'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    // Le terrain montre déjà les postes occupés : leur compte se lit
+    // en légende, avec son classement, plutôt que sur un écran de plus.
     expect(find.textContaining('Deux postes'), findsOneWidget);
     expect(find.byType(WrappedRankBadge), findsOneWidget);
   });
@@ -341,7 +336,6 @@ void main() {
       'HOMME DU MATCH',
       'MATCHS SANS ENCAISSER',
       'TON POSTE',
-      'POLYVALENCE',
       'DÉLAI MOYEN DE RÉPONSE',
       'TES BADGES',
       'TA SAISON EN ENTIER',
@@ -583,8 +577,9 @@ void main() {
     // Le badge connu est dessiné comme dans l'armoire, avec sa valeur et son
     // critère — pas seulement son nom.
     expect(find.byType(BadgeEmblem), findsOneWidget);
-    // La vignette empile la valeur atteinte et le critère mesuré.
-    expect(find.text('132'), findsWidgets);
+    // La vignette annonce le palier du badge, pas le compteur du joueur.
+    expect(find.text('100'), findsWidgets);
+    expect(find.text('132'), findsNothing);
     expect(find.textContaining('CARRIÈRE'), findsWidgets);
     // Celui que l'armoire ignore garde son nom seul, sans disparaître.
     expect(find.text('Mur'), findsOneWidget);

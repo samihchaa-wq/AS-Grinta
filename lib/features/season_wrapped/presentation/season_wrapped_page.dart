@@ -162,7 +162,7 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
   Widget? _sheetBeingCaptured;
   String? _capturedName;
 
-  int get _slideCount => 12;
+  int get _slideCount => 11;
   bool get _isLastSlide => _index == _slideCount - 1;
 
   @override
