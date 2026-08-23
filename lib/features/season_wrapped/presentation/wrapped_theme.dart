@@ -300,7 +300,7 @@ class WrappedRankBadge extends StatelessWidget {
     super.key,
     required this.rank,
     required this.skin,
-    this.size = 18,
+    this.size = 24,
   });
 
   final int rank;

@@ -205,8 +205,8 @@ class _Caption extends StatelessWidget {
               // La phrase du bas explique le chiffre : elle doit se lire
               // d'un coup d'œil, pas à la loupe.
               text,
-              style: WrappedType.body(skin.text, size: 22).copyWith(
-                height: 1.25,
+              style: WrappedType.body(skin.text, size: 30).copyWith(
+                height: 1.2,
               ),
             ),
           ),
@@ -430,7 +430,7 @@ class _PositionSlide extends StatelessWidget {
               children: [
                 Text(
                   'LE PLUS SOUVENT',
-                  style: WrappedType.label(skin.muted, size: 12),
+                  style: WrappedType.label(skin.muted, size: 18),
                 ),
                 const SizedBox(height: 4),
                 FittedBox(
@@ -618,8 +618,8 @@ class _BadgesSlide extends ConsumerWidget {
         children: [
           // La grille occupe déjà la moitié de l'écran : le compte se lit
           // plus petit que sur les écrans qui ne portent qu'un chiffre.
-          _GiantFigure(value: total, skin: skin, size: 122),
-          const SizedBox(height: 28),
+          _GiantFigure(value: total, skin: skin, size: 100),
+          const SizedBox(height: 26),
           WrappedReveal(
             delay: const Duration(milliseconds: 900),
             child: LayoutBuilder(
@@ -665,7 +665,7 @@ class _BadgesSlide extends ConsumerWidget {
               delay: const Duration(milliseconds: 1100),
               child: Text(
                 restants == 1 ? 'et un autre' : 'et $restants autres',
-                style: WrappedType.body(skin.muted, size: 19),
+                style: WrappedType.body(skin.muted, size: 24),
               ),
             ),
           ],
@@ -721,7 +721,7 @@ class _BadgeTile extends StatelessWidget {
 
   /// Deux lignes de nom, réservées même quand une seule est écrite : sans
   /// cela, les vignettes n'ont pas la même hauteur et les lignes se décalent.
-  static const double _hauteurNom = 32;
+  static const double _hauteurNom = 38;
 
   @override
   Widget build(BuildContext context) {
@@ -766,7 +766,7 @@ class _BadgeTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style:
-                  WrappedType.body(skin.text, size: 13).copyWith(height: 1.2),
+                  WrappedType.body(skin.text, size: 15).copyWith(height: 1.2),
             ),
           ),
         ],
@@ -796,7 +796,7 @@ class _BadgeChip extends StatelessWidget {
             Text(badge.emoji, style: const TextStyle(fontSize: 15)),
             const SizedBox(width: 7),
           ],
-          Text(badge.name, style: WrappedType.body(skin.text, size: 15)),
+          Text(badge.name, style: WrappedType.body(skin.text, size: 18)),
         ],
       ),
     );
@@ -826,7 +826,7 @@ class _ResultBlock extends StatelessWidget {
           Text(
             letter,
             textAlign: TextAlign.center,
-            style: WrappedType.label(skin.muted, size: 15),
+            style: WrappedType.label(skin.muted, size: 24),
           ),
           const SizedBox(height: 8),
           Container(height: 2, color: skin.figure.withValues(alpha: .35)),
@@ -900,7 +900,7 @@ class _ClosingSlide extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(999),
                 ),
-                textStyle: WrappedType.label(skin.badgeText, size: 14),
+                textStyle: WrappedType.label(skin.badgeText, size: 17),
               ),
               icon: const Icon(Icons.ios_share, size: 18),
               label: const Text('PARTAGER MA SAISON'),
@@ -911,7 +911,7 @@ class _ClosingSlide extends StatelessWidget {
               style: TextButton.styleFrom(foregroundColor: skin.muted),
               child: Text(
                 'Partager par thème',
-                style: WrappedType.body(skin.muted, size: 20),
+                style: WrappedType.body(skin.muted, size: 23),
               ),
             ),
           ],
@@ -937,7 +937,7 @@ class WrappedRecapLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = dense ? 12.0 : 14.0;
+    final size = dense ? 12.0 : 17.0;
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: dense ? 3 : 7),
@@ -970,11 +970,12 @@ class WrappedRecapLine extends StatelessWidget {
             ),
           ),
           SizedBox(
-            width: dense ? 30 : 36,
+            width: dense ? 30 : 46,
             child: Text(
               stat.isRanked ? wrappedOrdinal(stat.rank!) : '',
               textAlign: TextAlign.right,
-              style: WrappedType.label(skin.badge, size: size - 3),
+              style: WrappedType.label(skin.badge, size: size - 3)
+                  .copyWith(letterSpacing: dense ? null : 0.6),
             ),
           ),
         ],
