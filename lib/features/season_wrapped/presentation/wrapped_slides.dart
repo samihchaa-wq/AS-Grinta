@@ -874,7 +874,11 @@ class _ClosingSlide extends StatelessWidget {
           for (var i = 0; i < wrapped.stats.length; i += 1)
             WrappedReveal(
               delay: Duration(milliseconds: 100 + i * 80),
-              child: WrappedRecapLine(stat: wrapped.stats[i], skin: skin),
+              child: WrappedRecapLine(
+                stat: wrapped.stats[i],
+                skin: skin,
+                highlighted: i.isEven,
+              ),
             ),
         ],
       ),
@@ -922,40 +926,56 @@ class _ClosingSlide extends StatelessWidget {
 }
 
 /// Une ligne du récapitulatif : intitulé à gauche, valeur à droite, rang au
-/// bout. Les colonnes sont fixes pour que rien n'ondule d'une ligne à l'autre.
+/// bout. Les colonnes restent fixes ; des bandes alternées rattachent
+/// visuellement chaque intitulé à sa valeur sans alourdir le fond du bilan.
 class WrappedRecapLine extends StatelessWidget {
   const WrappedRecapLine({
     super.key,
     required this.stat,
     required this.skin,
     this.dense = false,
+    this.highlighted = false,
   });
 
   final SeasonWrappedStat stat;
   final WrappedSkin skin;
   final bool dense;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     final size = dense ? 12.0 : 17.0;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: dense ? 3 : 7),
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: dense ? 2 : 3),
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 0 : 8,
+        vertical: dense ? 3 : 4,
+      ),
+      decoration: highlighted && !dense
+          ? BoxDecoration(
+              color: skin.text.withValues(alpha: .055),
+              borderRadius: BorderRadius.circular(6),
+            )
+          : null,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             flex: 7,
-            child: Text(
-              stat.shortLabel.toUpperCase(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: WrappedType.label(
-                // La graisse fine perd en presence : on la rattrape par
-                // le contraste plutot qu'en reepaississant.
-                skin.muted.withValues(alpha: .92),
-                size: size - 2,
-              ).copyWith(letterSpacing: 1.4),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                stat.shortLabel.toUpperCase(),
+                maxLines: 1,
+                style: WrappedType.label(
+                  // La graisse fine perd en presence : on la rattrape par
+                  // le contraste plutot qu'en reepaississant.
+                  skin.muted.withValues(alpha: .92),
+                  size: size - 2,
+                ).copyWith(letterSpacing: 1.4),
+              ),
             ),
           ),
           Expanded(
