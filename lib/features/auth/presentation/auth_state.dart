@@ -79,10 +79,14 @@ class AuthController extends StateNotifier<AuthState> {
   AuthController(this._repository) : super(const AuthState()) {
     _authSubscription = _repository.authStateChanges.listen((event) {
       // Supabase.initialize a déjà restauré la session avant que l'application
-      // soit montée et le constructeur lance son propre refresh juste après
-      // l'abonnement. Traiter `initialSession` ici invalidait ce refresh en
-      // cours et laissait l'écran bloqué jusqu'au fallback de 15 secondes.
-      if (event.event == supabase.AuthChangeEvent.initialSession) return;
+      // soit montée et le constructeur lance son propre refresh juste après.
+      // Un renouvellement de token ne change pas non plus l'identité : le
+      // traiter comme une nouvelle session invalide le get_my_profile en cours
+      // et peut laisser l'écran bloqué jusqu'au fallback de 15 secondes.
+      if (event.event == supabase.AuthChangeEvent.initialSession ||
+          event.event == supabase.AuthChangeEvent.tokenRefreshed) {
+        return;
+      }
 
       _authGeneration += 1;
       if (event.event == supabase.AuthChangeEvent.signedOut) {
