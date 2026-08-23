@@ -156,11 +156,15 @@ class _GiantFigure extends StatelessWidget {
     required this.value,
     required this.skin,
     this.suffix = '',
+    this.size = 180,
   });
 
   final num value;
   final WrappedSkin skin;
   final String suffix;
+
+  /// Un écran qui porte autre chose que ce chiffre lui laisse moins de place.
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -170,7 +174,7 @@ class _GiantFigure extends StatelessWidget {
       child: WrappedCountUp(
         value: value,
         suffix: suffix,
-        style: WrappedType.figure(skin.figure),
+        style: WrappedType.figure(skin.figure, size: size),
       ),
     );
   }
@@ -198,9 +202,11 @@ class _Caption extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
+              // La phrase du bas explique le chiffre : elle doit se lire
+              // d'un coup d'œil, pas à la loupe.
               text,
-              style: WrappedType.body(skin.text, size: 16).copyWith(
-                height: 1.3,
+              style: WrappedType.body(skin.text, size: 22).copyWith(
+                height: 1.25,
               ),
             ),
           ),
@@ -610,8 +616,10 @@ class _BadgesSlide extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _GiantFigure(value: total, skin: skin),
-          const SizedBox(height: 26),
+          // La grille occupe déjà la moitié de l'écran : le compte se lit
+          // plus petit que sur les écrans qui ne portent qu'un chiffre.
+          _GiantFigure(value: total, skin: skin, size: 122),
+          const SizedBox(height: 28),
           WrappedReveal(
             delay: const Duration(milliseconds: 900),
             child: LayoutBuilder(
@@ -657,10 +665,12 @@ class _BadgesSlide extends ConsumerWidget {
               delay: const Duration(milliseconds: 1100),
               child: Text(
                 restants == 1 ? 'et un autre' : 'et $restants autres',
-                style: WrappedType.body(skin.muted, size: 15),
+                style: WrappedType.body(skin.muted, size: 19),
               ),
             ),
           ],
+          // La légende du bas ne doit pas coller à la dernière rangée.
+          const SizedBox(height: 20),
         ],
       ),
       bottom: _Caption(
@@ -901,7 +911,7 @@ class _ClosingSlide extends StatelessWidget {
               style: TextButton.styleFrom(foregroundColor: skin.muted),
               child: Text(
                 'Partager par thème',
-                style: WrappedType.body(skin.muted, size: 14),
+                style: WrappedType.body(skin.muted, size: 20),
               ),
             ),
           ],
