@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
+import 'package:as_grinta/features/badges/data/badge_repository.dart';
+import 'package:as_grinta/features/badges/presentation/badge_emblem.dart';
 import 'package:as_grinta/features/season_wrapped/data/season_wrapped_repository.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
 import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_page.dart';
@@ -32,7 +34,7 @@ SeasonWrapped _wrapped() => SeasonWrapped.fromJson({
       'motm_rank': 8,
       'clean_matches': 6,
       'clean_matches_rank': 2,
-      'versatility': 3,
+      'versatility': 2,
       'versatility_rank': 1,
       'badge_count': 2,
       'badges': [
@@ -62,9 +64,70 @@ Widget _host(
   );
 }
 
-List<Override> _storyOverrides() => [
+ArmoireBadge _badgeArmoire(
+  String code,
+  String nom, {
+  String? metric = 'matches_played',
+  String category = 'joueur_all_time',
+  bool etoile = false,
+}) =>
+    ArmoireBadge(
+      def: BadgeDef(
+        code: code,
+        name: nom,
+        description: '',
+        emoji: '📅',
+        imageUrl: null,
+        color: null,
+        family: 'joueur',
+        kind: 'tier',
+        category: category,
+        metric: metric,
+        threshold: 50,
+        sortOrder: 1,
+        hasStar: etoile,
+      ),
+      state: BadgeState.validated,
+      displayValue: 132,
+    );
+
+/// Les écrans du bilan, dans l'ordre. Les nommer évite de compter les appuis
+/// à la main dans chaque test.
+const _ecranVictoires = 3;
+const _ecranButs = 4;
+const _ecranHdm = 5;
+const _ecranSansEncaisser = 6;
+const _ecranPoste = 7;
+const _ecranPolyvalence = 8;
+const _ecranReactivite = 9;
+const _ecranBadges = 10;
+const _ecranCloture = 11;
+const _nombreEcrans = 12;
+
+/// Avance de [pas] écrans depuis celui affiché.
+Future<void> _avancer(WidgetTester tester, int pas) async {
+  for (var i = 0; i < pas; i += 1) {
+    await tester.tapAt(const Offset(900, 1500));
+    await tester.pump();
+    await tester.pump();
+  }
+}
+
+/// Depuis l'ouverture, va jusqu'à l'écran [ecran].
+Future<void> _allerA(WidgetTester tester, int ecran) => _avancer(tester, ecran);
+
+List<Override> _storyOverrides({List<ArmoireBadge> armoire = const []}) => [
       mySeasonWrappedProvider.overrideWith((ref) async => _wrapped()),
       wrappedPlayerNameProvider.overrideWithValue('Samih'),
+      // Sans cette surcharge l'armoire tenterait de joindre la base : l'écran
+      // des badges retomberait sur son affichage de secours sans le dire.
+      myArmoireProvider.overrideWith(
+        (ref) async => Armoire(
+          validated: armoire,
+          inProgress: const [],
+          locked: const [],
+        ),
+      ),
     ];
 
 List<Override> _buttonOverrides({
@@ -176,8 +239,8 @@ void main() {
     // Le millésime est posé sur deux lignes, en très grand.
     expect(find.text('2026\n2027'), findsOneWidget);
     expect(find.text('SAMIH'), findsOneWidget);
-    // Huit écrans, donc huit segments de progression.
-    expect(find.byType(LinearProgressIndicator), findsNWidgets(8));
+    // Un segment de progression par écran.
+    expect(find.byType(LinearProgressIndicator), findsNWidgets(_nombreEcrans));
   });
 
   testWidgets('un appui à droite avance, un appui à gauche revient',
@@ -204,7 +267,7 @@ void main() {
     expect(find.text('2026\n2027'), findsOneWidget);
   });
 
-  testWidgets('les postes et la polyvalence tiennent en un écran',
+  testWidgets('le poste et la polyvalence ont chacun leur écran',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 3000);
     tester.view.devicePixelRatio = 1;
@@ -216,18 +279,83 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 3; i += 1) {
-      await tester.tapAt(const Offset(900, 1500));
-      await tester.pump();
-      await tester.pump();
-    }
+    await _allerA(tester, _ecranPoste);
 
     expect(find.text('TON POSTE'), findsOneWidget);
     expect(find.text('LE PLUS SOUVENT'), findsOneWidget);
     expect(find.text('MILIEU'), findsOneWidget);
-    // La polyvalence n'a plus d'écran a elle : elle se lit sur le terrain.
+    // Le terrain montre où l'on a joué ; le compte des postes vient après.
     expect(find.text('POLYVALENCE'), findsNothing);
+
+    await _avancer(tester, _ecranPolyvalence - _ecranPoste);
+
+    expect(find.text('POLYVALENCE'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
     expect(find.textContaining('Deux postes'), findsOneWidget);
+    expect(find.byType(WrappedRankBadge), findsOneWidget);
+  });
+
+  testWidgets('les buts et l’homme du match ne partagent plus un écran',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await _allerA(tester, _ecranButs);
+    expect(find.text('BUTS'), findsOneWidget);
+    expect(find.text('5'), findsOneWidget);
+    expect(find.text('HOMME DU MATCH'), findsNothing);
+    // Un seul chiffre par écran, donc un seul classement.
+    expect(find.byType(WrappedRankBadge), findsOneWidget);
+
+    await _avancer(tester, _ecranHdm - _ecranButs);
+    expect(find.text('HOMME DU MATCH'), findsOneWidget);
+    expect(find.text('BUTS'), findsNothing);
+    expect(find.textContaining('anonyme'), findsOneWidget);
+  });
+
+  testWidgets('chaque statistique a son écran, dans l’ordre annoncé',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(const SeasonWrappedPage(), _storyOverrides(), reducedMotion: true),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    const ordre = [
+      'TA SAISON',
+      'MATCHS JOUÉS',
+      'L’ÉQUIPE QUAND TU ÉTAIS LÀ',
+      'POURCENTAGE DE VICTOIRES',
+      'BUTS',
+      'HOMME DU MATCH',
+      'MATCHS SANS ENCAISSER',
+      'TON POSTE',
+      'POLYVALENCE',
+      'DÉLAI MOYEN DE RÉPONSE',
+      'TES BADGES',
+      'TA SAISON EN ENTIER',
+    ];
+    expect(ordre.length, _nombreEcrans);
+
+    for (var i = 0; i < ordre.length; i += 1) {
+      expect(
+        find.text(ordre[i]),
+        findsOneWidget,
+        reason: 'écran ${i + 1} : « ${ordre[i]} » attendu',
+      );
+      if (i < ordre.length - 1) await _avancer(tester, 1);
+    }
   });
 
   testWidgets('plus aucun mot géant ne traîne au fond des écrans', (
@@ -247,7 +375,7 @@ void main() {
     // fond peuvent être cherchés par leur texte.
     const meubles = ['GRINTA', 'PRÉSENT', 'DISPO', 'ÉQUIPE'];
 
-    for (var i = 0; i < 7; i += 1) {
+    for (var i = 0; i < _nombreEcrans; i += 1) {
       for (final mot in meubles) {
         expect(find.text(mot), findsNothing,
             reason: 'écran ${i + 1}, « $mot »');
@@ -282,7 +410,7 @@ void main() {
 
     // La moyenne tassait une police deja condensee : une phrase entiere
     // finissait en bloc noir sur le telephone. Rien ne doit la depasser.
-    for (var i = 0; i < 7; i += 1) {
+    for (var i = 0; i < _nombreEcrans; i += 1) {
       for (final texte in tester.widgetList<Text>(find.byType(Text))) {
         final poids = texte.style?.fontWeight;
         if (poids == null) continue;
@@ -313,7 +441,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 2; i += 1) {
+    for (var i = 0; i < _ecranReactivite; i += 1) {
       await tester.tapAt(const Offset(900, 1500));
       await tester.pump();
     }
@@ -381,11 +509,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 2; i += 1) {
-      await tester.tapAt(const Offset(900, 1500));
-      await tester.pump();
-      await tester.pump();
-    }
+    await _allerA(tester, _ecranReactivite);
 
     // Le chiffre est une moyenne, jamais un cumul : l'écran doit le dire.
     expect(find.text('DÉLAI MOYEN DE RÉPONSE'), findsOneWidget);
@@ -405,21 +529,13 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 5; i += 1) {
-      await tester.tapAt(const Offset(900, 1500));
-      await tester.pump();
-      await tester.pump();
-    }
+    await _allerA(tester, _ecranSansEncaisser);
 
-    // C'est un des neuf criteres : intitule, grand chiffre et classement,
-    // pas une note de bas de page.
-    expect(find.text('L’ÉQUIPE QUAND TU ÉTAIS LÀ'), findsOneWidget);
+    // C'est un des dix criteres : son propre ecran, intitule, grand chiffre
+    // et classement — pas une note de bas de page.
     expect(find.text('MATCHS SANS ENCAISSER'), findsOneWidget);
     expect(find.text('6'), findsOneWidget);
-    // Deux statistiques classées sur cet écran : le pourcentage de victoire
-    // et les matchs sans encaisser.
-    expect(find.byType(WrappedRankBadge), findsNWidgets(2));
-    expect(find.textContaining('sans encaisser.'), findsNothing);
+    expect(find.byType(WrappedRankBadge), findsOneWidget);
   });
 
   testWidgets('les badges de la saison ont leur écran', (tester) async {
@@ -433,11 +549,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 6; i += 1) {
-      await tester.tapAt(const Offset(900, 1500));
-      await tester.pump();
-      await tester.pump();
-    }
+    await _allerA(tester, _ecranBadges);
 
     expect(find.text('TES BADGES'), findsOneWidget);
     // Le compte, puis chaque badge nommé.
@@ -446,6 +558,80 @@ void main() {
     expect(find.text('Mur'), findsOneWidget);
     // Les badges ne sont pas classés : la comparaison n'aurait pas de sens.
     expect(find.byType(WrappedRankBadge), findsNothing);
+  });
+
+  testWidgets('un badge connu de l’armoire garde sa vraie vignette', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(
+        const SeasonWrappedPage(),
+        // L'armoire connaît « Fidèle », pas « Mur ».
+        _storyOverrides(armoire: [_badgeArmoire('a', 'Fidèle')]),
+        reducedMotion: true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await _allerA(tester, _ecranBadges);
+
+    // Le badge connu est dessiné comme dans l'armoire, avec sa valeur et son
+    // critère — pas seulement son nom.
+    expect(find.byType(BadgeEmblem), findsOneWidget);
+    // La vignette empile la valeur atteinte et le critère mesuré.
+    expect(find.text('132'), findsWidgets);
+    expect(find.textContaining('CARRIÈRE'), findsWidgets);
+    // Celui que l'armoire ignore garde son nom seul, sans disparaître.
+    expect(find.text('Mur'), findsOneWidget);
+  });
+
+  testWidgets('les vignettes de badges sont alignées entre elles',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 3000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _host(
+        const SeasonWrappedPage(),
+        // Deux vignettes de hauteurs naturelles différentes : l'une porte une
+        // étoile et pas de nombre, l'autre l'inverse.
+        _storyOverrides(
+          armoire: [
+            _badgeArmoire('a', 'Fidèle'),
+            _badgeArmoire(
+              'b',
+              'Mur',
+              metric: 'title_most_present',
+              category: 'palmares',
+              etoile: true,
+            ),
+          ],
+        ),
+        reducedMotion: true,
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    await _allerA(tester, _ecranBadges);
+
+    final vignettes = tester.widgetList<BadgeEmblem>(find.byType(BadgeEmblem));
+    expect(vignettes.length, 2);
+
+    final boites = find
+        .byType(BadgeEmblem)
+        .evaluate()
+        .map((element) => tester.getRect(find.byWidget(element.widget)))
+        .toList();
+    // Les deux vignettes reposent sur la même ligne du bas : sans cela, les
+    // noms écrits en dessous ne s'alignent plus.
+    expect((boites[0].bottom - boites[1].bottom).abs(), lessThan(0.5));
   });
 
   testWidgets('la dernière page propose le partage', (tester) async {
@@ -459,11 +645,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 7; i += 1) {
-      await tester.tapAt(const Offset(900, 1500));
-      await tester.pump();
-      await tester.pump();
-    }
+    await _allerA(tester, _ecranCloture);
 
     expect(find.text('TA SAISON EN ENTIER'), findsOneWidget);
     expect(find.text('PARTAGER MA SAISON'), findsOneWidget);
@@ -485,13 +667,9 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    for (var i = 0; i < 5; i += 1) {
-      await tester.tapAt(const Offset(900, 1500));
-      await tester.pump();
-      await tester.pump();
-    }
+    await _allerA(tester, _ecranVictoires);
 
-    expect(find.text('L’ÉQUIPE QUAND TU ÉTAIS LÀ'), findsOneWidget);
+    expect(find.text('POURCENTAGE DE VICTOIRES'), findsOneWidget);
     expect(find.text('58 %'), findsOneWidget);
   });
 
