@@ -67,11 +67,10 @@ List<Widget> buildWrappedSlides({
               'terrain.',
     ),
     _PositionSlide(skin: skins[7], wrapped: wrapped),
-    _VersatilitySlide(skin: skins[8], wrapped: wrapped),
-    _ResponsivenessSlide(skin: skins[9], wrapped: wrapped),
-    _BadgesSlide(skin: skins[10], wrapped: wrapped, preview: preview),
+    _ResponsivenessSlide(skin: skins[8], wrapped: wrapped),
+    _BadgesSlide(skin: skins[9], wrapped: wrapped, preview: preview),
     _ClosingSlide(
-      skin: skins[11],
+      skin: skins[10],
       wrapped: wrapped,
       playerName: playerName,
       onShare: onShare,
@@ -442,10 +441,13 @@ class _PositionSlide extends StatelessWidget {
         ],
       ),
       bottom: _Caption(
-        text: 'Là où le coach t’a aligné le plus souvent, part du temps de '
-            'jeu à l’appui.',
+        text: switch (wrapped.versatility) {
+          0 || 1 => 'Un seul poste. Le coach sait où te trouver.',
+          2 => 'Deux postes différents cette saison.',
+          _ => '${wrapped.versatility} postes différents. Couteau suisse.',
+        },
         skin: skin,
-        rank: null,
+        rank: wrapped.versatilityRank,
         delay: const Duration(milliseconds: 1700),
       ),
     );
@@ -468,7 +470,9 @@ class _ResultsSlide extends StatelessWidget {
         child: Row(
           children: [
             _ResultBlock(skin: skin, letter: 'V', value: wrapped.wins),
+            const SizedBox(width: 18),
             _ResultBlock(skin: skin, letter: 'N', value: wrapped.draws),
+            const SizedBox(width: 18),
             _ResultBlock(skin: skin, letter: 'D', value: wrapped.losses),
           ],
         ),
@@ -528,33 +532,6 @@ class _WinRateSlide extends StatelessWidget {
         text: 'La part des matchs gagnés quand tu étais sur la feuille.',
         skin: skin,
         rank: wrapped.winPctRank,
-      ),
-    );
-  }
-}
-
-/// Le nombre de postes différents occupés dans la saison.
-class _VersatilitySlide extends StatelessWidget {
-  const _VersatilitySlide({required this.skin, required this.wrapped});
-
-  final WrappedSkin skin;
-  final SeasonWrapped wrapped;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SlideFrame(
-      skin: skin,
-      top: _SlideLabel(text: 'Polyvalence', skin: skin),
-      middle: _GiantFigure(value: wrapped.versatility, skin: skin),
-      bottom: _Caption(
-        text: switch (wrapped.versatility) {
-          0 => 'Aucune composition de départ à ton nom cette saison.',
-          1 => 'Un seul poste. Le coach sait où te trouver.',
-          2 => 'Deux postes différents cette saison.',
-          _ => 'Postes différents cette saison. Couteau suisse.',
-        },
-        skin: skin,
-        rank: wrapped.versatilityRank,
       ),
     );
   }
@@ -703,7 +680,7 @@ class _BadgesSlide extends ConsumerWidget {
 /// La hauteur d'un emblème rapportée à sa largeur, telle que l'armoire la
 /// calcule.
 double _hauteurEmbleme(ArmoireBadge badge) {
-  final valeur = baremeLabelFor(badge.def.metric, badge.displayValue);
+  final valeur = baremeLabelFor(badge.def.metric, badge.def.threshold);
   final descripteur = badgeDescriptorFor(
     code: badge.def.code,
     metric: badge.def.metric,
@@ -751,9 +728,12 @@ class _BadgeTile extends StatelessWidget {
                 emoji: badge.def.emoji,
                 imageUrl: badge.def.imageUrl,
                 color: badge.def.color,
+                // Le palier qu'il a fallu atteindre, pas le total du jour :
+                // un « Vétéran » se lit à 100 matchs, même si le compteur
+                // affiche 132 depuis.
                 baremeLabel: baremeLabelFor(
                   badge.def.metric,
-                  badge.displayValue,
+                  badge.def.threshold,
                 ),
                 descriptor: badgeDescriptorFor(
                   code: badge.def.code,
@@ -826,21 +806,29 @@ class _ResultBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Chaque nombre est centré dans sa colonne, séparé des deux autres par
+    // une règle : côte à côte et alignés à gauche, « 12 4 5 » se lisait comme
+    // un seul nombre.
     return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(letter, style: WrappedType.label(skin.muted, size: 15)),
-          const SizedBox(height: 6),
+          Text(
+            letter,
+            textAlign: TextAlign.center,
+            style: WrappedType.label(skin.muted, size: 15),
+          ),
+          const SizedBox(height: 8),
+          Container(height: 2, color: skin.figure.withValues(alpha: .35)),
+          const SizedBox(height: 12),
           FittedBox(
             fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
             child: WrappedCountUp(
               value: value,
               delay: const Duration(milliseconds: 320),
               // L'écran ne porte plus que ces trois nombres : ils se lisent
               // aussi gros que le chiffre unique des autres écrans.
-              style: WrappedType.figure(skin.figure, size: 118),
+              style: WrappedType.figure(skin.figure, size: 112),
             ),
           ),
         ],
