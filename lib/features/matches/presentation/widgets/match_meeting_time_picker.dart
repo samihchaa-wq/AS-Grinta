@@ -49,7 +49,9 @@ class MatchMeetingTimePicker extends StatelessWidget {
             children: [
               Text(
                 'Heure de rendez-vous',
-                style: Theme.of(sheetContext).textTheme.titleLarge
+                style: Theme.of(sheetContext)
+                    .textTheme
+                    .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 12),
@@ -103,8 +105,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
       builder: (pickerContext, child) => MediaQuery(
-        data: MediaQuery.of(pickerContext)
-            .copyWith(alwaysUse24HourFormat: true),
+        data:
+            MediaQuery.of(pickerContext).copyWith(alwaysUse24HourFormat: true),
         child: child!,
       ),
     );
