@@ -38,60 +38,67 @@ class ConvocationLaunchPicker extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
         const SizedBox(height: 8),
-        RadioListTile<ConvocationLaunchMode>(
-          contentPadding: EdgeInsets.zero,
-          value: ConvocationLaunchMode.automatic,
+        RadioGroup<ConvocationLaunchMode>(
           groupValue: mode,
-          onChanged: enabled ? _changeMode : null,
-          title: const Text('Automatique — J-6 à 12h'),
-          subtitle: Text('Prévu le ${_formatDateTime(automaticAt)}'),
-        ),
-        RadioListTile<ConvocationLaunchMode>(
-          contentPadding: EdgeInsets.zero,
-          value: ConvocationLaunchMode.custom,
-          groupValue: mode,
-          onChanged: enabled ? _changeMode : null,
-          title: const Text('Choisir une date et une heure'),
-          subtitle: Text(
-            customAt == null
-                ? 'À définir'
-                : 'Prévu le ${_formatDateTime(customAt!)}',
-          ),
-        ),
-        if (mode == ConvocationLaunchMode.custom) ...[
-          const SizedBox(height: 4),
-          Row(
+          onChanged: enabled ? _changeMode : (_) {},
+          child: Column(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: enabled ? () => _pickDate(context) : null,
-                  icon: const Icon(Icons.calendar_today_outlined),
-                  label: Text(
-                    customAt == null ? 'Date' : _formatDate(customAt!),
-                  ),
+              RadioListTile<ConvocationLaunchMode>(
+                contentPadding: EdgeInsets.zero,
+                value: ConvocationLaunchMode.automatic,
+                enabled: enabled,
+                title: const Text('Automatique — J-6 à 12h'),
+                subtitle: Text('Prévu le ${_formatDateTime(automaticAt)}'),
+              ),
+              RadioListTile<ConvocationLaunchMode>(
+                contentPadding: EdgeInsets.zero,
+                value: ConvocationLaunchMode.custom,
+                enabled: enabled,
+                title: const Text('Choisir une date et une heure'),
+                subtitle: Text(
+                  customAt == null
+                      ? 'À définir'
+                      : 'Prévu le ${_formatDateTime(customAt!)}',
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: enabled ? () => _pickTime(context) : null,
-                  icon: const Icon(Icons.schedule_outlined),
-                  label: Text(
-                    customAt == null ? 'Heure' : _formatTime(customAt!),
-                  ),
+              if (mode == ConvocationLaunchMode.custom) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: enabled ? () => _pickDate(context) : null,
+                        icon: const Icon(Icons.calendar_today_outlined),
+                        label: Text(
+                          customAt == null ? 'Date' : _formatDate(customAt!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: enabled ? () => _pickTime(context) : null,
+                        icon: const Icon(Icons.schedule_outlined),
+                        label: Text(
+                          customAt == null ? 'Heure' : _formatTime(customAt!),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+              ],
+              RadioListTile<ConvocationLaunchMode>(
+                contentPadding: EdgeInsets.zero,
+                value: ConvocationLaunchMode.now,
+                enabled: enabled,
+                title: const Text('Maintenant'),
+                subtitle: const Text(
+                  'Les disponibilités s’ouvrent dès la création.',
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-        ],
-        RadioListTile<ConvocationLaunchMode>(
-          contentPadding: EdgeInsets.zero,
-          value: ConvocationLaunchMode.now,
-          groupValue: mode,
-          onChanged: enabled ? _changeMode : null,
-          title: const Text('Maintenant'),
-          subtitle: const Text('Les disponibilités s’ouvrent dès la création.'),
         ),
       ],
     );
