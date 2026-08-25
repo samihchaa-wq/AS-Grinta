@@ -17,6 +17,7 @@ class MatchesRepository {
       match_date,
       match_time,
       kickoff_at,
+      meeting_at,
       location,
       planned_duration_minutes,
       status,
@@ -57,8 +58,10 @@ class MatchesRepository {
   }
 
   Future<List<Map<String, dynamic>>> fetchSeasons() async {
-    final response =
-        await _client.from('seasons').select('id, name, status').order('name');
+    final response = await _client
+        .from('seasons')
+        .select('id, name, status')
+        .order('name');
     return (response as List)
         .map((row) => Map<String, dynamic>.from(row))
         .toList();
@@ -148,9 +151,10 @@ class MatchesRepository {
     bool rememberAddressAsDefault = false,
     String matchType = 'championnat',
     String? jerseyNote,
+    DateTime? meetingAt,
   }) async {
     final result = await _client.rpc(
-      'admin_create_match_complete',
+      'admin_create_match_complete_v3',
       params: {
         'p_season_id': seasonId,
         'p_opponent_id': opponentId,
@@ -165,6 +169,9 @@ class MatchesRepository {
         'p_remember_address_as_default': rememberAddressAsDefault,
         'p_match_type': matchType,
         'p_jersey_note': jerseyNote,
+        'p_availability_schedule_mode': 'automatic',
+        'p_availability_opens_at': null,
+        'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
       },
     );
     if (result == null || result.toString().isEmpty) {
@@ -179,14 +186,18 @@ class MatchesRepository {
     required String seasonId,
     required DateTime kickoffAt,
     String? address,
+    DateTime? meetingAt,
   }) async {
     final result = await _client.rpc(
-      'create_internal_match',
+      'create_internal_match_v3',
       params: {
         'p_season_id': seasonId,
         'p_match_date': kickoffAt.toIso8601String().split('T').first,
         'p_match_time': _formatTime(kickoffAt),
         'p_address': address,
+        'p_availability_schedule_mode': 'automatic',
+        'p_availability_opens_at': null,
+        'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
       },
     );
     if (result == null || result.toString().isEmpty) {
@@ -201,9 +212,10 @@ class MatchesRepository {
     required DateTime kickoffAt,
     required DateTime expectedUpdatedAt,
     String? address,
+    DateTime? meetingAt,
   }) async {
     final result = await _client.rpc(
-      'update_internal_match',
+      'update_internal_match_v2',
       params: {
         'p_match_id': id,
         'p_season_id': seasonId,
@@ -211,6 +223,7 @@ class MatchesRepository {
         'p_match_time': _formatTime(kickoffAt),
         'p_address': address,
         'p_expected_updated_at': expectedUpdatedAt.toUtc().toIso8601String(),
+        'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
       },
     );
     if (result != true) {
@@ -265,9 +278,10 @@ class MatchesRepository {
     bool rememberAddressAsDefault = false,
     String matchType = 'championnat',
     String? jerseyNote,
+    DateTime? meetingAt,
   }) async {
     final result = await _client.rpc(
-      'admin_update_match_complete',
+      'admin_update_match_complete_v2',
       params: {
         'p_match_id': id,
         'p_season_id': seasonId,
@@ -285,6 +299,7 @@ class MatchesRepository {
         'p_remember_address_as_default': rememberAddressAsDefault,
         'p_match_type': matchType,
         'p_jersey_note': jerseyNote,
+        'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
       },
     );
     if (result != true) {

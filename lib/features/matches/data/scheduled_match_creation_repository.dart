@@ -18,6 +18,7 @@ class ScheduledMatchCreationRepository {
     required double oddsLoss,
     required ConvocationLaunchMode launchMode,
     DateTime? customLaunchAt,
+    DateTime? meetingAt,
     int? squadSizeLimit,
     String? address,
     bool rememberAddressAsDefault = false,
@@ -25,7 +26,7 @@ class ScheduledMatchCreationRepository {
     String? jerseyNote,
   }) async {
     final result = await _client.rpc(
-      'admin_create_match_complete_v2',
+      'admin_create_match_complete_v3',
       params: {
         'p_season_id': seasonId,
         'p_opponent_id': opponentId,
@@ -44,6 +45,7 @@ class ScheduledMatchCreationRepository {
         'p_availability_opens_at': launchMode == ConvocationLaunchMode.custom
             ? customLaunchAt?.toUtc().toIso8601String()
             : null,
+        'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
       },
     );
     if (result == null || result.toString().isEmpty) {
@@ -57,10 +59,11 @@ class ScheduledMatchCreationRepository {
     required DateTime kickoffAt,
     required ConvocationLaunchMode launchMode,
     DateTime? customLaunchAt,
+    DateTime? meetingAt,
     String? address,
   }) async {
     final result = await _client.rpc(
-      'create_internal_match_v2',
+      'create_internal_match_v3',
       params: {
         'p_season_id': seasonId,
         'p_match_date': kickoffAt.toIso8601String().split('T').first,
@@ -70,6 +73,7 @@ class ScheduledMatchCreationRepository {
         'p_availability_opens_at': launchMode == ConvocationLaunchMode.custom
             ? customLaunchAt?.toUtc().toIso8601String()
             : null,
+        'p_meeting_at': meetingAt?.toUtc().toIso8601String(),
       },
     );
     if (result == null || result.toString().isEmpty) {
@@ -86,5 +90,7 @@ class ScheduledMatchCreationRepository {
 
 final scheduledMatchCreationRepositoryProvider =
     Provider<ScheduledMatchCreationRepository>((ref) {
-  return ScheduledMatchCreationRepository(ref.watch(supabaseClientProvider));
-});
+      return ScheduledMatchCreationRepository(
+        ref.watch(supabaseClientProvider),
+      );
+    });

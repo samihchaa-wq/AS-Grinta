@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/providers/supabase_provider.dart';
+import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Données légères communes à toute la fiche d'un match.
@@ -11,6 +12,7 @@ class MatchCore {
   const MatchCore({
     required this.kickoffAt,
     required this.address,
+    this.meetingAt,
     required this.opponentId,
     required this.status,
     required this.location,
@@ -21,12 +23,20 @@ class MatchCore {
 
   final DateTime? kickoffAt;
   final String? address;
+  final DateTime? meetingAt;
   final String? opponentId;
   final String status;
   final String location;
   final String opponentName;
   final String matchType;
   final String? jerseyNote;
+
+  DateTime? get effectiveMeetingAt => kickoffAt == null
+      ? null
+      : resolvedMatchMeetingAt(
+          kickoffAt: kickoffAt!,
+          customMeetingAt: meetingAt,
+        );
 
   bool get isFriendly => matchType == 'amical';
   bool get isInternal => matchType == 'entre_nous';
@@ -55,6 +65,7 @@ class MatchInfo {
   const MatchInfo({
     required this.kickoffAt,
     required this.address,
+    this.meetingAt,
     required this.lastEncounters,
     this.matchType = 'championnat',
     this.jerseyNote,
@@ -62,9 +73,17 @@ class MatchInfo {
 
   final DateTime? kickoffAt;
   final String? address;
+  final DateTime? meetingAt;
   final List<MatchEncounter> lastEncounters;
   final String matchType;
   final String? jerseyNote;
+
+  DateTime? get effectiveMeetingAt => kickoffAt == null
+      ? null
+      : resolvedMatchMeetingAt(
+          kickoffAt: kickoffAt!,
+          customMeetingAt: meetingAt,
+        );
 
   bool get isFriendly => matchType == 'amical';
   bool get isInternal => matchType == 'entre_nous';
@@ -92,6 +111,7 @@ MatchInfo _infoFromCore(
   return MatchInfo(
     kickoffAt: core.kickoffAt,
     address: core.address,
+    meetingAt: core.meetingAt,
     lastEncounters: encounters,
     matchType: core.matchType,
     jerseyNote: core.jerseyNote,
@@ -106,7 +126,7 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
   final match = await client
       .from('matches')
       .select(
-        'kickoff_at, match_date, match_time, status, location, address, '
+        'kickoff_at, match_date, match_time, meeting_at, status, location, address, '
         'opponent_id, match_type, jersey_note, opponents(name, address)',
       )
       .eq('id', matchId)
@@ -131,6 +151,7 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
   return MatchCore(
     kickoffAt: kickoffAt,
     address: address,
+    meetingAt: DateTime.tryParse('${match['meeting_at'] ?? ''}')?.toLocal(),
     opponentId: _clean(match['opponent_id']),
     status: (match['status'] ?? '').toString(),
     location: location,
@@ -181,6 +202,7 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
   return MatchInfo(
     kickoffAt: baseInfo.kickoffAt,
     address: baseInfo.address,
+    meetingAt: baseInfo.meetingAt,
     lastEncounters: encounters,
     matchType: baseInfo.matchType,
     jerseyNote: baseInfo.jerseyNote,

@@ -63,13 +63,15 @@ class CalendarMatchesLocalCache {
       'season_id': match.seasonId,
       'opponent_id': match.opponentId,
       'kickoff_at': match.kickoffAt.toUtc().toIso8601String(),
+      'meeting_at': match.meetingAt?.toUtc().toIso8601String(),
       'location': match.isHome ? 'domicile' : 'exterieur',
       'planned_duration_minutes': match.plannedDurationMinutes,
       'status': match.status,
       'score_as_grinta': match.grintaScore,
       'score_adverse': match.opponentScore,
-      'predictions_closed_at':
-          match.predictionsClosedAt?.toUtc().toIso8601String(),
+      'predictions_closed_at': match.predictionsClosedAt
+          ?.toUtc()
+          .toIso8601String(),
       'result_validated_at': match.resultValidatedAt?.toUtc().toIso8601String(),
       'address': match.address,
       'match_type': match.matchType,

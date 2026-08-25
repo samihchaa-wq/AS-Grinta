@@ -1,4 +1,5 @@
 import 'package:as_grinta/core/utils/match_window.dart';
+import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 
 class MatchModel {
   const MatchModel({
@@ -25,6 +26,7 @@ class MatchModel {
     this.opponentName,
     this.seasonName,
     this.address,
+    this.meetingAt,
     this.matchType = 'championnat',
     this.jerseyNote,
   });
@@ -57,6 +59,12 @@ class MatchModel {
 
   /// Adresse du lieu de la rencontre (facultative).
   final String? address;
+
+  /// Heure de rendez-vous explicite. NULL = 30 min avant le coup d’envoi.
+  final DateTime? meetingAt;
+
+  DateTime get effectiveMeetingAt =>
+      resolvedMatchMeetingAt(kickoffAt: kickoffAt, customMeetingAt: meetingAt);
 
   /// « amical » ou « championnat », à titre informatif (onglet Info).
   final String matchType;
@@ -127,9 +135,8 @@ class MatchModel {
   }
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
-    final serverKickoff = DateTime.tryParse(
-      '${json['kickoff_at'] ?? ''}',
-    )?.toLocal();
+    final serverKickoff = DateTime.tryParse('${json['kickoff_at'] ?? ''}')
+        ?.toLocal();
     final date = (json['match_date'] ?? '').toString();
     final time = (json['match_time'] ?? '00:00:00').toString();
     final kickoffAt =
@@ -138,14 +145,14 @@ class MatchModel {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-            ? Map<String, dynamic>.from(oddsRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(oddsRaw)
+        : const <String, dynamic>{};
     final liveRaw = json['match_live_sessions'];
     final live = liveRaw is List && liveRaw.isNotEmpty
         ? Map<String, dynamic>.from(liveRaw.first as Map)
         : liveRaw is Map
-            ? Map<String, dynamic>.from(liveRaw)
-            : const <String, dynamic>{};
+        ? Map<String, dynamic>.from(liveRaw)
+        : const <String, dynamic>{};
 
     return MatchModel(
       id: json['id']?.toString() ?? '',
@@ -169,9 +176,8 @@ class MatchModel {
         '${json['result_validated_at'] ?? ''}',
       )?.toLocal(),
       liveState: live['state']?.toString(),
-      liveFinishedAt: DateTime.tryParse(
-        '${live['finished_at'] ?? ''}',
-      )?.toLocal(),
+      liveFinishedAt: DateTime.tryParse('${live['finished_at'] ?? ''}')
+          ?.toLocal(),
       liveExported: live['exported'] == true,
       oddsWin: (odds['odds_victoire_as_grinta'] as num?)?.toDouble(),
       oddsDraw: (odds['odds_nul'] as num?)?.toDouble(),
@@ -182,11 +188,13 @@ class MatchModel {
       opponentName: json['opponents'] is Map
           ? json['opponents']['name']?.toString()
           : null,
-      seasonName:
-          json['seasons'] is Map ? json['seasons']['name']?.toString() : null,
+      seasonName: json['seasons'] is Map
+          ? json['seasons']['name']?.toString()
+          : null,
       address: (json['address']?.toString().trim().isNotEmpty ?? false)
           ? json['address'].toString()
           : null,
+      meetingAt: DateTime.tryParse('${json['meeting_at'] ?? ''}')?.toLocal(),
       matchType: (json['match_type'] ?? 'championnat').toString(),
       jerseyNote: (json['jersey_note']?.toString().trim().isNotEmpty ?? false)
           ? json['jersey_note'].toString()

@@ -12,13 +12,7 @@ DateTime matchMeetingAtOnKickoffDate({
   required int hour,
   required int minute,
 }) {
-  return DateTime(
-    kickoffAt.year,
-    kickoffAt.month,
-    kickoffAt.day,
-    hour,
-    minute,
-  );
+  return DateTime(kickoffAt.year, kickoffAt.month, kickoffAt.day, hour, minute);
 }
 
 DateTime? preserveCustomMeetingTime({

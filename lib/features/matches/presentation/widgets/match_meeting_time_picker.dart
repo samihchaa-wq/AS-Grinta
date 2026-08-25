@@ -49,9 +49,7 @@ class MatchMeetingTimePicker extends StatelessWidget {
             children: [
               Text(
                 'Heure de rendez-vous',
-                style: Theme.of(sheetContext)
-                    .textTheme
-                    .titleLarge
+                style: Theme.of(sheetContext).textTheme.titleLarge
                     ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 12),
@@ -66,10 +64,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
                 subtitle: Text(
                   _formatTime(kickoffAt.subtract(defaultMatchMeetingOffset)),
                 ),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  _MeetingTimeChoice.automatic,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, _MeetingTimeChoice.automatic),
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -84,10 +80,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
                       ? 'Heure personnalisée'
                       : _formatTime(customMeetingAt!),
                 ),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  _MeetingTimeChoice.custom,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, _MeetingTimeChoice.custom),
               ),
             ],
           ),
@@ -109,7 +103,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
       builder: (pickerContext, child) => MediaQuery(
-        data: MediaQuery.of(pickerContext).copyWith(alwaysUse24HourFormat: true),
+        data: MediaQuery.of(pickerContext)
+            .copyWith(alwaysUse24HourFormat: true),
         child: child!,
       ),
     );
@@ -125,9 +120,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
       customMeetingAt: candidate,
     );
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
       return;
     }
     onChanged(candidate);
