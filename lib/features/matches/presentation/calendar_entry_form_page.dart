@@ -517,7 +517,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     });
     final odds = await ref
         .read(matchesRepositoryProvider)
-        .previewMatchOdds(opponentId: _opponentId, isHome: _isHome);
+        .previewMatchOdds(
+          opponentId: _opponentId,
+          isHome: _isHome,
+          referenceDate: _startsAt,
+        );
     if (!mounted || token != _oddsRequestToken) return;
     setState(() {
       _suggestingOdds = false;
@@ -611,6 +615,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         _startsAt.minute,
       );
     });
+    if (_isNormalMatch && _opponentId.isNotEmpty) {
+      await _suggestOdds();
+    }
   }
 
   Future<void> _pickTime() async {
