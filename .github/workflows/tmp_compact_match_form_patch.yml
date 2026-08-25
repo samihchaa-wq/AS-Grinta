@@ -1,4 +1,4 @@
-name: Temporary compact match form patch
+name: Temporary compact match form cleanup
 
 on:
   push:
@@ -8,44 +8,42 @@ permissions:
   contents: write
 
 jobs:
-  patch:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
-      - name: Apply compact form patch
-        run: python3 tools/tmp_patch_compact_forms.py
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Format changed Dart files
+      - name: Clean temporary scaffolding and restore address default
+        shell: bash
         run: |
-          dart format \
-            lib/features/matches/domain/match_meeting.dart \
-            lib/features/matches/presentation/calendar_entry_form_page.dart \
-            lib/features/matches/presentation/match_form_page.dart \
-            lib/features/matches/presentation/widgets/convocation_launch_picker.dart \
-            lib/features/matches/presentation/widgets/match_meeting_time_picker.dart \
-            lib/features/matches/presentation/widgets/match_option_button.dart \
-            lib/features/matches/presentation/widgets/match_wheel_picker.dart
+          python3 - <<'PY'
+          from pathlib import Path
 
-      - name: Commit patch
+          path = Path('lib/features/matches/presentation/calendar_entry_form_page.dart')
+          text = path.read_text()
+          old = "      _kind = kind;\n      _rememberAddressAsDefault = false;\n"
+          new = "      _kind = kind;\n      _rememberAddressAsDefault = kind != _CalendarEntryKind.event;\n"
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'address default patch: expected 1 occurrence, found {count}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          rm -f tools/tmp_patch_compact_forms.py
+          rm -f .github/workflows/tmp_compact_match_form_patch.yml
+
+      - name: Commit cleanup
+        shell: bash
         run: |
-          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/features/matches
+          git add -A
           if git diff --cached --quiet; then
-            echo "No form patch to commit"
             exit 0
           fi
-          git commit -m "Apply compact match form controls"
+          git commit -m "Clean compact match form branch"
           git push
