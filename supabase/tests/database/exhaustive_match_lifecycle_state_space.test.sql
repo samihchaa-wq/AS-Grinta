@@ -77,8 +77,7 @@ begin
           insert into pg_temp.match_creation_state_space values(
             v_kind,v_location,v_date,v_odds,
             v_kind='open' and v_location in ('domicile','exterieur')
-              and v_date between date '2000-01-01' and date '2100-12-31'
-              and v_odds between 1.01 and 100,
+              and v_date between date '2000-01-01' and date '2100-12-31',
             v_ok,v_state,v_message);
           if v_match is not null then
             perform pg_temp.delete_match_creation_fixture(v_match);

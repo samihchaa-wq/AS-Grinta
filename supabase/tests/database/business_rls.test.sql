@@ -319,9 +319,20 @@ select lives_ok(
 );
 reset role;
 select is(
-  (select count(*) from public.matches m join public.match_odds mo on mo.match_id = m.id where m.match_date = date '2098-02-01' and mo.odds_victoire_as_grinta = 2.10 and mo.odds_nul = 3.20 and mo.odds_victoire_adverse = 3.50),
+  (
+    select count(*)
+    from public.matches m
+    join public.match_odds mo on mo.match_id = m.id
+    cross join lateral (
+      select public.calculate_match_odds_v5(m.opponent_id, m.match_date) as expected
+    ) calc
+    where m.match_date = date '2098-02-01'
+      and mo.odds_victoire_as_grinta = (calc.expected->>'win')::numeric
+      and mo.odds_nul = (calc.expected->>'draw')::numeric
+      and mo.odds_victoire_adverse = (calc.expected->>'loss')::numeric
+  ),
   1::bigint,
-  'la création persiste le match et les trois cotes ensemble'
+  'la création persiste les cotes calculées par le serveur'
 );
 
 -- Modification réservée au staff et rollback si l’écriture des cotes échoue.
@@ -362,9 +373,20 @@ select throws_ok(
   'une erreur lors des cotes annule toute la modification'
 );
 reset role;
-select is(
-  (select concat_ws('|', m.location, to_char(m.match_time, 'HH24:MI'), mo.odds_victoire_as_grinta::text, mo.odds_nul::text, mo.odds_victoire_adverse::text) from public.matches m join public.match_odds mo on mo.match_id = m.id where m.match_date = date '2098-02-01'),
-  'domicile|20:00|2.10|3.20|3.50',
+select ok(
+  (
+    select m.location = 'domicile'
+      and m.match_time = time '20:00'
+      and mo.odds_victoire_as_grinta = (calc.expected->>'win')::numeric
+      and mo.odds_nul = (calc.expected->>'draw')::numeric
+      and mo.odds_victoire_adverse = (calc.expected->>'loss')::numeric
+    from public.matches m
+    join public.match_odds mo on mo.match_id = m.id
+    cross join lateral (
+      select public.calculate_match_odds_v5(m.opponent_id, m.match_date) as expected
+    ) calc
+    where m.match_date = date '2098-02-01'
+  ),
   'aucun demi-état ne subsiste après l’échec de modification'
 );
 drop trigger test_reject_odds_write on public.match_odds;
@@ -386,10 +408,21 @@ select ok(
   'le staff peut modifier le match et les cotes atomiquement'
 );
 reset role;
-select is(
-  (select concat_ws('|', m.location, to_char(m.match_time, 'HH24:MI'), mo.odds_victoire_as_grinta::text, mo.odds_nul::text, mo.odds_victoire_adverse::text) from public.matches m join public.match_odds mo on mo.match_id = m.id where m.match_date = date '2098-02-01'),
-  'exterieur|20:30|2.20|3.30|4.40',
-  'la modification réussie met à jour les deux tables'
+select ok(
+  (
+    select m.location = 'exterieur'
+      and m.match_time = time '20:30'
+      and mo.odds_victoire_as_grinta = (calc.expected->>'win')::numeric
+      and mo.odds_nul = (calc.expected->>'draw')::numeric
+      and mo.odds_victoire_adverse = (calc.expected->>'loss')::numeric
+    from public.matches m
+    join public.match_odds mo on mo.match_id = m.id
+    cross join lateral (
+      select public.calculate_match_odds_v5(m.opponent_id, m.match_date) as expected
+    ) calc
+    where m.match_date = date '2098-02-01'
+  ),
+  'la modification réussie met à jour le match et les cotes serveur'
 );
 
 -- Finalisation réservée au staff, rollback complet, puis succès.

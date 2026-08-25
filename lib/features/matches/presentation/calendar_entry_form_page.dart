@@ -117,9 +117,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
     return Scaffold(
       appBar: GrintaAppBar(
-        title: Text(
-          widget.event == null ? 'Ajouter' : 'Modifier l’événement',
-        ),
+        title: Text(widget.event == null ? 'Ajouter' : 'Modifier l’événement'),
         admin: true,
         actions: [
           if (widget.event != null && isAdmin)
@@ -390,9 +388,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         const SizedBox(height: 16),
         Text(
           'Maillot',
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -515,9 +514,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       _oddsDraw = null;
       _oddsLoss = null;
     });
-    final odds = await ref
-        .read(matchesRepositoryProvider)
-        .previewMatchOdds(opponentId: _opponentId, isHome: _isHome);
+    final odds = await ref.read(matchesRepositoryProvider).previewMatchOdds(
+          opponentId: _opponentId,
+          isHome: _isHome,
+          referenceDate: _startsAt,
+        );
     if (!mounted || token != _oddsRequestToken) return;
     setState(() {
       _suggestingOdds = false;
@@ -611,6 +612,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         _startsAt.minute,
       );
     });
+    if (_isNormalMatch && _opponentId.isNotEmpty) {
+      await _suggestOdds();
+    }
   }
 
   Future<void> _pickTime() async {
@@ -644,9 +648,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     final error = ref.read(matchesControllerProvider).error;
     if (error == null) return false;
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
     }
     return true;
   }
@@ -665,9 +668,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     if (widget.event == null) {
       final pastError = pastKickoffError(_startsAt);
       if (pastError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(pastError)),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(pastError)));
         return;
       }
     }
@@ -739,9 +741,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -777,9 +778,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -857,10 +857,8 @@ class _JerseyOptionTile extends StatelessWidget {
                 // Hors ligne, le visuel ne peut pas être chargé : sans repli,
                 // le titre « Maillot » surplombait une zone entièrement vide
                 // et le choix devenait impossible.
-                errorBuilder: (context, _, __) => _JerseyFallback(
-                  label: option.label,
-                  selected: selected,
-                ),
+                errorBuilder: (context, _, __) =>
+                    _JerseyFallback(label: option.label, selected: selected),
               ),
             ),
             if (selected)
