@@ -1,0 +1,52 @@
+name: Run temporary match meeting patch
+
+on:
+  push:
+    branches: [feat/match-meeting-time]
+    paths:
+      - '.github/workflows/tmp_run_match_meeting_patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: feat/match-meeting-time
+          fetch-depth: 0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Wire meeting time through Flutter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tool/tmp_patch_match_meeting.py
+          dart format \
+            lib/features/matches/domain/match_meeting.dart \
+            lib/features/matches/domain/match_model.dart \
+            lib/features/matches/data/calendar_matches_local_cache.dart \
+            lib/features/matches/data/scheduled_match_creation_repository.dart \
+            lib/features/matches/data/matches_repository.dart \
+            lib/features/matches/data/match_info_repository.dart \
+            lib/features/matches/presentation/matches_controller.dart \
+            lib/features/matches/presentation/calendar_entry_form_page.dart \
+            lib/features/matches/presentation/match_form_page.dart \
+            lib/features/matches/presentation/widgets/match_info_tab.dart \
+            lib/features/matches/presentation/widgets/match_meeting_time_picker.dart \
+            test/match_meeting_test.dart \
+            test/match_meeting_time_picker_test.dart
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib test
+          if git diff --cached --quiet; then
+            echo 'No application changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Wire configurable match meeting time through app'
+          git push origin HEAD:feat/match-meeting-time
