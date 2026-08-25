@@ -35,6 +35,37 @@ jobs:
               raise SystemExit('replace guard not found exactly once')
           text = text.replace(old_guard, '    if count < 1:\n', 1)
 
+          # Current controller reloads immediately after an internal match update.
+          old_block = r'''replace_once(
+              p,
+              "        expectedUpdatedAt: expectedUpdatedAt,\n"
+              "        address: address,\n"
+              "      );\n"
+              "      if (rememberAddressAsDefault)",
+              "        expectedUpdatedAt: expectedUpdatedAt,\n"
+              "        address: address,\n"
+              "        meetingAt: meetingAt,\n"
+              "      );\n"
+              "      if (rememberAddressAsDefault)",
+          )'''
+          new_block = r'''replace_once(
+              p,
+              "        expectedUpdatedAt: expectedUpdatedAt,\n"
+              "        address: address,\n"
+              "      );\n"
+              "      await load(\n"
+              "        seasonId: state.selectedSeasonId,",
+              "        expectedUpdatedAt: expectedUpdatedAt,\n"
+              "        address: address,\n"
+              "        meetingAt: meetingAt,\n"
+              "      );\n"
+              "      await load(\n"
+              "        seasonId: state.selectedSeasonId,",
+          )'''
+          if text.count(old_block) != 1:
+              raise SystemExit(f'internal controller update block count={text.count(old_block)}')
+          text = text.replace(old_block, new_block, 1)
+
           # Current formatting wraps the internal-match remember-address argument.
           old = (
               '"        address: address.isEmpty ? null : address,\\n"\n'
