@@ -27,7 +27,9 @@ class ConvocationLaunchPicker extends StatelessWidget {
       children: [
         Text(
           'Lancement des convocations',
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
@@ -113,8 +115,8 @@ class ConvocationLaunchPicker extends StatelessWidget {
     final initialDate = DateUtils.dateOnly(initial).isBefore(today)
         ? today
         : DateUtils.dateOnly(initial).isAfter(latest)
-        ? latest
-        : DateUtils.dateOnly(initial);
+            ? latest
+            : DateUtils.dateOnly(initial);
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
