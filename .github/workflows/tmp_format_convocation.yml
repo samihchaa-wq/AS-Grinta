@@ -23,6 +23,8 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Install locked dependencies
+        run: flutter pub get --enforce-lockfile
       - run: |
           dart format \
             lib/features/matches/presentation/calendar_entry_form_page.dart \
