@@ -14,7 +14,6 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
-import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
 import 'package:flutter/material.dart';
@@ -52,7 +51,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadLimitLoaded = false;
   bool _rememberAddressAsDefault = true;
   bool _saving = false;
-  ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
+  final ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
   DateTime? _customLaunchAt;
   DateTime? _meetingAt;
 
