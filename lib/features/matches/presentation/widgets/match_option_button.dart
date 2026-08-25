@@ -97,7 +97,9 @@ class MatchValueButton extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],

@@ -29,7 +29,9 @@ class ConvocationLaunchPicker extends StatelessWidget {
       children: [
         Text(
           'Lancement des convocations',
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
@@ -65,15 +67,16 @@ class ConvocationLaunchPicker extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        Text(switch (mode) {
-          ConvocationLaunchMode.automatic =>
-            'J-6 à 12h · ${_formatDateTime(automaticAt)}',
-          ConvocationLaunchMode.now => 'Dès l’enregistrement du match',
-          ConvocationLaunchMode.custom =>
-            customAt == null
-                ? 'Choisis une date et une heure'
-                : _formatDateTime(customAt!),
-        }, style: Theme.of(context).textTheme.bodySmall),
+        Text(
+            switch (mode) {
+              ConvocationLaunchMode.automatic =>
+                'J-6 à 12h · ${_formatDateTime(automaticAt)}',
+              ConvocationLaunchMode.now => 'Dès l’enregistrement du match',
+              ConvocationLaunchMode.custom => customAt == null
+                  ? 'Choisis une date et une heure'
+                  : _formatDateTime(customAt!),
+            },
+            style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -106,8 +109,7 @@ class ConvocationLaunchPicker extends StatelessWidget {
       return;
     }
 
-    final suggested =
-        customAt ??
+    final suggested = customAt ??
         suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt, now: minimum);
     final picked = await showMatchDateTimeWheelPicker(
       context: context,

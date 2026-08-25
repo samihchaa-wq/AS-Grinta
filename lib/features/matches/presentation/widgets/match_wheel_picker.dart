@@ -145,7 +145,9 @@ class _DateTimeWheelSheetState extends State<_DateTimeWheelSheet> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: Theme.of(context).textTheme.titleMedium
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -231,7 +233,9 @@ class _NumberWheelSheetState extends State<_NumberWheelSheet> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: Theme.of(context).textTheme.titleMedium
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -258,11 +262,9 @@ class _NumberWheelSheetState extends State<_NumberWheelSheet> {
                   _selected = widget.minimumValue + index;
                 },
                 children: [
-                  for (
-                    var value = widget.minimumValue;
-                    value <= widget.maximumValue;
-                    value++
-                  )
+                  for (var value = widget.minimumValue;
+                      value <= widget.maximumValue;
+                      value++)
                     Center(child: Text('$value')),
                 ],
               ),
