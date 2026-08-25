@@ -1,4 +1,5 @@
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,16 +10,26 @@ void main() {
     );
 
     expect(find.text('Heure de rendez-vous'), findsOneWidget);
-    expect(find.text('30 min avant le coup d’envoi · 20:30'), findsOneWidget);
-
-    await tester.tap(find.text('Heure de rendez-vous'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('30 min avant le coup d’envoi'), findsOneWidget);
-    expect(find.text('Choisir une heure'), findsOneWidget);
+    expect(find.text('-30min'), findsOneWidget);
+    expect(find.text('Choisir'), findsOneWidget);
+    expect(find.text('20:30 · 30 min avant le coup d’envoi'), findsOneWidget);
   });
 
-  testWidgets('meeting picker shows an explicit custom time', (tester) async {
+  testWidgets('Choisir opens the scrolling date and time picker',
+      (tester) async {
+    await tester.pumpWidget(
+      _harness(kickoffAt: DateTime(2026, 8, 26, 21), customMeetingAt: null),
+    );
+
+    await tester.tap(find.text('Choisir'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CupertinoDatePicker), findsOneWidget);
+    expect(find.text('Valider'), findsOneWidget);
+  });
+
+  testWidgets('meeting picker shows an explicit custom date and time',
+      (tester) async {
     await tester.pumpWidget(
       _harness(
         kickoffAt: DateTime(2026, 8, 26, 21),
@@ -26,7 +37,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Personnalisée · 19:45'), findsOneWidget);
+    expect(find.text('26/08/2026 · 19:45'), findsOneWidget);
   });
 }
 
