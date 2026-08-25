@@ -70,13 +70,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       _oddsDraw = null;
       _oddsLoss = null;
     });
-    final odds = await ref
-        .read(matchesRepositoryProvider)
-        .previewMatchOdds(
-          opponentId: _opponentId,
-          isHome: _isHome,
-          referenceDate: _kickoffAt,
-        );
+    final odds =
+        await ref.read(matchesRepositoryProvider).previewMatchOdds(
+              opponentId: _opponentId,
+              isHome: _isHome,
+              referenceDate: _kickoffAt,
+            );
     if (!mounted || token != _oddsRequestToken) return;
     setState(() {
       _suggestingOdds = false;
