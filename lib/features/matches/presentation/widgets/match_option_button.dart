@@ -45,19 +45,13 @@ class MatchOptionButton extends StatelessWidget {
     if (selected) {
       return SizedBox(
         height: height,
-        child: FilledButton(
-          onPressed: onPressed,
-          child: child,
-        ),
+        child: FilledButton(onPressed: onPressed, child: child),
       );
     }
 
     return SizedBox(
       height: height,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        child: child,
-      ),
+      child: OutlinedButton(onPressed: onPressed, child: child),
     );
   }
 }
@@ -86,10 +80,7 @@ class MatchValueButton extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 19),
-            const SizedBox(width: 8),
-          ],
+          if (icon != null) ...[Icon(icon, size: 19), const SizedBox(width: 8)],
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -106,9 +97,7 @@ class MatchValueButton extends StatelessWidget {
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
+                  style: Theme.of(context).textTheme.bodyMedium
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],

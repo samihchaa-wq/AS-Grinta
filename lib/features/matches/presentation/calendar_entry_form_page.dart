@@ -15,6 +15,8 @@ import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_option_button.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +43,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   String _seasonId = '';
   String _opponentId = '';
   bool _isHome = true;
-  bool _rememberAddressAsDefault = false;
+  bool _rememberAddressAsDefault = true;
   bool _saving = false;
   bool _suggestingOdds = false;
   bool _squadDefaultApplied = false;
@@ -70,7 +72,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     _kind = event == null
         ? _CalendarEntryKind.championnat
         : _CalendarEntryKind.event;
-    _startsAt = event?.startsAt ??
+    _startsAt =
+        event?.startsAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _seasonId = event?.seasonId ?? '';
     _eventTitleController.text = event?.title ?? '';
@@ -82,8 +85,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         await controller.load(allSeasons: true);
       }
       if (!mounted) return;
-      final home =
-          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
+      final home = await ref
+          .read(matchesRepositoryProvider)
+          .fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       if (widget.event == null && !_isEvent) _prefillAddress();
@@ -103,12 +107,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     final state = ref.watch(matchesControllerProvider);
     final isAdmin = ref.watch(isAdminViewProvider);
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature =
-        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
+    final feature = ref
+        .watch(featureFlagsControllerProvider)
+        .valueOrNull
+        ?.sportsManagement;
     final seasons = widget.event == null
         ? state.seasons
-            .where((season) => season['status']?.toString() == 'open')
-            .toList(growable: false)
+              .where((season) => season['status']?.toString() == 'open')
+              .toList(growable: false)
         : state.seasons;
     final opponents = [...state.opponents]
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
@@ -153,33 +159,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               if (widget.event == null) ...[
-                DropdownButtonFormField<_CalendarEntryKind>(
-                  initialValue: _kind,
-                  decoration: const InputDecoration(
-                    labelText: 'Type',
-                    prefixIcon: Icon(Icons.category_outlined),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.championnat,
-                      child: Text('Championnat'),
-                    ),
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.amical,
-                      child: Text('Amical'),
-                    ),
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.internal,
-                      child: Text('Match entre nous'),
-                    ),
-                    DropdownMenuItem(
-                      value: _CalendarEntryKind.event,
-                      child: Text('Événement'),
-                    ),
-                  ],
-                  onChanged: busy ? null : _changeKind,
-                ),
-                const SizedBox(height: 18),
+                _typeSelector(busy: busy),
+                const SizedBox(height: 14),
               ] else ...[
                 const ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -268,12 +249,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         },
       ),
       const SizedBox(height: 8),
-      _dateTile(),
-      _timeTile(),
+      _dateTimeFields(),
       const SizedBox(height: 12),
       TextFormField(
         controller: _addressController,
         textCapitalization: TextCapitalization.words,
+        keyboardType: TextInputType.streetAddress,
+        minLines: 2,
+        maxLines: null,
         maxLength: 300,
         decoration: const InputDecoration(
           labelText: 'Lieu de rendez-vous',
@@ -334,8 +317,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                       },
                 validator: (value) =>
                     _isNormalMatch && (value == null || value.isEmpty)
-                        ? 'Sélectionnez un adversaire'
-                        : null,
+                    ? 'Sélectionnez un adversaire'
+                    : null,
               ),
             ),
             const SizedBox(width: 8),
@@ -348,27 +331,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         ),
       if (_isNormalMatch) ...[
         const SizedBox(height: 12),
-        DropdownButtonFormField<bool>(
-          initialValue: _isHome,
-          decoration: const InputDecoration(labelText: 'Lieu'),
-          items: const [
-            DropdownMenuItem(value: true, child: Text('Domicile')),
-            DropdownMenuItem(value: false, child: Text('Extérieur')),
-          ],
-          onChanged: busy
-              ? null
-              : (value) {
-                  setState(() {
-                    _isHome = value ?? true;
-                    _refreshAddressForSelection();
-                  });
-                  _suggestOdds();
-                },
-        ),
+        _locationSelector(busy: busy),
       ],
       const SizedBox(height: 12),
-      _dateTile(),
-      _timeTile(),
+      _dateTimeFields(enabled: !busy),
+      const SizedBox(height: 12),
       MatchMeetingTimePicker(
         kickoffAt: _startsAt,
         customMeetingAt: _meetingAt,
@@ -390,6 +357,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       TextFormField(
         controller: _addressController,
         textCapitalization: TextCapitalization.words,
+        keyboardType: TextInputType.streetAddress,
+        minLines: 2,
+        maxLines: null,
         maxLength: 300,
         decoration: const InputDecoration(
           labelText: 'Adresse (facultatif)',
@@ -404,23 +374,14 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           onChanged: busy
               ? null
               : (value) =>
-                  setState(() => _rememberAddressAsDefault = value ?? false),
-          title: const Text(
-            'Utiliser cette adresse par défaut pour les prochains matchs',
-          ),
-          subtitle: Text(
-            _isHome
-                ? 'Met à jour le terrain par défaut d’AS Grinta.'
-                : 'Met à jour le terrain par défaut de l’adversaire.',
-          ),
+                    setState(() => _rememberAddressAsDefault = value ?? false),
+          title: const Text('Garder cette adresse pour cette équipe'),
           controlAffinity: ListTileControlAffinity.leading,
         ),
         const SizedBox(height: 16),
         Text(
           'Maillot',
-          style: Theme.of(context)
-              .textTheme
-              .titleSmall
+          style: Theme.of(context).textTheme.titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
@@ -440,19 +401,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         ),
         if (sportsEnabled) ...[
           const SizedBox(height: 12),
-          TextFormField(
-            controller: _squadSizeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Nombre de joueurs convoqués',
-            ),
-            validator: (raw) {
-              final value = int.tryParse(raw?.trim() ?? '');
-              if (value == null || value < 1 || value > 30) {
-                return 'Choisissez un nombre entre 1 et 30';
-              }
-              return null;
-            },
+          MatchValueButton(
+            label: 'Nombre de joueurs convoqués',
+            value: _squadSizeController.text,
+            icon: Icons.groups_outlined,
+            onPressed: busy ? null : _pickSquadSize,
           ),
         ],
         const SizedBox(height: 20),
@@ -489,21 +442,136 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     ];
   }
 
-  Widget _dateTile() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Date'),
-        subtitle: Text(_formatDate(_startsAt)),
-        trailing: const Icon(Icons.calendar_today),
-        onTap: _pickDate,
-      );
+  Widget _typeSelector({required bool busy}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Type',
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Championnat',
+                selected: _kind == _CalendarEntryKind.championnat,
+                onPressed: busy
+                    ? null
+                    : () => _changeKind(_CalendarEntryKind.championnat),
+                height: 50,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Amical',
+                selected: _kind == _CalendarEntryKind.amical,
+                onPressed: busy
+                    ? null
+                    : () => _changeKind(_CalendarEntryKind.amical),
+                height: 50,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Match entre nous',
+                selected: _kind == _CalendarEntryKind.internal,
+                onPressed: busy
+                    ? null
+                    : () => _changeKind(_CalendarEntryKind.internal),
+                height: 50,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Événement',
+                selected: _kind == _CalendarEntryKind.event,
+                onPressed: busy
+                    ? null
+                    : () => _changeKind(_CalendarEntryKind.event),
+                height: 50,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 
-  Widget _timeTile() => ListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Heure'),
-        subtitle: Text(_formatTime(_startsAt)),
-        trailing: const Icon(Icons.schedule),
-        onTap: _pickTime,
-      );
+  Widget _locationSelector({required bool busy}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Lieu',
+          style: Theme.of(context).textTheme.titleSmall
+              ?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Domicile',
+                selected: _isHome,
+                onPressed: busy ? null : () => _setLocation(true),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Extérieur',
+                selected: !_isHome,
+                onPressed: busy ? null : () => _setLocation(false),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _setLocation(bool isHome) {
+    if (_isHome == isHome) return;
+    setState(() {
+      _isHome = isHome;
+      _refreshAddressForSelection();
+    });
+    _suggestOdds();
+  }
+
+  Widget _dateTimeFields({bool enabled = true}) {
+    return Row(
+      children: [
+        Expanded(
+          child: MatchValueButton(
+            label: 'Date',
+            value: _formatDate(_startsAt),
+            icon: Icons.calendar_today_outlined,
+            onPressed: enabled ? _pickDate : null,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: MatchValueButton(
+            label: 'Heure',
+            value: _formatTime(_startsAt),
+            icon: Icons.schedule_outlined,
+            onPressed: enabled ? _pickTime : null,
+          ),
+        ),
+      ],
+    );
+  }
 
   void _changeKind(_CalendarEntryKind? kind) {
     if (kind == null || kind == _kind) return;
@@ -545,7 +613,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       _oddsDraw = null;
       _oddsLoss = null;
     });
-    final odds = await ref.read(matchesRepositoryProvider).previewMatchOdds(
+    final odds = await ref
+        .read(matchesRepositoryProvider)
+        .previewMatchOdds(
           opponentId: _opponentId,
           isHome: _isHome,
           referenceDate: _startsAt,
@@ -574,7 +644,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+      final opponent = ref
+          .read(matchesControllerProvider)
+          .opponents
+          .firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -621,15 +694,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
   Future<void> _pickDate() async {
     final today = DateUtils.dateOnly(DateTime.now());
-    final date = await showDatePicker(
+    final previousStartsAt = _startsAt;
+    final date = await showMatchDateWheelPicker(
       context: context,
-      initialDate: _startsAt,
-      firstDate: widget.event == null
+      initialValue: _startsAt,
+      minimumDate: widget.event == null
           ? today
           : DateUtils.dateOnly(_startsAt).isBefore(today)
-              ? DateUtils.dateOnly(_startsAt)
-              : today,
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
+          ? DateUtils.dateOnly(_startsAt)
+          : today,
+      maximumDate: DateTime.now().add(const Duration(days: 3650)),
+      title: 'Date du match',
     );
     if (date == null) return;
     setState(() {
@@ -641,7 +716,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         _startsAt.minute,
       );
       _repairCustomLaunchIfNeeded();
-      _repairMeetingAt();
+      _repairMeetingAt(previousKickoffAt: previousStartsAt);
     });
     if (_isNormalMatch && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -649,13 +724,11 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   }
 
   Future<void> _pickTime() async {
-    final time = await showTimePicker(
+    final previousStartsAt = _startsAt;
+    final time = await showMatchTimeWheelPicker(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_startsAt),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
+      initialValue: _startsAt,
+      title: 'Heure du match',
     );
     if (time == null) return;
     setState(() {
@@ -667,14 +740,28 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         time.minute,
       );
       _repairCustomLaunchIfNeeded();
-      _repairMeetingAt();
+      _repairMeetingAt(previousKickoffAt: previousStartsAt);
     });
   }
 
-  void _repairMeetingAt() {
+  Future<void> _pickSquadSize() async {
+    final current = int.tryParse(_squadSizeController.text.trim()) ?? 14;
+    final picked = await showMatchNumberWheelPicker(
+      context: context,
+      initialValue: current,
+      minimumValue: 1,
+      maximumValue: 30,
+      title: 'Nombre de joueurs convoqués',
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _squadSizeController.text = '$picked');
+  }
+
+  void _repairMeetingAt({DateTime? previousKickoffAt}) {
     _meetingAt = preserveCustomMeetingTime(
       kickoffAt: _startsAt,
       customMeetingAt: _meetingAt,
+      previousKickoffAt: previousKickoffAt,
     );
   }
 
@@ -767,9 +854,12 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
           );
         }
         final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-        final squadSizeLimit =
-            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-        await ref.read(scheduledMatchCreationRepositoryProvider).createMatch(
+        final squadSizeLimit = sportsEnabled
+            ? int.parse(_squadSizeController.text.trim())
+            : null;
+        await ref
+            .read(scheduledMatchCreationRepositoryProvider)
+            .createMatch(
               seasonId: _seasonId,
               opponentId: _opponentId,
               kickoffAt: _startsAt,
@@ -806,7 +896,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   Future<void> _confirmDeleteEvent() async {
     final event = widget.event;
     if (event == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer cet événement ?'),

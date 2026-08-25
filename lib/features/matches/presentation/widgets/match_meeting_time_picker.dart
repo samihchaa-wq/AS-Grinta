@@ -29,9 +29,7 @@ class MatchMeetingTimePicker extends StatelessWidget {
       children: [
         Text(
           'Heure de rendez-vous',
-          style: Theme.of(context)
-              .textTheme
-              .titleSmall
+          style: Theme.of(context).textTheme.titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
@@ -67,8 +65,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
 
   Future<void> _pickCustomDateTime(BuildContext context) async {
     final maximum = kickoffAt.subtract(const Duration(minutes: 1));
-    final initial = customMeetingAt ??
-        kickoffAt.subtract(const Duration(minutes: 30));
+    final initial =
+        customMeetingAt ?? kickoffAt.subtract(const Duration(minutes: 30));
     final picked = await showMatchDateTimeWheelPicker(
       context: context,
       title: 'Heure de rendez-vous',

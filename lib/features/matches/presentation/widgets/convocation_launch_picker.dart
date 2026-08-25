@@ -29,9 +29,7 @@ class ConvocationLaunchPicker extends StatelessWidget {
       children: [
         Text(
           'Lancement des convocations',
-          style: Theme.of(context)
-              .textTheme
-              .titleSmall
+          style: Theme.of(context).textTheme.titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
@@ -67,17 +65,15 @@ class ConvocationLaunchPicker extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          switch (mode) {
-            ConvocationLaunchMode.automatic =>
-              'J-6 à 12h · ${_formatDateTime(automaticAt)}',
-            ConvocationLaunchMode.now => 'Dès l’enregistrement du match',
-            ConvocationLaunchMode.custom => customAt == null
+        Text(switch (mode) {
+          ConvocationLaunchMode.automatic =>
+            'J-6 à 12h · ${_formatDateTime(automaticAt)}',
+          ConvocationLaunchMode.now => 'Dès l’enregistrement du match',
+          ConvocationLaunchMode.custom =>
+            customAt == null
                 ? 'Choisis une date et une heure'
                 : _formatDateTime(customAt!),
-          },
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        }, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
@@ -102,17 +98,17 @@ class ConvocationLaunchPicker extends StatelessWidget {
     if (maximum.isBefore(minimum)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Le match est trop proche pour programmer un lancement.'),
+          content: Text(
+            'Le match est trop proche pour programmer un lancement.',
+          ),
         ),
       );
       return;
     }
 
-    final suggested = customAt ??
-        suggestedCustomConvocationLaunchAt(
-          kickoffAt: kickoffAt,
-          now: minimum,
-        );
+    final suggested =
+        customAt ??
+        suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt, now: minimum);
     final picked = await showMatchDateTimeWheelPicker(
       context: context,
       title: 'Lancement des convocations',

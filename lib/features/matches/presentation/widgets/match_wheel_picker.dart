@@ -145,9 +145,7 @@ class _DateTimeWheelSheetState extends State<_DateTimeWheelSheet> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
+                    style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -233,9 +231,7 @@ class _NumberWheelSheetState extends State<_NumberWheelSheet> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
+                    style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                 ),
