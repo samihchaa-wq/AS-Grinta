@@ -73,7 +73,7 @@ Future<MatchGpsApp?> _showGpsPicker(BuildContext context) {
     context: context,
     showDragHandle: true,
     builder: (pickerContext) => SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -152,7 +152,7 @@ Future<void> showMatchAddressSheet(BuildContext context, String address) {
     context: context,
     showDragHandle: true,
     builder: (sheetContext) => SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
