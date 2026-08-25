@@ -12,9 +12,11 @@ import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/domain/match_meeting.dart';
+import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,7 +50,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadDefaultApplied = false;
   bool _squadLimitLoading = false;
   bool _squadLimitLoaded = false;
-  bool _rememberAddressAsDefault = false;
+  bool _rememberAddressAsDefault = true;
   bool _saving = false;
   ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
   DateTime? _customLaunchAt;
@@ -189,8 +191,21 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
   }
 
+  void _changeVenue(bool isHome) {
+    if (_isHome == isHome) return;
+    setState(() {
+      _isHome = isHome;
+      _refreshAddressForSelection();
+    });
+    _suggestOdds();
+  }
+
   @override
   Widget build(BuildContext context) {
+    // All creation entry points now share the richer four-choice form so
+    // Championnat / Amical / Match entre nous / Événement stay consistent.
+    if (widget.match == null) return const CalendarEntryFormPage();
+
     final state = ref.watch(matchesControllerProvider);
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role?.isAdmin ?? false;
@@ -219,8 +234,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: GrintaAppBar(
-        title: Text(widget.match == null ? 'Ajouter' : 'Modifier'),
+      appBar: const GrintaAppBar(
+        title: Text('Modifier'),
         admin: true,
       ),
       body: Container(
@@ -238,31 +253,44 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
-              DropdownButtonFormField<String>(
-                initialValue: _isInternal ? 'entre_nous' : _matchType,
-                decoration: const InputDecoration(
-                  labelText: 'Type',
-                  prefixIcon: Icon(Icons.category_outlined),
+              if (_isInternal)
+                const ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.groups_outlined),
+                  title: Text('Match entre nous'),
+                  subtitle: Text('Le type ne peut pas être changé.'),
+                )
+              else ...[
+                Text(
+                  'Type',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
                 ),
-                items: [
-                  if (!(widget.match?.isInternal ?? false)) ...const [
-                    DropdownMenuItem(
-                      value: 'championnat',
-                      child: Text('Championnat'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CompactChoiceButton(
+                        label: 'Championnat',
+                        selected: _matchType == 'championnat',
+                        enabled: !busy,
+                        onPressed: () => _changeMatchKind('championnat'),
+                      ),
                     ),
-                    DropdownMenuItem(value: 'amical', child: Text('Amical')),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _CompactChoiceButton(
+                        label: 'Amical',
+                        selected: _matchType == 'amical',
+                        enabled: !busy,
+                        onPressed: () => _changeMatchKind('amical'),
+                      ),
+                    ),
                   ],
-                  if (widget.match == null ||
-                      (widget.match?.isInternal ?? false))
-                    const DropdownMenuItem(
-                      value: 'entre_nous',
-                      child: Text('Match entre nous'),
-                    ),
-                ],
-                onChanged: (widget.match?.isInternal ?? false) || busy
-                    ? null
-                    : _changeMatchKind,
-              ),
+                ),
+              ],
               const SizedBox(height: 18),
               if (!_isInternal) ...[
                 Row(
@@ -305,22 +333,34 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<bool>(
-                  initialValue: _isHome,
-                  decoration: const InputDecoration(labelText: 'Lieu'),
-                  items: const [
-                    DropdownMenuItem(value: true, child: Text('Domicile')),
-                    DropdownMenuItem(value: false, child: Text('Extérieur')),
+                Text(
+                  'Lieu',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _CompactChoiceButton(
+                        label: 'Domicile',
+                        selected: _isHome,
+                        enabled: !busy,
+                        onPressed: () => _changeVenue(true),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _CompactChoiceButton(
+                        label: 'Extérieur',
+                        selected: !_isHome,
+                        enabled: !busy,
+                        onPressed: () => _changeVenue(false),
+                      ),
+                    ),
                   ],
-                  onChanged: busy
-                      ? null
-                      : (value) {
-                          setState(() {
-                            _isHome = value ?? true;
-                            _refreshAddressForSelection();
-                          });
-                          _suggestOdds();
-                        },
                 ),
               ],
               const SizedBox(height: 12),
@@ -328,44 +368,37 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Date'),
                 subtitle: Text(_formatDate(_kickoffAt)),
-                trailing: const Icon(Icons.calendar_today),
+                trailing: const Icon(Icons.unfold_more_rounded),
                 onTap: busy ? null : _pickDate,
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Heure'),
                 subtitle: Text(_formatTime(_kickoffAt)),
-                trailing: const Icon(Icons.schedule),
+                trailing: const Icon(Icons.unfold_more_rounded),
                 onTap: busy ? null : _pickTime,
               ),
+              const SizedBox(height: 8),
               MatchMeetingTimePicker(
                 kickoffAt: _kickoffAt,
                 customMeetingAt: _meetingAt,
                 enabled: !busy,
                 onChanged: (value) => setState(() => _meetingAt = value),
               ),
-              if (widget.match == null) ...[
-                const SizedBox(height: 18),
-                ConvocationLaunchPicker(
-                  kickoffAt: _kickoffAt,
-                  mode: _launchMode,
-                  customAt: _customLaunchAt,
-                  enabled: !busy,
-                  onModeChanged: (mode) => setState(() => _launchMode = mode),
-                  onCustomAtChanged: (value) =>
-                      setState(() => _customLaunchAt = value),
-                ),
-              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _addressController,
                 enabled: !busy,
                 textCapitalization: TextCapitalization.words,
+                keyboardType: TextInputType.multiline,
+                minLines: 2,
+                maxLines: null,
                 maxLength: 300,
                 decoration: const InputDecoration(
                   labelText: 'Adresse (facultatif)',
                   hintText: 'Terrain, rue, ville…',
                   prefixIcon: Icon(Icons.place_outlined),
+                  alignLabelWithHint: true,
                 ),
               ),
               if (!_isInternal) ...[
@@ -377,9 +410,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                       : (value) => setState(
                             () => _rememberAddressAsDefault = value ?? false,
                           ),
-                  title: const Text(
-                    'Utiliser cette adresse par défaut pour les prochains matchs',
-                  ),
+                  title: const Text('Garder cette adresse pour cette équipe'),
                   subtitle: Text(
                     _isHome
                         ? 'Met à jour le terrain par défaut d’AS Grinta.'
@@ -415,26 +446,20 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 ),
                 if (sportsEnabled) ...[
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _squadSizeController,
-                    enabled: !busy,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Nombre de joueurs convoqués',
-                      suffixIcon: _squadLimitLoading
-                          ? const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: GrintaProgressIndicator(strokeWidth: 2),
-                            )
-                          : null,
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Nombre de joueurs convoqués'),
+                    subtitle: Text(
+                      '${_squadSizeController.text} joueur${_squadSizeController.text == '1' ? '' : 's'}',
                     ),
-                    validator: (raw) {
-                      final value = int.tryParse(raw?.trim() ?? '');
-                      if (value == null || value < 1 || value > 30) {
-                        return 'Choisissez un nombre entre 1 et 30';
-                      }
-                      return null;
-                    },
+                    trailing: _squadLimitLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: GrintaProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.unfold_more_rounded),
+                    onTap: busy ? null : _pickSquadSize,
                   ),
                 ],
                 const SizedBox(height: 20),
@@ -481,9 +506,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                         child: GrintaProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.save_outlined),
-                label: Text(widget.match == null ? 'Ajouter' : 'Enregistrer'),
+                label: const Text('Enregistrer'),
               ),
-              if (widget.match != null && canManage) ...[
+              if (canManage) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
@@ -577,16 +602,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   }
 
   Future<void> _pickDate() async {
+    final previousKickoff = _kickoffAt;
     final today = DateUtils.dateOnly(DateTime.now());
-    final date = await showDatePicker(
+    final firstDate = DateUtils.dateOnly(_kickoffAt).isBefore(today)
+        ? DateUtils.dateOnly(_kickoffAt)
+        : today;
+    final date = await MatchWheelPicker.pickDate(
       context: context,
       initialDate: _kickoffAt,
-      firstDate: DateUtils.dateOnly(_kickoffAt).isBefore(today)
-          ? DateUtils.dateOnly(_kickoffAt)
-          : today,
+      firstDate: firstDate,
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
-    if (date == null) return;
+    if (date == null || !mounted) return;
     setState(() {
       _kickoffAt = DateTime(
         date.year,
@@ -596,7 +623,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         _kickoffAt.minute,
       );
       _repairCustomLaunchIfNeeded();
-      _repairMeetingAt();
+      _repairMeetingAt(previousKickoffAt: previousKickoff);
     });
     if (!_isInternal && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -604,15 +631,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   }
 
   Future<void> _pickTime() async {
-    final time = await showTimePicker(
+    final previousKickoff = _kickoffAt;
+    final time = await MatchWheelPicker.pickTime(
       context: context,
-      initialTime: TimeOfDay.fromDateTime(_kickoffAt),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
+      initialDateTime: _kickoffAt,
     );
-    if (time == null) return;
+    if (time == null || !mounted) return;
     setState(() {
       _kickoffAt = DateTime(
         _kickoffAt.year,
@@ -622,12 +646,27 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         time.minute,
       );
       _repairCustomLaunchIfNeeded();
-      _repairMeetingAt();
+      _repairMeetingAt(previousKickoffAt: previousKickoff);
     });
   }
 
-  void _repairMeetingAt() {
+  Future<void> _pickSquadSize() async {
+    final current = int.tryParse(_squadSizeController.text.trim()) ?? 14;
+    final value = await MatchWheelPicker.pickInt(
+      context: context,
+      initialValue: current,
+      minValue: 1,
+      maxValue: 30,
+      title: 'Nombre de joueurs convoqués',
+      labelBuilder: (number) => '$number joueur${number == 1 ? '' : 's'}',
+    );
+    if (value == null || !mounted) return;
+    setState(() => _squadSizeController.text = value.toString());
+  }
+
+  void _repairMeetingAt({required DateTime previousKickoffAt}) {
     _meetingAt = preserveCustomMeetingTime(
+      previousKickoffAt: previousKickoffAt,
       kickoffAt: _kickoffAt,
       customMeetingAt: _meetingAt,
     );
@@ -655,6 +694,16 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (pastError != null) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(pastError)));
+      return;
+    }
+
+    final meetingError = validateCustomMeetingAt(
+      kickoffAt: _kickoffAt,
+      customMeetingAt: _meetingAt,
+    );
+    if (meetingError != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(meetingError)));
       return;
     }
 
@@ -799,6 +848,46 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   String _formatTime(DateTime value) =>
       '${value.hour.toString().padLeft(2, '0')}:'
       '${value.minute.toString().padLeft(2, '0')}';
+}
+
+class _CompactChoiceButton extends StatelessWidget {
+  const _CompactChoiceButton({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = ButtonStyle(
+      minimumSize: WidgetStateProperty.all(const Size.fromHeight(48)),
+      padding: WidgetStateProperty.all(
+        const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      ),
+      textStyle: WidgetStateProperty.all(
+        const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+    final child = Text(label, textAlign: TextAlign.center, maxLines: 2);
+    if (selected) {
+      return FilledButton(
+        style: style,
+        onPressed: enabled ? onPressed : null,
+        child: child,
+      );
+    }
+    return OutlinedButton(
+      style: style,
+      onPressed: enabled ? onPressed : null,
+      child: child,
+    );
+  }
 }
 
 class _OddsDisplay extends StatelessWidget {
