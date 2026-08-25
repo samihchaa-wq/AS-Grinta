@@ -1,8 +1,7 @@
 import 'package:as_grinta/features/matches/domain/match_meeting.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_option_button.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
 import 'package:flutter/material.dart';
-
-enum _MeetingTimeChoice { automatic, custom }
 
 class MatchMeetingTimePicker extends StatelessWidget {
   const MatchMeetingTimePicker({
@@ -20,9 +19,6 @@ class MatchMeetingTimePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final choice = customMeetingAt == null
-        ? _MeetingTimeChoice.automatic
-        : _MeetingTimeChoice.custom;
     final effective = resolvedMatchMeetingAt(
       kickoffAt: kickoffAt,
       customMeetingAt: customMeetingAt,
@@ -39,29 +35,24 @@ class MatchMeetingTimePicker extends StatelessWidget {
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
-        SegmentedButton<_MeetingTimeChoice>(
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment<_MeetingTimeChoice>(
-              value: _MeetingTimeChoice.automatic,
-              label: Text('-30min'),
+        Row(
+          children: [
+            Expanded(
+              child: MatchOptionButton(
+                label: '-30min',
+                selected: customMeetingAt == null,
+                onPressed: enabled ? () => onChanged(null) : null,
+              ),
             ),
-            ButtonSegment<_MeetingTimeChoice>(
-              value: _MeetingTimeChoice.custom,
-              label: Text('Choisir'),
+            const SizedBox(width: 8),
+            Expanded(
+              child: MatchOptionButton(
+                label: 'Choisir',
+                selected: customMeetingAt != null,
+                onPressed: enabled ? () => _pickCustomDateTime(context) : null,
+              ),
             ),
           ],
-          selected: {choice},
-          onSelectionChanged: enabled
-              ? (selection) {
-                  final selected = selection.first;
-                  if (selected == _MeetingTimeChoice.automatic) {
-                    onChanged(null);
-                  } else {
-                    _pickCustomDateTime(context);
-                  }
-                }
-              : null,
         ),
         const SizedBox(height: 6),
         Text(
