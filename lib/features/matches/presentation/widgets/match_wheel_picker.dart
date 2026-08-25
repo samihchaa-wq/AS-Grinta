@@ -70,7 +70,11 @@ class MatchWheelPicker {
     String Function(int value)? labelBuilder,
   }) async {
     assert(minValue <= maxValue);
-    final initial = initialValue.clamp(minValue, maxValue);
+    final initial = initialValue < minValue
+        ? minValue
+        : initialValue > maxValue
+            ? maxValue
+            : initialValue;
     var selected = initial;
     final controller = FixedExtentScrollController(
       initialItem: initial - minValue,
