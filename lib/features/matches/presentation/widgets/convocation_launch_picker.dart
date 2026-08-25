@@ -1,4 +1,5 @@
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
 import 'package:flutter/material.dart';
 
 class ConvocationLaunchPicker extends StatelessWidget {
@@ -32,137 +33,101 @@ class ConvocationLaunchPicker extends StatelessWidget {
               .titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _ChoiceButton(
+                label: 'J-6',
+                selected: mode == ConvocationLaunchMode.automatic,
+                enabled: enabled,
+                onPressed: () =>
+                    onModeChanged(ConvocationLaunchMode.automatic),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ChoiceButton(
+                label: 'Maintenant',
+                selected: mode == ConvocationLaunchMode.now,
+                enabled: enabled,
+                onPressed: () => onModeChanged(ConvocationLaunchMode.now),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _ChoiceButton(
+                label: 'Choisir',
+                selected: mode == ConvocationLaunchMode.custom,
+                enabled: enabled,
+                onPressed: () => _pickCustom(context),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
         Text(
-          'Choisis quand les joueurs pourront répondre à leur disponibilité.',
+          switch (mode) {
+            ConvocationLaunchMode.automatic =>
+              'Ouverture le ${_formatDateTime(automaticAt)}',
+            ConvocationLaunchMode.now => 'Ouverture dès l’enregistrement',
+            ConvocationLaunchMode.custom => customAt == null
+                ? 'Choisis une date et une heure'
+                : 'Ouverture le ${_formatDateTime(customAt!)}',
+          },
           style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 8),
-        RadioGroup<ConvocationLaunchMode>(
-          groupValue: mode,
-          onChanged: enabled ? _changeMode : (_) {},
-          child: Column(
-            children: [
-              RadioListTile<ConvocationLaunchMode>(
-                contentPadding: EdgeInsets.zero,
-                value: ConvocationLaunchMode.automatic,
-                enabled: enabled,
-                title: const Text('Automatique — J-6 à 12h'),
-                subtitle: Text('Prévu le ${_formatDateTime(automaticAt)}'),
-              ),
-              RadioListTile<ConvocationLaunchMode>(
-                contentPadding: EdgeInsets.zero,
-                value: ConvocationLaunchMode.custom,
-                enabled: enabled,
-                title: const Text('Choisir une date et une heure'),
-                subtitle: Text(
-                  customAt == null
-                      ? 'À définir'
-                      : 'Prévu le ${_formatDateTime(customAt!)}',
-                ),
-              ),
-              if (mode == ConvocationLaunchMode.custom) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: enabled ? () => _pickDate(context) : null,
-                        icon: const Icon(Icons.calendar_today_outlined),
-                        label: Text(
-                          customAt == null ? 'Date' : _formatDate(customAt!),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: enabled ? () => _pickTime(context) : null,
-                        icon: const Icon(Icons.schedule_outlined),
-                        label: Text(
-                          customAt == null ? 'Heure' : _formatTime(customAt!),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-              ],
-              RadioListTile<ConvocationLaunchMode>(
-                contentPadding: EdgeInsets.zero,
-                value: ConvocationLaunchMode.now,
-                enabled: enabled,
-                title: const Text('Maintenant'),
-                subtitle: const Text(
-                  'Les disponibilités s’ouvrent dès la création.',
-                ),
-              ),
-            ],
-          ),
         ),
       ],
     );
   }
 
-  void _changeMode(ConvocationLaunchMode? value) {
-    if (value == null) return;
-    if (value == ConvocationLaunchMode.custom && customAt == null) {
-      onCustomAtChanged(
-        suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt),
+  Future<void> _pickCustom(BuildContext context) async {
+    final now = DateTime.now();
+    final minimum = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute,
+    );
+    final maximum = kickoffAt.subtract(const Duration(minutes: 1));
+    if (maximum.isBefore(minimum)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Le match est trop proche. Choisis « Maintenant ».'),
+        ),
       );
+      return;
     }
-    onModeChanged(value);
-  }
 
-  Future<void> _pickDate(BuildContext context) async {
-    final initial =
-        customAt ?? suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt);
-    final today = DateUtils.dateOnly(DateTime.now());
-    final latest = DateUtils.dateOnly(kickoffAt);
-    final initialDate = DateUtils.dateOnly(initial).isBefore(today)
-        ? today
-        : DateUtils.dateOnly(initial).isAfter(latest)
-            ? latest
-            : DateUtils.dateOnly(initial);
-    final picked = await showDatePicker(
+    final initial = customAt ??
+        suggestedCustomConvocationLaunchAt(
+          kickoffAt: kickoffAt,
+          now: minimum,
+        );
+    final picked = await MatchWheelPicker.pickDateTime(
       context: context,
-      initialDate: initialDate,
-      firstDate: today,
-      lastDate: latest,
+      title: 'Lancement des convocations',
+      initialDateTime: initial,
+      minimumDate: minimum,
+      maximumDate: maximum,
     );
-    if (picked == null) return;
-    onCustomAtChanged(
-      DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
-        initial.hour,
-        initial.minute,
-      ),
-    );
-  }
+    if (picked == null || !context.mounted) return;
 
-  Future<void> _pickTime(BuildContext context) async {
-    final initial =
-        customAt ?? suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt);
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initial),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
-      ),
+    final error = validateConvocationLaunch(
+      mode: ConvocationLaunchMode.custom,
+      kickoffAt: kickoffAt,
+      customAt: picked,
+      now: minimum,
     );
-    if (picked == null) return;
-    onCustomAtChanged(
-      DateTime(
-        initial.year,
-        initial.month,
-        initial.day,
-        picked.hour,
-        picked.minute,
-      ),
-    );
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    onCustomAtChanged(picked);
+    onModeChanged(ConvocationLaunchMode.custom);
   }
 
   String _formatDate(DateTime value) =>
@@ -175,4 +140,42 @@ class ConvocationLaunchPicker extends StatelessWidget {
 
   String _formatDateTime(DateTime value) =>
       '${_formatDate(value)} à ${_formatTime(value)}';
+}
+
+class _ChoiceButton extends StatelessWidget {
+  const _ChoiceButton({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = ButtonStyle(
+      padding: WidgetStateProperty.all(
+        const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      ),
+      textStyle: WidgetStateProperty.all(
+        const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
+    );
+    if (selected) {
+      return FilledButton(
+        style: style,
+        onPressed: enabled ? onPressed : null,
+        child: Text(label, maxLines: 1),
+      );
+    }
+    return OutlinedButton(
+      style: style,
+      onPressed: enabled ? onPressed : null,
+      child: Text(label, maxLines: 1),
+    );
+  }
 }
