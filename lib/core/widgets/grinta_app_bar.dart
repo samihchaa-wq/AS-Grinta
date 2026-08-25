@@ -4,7 +4,7 @@ import 'package:as_grinta/core/theme/app_spacing.dart';
 import 'package:as_grinta/core/theme/app_theme.dart';
 import 'package:as_grinta/core/widgets/admin_badge.dart';
 import 'package:as_grinta/features/badges/presentation/badge_trophy_button.dart';
-import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_button.dart';
+import 'package:as_grinta/features/season_wrapped/presentation/season_wrapped_entry_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -129,7 +129,7 @@ class _GrintaTitleBar extends StatelessWidget {
 }
 
 List<Widget> grintaHomeActions(BuildContext context) => [
-      const SeasonWrappedButton(),
+      const SeasonWrappedEntryButton(),
       const BadgeTrophyButton(),
       const SizedBox(width: 2),
       IconButton(

@@ -79,6 +79,12 @@ String? resolveAuthRedirect({
     return '/matches';
   }
 
+  // L'aperçu Wrapped n'est qu'un outil temporaire de conception. Même un
+  // administrateur ne peut plus l'ouvrir avant la vraie fin de saison.
+  if (location == '/wrapped' && uri.queryParameters['apercu'] == '1') {
+    return '/matches';
+  }
+
   if (_isSportsManagementRoute(uri) && !sportsManagementEnabled) {
     final segments =
         uri.pathSegments.where((segment) => segment.isNotEmpty).toList();
