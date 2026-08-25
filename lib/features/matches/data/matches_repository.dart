@@ -218,11 +218,12 @@ class MatchesRepository {
     }
   }
 
-  /// Cotes suggérées par le modèle historique (V2.1) pour un adversaire et
-  /// un lieu donnés. Retourne null si le calcul échoue.
+  /// Cotes suggérées par le même modèle serveur que la cote officielle,
+  /// calculées avec la date réelle du match. Retourne null en cas d'échec.
   Future<({double win, double draw, double loss})?> previewMatchOdds({
     required String opponentId,
     required bool isHome,
+    required DateTime referenceDate,
   }) async {
     try {
       final result = await _client.rpc(
@@ -230,6 +231,7 @@ class MatchesRepository {
         params: {
           'p_opponent_id': opponentId,
           'p_location': isHome ? 'domicile' : 'exterieur',
+          'p_reference_date': referenceDate.toIso8601String().split('T').first,
         },
       );
       if (result is! Map) return null;
