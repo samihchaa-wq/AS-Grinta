@@ -25,7 +25,30 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tool/tmp_patch_match_meeting.py')
+          text = path.read_text()
+          old = '    if count != 1:\n'
+          new = '    if count < 1:\n'
+          if text.count(old) != 1:
+              raise SystemExit('replace guard not found exactly once')
+          path.write_text(text.replace(old, new, 1))
+          PY
           python3 tool/tmp_patch_match_meeting.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/features/matches/data/match_info_repository.dart')
+          text = path.read_text()
+          head, tail = text.split('class MatchInfo {', 1)
+          if 'effectiveMeetingAt' not in tail:
+              old = "  final String? jerseyNote;\n\n  bool get isFriendly => matchType == 'amical';"
+              new = "  final String? jerseyNote;\n\n  DateTime? get effectiveMeetingAt => kickoffAt == null\n      ? null\n      : resolvedMatchMeetingAt(\n          kickoffAt: kickoffAt!,\n          customMeetingAt: meetingAt,\n        );\n\n  bool get isFriendly => matchType == 'amical';"
+              if tail.count(old) != 1:
+                  raise SystemExit('MatchInfo meeting getter anchor not found exactly once')
+              tail = tail.replace(old, new, 1)
+              path.write_text(head + 'class MatchInfo {' + tail)
+          PY
           dart format \
             lib/features/matches/domain/match_meeting.dart \
             lib/features/matches/domain/match_model.dart \
