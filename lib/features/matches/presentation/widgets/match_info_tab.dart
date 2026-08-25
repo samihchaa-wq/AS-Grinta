@@ -73,11 +73,7 @@ class MatchInfoTab extends ConsumerWidget {
                             ),
                           ),
                           TextSpan(
-                            text: AppFormats.time(
-                              info.kickoffAt!.subtract(
-                                const Duration(minutes: 30),
-                              ),
-                            ),
+                            text: AppFormats.time(info.effectiveMeetingAt!),
                             style: const TextStyle(
                               fontSize: 15.5,
                               fontWeight: FontWeight.w800,
@@ -223,9 +219,10 @@ class MatchInfoTab extends ConsumerWidget {
                     encounters.length > 1
                         ? '5 dernières rencontres'
                         : 'Dernière rencontre',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 if (!info.isInternal)
                   const SizedBox(height: AppSpacing.contentGap),

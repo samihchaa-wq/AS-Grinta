@@ -11,8 +11,10 @@ import 'package:as_grinta/features/matches/data/scheduled_match_creation_reposit
 import 'package:as_grinta/features/matches/domain/club_event.dart';
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
+import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -52,6 +54,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
 
   ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
   DateTime? _customLaunchAt;
+  DateTime? _meetingAt;
 
   bool get _isEvent => _kind == _CalendarEntryKind.event;
   bool get _isInternal => _kind == _CalendarEntryKind.internal;
@@ -366,6 +369,12 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       const SizedBox(height: 12),
       _dateTile(),
       _timeTile(),
+      MatchMeetingTimePicker(
+        kickoffAt: _startsAt,
+        customMeetingAt: _meetingAt,
+        enabled: !busy,
+        onChanged: (value) => setState(() => _meetingAt = value),
+      ),
       if (widget.event == null) ...[
         const SizedBox(height: 18),
         ConvocationLaunchPicker(
@@ -510,6 +519,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
       }
       if (_isEvent) {
         _addressController.clear();
+        _meetingAt = null;
       } else {
         _applyRememberedAddress();
       }
@@ -631,6 +641,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         _startsAt.minute,
       );
       _repairCustomLaunchIfNeeded();
+      _repairMeetingAt();
     });
     if (_isNormalMatch && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -656,7 +667,15 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         time.minute,
       );
       _repairCustomLaunchIfNeeded();
+      _repairMeetingAt();
     });
+  }
+
+  void _repairMeetingAt() {
+    _meetingAt = preserveCustomMeetingTime(
+      kickoffAt: _startsAt,
+      customMeetingAt: _meetingAt,
+    );
   }
 
   void _repairCustomLaunchIfNeeded() {
@@ -730,6 +749,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               kickoffAt: _startsAt,
               launchMode: _launchMode,
               customLaunchAt: _customLaunchAt,
+              meetingAt: _meetingAt,
               address: _addressController.text.trim().isEmpty
                   ? null
                   : _addressController.text.trim(),
@@ -759,6 +779,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               oddsLoss: loss,
               launchMode: _launchMode,
               customLaunchAt: _customLaunchAt,
+              meetingAt: _meetingAt,
               squadSizeLimit: squadSizeLimit,
               address: _addressController.text.trim().isEmpty
                   ? null

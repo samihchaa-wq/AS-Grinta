@@ -220,6 +220,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     bool rememberAddressAsDefault = false,
     String matchType = 'championnat',
     String? jerseyNote,
+    DateTime? meetingAt,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -261,6 +262,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         rememberAddressAsDefault: rememberAddressAsDefault,
         matchType: matchType,
         jerseyNote: jerseyNote,
+        meetingAt: meetingAt,
       );
       await load(
         seasonId: state.selectedSeasonId,
@@ -288,6 +290,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     bool rememberAddressAsDefault = false,
     String matchType = 'championnat',
     String? jerseyNote,
+    DateTime? meetingAt,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -339,6 +342,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         rememberAddressAsDefault: rememberAddressAsDefault,
         matchType: matchType,
         jerseyNote: jerseyNote,
+        meetingAt: meetingAt,
       );
       await load(
         seasonId: state.selectedSeasonId,
@@ -357,6 +361,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required String seasonId,
     required DateTime kickoffAt,
     String? address,
+    DateTime? meetingAt,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -372,6 +377,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         seasonId: seasonId,
         kickoffAt: kickoffAt,
         address: address,
+        meetingAt: meetingAt,
       );
       await load(
         seasonId: state.selectedSeasonId,
@@ -390,6 +396,7 @@ class MatchesController extends StateNotifier<MatchesState> {
     required DateTime? expectedUpdatedAt,
     String? address,
     bool rememberAddressAsDefault = false,
+    DateTime? meetingAt,
   }) async {
     if (!_canManageMatches) {
       state = state.copyWith(isLoading: false, error: 'Droits insuffisants.');
@@ -417,6 +424,7 @@ class MatchesController extends StateNotifier<MatchesState> {
         kickoffAt: kickoffAt,
         expectedUpdatedAt: expectedUpdatedAt,
         address: address,
+        meetingAt: meetingAt,
       );
       await load(
         seasonId: state.selectedSeasonId,

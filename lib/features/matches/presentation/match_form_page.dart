@@ -11,8 +11,10 @@ import 'package:as_grinta/features/matches/data/scheduled_match_creation_reposit
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,6 +52,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _saving = false;
   ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
   DateTime? _customLaunchAt;
+  DateTime? _meetingAt;
 
   int _oddsRequestToken = 0;
   String? _clubHomeAddress;
@@ -104,6 +107,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
+    _meetingAt = match?.meetingAt;
     _selectedJersey = JerseyOption.fromId(match?.jerseyNote);
 
     Future.microtask(() async {
@@ -333,6 +337,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 subtitle: Text(_formatTime(_kickoffAt)),
                 trailing: const Icon(Icons.schedule),
                 onTap: busy ? null : _pickTime,
+              ),
+              MatchMeetingTimePicker(
+                kickoffAt: _kickoffAt,
+                customMeetingAt: _meetingAt,
+                enabled: !busy,
+                onChanged: (value) => setState(() => _meetingAt = value),
               ),
               if (widget.match == null) ...[
                 const SizedBox(height: 18),
@@ -586,6 +596,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         _kickoffAt.minute,
       );
       _repairCustomLaunchIfNeeded();
+      _repairMeetingAt();
     });
     if (!_isInternal && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -611,7 +622,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         time.minute,
       );
       _repairCustomLaunchIfNeeded();
+      _repairMeetingAt();
     });
+  }
+
+  void _repairMeetingAt() {
+    _meetingAt = preserveCustomMeetingTime(
+      kickoffAt: _kickoffAt,
+      customMeetingAt: _meetingAt,
+    );
   }
 
   void _repairCustomLaunchIfNeeded() {
@@ -668,6 +687,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         expectedUpdatedAt: widget.match!.updatedAt,
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
+        meetingAt: _meetingAt,
       );
       if (!mounted) return;
       if (ref.read(matchesControllerProvider).error == null) {
@@ -707,6 +727,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       rememberAddressAsDefault: _rememberAddressAsDefault,
       matchType: _matchType,
       jerseyNote: _selectedJersey?.id,
+      meetingAt: _meetingAt,
     );
     if (!mounted) return;
     if (ref.read(matchesControllerProvider).error == null) {
@@ -724,6 +745,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           kickoffAt: _kickoffAt,
           launchMode: _launchMode,
           customLaunchAt: _customLaunchAt,
+          meetingAt: _meetingAt,
           address: address.isEmpty ? null : address,
         );
       } else {
@@ -748,6 +770,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           oddsLoss: oddsLoss,
           launchMode: _launchMode,
           customLaunchAt: _customLaunchAt,
+          meetingAt: _meetingAt,
           squadSizeLimit: squadSizeLimit,
           address: address.isEmpty ? null : address,
           rememberAddressAsDefault: _rememberAddressAsDefault,
