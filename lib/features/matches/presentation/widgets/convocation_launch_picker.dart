@@ -27,9 +27,7 @@ class ConvocationLaunchPicker extends StatelessWidget {
       children: [
         Text(
           'Lancement des convocations',
-          style: Theme.of(context)
-              .textTheme
-              .titleSmall
+          style: Theme.of(context).textTheme.titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 6),
@@ -108,15 +106,15 @@ class ConvocationLaunchPicker extends StatelessWidget {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final initial = customAt ??
-        suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt);
+    final initial =
+        customAt ?? suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt);
     final today = DateUtils.dateOnly(DateTime.now());
     final latest = DateUtils.dateOnly(kickoffAt);
     final initialDate = DateUtils.dateOnly(initial).isBefore(today)
         ? today
         : DateUtils.dateOnly(initial).isAfter(latest)
-            ? latest
-            : DateUtils.dateOnly(initial);
+        ? latest
+        : DateUtils.dateOnly(initial);
     final picked = await showDatePicker(
       context: context,
       initialDate: initialDate,
@@ -136,8 +134,8 @@ class ConvocationLaunchPicker extends StatelessWidget {
   }
 
   Future<void> _pickTime(BuildContext context) async {
-    final initial = customAt ??
-        suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt);
+    final initial =
+        customAt ?? suggestedCustomConvocationLaunchAt(kickoffAt: kickoffAt);
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
