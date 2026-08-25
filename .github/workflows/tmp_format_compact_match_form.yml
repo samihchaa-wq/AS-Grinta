@@ -1,0 +1,45 @@
+name: Temporary compact match form formatter
+
+on:
+  push:
+    branches: [feat/compact-match-form-controls]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format compact match form files
+        shell: bash
+        run: |
+          dart format \
+            lib/features/matches/presentation/calendar_entry_form_page.dart \
+            lib/features/matches/presentation/match_form_page.dart \
+            lib/features/matches/presentation/widgets/convocation_launch_picker.dart \
+            lib/features/matches/presentation/widgets/match_meeting_time_picker.dart \
+            lib/features/matches/presentation/widgets/match_option_button.dart \
+            lib/features/matches/presentation/widgets/match_wheel_picker.dart
+          rm -f .github/workflows/tmp_format_compact_match_form.yml
+
+      - name: Commit formatting
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Format compact match form controls"
+          git push
