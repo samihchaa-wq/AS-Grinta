@@ -29,11 +29,50 @@ jobs:
           from pathlib import Path
           path = Path('tool/tmp_patch_match_meeting.py')
           text = path.read_text()
-          old = '    if count != 1:\n'
-          new = '    if count < 1:\n'
-          if text.count(old) != 1:
+
+          old_guard = '    if count != 1:\n'
+          if text.count(old_guard) != 1:
               raise SystemExit('replace guard not found exactly once')
-          path.write_text(text.replace(old, new, 1))
+          text = text.replace(old_guard, '    if count < 1:\n', 1)
+
+          # MatchesController uses the validated optimistic-lock baseline variable.
+          token = '"        expectedUpdatedAt: expectedUpdatedAt,\\n"'
+          if text.count(token) != 2:
+              raise SystemExit(f'controller baseline token count={text.count(token)}')
+          text = text.replace(
+              token,
+              '"        expectedUpdatedAt: baseline,\\n"',
+          )
+
+          # Current formatting wraps the internal-match remember-address argument.
+          old = (
+              '"        address: address.isEmpty ? null : address,\\n"\n'
+              '    "        rememberAddressAsDefault: _rememberAddressAsDefault,"'
+          )
+          new = (
+              '"        address: address.isEmpty ? null : address,\\n"\n'
+              '    "        rememberAddressAsDefault: _rememberAddressAsDefault,\\n"\n'
+              '    "        meetingAt: _meetingAt,"'
+          )
+          old_wrapped = (
+              '"        address: address.isEmpty ? null : address,\\n"\n'
+              '    "        rememberAddressAsDefault:\\n"\n'
+              '    "            _rememberAddressAsDefault,"'
+          )
+          new_wrapped = (
+              '"        address: address.isEmpty ? null : address,\\n"\n'
+              '    "        rememberAddressAsDefault:\\n"\n'
+              '    "            _rememberAddressAsDefault,\\n"\n'
+              '    "        meetingAt: _meetingAt,"'
+          )
+          if text.count(old) != 1:
+              raise SystemExit(f'internal remember-address source anchor count={text.count(old)}')
+          text = text.replace(old, old_wrapped, 1)
+          if text.count(new) != 1:
+              raise SystemExit(f'internal remember-address target anchor count={text.count(new)}')
+          text = text.replace(new, new_wrapped, 1)
+
+          path.write_text(text)
           PY
           python3 tool/tmp_patch_match_meeting.py
           python3 - <<'PY'
