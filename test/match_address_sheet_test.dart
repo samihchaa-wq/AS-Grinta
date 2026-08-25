@@ -4,10 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  tearDown(() {
-    debugDefaultTargetPlatformOverride = null;
-  });
-
   test('GPS choices follow the target platform', () {
     expect(
       matchGpsAppsForPlatform(TargetPlatform.iOS),
@@ -70,34 +66,42 @@ void main() {
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    await tester.pumpWidget(_harness());
+    try {
+      await tester.pumpWidget(_harness());
 
-    await tester.tap(find.text('Adresse'));
-    await tester.pumpAndSettle();
-    expect(find.text('Choisir le GPS'), findsOneWidget);
+      await tester.tap(find.text('Adresse'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choisir le GPS'), findsOneWidget);
 
-    await tester.tap(find.text('Choisir le GPS'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Choisir le GPS'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Plans'), findsOneWidget);
-    expect(find.text('Google Maps'), findsOneWidget);
-    expect(find.text('Waze'), findsOneWidget);
+      expect(find.text('Plans'), findsOneWidget);
+      expect(find.text('Google Maps'), findsOneWidget);
+      expect(find.text('Waze'), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('non-Apple platforms offer Google Maps and Waze', (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    await tester.pumpWidget(_harness());
+    try {
+      await tester.pumpWidget(_harness());
 
-    await tester.tap(find.text('Adresse'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Choisir le GPS'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Adresse'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choisir le GPS'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Plans'), findsNothing);
-    expect(find.text('Google Maps'), findsOneWidget);
-    expect(find.text('Waze'), findsOneWidget);
+      expect(find.text('Plans'), findsNothing);
+      expect(find.text('Google Maps'), findsOneWidget);
+      expect(find.text('Waze'), findsOneWidget);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
 
