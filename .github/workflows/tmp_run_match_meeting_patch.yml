@@ -35,15 +35,6 @@ jobs:
               raise SystemExit('replace guard not found exactly once')
           text = text.replace(old_guard, '    if count < 1:\n', 1)
 
-          # MatchesController uses the validated optimistic-lock baseline variable.
-          token = '"        expectedUpdatedAt: expectedUpdatedAt,\\n"'
-          if text.count(token) != 2:
-              raise SystemExit(f'controller baseline token count={text.count(token)}')
-          text = text.replace(
-              token,
-              '"        expectedUpdatedAt: baseline,\\n"',
-          )
-
           # Current formatting wraps the internal-match remember-address argument.
           old = (
               '"        address: address.isEmpty ? null : address,\\n"\n'
