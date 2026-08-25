@@ -1,4 +1,4 @@
-name: Temporary PR 1063 state-space fix
+name: Temporary PR 1063 state space fix
 
 on:
   push:
@@ -10,49 +10,17 @@ permissions:
 
 jobs:
   fix:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout branch
+      - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: fix/canonical-server-match-odds
 
-      - name: Align lifecycle state-space with server-authoritative odds
+      - name: Fix stale odds expectation
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('supabase/tests/database/exhaustive_match_lifecycle_state_space.test.sql')
-          text = path.read_text()
-
-          old_comment = """-- This matrix tests create_match_with_odds date/odds validation, including the
--- historical lower bound year 2000. Cleanup must bypass both the lifecycle
--- trigger and RLS, but only inside this rollback-only pgTAP transaction."""
-          new_comment = """-- This matrix tests create_match_with_odds date/location/season validation and
--- proves that legacy client-supplied odds are ignored now that Supabase is the
--- authoritative odds source. Cleanup must bypass both the lifecycle trigger
--- and RLS, but only inside this rollback-only pgTAP transaction."""
-          if text.count(old_comment) != 1:
-              raise SystemExit(f'Expected one matrix comment, found {text.count(old_comment)}')
-          text = text.replace(old_comment, new_comment)
-
-          old_expected = """            v_kind='open' and v_location in ('domicile','exterieur')
-              and v_date between date '2000-01-01' and date '2100-12-31'
-              and v_odds between 1.01 and 100,"""
-          new_expected = """            v_kind='open' and v_location in ('domicile','exterieur')
-              and v_date between date '2000-01-01' and date '2100-12-31',"""
-          if text.count(old_expected) != 1:
-              raise SystemExit(f'Expected one creation expectation, found {text.count(old_expected)}')
-          text = text.replace(old_expected, new_expected)
-
-          path.write_text(text)
-          PY
-
-      - name: Commit state-space fix
-        shell: bash
-        run: |
+          python3 -c "from pathlib import Path; p=Path('supabase/tests/database/exhaustive_match_lifecycle_state_space.test.sql'); t=p.read_text(); old='              and v_odds between 1.01 and 100,\\n'; assert t.count(old)==1; p.write_text(t.replace(old,''))"
           git add supabase/tests/database/exhaustive_match_lifecycle_state_space.test.sql
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
