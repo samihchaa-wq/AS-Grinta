@@ -577,7 +577,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     if (kind == null || kind == _kind) return;
     setState(() {
       _kind = kind;
-      _rememberAddressAsDefault = false;
+      _rememberAddressAsDefault = kind != _CalendarEntryKind.event;
       if (_isInternal) {
         _opponentId = '';
         _isHome = true;
