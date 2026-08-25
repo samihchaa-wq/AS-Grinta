@@ -7,9 +7,12 @@ import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/club_events_repository.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
+import 'package:as_grinta/features/matches/data/scheduled_match_creation_repository.dart';
 import 'package:as_grinta/features/matches/domain/club_event.dart';
+import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,6 +49,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   double? _oddsDraw;
   double? _oddsLoss;
   int _oddsRequestToken = 0;
+
+  ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
+  DateTime? _customLaunchAt;
 
   bool get _isEvent => _kind == _CalendarEntryKind.event;
   bool get _isInternal => _kind == _CalendarEntryKind.internal;
@@ -141,10 +147,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         child: Form(
           key: _formKey,
           child: ListView(
-            // La marge basse dégage le dernier bouton de la barre de
-            // navigation : au premier affichage, « Supprimer définitivement
-            // l'événement » tombait exactement dessous et le geste naturel
-            // ratait sa cible.
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             children: [
               if (widget.event == null) ...[
@@ -211,6 +213,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                 ..._buildMatchFields(
                   opponents: opponents,
                   sportsEnabled: sportsEnabled,
+                  busy: busy,
                 ),
               const SizedBox(height: 24),
               FilledButton.icon(
@@ -291,6 +294,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
   List<Widget> _buildMatchFields({
     required List<Map<String, dynamic>> opponents,
     required bool sportsEnabled,
+    required bool busy,
   }) {
     return [
       if (_isInternal)
@@ -316,13 +320,15 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
                       ),
                     )
                     .toList(growable: false),
-                onChanged: (value) {
-                  setState(() {
-                    _opponentId = value ?? '';
-                    _refreshAddressForSelection();
-                  });
-                  _suggestOdds();
-                },
+                onChanged: busy
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _opponentId = value ?? '';
+                          _refreshAddressForSelection();
+                        });
+                        _suggestOdds();
+                      },
                 validator: (value) =>
                     _isNormalMatch && (value == null || value.isEmpty)
                         ? 'Sélectionnez un adversaire'
@@ -332,7 +338,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             const SizedBox(width: 8),
             IconButton.filledTonal(
               tooltip: 'Ajouter un adversaire',
-              onPressed: _createOpponent,
+              onPressed: busy ? null : _createOpponent,
               icon: const Icon(Icons.add),
             ),
           ],
@@ -346,18 +352,31 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
             DropdownMenuItem(value: true, child: Text('Domicile')),
             DropdownMenuItem(value: false, child: Text('Extérieur')),
           ],
-          onChanged: (value) {
-            setState(() {
-              _isHome = value ?? true;
-              _refreshAddressForSelection();
-            });
-            _suggestOdds();
-          },
+          onChanged: busy
+              ? null
+              : (value) {
+                  setState(() {
+                    _isHome = value ?? true;
+                    _refreshAddressForSelection();
+                  });
+                  _suggestOdds();
+                },
         ),
       ],
       const SizedBox(height: 12),
       _dateTile(),
       _timeTile(),
+      if (widget.event == null) ...[
+        const SizedBox(height: 18),
+        ConvocationLaunchPicker(
+          kickoffAt: _startsAt,
+          mode: _launchMode,
+          customAt: _customLaunchAt,
+          enabled: !busy,
+          onModeChanged: (mode) => setState(() => _launchMode = mode),
+          onCustomAtChanged: (value) => setState(() => _customLaunchAt = value),
+        ),
+      ],
       const SizedBox(height: 12),
       TextFormField(
         controller: _addressController,
@@ -373,8 +392,10 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
           value: _rememberAddressAsDefault,
-          onChanged: (value) =>
-              setState(() => _rememberAddressAsDefault = value ?? false),
+          onChanged: busy
+              ? null
+              : (value) =>
+                  setState(() => _rememberAddressAsDefault = value ?? false),
           title: const Text(
             'Utiliser cette adresse par défaut pour les prochains matchs',
           ),
@@ -593,8 +614,6 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     final date = await showDatePicker(
       context: context,
       initialDate: _startsAt,
-      // Une création ne peut pas viser un jour écoulé ; l'édition d'un
-      // événement existant garde sa date d'origine accessible.
       firstDate: widget.event == null
           ? today
           : DateUtils.dateOnly(_startsAt).isBefore(today)
@@ -611,6 +630,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         _startsAt.hour,
         _startsAt.minute,
       );
+      _repairCustomLaunchIfNeeded();
     });
     if (_isNormalMatch && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -635,23 +655,17 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         time.hour,
         time.minute,
       );
+      _repairCustomLaunchIfNeeded();
     });
   }
 
-  /// Le contrôleur avale ses exceptions et les range dans `state.error` : sans
-  /// ce relais, un refus serveur (RLS, contrainte, saison fermée, temporisation)
-  /// laissait le formulaire ouvert sans le moindre message.
-  ///
-  /// Renvoie vrai si une erreur a été signalée, donc si l'appelant doit
-  /// interrompre l'enregistrement.
-  bool _reportControllerError() {
-    final error = ref.read(matchesControllerProvider).error;
-    if (error == null) return false;
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
+  void _repairCustomLaunchIfNeeded() {
+    if (_launchMode != ConvocationLaunchMode.custom ||
+        _customLaunchAt == null ||
+        _customLaunchAt!.isBefore(_startsAt)) {
+      return;
     }
-    return true;
+    _customLaunchAt = suggestedCustomConvocationLaunchAt(kickoffAt: _startsAt);
   }
 
   Future<void> _submit() async {
@@ -663,14 +677,24 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
     }
     if (!_formKey.currentState!.validate()) return;
 
-    // Un événement existant peut légitimement être déjà passé ; une création
-    // dans le passé, elle, naît verrouillée et indestructible.
     if (widget.event == null) {
       final pastError = pastKickoffError(_startsAt);
       if (pastError != null) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(pastError)));
         return;
+      }
+      if (!_isEvent) {
+        final launchError = validateConvocationLaunch(
+          mode: _launchMode,
+          kickoffAt: _startsAt,
+          customAt: _customLaunchAt,
+        );
+        if (launchError != null) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(launchError)));
+          return;
+        }
       }
     }
 
@@ -699,14 +723,20 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         }
         ref.invalidate(clubEventsProvider);
       } else if (_isInternal) {
-        await ref.read(matchesControllerProvider.notifier).createInternalMatch(
+        await ref
+            .read(scheduledMatchCreationRepositoryProvider)
+            .createInternalMatch(
               seasonId: _seasonId,
               kickoffAt: _startsAt,
+              launchMode: _launchMode,
+              customLaunchAt: _customLaunchAt,
               address: _addressController.text.trim().isEmpty
                   ? null
                   : _addressController.text.trim(),
             );
-        if (_reportControllerError()) return;
+        await ref
+            .read(matchesControllerProvider.notifier)
+            .load(allSeasons: true, forceRefresh: true);
       } else {
         final win = _oddsWin;
         final draw = _oddsDraw;
@@ -719,7 +749,7 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
         final sportsEnabled = ref.read(sportsManagementEnabledProvider);
         final squadSizeLimit =
             sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-        await ref.read(matchesControllerProvider.notifier).createMatch(
+        await ref.read(scheduledMatchCreationRepositoryProvider).createMatch(
               seasonId: _seasonId,
               opponentId: _opponentId,
               kickoffAt: _startsAt,
@@ -727,6 +757,8 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               oddsWin: win,
               oddsDraw: draw,
               oddsLoss: loss,
+              launchMode: _launchMode,
+              customLaunchAt: _customLaunchAt,
               squadSizeLimit: squadSizeLimit,
               address: _addressController.text.trim().isEmpty
                   ? null
@@ -735,7 +767,9 @@ class _CalendarEntryFormPageState extends ConsumerState<CalendarEntryFormPage> {
               matchType: _matchType,
               jerseyNote: _selectedJersey?.id,
             );
-        if (_reportControllerError()) return;
+        await ref
+            .read(matchesControllerProvider.notifier)
+            .load(allSeasons: true, forceRefresh: true);
       }
       if (!mounted) return;
       Navigator.pop(context, true);
@@ -854,9 +888,6 @@ class _JerseyOptionTile extends StatelessWidget {
                 option.assetPath,
                 fit: BoxFit.contain,
                 semanticLabel: 'Maillot ${option.label}',
-                // Hors ligne, le visuel ne peut pas être chargé : sans repli,
-                // le titre « Maillot » surplombait une zone entièrement vide
-                // et le choix devenait impossible.
                 errorBuilder: (context, _, __) =>
                     _JerseyFallback(label: option.label, selected: selected),
               ),
@@ -878,7 +909,6 @@ class _JerseyOptionTile extends StatelessWidget {
   }
 }
 
-/// Repli du sélecteur de maillot quand l'illustration ne peut pas être chargée.
 class _JerseyFallback extends StatelessWidget {
   const _JerseyFallback({required this.label, required this.selected});
 

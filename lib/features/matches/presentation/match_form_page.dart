@@ -1,3 +1,4 @@
+import 'package:as_grinta/core/utils/app_errors.dart';
 import 'package:as_grinta/core/utils/app_formats.dart';
 import 'package:as_grinta/core/utils/match_window.dart';
 import 'package:as_grinta/core/widgets/grinta_app_bar.dart';
@@ -6,9 +7,12 @@ import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
+import 'package:as_grinta/features/matches/data/scheduled_match_creation_repository.dart';
+import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -43,14 +47,11 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadLimitLoading = false;
   bool _squadLimitLoaded = false;
   bool _rememberAddressAsDefault = false;
+  bool _saving = false;
+  ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
+  DateTime? _customLaunchAt;
 
-  /// Incrémenté à chaque nouvelle demande de cotes : une réponse dont le
-  /// jeton ne correspond plus à la dernière demande en cours est ignorée,
-  /// pour qu'un changement rapide d'adversaire ne se fasse jamais écraser
-  /// par la réponse d'un choix précédent arrivée en retard.
   int _oddsRequestToken = 0;
-
-  /// Adresse du terrain d'AS Grinta (matchs à domicile), mémorisée globalement.
   String? _clubHomeAddress;
 
   Future<void> _suggestOdds() async {
@@ -210,7 +211,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       }
     }
 
-    final busy = state.isLoading || _squadLimitLoading;
+    final busy = state.isLoading || _squadLimitLoading || _saving;
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -333,6 +334,18 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 trailing: const Icon(Icons.schedule),
                 onTap: busy ? null : _pickTime,
               ),
+              if (widget.match == null) ...[
+                const SizedBox(height: 18),
+                ConvocationLaunchPicker(
+                  kickoffAt: _kickoffAt,
+                  mode: _launchMode,
+                  customAt: _customLaunchAt,
+                  enabled: !busy,
+                  onModeChanged: (mode) => setState(() => _launchMode = mode),
+                  onCustomAtChanged: (value) =>
+                      setState(() => _customLaunchAt = value),
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _addressController,
@@ -572,6 +585,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         _kickoffAt.hour,
         _kickoffAt.minute,
       );
+      _repairCustomLaunchIfNeeded();
     });
     if (!_isInternal && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -596,7 +610,17 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         time.hour,
         time.minute,
       );
+      _repairCustomLaunchIfNeeded();
     });
+  }
+
+  void _repairCustomLaunchIfNeeded() {
+    if (_launchMode != ConvocationLaunchMode.custom ||
+        _customLaunchAt == null ||
+        _customLaunchAt!.isBefore(_kickoffAt)) {
+      return;
+    }
+    _customLaunchAt = suggestedCustomConvocationLaunchAt(kickoffAt: _kickoffAt);
   }
 
   Future<void> _submit() async {
@@ -615,25 +639,36 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
 
+    if (widget.match == null) {
+      final launchError = validateConvocationLaunch(
+        mode: _launchMode,
+        kickoffAt: _kickoffAt,
+        customAt: _customLaunchAt,
+      );
+      if (launchError != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(launchError)));
+        return;
+      }
+    }
+
     final notifier = ref.read(matchesControllerProvider.notifier);
     final address = _addressController.text.trim();
+
+    if (widget.match == null) {
+      await _createScheduledMatch(address: address);
+      return;
+    }
+
     if (_isInternal) {
-      if (widget.match == null) {
-        await notifier.createInternalMatch(
-          seasonId: _seasonId,
-          kickoffAt: _kickoffAt,
-          address: address.isEmpty ? null : address,
-        );
-      } else {
-        await notifier.updateInternalMatch(
-          id: widget.match!.id,
-          seasonId: _seasonId,
-          kickoffAt: _kickoffAt,
-          expectedUpdatedAt: widget.match!.updatedAt,
-          address: address.isEmpty ? null : address,
-          rememberAddressAsDefault: _rememberAddressAsDefault,
-        );
-      }
+      await notifier.updateInternalMatch(
+        id: widget.match!.id,
+        seasonId: _seasonId,
+        kickoffAt: _kickoffAt,
+        expectedUpdatedAt: widget.match!.updatedAt,
+        address: address.isEmpty ? null : address,
+        rememberAddressAsDefault: _rememberAddressAsDefault,
+      );
       if (!mounted) return;
       if (ref.read(matchesControllerProvider).error == null) {
         Navigator.pop(context);
@@ -656,44 +691,81 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
     final squadSizeLimit =
         sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-    final jerseyNote = _selectedJersey?.id;
-    if (widget.match == null) {
-      await notifier.createMatch(
-        seasonId: _seasonId,
-        opponentId: _opponentId,
-        kickoffAt: _kickoffAt,
-        isHome: _isHome,
-        oddsWin: oddsWin,
-        oddsDraw: oddsDraw,
-        oddsLoss: oddsLoss,
-        squadSizeLimit: squadSizeLimit,
-        address: address.isEmpty ? null : address,
-        rememberAddressAsDefault: _rememberAddressAsDefault,
-        matchType: _matchType,
-        jerseyNote: jerseyNote,
-      );
-    } else {
-      await notifier.updateMatch(
-        id: widget.match!.id,
-        seasonId: _seasonId,
-        opponentId: _opponentId,
-        kickoffAt: _kickoffAt,
-        isHome: _isHome,
-        status: widget.match!.status,
-        oddsWin: oddsWin,
-        oddsDraw: oddsDraw,
-        oddsLoss: oddsLoss,
-        expectedUpdatedAt: widget.match!.updatedAt,
-        squadSizeLimit: squadSizeLimit,
-        address: address.isEmpty ? null : address,
-        rememberAddressAsDefault: _rememberAddressAsDefault,
-        matchType: _matchType,
-        jerseyNote: jerseyNote,
-      );
-    }
+    await notifier.updateMatch(
+      id: widget.match!.id,
+      seasonId: _seasonId,
+      opponentId: _opponentId,
+      kickoffAt: _kickoffAt,
+      isHome: _isHome,
+      status: widget.match!.status,
+      oddsWin: oddsWin,
+      oddsDraw: oddsDraw,
+      oddsLoss: oddsLoss,
+      expectedUpdatedAt: widget.match!.updatedAt,
+      squadSizeLimit: squadSizeLimit,
+      address: address.isEmpty ? null : address,
+      rememberAddressAsDefault: _rememberAddressAsDefault,
+      matchType: _matchType,
+      jerseyNote: _selectedJersey?.id,
+    );
     if (!mounted) return;
     if (ref.read(matchesControllerProvider).error == null) {
       Navigator.pop(context);
+    }
+  }
+
+  Future<void> _createScheduledMatch({required String address}) async {
+    setState(() => _saving = true);
+    try {
+      final repository = ref.read(scheduledMatchCreationRepositoryProvider);
+      if (_isInternal) {
+        await repository.createInternalMatch(
+          seasonId: _seasonId,
+          kickoffAt: _kickoffAt,
+          launchMode: _launchMode,
+          customLaunchAt: _customLaunchAt,
+          address: address.isEmpty ? null : address,
+        );
+      } else {
+        final oddsWin = _oddsWin;
+        final oddsDraw = _oddsDraw;
+        final oddsLoss = _oddsLoss;
+        if (oddsWin == null || oddsDraw == null || oddsLoss == null) {
+          throw StateError(
+            'Sélectionne un adversaire pour calculer les cotes.',
+          );
+        }
+        final sportsEnabled = ref.read(sportsManagementEnabledProvider);
+        final squadSizeLimit =
+            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+        await repository.createMatch(
+          seasonId: _seasonId,
+          opponentId: _opponentId,
+          kickoffAt: _kickoffAt,
+          isHome: _isHome,
+          oddsWin: oddsWin,
+          oddsDraw: oddsDraw,
+          oddsLoss: oddsLoss,
+          launchMode: _launchMode,
+          customLaunchAt: _customLaunchAt,
+          squadSizeLimit: squadSizeLimit,
+          address: address.isEmpty ? null : address,
+          rememberAddressAsDefault: _rememberAddressAsDefault,
+          matchType: _matchType,
+          jerseyNote: _selectedJersey?.id,
+        );
+      }
+      await ref
+          .read(matchesControllerProvider.notifier)
+          .load(allSeasons: true, forceRefresh: true);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -766,8 +838,6 @@ class _JerseyOptionTile extends StatelessWidget {
                 option.assetPath,
                 fit: BoxFit.contain,
                 semanticLabel: 'Maillot ${option.label}',
-                // Sans repli, une illustration manquante ou non chargée laisse
-                // une case vide et le maillot devient impossible à choisir.
                 errorBuilder: (context, _, __) =>
                     _JerseyFallback(label: option.label, selected: selected),
               ),
@@ -789,7 +859,6 @@ class _JerseyOptionTile extends StatelessWidget {
   }
 }
 
-/// Repli du sélecteur de maillot quand l'illustration ne peut pas être chargée.
 class _JerseyFallback extends StatelessWidget {
   const _JerseyFallback({required this.label, required this.selected});
 
