@@ -1,0 +1,42 @@
+name: Temporary format match meeting files
+
+on:
+  push:
+    branches: [feat/match-meeting-time-final]
+    paths:
+      - '.github/workflows/tmp_format_match_meeting.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: feat/match-meeting-time-final
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply canonical Dart formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart format \
+            lib/features/matches/data/calendar_matches_local_cache.dart \
+            lib/features/matches/data/matches_repository.dart \
+            lib/features/matches/data/scheduled_match_creation_repository.dart \
+            lib/features/matches/domain/match_model.dart \
+            lib/features/matches/presentation/calendar_entry_form_page.dart \
+            lib/features/matches/presentation/match_form_page.dart \
+            lib/features/matches/presentation/matches_controller.dart \
+            lib/features/matches/presentation/widgets/match_info_tab.dart \
+            lib/features/matches/presentation/widgets/match_meeting_time_picker.dart
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib
+          git commit -m 'Format match meeting-time implementation'
+          git push origin HEAD:feat/match-meeting-time-final
