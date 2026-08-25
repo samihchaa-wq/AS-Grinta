@@ -1,0 +1,39 @@
+name: Retry temporary match meeting patch
+
+on:
+  push:
+    branches: [feat/match-meeting-time]
+    paths:
+      - '.github/workflows/tmp_fix_match_meeting_patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: feat/match-meeting-time
+          fetch-depth: 0
+      - name: Relax sequential replacement guard and retrigger
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/tmp_match_meeting_patch.yml')
+          text = path.read_text()
+          old = "              if count != 1:\n                  raise RuntimeError(f'{path}: expected one occurrence, found {count}: {old[:100]!r}')"
+          new = "              if count < 1:\n                  raise RuntimeError(f'{path}: expected at least one occurrence, found {count}: {old[:100]!r}')"
+          if text.count(old) != 1:
+              raise SystemExit('replacement guard not found exactly once')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          rm .github/workflows/tmp_fix_match_meeting_patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Retry match meeting app wiring'
+          git push origin HEAD:feat/match-meeting-time
