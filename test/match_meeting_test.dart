@@ -11,6 +11,15 @@ void main() {
     );
   });
 
+  test('automatic meeting time can fall on the previous day', () {
+    final kickoff = DateTime(2026, 8, 27, 0, 15);
+
+    expect(
+      resolvedMatchMeetingAt(kickoffAt: kickoff),
+      DateTime(2026, 8, 26, 23, 45),
+    );
+  });
+
   test('custom meeting time overrides automatic meeting time', () {
     final kickoff = DateTime(2026, 8, 26, 21);
     final custom = DateTime(2026, 8, 25, 19, 45);
