@@ -11,8 +11,10 @@ import 'package:as_grinta/features/matches/data/scheduled_match_creation_reposit
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
 import 'package:as_grinta/features/matches/domain/jersey_option.dart';
 import 'package:as_grinta/features/matches/domain/match_model.dart';
+import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,6 +52,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _saving = false;
   ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
   DateTime? _customLaunchAt;
+  DateTime? _meetingAt;
 
   int _oddsRequestToken = 0;
   String? _clubHomeAddress;
@@ -71,7 +74,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       _oddsDraw = null;
       _oddsLoss = null;
     });
-    final odds = await ref.read(matchesRepositoryProvider).previewMatchOdds(
+    final odds = await ref
+        .read(matchesRepositoryProvider)
+        .previewMatchOdds(
           opponentId: _opponentId,
           isHome: _isHome,
           referenceDate: _kickoffAt,
@@ -94,7 +99,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     _seasonId = match?.seasonId ?? '';
     _opponentId = match?.opponentId ?? '';
-    _kickoffAt = match?.kickoffAt ??
+    _kickoffAt =
+        match?.kickoffAt ??
         DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 21);
     _isHome = match?.isHome ?? true;
     _matchType = match?.matchType ?? 'championnat';
@@ -104,11 +110,13 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     _oddsDraw = match?.oddsDraw;
     _oddsLoss = match?.oddsLoss;
     _addressController.text = match?.address ?? '';
+    _meetingAt = match?.meetingAt;
     _selectedJersey = JerseyOption.fromId(match?.jerseyNote);
 
     Future.microtask(() async {
-      final home =
-          await ref.read(matchesRepositoryProvider).fetchClubHomeAddress();
+      final home = await ref
+          .read(matchesRepositoryProvider)
+          .fetchClubHomeAddress();
       if (!mounted) return;
       setState(() => _clubHomeAddress = home);
       _prefillAddress();
@@ -134,7 +142,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (_isHome) {
       remembered = _clubHomeAddress;
     } else if (_opponentId.isNotEmpty) {
-      final opponent = ref.read(matchesControllerProvider).opponents.firstWhere(
+      final opponent = ref
+          .read(matchesControllerProvider)
+          .opponents
+          .firstWhere(
             (item) => item['id'].toString() == _opponentId,
             orElse: () => const <String, dynamic>{},
           );
@@ -191,8 +202,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final role = ref.watch(authControllerProvider).profile?.role;
     final canManage = role?.isAdmin ?? false;
     final sportsEnabled = ref.watch(sportsManagementEnabledProvider);
-    final feature =
-        ref.watch(featureFlagsControllerProvider).valueOrNull?.sportsManagement;
+    final feature = ref
+        .watch(featureFlagsControllerProvider)
+        .valueOrNull
+        ?.sportsManagement;
     final openSeasons = state.seasons
         .where((season) => season['status']?.toString() == 'open')
         .toList(growable: false);
@@ -334,6 +347,12 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 trailing: const Icon(Icons.schedule),
                 onTap: busy ? null : _pickTime,
               ),
+              MatchMeetingTimePicker(
+                kickoffAt: _kickoffAt,
+                customMeetingAt: _meetingAt,
+                enabled: !busy,
+                onChanged: (value) => setState(() => _meetingAt = value),
+              ),
               if (widget.match == null) ...[
                 const SizedBox(height: 18),
                 ConvocationLaunchPicker(
@@ -365,8 +384,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   onChanged: busy
                       ? null
                       : (value) => setState(
-                            () => _rememberAddressAsDefault = value ?? false,
-                          ),
+                          () => _rememberAddressAsDefault = value ?? false,
+                        ),
                   title: const Text(
                     'Utiliser cette adresse par défaut pour les prochains matchs',
                   ),
@@ -380,9 +399,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                 const SizedBox(height: 16),
                 Text(
                   'Maillot',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
+                  style: Theme.of(context).textTheme.titleSmall
                       ?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
@@ -397,9 +414,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                         onTap: busy
                             ? null
                             : () => setState(() {
-                                  _selectedJersey =
-                                      _selectedJersey == option ? null : option;
-                                }),
+                                _selectedJersey = _selectedJersey == option
+                                    ? null
+                                    : option;
+                              }),
                       ),
                   ],
                 ),
@@ -538,7 +556,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   Future<void> _confirmDelete() async {
     final match = widget.match;
     if (match == null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
@@ -586,6 +605,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         _kickoffAt.minute,
       );
       _repairCustomLaunchIfNeeded();
+      _repairMeetingAt();
     });
     if (!_isInternal && _opponentId.isNotEmpty) {
       await _suggestOdds();
@@ -611,7 +631,15 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         time.minute,
       );
       _repairCustomLaunchIfNeeded();
+      _repairMeetingAt();
     });
+  }
+
+  void _repairMeetingAt() {
+    _meetingAt = preserveCustomMeetingTime(
+      kickoffAt: _kickoffAt,
+      customMeetingAt: _meetingAt,
+    );
   }
 
   void _repairCustomLaunchIfNeeded() {
@@ -668,6 +696,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
         expectedUpdatedAt: widget.match!.updatedAt,
         address: address.isEmpty ? null : address,
         rememberAddressAsDefault: _rememberAddressAsDefault,
+        meetingAt: _meetingAt,
       );
       if (!mounted) return;
       if (ref.read(matchesControllerProvider).error == null) {
@@ -689,8 +718,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
 
     final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-    final squadSizeLimit =
-        sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+    final squadSizeLimit = sportsEnabled
+        ? int.parse(_squadSizeController.text.trim())
+        : null;
     await notifier.updateMatch(
       id: widget.match!.id,
       seasonId: _seasonId,
@@ -707,6 +737,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       rememberAddressAsDefault: _rememberAddressAsDefault,
       matchType: _matchType,
       jerseyNote: _selectedJersey?.id,
+      meetingAt: _meetingAt,
     );
     if (!mounted) return;
     if (ref.read(matchesControllerProvider).error == null) {
@@ -724,6 +755,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           kickoffAt: _kickoffAt,
           launchMode: _launchMode,
           customLaunchAt: _customLaunchAt,
+          meetingAt: _meetingAt,
           address: address.isEmpty ? null : address,
         );
       } else {
@@ -736,8 +768,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           );
         }
         final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-        final squadSizeLimit =
-            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+        final squadSizeLimit = sportsEnabled
+            ? int.parse(_squadSizeController.text.trim())
+            : null;
         await repository.createMatch(
           seasonId: _seasonId,
           opponentId: _opponentId,
@@ -748,6 +781,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
           oddsLoss: oddsLoss,
           launchMode: _launchMode,
           customLaunchAt: _customLaunchAt,
+          meetingAt: _meetingAt,
           squadSizeLimit: squadSizeLimit,
           address: address.isEmpty ? null : address,
           rememberAddressAsDefault: _rememberAddressAsDefault,
