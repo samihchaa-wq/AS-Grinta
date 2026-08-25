@@ -41,8 +41,7 @@ class ConvocationLaunchPicker extends StatelessWidget {
                 label: 'J-6',
                 selected: mode == ConvocationLaunchMode.automatic,
                 enabled: enabled,
-                onPressed: () =>
-                    onModeChanged(ConvocationLaunchMode.automatic),
+                onPressed: () => onModeChanged(ConvocationLaunchMode.automatic),
               ),
             ),
             const SizedBox(width: 8),

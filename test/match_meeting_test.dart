@@ -34,7 +34,8 @@ void main() {
     );
   });
 
-  test('explicit day-before rendez-vous keeps its relative day on reschedule', () {
+  test('explicit day-before rendez-vous keeps its relative day on reschedule',
+      () {
     final previousKickoff = DateTime(2026, 8, 26, 10);
     final previousCustom = DateTime(2026, 8, 25, 20, 30);
     final newKickoff = DateTime(2026, 9, 2, 10);

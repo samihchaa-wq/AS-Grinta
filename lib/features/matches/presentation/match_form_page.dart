@@ -234,8 +234,8 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: const GrintaAppBar(
-        title: Text('Modifier'),
+      appBar: GrintaAppBar(
+        title: const Text('Modifier'),
         admin: true,
       ),
       body: Container(

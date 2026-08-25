@@ -75,8 +75,8 @@ class MatchMeetingTimePicker extends StatelessWidget {
       kickoffAt.hour,
       kickoffAt.minute,
     );
-    final initial = customMeetingAt ??
-        kickoffAt.subtract(const Duration(minutes: 30));
+    final initial =
+        customMeetingAt ?? kickoffAt.subtract(const Duration(minutes: 30));
 
     final candidate = await MatchWheelPicker.pickDateTime(
       context: context,
