@@ -13,7 +13,7 @@ void main() {
 
   test('custom meeting time overrides automatic meeting time', () {
     final kickoff = DateTime(2026, 8, 26, 21);
-    final custom = DateTime(2026, 8, 26, 19, 45);
+    final custom = DateTime(2026, 8, 25, 19, 45);
 
     expect(
       resolvedMatchMeetingAt(kickoffAt: kickoff, customMeetingAt: custom),
@@ -21,7 +21,23 @@ void main() {
     );
   });
 
-  test('custom clock time follows a changed match date when still valid', () {
+  test('custom meeting keeps its day offset when the match date moves', () {
+    final previousKickoff = DateTime(2026, 8, 26, 21);
+    final previousCustom = DateTime(2026, 8, 25, 19, 45);
+    final newKickoff = DateTime(2026, 9, 2, 21);
+
+    expect(
+      preserveCustomMeetingTime(
+        kickoffAt: newKickoff,
+        customMeetingAt: previousCustom,
+        previousKickoffAt: previousKickoff,
+      ),
+      DateTime(2026, 9, 1, 19, 45),
+    );
+  });
+
+  test('custom time on match day follows a changed match date', () {
+    final previousKickoff = DateTime(2026, 8, 26, 21);
     final previousCustom = DateTime(2026, 8, 26, 19, 45);
     final newKickoff = DateTime(2026, 9, 2, 21);
 
@@ -29,12 +45,14 @@ void main() {
       preserveCustomMeetingTime(
         kickoffAt: newKickoff,
         customMeetingAt: previousCustom,
+        previousKickoffAt: previousKickoff,
       ),
       DateTime(2026, 9, 2, 19, 45),
     );
   });
 
   test('invalid custom time falls back to automatic after kickoff change', () {
+    final previousKickoff = DateTime(2026, 8, 26, 21);
     final previousCustom = DateTime(2026, 8, 26, 20, 30);
     final earlierKickoff = DateTime(2026, 9, 2, 20);
 
@@ -42,6 +60,7 @@ void main() {
       preserveCustomMeetingTime(
         kickoffAt: earlierKickoff,
         customMeetingAt: previousCustom,
+        previousKickoffAt: previousKickoff,
       ),
       isNull,
     );
@@ -60,7 +79,7 @@ void main() {
     expect(
       validateCustomMeetingAt(
         kickoffAt: kickoff,
-        customMeetingAt: DateTime(2026, 8, 26, 20, 59),
+        customMeetingAt: DateTime(2026, 8, 25, 20, 59),
       ),
       isNull,
     );
