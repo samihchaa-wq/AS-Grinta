@@ -75,14 +75,16 @@ class MatchHistoryCard extends ConsumerWidget {
                               ),
                       textAlign: TextAlign.start,
                     ),
-                  const SizedBox(height: 7),
-                  Text(
-                    match.calendarTypeLabel,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: border,
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
+                  if (!match.isInternal) ...[
+                    const SizedBox(height: 7),
+                    Text(
+                      match.calendarTypeLabel,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: border,
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                  ],
                 ],
               ),
             ),
