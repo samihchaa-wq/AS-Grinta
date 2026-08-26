@@ -6,6 +6,37 @@ import 'package:as_grinta/features/sports_management/presentation/widgets/compos
 import 'package:as_grinta/features/sports_management/presentation/widgets/football_pitch.dart';
 import 'package:flutter/material.dart';
 
+/// Relie le terrain aux vignettes de joueurs affichées en dehors du terrain
+/// (banc pré-match, banc du Live). Un seul terrain éditable est actif à la
+/// fois dans l'application ; le propriétaire permet d'éviter qu'un ancien
+/// écran conserve une sélection après sa destruction.
+class FormationPitchTapSelection {
+  FormationPitchTapSelection._();
+
+  static Object? _owner;
+  static bool Function(MatchCompositionEntry entry)? _placePlayer;
+
+  static bool get hasSelection => _placePlayer != null;
+
+  static void activate({
+    required Object owner,
+    required bool Function(MatchCompositionEntry entry) placePlayer,
+  }) {
+    _owner = owner;
+    _placePlayer = placePlayer;
+  }
+
+  static bool placePlayer(MatchCompositionEntry entry) {
+    return _placePlayer?.call(entry) ?? false;
+  }
+
+  static void clear(Object owner) {
+    if (!identical(_owner, owner)) return;
+    _owner = null;
+    _placePlayer = null;
+  }
+}
+
 const List<({Offset source, Offset target})> _legacyFlat442DisplayMap = [
   (source: Offset(.50, .95), target: Offset(.50, .86)),
   (source: Offset(.15, .75), target: Offset(.14, .68)),
@@ -67,7 +98,7 @@ class FormationMarkerMetrics {
   double get nameFontSize => (width * .18).clamp(10.5, 12.5).toDouble();
 }
 
-class FormationPitchEditor extends StatelessWidget {
+class FormationPitchEditor extends StatefulWidget {
   const FormationPitchEditor({
     super.key,
     required this.slots,
@@ -95,13 +126,91 @@ class FormationPitchEditor extends StatelessWidget {
   /// est déduite de la largeur réelle du terrain.
   final FormationMarkerMetrics? markerMetrics;
 
+  @override
+  State<FormationPitchEditor> createState() => _FormationPitchEditorState();
+}
+
+class _FormationPitchEditorState extends State<FormationPitchEditor> {
+  FootballFormationSlot? _selectedSlot;
+
+  bool _sameSlot(FootballFormationSlot a, FootballFormationSlot b) =>
+      a.label == b.label && (a.position - b.position).distance < .001;
+
+  bool _isSelected(FootballFormationSlot slot) {
+    final selected = _selectedSlot;
+    return selected != null && _sameSlot(selected, slot);
+  }
+
+  @override
+  void didUpdateWidget(covariant FormationPitchEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final selected = _selectedSlot;
+    if (!widget.editable ||
+        (selected != null &&
+            !widget.slots.any((slot) => _sameSlot(slot, selected)))) {
+      _clearSelection();
+    }
+  }
+
+  @override
+  void dispose() {
+    FormationPitchTapSelection.clear(this);
+    super.dispose();
+  }
+
+  void _selectSlot(FootballFormationSlot slot) {
+    if (!widget.editable) return;
+    if (_isSelected(slot)) {
+      _clearSelection();
+      return;
+    }
+    setState(() => _selectedSlot = slot);
+    FormationPitchTapSelection.activate(
+      owner: this,
+      placePlayer: _placeSelectedPlayer,
+    );
+  }
+
+  void _clearSelection() {
+    FormationPitchTapSelection.clear(this);
+    if (!mounted || _selectedSlot == null) return;
+    setState(() => _selectedSlot = null);
+  }
+
+  bool _placeSelectedPlayer(MatchCompositionEntry entry) {
+    final target = _selectedSlot;
+    if (!mounted || !widget.editable || target == null || !entry.canBeSelected) {
+      return false;
+    }
+    _clearSelection();
+    widget.onDroppedOnSlot(entry, target);
+    return true;
+  }
+
+  void _tapOccupiedSlot(
+    FootballFormationSlot slot,
+    MatchCompositionEntry entry,
+  ) {
+    if (!widget.editable) return;
+    final selected = _selectedSlot;
+    if (selected == null) {
+      _selectSlot(slot);
+      return;
+    }
+    if (_sameSlot(selected, slot)) {
+      _clearSelection();
+      return;
+    }
+    _placeSelectedPlayer(entry);
+  }
+
   MatchCompositionEntry? _entryFor(
     FootballFormationSlot slot,
     bool legacyFlat442,
   ) {
     MatchCompositionEntry? closest;
     var distance = double.infinity;
-    for (final entry in entries) {
+    for (final entry in widget.entries) {
       final current = _displayPosition(entry, legacyFlat442: legacyFlat442);
       final candidate = (current - slot.position).distance;
       if (candidate < distance) {
@@ -120,7 +229,7 @@ class FormationPitchEditor extends StatelessWidget {
         aspectRatio: .68,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final legacyFlat442 = _usesLegacyFlat442Layout(entries);
+            final legacyFlat442 = _usesLegacyFlat442Layout(widget.entries);
             return DecoratedBox(
               decoration: BoxDecoration(
                 color: const Color(0xFF124529),
@@ -141,13 +250,13 @@ class FormationPitchEditor extends StatelessWidget {
                     const Positioned.fill(
                       child: CustomPaint(painter: FootballPitchPainter()),
                     ),
-                    for (final slot in slots)
+                    for (final slot in widget.slots)
                       _slot(
                         context,
                         constraints.biggest,
                         slot,
                         _entryFor(slot, legacyFlat442),
-                        finishedBenchCounts,
+                        widget.finishedBenchCounts,
                         legacyFlat442,
                       ),
                   ],
@@ -173,7 +282,7 @@ class FormationPitchEditor extends StatelessWidget {
     // marqueurs suivent la largeur du terrain, qui se réduit quand le banc
     // s'affiche à côté, pour rester lisibles sans se chevaucher.
     final metrics =
-        markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
+        widget.markerMetrics ?? FormationMarkerMetrics.forPitch(size.width);
     final width = metrics.width;
     final height = metrics.height;
     final avatarSize = metrics.avatarSize;
@@ -200,42 +309,66 @@ class FormationPitchEditor extends StatelessWidget {
       height: height,
       child: DragTarget<MatchCompositionEntry>(
         onWillAcceptWithDetails: (details) =>
-            editable && details.data.canBeSelected,
-        onAcceptWithDetails: (details) => onDroppedOnSlot(details.data, slot),
+            widget.editable && details.data.canBeSelected,
+        onAcceptWithDetails: (details) {
+          _clearSelection();
+          widget.onDroppedOnSlot(details.data, slot);
+        },
         builder: (context, candidates, rejected) {
-          final highlighted = candidates.isNotEmpty;
+          final selected = _isSelected(slot);
+          final highlighted = candidates.isNotEmpty || selected;
           if (entry == null) {
             // L'emplacement vide reste carré, à la taille de la photo, pour
             // que la grille des postes garde son alignement.
             return Align(
               alignment: Alignment.topCenter,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
-                width: avatarSize,
-                height: avatarSize,
-                decoration: BoxDecoration(
-                  color: highlighted
-                      ? AppTheme.accent.withValues(alpha: .32)
-                      : Colors.white.withValues(alpha: .10),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.editable ? () => _selectSlot(slot) : null,
                   borderRadius: BorderRadius.circular(17),
-                  border: Border.all(
-                    color: highlighted ? AppTheme.accent : Colors.white54,
-                    width: highlighted ? 2 : 1,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add, color: Colors.white, size: 18),
-                    Text(
-                      slot.label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    width: avatarSize,
+                    height: avatarSize,
+                    decoration: BoxDecoration(
+                      color: highlighted
+                          ? AppTheme.accent.withValues(alpha: .32)
+                          : Colors.white.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(17),
+                      border: Border.all(
+                        color: highlighted ? AppTheme.accent : Colors.white54,
+                        width: highlighted ? 2.5 : 1,
                       ),
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color: AppTheme.accent.withValues(alpha: .8),
+                                blurRadius: 9,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
                     ),
-                  ],
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          selected ? Icons.ads_click_rounded : Icons.add,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        Text(
+                          slot.label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             );
@@ -246,11 +379,25 @@ class FormationPitchEditor extends StatelessWidget {
           final marker = Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: editable ? () => onRemoveFromField(entry) : null,
+              onTap: widget.editable ? () => _tapOccupiedSlot(slot, entry) : null,
+              onDoubleTap: widget.editable
+                  ? () {
+                      _clearSelection();
+                      widget.onRemoveFromField(entry);
+                    }
+                  : null,
               borderRadius: BorderRadius.circular(16),
-              child: DecoratedBox(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
                 decoration: BoxDecoration(
+                  color: selected
+                      ? AppTheme.accent.withValues(alpha: .12)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: highlighted ? AppTheme.accent : Colors.transparent,
+                    width: highlighted ? 2.5 : 0,
+                  ),
                   boxShadow: highlighted
                       ? [
                           BoxShadow(
@@ -297,7 +444,7 @@ class FormationPitchEditor extends StatelessWidget {
               ),
             ),
           );
-          if (!editable) return marker;
+          if (!widget.editable) return marker;
           final autoScroll = DragAutoScroller(context);
           return LongPressDraggable<MatchCompositionEntry>(
             data: entry,
