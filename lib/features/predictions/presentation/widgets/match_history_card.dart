@@ -24,6 +24,12 @@ class MatchHistoryCard extends ConsumerWidget {
     final awayName = match.isHome ? opponent : 'AS Grinta';
     final homeScore = match.isHome ? match.grintaScore : match.opponentScore;
     final awayScore = match.isHome ? match.opponentScore : match.grintaScore;
+    final surface = match.isCancelled
+        ? CalendarCardPalette.cancelledSurface
+        : CalendarCardPalette.matchSurface(match.matchType);
+    final border = match.isCancelled
+        ? CalendarCardPalette.cancelledBorder
+        : CalendarCardPalette.matchBorder(match.matchType);
 
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(10, 14, 12, 14),
@@ -31,13 +37,17 @@ class MatchHistoryCard extends ConsumerWidget {
         kickoffAt: match.kickoffAt,
         foreground: AppTheme.textPrimary,
         secondary: AppTheme.textPrimary,
-        dividerColor: CalendarCardPalette.finishedBorder,
+        dividerColor: border,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: match.isInternal
-                  ? Text(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (match.isInternal)
+                    Text(
                       'Match entre nous',
                       textAlign: TextAlign.start,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -47,7 +57,8 @@ class MatchHistoryCard extends ConsumerWidget {
                             color: AppTheme.textPrimary,
                           ),
                     )
-                  : MatchFixture(
+                  else
+                    MatchFixture(
                       homeName: homeName,
                       awayName: awayName,
                       grintaIsHome: match.isHome,
@@ -64,6 +75,16 @@ class MatchHistoryCard extends ConsumerWidget {
                               ),
                       textAlign: TextAlign.start,
                     ),
+                  const SizedBox(height: 7),
+                  Text(
+                    match.calendarTypeLabel,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: border,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ],
+              ),
             ),
             if (actions != null) ...[
               const SizedBox(width: 2),
@@ -75,13 +96,10 @@ class MatchHistoryCard extends ConsumerWidget {
     );
 
     return Card(
-      color: CalendarCardPalette.finishedSurface,
+      color: surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(
-          color: CalendarCardPalette.finishedBorder,
-          width: 1.3,
-        ),
+        side: BorderSide(color: border, width: 1.3),
       ),
       clipBehavior: Clip.antiAlias,
       // Une fois terminé, un « Match entre nous » devient une archive purement
