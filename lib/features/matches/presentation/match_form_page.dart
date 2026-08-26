@@ -6,6 +6,7 @@ import 'package:as_grinta/core/widgets/grinta_loader.dart';
 import 'package:as_grinta/features/auth/domain/auth_profile.dart';
 import 'package:as_grinta/features/auth/presentation/auth_state.dart';
 import 'package:as_grinta/features/feature_flags/presentation/feature_flags_controller.dart';
+import 'package:as_grinta/features/matches/data/match_edit_schedule_repository.dart';
 import 'package:as_grinta/features/matches/data/matches_repository.dart';
 import 'package:as_grinta/features/matches/data/scheduled_match_creation_repository.dart';
 import 'package:as_grinta/features/matches/domain/convocation_launch.dart';
@@ -14,6 +15,7 @@ import 'package:as_grinta/features/matches/domain/match_model.dart';
 import 'package:as_grinta/features/matches/domain/match_meeting.dart';
 import 'package:as_grinta/features/matches/presentation/calendar_entry_form_page.dart';
 import 'package:as_grinta/features/matches/presentation/matches_controller.dart';
+import 'package:as_grinta/features/matches/presentation/widgets/convocation_launch_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_form_section.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_meeting_time_picker.dart';
 import 'package:as_grinta/features/matches/presentation/widgets/match_wheel_picker.dart';
@@ -52,8 +54,9 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
   bool _squadLimitLoaded = false;
   bool _rememberAddressAsDefault = true;
   bool _saving = false;
-  final ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
+  ConvocationLaunchMode _launchMode = ConvocationLaunchMode.automatic;
   DateTime? _customLaunchAt;
+  bool _launchScheduleChanged = false;
   DateTime? _meetingAt;
 
   int _oddsRequestToken = 0;
@@ -154,12 +157,26 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     if (match == null || _squadLimitLoading || _squadLimitLoaded) return;
     setState(() => _squadLimitLoading = true);
     try {
-      final limit = await ref
-          .read(matchesRepositoryProvider)
-          .fetchSportSquadLimit(match.id);
+      final schedule = await ref
+          .read(matchEditScheduleRepositoryProvider)
+          .fetchSchedule(match.id);
+      final limit = _isInternal
+          ? 30
+          : await ref
+              .read(matchesRepositoryProvider)
+              .fetchSportSquadLimit(match.id);
       if (!mounted) return;
-      _squadSizeController.text = limit.toString();
-      _squadLimitLoaded = true;
+      setState(() {
+        _squadSizeController.text = limit.toString();
+        _launchMode = schedule.mode;
+        _customLaunchAt = schedule.customAt;
+        _launchScheduleChanged = false;
+        _squadLimitLoaded = true;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _squadLimitLoading = false);
     }
@@ -394,7 +411,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
             const SizedBox(height: 14),
             MatchFormSection(
               title: 'Organisation',
-              subtitle: 'Date, heure et rendez-vous',
+              subtitle: 'Date, heure, rendez-vous et convocations',
               icon: Icons.schedule_rounded,
               children: [
                 Row(
@@ -426,6 +443,21 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
                   customMeetingAt: _meetingAt,
                   enabled: !busy,
                   onChanged: (value) => setState(() => _meetingAt = value),
+                ),
+                const SizedBox(height: 14),
+                ConvocationLaunchPicker(
+                  kickoffAt: _kickoffAt,
+                  mode: _launchMode,
+                  customAt: _customLaunchAt,
+                  enabled: !busy,
+                  onModeChanged: (mode) => setState(() {
+                    _launchMode = mode;
+                    _launchScheduleChanged = true;
+                  }),
+                  onCustomAtChanged: (value) => setState(() {
+                    _customLaunchAt = value;
+                    _launchScheduleChanged = true;
+                  }),
                 ),
               ],
             ),
@@ -598,9 +630,10 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     controller.dispose();
     if (name == null || name.trim().isEmpty || !mounted) return;
     final trimmedName = name.trim();
-    final alreadyExists = ref.read(matchesControllerProvider).opponents.any(
-          (opponent) => opponent['name']?.toString() == trimmedName,
-        );
+    final alreadyExists = ref
+        .read(matchesControllerProvider)
+        .opponents
+        .any((opponent) => opponent['name']?.toString() == trimmedName);
     if (alreadyExists) {
       final createAnyway = await showDialog<bool>(
             context: context,
@@ -746,6 +779,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
     _customLaunchAt = suggestedCustomConvocationLaunchAt(kickoffAt: _kickoffAt);
+    _launchScheduleChanged = true;
   }
 
   Future<void> _submit() async {
@@ -774,7 +808,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
 
-    if (widget.match == null) {
+    if (_launchScheduleChanged) {
       final launchError = validateConvocationLaunch(
         mode: _launchMode,
         kickoffAt: _kickoffAt,
@@ -788,6 +822,7 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
     }
 
     final notifier = ref.read(matchesControllerProvider.notifier);
+    final stateBeforeSave = ref.read(matchesControllerProvider);
     final address = _addressController.text.trim();
 
     if (widget.match == null) {
@@ -795,59 +830,73 @@ class _MatchFormPageState extends ConsumerState<MatchFormPage> {
       return;
     }
 
-    if (_isInternal) {
-      await notifier.updateInternalMatch(
-        id: widget.match!.id,
-        seasonId: _seasonId,
-        kickoffAt: _kickoffAt,
-        expectedUpdatedAt: widget.match!.updatedAt,
-        address: address.isEmpty ? null : address,
-        rememberAddressAsDefault: _rememberAddressAsDefault,
-        meetingAt: _meetingAt,
+    setState(() => _saving = true);
+    try {
+      final repository = ref.read(matchEditScheduleRepositoryProvider);
+      if (_isInternal) {
+        await repository.updateInternalMatch(
+          id: widget.match!.id,
+          seasonId: _seasonId,
+          kickoffAt: _kickoffAt,
+          expectedUpdatedAt: widget.match!.updatedAt!,
+          address: address.isEmpty ? null : address,
+          meetingAt: _meetingAt,
+          launchMode: _launchScheduleChanged ? _launchMode : null,
+          customLaunchAt: _launchScheduleChanged ? _customLaunchAt : null,
+        );
+      } else {
+        final oddsWin = _oddsWin;
+        final oddsDraw = _oddsDraw;
+        final oddsLoss = _oddsLoss;
+        if (oddsWin == null || oddsDraw == null || oddsLoss == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Sélectionne un adversaire pour calculer les cotes.',
+              ),
+            ),
+          );
+          return;
+        }
+
+        final sportsEnabled = ref.read(sportsManagementEnabledProvider);
+        final squadSizeLimit =
+            sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
+        await repository.updateMatch(
+          id: widget.match!.id,
+          seasonId: _seasonId,
+          opponentId: _opponentId,
+          kickoffAt: _kickoffAt,
+          isHome: _isHome,
+          status: widget.match!.status,
+          oddsWin: oddsWin,
+          oddsDraw: oddsDraw,
+          oddsLoss: oddsLoss,
+          expectedUpdatedAt: widget.match!.updatedAt!,
+          squadSizeLimit: squadSizeLimit,
+          address: address.isEmpty ? null : address,
+          rememberAddressAsDefault: _rememberAddressAsDefault,
+          matchType: _matchType,
+          jerseyNote: _selectedJersey?.id,
+          meetingAt: _meetingAt,
+          launchMode: _launchScheduleChanged ? _launchMode : null,
+          customLaunchAt: _launchScheduleChanged ? _customLaunchAt : null,
+        );
+      }
+
+      await notifier.load(
+        seasonId: stateBeforeSave.selectedSeasonId,
+        allSeasons: stateBeforeSave.includesAllSeasons,
+        forceRefresh: true,
       );
       if (!mounted) return;
-      if (ref.read(matchesControllerProvider).error == null) {
-        Navigator.pop(context);
-      }
-      return;
-    }
-
-    final oddsWin = _oddsWin;
-    final oddsDraw = _oddsDraw;
-    final oddsLoss = _oddsLoss;
-    if (oddsWin == null || oddsDraw == null || oddsLoss == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sélectionne un adversaire pour calculer les cotes.'),
-        ),
-      );
-      return;
-    }
-
-    final sportsEnabled = ref.read(sportsManagementEnabledProvider);
-    final squadSizeLimit =
-        sportsEnabled ? int.parse(_squadSizeController.text.trim()) : null;
-    await notifier.updateMatch(
-      id: widget.match!.id,
-      seasonId: _seasonId,
-      opponentId: _opponentId,
-      kickoffAt: _kickoffAt,
-      isHome: _isHome,
-      status: widget.match!.status,
-      oddsWin: oddsWin,
-      oddsDraw: oddsDraw,
-      oddsLoss: oddsLoss,
-      expectedUpdatedAt: widget.match!.updatedAt,
-      squadSizeLimit: squadSizeLimit,
-      address: address.isEmpty ? null : address,
-      rememberAddressAsDefault: _rememberAddressAsDefault,
-      matchType: _matchType,
-      jerseyNote: _selectedJersey?.id,
-      meetingAt: _meetingAt,
-    );
-    if (!mounted) return;
-    if (ref.read(matchesControllerProvider).error == null) {
       Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
