@@ -18,6 +18,7 @@ class MatchCore {
     required this.location,
     required this.opponentName,
     this.matchType = 'championnat',
+    this.championshipRound,
     this.jerseyNote,
   });
 
@@ -29,6 +30,7 @@ class MatchCore {
   final String location;
   final String opponentName;
   final String matchType;
+  final int? championshipRound;
   final String? jerseyNote;
 
   DateTime? get effectiveMeetingAt => kickoffAt == null
@@ -68,6 +70,7 @@ class MatchInfo {
     this.meetingAt,
     required this.lastEncounters,
     this.matchType = 'championnat',
+    this.championshipRound,
     this.jerseyNote,
   });
 
@@ -76,6 +79,7 @@ class MatchInfo {
   final DateTime? meetingAt;
   final List<MatchEncounter> lastEncounters;
   final String matchType;
+  final int? championshipRound;
   final String? jerseyNote;
 
   DateTime? get effectiveMeetingAt => kickoffAt == null
@@ -89,7 +93,9 @@ class MatchInfo {
   bool get isInternal => matchType == 'entre_nous';
   String get matchTypeLabel {
     if (isInternal) return 'Match entre nous';
-    return isFriendly ? 'Match amical' : 'Championnat';
+    if (isFriendly) return 'Match amical';
+    final round = championshipRound;
+    return round == null ? 'Championnat' : 'Championnat · J$round';
   }
 }
 
@@ -114,6 +120,7 @@ MatchInfo _infoFromCore(
     meetingAt: core.meetingAt,
     lastEncounters: encounters,
     matchType: core.matchType,
+    championshipRound: core.championshipRound,
     jerseyNote: core.jerseyNote,
   );
 }
@@ -127,7 +134,7 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
       .from('matches')
       .select(
         'kickoff_at, match_date, match_time, meeting_at, status, location, address, '
-        'opponent_id, match_type, jersey_note, opponents(name, address)',
+        'opponent_id, match_type, championship_round, jersey_note, opponents(name, address)',
       )
       .eq('id', matchId)
       .maybeSingle();
@@ -157,6 +164,7 @@ final matchCoreProvider = FutureProvider.family<MatchCore?, String>((
     location: location,
     opponentName: opponentName,
     matchType: (match['match_type'] ?? 'championnat').toString(),
+    championshipRound: (match['championship_round'] as num?)?.toInt(),
     jerseyNote: _clean(match['jersey_note']),
   );
 });
@@ -205,6 +213,7 @@ final matchDetailedInfoProvider = FutureProvider.family<MatchInfo, String>((
     meetingAt: baseInfo.meetingAt,
     lastEncounters: encounters,
     matchType: baseInfo.matchType,
+    championshipRound: baseInfo.championshipRound,
     jerseyNote: baseInfo.jerseyNote,
   );
 });
