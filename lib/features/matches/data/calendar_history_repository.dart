@@ -81,26 +81,25 @@ class CalendarHistoryRepository {
     return (response as List? ?? const [])
         .map((row) => Map<String, dynamic>.from(row as Map))
         .map((row) {
-          final rawDate = row['match_date']?.toString() ?? '';
-          final rawTime = row['match_time']?.toString().trim();
-          final hasTime = rawTime != null && rawTime.isNotEmpty;
-          final parsedDate =
-              DateTime.tryParse(hasTime ? '${rawDate}T$rawTime' : rawDate) ??
+      final rawDate = row['match_date']?.toString() ?? '';
+      final rawTime = row['match_time']?.toString().trim();
+      final hasTime = rawTime != null && rawTime.isNotEmpty;
+      final parsedDate =
+          DateTime.tryParse(hasTime ? '${rawDate}T$rawTime' : rawDate) ??
               DateTime(1970);
-          return HistoricalMatchResult(
-            id: row['id']?.toString() ?? '',
-            date: parsedDate,
-            hasTime: hasTime,
-            opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
-            grintaScore: (row['score_as_grinta'] as num?)?.toInt() ?? 0,
-            opponentScore: (row['score_adverse'] as num?)?.toInt() ?? 0,
-            isHome: row['is_home'] as bool? ?? true,
-            address: _clean(row['address']),
-            matchType: _clean(row['match_type']),
-            championshipRound: (row['championship_round'] as num?)?.toInt(),
-          );
-        })
-        .toList(growable: false);
+      return HistoricalMatchResult(
+        id: row['id']?.toString() ?? '',
+        date: parsedDate,
+        hasTime: hasTime,
+        opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
+        grintaScore: (row['score_as_grinta'] as num?)?.toInt() ?? 0,
+        opponentScore: (row['score_adverse'] as num?)?.toInt() ?? 0,
+        isHome: row['is_home'] as bool? ?? true,
+        address: _clean(row['address']),
+        matchType: _clean(row['match_type']),
+        championshipRound: (row['championship_round'] as num?)?.toInt(),
+      );
+    }).toList(growable: false);
   }
 
   Future<List<HistoricalMatchResult>> fetchSeason(String seasonName) async {
@@ -195,8 +194,7 @@ class CalendarHistoryRepository {
           .map(
             (row) => HistoricalMatchResult(
               id: row['id']?.toString() ?? '',
-              date:
-                  DateTime.tryParse(row['date']?.toString() ?? '') ??
+              date: DateTime.tryParse(row['date']?.toString() ?? '') ??
                   DateTime(1970),
               hasTime: row['has_time'] == true,
               opponentName: (row['opponent_name'] ?? 'Adversaire').toString(),
@@ -260,5 +258,5 @@ final calendarHistoryRepositoryProvider = Provider<CalendarHistoryRepository>(
 
 final allHistoricalMatchesProvider =
     StreamProvider<List<HistoricalMatchResult>>((ref) {
-      return ref.watch(calendarHistoryRepositoryProvider).watchAllLocalFirst();
-    });
+  return ref.watch(calendarHistoryRepositoryProvider).watchAllLocalFirst();
+});

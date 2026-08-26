@@ -142,16 +142,12 @@ class MatchDetailsRepository {
   final SupabaseClient _client;
 
   Future<MatchDetailsData> fetch(String matchId) async {
-    final match = await _client
-        .from('matches')
-        .select('''
+    final match = await _client.from('matches').select('''
       id, opponent_id, match_date, match_time, kickoff_at, status, location,
       address, match_type, championship_round, score_as_grinta, score_adverse,
       result_validated_at, opponents(name, address),
       match_odds(odds_victoire_as_grinta, odds_nul, odds_victoire_adverse)
-    ''')
-        .eq('id', matchId)
-        .maybeSingle();
+    ''').eq('id', matchId).maybeSingle();
     if (match == null) {
       throw StateError('Ce match est introuvable ou a été supprimé.');
     }
@@ -163,18 +159,17 @@ class MatchDetailsRepository {
     final opponent = match['opponents'] is Map
         ? Map<String, dynamic>.from(match['opponents'] as Map)
         : const <String, dynamic>{};
-    final serverKickoff = DateTime.tryParse('${match['kickoff_at'] ?? ''}')
-        ?.toLocal();
-    final kickoffAt =
-        serverKickoff ??
+    final serverKickoff =
+        DateTime.tryParse('${match['kickoff_at'] ?? ''}')?.toLocal();
+    final kickoffAt = serverKickoff ??
         DateTime.tryParse('${match['match_date']}T${match['match_time']}') ??
         DateTime(1970);
     final oddsRaw = match['match_odds'];
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-        ? Map<String, dynamic>.from(oddsRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
     final status = match['status']?.toString() ?? 'a_venir';
     final isValidated = status == 'termine' || status == 'archive';
 
@@ -212,13 +207,10 @@ class MatchDetailsRepository {
     var predictions = const <MatchPredictionResult>[];
 
     if (isValidated) {
-      final statRows = await _client
-          .from('match_player_stats')
-          .select('''
+      final statRows = await _client.from('match_player_stats').select('''
         season_player_id,goals,clean_sheet,
         season_players(first_name,last_name,profiles(surnom))
-      ''')
-          .eq('match_id', matchId);
+      ''').eq('match_id', matchId);
       final statsByPlayerId = <String, MatchStatLine>{};
       playerStats = (statRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
@@ -242,7 +234,8 @@ class MatchDetailsRepository {
           statsByPlayerId[seasonPlayerId] = stat;
         }
         return stat;
-      }).toList()..sort((a, b) => b.goals.compareTo(a.goals));
+      }).toList()
+        ..sort((a, b) => b.goals.compareTo(a.goals));
 
       final publication = await _client
           .from('match_composition_publications')
@@ -263,39 +256,35 @@ class MatchDetailsRepository {
       };
       final snapshot = publication?['snapshot'];
       if (snapshot is Map && snapshot['entries'] is List) {
-        startingLineup =
-            (snapshot['entries'] as List)
-                .whereType<Map>()
-                .map((raw) => Map<String, dynamic>.from(raw))
-                .where(
-                  (entry) =>
-                      entry['zone']?.toString() == 'field' ||
-                      entry['zone']?.toString() == 'bench',
-                )
-                .map((entry) {
-                  final seasonPlayerId = entry['season_player_id']?.toString();
-                  final stat = seasonPlayerId == null
-                      ? null
-                      : statsByPlayerId[seasonPlayerId];
-                  final isStarter = entry['zone']?.toString() == 'field';
-                  return MatchStartingPlayer(
-                    seasonPlayerId: seasonPlayerId,
-                    name: (entry['display_name'] ?? 'Joueur').toString().trim(),
-                    goals: stat?.goals ?? 0,
-                    isManOfTheMatch:
-                        seasonPlayerId != null &&
-                        manOfMatchIds.contains(seasonPlayerId),
-                    sortOrder: (entry['sort_order'] as num?)?.toInt() ?? 0,
-                    isStarter: isStarter,
-                    x: isStarter ? (entry['x'] as num?)?.toDouble() : null,
-                    y: isStarter ? (entry['y'] as num?)?.toDouble() : null,
-                  );
-                })
-                .toList()
-              ..sort((a, b) {
-                if (a.isStarter != b.isStarter) return a.isStarter ? -1 : 1;
-                return a.sortOrder.compareTo(b.sortOrder);
-              });
+        startingLineup = (snapshot['entries'] as List)
+            .whereType<Map>()
+            .map((raw) => Map<String, dynamic>.from(raw))
+            .where(
+              (entry) =>
+                  entry['zone']?.toString() == 'field' ||
+                  entry['zone']?.toString() == 'bench',
+            )
+            .map((entry) {
+          final seasonPlayerId = entry['season_player_id']?.toString();
+          final stat =
+              seasonPlayerId == null ? null : statsByPlayerId[seasonPlayerId];
+          final isStarter = entry['zone']?.toString() == 'field';
+          return MatchStartingPlayer(
+            seasonPlayerId: seasonPlayerId,
+            name: (entry['display_name'] ?? 'Joueur').toString().trim(),
+            goals: stat?.goals ?? 0,
+            isManOfTheMatch: seasonPlayerId != null &&
+                manOfMatchIds.contains(seasonPlayerId),
+            sortOrder: (entry['sort_order'] as num?)?.toInt() ?? 0,
+            isStarter: isStarter,
+            x: isStarter ? (entry['x'] as num?)?.toDouble() : null,
+            y: isStarter ? (entry['y'] as num?)?.toDouble() : null,
+          );
+        }).toList()
+          ..sort((a, b) {
+            if (a.isStarter != b.isStarter) return a.isStarter ? -1 : 1;
+            return a.sortOrder.compareTo(b.sortOrder);
+          });
       }
 
       final pointRows = await _client
@@ -309,14 +298,10 @@ class MatchDetailsRepository {
         pointsByProfile[map['profile_id'].toString()] = decimalPoints * 100;
       }
 
-      final predictionRows = await _client
-          .from('match_predictions')
-          .select('''
+      final predictionRows = await _client.from('match_predictions').select('''
         profile_id,predicted_score_as_grinta,predicted_score_adverse,
         profiles(first_name,surnom)
-      ''')
-          .eq('match_id', matchId)
-          .eq('is_filled', true);
+      ''').eq('match_id', matchId).eq('is_filled', true);
       predictions = (predictionRows as List).map((row) {
         final map = Map<String, dynamic>.from(row);
         final profileId = map['profile_id'].toString();
@@ -331,7 +316,8 @@ class MatchDetailsRepository {
           points: pointsByProfile[profileId] ?? 0,
           usedX2: false,
         );
-      }).toList()..sort((a, b) => b.points.compareTo(a.points));
+      }).toList()
+        ..sort((a, b) => b.points.compareTo(a.points));
     }
 
     final directAddress = _clean(match['address']);
