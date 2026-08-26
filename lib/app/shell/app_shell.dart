@@ -127,12 +127,10 @@ class _AppShellState extends ConsumerState<AppShell>
     // suffit pas puisque ces écrans partagent la branche 0 avec `/matches`.
     final currentShellIndex = widget.navigationShell.currentIndex;
     final currentLocationPath = _uri.path;
-    final switchedToMatchesBranch =
-        _previousShellIndex != null &&
+    final switchedToMatchesBranch = _previousShellIndex != null &&
         _previousShellIndex != 0 &&
         currentShellIndex == 0;
-    final returnedToMatchesRoot =
-        _previousLocationPath != null &&
+    final returnedToMatchesRoot = _previousLocationPath != null &&
         _previousLocationPath != '/matches' &&
         currentLocationPath == '/matches';
 
@@ -143,8 +141,9 @@ class _AppShellState extends ConsumerState<AppShell>
     _previousLocationPath = currentLocationPath;
 
     final viewingAsUser = ref.watch(viewAsUserProvider);
-    final moduleTheme = Theme.of(context)
-        .copyWith(scaffoldBackgroundColor: Colors.transparent);
+    final moduleTheme = Theme.of(
+      context,
+    ).copyWith(scaffoldBackgroundColor: Colors.transparent);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -159,7 +158,9 @@ class _AppShellState extends ConsumerState<AppShell>
             child: Column(
               children: [
                 if (viewingAsUser)
-                  _PreviewBanner(onExit: () => setViewAsUser(ref, false)),
+                  _PreviewBanner(
+                    onExit: () => setViewAsUser(ref, false),
+                  ),
                 Expanded(
                   child: useRail
                       ? Row(
@@ -235,9 +236,8 @@ class _DesktopNavigation extends StatelessWidget {
       minWidth: 72,
       minExtendedWidth: 200,
       groupAlignment: -.7,
-      labelType: extended
-          ? NavigationRailLabelType.none
-          : NavigationRailLabelType.all,
+      labelType:
+          extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
       onDestinationSelected: onSelected,
       leading: Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 22),

@@ -198,9 +198,8 @@ class PredictionsRepository {
 
     return _buildItem(
       Map<String, dynamic>.from(match),
-      prediction: prediction == null
-          ? null
-          : Map<String, dynamic>.from(prediction),
+      prediction:
+          prediction == null ? null : Map<String, dynamic>.from(prediction),
     );
   }
 
@@ -209,8 +208,9 @@ class PredictionsRepository {
     required Map<String, dynamic>? prediction,
   }) {
     final matchId = matchMap['id'].toString();
-    final serverKickoff = DateTime.tryParse('${matchMap['kickoff_at'] ?? ''}')
-        ?.toLocal();
+    final serverKickoff = DateTime.tryParse(
+      '${matchMap['kickoff_at'] ?? ''}',
+    )?.toLocal();
     final date = matchMap['match_date']?.toString() ?? '';
     final time = matchMap['match_time']?.toString() ?? '00:00:00';
     final kickoffAt =
@@ -222,8 +222,8 @@ class PredictionsRepository {
     final odds = oddsRaw is List && oddsRaw.isNotEmpty
         ? Map<String, dynamic>.from(oddsRaw.first as Map)
         : oddsRaw is Map
-        ? Map<String, dynamic>.from(oddsRaw)
-        : const <String, dynamic>{};
+            ? Map<String, dynamic>.from(oddsRaw)
+            : const <String, dynamic>{};
 
     return MatchPredictionItem(
       matchId: matchId,

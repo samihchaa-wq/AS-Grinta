@@ -92,18 +92,17 @@ class _InternalTeamCompositionViewState
     if (entries == null || _saving) return;
     setState(() => _saving = true);
     try {
-      final saved = await ref
-          .read(internalMatchCompositionRepositoryProvider)
-          .save(
-            matchId: widget.matchId,
-            team1Name: _team1Controller.text,
-            team2Name: _team2Controller.text,
-            entries: [
-              for (final entry in entries.where((e) => e.teamNo == null)) entry,
-              for (final entry in entries.where((e) => e.teamNo == 1)) entry,
-              for (final entry in entries.where((e) => e.teamNo == 2)) entry,
-            ],
-          );
+      final saved =
+          await ref.read(internalMatchCompositionRepositoryProvider).save(
+        matchId: widget.matchId,
+        team1Name: _team1Controller.text,
+        team2Name: _team2Controller.text,
+        entries: [
+          for (final entry in entries.where((e) => e.teamNo == null)) entry,
+          for (final entry in entries.where((e) => e.teamNo == 1)) entry,
+          for (final entry in entries.where((e) => e.teamNo == 2)) entry,
+        ],
+      );
       if (!mounted) return;
       setState(() {
         _initFrom(saved);
@@ -115,8 +114,9 @@ class _InternalTeamCompositionViewState
       ).showSnackBar(const SnackBar(content: Text('Composition enregistrée.')));
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erreur : $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur : $error')),
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -158,8 +158,9 @@ class _InternalTeamCompositionViewState
             if (unassigned.isNotEmpty || widget.editable) ...[
               Text(
                 'Non affectés (${unassigned.length})',
-                style: Theme.of(context).textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
               const SizedBox(height: 8),
               _TeamDropZone(
@@ -180,9 +181,7 @@ class _InternalTeamCompositionViewState
                         children: [
                           for (final entry in unassigned)
                             _PlayerChip(
-                              entry: entry,
-                              editable: widget.editable,
-                            ),
+                                entry: entry, editable: widget.editable),
                         ],
                       ),
               ),
@@ -273,7 +272,9 @@ class _TeamColumn extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppTheme.surface.withValues(alpha: .5),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.outline.withValues(alpha: .3)),
+            border: Border.all(
+              color: AppTheme.outline.withValues(alpha: .3),
+            ),
           ),
           child: Image.asset(
             jersey.assetPath,

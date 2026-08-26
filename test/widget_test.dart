@@ -11,9 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 void main() {
-  testWidgets('post-startup loading screen renders no loader visual', (
-    tester,
-  ) async {
+  testWidgets('post-startup loading screen renders no loader visual',
+      (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -68,12 +67,13 @@ void main() {
     expect(values, [0, .5, 1]);
   });
 
-  testWidgets('indeterminate progress indicator renders nothing', (
-    tester,
-  ) async {
+  testWidgets('indeterminate progress indicator renders nothing',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(body: Center(child: GrintaProgressIndicator())),
+        home: Scaffold(
+          body: Center(child: GrintaProgressIndicator()),
+        ),
       ),
     );
 
@@ -95,11 +95,12 @@ void main() {
     );
   });
 
-  testWidgets('startup progress bar is the only indeterminate loader visual', (
-    tester,
-  ) async {
+  testWidgets('startup progress bar is the only indeterminate loader visual',
+      (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: GrintaStartupProgressBar())),
+      const MaterialApp(
+        home: Scaffold(body: GrintaStartupProgressBar()),
+      ),
     );
 
     expect(find.byType(LinearProgressIndicator), findsOneWidget);

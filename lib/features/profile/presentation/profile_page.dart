@@ -136,9 +136,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     displayName,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -.25,
-                    ),
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -.25,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -163,7 +163,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   Text(
                     'Ta photo apparaît sur les compositions.',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
                         ?.copyWith(color: AppTheme.textFaint),
                   ),
                 ],
@@ -241,12 +243,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error
-                    .withValues(alpha: .1),
+                color:
+                    Theme.of(context).colorScheme.error.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.error
-                      .withValues(alpha: .3),
+                  color:
+                      Theme.of(context).colorScheme.error.withValues(alpha: .3),
                 ),
               ),
               child: Row(
@@ -280,8 +282,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             style: OutlinedButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
               side: BorderSide(
-                color: Theme.of(context).colorScheme.error
-                    .withValues(alpha: .5),
+                color:
+                    Theme.of(context).colorScheme.error.withValues(alpha: .5),
               ),
             ),
           ),
@@ -316,8 +318,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final surnom = _surnomController.text.trim();
-    const lettersOnly =
-        'Uniquement des lettres : ni emoji, ni chiffre, '
+    const lettersOnly = 'Uniquement des lettres : ni emoji, ni chiffre, '
         'ni symbole.';
     String? nameError(String value, {required bool required}) {
       if (value.isEmpty) return required ? 'Ce champ est obligatoire.' : null;
@@ -339,9 +340,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         surnomError != null) {
       return;
     }
-    await ref
-        .read(authControllerProvider.notifier)
-        .updateProfile(
+    await ref.read(authControllerProvider.notifier).updateProfile(
           firstName: firstName,
           lastName: lastName,
           surnom: surnom,
@@ -418,8 +417,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 onPressed: () {
                   final password = passwordController.text;
                   final policyError = PasswordPolicy.validate(password);
-                  final error =
-                      policyError ??
+                  final error = policyError ??
                       (password != confirmationController.text
                           ? 'Les deux mots de passe ne correspondent pas.'
                           : null);
@@ -481,7 +479,9 @@ class _SectionHeading extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
               ?.copyWith(fontWeight: FontWeight.w900),
         ),
       ],
@@ -512,9 +512,9 @@ class _ProfileMetaChip extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppTheme.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),

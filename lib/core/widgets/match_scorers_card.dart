@@ -39,7 +39,9 @@ class MatchScorersCard extends StatelessWidget {
           children: [
             Text(
               'Buteurs',
-              style: Theme.of(context).textTheme.titleMedium
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
@@ -47,9 +49,9 @@ class MatchScorersCard extends StatelessWidget {
               Text(
                 teamGoals == 0 ? 'Aucun buteur' : 'Buteurs non renseignés',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
               )
             else
               ...effectiveScorers.map(
@@ -62,18 +64,20 @@ class MatchScorersCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           scorer.name,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                         ),
                       ),
                       if (scorer.goals > 1)
                         Text(
                           '×${scorer.goals}',
-                          style: Theme.of(context).textTheme.labelLarge
-                              ?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                         ),
                     ],
                   ),

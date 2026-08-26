@@ -28,7 +28,9 @@ class MatchMeetingTimePicker extends StatelessWidget {
       children: [
         Text(
           'Heure de rendez-vous',
-          style: Theme.of(context).textTheme.titleSmall
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
               ?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),

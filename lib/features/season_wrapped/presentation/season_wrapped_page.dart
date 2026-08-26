@@ -38,7 +38,7 @@ class SeasonWrappedPage extends ConsumerWidget {
     if (preview) {
       final seasonName =
           ref.watch(seasonWrappedStateProvider).valueOrNull?.seasonName ??
-          currentSeasonName(DateTime.now());
+              currentSeasonName(DateTime.now());
       return Scaffold(
         backgroundColor: AppTheme.background,
         body: _WrappedStory(
@@ -278,9 +278,8 @@ class _WrappedStoryState extends ConsumerState<_WrappedStory>
     for (var attempt = 0; attempt < 5; attempt += 1) {
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted) return null;
-      boundary =
-          _captureKey.currentContext?.findRenderObject()
-              as RenderRepaintBoundary?;
+      boundary = _captureKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
       if (boundary != null && !boundary.debugNeedsPaint) break;
       boundary = null;
     }
@@ -511,8 +510,8 @@ class _ProgressBar extends StatelessWidget {
                         final value = i < index
                             ? 1.0
                             : i == index
-                            ? animation.value
-                            : 0.0;
+                                ? animation.value
+                                : 0.0;
                         return LinearProgressIndicator(
                           value: value,
                           minHeight: 3,

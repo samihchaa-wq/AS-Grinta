@@ -2,10 +2,10 @@ enum ConvocationLaunchMode { automatic, custom, now }
 
 extension ConvocationLaunchModeApi on ConvocationLaunchMode {
   String get apiValue => switch (this) {
-    ConvocationLaunchMode.automatic => 'automatic',
-    ConvocationLaunchMode.custom => 'custom',
-    ConvocationLaunchMode.now => 'now',
-  };
+        ConvocationLaunchMode.automatic => 'automatic',
+        ConvocationLaunchMode.custom => 'custom',
+        ConvocationLaunchMode.now => 'now',
+      };
 }
 
 /// Mirrors the historical default used by Supabase: J-6 at 12:00.
@@ -13,11 +13,11 @@ extension ConvocationLaunchModeApi on ConvocationLaunchMode {
 /// This value is only used for display. Supabase remains authoritative and
 /// resolves the final timestamp in Europe/Paris when the match is persisted.
 DateTime defaultConvocationLaunchAt(DateTime kickoffAt) => DateTime(
-  kickoffAt.year,
-  kickoffAt.month,
-  kickoffAt.day,
-  12,
-).subtract(const Duration(days: 6));
+      kickoffAt.year,
+      kickoffAt.month,
+      kickoffAt.day,
+      12,
+    ).subtract(const Duration(days: 6));
 
 DateTime suggestedCustomConvocationLaunchAt({
   required DateTime kickoffAt,

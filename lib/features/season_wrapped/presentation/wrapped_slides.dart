@@ -64,7 +64,7 @@ List<Widget> buildWrappedSlides({
       caption: wrapped.cleanMatches == 0
           ? 'L’équipe a encaissé à chacune de tes sorties.'
           : 'Autant de matchs où la cage est restée inviolée, toi sur le '
-                'terrain.',
+              'terrain.',
     ),
     _PositionSlide(skin: skins[7], wrapped: wrapped),
     _ResponsivenessSlide(skin: skins[8], wrapped: wrapped),
@@ -205,10 +205,9 @@ class _Caption extends StatelessWidget {
               // La phrase du bas explique le chiffre : elle doit se lire
               // d'un coup d'œil, pas à la loupe.
               text,
-              style: WrappedType.body(
-                skin.text,
-                size: 30,
-              ).copyWith(height: 1.2),
+              style: WrappedType.body(skin.text, size: 30).copyWith(
+                height: 1.2,
+              ),
             ),
           ),
           if (rank != null) ...[
@@ -251,10 +250,8 @@ class _OpeningSlide extends StatelessWidget {
                 // Sur deux lignes, les chiffres ont besoin de respirer :
                 // l'interligne serré des écrans à un seul nombre les
                 // ferait se chevaucher.
-                style: WrappedType.figure(
-                  skin.figure,
-                  size: 128,
-                ).copyWith(height: .95),
+                style: WrappedType.figure(skin.figure, size: 128)
+                    .copyWith(height: .95),
               ),
             ),
           ),
@@ -329,8 +326,7 @@ class _ResponsivenessSlide extends StatelessWidget {
           ),
         ),
         bottom: _Caption(
-          text:
-              'Les disponibilités ouvrent six jours avant chaque match. '
+          text: 'Les disponibilités ouvrent six jours avant chaque match. '
               'La saison prochaine, tu y es.',
           skin: skin,
           rank: null,
@@ -346,7 +342,11 @@ class _ResponsivenessSlide extends StatelessWidget {
       skin: skin,
       top: _SlideLabel(text: 'Délai moyen de réponse', skin: skin),
       middle: minutes == null
-          ? _GiantFigure(value: delay.figure, skin: skin, suffix: delay.suffix)
+          ? _GiantFigure(
+              value: delay.figure,
+              skin: skin,
+              suffix: delay.suffix,
+            )
           // Un délai en deux nombres se lit en deux temps.
           : FittedBox(
               fit: BoxFit.scaleDown,
@@ -358,8 +358,7 @@ class _ResponsivenessSlide extends StatelessWidget {
               ),
             ),
       bottom: _Caption(
-        text:
-            'En moyenne, entre l’ouverture des disponibilités '
+        text: 'En moyenne, entre l’ouverture des disponibilités '
             'et ta réponse.',
         skin: skin,
         rank: wrapped.avgResponseRank,
@@ -485,8 +484,7 @@ class _ResultsSlide extends StatelessWidget {
         ),
       ),
       bottom: _Caption(
-        text:
-            'Victoires, nuls et défaites, uniquement sur les matchs où tu '
+        text: 'Victoires, nuls et défaites, uniquement sur les matchs où tu '
             'étais présent.',
         skin: skin,
         rank: null,
@@ -531,7 +529,11 @@ class _WinRateSlide extends StatelessWidget {
     return _SlideFrame(
       skin: skin,
       top: _SlideLabel(text: 'Pourcentage de victoires', skin: skin),
-      middle: _GiantFigure(value: winPct.round(), skin: skin, suffix: ' %'),
+      middle: _GiantFigure(
+        value: winPct.round(),
+        skin: skin,
+        suffix: ' %',
+      ),
       bottom: _Caption(
         text: 'La part des matchs gagnés quand tu étais sur la feuille.',
         skin: skin,
@@ -595,8 +597,7 @@ class _BadgesSlide extends ConsumerWidget {
           ),
         ),
         bottom: _Caption(
-          text:
-              'Ils se décrochent en jouant, en marquant, en gardant ta cage '
+          text: 'Ils se décrochent en jouant, en marquant, en gardant ta cage '
               'inviolée. La saison prochaine, tu y es.',
           skin: skin,
           rank: null,
@@ -764,10 +765,8 @@ class _BadgeTile extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: WrappedType.body(
-                skin.text,
-                size: 15,
-              ).copyWith(height: 1.2),
+              style:
+                  WrappedType.body(skin.text, size: 15).copyWith(height: 1.2),
             ),
           ),
         ],
@@ -986,10 +985,8 @@ class WrappedRecapLine extends StatelessWidget {
               maxLines: 1,
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
-              style: WrappedType.title(
-                skin.figure,
-                size: size + 5,
-              ).copyWith(fontWeight: FontWeight.w400),
+              style: WrappedType.title(skin.figure, size: size + 5)
+                  .copyWith(fontWeight: FontWeight.w400),
             ),
           ),
           SizedBox(
@@ -997,10 +994,8 @@ class WrappedRecapLine extends StatelessWidget {
             child: Text(
               stat.isRanked ? wrappedOrdinal(stat.rank!) : '',
               textAlign: TextAlign.right,
-              style: WrappedType.label(
-                skin.badge,
-                size: size - 3,
-              ).copyWith(letterSpacing: dense ? null : 0.6),
+              style: WrappedType.label(skin.badge, size: size - 3)
+                  .copyWith(letterSpacing: dense ? null : 0.6),
             ),
           ),
         ],

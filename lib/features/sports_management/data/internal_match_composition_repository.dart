@@ -41,14 +41,10 @@ class InternalMatchCompositionRepository {
 
 final internalMatchCompositionRepositoryProvider =
     Provider<InternalMatchCompositionRepository>((ref) {
-      return InternalMatchCompositionRepository(
-        ref.watch(supabaseClientProvider),
-      );
-    });
+  return InternalMatchCompositionRepository(ref.watch(supabaseClientProvider));
+});
 
 final internalMatchCompositionProvider = FutureProvider.autoDispose
     .family<InternalMatchComposition?, String>((ref, matchId) {
-      return ref
-          .watch(internalMatchCompositionRepositoryProvider)
-          .fetch(matchId);
-    });
+  return ref.watch(internalMatchCompositionRepositoryProvider).fetch(matchId);
+});

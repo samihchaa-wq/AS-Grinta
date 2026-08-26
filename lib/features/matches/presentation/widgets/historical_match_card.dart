@@ -29,8 +29,11 @@ class HistoricalMatchCard extends StatelessWidget {
       match.matchType,
       unknownAsFinished: true,
     );
-    final nameStyle = Theme.of(context).textTheme.titleSmall
-        ?.copyWith(fontSize: 16, height: 1.1, fontWeight: FontWeight.w800);
+    final nameStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontSize: 16,
+          height: 1.1,
+          fontWeight: FontWeight.w800,
+        );
 
     return Card(
       color: surface,
@@ -68,8 +71,10 @@ class HistoricalMatchCard extends StatelessWidget {
                   const SizedBox(height: 7),
                   Text(
                     label,
-                    style: Theme.of(context).textTheme.labelMedium
-                        ?.copyWith(color: border, fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: border,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ],
               ],

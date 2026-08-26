@@ -28,7 +28,10 @@ class NameWithBadges extends ConsumerWidget {
   final double? badgeSize;
 
   TextStyle _resolvedStyle(BuildContext context) {
-    final base = grintaTableCellTextStyle(context, fontWeight: FontWeight.w800);
+    final base = grintaTableCellTextStyle(
+      context,
+      fontWeight: FontWeight.w800,
+    );
     return style == null ? base : base.merge(style);
   }
 
@@ -45,8 +48,7 @@ class NameWithBadges extends ConsumerWidget {
     if (!BadgeDisplayScope.of(context) || profileId == null) return nameText;
 
     final asyncBadges = ref.watch(statisticsBadgeEmblemsProvider);
-    final badges =
-        asyncBadges.asData?.value[profileId] ??
+    final badges = asyncBadges.asData?.value[profileId] ??
         const <StatisticsBadgeEmblemData>[];
     if (badges.isEmpty) return nameText;
 

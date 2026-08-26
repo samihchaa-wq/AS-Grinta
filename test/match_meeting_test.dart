@@ -34,23 +34,21 @@ void main() {
     );
   });
 
-  test(
-    'explicit day-before rendez-vous keeps its relative day on reschedule',
-    () {
-      final previousKickoff = DateTime(2026, 8, 26, 10);
-      final previousCustom = DateTime(2026, 8, 25, 20, 30);
-      final newKickoff = DateTime(2026, 9, 2, 10);
+  test('explicit day-before rendez-vous keeps its relative day on reschedule',
+      () {
+    final previousKickoff = DateTime(2026, 8, 26, 10);
+    final previousCustom = DateTime(2026, 8, 25, 20, 30);
+    final newKickoff = DateTime(2026, 9, 2, 10);
 
-      expect(
-        preserveCustomMeetingTime(
-          previousKickoffAt: previousKickoff,
-          kickoffAt: newKickoff,
-          customMeetingAt: previousCustom,
-        ),
-        DateTime(2026, 9, 1, 20, 30),
-      );
-    },
-  );
+    expect(
+      preserveCustomMeetingTime(
+        previousKickoffAt: previousKickoff,
+        kickoffAt: newKickoff,
+        customMeetingAt: previousCustom,
+      ),
+      DateTime(2026, 9, 1, 20, 30),
+    );
+  });
 
   test('invalid custom time falls back to automatic after kickoff change', () {
     final previousCustom = DateTime(2026, 8, 26, 20, 30);

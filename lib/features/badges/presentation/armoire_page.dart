@@ -30,8 +30,9 @@ class ArmoirePage extends ConsumerWidget {
       ref.invalidate(featuredBadgesProvider);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(e))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(e))));
     }
   }
 
@@ -91,8 +92,7 @@ class ArmoirePage extends ConsumerWidget {
                   child: GrintaEmptyState(
                     icon: Icons.emoji_events_outlined,
                     title: 'Ta collection est vide',
-                    message:
-                        'Joue, pronostique et gagne des matchs pour '
+                    message: 'Joue, pronostique et gagne des matchs pour '
                         'débloquer tes premiers badges.',
                   ),
                 ),
@@ -106,8 +106,9 @@ class ArmoirePage extends ConsumerWidget {
                 Text(
                   'Choisis le badge à afficher près de ton prénom. En arborer '
                   'un nouveau remplace le précédent.',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: AppTheme.textFaint),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
                 const SizedBox(height: 14),
                 _BadgeGrid(
@@ -137,8 +138,9 @@ class ArmoirePage extends ConsumerWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Continue à jouer pour révéler ces récompenses.',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: AppTheme.textFaint),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
                 const SizedBox(height: 14),
                 _BadgeGrid(badges: armoire.locked, locked: true),
@@ -190,15 +192,17 @@ class _Header extends StatelessWidget {
               children: [
                 Text(
                   'Ma collection',
-                  style: Theme.of(context).textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w900),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '$validated débloqué${validated > 1 ? 's' : ''} · '
                   '$inProgress en progression',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: AppTheme.textFaint),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppTheme.textFaint),
                 ),
               ],
             ),
@@ -228,8 +232,9 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w900),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
         const Spacer(),
         Container(
@@ -242,9 +247,9 @@ class _SectionTitle extends StatelessWidget {
           child: Text(
             '$count',
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: AppTheme.textSecondary,
-            ),
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textSecondary,
+                ),
           ),
         ),
       ],
@@ -333,9 +338,9 @@ class _BadgeTile extends ConsumerWidget {
               'Mystère',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: AppTheme.textFaint,
-                fontWeight: FontWeight.w700,
-              ),
+                    color: AppTheme.textFaint,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
           ],
         ),
@@ -351,11 +356,8 @@ class _BadgeTile extends ConsumerWidget {
           GestureDetector(
             onTap: () {
               if (badge.isNew) {
-                final uid = ref
-                    .read(supabaseClientProvider)
-                    .auth
-                    .currentUser
-                    ?.id;
+                final uid =
+                    ref.read(supabaseClientProvider).auth.currentUser?.id;
                 if (uid != null) {
                   ref
                       .read(badgeRepositoryProvider)
@@ -437,8 +439,10 @@ class _BadgeTile extends ConsumerWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall
-                ?.copyWith(fontWeight: FontWeight.w800, height: 1.15),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
           ),
         ],
       ),
@@ -488,8 +492,9 @@ class _InProgressTile extends StatelessWidget {
                 children: [
                   Text(
                     badge.def.name,
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                   if (badge.def.description.isNotEmpty) ...[
                     const SizedBox(height: 3),
@@ -497,8 +502,9 @@ class _InProgressTile extends StatelessWidget {
                       badge.def.description,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: AppTheme.textFaint),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textFaint,
+                          ),
                     ),
                   ],
                   if (showProgress) ...[
@@ -521,11 +527,11 @@ class _InProgressTile extends StatelessWidget {
                         const SizedBox(width: 10),
                         Text(
                           '${badge.current}/${badge.target}',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w900,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w900,
+                                  ),
                         ),
                       ],
                     ),

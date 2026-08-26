@@ -43,9 +43,8 @@ class _HelpContent extends StatelessWidget {
             Text(
               'Le jeu de pronostic sur toute la saison.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-              ),
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 24),
             const _HelpRow(
@@ -143,9 +142,8 @@ class _HelpRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: AppTheme.textSecondary),
                 ),
               ],
             ),

@@ -50,45 +50,43 @@ void main() {
     );
   });
 
-  test(
-    'the admin flow has one save button and no draft or publication step',
-    () {
-      final effectifSource = File(
-        'lib/features/sports_management/presentation/'
-        'admin_squad_plan_page_effectif.dart',
-      ).readAsStringSync();
-      final compositionSource = File(
-        'lib/features/sports_management/presentation/'
-        'admin_squad_plan_page_composition.dart',
-      ).readAsStringSync();
-      final repositorySource = File(
-        'lib/features/sports_management/data/sport_waitlist_repository.dart',
-      ).readAsStringSync();
+  test('the admin flow has one save button and no draft or publication step',
+      () {
+    final effectifSource = File(
+      'lib/features/sports_management/presentation/'
+      'admin_squad_plan_page_effectif.dart',
+    ).readAsStringSync();
+    final compositionSource = File(
+      'lib/features/sports_management/presentation/'
+      'admin_squad_plan_page_composition.dart',
+    ).readAsStringSync();
+    final repositorySource = File(
+      'lib/features/sports_management/data/sport_waitlist_repository.dart',
+    ).readAsStringSync();
 
-      expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
-      expect(effectifSource, isNot(contains('Enregistrer les convocations')));
-      expect(effectifSource, contains("label: const Text('Enregistrer')"));
-      expect(
-        effectifSource,
-        contains('jusqu’à ce que tu appuies sur Enregistrer'),
-      );
-      expect(effectifSource, contains('.publishEffectif('));
-      expect(repositorySource, contains("'admin_publish_match_effectif'"));
+    expect(effectifSource, isNot(contains('Enregistrer le brouillon')));
+    expect(effectifSource, isNot(contains('Enregistrer les convocations')));
+    expect(effectifSource, contains("label: const Text('Enregistrer')"));
+    expect(
+      effectifSource,
+      contains('jusqu’à ce que tu appuies sur Enregistrer'),
+    );
+    expect(effectifSource, contains('.publishEffectif('));
+    expect(repositorySource, contains("'admin_publish_match_effectif'"));
 
-      expect(compositionSource, contains("label: const Text('Enregistrer')"));
-      expect(compositionSource, contains('puis appuie sur Enregistrer'));
-      expect(
-        compositionSource,
-        isNot(contains("label: const Text('Publier la composition')")),
-      );
-      expect(
-        compositionSource,
-        isNot(
-          contains(
-            'Les convocations ne seront pas modifiées par cette action.',
-          ),
+    expect(compositionSource, contains("label: const Text('Enregistrer')"));
+    expect(compositionSource, contains('puis appuie sur Enregistrer'));
+    expect(
+      compositionSource,
+      isNot(contains("label: const Text('Publier la composition')")),
+    );
+    expect(
+      compositionSource,
+      isNot(
+        contains(
+          'Les convocations ne seront pas modifiées par cette action.',
         ),
-      );
-    },
-  );
+      ),
+    );
+  });
 }

@@ -53,24 +53,23 @@ class BadgeDetailSheet extends ConsumerWidget {
     // Une mise à jour d'image invalide badgeCatalogProvider. On repart donc
     // immédiatement du badge frais au lieu de conserver l'objet passé à
     // l'ouverture de la feuille.
-    final currentBadge =
-        catalog.cast<BadgeDef?>().firstWhere(
-          (b) => b?.code == badge.code,
-          orElse: () => null,
-        ) ??
+    final currentBadge = catalog.cast<BadgeDef?>().firstWhere(
+              (b) => b?.code == badge.code,
+              orElse: () => null,
+            ) ??
         badge;
 
     final tiers = (currentBadge.metric == null || currentBadge.standalone)
         ? <BadgeDef>[currentBadge]
         : (catalog
-              .where(
-                (b) =>
-                    b.metric == currentBadge.metric &&
-                    b.kind == currentBadge.kind &&
-                    !b.standalone,
-              )
-              .toList()
-            ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
+            .where(
+              (b) =>
+                  b.metric == currentBadge.metric &&
+                  b.kind == currentBadge.kind &&
+                  !b.standalone,
+            )
+            .toList()
+          ..sort((a, b) => (a.threshold ?? 0).compareTo(b.threshold ?? 0)));
     final ladder = tiers.isEmpty ? <BadgeDef>[currentBadge] : tiers;
     final canEdit = onAward != null;
 
@@ -144,14 +143,18 @@ class BadgeDetailSheet extends ConsumerWidget {
                         children: [
                           Text(
                             currentBadge.name,
-                            style: Theme.of(context).textTheme.headlineSmall
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),
                           if (currentBadge.description.isNotEmpty) ...[
                             const SizedBox(height: 6),
                             Text(
                               currentBadge.description,
-                              style: Theme.of(context).textTheme.bodyMedium
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
                                   ?.copyWith(color: AppTheme.textSecondary),
                             ),
                           ],
@@ -173,8 +176,9 @@ class BadgeDetailSheet extends ConsumerWidget {
                   'comme pour une photo de profil. Le fond, le titre et le '
                   'descriptif du badge ne changent pas.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: AppTheme.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                 ),
               ],
               if (ladder.length > 1) ...[
@@ -182,9 +186,9 @@ class BadgeDetailSheet extends ConsumerWidget {
                 Text(
                   'BARÈME',
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.textSecondary,
-                    letterSpacing: .8,
-                  ),
+                        color: AppTheme.textSecondary,
+                        letterSpacing: .8,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -292,9 +296,11 @@ class _TierRow extends StatelessWidget {
                 Text(
                   tier.name,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: highlighted ? AppTheme.reward : AppTheme.textPrimary,
-                  ),
+                        fontWeight: FontWeight.w800,
+                        color: highlighted
+                            ? AppTheme.reward
+                            : AppTheme.textPrimary,
+                      ),
                 ),
                 if (tier.description.isNotEmpty) ...[
                   const SizedBox(height: 3),

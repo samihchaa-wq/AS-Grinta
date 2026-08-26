@@ -79,11 +79,10 @@ void main() {
     final wrapped = SeasonWrapped.fromJson(_payload());
 
     expect(wrapped.sheets, hasLength(3));
-    expect(wrapped.sheets.map((sheet) => sheet.title), [
-      'Ma présence',
-      'Mon apport',
-      'Mes résultats',
-    ]);
+    expect(
+      wrapped.sheets.map((sheet) => sheet.title),
+      ['Ma présence', 'Mon apport', 'Mes résultats'],
+    );
 
     // Les neuf critères, et eux seuls, se répartissent dans les feuilles.
     final criteres = [for (final f in wrapped.sheets) ...f.stats];
@@ -114,26 +113,27 @@ void main() {
     expect(_stat(wrapped, 'Poste le plus joué').value, 'Milieu');
     expect(_stat(wrapped, 'Victoires, nuls, défaites').isRanked, isFalse);
     expect(
-      _stat(wrapped, 'Victoires, nuls, défaites').value,
-      '7 V · 2 N · 3 D',
-    );
+        _stat(wrapped, 'Victoires, nuls, défaites').value, '7 V · 2 N · 3 D');
   });
 
-  test('sous le seuil, le pourcentage reste affiché mais perd son rang', () {
-    final wrapped = SeasonWrapped.fromJson(
-      _payload(
-        matchesPlayed: 3,
-        winPct: 100,
-        winPctRank: null,
-        winPctPool: null,
-      ),
-    );
-    final winPct = _stat(wrapped, 'Pourcentage de victoire');
+  test(
+    'sous le seuil, le pourcentage reste affiché mais perd son rang',
+    () {
+      final wrapped = SeasonWrapped.fromJson(
+        _payload(
+          matchesPlayed: 3,
+          winPct: 100,
+          winPctRank: null,
+          winPctPool: null,
+        ),
+      );
+      final winPct = _stat(wrapped, 'Pourcentage de victoire');
 
-    expect(winPct.value, '100 %');
-    expect(winPct.isRanked, isFalse);
-    expect(winPct.note, contains('moins de huit matchs'));
-  });
+      expect(winPct.value, '100 %');
+      expect(winPct.isRanked, isFalse);
+      expect(winPct.note, contains('moins de huit matchs'));
+    },
+  );
 
   test('un joueur qui n’a jamais répondu n’affiche pas de délai', () {
     final wrapped = SeasonWrapped.fromJson(
@@ -161,9 +161,9 @@ void main() {
 
   test('le délai de réponse s’écrit en heures et minutes', () {
     String delayFor(num hours) => _stat(
-      SeasonWrapped.fromJson(_payload(avgResponseHours: hours)),
-      'Réactivité aux disponibilités',
-    ).value;
+          SeasonWrapped.fromJson(_payload(avgResponseHours: hours)),
+          'Réactivité aux disponibilités',
+        ).value;
 
     // Sous l'heure, la minute suffit.
     expect(delayFor(0.5), '30 min');

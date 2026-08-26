@@ -45,12 +45,10 @@ class FootballPitchPainter extends CustomPainter {
 
   /// Pelouse tondue en bandes alternées, comme sur un terrain entretenu.
   void _paintTurf(Canvas canvas, Rect surface) {
-    final dark = highlighted
-        ? const Color(0xFF1A6B3C)
-        : const Color(0xFF14512E);
-    final light = highlighted
-        ? const Color(0xFF23824B)
-        : const Color(0xFF1C6B3B);
+    final dark =
+        highlighted ? const Color(0xFF1A6B3C) : const Color(0xFF14512E);
+    final light =
+        highlighted ? const Color(0xFF23824B) : const Color(0xFF1C6B3B);
 
     canvas.drawRect(surface, Paint()..color = dark);
 

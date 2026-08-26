@@ -45,8 +45,7 @@ class MatchAvailabilityBoardCard extends ConsumerWidget {
       ),
       data: (board) {
         final now = DateTime.now();
-        final visible =
-            board != null &&
+        final visible = board != null &&
             (board.isVisibleAt(now) ||
                 (showAfterComposition && now.isBefore(board.kickoffAt)));
         if (!visible) return const SizedBox.shrink();
@@ -87,8 +86,9 @@ class MatchAvailabilityBoardContent extends StatelessWidget {
             Expanded(
               child: Text(
                 'Effectif',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w900),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
             ),
             if (overLimit)
@@ -190,8 +190,10 @@ class _BoardGroup extends StatelessWidget {
               Expanded(
                 child: Text(
                   '$title (${players.length})',
-                  style: Theme.of(context).textTheme.titleSmall
-                      ?.copyWith(color: color, fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                      ),
                 ),
               ),
             ],

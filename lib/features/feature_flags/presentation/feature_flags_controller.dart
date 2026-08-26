@@ -15,12 +15,12 @@ typedef FeatureFlagsWatchRetryDelay = Duration Function(int attempt);
 
 final featureFlagsWatchRetryDelayProvider =
     Provider<FeatureFlagsWatchRetryDelay>((ref) {
-      return (attempt) {
-        if (attempt <= 1) return const Duration(seconds: 5);
-        if (attempt == 2) return const Duration(seconds: 15);
-        return const Duration(minutes: 1);
-      };
-    });
+  return (attempt) {
+    if (attempt <= 1) return const Duration(seconds: 5);
+    if (attempt == 2) return const Duration(seconds: 15);
+    return const Duration(minutes: 1);
+  };
+});
 
 class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
   static const int _watchIncidentThreshold = 3;
@@ -70,15 +70,15 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
           .read(featureFlagsRepositoryProvider)
           .watchSportsManagementChanges()
           .listen(
-            (signal) {
-              _watchFailureCount = 0;
-              _watchErrorLogged = false;
-              _handleServerSignal(signal);
-            },
-            onError: _handleWatchError,
-            onDone: _handleWatchDone,
-            cancelOnError: true,
-          );
+        (signal) {
+          _watchFailureCount = 0;
+          _watchErrorLogged = false;
+          _handleServerSignal(signal);
+        },
+        onError: _handleWatchError,
+        onDone: _handleWatchDone,
+        cancelOnError: true,
+      );
     } catch (error, stackTrace) {
       _handleWatchError(error, stackTrace);
     }
@@ -126,8 +126,8 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
     if (_lastSignal?.revision == signal.revision) return;
     _lastSignal = signal;
 
-    final currentUpdatedAt = state.valueOrNull?.sportsManagement.updatedAt
-        ?.toUtc();
+    final currentUpdatedAt =
+        state.valueOrNull?.sportsManagement.updatedAt?.toUtc();
     if (currentUpdatedAt != null &&
         !signal.updatedAt.isAfter(currentUpdatedAt)) {
       return;
@@ -200,8 +200,8 @@ class FeatureFlagsController extends AsyncNotifier<FeatureFlagsSnapshot> {
 
 final featureFlagsControllerProvider =
     AsyncNotifierProvider<FeatureFlagsController, FeatureFlagsSnapshot>(
-      FeatureFlagsController.new,
-    );
+  FeatureFlagsController.new,
+);
 
 final sportsManagementEnabledProvider = Provider<bool>((ref) {
   return ref

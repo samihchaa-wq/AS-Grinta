@@ -51,8 +51,7 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
       for (final profile in recipients)
         if (_recipients.contains(profile.id)) profile.displayName,
     ];
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Envoyer la notification ?'),
@@ -77,13 +76,12 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
 
     setState(() => _sending = true);
     try {
-      final sent = await ref
-          .read(adminRepositoryProvider)
-          .sendCustomNotification(
-            title: title,
-            body: body,
-            profileIds: _recipients.toList(),
-          );
+      final sent =
+          await ref.read(adminRepositoryProvider).sendCustomNotification(
+                title: title,
+                body: body,
+                profileIds: _recipients.toList(),
+              );
       if (!mounted) return;
       _showMessage(
         sent <= 1
@@ -118,17 +116,15 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
         ),
         data: (data) {
           // Seuls les comptes actifs peuvent recevoir une notification.
-          final profiles =
-              [
-                for (final profile in data.profiles)
-                  if (profile.status == 'active') profile,
-              ]..sort(
-                (a, b) => a.displayName.toLowerCase().compareTo(
-                  b.displayName.toLowerCase(),
-                ),
-              );
-          final allSelected =
-              profiles.isNotEmpty &&
+          final profiles = [
+            for (final profile in data.profiles)
+              if (profile.status == 'active') profile,
+          ]..sort(
+              (a, b) => a.displayName.toLowerCase().compareTo(
+                    b.displayName.toLowerCase(),
+                  ),
+            );
+          final allSelected = profiles.isNotEmpty &&
               profiles.every((profile) => _recipients.contains(profile.id));
 
           // Un ListView recycle les enfants sortis du viewport : le champ
@@ -187,7 +183,9 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
                             Expanded(
                               child: Text(
                                 'Destinataires (${_recipients.length})',
-                                style: Theme.of(context).textTheme.titleMedium
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w900),
                               ),
                             ),
@@ -195,18 +193,18 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
                               onPressed: _sending || profiles.isEmpty
                                   ? null
                                   : () => setState(() {
-                                      if (allSelected) {
-                                        _recipients.clear();
-                                      } else {
-                                        _recipients
-                                          ..clear()
-                                          ..addAll(
-                                            profiles.map(
-                                              (profile) => profile.id,
-                                            ),
-                                          );
-                                      }
-                                    }),
+                                        if (allSelected) {
+                                          _recipients.clear();
+                                        } else {
+                                          _recipients
+                                            ..clear()
+                                            ..addAll(
+                                              profiles.map(
+                                                (profile) => profile.id,
+                                              ),
+                                            );
+                                        }
+                                      }),
                               child: Text(
                                 allSelected ? 'Aucun' : 'Tout le monde',
                               ),
@@ -226,17 +224,15 @@ class _AdminNotificationPageState extends ConsumerState<AdminNotificationPage> {
                               onChanged: _sending
                                   ? null
                                   : (checked) => setState(() {
-                                      if (checked == true) {
-                                        _recipients.add(profile.id);
-                                      } else {
-                                        _recipients.remove(profile.id);
-                                      }
-                                    }),
-                              title: Text(
-                                profile.fullName.isEmpty
-                                    ? profile.displayName
-                                    : profile.fullName,
-                              ),
+                                        if (checked == true) {
+                                          _recipients.add(profile.id);
+                                        } else {
+                                          _recipients.remove(profile.id);
+                                        }
+                                      }),
+                              title: Text(profile.fullName.isEmpty
+                                  ? profile.displayName
+                                  : profile.fullName),
                             ),
                       ],
                     ),

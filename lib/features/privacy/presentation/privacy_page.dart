@@ -14,8 +14,7 @@ class PrivacyPage extends StatelessWidget {
           const _PrivacySection(
             icon: Icons.inventory_2_outlined,
             title: 'Données enregistrées',
-            body:
-                'L’application conserve ton profil, ta photo éventuelle, tes '
+            body: 'L’application conserve ton profil, ta photo éventuelle, tes '
                 'pronostics, tes préférences de notification, tes badges et les '
                 'liens avec les matchs auxquels tu participes.',
           ),
@@ -39,8 +38,7 @@ class PrivacyPage extends StatelessWidget {
           const _PrivacySection(
             icon: Icons.photo_outlined,
             title: 'Photos',
-            body:
-                'Les photos sont facultatives. Une nouvelle photo remplace '
+            body: 'Les photos sont facultatives. Une nouvelle photo remplace '
                 'l’ancienne, qui est supprimée du stockage. Une suppression de '
                 'compte ou de joueur doit également nettoyer les fichiers associés.',
           ),
@@ -84,8 +82,9 @@ class _PrivacySection extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                   ),
                   const SizedBox(height: 6),
                   Text(body),

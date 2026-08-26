@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 /// Un poste de la feuille de match : une étiquette courte et sa position
 /// normalisée sur le terrain (x et y entre 0 et 1, l'attaque vers le haut).
 class FootballFormationSlot {
-  const FootballFormationSlot({required this.label, required this.position});
+  const FootballFormationSlot({
+    required this.label,
+    required this.position,
+  });
 
   final String label;
   final Offset position;
@@ -93,12 +96,12 @@ class FootballFormation {
 
   /// Les postes positionnés sur le terrain pour ce dispositif.
   List<FootballFormationSlot> get slots => [
-    for (final label in slotLabels)
-      FootballFormationSlot(
-        label: label,
-        position: matchSheetSlotPositions[label] ?? const Offset(.5, .5),
-      ),
-  ];
+        for (final label in slotLabels)
+          FootballFormationSlot(
+            label: label,
+            position: matchSheetSlotPositions[label] ?? const Offset(.5, .5),
+          ),
+      ];
 }
 
 /// Dispositif utilisé par défaut à la création d'une composition.
@@ -121,7 +124,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MD',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -138,7 +141,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MOC',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -155,7 +158,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MOG',
       'MOC',
       'MOD',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -172,7 +175,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'AG',
       'BU',
-      'AD',
+      'AD'
     ],
   ),
   FootballFormation(
@@ -189,7 +192,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'AG',
       'BU',
-      'AD',
+      'AD'
     ],
   ),
   FootballFormation(
@@ -206,7 +209,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'AG',
       'MOC',
-      'AD',
+      'AD'
     ],
   ),
   FootballFormation(
@@ -223,7 +226,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MOC',
       'AG',
       'BU',
-      'AD',
+      'AD'
     ],
   ),
   FootballFormation(
@@ -240,7 +243,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MOG',
       'MOD',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -257,7 +260,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MOG',
       'MOD',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -274,7 +277,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MD',
       'MOC',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -291,7 +294,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCG',
       'MCD',
       'MD',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -308,7 +311,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MOC',
       'MD',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -325,7 +328,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MC',
       'MCD',
       'MD',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -342,7 +345,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'AG',
       'BUG',
       'BUD',
-      'AD',
+      'AD'
     ],
   ),
   // ---- 3 défenseurs ----
@@ -360,7 +363,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MD',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -377,7 +380,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MD',
       'AG',
       'BU',
-      'AD',
+      'AD'
     ],
   ),
   FootballFormation(
@@ -394,7 +397,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MD',
       'MOC',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -411,7 +414,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MD',
       'MOG',
       'MOD',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -428,7 +431,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MD',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -445,7 +448,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MOC',
       'AG',
       'BU',
-      'AD',
+      'AD'
     ],
   ),
   // ---- 5 défenseurs ----
@@ -463,7 +466,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MC',
       'MCD',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -480,7 +483,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'AG',
       'BU',
-      'AD',
+      'AD'
     ],
   ),
   FootballFormation(
@@ -497,7 +500,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCG',
       'MCD',
       'MD',
-      'BU',
+      'BU'
     ],
   ),
   FootballFormation(
@@ -514,7 +517,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MCD',
       'MOC',
       'BUG',
-      'BUD',
+      'BUD'
     ],
   ),
   FootballFormation(
@@ -531,7 +534,7 @@ const List<FootballFormation> footballFormations = <FootballFormation>[
       'MC',
       'MCD',
       'MOC',
-      'BU',
+      'BU'
     ],
   ),
 ];

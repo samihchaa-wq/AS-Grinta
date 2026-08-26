@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 typedef _ScoredEvent = ({
   MatchLiveEvent event,
   int scoreAsGrinta,
-  int scoreAdverse,
+  int scoreAdverse
 });
 
 /// Chronologie des buts et remplacements d'un match suivi en direct, dans
@@ -83,8 +83,10 @@ class _HalfSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
             label.toUpperCase(),
-            style: Theme.of(context).textTheme.labelMedium
-                ?.copyWith(fontWeight: FontWeight.w900, letterSpacing: .6),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: .6,
+                ),
           ),
         ),
         for (final row in events) _EventLine(row: row),
@@ -103,15 +105,15 @@ class _EventLine extends StatelessWidget {
     final event = row.event;
     final (icon, text) = switch (event.type) {
       MatchLiveEventType.goalUs => (
-        Icons.sports_soccer_rounded,
-        event.isOpponentOwnGoal
-            ? 'CSC adverse'
-            : (event.scorerName ?? 'But AS Grinta'),
-      ),
+          Icons.sports_soccer_rounded,
+          event.isOpponentOwnGoal
+              ? 'CSC adverse'
+              : (event.scorerName ?? 'But AS Grinta'),
+        ),
       MatchLiveEventType.goalThem => (
-        Icons.sports_soccer_rounded,
-        'But adverse',
-      ),
+          Icons.sports_soccer_rounded,
+          'But adverse',
+        ),
       // Le libellé n'est pas utilisé : un remplacement s'affiche avec des
       // flèches (LiveSubstitutionLine), pas en toutes lettres.
       MatchLiveEventType.substitution => (Icons.swap_horiz_rounded, ''),
@@ -126,9 +128,8 @@ class _EventLine extends StatelessWidget {
               playerInName: event.playerInName ?? '?',
               playerOutName: event.playerOutName ?? '?',
             ),
-      subtitle: isGoal
-          ? Text('${row.scoreAsGrinta}-${row.scoreAdverse}')
-          : null,
+      subtitle:
+          isGoal ? Text('${row.scoreAsGrinta}-${row.scoreAdverse}') : null,
       trailing: Text(
         "${event.minute}'",
         style: const TextStyle(fontWeight: FontWeight.w800),

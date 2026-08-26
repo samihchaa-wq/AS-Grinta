@@ -5,7 +5,10 @@ void main() {
   group('convocation launch', () {
     test('default remains J-6 at 12:00', () {
       final kickoff = DateTime(2026, 9, 20, 18, 30);
-      expect(defaultConvocationLaunchAt(kickoff), DateTime(2026, 9, 14, 12));
+      expect(
+        defaultConvocationLaunchAt(kickoff),
+        DateTime(2026, 9, 14, 12),
+      );
     });
 
     test('suggests automatic time when it is still in the future', () {

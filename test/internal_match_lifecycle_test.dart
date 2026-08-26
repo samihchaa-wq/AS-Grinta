@@ -4,17 +4,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   MatchModel internalMatch(DateTime kickoff) => MatchModel(
-    id: 'internal',
-    seasonId: 'season',
-    opponentId: '',
-    kickoffAt: kickoff,
-    isHome: true,
-    plannedDurationMinutes: 90,
-    status: 'a_venir',
-    grintaScore: null,
-    opponentScore: null,
-    matchType: 'entre_nous',
-  );
+        id: 'internal',
+        seasonId: 'season',
+        opponentId: '',
+        kickoffAt: kickoff,
+        isHome: true,
+        plannedDurationMinutes: 90,
+        status: 'a_venir',
+        grintaScore: null,
+        opponentScore: null,
+        matchType: 'entre_nous',
+      );
 
   test('un Match entre nous devient terminé exactement à son heure', () {
     final kickoff = DateTime.utc(2026, 8, 10, 17);

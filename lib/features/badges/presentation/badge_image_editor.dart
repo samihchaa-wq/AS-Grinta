@@ -23,8 +23,10 @@ Future<Uint8List?> showBadgeImageCropDialog(
   return showDialog<Uint8List?>(
     context: context,
     barrierDismissible: false,
-    builder: (_) =>
-        _BadgeCropDialog(badgeColor: badgeColor, initialBytes: initialBytes),
+    builder: (_) => _BadgeCropDialog(
+      badgeColor: badgeColor,
+      initialBytes: initialBytes,
+    ),
   );
 }
 
@@ -109,8 +111,9 @@ class _BadgeImageEditorButtonState
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -329,35 +332,37 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                         ),
                       )
                     : _imageError != null
-                    ? Container(
-                        color: Colors.black12,
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.all(16),
-                        child: Text(_imageError!, textAlign: TextAlign.center),
-                      )
-                    : Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ClipRect(
-                            child: InteractiveViewer(
-                              transformationController: _controller,
-                              boundaryMargin: const EdgeInsets.all(_size * 4),
-                              minScale: .08,
-                              maxScale: 10,
-                              panEnabled: true,
-                              scaleEnabled: true,
-                              constrained: true,
-                              child: SizedBox(
-                                width: _size,
-                                height: _size,
-                                child: Image.memory(
-                                  bytes,
-                                  fit: BoxFit.contain,
-                                  filterQuality: FilterQuality.high,
-                                  gaplessPlayback: true,
-                                  errorBuilder: (_, __, ___) {
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
+                        ? Container(
+                            color: Colors.black12,
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(16),
+                            child:
+                                Text(_imageError!, textAlign: TextAlign.center),
+                          )
+                        : Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ClipRect(
+                                child: InteractiveViewer(
+                                  transformationController: _controller,
+                                  boundaryMargin:
+                                      const EdgeInsets.all(_size * 4),
+                                  minScale: .08,
+                                  maxScale: 10,
+                                  panEnabled: true,
+                                  scaleEnabled: true,
+                                  constrained: true,
+                                  child: SizedBox(
+                                    width: _size,
+                                    height: _size,
+                                    child: Image.memory(
+                                      bytes,
+                                      fit: BoxFit.contain,
+                                      filterQuality: FilterQuality.high,
+                                      gaplessPlayback: true,
+                                      errorBuilder: (_, __, ___) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
                                           if (mounted && _imageError == null) {
                                             setState(() {
                                               _imageError =
@@ -366,19 +371,19 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
                                             });
                                           }
                                         });
-                                    return const SizedBox.shrink();
-                                  },
+                                        return const SizedBox.shrink();
+                                      },
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                              const IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _BadgeCropGuidePainter(),
+                                ),
+                              ),
+                            ],
                           ),
-                          const IgnorePointer(
-                            child: CustomPaint(
-                              painter: _BadgeCropGuidePainter(),
-                            ),
-                          ),
-                        ],
-                      ),
               ),
             ),
           ),
@@ -404,9 +409,8 @@ class _BadgeCropDialogState extends State<_BadgeCropDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving || _picking
-              ? null
-              : () => Navigator.of(context).pop(),
+          onPressed:
+              _saving || _picking ? null : () => Navigator.of(context).pop(),
           child: const Text('Annuler'),
         ),
         FilledButton.icon(
@@ -432,11 +436,19 @@ class _BadgeCropGuidePainter extends CustomPainter {
 
     final shade = Paint()..color = const Color(0x66000000);
     if (frame.top > 0) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, frame.top), shade);
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, frame.top),
+        shade,
+      );
     }
     if (frame.bottom < size.height) {
       canvas.drawRect(
-        Rect.fromLTWH(0, frame.bottom, size.width, size.height - frame.bottom),
+        Rect.fromLTWH(
+          0,
+          frame.bottom,
+          size.width,
+          size.height - frame.bottom,
+        ),
         shade,
       );
     }

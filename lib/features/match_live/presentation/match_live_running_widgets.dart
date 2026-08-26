@@ -96,29 +96,29 @@ class _LiveMatchControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final firstAction = switch (session.state) {
       MatchLiveState.running => (
-        label: 'Pause',
-        icon: Icons.pause_rounded,
-        callback: onPause,
-        filled: false,
-      ),
+          label: 'Pause',
+          icon: Icons.pause_rounded,
+          callback: onPause,
+          filled: false,
+        ),
       MatchLiveState.paused => (
-        label: 'Reprendre',
-        icon: Icons.play_arrow_rounded,
-        callback: onResume,
-        filled: false,
-      ),
+          label: 'Reprendre',
+          icon: Icons.play_arrow_rounded,
+          callback: onResume,
+          filled: false,
+        ),
       MatchLiveState.halftime => (
-        label: 'Reprendre 2e',
-        icon: Icons.play_arrow_rounded,
-        callback: onResumeSecondHalf,
-        filled: true,
-      ),
+          label: 'Reprendre 2e',
+          icon: Icons.play_arrow_rounded,
+          callback: onResumeSecondHalf,
+          filled: true,
+        ),
       _ => (
-        label: 'Pause',
-        icon: Icons.pause_rounded,
-        callback: null,
-        filled: false,
-      ),
+          label: 'Pause',
+          icon: Icons.pause_rounded,
+          callback: null,
+          filled: false,
+        ),
     };
     final canGoHalftime =
         session.half == 1 && session.state != MatchLiveState.halftime;
@@ -144,20 +144,20 @@ class _LiveMatchControls extends StatelessWidget {
                   visualDensity: VisualDensity.compact,
                 )
               : filled
-              ? FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 9,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                )
-              : OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 9,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                );
+                  ? FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 9,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    )
+                  : OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 9,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    );
           final child = Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -233,9 +233,8 @@ class _ScoreCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final matchId = bundle.session.matchId;
     final controller = ref.read(matchLiveStateProvider(matchId).notifier);
-    final fixture = ref
-        .watch(upcomingMatchFixtureProvider(matchId))
-        .valueOrNull;
+    final fixture =
+        ref.watch(upcomingMatchFixtureProvider(matchId)).valueOrNull;
     final opponentName = fixture?.opponentName ?? 'Adversaire';
     final grintaIsHome = fixture?.grintaIsHome ?? true;
 
@@ -280,8 +279,9 @@ class _ScoreCard extends ConsumerWidget {
               child: Text(
                 '–',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ),
             Expanded(child: away),
@@ -392,7 +392,7 @@ class _BenchColumn extends StatelessWidget {
   final FormationMarkerMetrics metrics;
   final Set<String> pendingOutIds;
   final void Function(MatchCompositionEntry, MatchCompositionEntry)
-  onFieldPlayerDropped;
+      onFieldPlayerDropped;
 
   @override
   Widget build(BuildContext context) {
@@ -444,8 +444,8 @@ class _BenchColumn extends StatelessWidget {
                               color: candidates.isNotEmpty
                                   ? theme.colorScheme.primary
                                   : isPendingOut
-                                  ? theme.colorScheme.error
-                                  : Colors.transparent,
+                                      ? theme.colorScheme.error
+                                      : Colors.transparent,
                               width: 2,
                             ),
                           ),
@@ -622,8 +622,9 @@ class _LiveJournal extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Journal du match',
-                      style: Theme.of(context).textTheme.titleSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                   ),
                   if (events.isNotEmpty)
@@ -704,28 +705,27 @@ class _JournalEventRow extends StatelessWidget {
     final theme = Theme.of(context);
     final (icon, color, label) = switch (event.type) {
       MatchLiveEventType.goalUs => (
-        Icons.sports_soccer_rounded,
-        theme.colorScheme.primary,
-        event.isOpponentOwnGoal
-            ? 'But AS Grinta · CSC adverse'
-            : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}',
-      ),
+          Icons.sports_soccer_rounded,
+          theme.colorScheme.primary,
+          event.isOpponentOwnGoal
+              ? 'But AS Grinta · CSC adverse'
+              : 'But AS Grinta · ${event.scorerName ?? 'Buteur à désigner'}',
+        ),
       MatchLiveEventType.goalThem => (
-        Icons.sports_soccer_outlined,
-        theme.colorScheme.error,
-        'But adverse',
-      ),
+          Icons.sports_soccer_outlined,
+          theme.colorScheme.error,
+          'But adverse',
+        ),
       MatchLiveEventType.substitution => (
-        Icons.swap_horiz_rounded,
-        theme.colorScheme.secondary,
-        '${event.playerInName ?? '?'} entre · '
-            '${event.playerOutName ?? '?'} sort',
-      ),
+          Icons.swap_horiz_rounded,
+          theme.colorScheme.secondary,
+          '${event.playerInName ?? '?'} entre · '
+              '${event.playerOutName ?? '?'} sort',
+        ),
     };
     final hasScore =
         event.scoreAsGrintaAfter != null && event.scoreAdverseAfter != null;
-    final canChooseScorer =
-        canEditScorer &&
+    final canChooseScorer = canEditScorer &&
         event.type == MatchLiveEventType.goalUs &&
         event.needsScorer;
 

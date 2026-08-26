@@ -125,50 +125,50 @@ abstract final class WrappedType {
   static const FontWeight _pleine = FontWeight.w400;
 
   static TextStyle label(Color color, {double size = 13}) => TextStyle(
-    fontFamily: display,
-    fontSize: size,
-    height: 1.2,
-    letterSpacing: 2.2,
-    fontWeight: _fine,
-    color: color,
-  );
+        fontFamily: display,
+        fontSize: size,
+        height: 1.2,
+        letterSpacing: 2.2,
+        fontWeight: _fine,
+        color: color,
+      );
 
   /// Le titre en haut d'un écran : il annonce ce qu'on regarde, il se lit de
   /// loin et pas à la loupe.
   static TextStyle heading(Color color, {double size = 28}) => TextStyle(
-    fontFamily: display,
-    fontSize: size,
-    height: 1.1,
-    letterSpacing: 1.2,
-    fontWeight: _fine,
-    color: color,
-  );
+        fontFamily: display,
+        fontSize: size,
+        height: 1.1,
+        letterSpacing: 1.2,
+        fontWeight: _fine,
+        color: color,
+      );
 
   static TextStyle title(Color color, {double size = 40}) => TextStyle(
-    fontFamily: display,
-    fontSize: size,
-    height: 1,
-    letterSpacing: -.2,
-    fontWeight: _pleine,
-    color: color,
-  );
+        fontFamily: display,
+        fontSize: size,
+        height: 1,
+        letterSpacing: -.2,
+        fontWeight: _pleine,
+        color: color,
+      );
 
   static TextStyle figure(Color color, {double size = 180}) => TextStyle(
-    fontFamily: display,
-    fontSize: size,
-    height: .82,
-    letterSpacing: -3,
-    fontWeight: _pleine,
-    color: color,
-  );
+        fontFamily: display,
+        fontSize: size,
+        height: .82,
+        letterSpacing: -3,
+        fontWeight: _pleine,
+        color: color,
+      );
 
   static TextStyle body(Color color, {double size = 15}) => TextStyle(
-    fontFamily: display,
-    fontSize: size,
-    height: 1.35,
-    fontWeight: _fine,
-    color: color,
-  );
+        fontFamily: display,
+        fontSize: size,
+        height: 1.35,
+        fontWeight: _fine,
+        color: color,
+      );
 }
 
 /// Le fond d'un écran : dégradé et motif.

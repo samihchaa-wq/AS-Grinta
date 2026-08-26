@@ -16,7 +16,8 @@ Future<Uint8List?> cropProfilePhoto(
   BuildContext context,
   Uint8List bytes, {
   String title = 'Recadrer la photo',
-  String instructions = 'Déplace et pince pour zoomer, afin de choisir ce qui apparaîtra sur le terrain.',
+  String instructions =
+      'Déplace et pince pour zoomer, afin de choisir ce qui apparaîtra sur le terrain.',
   String confirmLabel = 'Utiliser cette photo',
   Color previewColor = const Color(0xFF174936),
   Color previewBorderColor = const Color(0xFF6DAD8B),
@@ -124,7 +125,12 @@ class _PhotoCropDialogState extends State<_PhotoCropDialog> {
     canvas.transform(_transformationController.value.storage);
     canvas.drawImageRect(
       source,
-      ui.Rect.fromLTWH(0, 0, source.width.toDouble(), source.height.toDouble()),
+      ui.Rect.fromLTWH(
+        0,
+        0,
+        source.width.toDouble(),
+        source.height.toDouble(),
+      ),
       ui.Rect.fromLTWH(0, 0, _childWidth, _childHeight),
       ui.Paint()..filterQuality = ui.FilterQuality.high,
     );

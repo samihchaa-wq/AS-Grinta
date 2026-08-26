@@ -13,16 +13,16 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   final MatchModel match;
 
   Future<void> _edit(BuildContext context, WidgetRef ref) async {
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => MatchFormPage(match: match)));
     if (!context.mounted) return;
     ref.invalidate(matchDetailsProvider(match.id));
     await ref.read(matchesControllerProvider.notifier).load(allSeasons: true);
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Annuler ce match ?'),
@@ -50,8 +50,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   }
 
   Future<void> _finish(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Terminer ce match ?'),
@@ -81,8 +80,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
-    final confirmed =
-        await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Supprimer ce match ?'),
@@ -112,8 +110,7 @@ class AdminMatchOptionsButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final phase = match.phase(now: now);
-    final isPastCalendarEntry =
-        phase == MatchDisplayPhase.past ||
+    final isPastCalendarEntry = phase == MatchDisplayPhase.past ||
         (phase == MatchDisplayPhase.cancelled &&
             !now.isBefore(match.kickoffAt));
     if (isPastCalendarEntry) return const SizedBox.shrink();
@@ -123,12 +120,10 @@ class AdminMatchOptionsButton extends ConsumerWidget {
     final canEditIdentity = !editLocked && !match.isCancelled;
     final canCancel = !editLocked && !match.isCancelled;
     final canDelete = !editLocked;
-    final canEnterStats =
-        !match.isInternal &&
+    final canEnterStats = !match.isInternal &&
         !match.isArchived &&
         phase == MatchDisplayPhase.awaitingValidation;
-    final canFinishInternal =
-        match.isInternal &&
+    final canFinishInternal = match.isInternal &&
         !match.isFinished &&
         !match.isCancelled &&
         !now.isBefore(match.kickoffAt) &&

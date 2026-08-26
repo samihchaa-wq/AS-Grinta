@@ -82,10 +82,10 @@ class SeasonWrappedShareSheet extends StatelessWidget {
   /// Une image par thème, chacune son habillage : trois images identiques
   /// n'auraient aucune raison d'être partagées séparément.
   WrappedSkin get _skin => switch (sheet.title) {
-    'Ma présence' => WrappedSkin.night,
-    'Mon apport' => WrappedSkin.flash,
-    _ => WrappedSkin.deep,
-  };
+        'Ma présence' => WrappedSkin.night,
+        'Mon apport' => WrappedSkin.flash,
+        _ => WrappedSkin.deep,
+      };
 
   @override
   Widget build(BuildContext context) {

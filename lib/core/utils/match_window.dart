@@ -53,9 +53,10 @@ DateTime matchPredictionClosesAt(DateTime kickoffAt) =>
 DateTime matchExpectedValidationAt(
   DateTime kickoffAt,
   int plannedDurationMinutes,
-) => kickoffAt.toUtc().add(
-  Duration(minutes: plannedDurationMinutes) + kMatchPostgameBuffer,
-);
+) =>
+    kickoffAt.toUtc().add(
+          Duration(minutes: plannedDurationMinutes) + kMatchPostgameBuffer,
+        );
 
 /// `true` tant que la fiche complète n'est pas encore ouverte.
 ///

@@ -90,7 +90,7 @@ class ScheduledMatchCreationRepository {
 
 final scheduledMatchCreationRepositoryProvider =
     Provider<ScheduledMatchCreationRepository>((ref) {
-      return ScheduledMatchCreationRepository(
-        ref.watch(supabaseClientProvider),
-      );
-    });
+  return ScheduledMatchCreationRepository(
+    ref.watch(supabaseClientProvider),
+  );
+});

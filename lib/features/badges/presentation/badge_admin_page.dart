@@ -167,8 +167,8 @@ class _BadgeAdminPageState extends ConsumerState<BadgeAdminPage> {
               final filtered = _query.isEmpty
                   ? badges
                   : badges
-                        .where((b) => b.name.toLowerCase().contains(_query))
-                        .toList();
+                      .where((b) => b.name.toLowerCase().contains(_query))
+                      .toList();
               if (filtered.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(16),
@@ -323,9 +323,9 @@ class _CreateBadgeCard extends StatelessWidget {
             Text(
               hasImage
                   ? 'La couleur est verrouillée après le recadrage pour que le '
-                        'fond de l’illustration reste parfaitement identique.'
+                      'fond de l’illustration reste parfaitement identique.'
                   : 'Choisis d’abord la couleur : elle sert aussi de fond à '
-                        'l’illustration pendant le recadrage.',
+                      'l’illustration pendant le recadrage.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 10),
@@ -405,7 +405,7 @@ class _CreateBadgeCard extends StatelessWidget {
                           hasImage
                               ? 'L’aperçu ci-contre est celui qui sera enregistré.'
                               : 'Choisis un PNG ou JPEG, puis déplace et zoome '
-                                    'l’image exactement comme pour les badges existants.',
+                                  'l’image exactement comme pour les badges existants.',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 10),
@@ -630,8 +630,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                   final filtered = _query.isEmpty
                       ? eligiblePeople
                       : eligiblePeople
-                            .where((p) => p.name.toLowerCase().contains(_query))
-                            .toList();
+                          .where((p) => p.name.toLowerCase().contains(_query))
+                          .toList();
                   return ListView(
                     shrinkWrap: true,
                     children: [
@@ -648,9 +648,8 @@ class _AwardSheetState extends ConsumerState<_AwardSheet> {
                                   ),
                                 )
                               : null,
-                          onChanged: _busy.contains(p.id)
-                              ? null
-                              : (_) => _toggle(p),
+                          onChanged:
+                              _busy.contains(p.id) ? null : (_) => _toggle(p),
                         ),
                       if (filtered.isEmpty)
                         Padding(

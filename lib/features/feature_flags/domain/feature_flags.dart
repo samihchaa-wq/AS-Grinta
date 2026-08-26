@@ -10,22 +10,22 @@ class SportsManagementFeature {
   });
 
   const SportsManagementFeature.disabled()
-    : enabled = false,
-      availabilityOpenHoursBefore = 144,
-      reminderHoursBefore = const [72, 24],
-      usualSquadSize = 14,
-      voteDurationHours = 24,
-      timezone = 'Europe/Paris',
-      updatedAt = null;
+      : enabled = false,
+        availabilityOpenHoursBefore = 144,
+        reminderHoursBefore = const [72, 24],
+        usualSquadSize = 14,
+        voteDurationHours = 24,
+        timezone = 'Europe/Paris',
+        updatedAt = null;
 
   const SportsManagementFeature.permanentFallback()
-    : enabled = true,
-      availabilityOpenHoursBefore = 144,
-      reminderHoursBefore = const [72, 24],
-      usualSquadSize = 14,
-      voteDurationHours = 24,
-      timezone = 'Europe/Paris',
-      updatedAt = null;
+      : enabled = true,
+        availabilityOpenHoursBefore = 144,
+        reminderHoursBefore = const [72, 24],
+        usualSquadSize = 14,
+        voteDurationHours = 24,
+        timezone = 'Europe/Paris',
+        updatedAt = null;
 
   final bool enabled;
   final int availabilityOpenHoursBefore;
@@ -66,15 +66,15 @@ class FeatureFlagsSnapshot {
   });
 
   const FeatureFlagsSnapshot.unavailable()
-    : sportsManagement = const SportsManagementFeature.disabled(),
-      sourceAvailable = false;
+      : sportsManagement = const SportsManagementFeature.disabled(),
+        sourceAvailable = false;
 
   /// Sports management is permanent in the product. If the remote config is
   /// temporarily unreadable, keep the capability enabled with conservative
   /// defaults while marking the source unavailable for observability.
   const FeatureFlagsSnapshot.permanentSportsFallback()
-    : sportsManagement = const SportsManagementFeature.permanentFallback(),
-      sourceAvailable = false;
+      : sportsManagement = const SportsManagementFeature.permanentFallback(),
+        sourceAvailable = false;
 
   final SportsManagementFeature sportsManagement;
 

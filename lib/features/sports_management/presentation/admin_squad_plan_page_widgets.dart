@@ -64,8 +64,10 @@ class _EffectifColumn extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '$title (${players.length})',
-                    style: Theme.of(context).textTheme.titleSmall
-                        ?.copyWith(color: color, fontWeight: FontWeight.w900),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
                 if (onRelanceAll != null && players.isNotEmpty)
@@ -133,16 +135,16 @@ class _EffectifPlayerGrid extends StatelessWidget {
       };
 
   Widget _chip(ConvocationPlayer player) => _EffectifPlayerChip(
-    player: player,
-    color: _chipColor(player),
-    draggable: draggable && !player.isGuest,
-    onTap: player.isGuest
-        ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
-        : (onShowInfo == null ? null : () => onShowInfo!(player)),
-    onRelance: (player.isGuest || onRelance == null)
-        ? null
-        : () => onRelance!(player),
-  );
+        player: player,
+        color: _chipColor(player),
+        draggable: draggable && !player.isGuest,
+        onTap: player.isGuest
+            ? (onRemoveGuest == null ? null : () => onRemoveGuest!(player))
+            : (onShowInfo == null ? null : () => onShowInfo!(player)),
+        onRelance: (player.isGuest || onRelance == null)
+            ? null
+            : () => onRelance!(player),
+      );
 
   static const int _columns = 4;
 
@@ -208,7 +210,10 @@ class _EffectifPlayerChip extends StatelessWidget {
               player.shortName,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           if (player.isGuest && onTap != null) ...[
@@ -335,7 +340,10 @@ class _FormationDropdown extends StatelessWidget {
       ),
       items: [
         for (final formation in footballFormations)
-          DropdownMenuItem(value: formation.code, child: Text(formation.code)),
+          DropdownMenuItem(
+            value: formation.code,
+            child: Text(formation.code),
+          ),
       ],
       onChanged: onChanged == null
           ? null

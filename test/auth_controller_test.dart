@@ -41,28 +41,27 @@ void main() {
     });
 
     test(
-      'preserves the session when profile loading is temporarily unavailable',
-      () async {
-        final repository = _FakeAuthRepository(
-          fetchResults: [StateError('temporary backend failure')],
-          hasSession: true,
-        );
-        final controller = AuthController(repository);
-        addTearDown(controller.dispose);
+        'preserves the session when profile loading is temporarily unavailable',
+        () async {
+      final repository = _FakeAuthRepository(
+        fetchResults: [StateError('temporary backend failure')],
+        hasSession: true,
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
 
-        await _flushAsync();
+      await _flushAsync();
 
-        expect(controller.state.isLoading, isFalse);
-        expect(controller.state.isAuthenticated, isFalse);
-        expect(controller.state.hasSession, isTrue);
-        expect(controller.state.profile, isNull);
-        expect(
-          controller.state.error,
-          'Connexion temporairement indisponible. Réessaie dans un instant.',
-        );
-        expect(repository.signOutCalls, 0);
-      },
-    );
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isTrue);
+      expect(controller.state.profile, isNull);
+      expect(
+        controller.state.error,
+        'Connexion temporairement indisponible. Réessaie dans un instant.',
+      );
+      expect(repository.signOutCalls, 0);
+    });
 
     test('signIn authenticates after the post-login refresh', () async {
       final initialRefresh = Completer<AuthProfile?>();
@@ -107,7 +106,9 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test('archived profiles preserve their rejection when signedOut fires during signOut', () async {
+    test(
+        'archived profiles preserve their rejection when signedOut fires during signOut',
+        () async {
       final repository = _FakeAuthRepository(
         fetchResults: [_archivedProfile],
         hasSession: true,
@@ -126,63 +127,59 @@ void main() {
       expect(controller.state.error, 'Ce compte n’est pas actif.');
     });
 
-    test(
-      'signIn reports invalid credentials without blaming the network',
-      () async {
-        final repository = _FakeAuthRepository(
-          fetchResults: [null],
-          signInError: const supabase.AuthException(
-            'Invalid login credentials',
-            statusCode: '400',
-            code: 'invalid_credentials',
-          ),
-        );
-        final controller = AuthController(repository);
-        addTearDown(controller.dispose);
-        await _flushAsync();
+    test('signIn reports invalid credentials without blaming the network',
+        () async {
+      final repository = _FakeAuthRepository(
+        fetchResults: [null],
+        signInError: const supabase.AuthException(
+          'Invalid login credentials',
+          statusCode: '400',
+          code: 'invalid_credentials',
+        ),
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      await _flushAsync();
 
-        await controller.signIn(
-          username: 'samih@example.com',
-          password: 'wrong-password',
-        );
+      await controller.signIn(
+        username: 'samih@example.com',
+        password: 'wrong-password',
+      );
 
-        expect(controller.state.isLoading, isFalse);
-        expect(controller.state.isAuthenticated, isFalse);
-        expect(controller.state.hasSession, isFalse);
-        expect(controller.state.profile, isNull);
-        expect(
-          controller.state.error,
-          'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
-        );
-      },
-    );
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
+      expect(controller.state.profile, isNull);
+      expect(
+        controller.state.error,
+        'Connexion impossible. Vérifie ton identifiant et ton mot de passe.',
+      );
+    });
 
-    test(
-      'signIn reports a temporary outage for non-credential failures',
-      () async {
-        final repository = _FakeAuthRepository(
-          fetchResults: [null],
-          signInError: StateError('backend failure'),
-        );
-        final controller = AuthController(repository);
-        addTearDown(controller.dispose);
-        await _flushAsync();
+    test('signIn reports a temporary outage for non-credential failures',
+        () async {
+      final repository = _FakeAuthRepository(
+        fetchResults: [null],
+        signInError: StateError('backend failure'),
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
+      await _flushAsync();
 
-        await controller.signIn(
-          username: 'samih@example.com',
-          password: 'password123',
-        );
+      await controller.signIn(
+        username: 'samih@example.com',
+        password: 'password123',
+      );
 
-        expect(controller.state.isLoading, isFalse);
-        expect(controller.state.isAuthenticated, isFalse);
-        expect(controller.state.hasSession, isFalse);
-        expect(controller.state.profile, isNull);
-        expect(
-          controller.state.error,
-          'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
-        );
-      },
-    );
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
+      expect(controller.state.profile, isNull);
+      expect(
+        controller.state.error,
+        'Connexion temporairement indisponible. Vérifie ta connexion et réessaie.',
+      );
+    });
 
     test('signOut clears the authenticated state', () async {
       final repository = _FakeAuthRepository(
@@ -203,28 +200,26 @@ void main() {
       expect(controller.state.error, isNull);
     });
 
-    test(
-      'ignores a refresh result that became stale after signedOut',
-      () async {
-        final pendingRefresh = Completer<AuthProfile?>();
-        final repository = _FakeAuthRepository(
-          fetchResults: [pendingRefresh.future],
-          hasSession: true,
-        );
-        final controller = AuthController(repository);
-        addTearDown(controller.dispose);
+    test('ignores a refresh result that became stale after signedOut',
+        () async {
+      final pendingRefresh = Completer<AuthProfile?>();
+      final repository = _FakeAuthRepository(
+        fetchResults: [pendingRefresh.future],
+        hasSession: true,
+      );
+      final controller = AuthController(repository);
+      addTearDown(controller.dispose);
 
-        repository.emit(supabase.AuthChangeEvent.signedOut);
-        repository.hasSession = false;
-        pendingRefresh.complete(_activeProfile);
-        await _flushAsync();
+      repository.emit(supabase.AuthChangeEvent.signedOut);
+      repository.hasSession = false;
+      pendingRefresh.complete(_activeProfile);
+      await _flushAsync();
 
-        expect(controller.state.isLoading, isFalse);
-        expect(controller.state.isAuthenticated, isFalse);
-        expect(controller.state.hasSession, isFalse);
-        expect(controller.state.profile, isNull);
-      },
-    );
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.isAuthenticated, isFalse);
+      expect(controller.state.hasSession, isFalse);
+      expect(controller.state.profile, isNull);
+    });
   });
 }
 

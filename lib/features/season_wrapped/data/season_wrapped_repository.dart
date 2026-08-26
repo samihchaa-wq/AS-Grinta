@@ -8,9 +8,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Le bouton n'apparaît qu'entre deux saisons : dès qu'une nouvelle saison
 /// est créée, la base cesse de servir le bilan et `available` repasse à faux.
 class SeasonWrappedState {
-  const SeasonWrappedState({required this.available, this.seasonName});
+  const SeasonWrappedState({
+    required this.available,
+    this.seasonName,
+  });
 
-  const SeasonWrappedState.unavailable() : available = false, seasonName = null;
+  const SeasonWrappedState.unavailable()
+      : available = false,
+        seasonName = null;
 
   factory SeasonWrappedState.fromJson(Map<String, dynamic> json) {
     return SeasonWrappedState(
@@ -90,7 +95,10 @@ class SeasonWrappedPosition {
 
 /// Une feuille du bilan : plusieurs critères qui se partagent en une image.
 class SeasonWrappedSheet {
-  const SeasonWrappedSheet({required this.title, required this.stats});
+  const SeasonWrappedSheet({
+    required this.title,
+    required this.stats,
+  });
 
   final String title;
   final List<SeasonWrappedStat> stats;
@@ -233,7 +241,11 @@ class SeasonWrapped {
       SeasonWrappedSheet(
         title: 'Mon apport',
         stats: [
-          SeasonWrappedStat(label: 'Buts', value: '$goals', rank: goalsRank),
+          SeasonWrappedStat(
+            label: 'Buts',
+            value: '$goals',
+            rank: goalsRank,
+          ),
           SeasonWrappedStat(
             label: 'Homme du match',
             value: '$motm',
@@ -241,9 +253,8 @@ class SeasonWrapped {
           ),
           SeasonWrappedStat(
             label: 'Polyvalence',
-            value: versatility <= 1
-                ? '$versatility poste'
-                : '$versatility postes',
+            value:
+                versatility <= 1 ? '$versatility poste' : '$versatility postes',
             rank: versatilityRank,
           ),
         ],
@@ -283,13 +294,13 @@ class SeasonWrapped {
   /// sont pas classés : un joueur qui débute en décroche mécaniquement plus
   /// qu'un ancien, le comparatif n'aurait pas de sens.
   List<SeasonWrappedStat> get stats => [
-    for (final sheet in sheets) ...sheet.stats,
-    SeasonWrappedStat(
-      label: 'Badges décrochés',
-      shortLabel: 'Badges',
-      value: '$badgeCount',
-    ),
-  ];
+        for (final sheet in sheets) ...sheet.stats,
+        SeasonWrappedStat(
+          label: 'Badges décrochés',
+          shortLabel: 'Badges',
+          value: '$badgeCount',
+        ),
+      ];
 
   static String _formatDelay(double hours) =>
       WrappedDelay.fromHours(hours).text;
@@ -350,15 +361,13 @@ class SeasonWrappedRepository {
   }
 }
 
-final seasonWrappedRepositoryProvider = Provider<SeasonWrappedRepository>((
-  ref,
-) {
+final seasonWrappedRepositoryProvider =
+    Provider<SeasonWrappedRepository>((ref) {
   return SeasonWrappedRepository(ref.watch(supabaseClientProvider));
 });
 
-final seasonWrappedStateProvider = FutureProvider<SeasonWrappedState>((
-  ref,
-) async {
+final seasonWrappedStateProvider =
+    FutureProvider<SeasonWrappedState>((ref) async {
   return ref.watch(seasonWrappedRepositoryProvider).fetchState();
 });
 

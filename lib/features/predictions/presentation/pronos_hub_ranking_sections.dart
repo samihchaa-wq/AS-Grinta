@@ -45,15 +45,15 @@ class _GeneralRankingsSectionState extends State<_GeneralRankingsSection> {
         Expanded(
           child: switch (_view) {
             _GeneralRankingView.matches => _MatchRankingView(
-              badgeSize: widget.badgeSize,
-            ),
+                badgeSize: widget.badgeSize,
+              ),
             _GeneralRankingView.scorers => const ColorfulSeasonPredictionsPage(
-              embedded: true,
-              showRanking: false,
-            ),
+                embedded: true,
+                showRanking: false,
+              ),
             _GeneralRankingView.general => _GeneralRankingViewWidget(
-              badgeSize: widget.badgeSize,
-            ),
+                badgeSize: widget.badgeSize,
+              ),
           },
         ),
       ],

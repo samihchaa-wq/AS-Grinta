@@ -73,17 +73,15 @@ class _MatchLiveClockState extends State<MatchLiveClock> {
       fontWeight: FontWeight.w900,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
-    final labelStyle =
-        (widget.compact
-                ? Theme.of(context).textTheme.labelMedium
-                : Theme.of(context).textTheme.labelLarge)
-            ?.copyWith(fontWeight: FontWeight.w700);
+    final labelStyle = (widget.compact
+            ? Theme.of(context).textTheme.labelMedium
+            : Theme.of(context).textTheme.labelLarge)
+        ?.copyWith(fontWeight: FontWeight.w700);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: widget.compact
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
+      crossAxisAlignment:
+          widget.compact ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
         Text(_format(elapsed), style: timeStyle),
         const SizedBox(height: 2),

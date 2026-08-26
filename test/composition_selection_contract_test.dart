@@ -22,25 +22,17 @@ void main() {
 
   group('Droit d’être aligné', () {
     test('la convocation suffit, quelle que soit la disponibilité', () {
+      expect(_entry(convoked: true, availability: 'available').canBeSelected,
+          isTrue);
       expect(
-        _entry(convoked: true, availability: 'available').canBeSelected,
-        isTrue,
-      );
-      expect(
-        _entry(convoked: true, availability: 'absent').canBeSelected,
-        isTrue,
-      );
-      expect(
-        _entry(convoked: true, availability: 'no_response').canBeSelected,
-        isTrue,
-      );
+          _entry(convoked: true, availability: 'absent').canBeSelected, isTrue);
+      expect(_entry(convoked: true, availability: 'no_response').canBeSelected,
+          isTrue);
     });
 
     test('un joueur non convoqué reste hors de la feuille', () {
-      expect(
-        _entry(convoked: false, availability: 'available').canBeSelected,
-        isFalse,
-      );
+      expect(_entry(convoked: false, availability: 'available').canBeSelected,
+          isFalse);
     });
   });
 
@@ -210,12 +202,12 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
 
   @override
   Future<List<AdminSportMatch>> fetchUpcomingMatches() async => [
-    AdminSportMatch(
-      id: _matchId,
-      opponentName: 'Olympique Test',
-      kickoffAt: _convocations.kickoffAt,
-    ),
-  ];
+        AdminSportMatch(
+          id: _matchId,
+          opponentName: 'Olympique Test',
+          kickoffAt: _convocations.kickoffAt,
+        ),
+      ];
 
   @override
   Future<MatchConvocations> fetchMatchConvocations(String matchId) async =>
@@ -224,16 +216,17 @@ class _FakeSportWaitlistRepository implements SportWaitlistRepository {
   @override
   Future<AvailabilityReminderSummary> fetchReminderSummary(
     String matchId,
-  ) async => const AvailabilityReminderSummary(
-    matchId: _matchId,
-    availabilityState: 'open',
-    noResponseCount: 0,
-    openSentCount: 0,
-    j3SentCount: 0,
-    j1SentCount: 0,
-    canRemind: false,
-    players: [],
-  );
+  ) async =>
+      const AvailabilityReminderSummary(
+        matchId: _matchId,
+        availabilityState: 'open',
+        noResponseCount: 0,
+        openSentCount: 0,
+        j3SentCount: 0,
+        j1SentCount: 0,
+        canRemind: false,
+        players: [],
+      );
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -248,17 +241,20 @@ class _FakeMatchCompositionRepository implements MatchCompositionRepository {
   @override
   Future<Set<String>> fetchGoalkeeperSeasonPlayerIds(
     List<String> seasonPlayerIds,
-  ) async => {'sp1'};
+  ) async =>
+      {'sp1'};
 
   @override
   Future<Map<String, String>> fetchCanonicalPlayerIds(
     List<String> seasonPlayerIds,
-  ) async => const {};
+  ) async =>
+      const {};
 
   @override
   Future<List<PlayedPosition>> fetchPlayerPositionHistory(
     DateTime since,
-  ) async => const [];
+  ) async =>
+      const [];
 
   @override
   Future<Map<String, int>> fetchFinishedBenchCounts(String matchId) async =>

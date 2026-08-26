@@ -88,9 +88,8 @@ void main() {
       repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
       await _flush();
 
-      final mutation = container
-          .read(provider.notifier)
-          .adjustScore(team: 'us', delta: 1);
+      final mutation =
+          container.read(provider.notifier).adjustScore(team: 'us', delta: 1);
 
       await _waitUntil(() => repository.pendingFetches.length == 1);
       repository.pendingFetches.removeAt(0).complete(_bundle(score: 1));
@@ -168,9 +167,10 @@ void main() {
     repository.pendingFetches.removeAt(0).complete(_bundle(score: 0));
     await _flush();
 
-    await container
-        .read(provider.notifier)
-        .saveLiveLineup(entries: const [], expectedLineupRevision: 42);
+    await container.read(provider.notifier).saveLiveLineup(
+      entries: const [],
+      expectedLineupRevision: 42,
+    );
 
     expect(repository.lastExpectedLineupRevision, 42);
   });

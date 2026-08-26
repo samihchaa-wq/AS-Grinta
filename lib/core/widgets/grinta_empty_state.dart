@@ -54,7 +54,9 @@ class GrintaEmptyState extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: .1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: accent.withValues(alpha: .22)),
+                      border: Border.all(
+                        color: accent.withValues(alpha: .22),
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: accent.withValues(alpha: .08),
@@ -70,14 +72,13 @@ class GrintaEmptyState extends StatelessWidget {
                 Text(
                   title,
                   textAlign: TextAlign.center,
-                  style:
-                      (compact
-                              ? theme.textTheme.titleMedium
-                              : theme.textTheme.titleLarge)
-                          ?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: AppTheme.textPrimary,
-                          ),
+                  style: (compact
+                          ? theme.textTheme.titleMedium
+                          : theme.textTheme.titleLarge)
+                      ?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: AppTheme.textPrimary,
+                  ),
                 ),
                 if (message case final value? when value.trim().isNotEmpty) ...[
                   SizedBox(height: compact ? 6 : 8),
@@ -109,9 +110,8 @@ class GrintaEmptyState extends StatelessWidget {
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: reduceMotion ? 1 : 0, end: 1),
-      duration: reduceMotion
-          ? Duration.zero
-          : const Duration(milliseconds: 280),
+      duration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) => Opacity(
         opacity: value,

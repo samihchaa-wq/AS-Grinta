@@ -39,20 +39,20 @@ class HomeNextMatchCard extends StatelessWidget {
                   '⚽ Match entre nous',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
                 )
               : MatchFixture(
                   homeName: homeName,
                   awayName: awayName,
                   grintaIsHome: match.isHome,
                   nameStyle: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontSize: 16,
-                    height: 1.1,
-                    fontWeight: FontWeight.w800,
-                  ),
+                        fontSize: 16,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                      ),
                   foreground: AppTheme.textPrimary,
                   textAlign: TextAlign.center,
                 ),
@@ -84,7 +84,10 @@ class HomeNextMatchCard extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.surfaceHero, AppTheme.surface],
+            colors: [
+              AppTheme.surfaceHero,
+              AppTheme.surface,
+            ],
           ),
         ),
         child: Stack(

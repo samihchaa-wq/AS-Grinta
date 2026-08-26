@@ -58,8 +58,9 @@ class _MandatoryNotificationsCard extends StatelessWidget {
           children: [
             Text(
               'Notifications essentielles',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -132,8 +133,9 @@ class _OptionalNotificationsCard extends ConsumerWidget {
           children: [
             Text(
               'À toi de choisir',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             Text(
@@ -238,13 +240,13 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
     // et dit ce qu'elle a réellement fait.
     var message = 'Test envoyé — regarde tes notifications.';
     try {
-      final result = await ref
-          .read(supabaseClientProvider)
-          .rpc('send_test_push');
+      final result =
+          await ref.read(supabaseClientProvider).rpc('send_test_push');
       final data = result is Map ? Map<String, dynamic>.from(result) : null;
       if (data != null && data['sent'] != true) {
         message = switch (data['reason']?.toString()) {
-          'no_subscription' => 'Aucun appareil abonné : active les notifications sur cet appareil.',
+          'no_subscription' =>
+            'Aucun appareil abonné : active les notifications sur cet appareil.',
           'notifications_paused' =>
             'Les notifications du club sont en pause : rien n’a été envoyé.',
           'not_configured' => 'Les notifications push ne sont pas configurées.',
@@ -256,8 +258,9 @@ class _TestPushButtonState extends ConsumerState<_TestPushButton> {
     }
     if (!mounted) return;
     setState(() => _sending = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -351,8 +354,9 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
     }
     if (!mounted) return;
     setState(() => _updating = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -374,15 +378,16 @@ class _AdminKillSwitchCardState extends ConsumerState<_AdminKillSwitchCard> {
               const SizedBox(height: 8),
               Text(
                 'Toutes les notifications',
-                style: Theme.of(context).textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 6),
               Text(
                 paused
                     ? 'Désactivées : aucun joueur ne reçoit rien, y compris le test.'
                     : 'Coupe temporairement tous les envois sans modifier les '
-                          'préférences des joueurs.',
+                        'préférences des joueurs.',
               ),
               const SizedBox(height: 12),
               SwitchListTile.adaptive(
@@ -416,9 +421,8 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     setState(() => _enabling = true);
     var message = 'Notifications activées sur cet appareil.';
     try {
-      final enabled = await ref
-          .read(pushSubscriptionsRepositoryProvider)
-          .enable();
+      final enabled =
+          await ref.read(pushSubscriptionsRepositoryProvider).enable();
       if (!enabled) message = 'Autorisation refusée par le navigateur.';
     } catch (_) {
       message = 'Impossible d’activer les notifications.';
@@ -426,8 +430,9 @@ class _PushActivationCardState extends ConsumerState<_PushActivationCard> {
     ref.invalidate(pushStatusProvider);
     if (!mounted) return;
     setState(() => _enabling = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

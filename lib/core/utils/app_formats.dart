@@ -103,7 +103,10 @@ class AppFormats {
 
   /// Date de calendrier lisible sur une seule ligne :
   /// "Jeudi 21 Mai 2026 • 20:45".
-  static String calendarDateTimeLong(DateTime dt, {bool includeTime = true}) {
+  static String calendarDateTimeLong(
+    DateTime dt, {
+    bool includeTime = true,
+  }) {
     final local = dt.toLocal();
     final fullDate =
         '${weekdayLong(local)} ${dayNumber(local)} ${monthLong(local)} ${local.year}';

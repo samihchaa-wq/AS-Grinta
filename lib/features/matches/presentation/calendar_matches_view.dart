@@ -53,9 +53,8 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
   Future<void> _refreshHistory(String seasonName) async {
     setState(() {
-      _historyLoads[seasonName] = ref
-          .read(calendarHistoryRepositoryProvider)
-          .fetchSeason(seasonName);
+      _historyLoads[seasonName] =
+          ref.read(calendarHistoryRepositoryProvider).fetchSeason(seasonName);
     });
     ref.invalidate(clubEventsProvider);
     await _historyLoads[seasonName];
@@ -87,7 +86,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
         .toList(growable: false);
     List<ClubEvent> events;
     try {
-      events = (await ref.read(clubEventsProvider.future))
+      events = (await ref.read(
+        clubEventsProvider.future,
+      ))
           .where((event) => event.seasonId == seasonId)
           .toList(growable: false);
     } catch (_) {
@@ -122,17 +123,18 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
       );
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanizeError(error))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(humanizeError(error))));
     }
   }
 
   void _selectSeason(String? seasonName, List<Map<String, dynamic>> seasons) {
     if (seasonName == null) return;
     final season = seasons.cast<Map<String, dynamic>?>().firstWhere(
-      (item) => item?['name']?.toString() == seasonName,
-      orElse: () => null,
-    );
+          (item) => item?['name']?.toString() == seasonName,
+          orElse: () => null,
+        );
     if (season == null) return;
     setState(() => _monthCursor = _initialMonthForSeason(season));
   }
@@ -166,9 +168,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
     final seasons = [...state.seasons]
       ..sort((a, b) => b['name'].toString().compareTo(a['name'].toString()));
     final currentSeason = seasons.cast<Map<String, dynamic>?>().firstWhere(
-      (season) => season?['status']?.toString() == 'open',
-      orElse: () => null,
-    );
+          (season) => season?['status']?.toString() == 'open',
+          orElse: () => null,
+        );
     final currentSeasonName = currentSeason?['name']?.toString();
     final currentSeasonId = currentSeason?['id']?.toString();
     final selectedSeason =
@@ -181,9 +183,9 @@ class _CalendarMatchesViewState extends ConsumerState<CalendarMatchesView> {
 
     final exportAction = currentSeasonId != null && currentSeasonName != null
         ? () => _exportCurrentSeason(
-            seasonId: currentSeasonId,
-            seasonName: currentSeasonName,
-          )
+              seasonId: currentSeasonId,
+              seasonName: currentSeasonName,
+            )
         : null;
 
     return Column(

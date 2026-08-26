@@ -147,8 +147,11 @@ class _LiveAddPlayerAction extends ConsumerWidget {
                 tooltip: 'Ajouter un joueur',
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
-                onPressed: () =>
-                    showMatchLiveAddPlayerSheet(context, ref, matchId: matchId),
+                onPressed: () => showMatchLiveAddPlayerSheet(
+                  context,
+                  ref,
+                  matchId: matchId,
+                ),
                 icon: const Icon(Icons.add_rounded, size: 20),
               ),
             ),
@@ -156,8 +159,11 @@ class _LiveAddPlayerAction extends ConsumerWidget {
         : SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () =>
-                  showMatchLiveAddPlayerSheet(context, ref, matchId: matchId),
+              onPressed: () => showMatchLiveAddPlayerSheet(
+                context,
+                ref,
+                matchId: matchId,
+              ),
               icon: const Icon(Icons.person_add_alt_1_rounded),
               label: const Text('Ajouter un joueur'),
             ),
@@ -192,7 +198,8 @@ class _RealtimeFallbackNotice extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
       liveRegion: true,
-      label: 'Connexion temps réel interrompue. Synchronisation de secours active.',
+      label:
+          'Connexion temps réel interrompue. Synchronisation de secours active.',
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.errorContainer,

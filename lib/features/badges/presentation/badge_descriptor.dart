@@ -28,7 +28,11 @@ BadgeDescriptor badgeDescriptorFor({
   return BadgeDescriptor(raw);
 }
 
-String _rawDescriptorFor({String? code, String? metric, String? category}) {
+String _rawDescriptorFor({
+  String? code,
+  String? metric,
+  String? category,
+}) {
   switch (metric) {
     case 'matches_played_season':
       return 'MATCHS · SAISON';
