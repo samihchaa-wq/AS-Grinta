@@ -335,7 +335,7 @@ Widget _buildFeedSection({
   required bool isAdmin,
   required DateTime now,
 }) {
-  final title = section.title;
+  final title = section.showPhaseTitle ? section.title : null;
   final headerIsFocus = title != null &&
       focusKey != null &&
       _entryKey(section.entries.first) == focusKey;
@@ -350,6 +350,10 @@ Widget _buildFeedSection({
         ),
       if (title != null)
         const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.microGap)),
+      if (section.showSeasonTitle)
+        SliverToBoxAdapter(
+          child: _SeasonDivider(seasonName: section.seasonName),
+        ),
       SliverPadding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenGutter,
@@ -374,6 +378,44 @@ Widget _buildFeedSection({
       ),
     ],
   );
+}
+
+class _SeasonDivider extends StatelessWidget {
+  const _SeasonDivider({required this.seasonName});
+
+  final String seasonName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenGutter,
+        AppSpacing.microGap,
+        AppSpacing.screenGutter,
+        AppSpacing.contentGap,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(color: AppTheme.outline.withValues(alpha: .45)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              'Saison $seasonName',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ),
+          Expanded(
+            child: Divider(color: AppTheme.outline.withValues(alpha: .45)),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _FeedSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -492,14 +534,10 @@ class _UpcomingMatchCard extends ConsumerWidget {
         : '/matches/${match.id}/lineup?section=info&infoOnly=true';
     final cardSurface = match.isCancelled
         ? CalendarCardPalette.cancelledSurface
-        : match.isInternal
-            ? CalendarCardPalette.internalSurface
-            : CalendarCardPalette.upcomingSurface;
+        : CalendarCardPalette.matchSurface(match.matchType);
     final cardBorder = match.isCancelled
         ? CalendarCardPalette.cancelledBorder
-        : match.isInternal
-            ? CalendarCardPalette.internalBorder
-            : CalendarCardPalette.upcomingBorder;
+        : CalendarCardPalette.matchBorder(match.matchType);
 
     final fixtureRow = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -571,6 +609,14 @@ class _UpcomingMatchCard extends ConsumerWidget {
             secondary: AppTheme.textPrimary,
             dividerColor: cardBorder,
             child: fixtureRow,
+          ),
+          const SizedBox(height: 7),
+          Text(
+            match.calendarTypeLabel,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: cardBorder,
+                  fontWeight: FontWeight.w900,
+                ),
           ),
           if (match.address case final address?) ...[
             const SizedBox(height: AppSpacing.contentGap),
@@ -666,12 +712,21 @@ class _FeedEntry {
 enum _FeedSectionKind { finished, upcoming }
 
 class _FeedSection {
-  _FeedSection({required this.kind, required this.entries});
+  _FeedSection({
+    required this.kind,
+    required this.seasonName,
+    required this.showPhaseTitle,
+    required this.showSeasonTitle,
+    required this.entries,
+  });
 
   final _FeedSectionKind kind;
+  final String seasonName;
+  final bool showPhaseTitle;
+  final bool showSeasonTitle;
   final List<_FeedEntry> entries;
 
-  String? get title {
+  String get title {
     switch (kind) {
       case _FeedSectionKind.finished:
         return 'Terminés';
@@ -686,14 +741,32 @@ List<_FeedSection> _buildFeedSections(List<_FeedEntry> entries) {
 
   for (final entry in entries) {
     final kind = _feedSectionKind(entry.kind);
-    if (sections.isEmpty || sections.last.kind != kind) {
-      sections.add(_FeedSection(kind: kind, entries: [entry]));
+    final seasonName = _seasonNameFor(entry.date);
+    final previous = sections.lastOrNull;
+    if (previous == null ||
+        previous.kind != kind ||
+        previous.seasonName != seasonName) {
+      sections.add(
+        _FeedSection(
+          kind: kind,
+          seasonName: seasonName,
+          showPhaseTitle: previous == null || previous.kind != kind,
+          showSeasonTitle:
+              previous == null || previous.seasonName != seasonName,
+          entries: [entry],
+        ),
+      );
       continue;
     }
-    sections.last.entries.add(entry);
+    previous.entries.add(entry);
   }
 
   return sections;
+}
+
+String _seasonNameFor(DateTime date) {
+  final startYear = date.month >= DateTime.july ? date.year : date.year - 1;
+  return '$startYear-${startYear + 1}';
 }
 
 _FeedSectionKind _feedSectionKind(_FeedKind kind) {
