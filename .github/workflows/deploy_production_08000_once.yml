@@ -27,7 +27,7 @@ jobs:
       - name: Checkout merged production candidate
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Check deployment secrets
         shell: bash
@@ -51,7 +51,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "8d5918296790f5977ae883de4b214e163c79baa6"
+          test "$(git diff --name-only 8d5918296790f5977ae883de4b214e163c79baa6..HEAD)" = ".github/workflows/deploy_production_08000_once.yml"
           test "$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' | sort | tail -n 1)" = "20260826008000_edit_convocation_launch.sql"
           supabase migration list | tee migration-before.txt
           supabase db push --password "$SUPABASE_DB_PASSWORD" --dry-run 2>&1 | tee dry-run.txt
