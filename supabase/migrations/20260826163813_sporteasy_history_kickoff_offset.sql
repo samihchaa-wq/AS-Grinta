@@ -6,6 +6,9 @@
 -- 313 heures importees par le lot 1 de +30 minutes.
 --
 -- Apres decalage : de 20:00 a 22:30, aucune rencontre ne franchit minuit.
+--
+-- Appliquee en production le 2026-08-26 sous la version 20260826163813.
+-- Verifie apres coup : 313 heures, de 20:00 a 22:30, somme 392990 minutes.
 
 do $decalage$
 declare
