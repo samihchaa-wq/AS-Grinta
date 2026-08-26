@@ -147,13 +147,15 @@ select is(
     from public.match_sport_workflows
     where match_id = current_setting('test.edit_convocation_match')::uuid
   ),
-  private.match_features_open_at(
+  (
     (
-      select kickoff_at
-      from public.matches
-      where id = current_setting('test.edit_convocation_match')::uuid
-    )
-  ),
+      (
+        select match_date
+        from public.matches
+        where id = current_setting('test.edit_convocation_match')::uuid
+      ) - 6
+    ) + time '12:00'
+  ) at time zone 'Europe/Paris',
   'le retour en automatique recalcule exactement J-6 à 12h Europe/Paris'
 );
 
