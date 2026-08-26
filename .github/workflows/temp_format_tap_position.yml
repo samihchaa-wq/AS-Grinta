@@ -1,0 +1,44 @@
+name: Temporary format tap-position branch
+
+on:
+  push:
+    branches: [feat/tap-position-lineup-placement]
+    paths: [.github/workflows/temp_format_tap_position.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feat/tap-position-lineup-placement
+          fetch-depth: 0
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Format changed Dart files
+        run: |
+          dart format \
+            lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart \
+            test/features/sports_management/presentation/formation_pitch_tap_selection_test.dart
+
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            lib/features/sports_management/presentation/widgets/formation_pitch_editor.dart \
+            test/features/sports_management/presentation/formation_pitch_tap_selection_test.dart
+          git commit -m "Format tap-to-place lineup changes"
+          git push origin HEAD:feat/tap-position-lineup-placement
