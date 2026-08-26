@@ -17,7 +17,7 @@ create or replace function public.get_or_create_opponent(p_name text)
 returns uuid
 language plpgsql
 security definer
-set search_path='public'
+set search_path=''
 as $$
 declare
   normalized_name text := btrim(coalesce(p_name,''));
