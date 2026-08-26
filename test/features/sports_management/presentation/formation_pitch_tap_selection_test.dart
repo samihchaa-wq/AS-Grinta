@@ -21,9 +21,8 @@ MatchCompositionEntry _entry({
     sortOrder: 0,
     availabilityStatus: 'available',
     convocationStatus: 'convoked',
-    selectionStatus: zone == MatchCompositionZone.field
-        ? 'starter'
-        : 'substitute',
+    selectionStatus:
+        zone == MatchCompositionZone.field ? 'starter' : 'substitute',
     x: x,
     y: y,
   );
